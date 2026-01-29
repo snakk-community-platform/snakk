@@ -65,6 +65,7 @@ nunit-*.xml
 .vs/
 .serena/
 .claude/
+serena.yaml 
 
 # Development secrets & configuration
 appsettings.Development.json
