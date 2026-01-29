@@ -1,0 +1,149 @@
+namespace Snakk.Infrastructure.Database.Repositories;
+
+using Microsoft.EntityFrameworkCore;
+using Snakk.Application.Repositories;
+using Snakk.Infrastructure.Database;
+using Snakk.Shared.Models;
+
+public class SearchRepository(SnakkDbContext context) : ISearchRepository
+{
+    private readonly SnakkDbContext _context = context;
+
+    public async Task<PagedResult<DiscussionSearchResultDto>> SearchDiscussionsAsync(
+        string query,
+        string? authorPublicId = null,
+        string? spacePublicId = null,
+        string? hubPublicId = null,
+        int offset = 0,
+        int pageSize = 20)
+    {
+        var baseQuery = _context.Discussions.AsNoTracking().AsQueryable();
+
+        // Apply case-insensitive ILIKE search on Title (PostgreSQL)
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var term in searchTerms)
+            {
+                var likeTerm = term; // Capture for closure
+                baseQuery = baseQuery.Where(d => EF.Functions.ILike(d.Title, $"%{likeTerm}%"));
+            }
+        }
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(authorPublicId))
+            baseQuery = baseQuery.Where(d => d.CreatedByUser.PublicId == authorPublicId);
+        if (!string.IsNullOrEmpty(spacePublicId))
+            baseQuery = baseQuery.Where(d => d.Space.PublicId == spacePublicId);
+        if (!string.IsNullOrEmpty(hubPublicId))
+            baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
+
+        var items = await baseQuery
+            .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .Select(d => new DiscussionSearchResultDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.CreatedByUser.PublicId,
+                d.CreatedByUser.DisplayName,
+                d.CreatedByUser.AvatarFileName,
+                d.Space.PublicId,
+                d.Space.Name,
+                d.Space.Slug,
+                d.Space.Hub.Slug,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.Posts.Count,
+                d.ReactionCount))
+            .ToListAsync();
+
+        var hasMoreItems = items.Count > pageSize;
+        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
+
+        return new PagedResult<DiscussionSearchResultDto>
+        {
+            Items = resultItems,
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems
+        };
+    }
+
+    public async Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
+        string query,
+        string? authorPublicId = null,
+        string? discussionPublicId = null,
+        string? spacePublicId = null,
+        int offset = 0,
+        int pageSize = 20)
+    {
+        var baseQuery = _context.Posts.AsNoTracking().AsQueryable();
+
+        // Apply case-insensitive ILIKE search on Content (PostgreSQL)
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var term in searchTerms)
+            {
+                var likeTerm = term; // Capture for closure
+                baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Content, $"%{likeTerm}%"));
+            }
+        }
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(authorPublicId))
+            baseQuery = baseQuery.Where(p => p.CreatedByUser.PublicId == authorPublicId);
+        if (!string.IsNullOrEmpty(discussionPublicId))
+            baseQuery = baseQuery.Where(p => p.Discussion.PublicId == discussionPublicId);
+        if (!string.IsNullOrEmpty(spacePublicId))
+            baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
+
+        var items = await baseQuery
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .Select(p => new PostSearchResultDto(
+                p.PublicId,
+                p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
+                p.CreatedByUser.PublicId,
+                p.CreatedByUser.DisplayName,
+                p.CreatedByUser.AvatarFileName,
+                p.Discussion.PublicId,
+                p.Discussion.Title,
+                p.Discussion.Slug,
+                p.Discussion.Space.Slug,
+                p.Discussion.Space.Hub.Slug,
+                p.CreatedAt))
+            .ToListAsync();
+
+        var hasMoreItems = items.Count > pageSize;
+        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
+
+        return new PagedResult<PostSearchResultDto>
+        {
+            Items = resultItems,
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems
+        };
+    }
+
+    public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId)
+    {
+        return await _context.Discussions
+            .AsNoTracking()
+            .Where(d => d.CreatedByUser.PublicId == authorPublicId)
+            .CountAsync();
+    }
+
+    public async Task<int> GetPostCountByAuthorAsync(string authorPublicId)
+    {
+        return await _context.Posts
+            .AsNoTracking()
+            .Where(p => p.CreatedByUser.PublicId == authorPublicId)
+            .CountAsync();
+    }
+
+}

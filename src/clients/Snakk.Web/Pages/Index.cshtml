@@ -1,0 +1,446 @@
+@page
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Page Header (full width) -->
+    <div class="page-header">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div>
+                <h1>Latest Discussions</h1>
+                <p>Recent activity across all spaces</p>
+            </div>
+            @if (Model.PlatformStats != null || Model.CommunityStats != null)
+            {
+                <div class="w-full lg:w-80 flex-shrink-0">
+                    <div class="stats-panel">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.SpaceCount</span>
+                                <span class="stat-label">Spaces</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.DiscussionCount</span>
+                                <span class="stat-label">Discussions</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.ReplyCount</span>
+                                <span class="stat-label">Replies</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0">
+            @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
+            {
+                <div class="clean-card">
+                    <div class="empty-state-simple">
+                        <h3>No discussions yet</h3>
+                        <p>Be the first to start a conversation!</p>
+                        <a href="/hubs" class="btn btn-primary btn-sm mt-4">Browse Hubs</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="topic-list" id="discussions-container">
+                    @foreach (var discussion in Model.RecentDiscussions.Items)
+                    {
+                        var baseUrl = SnakkUrlHelper.Discussion(
+                            Model.Community,
+                            discussion.Hub.Slug,
+                            discussion.Space.Slug,
+                            $"{discussion.Slug}~{discussion.PublicId}");
+
+                        var unreadUrl = $"{baseUrl}?gotoUnread=true";
+
+                        <div class="topic-item-wrapper">
+                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                 alt="@discussion.Author.DisplayName"
+                                 loading="lazy"
+                                 class="w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block" />
+
+                            <div class="topic-item">
+                                <div class="topic-content">
+                                    <div class="topic-title">
+                                        <a href="@baseUrl" class="topic-title-link">@discussion.Title</a>
+                                        @if (discussion.IsPinned)
+                                        {
+                                            <span class="badge badge-primary-subtle badge-xs ml-2">Pinned</span>
+                                        }
+                                        @if (discussion.IsLocked)
+                                        {
+                                            <span class="badge badge-warning-subtle badge-xs ml-2">Locked</span>
+                                        }
+                                        @if (discussion.Tags != null && discussion.Tags.Length > 0)
+                                        {
+                                            @foreach (var tag in discussion.Tags.Take(3))
+                                            {
+                                                <span class="badge badge-ghost badge-xs ml-2">@tag</span>
+                                            }
+                                            @if (discussion.Tags.Length > 3)
+                                            {
+                                                <span class="text-muted ml-1">...</span>
+                                            }
+                                        }
+                                    </div>
+                                    <div class="topic-meta">
+                                        @if (Model.ShowCommunityInDiscussionList)
+                                        {
+                                            <a href="@SnakkUrlHelper.Community(discussion.Community.Slug)"
+                                               class="topic-meta-link"
+                                               data-popup-type="community"
+                                               data-popup-id="@discussion.Community.PublicId"
+                                               data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="9 18 15 12 9 6"></polyline>
+                                            </svg>
+                                        }
+                                        <a href="@SnakkUrlHelper.Hub(Model.Community, discussion.Hub.Slug)"
+                                           class="topic-meta-link"
+                                           data-popup-type="hub"
+                                           data-popup-id="@discussion.Hub.PublicId"
+                                           data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="9 18 15 12 9 6"></polyline>
+                                            </svg>
+                                        <a href="@SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug)"
+                                           class="topic-meta-link"
+                                           data-popup-type="space"
+                                           data-popup-id="@discussion.Space.PublicId"
+                                           data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+                                        <span class="topic-meta-separator">·</span>
+                                        <span>@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
+                                    </div>
+                                </div>
+                                <div class="topic-stats hidden sm:flex">
+                                    <div class="topic-stat">
+                                        <div class="topic-stat-value">@discussion.ReactionCount</div>
+                                        <div class="topic-stat-label">Reactions</div>
+                                    </div>
+                                    <div class="topic-stat">
+                                        <div class="topic-stat-value">@discussion.PostCount</div>
+                                        <div class="topic-stat-label">Replies</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="@unreadUrl" class="topic-latest-link" title="Jump to first unread post">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </a>
+                        </div>
+                    }
+                </div>
+
+                @if (Model.PreferEndlessScroll)
+                {
+                    @if (Model.RecentDiscussions.HasMoreItems)
+                    {
+                        <div id="endless-scroll-sentinel" class="h-4"></div>
+                        <div id="loading-indicator" class="flex justify-center py-6 hidden">
+                            <span class="loading loading-spinner loading-md"></span>
+                        </div>
+                        <div id="end-of-list" class="text-center text-muted py-6 hidden">
+                            No more discussions
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-6">
+                            You've reached the end
+                        </div>
+                    }
+                }
+                else
+                {
+                    @if (Model.RecentDiscussions.Offset > 0 || Model.RecentDiscussions.HasMoreItems)
+                    {
+                        <div class="flex justify-center gap-2 mt-6">
+                            @if (Model.RecentDiscussions.Offset > 0)
+                            {
+                                <a href="/?offset=@(Math.Max(0, Model.RecentDiscussions.Offset - Model.RecentDiscussions.PageSize))"
+                                   class="btn btn-ghost btn-sm">
+                                    Previous
+                                </a>
+                            }
+                            @if (Model.RecentDiscussions.HasMoreItems)
+                            {
+                                <a href="/?offset=@(Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize)"
+                                   class="btn btn-ghost btn-sm">
+                                    Next
+                                </a>
+                            }
+                        </div>
+                    }
+                }
+            }
+        </div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-full lg:w-80 flex-shrink-0">
+            @if (Model.ShowTrendingDiscussions)
+            {
+                <!-- Top Active Discussions Today -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Discussions</h3>
+                    @if (Model.TopActiveDiscussions?.Items == null || Model.TopActiveDiscussions.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No activity today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var discussion in Model.TopActiveDiscussions.Items)
+                            {
+                                var discussionUrl = SnakkUrlHelper.Discussion(
+                                    Model.Community,
+                                    discussion.Hub.Slug,
+                                    discussion.Space.Slug,
+                                    $"{discussion.Slug}~{discussion.PublicId}");
+
+                                <li>
+                                    <a href="@discussionUrl" class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                             alt="@discussion.Author.DisplayName"
+                                             loading="lazy"
+                                             class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
+                                                <span data-popup-type="space"
+                                                      data-popup-id="@discussion.Space.PublicId"
+                                                      data-popup-name="@discussion.Space.Name">@discussion.Space.Name</span>
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (Model.ShowTrendingSpaces)
+            {
+                <!-- Top Trending Spaces Today -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Spaces</h3>
+                    @if (Model.TopActiveSpaces?.Items == null || Model.TopActiveSpaces.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No activity today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var space in Model.TopActiveSpaces.Items)
+                            {
+                                var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
+
+                                <li>
+                                    <a href="@spaceUrl" class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(Model.ApiBaseUrl, space.PublicId)"
+                                             alt=""
+                                             loading="lazy"
+                                             class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title">@space.Name</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@space.PostCountToday posts today</span>
+                                                <span>@space.Hub.Name</span>
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (Model.ShowTrendingContributors)
+            {
+                <!-- Top Trending Contributors Today -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Contributors</h3>
+                    @if (Model.TopContributors?.Items == null || Model.TopContributors.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No contributors today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var contributor in Model.TopContributors.Items)
+                            {
+                                <li>
+                                    <span class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, contributor.PublicId)"
+                                             alt="@contributor.DisplayName"
+                                             loading="lazy"
+                                             class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title"
+                                                  data-popup-type="user"
+                                                  data-popup-id="@contributor.PublicId"
+                                                  data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
+</div>
+
+@if (Model.PreferEndlessScroll && Model.RecentDiscussions?.HasMoreItems == true)
+{
+    <script>
+    // Global configuration for JavaScript modules
+    window.SnakkConfig = {
+        apiBaseUrl: '@Model.ApiBaseUrl',
+        communityPrefix: '@(Model.Community.IsDefaultCommunity ? "" : $"/c/{Model.Community.CommunitySlug}")',
+        showCommunityInDiscussionList: @(Model.ShowCommunityInDiscussionList ? "true" : "false"),
+        discussions: {
+            pageSize: @Model.RecentDiscussions.PageSize,
+            communityId: '@(Model.CommunityStats?.PublicId ?? "")',
+            nextCursor: '@(Model.RecentDiscussions.NextCursor ?? "")',
+            hasMoreItems: @(Model.RecentDiscussions.HasMoreItems ? "true" : "false")
+        }
+    };
+    </script>
+    <script src="~/js/utils.js"></script>
+    <script src="~/js/frontpage-discussions.js"></script>
+}
+
+<style>
+/* Sticky sidebar styles */
+@@media (min-width: 1024px) {
+    #sidebar {
+        overflow-y: auto;
+        max-height: calc(100vh - 5rem); /* Initial max-height (viewport - approximate nav height) */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+    }
+
+    #sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb {
+        background-color: rgba(155, 155, 155, 0.5);
+        border-radius: 3px;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(155, 155, 155, 0.7);
+    }
+
+    #sidebar.sidebar-sticky {
+        position: sticky;
+        top: 0;
+    }
+}
+</style>
+
+<script>
+(function() {
+    'use strict';
+
+    // Only run on desktop (lg breakpoint)
+    if (window.innerWidth < 1024) return;
+
+    const sidebar = document.getElementById('sidebar');
+    const nav = document.querySelector('nav');
+
+    if (!sidebar || !nav) return;
+
+    let sidebarOriginalTop = null;
+    let navHeight = 0;
+    let isSticky = false;
+
+    function updateMeasurements() {
+        navHeight = nav.offsetHeight;
+        const sidebarRect = sidebar.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+        if (sidebarOriginalTop === null) {
+            sidebarOriginalTop = sidebarRect.top + scrollTop;
+        }
+
+        // Set max-height to viewport minus nav height
+        sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
+    }
+
+    function handleScroll() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const triggerPoint = sidebarOriginalTop - navHeight;
+
+        if (scrollTop >= triggerPoint && !isSticky) {
+            // Make sticky
+            sidebar.classList.add('sidebar-sticky');
+            sidebar.style.top = `${navHeight}px`;
+            isSticky = true;
+        } else if (scrollTop < triggerPoint && isSticky) {
+            // Remove sticky
+            sidebar.classList.remove('sidebar-sticky');
+            sidebar.style.top = '';
+            isSticky = false;
+        }
+    }
+
+    // Initialize
+    updateMeasurements();
+    handleScroll();
+
+    // Listen to scroll events (throttled)
+    let scrollTimeout;
+    window.addEventListener('scroll', function() {
+        if (scrollTimeout) {
+            window.cancelAnimationFrame(scrollTimeout);
+        }
+        scrollTimeout = window.requestAnimationFrame(function() {
+            handleScroll();
+        });
+    }, { passive: true });
+
+    // Update measurements on resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (window.innerWidth >= 1024) {
+                sidebarOriginalTop = null; // Reset to recalculate
+                updateMeasurements();
+                handleScroll();
+            } else {
+                // Remove sticky on mobile
+                sidebar.classList.remove('sidebar-sticky');
+                sidebar.style.top = '';
+                sidebar.style.maxHeight = '';
+                isSticky = false;
+            }
+        }, 100);
+    });
+})();
+</script>

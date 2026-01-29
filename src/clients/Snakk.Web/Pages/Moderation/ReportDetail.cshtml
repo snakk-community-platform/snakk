@@ -1,0 +1,306 @@
+@page "/moderation/reports/{id}"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.ReportDetailModel
+@{
+    ViewData["Title"] = "Report Details";
+}
+
+
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/moderation">Moderation</a></li>
+            <li><a href="/moderation/reports">Reports</a></li>
+            <li>Report Details</li>
+        </ul>
+    </div>
+
+    @if (Model.Report == null)
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>Report not found</h3>
+                <p>This report may have been deleted or you don't have access to it.</p>
+                <a href="/moderation/reports" class="btn btn-primary mt-4">Back to Reports</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-2xl font-bold">Report</h1>
+                    <span class="badge @Model.GetStatusBadgeClass(Model.Report.Status) badge-lg">@Model.Report.Status</span>
+                </div>
+                <p class="text-muted">Submitted @Model.GetRelativeTime(Model.Report.CreatedAt)</p>
+            </div>
+            @if (Model.Report.Status == "Pending")
+            {
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('resolve-modal').showModal()" class="btn btn-success btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Resolve
+                    </button>
+                    <button onclick="document.getElementById('dismiss-modal').showModal()" class="btn btn-ghost btn-sm">
+                        Dismiss
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Main Content -->
+            <div class="md:col-span-2 space-y-4">
+                <!-- Reporter Info -->
+                <div class="clean-card">
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Reporter</h2>
+                    <div class="flex items-center gap-3">
+                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ReporterUserPublicId)"
+                             alt="@Model.Report.ReporterUserDisplayName"
+                             class="w-10 h-10 rounded-full" />
+                        <div>
+                            <a href="/u/@Model.Report.ReporterUserPublicId" class="font-medium hover:underline">@Model.Report.ReporterUserDisplayName</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reported Content -->
+                <div class="clean-card">
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Reported Content</h2>
+
+                    @if (!string.IsNullOrEmpty(Model.Report.ReportedUserPublicId))
+                    {
+                        <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
+                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ReportedUserPublicId)"
+                                 alt="@Model.Report.ReportedUserDisplayName"
+                                 class="w-10 h-10 rounded-full" />
+                            <div>
+                                <div class="text-xs text-muted mb-1">Reported User</div>
+                                <a href="/u/@Model.Report.ReportedUserPublicId" class="font-medium hover:underline">@Model.Report.ReportedUserDisplayName</a>
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.Report.ReportedPostContent))
+                    {
+                        <div class="p-3 bg-base-200 rounded-lg">
+                            <div class="text-xs text-muted mb-2">Reported Post</div>
+                            <div class="prose prose-sm max-w-none">
+                                @Model.Report.ReportedPostContent
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.Report.ReportedDiscussionTitle))
+                    {
+                        <div class="p-3 bg-base-200 rounded-lg">
+                            <div class="text-xs text-muted mb-2">Reported Discussion</div>
+                            <div class="font-medium">@Model.Report.ReportedDiscussionTitle</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Report Reason & Details -->
+                <div class="clean-card">
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Report Details</h2>
+
+                    @if (!string.IsNullOrEmpty(Model.Report.ReasonName))
+                    {
+                        <div class="mb-3">
+                            <div class="text-xs text-muted mb-1">Reason</div>
+                            <span class="badge badge-outline">@Model.Report.ReasonName</span>
+                            @if (!string.IsNullOrEmpty(Model.Report.ReasonDescription))
+                            {
+                                <p class="text-sm text-muted mt-1">@Model.Report.ReasonDescription</p>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Report.Details))
+                    {
+                        <div>
+                            <div class="text-xs text-muted mb-1">Additional Details</div>
+                            <p class="text-sm">@Model.Report.Details</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Resolution (if resolved) -->
+                @if (Model.Report.ResolvedAt.HasValue)
+                {
+                    <div class="clean-card border-l-4 @(Model.Report.Status == "Resolved" ? "border-success" : "border-base-300")">
+                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Resolution</h2>
+                        <div class="flex items-center gap-3 mb-2">
+                            @if (!string.IsNullOrEmpty(Model.Report.ResolvedByUserPublicId))
+                            {
+                                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ResolvedByUserPublicId)"
+                                     alt="@Model.Report.ResolvedByUserDisplayName"
+                                     class="w-8 h-8 rounded-full" />
+                            }
+                            <div>
+                                <span class="font-medium">@Model.Report.ResolvedByUserDisplayName</span>
+                                <span class="text-muted">@(Model.Report.Status == "Resolved" ? "resolved" : "dismissed") this report</span>
+                            </div>
+                            <span class="text-xs text-muted ml-auto">@Model.GetRelativeTime(Model.Report.ResolvedAt.Value)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.Report.ResolutionNote))
+                        {
+                            <p class="text-sm text-muted mt-2 pl-11">@Model.Report.ResolutionNote</p>
+                        }
+                    </div>
+                }
+
+                <!-- Comments -->
+                <div class="clean-card">
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+                        Moderator Comments
+                        @if (Model.Report.Comments?.Any() == true)
+                        {
+                            <span class="badge badge-ghost badge-sm ml-2">@Model.Report.Comments.Count()</span>
+                        }
+                    </h2>
+
+                    @if (Model.Report.Comments?.Any() != true)
+                    {
+                        <p class="text-sm text-muted mb-4">No comments yet.</p>
+                    }
+                    else
+                    {
+                        <div class="space-y-3 mb-4">
+                            @foreach (var comment in Model.Report.Comments.OrderBy(c => c.CreatedAt))
+                            {
+                                <div class="flex items-start gap-3 p-3 bg-base-200 rounded-lg">
+                                    <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, comment.AuthorUserPublicId)"
+                                         alt="@comment.AuthorUserDisplayName"
+                                         class="w-8 h-8 rounded-full" />
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-medium text-sm">@comment.AuthorUserDisplayName</span>
+                                            <span class="text-xs text-muted">@Model.GetRelativeTime(comment.CreatedAt)</span>
+                                        </div>
+                                        <p class="text-sm">@comment.Content</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Add Comment Form -->
+                    <form method="post" asp-page-handler="AddComment">
+                        <div class="form-control">
+                            <textarea name="CommentContent"
+                                      class="textarea textarea-bordered w-full"
+                                      rows="2"
+                                      placeholder="Add a comment for other moderators..."></textarea>
+                        </div>
+                        <div class="mt-2">
+                            <button type="submit" class="btn btn-sm btn-ghost">Add Comment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-4">
+                <!-- Location -->
+                <div class="clean-card">
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Location</h2>
+                    <div class="space-y-2 text-sm">
+                        @if (!string.IsNullOrEmpty(Model.Report.CommunityName))
+                        {
+                            <div>
+                                <span class="text-muted">Community:</span>
+                                <span class="font-medium">@Model.Report.CommunityName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Report.HubName))
+                        {
+                            <div>
+                                <span class="text-muted">Hub:</span>
+                                <span class="font-medium">@Model.Report.HubName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Report.SpaceName))
+                        {
+                            <div>
+                                <span class="text-muted">Space:</span>
+                                <span class="font-medium">@Model.Report.SpaceName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                @if (!string.IsNullOrEmpty(Model.Report.ReportedUserPublicId))
+                {
+                    <div class="clean-card">
+                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Quick Actions</h2>
+                        <div class="space-y-2">
+                            <a href="/u/@Model.Report.ReportedUserPublicId" class="btn btn-sm btn-ghost w-full justify-start">
+                                View User Profile
+                            </a>
+                            <a href="/moderation/bans?userId=@Model.Report.ReportedUserPublicId" class="btn btn-sm btn-ghost w-full justify-start">
+                                Check User Bans
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Resolve Modal -->
+        <dialog id="resolve-modal" class="modal">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg">Resolve Report</h3>
+                <p class="py-4 text-muted">Mark this report as resolved. You can optionally add a note explaining the resolution.</p>
+                <form method="post" asp-page-handler="Resolve">
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Resolution Note (optional)</span>
+                        </label>
+                        <textarea name="ResolutionNote"
+                                  class="textarea textarea-bordered w-full"
+                                  rows="3"
+                                  placeholder="Describe the action taken..."></textarea>
+                    </div>
+                    <div class="modal-action">
+                        <button type="button" onclick="document.getElementById('resolve-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="submit" class="btn btn-success">Resolve</button>
+                    </div>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+
+        <!-- Dismiss Modal -->
+        <dialog id="dismiss-modal" class="modal">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg">Dismiss Report</h3>
+                <p class="py-4 text-muted">Dismiss this report without taking action. You can optionally add a note explaining why.</p>
+                <form method="post" asp-page-handler="Dismiss">
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Dismissal Note (optional)</span>
+                        </label>
+                        <textarea name="ResolutionNote"
+                                  class="textarea textarea-bordered w-full"
+                                  rows="3"
+                                  placeholder="Reason for dismissal..."></textarea>
+                    </div>
+                    <div class="modal-action">
+                        <button type="button" onclick="document.getElementById('dismiss-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="submit" class="btn">Dismiss Report</button>
+                    </div>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+    }
+</div>

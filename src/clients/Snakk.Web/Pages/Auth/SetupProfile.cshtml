@@ -1,0 +1,45 @@
+@page "/auth/setup-profile"
+@model Snakk.Web.Pages.Auth.SetupProfileModel
+@{
+    ViewData["Title"] = "Setup Your Profile";
+}
+
+<div class="container max-w-md mx-auto px-4 py-12">
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl mb-2">Welcome to Snakk!</h1>
+            <p class="text-base-content/70 mb-6">Let's set up your profile to get started.</p>
+
+            @if (Model.ErrorMessage != null)
+            {
+                <div class="alert alert-error mb-4">
+                    <span>@Model.ErrorMessage</span>
+                </div>
+            }
+
+            <form method="post" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Display Name</span>
+                    </label>
+                    <input type="text"
+                           name="displayName"
+                           value="@Model.SuggestedDisplayName"
+                           class="input input-bordered"
+                           required
+                           placeholder="Choose your display name" />
+                    <label class="label">
+                        <span class="label-text-alt">This is how others will see you</span>
+                    </label>
+                </div>
+
+                <div class="alert alert-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>You can change this later in your profile settings.</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">Continue</button>
+            </form>
+        </div>
+    </div>
+</div>

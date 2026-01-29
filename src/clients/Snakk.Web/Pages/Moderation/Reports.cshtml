@@ -1,0 +1,149 @@
+@page
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.ReportsModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+
+<div class="max-w-5xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/moderation">Moderation</a></li>
+            <li>Reports</li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Reports</h1>
+        <p>Review and resolve user reports</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <a href="@Model.BuildUrl(null)" class="btn btn-sm @(string.IsNullOrEmpty(Model.Status) ? "btn-primary" : "btn-ghost")">
+            All
+        </a>
+        <a href="@Model.BuildUrl("Pending")" class="btn btn-sm @(Model.Status == "Pending" ? "btn-warning" : "btn-ghost")">
+            Pending
+        </a>
+        <a href="@Model.BuildUrl("Resolved")" class="btn btn-sm @(Model.Status == "Resolved" ? "btn-success" : "btn-ghost")">
+            Resolved
+        </a>
+        <a href="@Model.BuildUrl("Dismissed")" class="btn btn-sm @(Model.Status == "Dismissed" ? "btn-ghost btn-active" : "btn-ghost")">
+            Dismissed
+        </a>
+    </div>
+
+    <!-- Reports List -->
+    @if (Model.Reports?.Items == null || !Model.Reports.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>No reports found</h3>
+                <p>@(string.IsNullOrEmpty(Model.Status) ? "There are no reports to review." : $"No {Model.Status.ToLower()} reports.")</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-4">
+            @foreach (var report in Model.Reports.Items)
+            {
+                <a href="/moderation/reports/@report.PublicId" class="clean-card block hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, report.ReporterUserPublicId)"
+                             alt="@report.ReporterUserDisplayName"
+                             class="w-10 h-10 rounded-full flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge @Model.GetStatusBadgeClass(report.Status) badge-sm">@report.Status</span>
+                                @if (!string.IsNullOrEmpty(report.ReasonName))
+                                {
+                                    <span class="badge badge-outline badge-sm">@report.ReasonName</span>
+                                }
+                                @if (report.CommentCount > 0)
+                                {
+                                    <span class="badge badge-ghost badge-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        @report.CommentCount
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="text-sm mb-2">
+                                <span class="font-medium">@report.ReporterUserDisplayName</span>
+                                <span class="text-muted">reported</span>
+                                @if (!string.IsNullOrEmpty(report.ReportedUserDisplayName))
+                                {
+                                    <span class="font-medium text-error">@report.ReportedUserDisplayName</span>
+                                }
+                                else if (!string.IsNullOrEmpty(report.ReportedPostContentSnippet))
+                                {
+                                    <span class="text-muted">a post:</span>
+                                    <span class="italic">"@report.ReportedPostContentSnippet"</span>
+                                }
+                                else if (!string.IsNullOrEmpty(report.ReportedDiscussionTitle))
+                                {
+                                    <span class="text-muted">a discussion:</span>
+                                    <span class="font-medium">"@report.ReportedDiscussionTitle"</span>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(report.Details))
+                            {
+                                <div class="text-sm text-muted mb-2 line-clamp-2">@report.Details</div>
+                            }
+
+                            <div class="flex items-center gap-4 text-xs text-muted">
+                                <span>Reported @Model.GetRelativeTime(report.CreatedAt)</span>
+                                @if (!string.IsNullOrEmpty(report.SpaceName))
+                                {
+                                    <span>in @report.SpaceName</span>
+                                }
+                                else if (!string.IsNullOrEmpty(report.HubName))
+                                {
+                                    <span>in @report.HubName</span>
+                                }
+                                else if (!string.IsNullOrEmpty(report.CommunityName))
+                                {
+                                    <span>in @report.CommunityName</span>
+                                }
+                                @if (report.ResolvedAt.HasValue && !string.IsNullOrEmpty(report.ResolvedByUserDisplayName))
+                                {
+                                    <span>· Resolved by @report.ResolvedByUserDisplayName @Model.GetRelativeTime(report.ResolvedAt.Value)</span>
+                                }
+                            </div>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </a>
+            }
+        </div>
+
+        @* Pagination *@
+        @if (Model.Offset > 0 || Model.Reports.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-6">
+                @if (Model.Offset > 0)
+                {
+                    <a href="@Model.BuildUrl(Model.Status, Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Reports.HasMoreItems)
+                {
+                    <a href="@Model.BuildUrl(Model.Status, Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>

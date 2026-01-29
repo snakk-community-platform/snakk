@@ -1,0 +1,11 @@
+@{
+    // Use partial layout for HTMX boosted requests (no nav/footer, just content)
+    if (Context.Items.ContainsKey("UsePartialLayout") && (bool)Context.Items["UsePartialLayout"]!)
+    {
+        Layout = "_LayoutPartial";
+    }
+    else
+    {
+        Layout = "_Layout";
+    }
+}

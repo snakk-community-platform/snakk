@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Snakk.Domain\Snakk.Domain.csproj" />
+    <ProjectReference Include="..\Snakk.Shared\Snakk.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

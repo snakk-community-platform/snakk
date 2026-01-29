@@ -1,0 +1,228 @@
+@page
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.IndexModel
+@{
+    ViewData["Title"] = "Moderation Dashboard";
+}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Moderation Dashboard</h1>
+        <p>Manage reports, users, and content</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="clean-card text-center">
+            <div class="text-3xl font-bold text-primary">@Model.PendingReportCount</div>
+            <div class="text-sm text-muted">Pending Reports</div>
+        </div>
+        <div class="clean-card text-center">
+            <div class="text-3xl font-bold">@(Model.MyRoles?.Count() ?? 0)</div>
+            <div class="text-sm text-muted">Active Roles</div>
+        </div>
+        <div class="clean-card text-center">
+            <a href="/moderation/reports" class="btn btn-primary btn-sm">View Reports</a>
+        </div>
+        <div class="clean-card text-center">
+            <a href="/moderation/logs" class="btn btn-ghost btn-sm">View Logs</a>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+        <!-- My Roles -->
+        <div class="md:col-span-1">
+            <div class="clean-card">
+                <h2 class="text-lg font-semibold mb-4">My Roles</h2>
+                @if (Model.MyRoles == null || !Model.MyRoles.Any())
+                {
+                    <p class="text-muted text-sm">No active roles</p>
+                }
+                else
+                {
+                    <div class="space-y-3">
+                        @foreach (var role in Model.MyRoles)
+                        {
+                            <div class="flex items-center justify-between p-2 bg-base-200 rounded-lg">
+                                <div>
+                                    <span class="badge @Model.GetRoleBadgeClass(role.Role) badge-sm">@Model.GetRoleDisplayName(role.Role)</span>
+                                    @if (!string.IsNullOrEmpty(role.CommunityName))
+                                    {
+                                        <div class="text-xs text-muted mt-1">@role.CommunityName</div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(role.HubName))
+                                    {
+                                        <div class="text-xs text-muted mt-1">@role.HubName</div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(role.SpaceName))
+                                    {
+                                        <div class="text-xs text-muted mt-1">@role.SpaceName</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Quick Links -->
+            <div class="clean-card mt-4">
+                <h2 class="text-lg font-semibold mb-4">Quick Links</h2>
+                <nav class="space-y-2">
+                    <a href="/moderation/reports" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Reports
+                            @if (Model.PendingReportCount > 0)
+                            {
+                                <span class="badge badge-warning badge-sm">@Model.PendingReportCount</span>
+                            }
+                        </div>
+                    </a>
+                    <a href="/moderation/bans" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            Bans
+                        </div>
+                    </a>
+                    <a href="/moderation/roles" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Roles
+                        </div>
+                    </a>
+                    <a href="/moderation/logs" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Audit Log
+                        </div>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="md:col-span-2">
+            <!-- Pending Reports -->
+            <div class="clean-card mb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Pending Reports</h2>
+                    <a href="/moderation/reports" class="text-sm text-primary hover:underline">View all</a>
+                </div>
+                @if (Model.PendingReports?.Items == null || !Model.PendingReports.Items.Any())
+                {
+                    <div class="text-center py-8 text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>No pending reports</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-3">
+                        @foreach (var report in Model.PendingReports.Items.Take(5))
+                        {
+                            <a href="/moderation/reports/@report.PublicId" class="block p-3 hover:bg-base-200 rounded-lg transition-colors border border-base-300">
+                                <div class="flex items-start gap-3">
+                                    <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, report.ReporterUserPublicId)"
+                                         alt="@report.ReporterUserDisplayName"
+                                         class="w-8 h-8 rounded-full" />
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-sm">@report.ReporterUserDisplayName</span>
+                                            <span class="text-xs text-muted">reported</span>
+                                            @if (!string.IsNullOrEmpty(report.ReportedUserDisplayName))
+                                            {
+                                                <span class="text-sm font-medium">@report.ReportedUserDisplayName</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(report.ReportedPostContentSnippet))
+                                            {
+                                                <span class="text-sm">a post</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(report.ReportedDiscussionTitle))
+                                            {
+                                                <span class="text-sm">a discussion</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(report.ReasonName))
+                                        {
+                                            <div class="text-xs text-muted mt-1">Reason: @report.ReasonName</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(report.Details))
+                                        {
+                                            <div class="text-sm mt-1 text-muted truncate">@report.Details</div>
+                                        }
+                                        <div class="text-xs text-muted mt-1">@Model.GetRelativeTime(report.CreatedAt)</div>
+                                    </div>
+                                    <span class="badge badge-warning badge-sm">Pending</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Recent Activity Log -->
+            <div class="clean-card">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Recent Activity</h2>
+                    <a href="/moderation/logs" class="text-sm text-primary hover:underline">View all</a>
+                </div>
+                @if (Model.RecentLogs?.Items == null || !Model.RecentLogs.Items.Any())
+                {
+                    <p class="text-muted text-sm">No recent activity</p>
+                }
+                else
+                {
+                    <div class="space-y-3">
+                        @foreach (var log in Model.RecentLogs.Items.Take(10))
+                        {
+                            <div class="flex items-start gap-3 p-2 rounded-lg">
+                                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, log.ActorUserPublicId)"
+                                     alt="@log.ActorUserDisplayName"
+                                     class="w-8 h-8 rounded-full" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm">
+                                        <span class="font-medium">@log.ActorUserDisplayName</span>
+                                        <span class="text-muted">@Model.GetActionDisplayName(log.Action).ToLower()</span>
+                                        @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
+                                        {
+                                            <span class="font-medium">@log.TargetUserDisplayName</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
+                                        {
+                                            <span class="truncate">"@log.TargetDiscussionTitle"</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(log.SpaceName))
+                                    {
+                                        <div class="text-xs text-muted">in @log.SpaceName</div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.HubName))
+                                    {
+                                        <div class="text-xs text-muted">in @log.HubName</div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.CommunityName))
+                                    {
+                                        <div class="text-xs text-muted">in @log.CommunityName</div>
+                                    }
+                                </div>
+                                <div class="text-xs text-muted whitespace-nowrap">@Model.GetRelativeTime(log.CreatedAt)</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,95 @@
+@page
+@model Snakk.Web.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container max-w-2xl mx-auto px-4 py-8">
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl mb-6">Settings</h1>
+
+            @if (Model.SuccessMessage != null)
+            {
+                <div class="alert alert-success mb-4">
+                    <span>@Model.SuccessMessage</span>
+                </div>
+            }
+
+            @if (Model.ErrorMessage != null)
+            {
+                <div class="alert alert-error mb-4">
+                    <span>@Model.ErrorMessage</span>
+                </div>
+            }
+
+            @if (Model.User != null)
+            {
+                <form method="post" class="space-y-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Display Name</span>
+                        </label>
+                        <input type="text" name="displayName" value="@Model.User.DisplayName" class="input input-bordered" required />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Email</span>
+                        </label>
+                        <input type="email" value="@Model.User.Email" class="input input-bordered" disabled />
+                        <label class="label">
+                            <span class="label-text-alt">Email cannot be changed</span>
+                        </label>
+                    </div>
+
+                    @if (string.IsNullOrEmpty(Model.User.OAuthProvider))
+                    {
+                        <div class="divider">Change Password</div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Current Password</span>
+                            </label>
+                            <input type="password" name="currentPassword" class="input input-bordered" />
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">New Password</span>
+                            </label>
+                            <input type="password" name="newPassword" class="input input-bordered" />
+                            <label class="label">
+                                <span class="label-text-alt">Leave blank to keep current password</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Confirm New Password</span>
+                            </label>
+                            <input type="password" name="confirmPassword" class="input input-bordered" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <span>You're signed in with @Model.User.OAuthProvider. Password management is not available.</span>
+                        </div>
+                    }
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <a href="/profile" class="btn btn-ghost">Cancel</a>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <span>Please <a href="/auth/login" class="link">login</a> to access settings.</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>

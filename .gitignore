@@ -52,3 +52,28 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE/Tool folders
+.vscode/
+.idea/
+.vs/
+.serena/
+.claude/
+
+# Development secrets & configuration
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+secrets.json
+*.secrets.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3

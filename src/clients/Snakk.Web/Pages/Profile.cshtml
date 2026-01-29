@@ -1,0 +1,82 @@
+@page
+@model Snakk.Web.Pages.ProfileModel
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="container max-w-4xl mx-auto px-4 py-8">
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl mb-6">Profile</h1>
+
+            @if (Model.User != null)
+            {
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Display Name</span>
+                        </label>
+                        <div class="text-lg">@Model.User.DisplayName</div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Email</span>
+                        </label>
+                        <div class="text-lg">@Model.User.Email</div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Email Verified</span>
+                        </label>
+                        <div class="text-lg">
+                            @if (Model.User.EmailVerified)
+                            {
+                                <span class="badge badge-success">Verified</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning">Not Verified</span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.User.OAuthProvider))
+                    {
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Authentication Provider</span>
+                            </label>
+                            <div class="text-lg">
+                                <span class="badge badge-info">@Model.User.OAuthProvider</span>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">User ID</span>
+                        </label>
+                        <div class="text-sm font-mono text-base-content/70">@Model.User.PublicId</div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="flex gap-2">
+                        <a href="/settings" class="btn btn-primary">Edit Profile</a>
+                        <form method="post" asp-page-handler="Logout" class="inline">
+                            <button type="submit" class="btn btn-error">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <span>Please <a href="/auth/login" class="link">login</a> to view your profile.</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>

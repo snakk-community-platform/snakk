@@ -1,0 +1,217 @@
+@page
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.RolesModel
+@{
+    ViewData["Title"] = "Role Management";
+}
+
+
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/moderation">Moderation</a></li>
+            <li>Roles</li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Role Management</h1>
+        <p>View and manage moderator roles</p>
+    </div>
+
+    <!-- Search User -->
+    <div class="clean-card mb-6">
+        <form method="get" class="flex gap-3">
+            <div class="flex-1">
+                <input type="text"
+                       name="userId"
+                       value="@Model.UserId"
+                       placeholder="Enter user ID to view their roles..."
+                       class="input input-bordered w-full" />
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.UserId) && Model.UserProfile != null)
+    {
+        <!-- User Info -->
+        <div class="clean-card mb-6">
+            <div class="flex items-center gap-4">
+                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.UserProfile.PublicId)"
+                     alt="@Model.UserProfile.DisplayName"
+                     class="w-16 h-16 rounded-full" />
+                <div class="flex-1">
+                    <h2 class="text-xl font-bold">@Model.UserProfile.DisplayName</h2>
+                    <p class="text-muted text-sm">User ID: @Model.UserProfile.PublicId</p>
+                </div>
+                @if (Model.CanAdminister)
+                {
+                    <button onclick="document.getElementById('assign-modal').showModal()" class="btn btn-primary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Assign Role
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Roles List -->
+    <div class="clean-card">
+        <h2 class="text-lg font-semibold mb-4">
+            @if (!string.IsNullOrEmpty(Model.UserId))
+            {
+                @:Roles for @(Model.UserProfile?.DisplayName ?? Model.UserId)
+            }
+            else
+            {
+                @:My Roles
+            }
+        </h2>
+
+        @if (Model.Roles == null || !Model.Roles.Any())
+        {
+            <div class="text-center py-8 text-muted">
+                <p>No roles found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-3">
+                @foreach (var role in Model.Roles.Where(r => r.RevokedAt == null).OrderBy(r => r.Role))
+                {
+                    <div class="flex items-center justify-between p-4 rounded-lg border border-base-300 hover:bg-base-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, role.UserPublicId)"
+                                 alt="@role.UserDisplayName"
+                                 class="w-10 h-10 rounded-full" />
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium">@role.UserDisplayName</span>
+                                    <span class="badge @Model.GetRoleBadgeClass(role.Role) badge-sm">@Model.GetRoleDisplayName(role.Role)</span>
+                                </div>
+                                <div class="text-xs text-muted">
+                                    @if (!string.IsNullOrEmpty(role.CommunityName))
+                                    {
+                                        <span>@role.CommunityName</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(role.HubName))
+                                    {
+                                        <span>@role.HubName</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(role.SpaceName))
+                                    {
+                                        <span>@role.SpaceName</span>
+                                    }
+                                    else if (role.Role == "GlobalAdmin")
+                                    {
+                                        <span>Platform-wide</span>
+                                    }
+                                    <span class="mx-1">·</span>
+                                    <span>Assigned by @role.AssignedByUserDisplayName @Model.GetRelativeTime(role.AssignedAt)</span>
+                                </div>
+                            </div>
+                        </div>
+                        @if (Model.CanAdminister)
+                        {
+                            <form method="post" asp-page-handler="Revoke"
+                                  onsubmit="return confirm('Are you sure you want to revoke this role?');">
+                                <input type="hidden" name="roleId" value="@role.PublicId" />
+                                <input type="hidden" name="userId" value="@role.UserPublicId" />
+                                <button type="submit" class="btn btn-ghost btn-sm text-error">
+                                    Revoke
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Show revoked roles if any *@
+            @if (Model.Roles.Where(r => r.RevokedAt != null).Any())
+            {
+                var revokedRoles = Model.Roles.Where(r => r.RevokedAt != null).ToList();
+                <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Revoked Roles</h3>
+                    <div class="space-y-2">
+                        @foreach (var role in revokedRoles.OrderByDescending(r => r.RevokedAt))
+                        {
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-base-200 opacity-60">
+                                <div class="flex items-center gap-3">
+                                    <div>
+                                        <span class="badge badge-ghost badge-sm">@Model.GetRoleDisplayName(role.Role)</span>
+                                        <span class="text-xs text-muted ml-2">
+                                            @if (!string.IsNullOrEmpty(role.CommunityName))
+                                            {
+                                                @role.CommunityName
+                                            }
+                                            else if (!string.IsNullOrEmpty(role.HubName))
+                                            {
+                                                @role.HubName
+                                            }
+                                            else if (!string.IsNullOrEmpty(role.SpaceName))
+                                            {
+                                                @role.SpaceName
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-muted">Revoked @(role.RevokedAt.HasValue ? Model.GetRelativeTime(role.RevokedAt.Value) : "")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (Model.CanAdminister && !string.IsNullOrEmpty(Model.UserId))
+    {
+        <!-- Assign Role Modal -->
+        <dialog id="assign-modal" class="modal">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg">Assign Role</h3>
+                <p class="py-2 text-muted">Assign a moderation role to @(Model.UserProfile?.DisplayName ?? "this user").</p>
+                <form method="post" asp-page-handler="Assign">
+                    <input type="hidden" name="AssignRequest.TargetUserId" value="@Model.UserId" />
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Role Type</span>
+                        </label>
+                        <select name="AssignRequest.RoleType" class="select select-bordered w-full">
+                            <option value="SpaceMod">Space Moderator</option>
+                            <option value="HubMod">Hub Moderator</option>
+                            <option value="CommunityMod">Community Moderator</option>
+                            <option value="CommunityAdmin">Community Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Scope (based on role type)</span>
+                        </label>
+                        <input type="text" name="AssignRequest.CommunityId" placeholder="Community ID" class="input input-bordered w-full mb-2" />
+                        <input type="text" name="AssignRequest.HubId" placeholder="Hub ID" class="input input-bordered w-full mb-2" />
+                        <input type="text" name="AssignRequest.SpaceId" placeholder="Space ID" class="input input-bordered w-full" />
+                        <label class="label">
+                            <span class="label-text-alt text-muted">Enter the appropriate ID based on the role level</span>
+                        </label>
+                    </div>
+
+                    <div class="modal-action">
+                        <button type="button" onclick="document.getElementById('assign-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Assign Role</button>
+                    </div>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+    }
+</div>

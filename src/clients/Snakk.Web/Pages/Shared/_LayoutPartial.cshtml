@@ -1,0 +1,5 @@
+@* Partial layout for HTMX boosted requests - no full HTML, just content *@
+<div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
+@RenderBody()
+@await RenderSectionAsync("Meta", required: false)
+@await RenderSectionAsync("Scripts", required: false)

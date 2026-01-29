@@ -1,0 +1,222 @@
+@page
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.BansModel
+@{
+    ViewData["Title"] = "Ban Management";
+}
+
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/moderation">Moderation</a></li>
+            <li>Bans</li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Ban Management</h1>
+        <p>View and manage user bans</p>
+    </div>
+
+    <!-- Search User -->
+    <div class="clean-card mb-6">
+        <form method="get" class="flex gap-3">
+            <div class="flex-1">
+                <input type="text"
+                       name="userId"
+                       value="@Model.UserId"
+                       placeholder="Enter user ID to view bans..."
+                       class="input input-bordered w-full" />
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.UserId))
+    {
+        @if (Model.UserProfile != null)
+        {
+            <!-- User Info -->
+            <div class="clean-card mb-6">
+                <div class="flex items-center gap-4">
+                    <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.UserProfile.PublicId)"
+                         alt="@Model.UserProfile.DisplayName"
+                         class="w-16 h-16 rounded-full" />
+                    <div class="flex-1">
+                        <h2 class="text-xl font-bold">@Model.UserProfile.DisplayName</h2>
+                        <p class="text-muted text-sm">User ID: @Model.UserProfile.PublicId</p>
+                        <p class="text-muted text-sm">Joined @Model.GetRelativeTime(Model.UserProfile.JoinedAt)</p>
+                    </div>
+                    @if (Model.CanModerate)
+                    {
+                        <button onclick="document.getElementById('ban-modal').showModal()" class="btn btn-error btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            Ban User
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Bans List -->
+            <div class="clean-card">
+                <h2 class="text-lg font-semibold mb-4">Ban History</h2>
+
+                @if (Model.Bans == null || !Model.Bans.Any())
+                {
+                    <div class="text-center py-8 text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>No bans found for this user</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-4">
+                        @foreach (var ban in Model.Bans.OrderByDescending(b => b.BannedAt))
+                        {
+                            var isActive = Model.IsActiveBan(ban);
+                            <div class="p-4 rounded-lg border @(isActive ? "border-error bg-error/5" : "border-base-300")">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="badge @(isActive ? "badge-error" : "badge-ghost")">
+                                                @(isActive ? "Active" : ban.UnbannedAt.HasValue ? "Lifted" : "Expired")
+                                            </span>
+                                            <span class="badge badge-outline">
+                                                @(ban.BanType == "ReadWrite" ? "Read + Write" : "Write Only")
+                                            </span>
+                                        </div>
+                                        <div class="text-sm space-y-1">
+                                            @if (!string.IsNullOrEmpty(ban.SpaceName))
+                                            {
+                                                <div><span class="text-muted">Scope:</span> Space: @ban.SpaceName</div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(ban.HubName))
+                                            {
+                                                <div><span class="text-muted">Scope:</span> Hub: @ban.HubName</div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(ban.CommunityName))
+                                            {
+                                                <div><span class="text-muted">Scope:</span> Community: @ban.CommunityName</div>
+                                            }
+                                            else
+                                            {
+                                                <div><span class="text-muted">Scope:</span> Platform-wide</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(ban.Reason))
+                                            {
+                                                <div><span class="text-muted">Reason:</span> @ban.Reason</div>
+                                            }
+                                            <div>
+                                                <span class="text-muted">Banned by:</span> @ban.BannedByUserDisplayName
+                                                <span class="text-muted">on</span> @ban.BannedAt.ToString("MMM d, yyyy")
+                                            </div>
+                                            @if (ban.ExpiresAt.HasValue)
+                                            {
+                                                <div><span class="text-muted">Expires:</span> @ban.ExpiresAt.Value.ToString("MMM d, yyyy 'at' h:mm tt")</div>
+                                            }
+                                            else
+                                            {
+                                                <div><span class="text-muted">Duration:</span> Permanent</div>
+                                            }
+                                            @if (ban.UnbannedAt.HasValue)
+                                            {
+                                                <div>
+                                                    <span class="text-muted">Unbanned by:</span> @ban.UnbannedByUserDisplayName
+                                                    <span class="text-muted">on</span> @ban.UnbannedAt.Value.ToString("MMM d, yyyy")
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (isActive && Model.CanModerate)
+                                    {
+                                        <form method="post" asp-page-handler="Unban">
+                                            <input type="hidden" name="banId" value="@ban.PublicId" />
+                                            <input type="hidden" name="userId" value="@Model.UserId" />
+                                            <button type="submit" class="btn btn-ghost btn-sm">Lift Ban</button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Ban Modal -->
+            <dialog id="ban-modal" class="modal">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg">Ban User</h3>
+                    <p class="py-2 text-muted">Ban @Model.UserProfile.DisplayName from participating.</p>
+                    <form method="post" asp-page-handler="Ban">
+                        <input type="hidden" name="BanRequest.TargetUserId" value="@Model.UserId" />
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Ban Type</span>
+                            </label>
+                            <select name="BanRequest.BanType" class="select select-bordered w-full">
+                                <option value="WriteOnly">Write Only (can still read)</option>
+                                <option value="ReadWrite">Read + Write (complete ban)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Scope (leave blank for platform-wide)</span>
+                            </label>
+                            <input type="text" name="BanRequest.CommunityId" placeholder="Community ID" class="input input-bordered w-full mb-2" />
+                            <input type="text" name="BanRequest.HubId" placeholder="Hub ID" class="input input-bordered w-full mb-2" />
+                            <input type="text" name="BanRequest.SpaceId" placeholder="Space ID" class="input input-bordered w-full" />
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Reason</span>
+                            </label>
+                            <textarea name="BanRequest.Reason" class="textarea textarea-bordered w-full" rows="2" placeholder="Reason for ban..."></textarea>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Expires At (leave blank for permanent)</span>
+                            </label>
+                            <input type="datetime-local" name="BanRequest.ExpiresAt" class="input input-bordered w-full" />
+                        </div>
+
+                        <div class="modal-action">
+                            <button type="button" onclick="document.getElementById('ban-modal').close()" class="btn btn-ghost">Cancel</button>
+                            <button type="submit" class="btn btn-error">Ban User</button>
+                        </div>
+                    </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+        }
+        else
+        {
+            <div class="clean-card">
+                <div class="empty-state-simple">
+                    <h3>User not found</h3>
+                    <p>No user found with ID: @Model.UserId</p>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>Search for a user</h3>
+                <p>Enter a user ID above to view and manage their bans.</p>
+            </div>
+        </div>
+    }
+</div>

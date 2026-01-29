@@ -1,0 +1,96 @@
+@page "/c/{slug}"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.Communities.DetailModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = Model.Community?.Name ?? "Community";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">/</span>
+        <a href="/communities">Communities</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current"
+              data-popup-type="community"
+              data-popup-id="@Model.Community?.PublicId"
+              data-popup-name="@Model.Community?.Name">@Model.Community?.Name</span>
+    </nav>
+
+    <!-- Community Header -->
+    <div class="page-header">
+        <div class="flex items-start gap-4">
+            @if (Model.Community != null)
+            {
+                <img src="@SnakkUrlHelper.CommunityAvatar(apiBaseUrl, Model.Community.PublicId)" alt="" class="w-16 h-16 rounded-full flex-shrink-0" />
+            }
+            <div>
+                <h1>@Model.Community?.Name</h1>
+                @if (!string.IsNullOrEmpty(Model.Community?.Description))
+                {
+                    <p>@Model.Community.Description</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Hubs in this Community -->
+    <h2 class="text-xl font-semibold mb-4">Hubs</h2>
+
+    @if (Model.Hubs?.Items == null || !Model.Hubs.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>No hubs yet</h3>
+                <p>This community doesn't have any hubs yet.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-4 md:grid-cols-2">
+            @foreach (var hub in Model.Hubs.Items)
+            {
+                <a href="@SnakkUrlHelper.Hub(Model.CommunityContext, hub.Slug)" class="category-card">
+                    <div class="flex items-start gap-3">
+                        <img src="@SnakkUrlHelper.HubAvatar(apiBaseUrl, hub.PublicId)" alt="" class="w-10 h-10 rounded-full flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <h2 class="category-title"
+                                data-popup-type="hub"
+                                data-popup-id="@hub.PublicId"
+                                data-popup-name="@hub.Name">@hub.Name</h2>
+                            @if (!string.IsNullOrEmpty(hub.Description))
+                            {
+                                <p class="category-description line-clamp-2">@hub.Description</p>
+                            }
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+
+        @if (Model.Hubs.Offset > 0 || Model.Hubs.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-8">
+                @if (Model.Hubs.Offset > 0)
+                {
+                    <a href="/c/@Model.Community?.Slug?offset=@(Math.Max(0, Model.Hubs.Offset - Model.Hubs.PageSize))"
+                       class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Hubs.HasMoreItems)
+                {
+                    <a href="/c/@Model.Community?.Slug?offset=@(Model.Hubs.Offset + Model.Hubs.PageSize)"
+                       class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>

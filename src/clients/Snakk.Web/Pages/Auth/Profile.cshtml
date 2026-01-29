@@ -1,0 +1,314 @@
+@page "/auth/profile"
+@model Snakk.Web.Pages.Auth.ProfileModel
+@{
+    ViewData["Title"] = "Profile Settings";
+}
+
+<div class="max-w-2xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Profile Settings</span>
+    </nav>
+
+    <div class="page-header">
+        <h1>Profile Settings</h1>
+        <p>Manage your account and preferences</p>
+    </div>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert alert-error mb-6">
+            <span>@Model.ErrorMessage</span>
+        </div>
+    }
+
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="alert alert-success mb-6">
+            <span>@Model.SuccessMessage</span>
+        </div>
+    }
+
+    <!-- Avatar Section -->
+    <div class="clean-card mb-6">
+        <h2 class="text-lg font-semibold mb-4">Avatar</h2>
+
+        <div class="flex items-start gap-6">
+            <!-- Current Avatar -->
+            <div class="flex flex-col items-center gap-3">
+                <div class="avatar avatar-xl" id="current-avatar">
+                    <img src="@Model.ApiBaseUrl/avatars/@Model.UserId"
+                         alt="Your avatar"
+                         id="avatar-preview" />
+                </div>
+                <span class="text-sm text-muted">Current avatar</span>
+            </div>
+
+            <!-- Upload Form -->
+            <div class="flex-1">
+                <p class="text-sm text-muted mb-4">
+                    Upload a custom avatar or use the auto-generated one based on your user ID.
+                    Supported formats: JPEG, PNG, GIF, WebP. Maximum size: 2MB.
+                </p>
+
+                <form id="avatar-upload-form" class="space-y-4">
+                    <div class="form-control">
+                        <input type="file"
+                               id="avatar-file"
+                               name="avatar"
+                               accept="image/jpeg,image/png,image/gif,image/webp"
+                               class="file-input file-input-bordered w-full max-w-xs" />
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm" id="upload-btn">
+                            Upload Avatar
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="delete-avatar-btn">
+                            Use Generated Avatar
+                        </button>
+                    </div>
+                </form>
+
+                <div id="upload-status" class="mt-3 text-sm hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Display Name Section -->
+    <div class="clean-card mb-6">
+        <h2 class="text-lg font-semibold mb-4">Display Name</h2>
+
+        <form method="post" asp-page-handler="UpdateDisplayName" class="space-y-4">
+            <div class="form-control">
+                <input type="text"
+                       name="displayName"
+                       value="@Model.DisplayName"
+                       class="input input-bordered w-full max-w-xs"
+                       required
+                       placeholder="Your display name" />
+                <label class="label">
+                    <span class="label-text-alt text-muted">This is how others will see you in discussions</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm">
+                Update Display Name
+            </button>
+        </form>
+    </div>
+
+    <!-- Preferences Section -->
+    <div class="clean-card mb-6">
+        <h2 class="text-lg font-semibold mb-4">Preferences</h2>
+
+        <form method="post" asp-page-handler="UpdateScrollPreference" class="space-y-4">
+            <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-4">
+                    <input type="hidden" name="preferEndlessScroll" value="false" />
+                    <input type="checkbox"
+                           name="preferEndlessScroll"
+                           value="true"
+                           @(Model.PreferEndlessScroll ? "checked" : "")
+                           class="toggle toggle-primary"
+                           onchange="this.form.submit()" />
+                    <span class="label-text">
+                        <span class="font-medium">Endless scroll</span>
+                        <span class="block text-sm text-muted">
+                            Automatically load more content as you scroll. Disable to use traditional pagination buttons.
+                        </span>
+                    </span>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <!-- Account Info Section -->
+    <div class="clean-card">
+        <h2 class="text-lg font-semibold mb-4">Account Information</h2>
+
+        <dl class="space-y-3">
+            @if (!string.IsNullOrEmpty(Model.Email))
+            {
+                <div class="flex items-center gap-2">
+                    <dt class="text-muted w-24">Email:</dt>
+                    <dd class="flex items-center gap-2">
+                        @Model.Email
+                        @if (Model.EmailVerified)
+                        {
+                            <span class="badge badge-success badge-sm">Verified</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-warning badge-sm">Not verified</span>
+                        }
+                    </dd>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.OAuthProvider))
+            {
+                <div class="flex items-center gap-2">
+                    <dt class="text-muted w-24">Sign in:</dt>
+                    <dd class="capitalize">@Model.OAuthProvider</dd>
+                </div>
+            }
+
+            <div class="flex items-center gap-2">
+                <dt class="text-muted w-24">User ID:</dt>
+                <dd class="font-mono text-sm">@Model.UserId</dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<script>
+(function() {
+    const apiBaseUrl = '@Model.ApiBaseUrl';
+    const userId = '@Model.UserId';
+
+    function showStatus(message, isError = false) {
+        const statusDiv = document.getElementById('upload-status');
+        if (!statusDiv) return;
+        statusDiv.textContent = message;
+        statusDiv.className = 'mt-3 text-sm ' + (isError ? 'text-error' : 'text-success');
+        statusDiv.classList.remove('hidden');
+    }
+
+    function refreshAvatar() {
+        const avatarPreview = document.getElementById('avatar-preview');
+        if (!avatarPreview) return;
+        // Add cache-busting query param
+        const timestamp = new Date().getTime();
+        avatarPreview.src = `${apiBaseUrl}/avatars/${userId}?t=${timestamp}`;
+    }
+
+    function handleFileChange(e) {
+        const avatarPreview = document.getElementById('avatar-preview');
+        const fileInput = document.getElementById('avatar-file');
+        if (!avatarPreview || !fileInput) return;
+
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size
+            if (file.size > 2 * 1024 * 1024) {
+                showStatus('File is too large. Maximum size is 2MB.', true);
+                fileInput.value = '';
+                return;
+            }
+
+            // Preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                avatarPreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('avatar-file');
+        const uploadBtn = document.getElementById('upload-btn');
+        if (!fileInput || !uploadBtn) return;
+
+        const file = fileInput.files[0];
+        if (!file) {
+            showStatus('Please select a file first.', true);
+            return;
+        }
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+
+        try {
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const response = await fetch(`${apiBaseUrl}/avatars/upload`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showStatus('Avatar uploaded successfully!');
+                refreshAvatar();
+                fileInput.value = '';
+            } else {
+                showStatus(result.error || 'Failed to upload avatar.', true);
+                refreshAvatar(); // Revert preview
+            }
+        } catch (error) {
+            showStatus('Network error. Please try again.', true);
+            refreshAvatar(); // Revert preview
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload Avatar';
+        }
+    }
+
+    async function handleDeleteClick() {
+        if (!confirm('Revert to the auto-generated avatar?')) {
+            return;
+        }
+
+        const deleteBtn = document.getElementById('delete-avatar-btn');
+        if (!deleteBtn) return;
+
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Reverting...';
+
+        try {
+            const response = await fetch(`${apiBaseUrl}/avatars`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                showStatus('Now using generated avatar.');
+                refreshAvatar();
+            } else {
+                const result = await response.json();
+                showStatus(result.error || 'Failed to delete avatar.', true);
+            }
+        } catch (error) {
+            showStatus('Network error. Please try again.', true);
+        } finally {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Use Generated Avatar';
+        }
+    }
+
+    function initProfilePage() {
+        const form = document.getElementById('avatar-upload-form');
+        const fileInput = document.getElementById('avatar-file');
+        const deleteBtn = document.getElementById('delete-avatar-btn');
+
+        if (!form || !fileInput || !deleteBtn) return;
+
+        // Use data attribute to track initialization to avoid duplicate listeners
+        if (form.dataset.initialized) return;
+        form.dataset.initialized = 'true';
+
+        fileInput.addEventListener('change', handleFileChange);
+        form.addEventListener('submit', handleFormSubmit);
+        deleteBtn.addEventListener('click', handleDeleteClick);
+    }
+
+    // Run on initial page load
+    document.addEventListener('DOMContentLoaded', initProfilePage);
+
+    // Run after HTMX content swap (for SPA-like navigation)
+    document.body.addEventListener('htmx:load', function(evt) {
+        if (document.getElementById('avatar-upload-form')) {
+            initProfilePage();
+        }
+    });
+})();
+</script>

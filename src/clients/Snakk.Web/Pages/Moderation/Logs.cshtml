@@ -1,0 +1,174 @@
+@page
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Moderation.LogsModel
+@{
+    ViewData["Title"] = "Moderation Log";
+}
+
+
+<div class="max-w-5xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/moderation">Moderation</a></li>
+            <li>Audit Log</li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Audit Log</h1>
+        <p>View all moderation actions</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="clean-card mb-6">
+        <form method="get" class="flex flex-wrap gap-3">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text"
+                       name="communityId"
+                       value="@Model.CommunityId"
+                       placeholder="Community ID"
+                       class="input input-bordered input-sm w-full" />
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <input type="text"
+                       name="hubId"
+                       value="@Model.HubId"
+                       placeholder="Hub ID"
+                       class="input input-bordered input-sm w-full" />
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <input type="text"
+                       name="spaceId"
+                       value="@Model.SpaceId"
+                       placeholder="Space ID"
+                       class="input input-bordered input-sm w-full" />
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="/moderation/logs" class="btn btn-sm btn-ghost">Clear</a>
+        </form>
+    </div>
+
+    <!-- Logs List -->
+    @if (Model.Logs?.Items == null || !Model.Logs.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>No activity found</h3>
+                <p>There are no moderation actions to display.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="clean-card">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Actor</th>
+                            <th>Action</th>
+                            <th>Target</th>
+                            <th>Location</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs.Items)
+                        {
+                            <tr class="hover">
+                                <td class="text-xs text-muted whitespace-nowrap">
+                                    <span title="@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss UTC")">
+                                        @Model.GetRelativeTime(log.CreatedAt)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, log.ActorUserPublicId)"
+                                             alt="@log.ActorUserDisplayName"
+                                             class="w-6 h-6 rounded-full" />
+                                        <a href="/u/@log.ActorUserPublicId" class="link link-hover text-sm">@log.ActorUserDisplayName</a>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge @Model.GetActionBadgeClass(log.Action) badge-sm">
+                                        @Model.GetActionDisplayName(log.Action)
+                                    </span>
+                                </td>
+                                <td class="text-sm">
+                                    @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
+                                    {
+                                        <a href="/u/@log.TargetUserPublicId" class="link link-hover">@log.TargetUserDisplayName</a>
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
+                                    {
+                                        <span class="truncate max-w-[150px] inline-block" title="@log.TargetDiscussionTitle">
+                                            @(log.TargetDiscussionTitle.Length > 30 ? log.TargetDiscussionTitle.Substring(0, 30) + "..." : log.TargetDiscussionTitle)
+                                        </span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.TargetPostPublicId))
+                                    {
+                                        <span class="text-muted">Post</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-xs text-muted">
+                                    @if (!string.IsNullOrEmpty(log.SpaceName))
+                                    {
+                                        @log.SpaceName
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.HubName))
+                                    {
+                                        @log.HubName
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.CommunityName))
+                                    {
+                                        @log.CommunityName
+                                    }
+                                    else
+                                    {
+                                        <span>Global</span>
+                                    }
+                                </td>
+                                <td class="text-xs text-muted max-w-[200px]">
+                                    @if (!string.IsNullOrEmpty(log.Details))
+                                    {
+                                        <span title="@log.Details">@(log.Details.Length > 50 ? log.Details.Substring(0, 50) + "..." : log.Details)</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(log.Reason))
+                                    {
+                                        <span class="italic" title="@log.Reason">@(log.Reason.Length > 50 ? log.Reason.Substring(0, 50) + "..." : log.Reason)</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* Pagination *@
+        @if (Model.Offset > 0 || Model.Logs.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-6">
+                @if (Model.Offset > 0)
+                {
+                    <a href="@Model.BuildUrl(Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Logs.HasMoreItems)
+                {
+                    <a href="@Model.BuildUrl(Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>

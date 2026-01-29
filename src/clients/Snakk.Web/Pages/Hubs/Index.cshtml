@@ -1,0 +1,231 @@
+@page "/hubs"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.Hubs.IndexModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Hubs";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+        @if (Model.ShowCommunityInBreadcrumb)
+        {
+            <span class="breadcrumb-separator">/</span>
+            <a href="/communities">Communities</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+        }
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Hubs</span>
+    </nav>
+
+    <!-- Page Header with Stats -->
+    <div class="page-header">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div>
+                <h1>Hubs</h1>
+                <p>Browse communities and join the conversation</p>
+            </div>
+            @if (Model.PlatformStats != null || Model.CommunityStats != null)
+            {
+                <div class="w-full lg:w-80 flex-shrink-0">
+                    <div class="stats-panel">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.SpaceCount</span>
+                                <span class="stat-label">Spaces</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.DiscussionCount</span>
+                                <span class="stat-label">Discussions</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@Model.ReplyCount</span>
+                                <span class="stat-label">Replies</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left Column: Hubs -->
+        <div class="flex-1 min-w-0">
+            @if (Model.Hubs?.Items == null || !Model.Hubs.Items.Any())
+            {
+                <div class="clean-card">
+                    <div class="empty-state-simple">
+                        <h3>No hubs yet</h3>
+                        <p>Hubs are coming soon. Check back later to explore communities.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="flex flex-col gap-4">
+                    @foreach (var hub in Model.Hubs.Items)
+                    {
+                        <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="category-card">
+                            <div class="flex items-start gap-3">
+                                <img src="@SnakkUrlHelper.HubAvatar(apiBaseUrl, hub.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                <div class="flex-1 min-w-0">
+                                    <h2 class="category-title">@hub.Name</h2>
+                                    @if (!string.IsNullOrEmpty(hub.Description))
+                                    {
+                                        <p class="category-description line-clamp-2">@hub.Description</p>
+                                    }
+                                    <div class="entity-stats mt-2">
+                                        <span>@hub.SpaceCount spaces</span>
+                                        <span class="entity-stats-separator">·</span>
+                                        <span>@hub.DiscussionCount discussions</span>
+                                        <span class="entity-stats-separator">·</span>
+                                        <span>@hub.ReplyCount replies</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+
+                @if (Model.Hubs.Offset > 0 || Model.Hubs.HasMoreItems)
+                {
+                    <div class="flex justify-center gap-2 mt-8">
+                        @if (Model.Hubs.Offset > 0)
+                        {
+                            <a href="/hubs?offset=@(Math.Max(0, Model.Hubs.Offset - Model.Hubs.PageSize))"
+                               class="btn btn-ghost btn-sm">
+                                Previous
+                            </a>
+                        }
+                        @if (Model.Hubs.HasMoreItems)
+                        {
+                            <a href="/hubs?offset=@(Model.Hubs.Offset + Model.Hubs.PageSize)"
+                               class="btn btn-ghost btn-sm">
+                                Next
+                            </a>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Right Column: Trending -->
+        <aside class="w-full lg:w-80 flex-shrink-0">
+            @if (Model.ShowTrendingSpaces)
+            {
+                <!-- Trending Spaces -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Spaces</h3>
+                    @if (Model.TrendingSpaces?.Items == null || Model.TrendingSpaces.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No activity today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var space in Model.TrendingSpaces.Items)
+                            {
+                                var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
+
+                                <li>
+                                    <a href="@spaceUrl" class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(Model.ApiBaseUrl, space.PublicId)"
+                                             alt="" loading="lazy" class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title">@space.Name</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@space.PostCountToday posts today</span>
+                                                <span>@space.Hub.Name</span>
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (Model.ShowTrendingDiscussions)
+            {
+                <!-- Trending Discussions -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Discussions</h3>
+                    @if (Model.TrendingDiscussions?.Items == null || Model.TrendingDiscussions.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No activity today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var discussion in Model.TrendingDiscussions.Items)
+                            {
+                                var discussionUrl = SnakkUrlHelper.Discussion(
+                                    Model.Community,
+                                    discussion.Hub.Slug,
+                                    discussion.Space.Slug,
+                                    $"{discussion.Slug}~{discussion.PublicId}");
+
+                                <li>
+                                    <a href="@discussionUrl" class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                             alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
+                                                <span>@discussion.Space.Name</span>
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (Model.ShowTrendingContributors)
+            {
+                <!-- Trending Contributors -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Contributors</h3>
+                    @if (Model.TrendingContributors?.Items == null || Model.TrendingContributors.Items.Length == 0)
+                    {
+                        <p class="sidebar-empty">No contributors today yet</p>
+                    }
+                    else
+                    {
+                        <ul class="sidebar-list">
+                            @foreach (var contributor in Model.TrendingContributors.Items)
+                            {
+                                <li>
+                                    <span class="sidebar-link">
+                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, contributor.PublicId)"
+                                             alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
+                                        <span class="sidebar-link-content">
+                                            <span class="sidebar-link-title"
+                                                  data-popup-type="user"
+                                                  data-popup-id="@contributor.PublicId"
+                                                  data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
+                                            <span class="sidebar-link-meta">
+                                                <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
+</div>

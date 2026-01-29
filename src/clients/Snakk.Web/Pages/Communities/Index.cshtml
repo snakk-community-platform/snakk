@@ -1,0 +1,82 @@
+@page "/communities"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Communities.IndexModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Communities";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Communities</span>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Communities</h1>
+        <p>Discover communities and join discussions</p>
+    </div>
+
+    @if (Model.Communities?.Items == null || !Model.Communities.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>No communities yet</h3>
+                <p>Communities will appear here. Check back later!</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-4 md:grid-cols-2">
+            @foreach (var community in Model.Communities.Items)
+            {
+                <a href="/c/@community.Slug" class="category-card">
+                    <div class="flex items-start gap-3">
+                        <img src="@SnakkUrlHelper.CommunityAvatar(apiBaseUrl, community.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <h2 class="category-title"
+                                data-popup-type="community"
+                                data-popup-id="@community.PublicId"
+                                data-popup-name="@community.Name">@community.Name</h2>
+                            @if (!string.IsNullOrEmpty(community.Description))
+                            {
+                                <p class="category-description line-clamp-2">@community.Description</p>
+                            }
+                            <div class="mt-2 text-xs opacity-60">
+                                @if (community.Visibility == "PublicListed")
+                                {
+                                    <span class="badge badge-sm">Public</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+
+        @if (Model.Communities.Offset > 0 || Model.Communities.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-8">
+                @if (Model.Communities.Offset > 0)
+                {
+                    <a href="/communities?offset=@(Math.Max(0, Model.Communities.Offset - Model.Communities.PageSize))"
+                       class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Communities.HasMoreItems)
+                {
+                    <a href="/communities?offset=@(Model.Communities.Offset + Model.Communities.PageSize)"
+                       class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>

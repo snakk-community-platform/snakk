@@ -1,0 +1,15 @@
+# Snakk Forum - Robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /Auth/
+Disallow: /u/*/settings
+Disallow: /notifications
+
+# Sitemap
+Sitemap: https://localhost:7001/sitemap.xml
+
+# Crawl-delay for specific bots (if needed)
+# User-agent: Googlebot
+# Crawl-delay: 1
