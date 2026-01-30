@@ -1,9 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
-using Snakk.Infrastructure.Database;
 
 public static class UserEndpoints
 {
@@ -49,54 +47,29 @@ public static class UserEndpoints
     }
 
     private static async Task<IResult> GetTopContributorsTodayAsync(
-        SnakkDbContext dbContext,
+        StatisticsUseCase useCase,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
     {
-        var today = DateTime.UtcNow.Date;
+        var result = await useCase.GetTopContributorsTodayAsync(
+            hubId,
+            spaceId,
+            communityId,
+            limit: 5);
 
-        var postsQuery = dbContext.Posts
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.CreatedAt >= today);
+        if (!result.IsSuccess)
+            return Results.Problem(result.Error);
 
-        // Filter by community if specified
-        if (!string.IsNullOrEmpty(communityId))
+        return Results.Ok(new
         {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
-        }
-
-        // Filter by space if specified (most specific)
-        if (!string.IsNullOrEmpty(spaceId))
-        {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.PublicId == spaceId);
-        }
-        // Filter by hub if specified
-        else if (!string.IsNullOrEmpty(hubId))
-        {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.PublicId == hubId);
-        }
-
-        var topContributors = await postsQuery
-            .GroupBy(p => p.CreatedByUserId)
-            .Select(g => new { UserId = g.Key, PostCountToday = g.Count() })
-            .OrderByDescending(x => x.PostCountToday)
-            .Take(5)
-            .Join(
-                dbContext.Users.AsNoTracking().Where(u => !u.IsDeleted),
-                x => x.UserId,
-                u => u.Id,
-                (x, u) => new
-                {
-                    publicId = u.PublicId,
-                    displayName = u.DisplayName,
-                    postCountToday = x.PostCountToday
-                })
-            .ToListAsync();
-
-        return Results.Ok(new { items = topContributors });
+            items = result.Value!.Items.Select(c => new
+            {
+                userId = c.UserId,
+                displayName = c.DisplayName,
+                avatarFileName = c.AvatarFileName,
+                postCountToday = c.PostCountToday
+            })
+        });
     }
 }

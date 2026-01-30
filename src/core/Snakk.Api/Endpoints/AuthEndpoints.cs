@@ -118,38 +118,34 @@ public static class AuthEndpoints
         return Results.Ok(new { message = "Email verified successfully. You can now log in." });
     }
 
-    private static IResult GetAuthStatus(HttpContext httpContext)
+    private static IResult GetAuthStatus(Snakk.Api.Services.ICurrentUserService currentUser)
     {
-        if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+        if (!currentUser.IsAuthenticated())
         {
             return Results.Ok(new { isAuthenticated = false });
         }
 
-        var publicId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var displayName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value ?? "User";
-        var emailVerified = httpContext.User.FindFirst("EmailVerified")?.Value == "True";
-
         return Results.Ok(new
         {
             isAuthenticated = true,
-            publicId,
-            displayName,
-            emailVerified
+            publicId = currentUser.GetCurrentUserId(),
+            displayName = currentUser.GetCurrentUserDisplayName(),
+            emailVerified = currentUser.IsEmailVerified()
         });
     }
 
     private static async Task<IResult> GetCurrentUserAsync(
-        HttpContext httpContext,
+        Snakk.Api.Services.ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase)
     {
-        if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+        if (!currentUser.IsAuthenticated())
             return Results.Unauthorized();
 
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue == null)
             return Results.Unauthorized();
 
-        var userId = UserId.From(userIdClaim.Value);
+        var userId = UserId.From(userIdValue);
         var result = await authUseCase.GetUserByIdAsync(userId);
 
         if (!result.IsSuccess)
@@ -168,17 +164,17 @@ public static class AuthEndpoints
 
     private static async Task<IResult> UpdateProfileAsync(
         UpdateProfileRequest request,
-        HttpContext httpContext,
+        Snakk.Api.Services.ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase)
     {
-        if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+        if (!currentUser.IsAuthenticated())
             return Results.Unauthorized();
 
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue == null)
             return Results.Unauthorized();
 
-        var userId = UserId.From(userIdClaim.Value);
+        var userId = UserId.From(userIdValue);
         var result = await authUseCase.UpdateDisplayNameAsync(userId, request.DisplayName);
 
         if (!result.IsSuccess)
@@ -189,17 +185,17 @@ public static class AuthEndpoints
 
     private static async Task<IResult> UpdatePreferencesAsync(
         UpdatePreferencesRequest request,
-        HttpContext httpContext,
+        Snakk.Api.Services.ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase)
     {
-        if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+        if (!currentUser.IsAuthenticated())
             return Results.Unauthorized();
 
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue == null)
             return Results.Unauthorized();
 
-        var userId = UserId.From(userIdClaim.Value);
+        var userId = UserId.From(userIdValue);
         var result = await authUseCase.UpdatePreferencesAsync(userId, request.PreferEndlessScroll);
 
         if (!result.IsSuccess)

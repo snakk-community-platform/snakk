@@ -13,7 +13,8 @@ public class PostUseCase(
     IUserRepository userRepository,
     IDomainEventDispatcher eventDispatcher,
     IRealtimeNotifier realtimeNotifier,
-    ICounterService counterService) : UseCaseBase
+    ICounterService counterService,
+    ReactionUseCase reactionUseCase) : UseCaseBase
 {
     private readonly IPostRepository _postRepository = postRepository;
     private readonly IDiscussionRepository _discussionRepository = discussionRepository;
@@ -21,6 +22,7 @@ public class PostUseCase(
     private readonly IDomainEventDispatcher _eventDispatcher = eventDispatcher;
     private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
     private readonly ICounterService _counterService = counterService;
+    private readonly ReactionUseCase _reactionUseCase = reactionUseCase;
 
     public async Task<Result<Post>> CreatePostAsync(
         DiscussionId discussionId,
@@ -192,4 +194,128 @@ public class PostUseCase(
     {
         return await _postRepository.GetRevisionsAsync(postId);
     }
+
+    /// <summary>
+    /// Gets posts with enriched data (authors, reactions, reply-to snippets)
+    /// </summary>
+    public async Task<Result<EnrichedPostsResult>> GetEnrichedPostsByDiscussionAsync(
+        DiscussionId discussionId,
+        UserId? currentUserId,
+        int offset,
+        int pageSize)
+    {
+        // 1. Fetch posts
+        var postsResult = await GetPostsByDiscussionAsync(discussionId, offset, pageSize);
+        var visiblePosts = postsResult.Items.Where(p => !p.IsDeleted).ToList();
+
+        // 2. Batch fetch authors
+        var authorIds = visiblePosts.Select(p => p.CreatedByUserId).Distinct().ToList();
+        var authorUsers = await _userRepository.GetByPublicIdsAsync(authorIds);
+        var authorsDict = authorUsers.ToDictionary(u => u.PublicId.Value);
+
+        var authors = new Dictionary<string, AuthorInfo>();
+        foreach (var authorId in authorIds)
+        {
+            if (authorsDict.TryGetValue(authorId.Value, out var user))
+            {
+                authors[authorId.Value] = new AuthorInfo(
+                    user.DisplayName,
+                    user.Role,
+                    user.AvatarFileName,
+                    false);
+            }
+            else
+            {
+                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, true);
+            }
+        }
+
+        // 3. Batch fetch reply-to posts
+        var replyToIds = visiblePosts
+            .Where(p => p.ReplyToPostId != null)
+            .Select(p => p.ReplyToPostId!)
+            .Distinct()
+            .ToList();
+
+        var replyToPosts = new Dictionary<string, ReplyToInfo>();
+
+        if (replyToIds.Any())
+        {
+            var replyPostsList = (await GetPostsByPublicIdsAsync(replyToIds))
+                .Where(p => !p.IsDeleted)
+                .ToList();
+
+            var replyAuthorIds = replyPostsList.Select(p => p.CreatedByUserId).Distinct().ToList();
+            var replyAuthorUsers = await _userRepository.GetByPublicIdsAsync(replyAuthorIds);
+            var replyAuthorsDict = replyAuthorUsers.ToDictionary(u => u.PublicId.Value);
+
+            foreach (var replyPost in replyPostsList)
+            {
+                var authorName = replyAuthorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
+                    ? replyAuthor.DisplayName
+                    : "Deleted User";
+
+                var snippet = replyPost.Content.Length > 100
+                    ? replyPost.Content.Substring(0, 100) + "..."
+                    : replyPost.Content;
+
+                replyToPosts[replyPost.PublicId.Value] = new ReplyToInfo(authorName, snippet);
+            }
+        }
+
+        // 4. Batch fetch reactions
+        var postIds = visiblePosts.Select(p => p.PublicId).ToList();
+        var reactionCounts = await _reactionUseCase.GetReactionCountsBatchAsync(postIds);
+
+        // 5. Fetch current user's reactions if authenticated
+        var userReactions = new Dictionary<string, ReactionType>();
+        if (currentUserId != null)
+        {
+            userReactions = await _reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds);
+        }
+
+        // 6. Build enriched result
+        var enrichedPosts = visiblePosts.Select((p, index) => new EnrichedPost(
+            Post: p,
+            PostNumber: offset + index + 1,
+            Author: authors[p.CreatedByUserId.Value],
+            ReplyTo: p.ReplyToPostId != null && replyToPosts.ContainsKey(p.ReplyToPostId.Value)
+                ? replyToPosts[p.ReplyToPostId.Value]
+                : null,
+            ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
+            UserReaction: userReactions.GetValueOrDefault(p.PublicId.Value)
+        )).ToList();
+
+        return Result<EnrichedPostsResult>.Success(new EnrichedPostsResult(
+            enrichedPosts,
+            postsResult.Offset,
+            postsResult.PageSize,
+            postsResult.HasMoreItems
+        ));
+    }
 }
+
+// Supporting types
+public record EnrichedPostsResult(
+    List<EnrichedPost> Posts,
+    int Offset,
+    int PageSize,
+    bool HasMoreItems);
+
+public record EnrichedPost(
+    Post Post,
+    int PostNumber,
+    AuthorInfo Author,
+    ReplyToInfo? ReplyTo,
+    Dictionary<ReactionType, int> ReactionCounts,
+    ReactionType? UserReaction);
+
+public record AuthorInfo(
+    string DisplayName,
+    string? Role,
+    string? AvatarFileName,
+    bool IsDeleted);
+
+public record ReplyToInfo(
+    string AuthorName,
+    string ContentSnippet);

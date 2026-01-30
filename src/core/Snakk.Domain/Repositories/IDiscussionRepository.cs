@@ -15,4 +15,25 @@ public interface IDiscussionRepository
     Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10);
     Task AddAsync(Discussion discussion);
     Task UpdateAsync(Discussion discussion);
+
+    /// <summary>
+    /// Gets top active discussions by post count since a given date
+    /// </summary>
+    Task<List<TopActiveDiscussion>> GetTopActiveDiscussionsSinceAsync(
+        DateTime since,
+        HubId? hubId,
+        SpaceId? spaceId,
+        CommunityId? communityId,
+        int limit);
 }
+
+/// <summary>
+/// DTO for top active discussions statistics
+/// </summary>
+public record TopActiveDiscussion(
+    DiscussionId PublicId,
+    string Title,
+    string Slug,
+    int PostCountToday,
+    string SpaceName,
+    string HubName);

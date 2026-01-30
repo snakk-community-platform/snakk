@@ -1,11 +1,8 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
-using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
 
 public static class DiscussionEndpoints
@@ -82,27 +79,16 @@ public static class DiscussionEndpoints
     private static async Task<IResult> GetPostNumberAsync(
         string discussionId,
         string postId,
-        SnakkDbContext dbContext)
+        DiscussionUseCase useCase)
     {
-        // Get the post's creation timestamp
-        var post = await dbContext.Posts
-            .AsNoTracking()
-            .Where(p => p.PublicId == postId && p.Discussion.PublicId == discussionId)
-            .Select(p => new { p.CreatedAt })
-            .FirstOrDefaultAsync();
+        var result = await useCase.GetPostNumberAsync(
+            DiscussionId.From(discussionId),
+            PostId.From(postId));
 
-        if (post == null)
+        if (!result.IsSuccess)
             return Results.NotFound();
 
-        // Count all non-deleted posts created before or at this timestamp
-        var postNumber = await dbContext.Posts
-            .AsNoTracking()
-            .Where(p => p.Discussion.PublicId == discussionId &&
-                       !p.IsDeleted &&
-                       p.CreatedAt <= post.CreatedAt)
-            .CountAsync();
-
-        return Results.Ok(new { postNumber });
+        return Results.Ok(new { postNumber = result.Value });
     }
 
     private static async Task<IResult> GetRecentDiscussionsAsync(
@@ -162,74 +148,32 @@ public static class DiscussionEndpoints
     }
 
     private static async Task<IResult> GetTopActiveDiscussionsTodayAsync(
-        SnakkDbContext dbContext,
+        StatisticsUseCase useCase,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
     {
-        var today = DateTime.UtcNow.Date;
+        var result = await useCase.GetTopActiveDiscussionsTodayAsync(
+            hubId,
+            spaceId,
+            communityId,
+            limit: 5);
 
-        var postsQuery = dbContext.Posts
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.CreatedAt >= today);
+        if (!result.IsSuccess)
+            return Results.Problem(result.Error);
 
-        // Filter by community if specified
-        if (!string.IsNullOrEmpty(communityId))
+        return Results.Ok(new
         {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
-        }
-
-        // Filter by space if specified (most specific)
-        if (!string.IsNullOrEmpty(spaceId))
-        {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.PublicId == spaceId);
-        }
-        // Filter by hub if specified
-        else if (!string.IsNullOrEmpty(hubId))
-        {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.PublicId == hubId);
-        }
-
-        var topDiscussions = await postsQuery
-            .GroupBy(p => p.DiscussionId)
-            .Select(g => new { DiscussionId = g.Key, PostCountToday = g.Count() })
-            .OrderByDescending(x => x.PostCountToday)
-            .Take(5)
-            .Join(
-                dbContext.Discussions.AsNoTracking().Where(d => !d.IsDeleted),
-                x => x.DiscussionId,
-                d => d.Id,
-                (x, d) => new { Discussion = d, x.PostCountToday })
-            .Select(x => new
+            items = result.Value!.Items.Select(d => new
             {
-                publicId = x.Discussion.PublicId,
-                title = x.Discussion.Title,
-                slug = x.Discussion.Slug,
-                postCountToday = x.PostCountToday,
-                space = new
-                {
-                    publicId = x.Discussion.Space.PublicId,
-                    slug = x.Discussion.Space.Slug,
-                    name = x.Discussion.Space.Name
-                },
-                hub = new
-                {
-                    publicId = x.Discussion.Space.Hub.PublicId,
-                    slug = x.Discussion.Space.Hub.Slug,
-                    name = x.Discussion.Space.Hub.Name
-                },
-                author = new
-                {
-                    publicId = x.Discussion.CreatedByUser.PublicId,
-                    displayName = x.Discussion.CreatedByUser.DisplayName
-                }
+                discussionId = d.DiscussionId,
+                title = d.Title,
+                slug = d.Slug,
+                postCountToday = d.PostCountToday,
+                spaceName = d.SpaceName,
+                hubName = d.HubName
             })
-            .ToListAsync();
-
-        return Results.Ok(new { items = topDiscussions });
+        });
     }
 
     private static async Task<IResult> GetDiscussionPostsAsync(
@@ -237,126 +181,64 @@ public static class DiscussionEndpoints
         int offset,
         int pageSize,
         PostUseCase useCase,
-        ReactionUseCase reactionUseCase,
-        Snakk.Domain.Repositories.IUserRepository userRepository,
-        HttpContext httpContext)
+        Snakk.Api.Services.ICurrentUserService currentUser)
     {
-        var result = await useCase.GetPostsByDiscussionAsync(
+        // Get current user ID
+        var userId = currentUser.GetCurrentUserId();
+        var currentUserId = userId != null ? UserId.From(userId) : null;
+
+        // Call use case
+        var result = await useCase.GetEnrichedPostsByDiscussionAsync(
             DiscussionId.From(discussionId),
+            currentUserId,
             offset,
             pageSize);
 
-        // Filter out soft-deleted posts first
-        var visiblePosts = result.Items.Where(p => !p.IsDeleted).ToList();
+        if (!result.IsSuccess)
+            return Results.NotFound();
 
-        // Fetch all unique authors for this page of posts in a single query
-        var authorIds = visiblePosts.Select(p => p.CreatedByUserId).Distinct().ToList();
-        var authorUsers = await userRepository.GetByPublicIdsAsync(authorIds);
-        var authorsDict = authorUsers.ToDictionary(u => u.PublicId.Value);
-
-        var authors = new Dictionary<string, (string DisplayName, string? Role, string? AvatarFileName, bool IsDeleted)>();
-        foreach (var authorId in authorIds)
-        {
-            if (authorsDict.TryGetValue(authorId.Value, out var user))
-            {
-                authors[authorId.Value] = (user.DisplayName, user.Role, user.AvatarFileName, false);
-            }
-            else
-            {
-                authors[authorId.Value] = ("Deleted User", null, null, true);
-            }
-        }
-
-        // Fetch reply-to posts if any (for quoted snippets)
-        var replyToIds = visiblePosts
-            .Where(p => p.ReplyToPostId != null)
-            .Select(p => p.ReplyToPostId!)
-            .Distinct()
-            .ToList();
-
-        var replyToPosts = new Dictionary<string, (string AuthorName, string ContentSnippet)>();
-
-        // Batch fetch all reply posts
-        var replyPostsList = (await useCase.GetPostsByPublicIdsAsync(replyToIds))
-            .Where(p => !p.IsDeleted)
-            .ToList();
-
-        // Batch fetch all reply post authors
-        var replyAuthorIds = replyPostsList.Select(p => p.CreatedByUserId).Distinct().ToList();
-        var replyAuthorUsers = await userRepository.GetByPublicIdsAsync(replyAuthorIds);
-        var replyAuthorsDict = replyAuthorUsers.ToDictionary(u => u.PublicId.Value);
-
-        // Build reply-to dictionary
-        foreach (var replyPost in replyPostsList)
-        {
-            var authorName = replyAuthorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
-                ? replyAuthor.DisplayName
-                : "Deleted User";
-            var snippet = replyPost.Content.Length > 100
-                ? replyPost.Content.Substring(0, 100) + "..."
-                : replyPost.Content;
-            replyToPosts[replyPost.PublicId.Value] = (authorName, snippet);
-        }
-
-        // Fetch reactions in batch for all posts
-        var postIds = visiblePosts.Select(p => p.PublicId).ToList();
-        var reactionCounts = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
-
-        // Fetch current user's reactions if authenticated
-        var userReactions = new Dictionary<string, ReactionType>();
-        var userIdClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim != null)
-        {
-            userReactions = await reactionUseCase.GetUserReactionsBatchAsync(
-                UserId.From(userIdClaim.Value), postIds);
-        }
-
+        // Map to DTO (endpoint's responsibility)
+        var data = result.Value!;
         return Results.Ok(new
         {
-            items = visiblePosts.Select((p, index) => new
+            items = data.Posts.Select(p => new
             {
-                postNumber = offset + index + 1,
-                publicId = p.PublicId.Value,
-                content = p.Content,
-                createdAt = p.CreatedAt,
-                editedAt = p.EditedAt,
-                isFirstPost = p.IsFirstPost,
-                isDeleted = p.IsDeleted,
-                createdByUserId = p.CreatedByUserId.Value,
+                postNumber = p.PostNumber,
+                publicId = p.Post.PublicId.Value,
+                content = p.Post.Content,
+                createdAt = p.Post.CreatedAt,
+                editedAt = p.Post.EditedAt,
+                isFirstPost = p.Post.IsFirstPost,
+                isDeleted = p.Post.IsDeleted,
+                createdByUserId = p.Post.CreatedByUserId.Value,
                 author = new
                 {
-                    publicId = p.CreatedByUserId.Value,
-                    displayName = authors[p.CreatedByUserId.Value].DisplayName,
-                    avatarUrl = $"/avatars/{p.CreatedByUserId.Value}",
-                    role = authors[p.CreatedByUserId.Value].Role,
-                    isDeleted = authors[p.CreatedByUserId.Value].IsDeleted
+                    publicId = p.Post.CreatedByUserId.Value,
+                    displayName = p.Author.DisplayName,
+                    avatarUrl = $"/avatars/{p.Post.CreatedByUserId.Value}",
+                    role = p.Author.Role,
+                    avatarFileName = p.Author.AvatarFileName,
+                    isDeleted = p.Author.IsDeleted
                 },
-                replyTo = p.ReplyToPostId != null && replyToPosts.ContainsKey(p.ReplyToPostId.Value)
-                    ? new
-                    {
-                        postId = p.ReplyToPostId.Value,
-                        authorName = replyToPosts[p.ReplyToPostId.Value].AuthorName,
-                        contentSnippet = replyToPosts[p.ReplyToPostId.Value].ContentSnippet
-                    }
-                    : null,
+                replyTo = p.ReplyTo != null ? new
+                {
+                    authorName = p.ReplyTo.AuthorName,
+                    contentSnippet = p.ReplyTo.ContentSnippet
+                } : null,
                 reactions = new
                 {
-                    counts = reactionCounts.TryGetValue(p.PublicId.Value, out var counts)
-                        ? new
-                        {
-                            thumbsUp = counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-                            heart = counts.GetValueOrDefault(ReactionType.Heart, 0),
-                            eyes = counts.GetValueOrDefault(ReactionType.Eyes, 0)
-                        }
-                        : new { thumbsUp = 0, heart = 0, eyes = 0 },
-                    userReaction = userReactions.TryGetValue(p.PublicId.Value, out var userReaction)
-                        ? userReaction.ToString()
-                        : null
+                    counts = new
+                    {
+                        thumbsUp = p.ReactionCounts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
+                        heart = p.ReactionCounts.GetValueOrDefault(ReactionType.Heart, 0),
+                        eyes = p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0)
+                    },
+                    userReaction = p.UserReaction?.ToString()
                 }
             }),
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
+            offset = data.Offset,
+            pageSize = data.PageSize,
+            hasMoreItems = data.HasMoreItems
         });
     }
 }

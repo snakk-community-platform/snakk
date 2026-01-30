@@ -6,6 +6,7 @@ using Snakk.Application.UseCases;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Services;
 using Snakk.Infrastructure.Rendering;
+using Snakk.Api.Services;
 
 public static class ServiceCollectionExtensions
 {
@@ -185,6 +186,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SearchUseCase>();
         services.AddScoped<UserProfileUseCase>();
         services.AddScoped<ModerationUseCase>();
+        services.AddScoped<StatisticsUseCase>();
+
+        // API Services
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IViewRenderingService, ViewRenderingService>();
 
         // Services
         services.AddScoped<Application.Services.MentionService>();

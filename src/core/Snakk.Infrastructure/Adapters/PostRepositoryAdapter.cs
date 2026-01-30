@@ -187,4 +187,76 @@ public class PostRepositoryAdapter(
 
         return revisions.Select(r => r.FromPersistence());
     }
+
+    public async Task<int> GetPostNumberInDiscussionAsync(DiscussionId discussionId, DateTime createdAt)
+    {
+        var discussionDbEntity = await _context.Discussions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+
+        if (discussionDbEntity == null)
+            return 0;
+
+        return await _context.Posts
+            .AsNoTracking()
+            .Where(p => p.DiscussionId == discussionDbEntity.Id &&
+                       !p.IsDeleted &&
+                       p.CreatedAt <= createdAt)
+            .CountAsync();
+    }
+
+    public async Task<List<(UserId UserId, int PostCount)>> GetTopContributorsSinceAsync(
+        DateTime since,
+        HubId? hubId,
+        SpaceId? spaceId,
+        CommunityId? communityId,
+        int limit)
+    {
+        var postsQuery = _context.Posts
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
+
+        // Apply filters based on hierarchy
+        if (communityId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.Space.Hub.CommunityId == _context.Communities
+                    .Where(c => c.PublicId == communityId.Value)
+                    .Select(c => c.Id)
+                    .FirstOrDefault());
+        }
+
+        if (hubId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.Space.HubId == _context.Hubs
+                    .Where(h => h.PublicId == hubId.Value)
+                    .Select(h => h.Id)
+                    .FirstOrDefault());
+        }
+
+        if (spaceId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.SpaceId == _context.Spaces
+                    .Where(s => s.PublicId == spaceId.Value)
+                    .Select(s => s.Id)
+                    .FirstOrDefault());
+        }
+
+        var topContributors = await postsQuery
+            .GroupBy(p => p.CreatedByUser.PublicId)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                PostCount = g.Count()
+            })
+            .OrderByDescending(x => x.PostCount)
+            .Take(limit)
+            .ToListAsync();
+
+        return topContributors
+            .Select(c => (UserId.From(c.UserId), c.PostCount))
+            .ToList();
+    }
 }

@@ -133,4 +133,76 @@ public class DiscussionRepositoryAdapter(
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
     }
+
+    public async Task<List<Domain.Repositories.TopActiveDiscussion>> GetTopActiveDiscussionsSinceAsync(
+        DateTime since,
+        HubId? hubId,
+        SpaceId? spaceId,
+        CommunityId? communityId,
+        int limit)
+    {
+        var postsQuery = _context.Posts
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
+
+        // Apply filters based on hierarchy
+        if (communityId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.Space.Hub.CommunityId == _context.Communities
+                    .Where(c => c.PublicId == communityId.Value)
+                    .Select(c => c.Id)
+                    .FirstOrDefault());
+        }
+
+        if (hubId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.Space.HubId == _context.Hubs
+                    .Where(h => h.PublicId == hubId.Value)
+                    .Select(h => h.Id)
+                    .FirstOrDefault());
+        }
+
+        if (spaceId != null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                p.Discussion.SpaceId == _context.Spaces
+                    .Where(s => s.PublicId == spaceId.Value)
+                    .Select(s => s.Id)
+                    .FirstOrDefault());
+        }
+
+        var topDiscussions = await postsQuery
+            .GroupBy(p => new
+            {
+                p.Discussion.PublicId,
+                p.Discussion.Title,
+                p.Discussion.Slug,
+                SpaceName = p.Discussion.Space.Name,
+                HubName = p.Discussion.Space.Hub.Name
+            })
+            .Select(g => new
+            {
+                g.Key.PublicId,
+                g.Key.Title,
+                g.Key.Slug,
+                PostCount = g.Count(),
+                g.Key.SpaceName,
+                g.Key.HubName
+            })
+            .OrderByDescending(x => x.PostCount)
+            .Take(limit)
+            .ToListAsync();
+
+        return topDiscussions
+            .Select(d => new Domain.Repositories.TopActiveDiscussion(
+                DiscussionId.From(d.PublicId),
+                d.Title,
+                d.Slug,
+                d.PostCount,
+                d.SpaceName,
+                d.HubName))
+            .ToList();
+    }
 }

@@ -144,4 +144,28 @@ public class DiscussionUseCase(
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Gets the sequential post number for a specific post within a discussion
+    /// </summary>
+    public async Task<Result<int>> GetPostNumberAsync(DiscussionId discussionId, PostId postId)
+    {
+        // Validate discussion exists
+        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
+        if (discussion == null)
+            return Result<int>.Failure("Discussion not found");
+
+        // Get post and validate it belongs to discussion
+        var post = await _postRepository.GetByPublicIdAsync(postId);
+        if (post == null)
+            return Result<int>.Failure("Post not found");
+
+        if (post.DiscussionId != discussion.PublicId)
+            return Result<int>.Failure("Post does not belong to this discussion");
+
+        // Count posts created before or at this post's timestamp
+        var postNumber = await _postRepository.GetPostNumberInDiscussionAsync(discussionId, post.CreatedAt);
+
+        return Result<int>.Success(postNumber);
+    }
 }
