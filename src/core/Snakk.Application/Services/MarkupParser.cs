@@ -71,7 +71,7 @@ public partial class MarkupParser : IMarkupParser
         {
             var index = codeBlocks.Count;
             codeBlocks.Add(match.Groups[1].Value.Trim());
-            return $"{{{{CODE_BLOCK_{index}}}}}";
+            return $"{{{{CODEBLOCK{index}}}}}";
         });
 
         // Step 3: Extract and preserve inline code
@@ -80,7 +80,7 @@ public partial class MarkupParser : IMarkupParser
         {
             var index = inlineCodes.Count;
             inlineCodes.Add(match.Groups[1].Value);
-            return $"{{{{INLINE_CODE_{index}}}}}";
+            return $"{{{{INLINECODE{index}}}}}";
         });
 
         // Step 4: Apply formatting (bold before italic to handle **bold** vs *italic*)
@@ -115,7 +115,7 @@ public partial class MarkupParser : IMarkupParser
         for (var i = 0; i < codeBlocks.Count; i++)
         {
             html = html.Replace(
-                $"{{{{CODE_BLOCK_{i}}}}}",
+                $"{{{{CODEBLOCK{i}}}}}",
                 $"<pre class=\"bg-base-200 p-3 rounded-lg overflow-x-auto my-2\"><code>{codeBlocks[i]}</code></pre>");
         }
 
@@ -123,7 +123,7 @@ public partial class MarkupParser : IMarkupParser
         for (var i = 0; i < inlineCodes.Count; i++)
         {
             html = html.Replace(
-                $"{{{{INLINE_CODE_{i}}}}}",
+                $"{{{{INLINECODE{i}}}}}",
                 $"<code class=\"bg-base-200 px-1 rounded\">{inlineCodes[i]}</code>");
         }
 

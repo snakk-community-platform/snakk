@@ -20,6 +20,9 @@ public class Post
     private readonly List<PostRevision> _revisions = [];
     public IReadOnlyCollection<PostRevision> Revisions => _revisions.AsReadOnly();
 
+    private readonly List<PostRevision> _unsavedRevisions = [];
+    public IReadOnlyCollection<PostRevision> UnsavedRevisions => _unsavedRevisions.AsReadOnly();
+
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
@@ -27,6 +30,7 @@ public class Post
     private Post()
     {
         _revisions = [];
+        _unsavedRevisions = [];
         _domainEvents = [];
     }
 #pragma warning restore CS8618
@@ -57,6 +61,7 @@ public class Post
         IsDeleted = isDeleted;
         RevisionCount = revisionCount;
         _revisions = revisions ?? [];
+        _unsavedRevisions = [];
         _domainEvents = [];
     }
 
@@ -127,6 +132,7 @@ public class Post
         // Create revision with old content before updating
         var revision = PostRevision.Create(PublicId, Content, editorUserId, RevisionCount + 1);
         _revisions.Add(revision);
+        _unsavedRevisions.Add(revision); // Track for persistence
         RevisionCount++;
 
         Content = content;
@@ -176,5 +182,10 @@ public class Post
     public void ClearDomainEvents()
     {
         _domainEvents.Clear();
+    }
+
+    public void ClearUnsavedRevisions()
+    {
+        _unsavedRevisions.Clear();
     }
 }

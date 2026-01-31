@@ -99,11 +99,12 @@ public class PostUseCase(
             post.UpdateContent(newContent, userId);
             await _postRepository.UpdateAsync(post);
 
-            // Save revisions
-            foreach (var revision in post.Revisions)
+            // Save only new/unsaved revisions
+            foreach (var revision in post.UnsavedRevisions)
             {
                 await _postRepository.AddRevisionAsync(revision);
             }
+            post.ClearUnsavedRevisions();
 
             // Dispatch domain events
             await _eventDispatcher.DispatchAsync(post.DomainEvents);

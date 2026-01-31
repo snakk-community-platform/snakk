@@ -3,14 +3,17 @@
     <Project Path="clients/Snakk.Web/Snakk.Web.csproj" />
   </Folder>
   <Folder Name="/core/">
+    <Project Path="core/Snakk.Api/Snakk.Api.csproj" />
     <Project Path="core/Snakk.Application/Snakk.Application.csproj" />
     <Project Path="core/Snakk.Domain/Snakk.Domain.csproj" />
     <Project Path="core/Snakk.Infrastructure/Snakk.Infrastructure.csproj" />
     <Project Path="core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj" />
     <Project Path="core/Snakk.Shared/Snakk.Shared.csproj" />
   </Folder>
-  <Folder Name="/core/Snakk.Api/">
-    <Project Path="core/Snakk.Api/Snakk.Api.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Snakk.Application.Tests/Snakk.Application.Tests.csproj" />
+    <Project Path="tests/Snakk.Domain.Tests/Snakk.Domain.Tests.csproj" />
+    <Project Path="tests/Snakk.Infrastructure.Tests/Snakk.Infrastructure.Tests.csproj" />
   </Folder>
 
 </Solution>
