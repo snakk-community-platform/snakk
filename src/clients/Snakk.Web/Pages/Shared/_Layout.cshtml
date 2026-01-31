@@ -127,6 +127,12 @@
     <script>
         // Load auth status and update navbar
         const apiBaseUrl = '@(Configuration["ApiBaseUrl"] ?? "https://localhost:7291")';
+
+        // Proactively clear expired tokens before making the request
+        if (!window.snakkAuth.isAuthenticated()) {
+            window.snakkAuth.clearToken();
+        }
+
         fetch(`${apiBaseUrl}/auth/status`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
@@ -179,6 +185,8 @@
                     loadNotificationCount();
                     loadNotifications();
                 } else {
+                    // Server says not authenticated - clear any stale/invalid token
+                    window.snakkAuth.clearToken();
                     authNav.innerHTML = `
                         <a href="/auth/login" class="btn btn-ghost btn-sm">Login</a>
                         <a href="/auth/register" class="btn btn-primary btn-sm">Sign Up</a>
@@ -186,7 +194,8 @@
                 }
             })
             .catch(err => {
-                // Not authenticated or error
+                // Not authenticated or error - clear any stale/invalid token
+                window.snakkAuth.clearToken();
                 const authNav = document.getElementById('auth-nav');
                 authNav.innerHTML = `
                     <a href="/auth/login" class="btn btn-ghost btn-sm">Login</a>
@@ -227,6 +236,7 @@
         function logout() {
             fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST', credentials: 'include' })
                 .then(() => {
+                    window.snakkAuth.clearToken();
                     window.location.href = '/';
                 });
         }
