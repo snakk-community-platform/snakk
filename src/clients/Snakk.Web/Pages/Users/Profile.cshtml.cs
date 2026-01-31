@@ -11,6 +11,9 @@ public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration
 
     public UserProfileDto? Profile { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string Tab { get; set; } = "overview";
+
     public string FormatDate(DateTime? dateTime)
     {
         if (!dateTime.HasValue) return "Unknown";
@@ -35,6 +38,10 @@ public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration
 
         if (Profile == null)
             return NotFound();
+
+        // Validate tab parameter
+        if (!new[] { "overview", "discussions", "posts" }.Contains(Tab))
+            Tab = "overview";
 
         return Page();
     }

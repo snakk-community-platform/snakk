@@ -41,22 +41,22 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
             .ToListAsync();
     }
 
-    public async Task<Dictionary<string, int>> GetCountsByPostIdAsync(int postId)
+    public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId)
     {
         return await _dbSet
             .AsNoTracking()
             .Where(r => r.PostId == postId)
-            .GroupBy(r => r.Type)
+            .GroupBy(r => r.TypeId)
             .Select(g => new { Type = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Type, x => x.Count);
     }
 
-    public async Task<string?> GetUserReactionTypeForPostAsync(int userId, int postId)
+    public async Task<int?> GetUserReactionTypeForPostAsync(int userId, int postId)
     {
         return await _dbSet
             .AsNoTracking()
             .Where(r => r.UserId == userId && r.PostId == postId)
-            .Select(r => r.Type)
+            .Select(r => r.TypeId)
             .FirstOrDefaultAsync();
     }
 }

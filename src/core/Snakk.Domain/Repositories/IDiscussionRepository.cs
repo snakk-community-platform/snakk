@@ -25,6 +25,11 @@ public interface IDiscussionRepository
         SpaceId? spaceId,
         CommunityId? communityId,
         int limit);
+
+    /// <summary>
+    /// Gets discussion activity counts grouped by date for a specific user
+    /// </summary>
+    Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate);
 }
 
 /// <summary>
@@ -35,5 +40,11 @@ public record TopActiveDiscussion(
     string Title,
     string Slug,
     int PostCountToday,
+    string SpacePublicId,
+    string SpaceSlug,
     string SpaceName,
-    string HubName);
+    string HubPublicId,
+    string HubSlug,
+    string HubName,
+    string AuthorPublicId,
+    string AuthorDisplayName);

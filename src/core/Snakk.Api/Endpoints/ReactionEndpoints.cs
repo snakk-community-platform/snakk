@@ -2,6 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
 
@@ -39,7 +40,7 @@ public static class ReactionEndpoints
         var result = await reactionUseCase.ToggleReactionAsync(
             PostId.From(postId),
             UserId.From(userIdClaim.Value),
-            request.Type);
+            request.Type.ToDomain());
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });

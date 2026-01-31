@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class CommunityDatabaseRepository(SnakkDbContext context)
@@ -30,7 +31,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
     {
         var items = await _dbSet
             .AsNoTracking()
-            .Where(c => c.Visibility == "PublicListed")
+            .Where(c => c.VisibilityId == (int)CommunityVisibilityEnum.PublicListed)
             .OrderBy(c => c.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -39,7 +40,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Name,
                 c.Slug,
                 c.Description,
-                c.Visibility,
+                c.Visibility.Name,
                 c.ExposeToPlatformFeed,
                 c.CreatedAt))
             .ToListAsync();
@@ -69,7 +70,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Name,
                 c.Slug,
                 c.Description,
-                c.Visibility,
+                c.Visibility.Name,
                 c.ExposeToPlatformFeed,
                 c.CreatedAt))
             .ToListAsync();

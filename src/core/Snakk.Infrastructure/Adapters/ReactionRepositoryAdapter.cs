@@ -2,11 +2,13 @@ namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 
 public class ReactionRepositoryAdapter(
     IReactionDatabaseRepository databaseRepository,
@@ -48,7 +50,7 @@ public class ReactionRepositoryAdapter(
 
         var counts = await _databaseRepository.GetCountsByPostIdAsync(post.Id);
         return counts.ToDictionary(
-            kvp => Enum.Parse<ReactionType>(kvp.Key),
+            kvp => ((ReactionTypeEnum)kvp.Key).ToDomain(),
             kvp => kvp.Value);
     }
 
@@ -59,10 +61,10 @@ public class ReactionRepositoryAdapter(
 
         if (user == null || post == null) return null;
 
-        var typeString = await _databaseRepository.GetUserReactionTypeForPostAsync(user.Id, post.Id);
-        if (typeString == null) return null;
+        var typeId = await _databaseRepository.GetUserReactionTypeForPostAsync(user.Id, post.Id);
+        if (typeId == null) return null;
 
-        return Enum.Parse<ReactionType>(typeString);
+        return ((ReactionTypeEnum)typeId.Value).ToDomain();
     }
 
     public async Task AddAsync(Reaction reaction)
@@ -111,8 +113,8 @@ public class ReactionRepositoryAdapter(
 
         var reactions = await _context.Reactions
             .Where(r => internalIds.Contains(r.PostId))
-            .GroupBy(r => new { r.PostId, r.Type })
-            .Select(g => new { g.Key.PostId, g.Key.Type, Count = g.Count() })
+            .GroupBy(r => new { r.PostId, r.TypeId })
+            .Select(g => new { g.Key.PostId, g.Key.TypeId, Count = g.Count() })
             .ToListAsync();
 
         var result = new Dictionary<string, Dictionary<ReactionType, int>>();
@@ -128,7 +130,7 @@ public class ReactionRepositoryAdapter(
         {
             if (postIdMap.TryGetValue(r.PostId, out var publicId))
             {
-                result[publicId][Enum.Parse<ReactionType>(r.Type)] = r.Count;
+                result[publicId][((ReactionTypeEnum)r.TypeId).ToDomain()] = r.Count;
             }
         }
 
@@ -151,7 +153,7 @@ public class ReactionRepositoryAdapter(
 
         var userReactions = await _context.Reactions
             .Where(r => r.UserId == user.Id && internalIds.Contains(r.PostId))
-            .Select(r => new { r.PostId, r.Type })
+            .Select(r => new { r.PostId, r.TypeId })
             .ToListAsync();
 
         var result = new Dictionary<string, ReactionType>();
@@ -159,7 +161,7 @@ public class ReactionRepositoryAdapter(
         {
             if (postIdMap.TryGetValue(r.PostId, out var publicId))
             {
-                result[publicId] = Enum.Parse<ReactionType>(r.Type);
+                result[publicId] = ((ReactionTypeEnum)r.TypeId).ToDomain();
             }
         }
 

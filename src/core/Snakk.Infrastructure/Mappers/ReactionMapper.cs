@@ -1,8 +1,10 @@
 namespace Snakk.Infrastructure.Mappers;
 
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public static class ReactionMapper
 {
@@ -12,7 +14,7 @@ public static class ReactionMapper
             ReactionId.From(entity.PublicId),
             PostId.From(entity.Post.PublicId),
             UserId.From(entity.User.PublicId),
-            Enum.Parse<ReactionType>(entity.Type),
+            ((ReactionTypeEnum)entity.TypeId).ToDomain(),
             entity.CreatedAt);
     }
 
@@ -21,7 +23,7 @@ public static class ReactionMapper
         return new ReactionDatabaseEntity
         {
             PublicId = reaction.PublicId,
-            Type = reaction.Type.ToString(),
+            TypeId = (int)reaction.Type.ToShared(),
             CreatedAt = reaction.CreatedAt
             // PostId and UserId are set by the adapter
         };

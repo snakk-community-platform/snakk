@@ -1,4 +1,4 @@
-namespace Snakk.Infrastructure.Rendering;
+namespace Snakk.Application.Services;
 
 using System.Net;
 using System.Text;
@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 /// - > blockquotes
 /// - - unordered lists
 /// - 1. ordered lists
-/// 
+///
 /// All input is HTML-escaped first, preventing XSS attacks.
 /// No raw HTML is allowed.
 /// </summary>

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class ReportRepository(SnakkDbContext context)
@@ -47,7 +48,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.CommunityId == communityId);
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -59,7 +60,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.HubId == hubId || (r.SpaceId != null && r.Space!.HubId == hubId));
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -70,7 +71,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.SpaceId == spaceId);
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -88,30 +89,30 @@ public class ReportRepository(SnakkDbContext context)
         
         // Build query based on roles
         var query = _dbSet.AsNoTracking()
-            .Where(r => r.Status == "Pending");
+            .Where(r => r.StatusId == (int)ReportStatusEnum.Pending);
         
         var reportIds = new HashSet<int>();
         
         foreach (var role in userRoles)
         {
             IQueryable<ReportDatabaseEntity> roleQuery;
-            
-            if (role.Role == "GlobalAdmin")
+
+            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
             {
                 // Global admins see all pending reports
                 return await query.CountAsync();
             }
-            else if (role.Role == "CommunityAdmin" || role.Role == "CommunityMod")
+            else if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
             {
                 roleQuery = query.Where(r => r.CommunityId == role.CommunityId);
             }
-            else if (role.Role == "HubMod")
+            else if (role.RoleId == (int)UserRoleTypeEnum.HubMod)
             {
-                roleQuery = query.Where(r => 
-                    r.HubId == role.HubId || 
+                roleQuery = query.Where(r =>
+                    r.HubId == role.HubId ||
                     (r.SpaceId != null && r.Space!.HubId == role.HubId));
             }
-            else if (role.Role == "SpaceMod")
+            else if (role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
             {
                 roleQuery = query.Where(r => r.SpaceId == role.SpaceId);
             }
@@ -146,7 +147,7 @@ public class ReportRepository(SnakkDbContext context)
             .Take(pageSize)
             .Select(r => new ReportListDto(
                 r.PublicId,
-                r.Status,
+                r.Status.Name,
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,

@@ -3,6 +3,7 @@ namespace Snakk.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public class DatabaseSeeder(SnakkDbContext context)
 {
@@ -124,7 +125,7 @@ public class DatabaseSeeder(SnakkDbContext context)
             Name = "Snakk",
             Slug = "snakk",
             Description = "The main Snakk community - discuss everything!",
-            Visibility = "PublicListed",
+            VisibilityId = (int)CommunityVisibilityEnum.PublicListed,
             ExposeToPlatformFeed = true,
             CreatedAt = DateTime.UtcNow.AddDays(-365)
         };
@@ -175,7 +176,7 @@ public class DatabaseSeeder(SnakkDbContext context)
             Name = "Test Community One",
             Slug = "test1",
             Description = "A small test community for custom domain testing",
-            Visibility = "PublicListed",
+            VisibilityId = (int)CommunityVisibilityEnum.PublicListed,
             ExposeToPlatformFeed = true,
             CreatedAt = DateTime.UtcNow.AddDays(-180)
         };
@@ -216,7 +217,7 @@ public class DatabaseSeeder(SnakkDbContext context)
             Name = "Test Community Two",
             Slug = "test2",
             Description = "A medium-sized test community for development",
-            Visibility = "PublicListed",
+            VisibilityId = (int)CommunityVisibilityEnum.PublicListed,
             ExposeToPlatformFeed = true,
             CreatedAt = DateTime.UtcNow.AddDays(-120)
         };
@@ -267,7 +268,7 @@ public class DatabaseSeeder(SnakkDbContext context)
             Name = "Test Community Three",
             Slug = "test3",
             Description = "A large test community with lots of content",
-            Visibility = "PublicListed",
+            VisibilityId = (int)CommunityVisibilityEnum.PublicListed,
             ExposeToPlatformFeed = true,
             CreatedAt = DateTime.UtcNow.AddDays(-300)
         };
@@ -464,7 +465,7 @@ public class DatabaseSeeder(SnakkDbContext context)
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
-                Content = $"Opening post for '{discussion.Title}'.\n\n{postContents[_random.Next(postContents.Length)]}",
+                Content = $"{postContents[_random.Next(postContents.Length)]}",
                 CreatedByUserId = author.Id,
                 CreatedAt = createdAt,
                 IsFirstPost = true,

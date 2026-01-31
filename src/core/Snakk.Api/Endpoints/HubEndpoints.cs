@@ -1,10 +1,8 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 
 public static class HubEndpoints
 {
@@ -56,40 +54,29 @@ public static class HubEndpoints
     private static async Task<IResult> GetHubsAsync(
         int offset,
         int pageSize,
-        SnakkDbContext dbContext)
+        Application.Repositories.ISearchRepository searchRepo)
     {
-        // Single query that gets hubs with their stats using navigation properties
-        var query = dbContext.Hubs.AsNoTracking()
-            .OrderBy(h => h.Name);
+        var result = await searchRepo.GetHubsAsync(offset, pageSize);
 
-        var totalCount = await query.CountAsync();
-
-        var items = await query
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(h => new
-            {
-                publicId = h.PublicId,
-                communityId = h.Community.PublicId,
-                name = h.Name,
-                slug = h.Slug,
-                description = h.Description,
-                createdAt = h.CreatedAt,
-                spaceCount = h.Spaces.Count(),
-                discussionCount = h.Spaces.SelectMany(s => s.Discussions).Count(d => !d.IsDeleted),
-                replyCount = h.Spaces
-                    .SelectMany(s => s.Discussions.Where(d => !d.IsDeleted))
-                    .SelectMany(d => d.Posts)
-                    .Count(p => !p.IsFirstPost && !p.IsDeleted)
-            })
-            .ToListAsync();
+        var items = result.Items.Select(h => new
+        {
+            publicId = h.PublicId,
+            communityId = h.CommunityPublicId,
+            name = h.Name,
+            slug = h.Slug,
+            description = h.Description,
+            createdAt = h.CreatedAt,
+            spaceCount = h.SpaceCount,
+            discussionCount = h.DiscussionCount,
+            replyCount = h.ReplyCount
+        });
 
         return Results.Ok(new
         {
             items,
-            offset,
-            pageSize,
-            hasMoreItems = offset + items.Count < totalCount
+            offset = result.Offset,
+            pageSize = result.PageSize,
+            hasMoreItems = result.HasMoreItems
         });
     }
 
@@ -139,88 +126,48 @@ public static class HubEndpoints
         string hubId,
         int offset,
         int pageSize,
-        HttpContext httpContext,
-        SnakkDbContext dbContext)
+        Application.Repositories.ISearchRepository searchRepo)
     {
-        // Single query that gets spaces with their stats using navigation properties
-        var query = dbContext.Spaces.AsNoTracking()
-            .Where(s => s.Hub.PublicId == hubId)
-            .OrderBy(s => s.Name);
+        var result = await searchRepo.GetSpacesByHubAsync(hubId, offset, pageSize);
 
-        var totalCount = await query.CountAsync();
-
-        var spaces = await query
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(s => new
-            {
-                publicId = s.PublicId,
-                hubPublicId = s.Hub.PublicId,
-                name = s.Name,
-                slug = s.Slug,
-                description = s.Description,
-                createdAt = s.CreatedAt,
-                discussionCount = s.Discussions.Count(d => !d.IsDeleted),
-                replyCount = s.Discussions
-                    .Where(d => !d.IsDeleted)
-                    .SelectMany(d => d.Posts)
-                    .Count(p => !p.IsFirstPost && !p.IsDeleted),
-                latestDiscussion = s.Discussions
-                    .Where(d => !d.IsDeleted)
-                    .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-                    .Select(d => new
-                    {
-                        publicId = d.PublicId,
-                        title = d.Title,
-                        slug = d.Slug,
-                        lastActivityAt = d.LastActivityAt ?? d.CreatedAt,
-                        authorPublicId = d.CreatedByUser.PublicId,
-                        authorDisplayName = d.CreatedByUser.DisplayName,
-                        authorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                        postCount = d.Posts.Count(p => !p.IsDeleted)
-                    })
-                    .FirstOrDefault()
-            })
-            .ToListAsync();
-
-        var items = spaces.Select(s =>
+        var items = result.Items.Select(s =>
         {
             object? latestDiscussion = null;
-            if (s.latestDiscussion != null)
+            if (s.LatestDiscussion != null)
             {
                 latestDiscussion = new
                 {
-                    publicId = s.latestDiscussion.publicId,
-                    title = s.latestDiscussion.title,
-                    slug = s.latestDiscussion.slug,
-                    lastActivityAt = s.latestDiscussion.lastActivityAt,
-                    authorPublicId = s.latestDiscussion.authorPublicId,
-                    authorDisplayName = s.latestDiscussion.authorDisplayName,
-                    authorAvatarFileName = s.latestDiscussion.authorAvatarFileName,
-                    postCount = s.latestDiscussion.postCount
+                    publicId = s.LatestDiscussion.PublicId,
+                    title = s.LatestDiscussion.Title,
+                    slug = s.LatestDiscussion.Slug,
+                    lastActivityAt = s.LatestDiscussion.LastActivityAt,
+                    authorPublicId = s.LatestDiscussion.AuthorPublicId,
+                    authorDisplayName = s.LatestDiscussion.AuthorDisplayName,
+                    authorAvatarFileName = s.LatestDiscussion.AuthorAvatarFileName,
+                    postCount = s.LatestDiscussion.PostCount
                 };
             }
 
             return new
             {
-                publicId = s.publicId,
-                hubPublicId = s.hubPublicId,
-                name = s.name,
-                slug = s.slug,
-                description = s.description,
-                createdAt = s.createdAt,
-                discussionCount = s.discussionCount,
-                replyCount = s.replyCount,
+                publicId = s.PublicId,
+                hubPublicId = s.HubPublicId,
+                name = s.Name,
+                slug = s.Slug,
+                description = s.Description,
+                createdAt = s.CreatedAt,
+                discussionCount = s.DiscussionCount,
+                replyCount = s.ReplyCount,
                 latestDiscussion
             };
-        }).ToList();
+        });
 
         return Results.Ok(new
         {
             items,
-            offset,
-            pageSize,
-            hasMoreItems = offset + items.Count < totalCount
+            offset = result.Offset,
+            pageSize = result.PageSize,
+            hasMoreItems = result.HasMoreItems
         });
     }
 }

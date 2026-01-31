@@ -74,7 +74,7 @@ public class ModerationLogRepository(SnakkDbContext context)
                 ml.PublicId,
                 ml.ActorUser.PublicId,
                 ml.ActorUser.DisplayName,
-                ml.Action,
+                ml.Action.Name,
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.Title : null,

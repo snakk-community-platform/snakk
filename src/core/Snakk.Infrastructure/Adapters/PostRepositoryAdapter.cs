@@ -205,6 +205,26 @@ public class PostRepositoryAdapter(
             .CountAsync();
     }
 
+    public async Task<Post?> GetFirstPostByDiscussionIdAsync(DiscussionId discussionId)
+    {
+        var discussionDbEntity = await _context.Discussions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+
+        if (discussionDbEntity == null)
+            return null;
+
+        var firstPostEntity = await _context.Posts
+            .Include(p => p.Discussion)
+            .Include(p => p.CreatedByUser)
+            .Include(p => p.ReplyToPost)
+            .Where(p => p.DiscussionId == discussionDbEntity.Id && p.IsFirstPost)
+            .OrderBy(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        return firstPostEntity?.FromPersistence();
+    }
+
     public async Task<List<(UserId UserId, int PostCount)>> GetTopContributorsSinceAsync(
         DateTime since,
         HubId? hubId,
@@ -258,5 +278,26 @@ public class PostRepositoryAdapter(
         return topContributors
             .Select(c => (UserId.From(c.UserId), c.PostCount))
             .ToList();
+    }
+
+    public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate)
+    {
+        // Get the internal user ID
+        var userDbId = await _context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+        if (userDbId == 0)
+            return [];
+
+        var activity = await _context.Posts
+            .AsNoTracking()
+            .Where(p => p.CreatedByUserId == userDbId && !p.IsFirstPost && p.CreatedAt >= startDate)
+            .GroupBy(p => p.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return activity.Select(a => (a.Date, a.Count));
     }
 }

@@ -11,34 +11,139 @@
 <div class="max-w-4xl mx-auto">
     <!-- Page Header -->
     <div class="page-header">
-        <h1>Search</h1>
+        <h1>
+            @if (!string.IsNullOrEmpty(Model.HubPublicId) || !string.IsNullOrEmpty(Model.SpacePublicId) || !string.IsNullOrEmpty(Model.DiscussionPublicId))
+            {
+                <span>Advanced Search</span>
+            }
+            else
+            {
+                <span>Search</span>
+            }
+        </h1>
         <p>Find discussions and posts across all spaces</p>
     </div>
 
     <!-- Search Form -->
     <div class="clean-card mb-6">
-        <form method="get" action="/search" class="flex flex-col sm:flex-row gap-3">
+        <form method="get" action="/search" id="search-form">
             <input type="hidden" name="authorPublicId" value="@Model.AuthorPublicId" />
             <input type="hidden" name="tab" value="@Model.Tab" />
-            <div class="flex-1">
-                <input type="text"
-                       name="q"
-                       value="@Model.Q"
-                       placeholder="Search discussions and posts..."
-                       class="input input-bordered w-full" />
+
+            <!-- Main Search -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <div class="flex-1">
+                    <input type="text"
+                           name="q"
+                           value="@Model.Q"
+                           placeholder="Search discussions and posts..."
+                           class="input input-bordered w-full" />
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                </button>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Search
-            </button>
+
+            <!-- Advanced Filters Toggle -->
+            <div class="border-t border-subtle pt-3">
+                <button type="button"
+                        class="btn btn-ghost btn-sm gap-2"
+                        onclick="toggleAdvancedFilters()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    <span id="filters-toggle-text">Show Advanced Filters</span>
+                    <svg id="filters-chevron" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <!-- Advanced Filters Panel -->
+                <div id="advanced-filters" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Hub</span>
+                        </label>
+                        <input type="text"
+                               name="hubPublicId"
+                               value="@Model.HubPublicId"
+                               placeholder="Hub ID (e.g., h_abc123)"
+                               class="input input-bordered input-sm w-full" />
+                        <label class="label">
+                            <span class="label-text-alt text-muted">Leave empty to search all hubs</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text">Space</span>
+                        </label>
+                        <input type="text"
+                               name="spacePublicId"
+                               value="@Model.SpacePublicId"
+                               placeholder="Space ID (e.g., s_abc123)"
+                               class="input input-bordered input-sm w-full" />
+                        <label class="label">
+                            <span class="label-text-alt text-muted">Leave empty to search all spaces</span>
+                        </label>
+                    </div>
+                    @if (Model.Tab == "posts")
+                    {
+                        <div>
+                            <label class="label">
+                                <span class="label-text">Discussion</span>
+                            </label>
+                            <input type="text"
+                                   name="discussionPublicId"
+                                   value="@Model.DiscussionPublicId"
+                                   placeholder="Discussion ID (e.g., d_abc123)"
+                                   class="input input-bordered input-sm w-full" />
+                            <label class="label">
+                                <span class="label-text-alt text-muted">Search within a specific discussion</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
         </form>
     </div>
 
+    <script>
+        function toggleAdvancedFilters() {
+            const panel = document.getElementById('advanced-filters');
+            const toggleText = document.getElementById('filters-toggle-text');
+            const chevron = document.getElementById('filters-chevron');
+
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                toggleText.textContent = 'Hide Advanced Filters';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                panel.classList.add('hidden');
+                toggleText.textContent = 'Show Advanced Filters';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Auto-expand advanced filters if any are set
+        (function() {
+            const hasAdvancedFilters =
+                document.querySelector('[name="hubPublicId"]')?.value ||
+                document.querySelector('[name="spacePublicId"]')?.value ||
+                document.querySelector('[name="discussionPublicId"]')?.value;
+
+            if (hasAdvancedFilters) {
+                toggleAdvancedFilters();
+            }
+        })();
+    </script>
+
+    @* Active Filters Display *@
     @if (hasAuthorFilter && Model.FilteredUser != null)
     {
-        <div class="alert alert-info mb-6">
+        <div class="alert alert-info mb-4">
             <div class="flex items-center gap-3">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.FilteredUser.PublicId)"
                      alt="@Model.FilteredUser.DisplayName"
@@ -52,6 +157,61 @@
                 </a>
             </div>
         </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.HubPublicId) || !string.IsNullOrEmpty(Model.SpacePublicId) || !string.IsNullOrEmpty(Model.DiscussionPublicId))
+    {
+        <div class="flex flex-wrap gap-2 mb-6">
+            <span class="text-sm text-muted">Active filters:</span>
+            @if (!string.IsNullOrEmpty(Model.HubPublicId))
+            {
+                <div class="badge badge-lg gap-2">
+                    <span>Hub: @Model.HubPublicId</span>
+                    <a href="javascript:clearFilter('hubPublicId')" class="hover:text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </a>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.SpacePublicId))
+            {
+                <div class="badge badge-lg gap-2">
+                    <span>Space: @Model.SpacePublicId</span>
+                    <a href="javascript:clearFilter('spacePublicId')" class="hover:text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </a>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.DiscussionPublicId))
+            {
+                <div class="badge badge-lg gap-2">
+                    <span>Discussion: @Model.DiscussionPublicId</span>
+                    <a href="javascript:clearFilter('discussionPublicId')" class="hover:text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </a>
+                </div>
+            }
+            <a href="/search?q=@Uri.EscapeDataString(Model.Q ?? "")&tab=@Model.Tab@(string.IsNullOrEmpty(Model.AuthorPublicId) ? "" : $"&authorPublicId={Model.AuthorPublicId}")"
+               class="btn btn-ghost btn-xs">
+                Clear all filters
+            </a>
+        </div>
+
+        <script>
+            function clearFilter(filterName) {
+                const form = document.getElementById('search-form');
+                const input = form.querySelector(`[name="${filterName}"]`);
+                if (input) {
+                    input.value = '';
+                    form.submit();
+                }
+            }
+        </script>
     }
 
     <!-- Tabs -->

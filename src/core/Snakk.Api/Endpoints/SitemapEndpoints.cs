@@ -1,9 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
 using System.Text;
-using System.Xml;
-using Microsoft.EntityFrameworkCore;
-using Snakk.Infrastructure.Database;
 
 public static class SitemapEndpoints
 {
@@ -15,32 +12,14 @@ public static class SitemapEndpoints
     }
 
     private static async Task<IResult> GenerateSitemapAsync(
-        SnakkDbContext dbContext,
+        Application.Repositories.ISearchRepository searchRepo,
         HttpContext httpContext,
         IConfiguration configuration)
     {
         var baseUrl = configuration["WebBaseUrl"] ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
 
         // Get all discussions with their space and hub info
-        var discussions = await dbContext.Discussions
-            .AsNoTracking()
-            .Include(d => d.Space)
-                .ThenInclude(s => s.Hub)
-                    .ThenInclude(h => h.Community)
-            .Where(d => !d.IsDeleted)
-            .OrderByDescending(d => d.LastModifiedAt ?? d.CreatedAt)
-            .Select(d => new
-            {
-                d.PublicId,
-                d.Title,
-                d.Slug,
-                HubSlug = d.Space.Hub.Slug,
-                SpaceSlug = d.Space.Slug,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                LastModified = d.LastModifiedAt ?? d.CreatedAt,
-                d.IsPinned
-            })
-            .ToListAsync();
+        var discussions = await searchRepo.GetSitemapDiscussionsAsync();
 
         var xml = new StringBuilder();
         xml.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");

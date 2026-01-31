@@ -54,11 +54,17 @@ public static class AvatarEndpoints
             ? userId[..^4]
             : userId;
 
-        var user = await userRepository.GetByPublicIdAsync(UserId.From(cleanUserId));
-
         // Check if browser supports WebP
         var acceptHeader = httpContext.Request.Headers.Accept.ToString();
         var supportsWebP = acceptHeader.Contains("image/webp", StringComparison.OrdinalIgnoreCase);
+
+        // Handle empty userId - return default avatar for unknown user
+        if (string.IsNullOrWhiteSpace(cleanUserId))
+        {
+            return GetGeneratedAvatar("unknown", type, httpContext);
+        }
+
+        var user = await userRepository.GetByPublicIdAsync(UserId.From(cleanUserId));
 
         // If user has uploaded avatar, serve it (type parameter is ignored for uploaded avatars)
         if (user != null && !string.IsNullOrEmpty(user.AvatarFileName))

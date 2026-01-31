@@ -1,8 +1,10 @@
 namespace Snakk.Infrastructure.Mappers;
 
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public static class NotificationMapper
 {
@@ -11,7 +13,7 @@ public static class NotificationMapper
         return Notification.Rehydrate(
             NotificationId.From(entity.PublicId),
             UserId.From(entity.RecipientUser.PublicId),
-            Enum.Parse<NotificationType>(entity.Type),
+            ((NotificationTypeEnum)entity.TypeId).ToDomain(),
             entity.Title,
             entity.Body,
             entity.SourcePost != null ? PostId.From(entity.SourcePost.PublicId) : null,
@@ -28,7 +30,7 @@ public static class NotificationMapper
         return new NotificationDatabaseEntity
         {
             PublicId = notification.PublicId,
-            Type = notification.Type.ToString(),
+            TypeId = (int)notification.Type.ToShared(),
             Title = notification.Title,
             Body = notification.Body,
             IsRead = notification.IsRead,

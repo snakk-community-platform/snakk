@@ -1,8 +1,10 @@
 namespace Snakk.Infrastructure.Mappers;
 
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public static class FollowMapper
 {
@@ -11,11 +13,11 @@ public static class FollowMapper
         return Follow.Rehydrate(
             FollowId.From(entity.PublicId),
             UserId.From(entity.User.PublicId),
-            Enum.Parse<FollowTargetType>(entity.TargetType),
+            ((FollowTargetTypeEnum)entity.TargetTypeId).ToDomain(),
             entity.Discussion != null ? DiscussionId.From(entity.Discussion.PublicId) : null,
             entity.Space != null ? SpaceId.From(entity.Space.PublicId) : null,
             entity.FollowedUser != null ? UserId.From(entity.FollowedUser.PublicId) : null,
-            Enum.TryParse<FollowLevel>(entity.Level, out var level) ? level : FollowLevel.DiscussionsOnly,
+            ((FollowLevelEnum)entity.LevelId).ToDomain(),
             entity.CreatedAt);
     }
 
@@ -24,8 +26,8 @@ public static class FollowMapper
         return new FollowDatabaseEntity
         {
             PublicId = follow.PublicId,
-            TargetType = follow.TargetType.ToString(),
-            Level = follow.Level.ToString(),
+            TargetTypeId = (int)follow.TargetType.ToShared(),
+            LevelId = (int)follow.Level.ToShared(),
             CreatedAt = follow.CreatedAt
             // Foreign keys are set by the adapter
         };

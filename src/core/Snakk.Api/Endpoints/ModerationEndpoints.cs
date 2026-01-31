@@ -2,6 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
 
@@ -86,12 +87,9 @@ public static class ModerationEndpoints
         if (assignerUserId == null)
             return Results.Unauthorized();
 
-        if (!Enum.TryParse<UserRoleType>(request.RoleType, out var roleType))
-            return Results.BadRequest(new { error = "Invalid role type" });
-
         var result = await moderationUseCase.AssignRoleAsync(
             request.TargetUserId,
-            roleType,
+            request.RoleType.ToDomain(),
             request.CommunityId,
             request.HubId,
             request.SpaceId,
@@ -159,12 +157,9 @@ public static class ModerationEndpoints
         if (bannerUserId == null)
             return Results.Unauthorized();
 
-        if (!Enum.TryParse<BanType>(request.BanType, out var banType))
-            return Results.BadRequest(new { error = "Invalid ban type" });
-
         var result = await moderationUseCase.BanUserAsync(
             request.TargetUserId,
-            banType,
+            request.BanType.ToDomain(),
             request.CommunityId,
             request.HubId,
             request.SpaceId,

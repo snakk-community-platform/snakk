@@ -3,8 +3,10 @@ namespace Snakk.Infrastructure.Adapters;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class CommunityRepositoryAdapter(
@@ -86,7 +88,7 @@ public class CommunityRepositoryAdapter(
         entity.Name = community.Name;
         entity.Slug = community.Slug;
         entity.Description = community.Description;
-        entity.Visibility = community.Visibility.ToString();
+        entity.VisibilityId = (int)community.Visibility.ToShared();
         entity.ExposeToPlatformFeed = community.ExposeToPlatformFeed;
         entity.LastModifiedAt = community.LastModifiedAt;
 

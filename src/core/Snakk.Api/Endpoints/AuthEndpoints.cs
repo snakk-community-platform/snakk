@@ -2,6 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Authentication;
 using Snakk.Api.Models;
+using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
@@ -71,28 +72,23 @@ public static class AuthEndpoints
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
         AuthenticationUseCase authUseCase,
-        HttpContext httpContext)
+        IJwtTokenService jwtService)
     {
         var result = await authUseCase.LoginWithEmailAsync(request.Email, request.Password);
 
         if (!result.IsSuccess)
             return Results.Unauthorized();
 
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, result.Value!.PublicId.Value),
-            new(ClaimTypes.Name, result.Value.DisplayName),
-            new(ClaimTypes.Email, result.Value.Email ?? ""),
-            new("EmailVerified", result.Value.EmailVerified.ToString())
-        };
-
-        var identity = new ClaimsIdentity(claims, "Cookies");
-        var principal = new ClaimsPrincipal(identity);
-
-        await httpContext.SignInAsync("Cookies", principal);
+        var token = jwtService.GenerateToken(
+            result.Value!.PublicId.Value,
+            result.Value.DisplayName,
+            result.Value.Email,
+            result.Value.EmailVerified,
+            result.Value.OAuthProvider);
 
         return Results.Ok(new
         {
+            token,
             userId = result.Value.PublicId.Value,
             displayName = result.Value.DisplayName,
             email = result.Value.Email,
@@ -165,7 +161,8 @@ public static class AuthEndpoints
     private static async Task<IResult> UpdateProfileAsync(
         UpdateProfileRequest request,
         Snakk.Api.Services.ICurrentUserService currentUser,
-        AuthenticationUseCase authUseCase)
+        AuthenticationUseCase authUseCase,
+        IJwtTokenService jwtService)
     {
         if (!currentUser.IsAuthenticated())
             return Results.Unauthorized();
@@ -179,6 +176,25 @@ public static class AuthEndpoints
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
+
+        // Generate new JWT token with updated display name
+        var userResult = await authUseCase.GetUserByIdAsync(userId);
+        if (userResult.IsSuccess)
+        {
+            var user = userResult.Value!;
+            var newToken = jwtService.GenerateToken(
+                user.PublicId.Value,
+                user.DisplayName,
+                user.Email,
+                user.EmailVerified,
+                user.OAuthProvider);
+
+            return Results.Ok(new
+            {
+                message = "Profile updated successfully",
+                token = newToken
+            });
+        }
 
         return Results.Ok(new { message = "Profile updated successfully" });
     }
@@ -234,11 +250,12 @@ public static class AuthEndpoints
         string? returnUrl,
         HttpContext httpContext,
         AuthenticationUseCase authUseCase,
+        IJwtTokenService jwtService,
         IConfiguration configuration)
     {
         var webClientUrl = configuration["WebClientUrl"] ?? "https://localhost:7001";
 
-        var authenticateResult = await httpContext.AuthenticateAsync("Cookies");
+        var authenticateResult = await httpContext.AuthenticateAsync("TempOAuth");
 
         if (!authenticateResult.Succeeded)
             return Results.Redirect($"{webClientUrl}/auth/login?error=oauth_failed");
@@ -257,29 +274,23 @@ public static class AuthEndpoints
         if (!result.IsSuccess)
             return Results.Redirect($"{webClientUrl}/auth/login?error={Uri.EscapeDataString(result.Error ?? "Unknown error")}");
 
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, result.Value!.PublicId.Value),
-            new(ClaimTypes.Name, result.Value.DisplayName),
-            new(ClaimTypes.Email, result.Value.Email ?? ""),
-            new("EmailVerified", result.Value.EmailVerified.ToString()),
-            new("OAuthProvider", result.Value.OAuthProvider ?? "")
-        };
-
-        var identity = new ClaimsIdentity(claims, "Cookies");
-        var principal = new ClaimsPrincipal(identity);
-
-        await httpContext.SignInAsync("Cookies", principal);
+        // Generate JWT token
+        var token = jwtService.GenerateToken(
+            result.Value!.PublicId.Value,
+            result.Value.DisplayName,
+            result.Value.Email,
+            result.Value.EmailVerified,
+            result.Value.OAuthProvider);
 
         // Check if user was just created (within last 30 seconds) - redirect to profile setup
         var isNewUser = (DateTime.UtcNow - result.Value.CreatedAt).TotalSeconds < 30;
 
         if (isNewUser)
         {
-            return Results.Redirect($"{webClientUrl}/auth/setup-profile");
+            return Results.Redirect($"{webClientUrl}/auth/setup-profile?token={Uri.EscapeDataString(token)}");
         }
 
         var finalReturnUrl = !string.IsNullOrEmpty(returnUrl) ? returnUrl : webClientUrl;
-        return Results.Redirect(finalReturnUrl);
+        return Results.Redirect($"{finalReturnUrl}?token={Uri.EscapeDataString(token)}");
     }
 }

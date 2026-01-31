@@ -2,7 +2,9 @@ namespace Snakk.Infrastructure.Mappers;
 
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 public static class CommunityMapper
 {
@@ -13,7 +15,7 @@ public static class CommunityMapper
             entity.Name,
             entity.Slug,
             entity.Description,
-            Enum.Parse<CommunityVisibility>(entity.Visibility),
+            ((CommunityVisibilityEnum)entity.VisibilityId).ToDomain(),
             entity.ExposeToPlatformFeed,
             entity.CreatedAt,
             entity.LastModifiedAt,
@@ -28,7 +30,7 @@ public static class CommunityMapper
             Name = community.Name,
             Slug = community.Slug,
             Description = community.Description,
-            Visibility = community.Visibility.ToString(),
+            VisibilityId = (int)community.Visibility.ToShared(),
             ExposeToPlatformFeed = community.ExposeToPlatformFeed,
             CreatedAt = community.CreatedAt,
             LastModifiedAt = community.LastModifiedAt

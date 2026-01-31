@@ -176,20 +176,32 @@ public class DiscussionRepositoryAdapter(
         var topDiscussions = await postsQuery
             .GroupBy(p => new
             {
-                p.Discussion.PublicId,
+                DiscussionPublicId = p.Discussion.PublicId,
                 p.Discussion.Title,
                 p.Discussion.Slug,
+                AuthorPublicId = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.PublicId : "",
+                AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName : "",
+                SpacePublicId = p.Discussion.Space.PublicId,
+                SpaceSlug = p.Discussion.Space.Slug,
                 SpaceName = p.Discussion.Space.Name,
+                HubPublicId = p.Discussion.Space.Hub.PublicId,
+                HubSlug = p.Discussion.Space.Hub.Slug,
                 HubName = p.Discussion.Space.Hub.Name
             })
             .Select(g => new
             {
-                g.Key.PublicId,
+                PublicId = g.Key.DiscussionPublicId,
                 g.Key.Title,
                 g.Key.Slug,
                 PostCount = g.Count(),
+                g.Key.SpacePublicId,
+                g.Key.SpaceSlug,
                 g.Key.SpaceName,
-                g.Key.HubName
+                g.Key.HubPublicId,
+                g.Key.HubSlug,
+                g.Key.HubName,
+                g.Key.AuthorPublicId,
+                g.Key.AuthorDisplayName
             })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
@@ -201,8 +213,35 @@ public class DiscussionRepositoryAdapter(
                 d.Title,
                 d.Slug,
                 d.PostCount,
+                d.SpacePublicId,
+                d.SpaceSlug,
                 d.SpaceName,
-                d.HubName))
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName))
             .ToList();
+    }
+
+    public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate)
+    {
+        // Get the internal user ID
+        var userDbId = await _context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+        if (userDbId == 0)
+            return [];
+
+        var activity = await _context.Discussions
+            .AsNoTracking()
+            .Where(d => d.CreatedByUserId == userDbId && d.CreatedAt >= startDate)
+            .GroupBy(d => d.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return activity.Select(a => (a.Date, a.Count));
     }
 }

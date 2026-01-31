@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 
 public static class CommunityEndpoints
 {

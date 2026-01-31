@@ -3,8 +3,10 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Domain.Extensions;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class ModerationRepository(SnakkDbContext context) : IModerationRepository
@@ -22,7 +24,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 ur.Community != null ? ur.Community.PublicId : null,
                 ur.Community != null ? ur.Community.Name : null,
                 ur.Hub != null ? ur.Hub.PublicId : null,
@@ -45,7 +47,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 ur.Community != null ? ur.Community.PublicId : null,
                 ur.Community != null ? ur.Community.Name : null,
                 ur.Hub != null ? ur.Hub.PublicId : null,
@@ -68,7 +70,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 ur.Community!.PublicId,
                 ur.Community.Name,
                 null, null, null, null,
@@ -88,7 +90,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 null, null,
                 ur.Hub!.PublicId,
                 ur.Hub.Name,
@@ -109,7 +111,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 null, null, null, null,
                 ur.Space!.PublicId,
                 ur.Space.Name,
@@ -124,12 +126,12 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     {
         return await _context.UserRoles
             .AsNoTracking()
-            .Where(ur => ur.Role == "GlobalAdmin" && ur.RevokedAt == null)
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role,
+                ur.Role.Name,
                 null, null, null, null, null, null,
                 ur.AssignedByUser.PublicId,
                 ur.AssignedByUser.DisplayName,
@@ -181,7 +183,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = targetUser.Id,
-            Role = roleType.ToString(),
+            RoleId = (int)roleType.ToShared(),
             CommunityId = roleType == UserRoleType.CommunityAdmin || roleType == UserRoleType.CommunityMod ? communityId : null,
             HubId = roleType == UserRoleType.HubMod ? hubId : null,
             SpaceId = roleType == UserRoleType.SpaceMod ? spaceId : null,
@@ -202,7 +204,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             role.PublicId,
             targetUserPublicId,
             targetUser.DisplayName,
-            role.Role,
+            roleType.ToString(),
             communityPublicId, communityName,
             hubPublicId, hubName,
             spacePublicId, spaceName,
@@ -219,6 +221,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Include(ur => ur.Community)
             .Include(ur => ur.Hub)
             .Include(ur => ur.Space)
+            .Include(ur => ur.Role)
             .FirstOrDefaultAsync(ur => ur.PublicId == rolePublicId)
             ?? throw new InvalidOperationException("Role not found");
 
@@ -235,7 +238,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             communityPublicId: role.Community?.PublicId,
             hubPublicId: role.Hub?.PublicId,
             spacePublicId: role.Space?.PublicId,
-            details: $"Revoked role {role.Role}");
+            details: $"Revoked role {role.Role.Name}");
     }
 
     public async Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
@@ -253,23 +256,23 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         foreach (var role in activeRoles)
         {
-            if (role.Role == "GlobalAdmin")
+            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
             if (!string.IsNullOrEmpty(communityPublicId) && role.Community?.PublicId == communityPublicId)
-                if (role.Role == "CommunityAdmin" || role.Role == "CommunityMod")
+                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
                     return true;
 
-            if (!string.IsNullOrEmpty(hubPublicId) && role.Hub?.PublicId == hubPublicId && role.Role == "HubMod")
+            if (!string.IsNullOrEmpty(hubPublicId) && role.Hub?.PublicId == hubPublicId && role.RoleId == (int)UserRoleTypeEnum.HubMod)
                 return true;
 
             if (!string.IsNullOrEmpty(spacePublicId))
             {
-                if (role.Space?.PublicId == spacePublicId && role.Role == "SpaceMod")
+                if (role.Space?.PublicId == spacePublicId && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
                     return true;
 
                 // Hub mod can moderate spaces in their hub
-                if (role.Role == "HubMod" && role.HubId.HasValue)
+                if (role.RoleId == (int)UserRoleTypeEnum.HubMod && role.HubId.HasValue)
                 {
                     var space = await _context.Spaces.AsNoTracking()
                         .FirstOrDefaultAsync(s => s.PublicId == spacePublicId && s.HubId == role.HubId);
@@ -297,10 +300,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         foreach (var role in activeRoles)
         {
-            if (role.Role == "GlobalAdmin")
+            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            if (role.Role == "CommunityAdmin" && role.Community != null)
+            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.Community != null)
             {
                 if (!string.IsNullOrEmpty(communityPublicId) && role.Community.PublicId == communityPublicId)
                     return true;
@@ -338,7 +341,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.PublicId,
                 ub.User.PublicId,
                 ub.User.DisplayName,
-                ub.BanType,
+                ub.BanType.Name,
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
                 ub.Hub != null ? ub.Hub.PublicId : null,
@@ -366,7 +369,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.PublicId,
                 ub.User.PublicId,
                 ub.User.DisplayName,
-                ub.BanType,
+                ub.BanType.Name,
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
                 ub.Hub != null ? ub.Hub.PublicId : null,
@@ -467,7 +470,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = targetUser.Id,
-            BanType = banType.ToString(),
+            BanTypeId = (int)banType.ToShared(),
             CommunityId = communityId,
             HubId = hubId,
             SpaceId = spaceId,
@@ -490,7 +493,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ban.PublicId,
             targetUserPublicId,
             targetUser.DisplayName,
-            ban.BanType,
+            banType.ToString(),
             communityPublicId, communityName,
             hubPublicId, hubName,
             spacePublicId, spaceName,
@@ -537,7 +540,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDto(
                 r.PublicId,
-                r.Status,
+                r.Status.Name,
                 r.ReporterUser.PublicId,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
@@ -558,7 +561,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDetailDto(
                 r.PublicId,
-                r.Status,
+                r.Status.Name,
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
@@ -597,7 +600,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.Community != null && r.Community.PublicId == communityPublicId);
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -609,7 +612,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                         (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -620,7 +623,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.Space != null && r.Space.PublicId == spacePublicId);
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status.Name == status);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -633,7 +636,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         if (!roles.Any())
             return new PagedResult<ReportListDto> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
-        // Find highest level role
+        // Find highest level role (role.Role is now a string from DTO, so we still compare strings)
         var highestRole = roles.OrderBy(r => r.Role switch
         {
             "GlobalAdmin" => 0,
@@ -670,7 +673,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Take(pageSize)
             .Select(r => new ReportListDto(
                 r.PublicId,
-                r.Status,
+                r.Status.Name,
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
@@ -766,7 +769,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ReportedUserId = reportedUserId,
             ReasonId = reasonId,
             Details = details,
-            Status = "Pending",
+            StatusId = (int)ReportStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow,
             SpaceId = spaceId,
             HubId = hubId,
@@ -778,7 +781,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         return new ReportDto(
             report.PublicId,
-            report.Status,
+            "Pending",
             reporterUserPublicId,
             reportedPostPublicId,
             reportedDiscussionPublicId,
@@ -801,7 +804,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         var resolver = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == resolvedByUserPublicId)
             ?? throw new InvalidOperationException("Resolver not found");
 
-        report.Status = dismiss ? "Dismissed" : "Resolved";
+        report.StatusId = dismiss ? (int)ReportStatusEnum.Dismissed : (int)ReportStatusEnum.Resolved;
         report.ResolvedAt = DateTime.UtcNow;
         report.ResolvedByUserId = resolver.Id;
         report.ResolutionNote = resolutionNote;
@@ -928,7 +931,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ml.PublicId,
                 ml.ActorUser.PublicId,
                 ml.ActorUser.DisplayName,
-                ml.Action,
+                ml.Action.Name,
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.Title : null,
@@ -994,7 +997,21 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             ActorUserId = actor.Id,
-            Action = action,
+            ActionId = action switch
+            {
+                "DeletePost" => (int)ModerationActionEnum.DeletePost,
+                "DeleteDiscussion" => (int)ModerationActionEnum.DeleteDiscussion,
+                "BanUser" => (int)ModerationActionEnum.BanUser,
+                "UnbanUser" => (int)ModerationActionEnum.UnbanUser,
+                "AssignRole" => (int)ModerationActionEnum.AssignRole,
+                "RevokeRole" => (int)ModerationActionEnum.RevokeRole,
+                "ResolveReport" => (int)ModerationActionEnum.ResolveReport,
+                "DismissReport" => (int)ModerationActionEnum.DismissReport,
+                "EditPost" => (int)ModerationActionEnum.EditPost,
+                "LockDiscussion" => (int)ModerationActionEnum.LockDiscussion,
+                "UnlockDiscussion" => (int)ModerationActionEnum.LockDiscussion, // Using same enum value for now
+                _ => throw new ArgumentException($"Unknown moderation action: {action}", nameof(action))
+            },
             TargetPostId = targetPostId,
             TargetDiscussionId = targetDiscussionId,
             TargetUserId = targetUserId,

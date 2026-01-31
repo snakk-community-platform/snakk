@@ -16,7 +16,8 @@ public class CommunityDatabaseEntity
     public required DateTime CreatedAt { get; set; }
 
     // Visibility and feed settings
-    public required string Visibility { get; set; }  // "PublicListed" or "PublicUnlisted"
+    public int VisibilityId { get; set; }
+    public virtual Lookups.CommunityVisibilityLookup Visibility { get; set; } = null!;
     public bool ExposeToPlatformFeed { get; set; }
 
     // Other attributes

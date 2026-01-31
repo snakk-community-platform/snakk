@@ -30,7 +30,8 @@ public class ReportDatabaseEntity
     public string? Details { get; set; }
 
     // Status: Pending, Resolved, Dismissed
-    public required string Status { get; set; }
+    public int StatusId { get; set; }
+    public virtual Lookups.ReportStatusLookup Status { get; set; } = null!;
 
     // Timestamps
     public required DateTime CreatedAt { get; set; }

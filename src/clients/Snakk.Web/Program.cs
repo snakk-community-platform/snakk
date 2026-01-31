@@ -2,7 +2,7 @@ using Snakk.Web.Services;
 using Snakk.Web.Filters;
 using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
-using Snakk.Infrastructure.Rendering;
+using Snakk.Application.Services;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
 using WebOptimizer;

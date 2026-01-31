@@ -1,15 +1,17 @@
 namespace Snakk.Api.Models;
 
+using Snakk.Shared.Enums;
+
 public record AssignRoleRequest(
     string TargetUserId,
-    string RoleType,       // GlobalAdmin, CommunityAdmin, CommunityMod, HubMod, SpaceMod
+    UserRoleTypeEnum RoleType,
     string? CommunityId,
     string? HubId,
     string? SpaceId);
 
 public record BanUserRequest(
     string TargetUserId,
-    string BanType,        // WriteOnly, ReadWrite
+    BanTypeEnum BanType,
     string? CommunityId,
     string? HubId,
     string? SpaceId,

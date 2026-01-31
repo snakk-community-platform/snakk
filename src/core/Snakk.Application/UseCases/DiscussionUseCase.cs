@@ -168,4 +168,22 @@ public class DiscussionUseCase(
 
         return Result<int>.Success(postNumber);
     }
+
+    /// <summary>
+    /// Gets the first post content for preview purposes
+    /// </summary>
+    public async Task<Result<string>> GetFirstPostPreviewAsync(DiscussionId discussionId)
+    {
+        // Validate discussion exists
+        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
+        if (discussion == null)
+            return Result<string>.Failure("Discussion not found");
+
+        // Get first post
+        var firstPost = await _postRepository.GetFirstPostByDiscussionIdAsync(discussionId);
+        if (firstPost == null)
+            return Result<string>.Failure("First post not found");
+
+        return Result<string>.Success(firstPost.Content);
+    }
 }

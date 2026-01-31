@@ -2,11 +2,13 @@ namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Domain.Entities;
+using Snakk.Domain.Extensions;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 
 public class FollowRepositoryAdapter(
     IFollowDatabaseRepository databaseRepository,
@@ -131,7 +133,7 @@ public class FollowRepositoryAdapter(
             .Where(f => userIdToPublicId.ContainsKey(f.UserId))
             .Select(f => (
                 UserId.From(userIdToPublicId[f.UserId]),
-                Enum.TryParse<FollowLevel>(f.Level, out var level) ? level : FollowLevel.DiscussionsOnly
+                ((FollowLevelEnum)f.LevelId).ToDomain()
             ));
     }
 
@@ -258,7 +260,7 @@ public class FollowRepositoryAdapter(
 
         if (entity == null) return;
 
-        entity.Level = follow.Level.ToString();
+        entity.LevelId = (int)follow.Level.ToShared();
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
     }

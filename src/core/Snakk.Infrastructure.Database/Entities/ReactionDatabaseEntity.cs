@@ -14,6 +14,7 @@ public class ReactionDatabaseEntity
     public int UserId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
-    public required string Type { get; set; } // "ThumbsUp", "Heart", "Eyes"
+    public int TypeId { get; set; }
+    public virtual Lookups.ReactionTypeLookup Type { get; set; } = null!;
     public required DateTime CreatedAt { get; set; }
 }

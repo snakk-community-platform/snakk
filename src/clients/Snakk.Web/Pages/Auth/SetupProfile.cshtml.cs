@@ -12,6 +12,7 @@ public class SetupProfileModel : PageModel
 
     public string? SuggestedDisplayName { get; set; }
     public string? ErrorMessage { get; set; }
+    public string ApiBaseUrl => _configuration["ApiBaseUrl"] ?? "https://localhost:7291";
 
     public SetupProfileModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
@@ -94,6 +95,15 @@ public class SetupProfileModel : PageModel
             }
             SuggestedDisplayName = displayName;
             return Page();
+        }
+
+        // Forward Set-Cookie headers from API response to browser
+        if (updateResponse.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
+        {
+            foreach (var cookie in setCookieHeaders)
+            {
+                Response.Headers.Append("Set-Cookie", cookie);
+            }
         }
 
         // Redirect to home page

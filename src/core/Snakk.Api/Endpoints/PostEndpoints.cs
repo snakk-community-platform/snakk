@@ -4,7 +4,6 @@ using Snakk.Api.Models;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Rendering;
 
 public static class PostEndpoints
 {

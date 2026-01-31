@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public class UserRoleRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserRoleDatabaseEntity>(context), IUserRoleRepository
@@ -36,7 +37,7 @@ public class UserRoleRepository(SnakkDbContext context)
             .Include(ur => ur.User)
             .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.CommunityId == communityId && ur.RevokedAt == null)
-            .OrderBy(ur => ur.Role)
+            .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
             .ToListAsync();
     }
@@ -48,7 +49,7 @@ public class UserRoleRepository(SnakkDbContext context)
             .Include(ur => ur.User)
             .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.HubId == hubId && ur.RevokedAt == null)
-            .OrderBy(ur => ur.Role)
+            .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
             .ToListAsync();
     }
@@ -60,7 +61,7 @@ public class UserRoleRepository(SnakkDbContext context)
             .Include(ur => ur.User)
             .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.SpaceId == spaceId && ur.RevokedAt == null)
-            .OrderBy(ur => ur.Role)
+            .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
             .ToListAsync();
     }
@@ -71,7 +72,7 @@ public class UserRoleRepository(SnakkDbContext context)
             .AsNoTracking()
             .Include(ur => ur.User)
             .Include(ur => ur.AssignedByUser)
-            .Where(ur => ur.Role == "GlobalAdmin" && ur.RevokedAt == null)
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && ur.RevokedAt == null)
             .OrderBy(ur => ur.AssignedAt)
             .ToListAsync();
     }
@@ -81,9 +82,9 @@ public class UserRoleRepository(SnakkDbContext context)
         // Check for exact role at the specified scope
         return await _dbSet
             .AsNoTracking()
-            .AnyAsync(ur => 
-                ur.UserId == userId && 
-                ur.Role == roleType && 
+            .AnyAsync(ur =>
+                ur.UserId == userId &&
+                ur.Role.Name == roleType && 
                 ur.RevokedAt == null &&
                 (ur.CommunityId == communityId || communityId == null) &&
                 (ur.HubId == hubId || hubId == null) &&
@@ -104,31 +105,31 @@ public class UserRoleRepository(SnakkDbContext context)
         foreach (var role in activeRoles)
         {
             // GlobalAdmin can moderate anywhere
-            if (role.Role == "GlobalAdmin")
+            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
-            
+
             // Check community-level roles
             if (communityId.HasValue && role.CommunityId == communityId)
             {
-                if (role.Role == "CommunityAdmin" || role.Role == "CommunityMod")
+                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
                     return true;
             }
-            
+
             // Check hub-level roles (need to check if hub belongs to community)
-            if (hubId.HasValue && role.HubId == hubId && role.Role == "HubMod")
+            if (hubId.HasValue && role.HubId == hubId && role.RoleId == (int)UserRoleTypeEnum.HubMod)
                 return true;
-            
+
             // Hub mods can moderate spaces within their hub - need to check this via the hub
-            if (spaceId.HasValue && role.HubId.HasValue && role.Role == "HubMod")
+            if (spaceId.HasValue && role.HubId.HasValue && role.RoleId == (int)UserRoleTypeEnum.HubMod)
             {
                 var space = await _context.Spaces.AsNoTracking()
                     .FirstOrDefaultAsync(s => s.Id == spaceId && s.HubId == role.HubId);
                 if (space != null)
                     return true;
             }
-            
+
             // Check space-level roles
-            if (spaceId.HasValue && role.SpaceId == spaceId && role.Role == "SpaceMod")
+            if (spaceId.HasValue && role.SpaceId == spaceId && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
                 return true;
         }
         
@@ -146,24 +147,24 @@ public class UserRoleRepository(SnakkDbContext context)
         foreach (var role in activeRoles)
         {
             // GlobalAdmin can administer anywhere
-            if (role.Role == "GlobalAdmin")
+            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
-            
+
             // CommunityAdmin can administer their community
-            if (communityId.HasValue && role.CommunityId == communityId && role.Role == "CommunityAdmin")
+            if (communityId.HasValue && role.CommunityId == communityId && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin)
                 return true;
-            
+
             // If checking a hub, need to find its community
-            if (hubId.HasValue && role.Role == "CommunityAdmin" && role.CommunityId.HasValue)
+            if (hubId.HasValue && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityId.HasValue)
             {
                 var hub = await _context.Hubs.AsNoTracking()
                     .FirstOrDefaultAsync(h => h.Id == hubId && h.CommunityId == role.CommunityId);
                 if (hub != null)
                     return true;
             }
-            
+
             // If checking a space, need to find its community via hub
-            if (spaceId.HasValue && role.Role == "CommunityAdmin" && role.CommunityId.HasValue)
+            if (spaceId.HasValue && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityId.HasValue)
             {
                 var space = await _context.Spaces.AsNoTracking()
                     .Include(s => s.Hub)

@@ -12,7 +12,8 @@ public class UserRoleDatabaseEntity
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     // Role type: GlobalAdmin, CommunityAdmin, CommunityMod, HubMod, SpaceMod
-    public required string Role { get; set; }
+    public int RoleId { get; set; }
+    public virtual Lookups.UserRoleTypeLookup Role { get; set; } = null!;
 
     // Scope - only one of these is set based on role type
     // GlobalAdmin: all null

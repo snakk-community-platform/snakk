@@ -11,7 +11,7 @@ public interface IFollowDatabaseRepository : IGenericDatabaseRepository<FollowDa
     Task<IEnumerable<int>> GetFollowerUserIdsOfSpaceAsync(int spaceId);
     Task<IEnumerable<int>> GetFollowerUserIdsOfUserAsync(int userId);
     Task<int> GetFollowerCountOfUserAsync(int userId);
-    Task<IEnumerable<(int UserId, string Level)>> GetFollowersOfSpaceWithLevelAsync(int spaceId);
+    Task<IEnumerable<(int UserId, int LevelId)>> GetFollowersOfSpaceWithLevelAsync(int spaceId);
     Task<bool> IsFollowingDiscussionAsync(int userId, int discussionId);
     Task<bool> IsFollowingSpaceAsync(int userId, int spaceId);
     Task<bool> IsFollowingUserAsync(int userId, int followedUserId);

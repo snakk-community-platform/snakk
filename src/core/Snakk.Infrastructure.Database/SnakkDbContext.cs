@@ -32,6 +32,18 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ReportReasonDatabaseEntity> ReportReasons { get; set; } = null!;
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
 
+    // Lookup tables
+    public DbSet<Entities.Lookups.CommunityVisibilityLookup> CommunityVisibilityLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.FollowTargetTypeLookup> FollowTargetTypeLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.FollowLevelLookup> FollowLevelLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.ModerationActionLookup> ModerationActionLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.NotificationTypeLookup> NotificationTypeLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.ReactionTypeLookup> ReactionTypeLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.ReportStatusLookup> ReportStatusLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.BanTypeLookup> BanTypeLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.UserRoleLookup> UserRoleLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.UserRoleTypeLookup> UserRoleTypeLookups { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -77,6 +89,77 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<CommunityDomainDatabaseEntity>()
             .HasIndex(d => d.Domain)
             .IsUnique();
+
+        // === Lookup Table Relationships ===
+
+        // CommunityVisibility
+        modelBuilder.Entity<CommunityDatabaseEntity>()
+            .HasOne(c => c.Visibility)
+            .WithMany(v => v.Communities)
+            .HasForeignKey(c => c.VisibilityId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // FollowTargetType and FollowLevel
+        modelBuilder.Entity<FollowDatabaseEntity>()
+            .HasOne(f => f.TargetType)
+            .WithMany(t => t.Follows)
+            .HasForeignKey(f => f.TargetTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FollowDatabaseEntity>()
+            .HasOne(f => f.Level)
+            .WithMany(l => l.Follows)
+            .HasForeignKey(f => f.LevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ModerationAction
+        modelBuilder.Entity<ModerationLogDatabaseEntity>()
+            .HasOne(m => m.Action)
+            .WithMany(a => a.ModerationLogs)
+            .HasForeignKey(m => m.ActionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // NotificationType
+        modelBuilder.Entity<NotificationDatabaseEntity>()
+            .HasOne(n => n.Type)
+            .WithMany(t => t.Notifications)
+            .HasForeignKey(n => n.TypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ReactionType
+        modelBuilder.Entity<ReactionDatabaseEntity>()
+            .HasOne(r => r.Type)
+            .WithMany(t => t.Reactions)
+            .HasForeignKey(r => r.TypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ReportStatus
+        modelBuilder.Entity<ReportDatabaseEntity>()
+            .HasOne(r => r.Status)
+            .WithMany(s => s.Reports)
+            .HasForeignKey(r => r.StatusId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // BanType
+        modelBuilder.Entity<UserBanDatabaseEntity>()
+            .HasOne(b => b.BanType)
+            .WithMany(t => t.UserBans)
+            .HasForeignKey(b => b.BanTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // UserRole (nullable)
+        modelBuilder.Entity<UserDatabaseEntity>()
+            .HasOne(u => u.Role)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // UserRoleType
+        modelBuilder.Entity<UserRoleDatabaseEntity>()
+            .HasOne(r => r.Role)
+            .WithMany(t => t.UserRoles)
+            .HasForeignKey(r => r.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure Hub -> Spaces relationship
         modelBuilder.Entity<SpaceDatabaseEntity>()
@@ -185,7 +268,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // Reaction: unique constraint (one reaction type per user per post)
         modelBuilder.Entity<ReactionDatabaseEntity>()
-            .HasIndex(r => new { r.PostId, r.UserId, r.Type })
+            .HasIndex(r => new { r.PostId, r.UserId, r.TypeId })
             .IsUnique();
 
         modelBuilder.Entity<ReactionDatabaseEntity>()
@@ -207,7 +290,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // Follow: unique constraint (one follow per user per target)
         modelBuilder.Entity<FollowDatabaseEntity>()
-            .HasIndex(f => new { f.UserId, f.TargetType, f.DiscussionId, f.SpaceId, f.FollowedUserId })
+            .HasIndex(f => new { f.UserId, f.TargetTypeId, f.DiscussionId, f.SpaceId, f.FollowedUserId })
             .IsUnique();
 
         modelBuilder.Entity<FollowDatabaseEntity>()
@@ -312,20 +395,20 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // Index for finding active roles by user
         modelBuilder.Entity<UserRoleDatabaseEntity>()
-            .HasIndex(ur => new { ur.UserId, ur.RevokedAt })
-            .HasDatabaseName("IX_UserRole_UserId_RevokedAt");
+            .HasIndex(ur => new { ur.UserId, ur.RoleId, ur.RevokedAt })
+            .HasDatabaseName("IX_UserRole_UserId_RoleId_RevokedAt");
 
         // Index for finding roles by scope
         modelBuilder.Entity<UserRoleDatabaseEntity>()
-            .HasIndex(ur => new { ur.CommunityId, ur.Role, ur.RevokedAt })
+            .HasIndex(ur => new { ur.CommunityId, ur.RoleId, ur.RevokedAt })
             .HasDatabaseName("IX_UserRole_CommunityId_Role_RevokedAt");
 
         modelBuilder.Entity<UserRoleDatabaseEntity>()
-            .HasIndex(ur => new { ur.HubId, ur.Role, ur.RevokedAt })
+            .HasIndex(ur => new { ur.HubId, ur.RoleId, ur.RevokedAt })
             .HasDatabaseName("IX_UserRole_HubId_Role_RevokedAt");
 
         modelBuilder.Entity<UserRoleDatabaseEntity>()
-            .HasIndex(ur => new { ur.SpaceId, ur.Role, ur.RevokedAt })
+            .HasIndex(ur => new { ur.SpaceId, ur.RoleId, ur.RevokedAt })
             .HasDatabaseName("IX_UserRole_SpaceId_Role_RevokedAt");
 
         modelBuilder.Entity<UserRoleDatabaseEntity>()
@@ -446,15 +529,15 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // Index for moderator queue (pending reports by scope)
         modelBuilder.Entity<ReportDatabaseEntity>()
-            .HasIndex(r => new { r.Status, r.CommunityId, r.CreatedAt })
+            .HasIndex(r => new { r.StatusId, r.CommunityId, r.CreatedAt })
             .HasDatabaseName("IX_Report_Status_CommunityId_CreatedAt");
 
         modelBuilder.Entity<ReportDatabaseEntity>()
-            .HasIndex(r => new { r.Status, r.HubId, r.CreatedAt })
+            .HasIndex(r => new { r.StatusId, r.HubId, r.CreatedAt })
             .HasDatabaseName("IX_Report_Status_HubId_CreatedAt");
 
         modelBuilder.Entity<ReportDatabaseEntity>()
-            .HasIndex(r => new { r.Status, r.SpaceId, r.CreatedAt })
+            .HasIndex(r => new { r.StatusId, r.SpaceId, r.CreatedAt })
             .HasDatabaseName("IX_Report_Status_SpaceId_CreatedAt");
 
         modelBuilder.Entity<ReportDatabaseEntity>()

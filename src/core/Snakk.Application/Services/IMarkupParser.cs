@@ -1,4 +1,4 @@
-namespace Snakk.Infrastructure.Rendering;
+namespace Snakk.Application.Services;
 
 /// <summary>
 /// Parses lightweight markup syntax and renders to safe HTML.

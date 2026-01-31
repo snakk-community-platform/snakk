@@ -27,7 +27,8 @@ public class UserDatabaseEntity
     public DateTime? LastSeenAt { get; set; }
 
     // Role: "admin", "mod", or null for regular users
-    public string? Role { get; set; }
+    public int? RoleId { get; set; }
+    public virtual Lookups.UserRoleLookup? Role { get; set; }
 
     // Avatar: uploaded filename (null = use generated avatar)
     public string? AvatarFileName { get; set; }

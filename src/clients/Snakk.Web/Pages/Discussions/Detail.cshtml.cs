@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Web.Models;
 using Snakk.Web.Services;
-using Snakk.Infrastructure.Rendering;
+using Snakk.Application.Services;
 
 namespace Snakk.Web.Pages.Discussions;
 

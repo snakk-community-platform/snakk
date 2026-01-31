@@ -16,6 +16,15 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
     public string? AuthorPublicId { get; set; }
 
     [BindProperty(SupportsGet = true)]
+    public string? HubPublicId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? SpacePublicId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? DiscussionPublicId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
     public string Tab { get; set; } = "discussions";
 
     public PagedResult<DiscussionSearchResultDto>? Discussions { get; set; }
@@ -32,6 +41,9 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
 
         if (!string.IsNullOrEmpty(q)) parameters.Add($"q={Uri.EscapeDataString(q)}");
         if (!string.IsNullOrEmpty(author)) parameters.Add($"authorPublicId={author}");
+        if (!string.IsNullOrEmpty(HubPublicId)) parameters.Add($"hubPublicId={HubPublicId}");
+        if (!string.IsNullOrEmpty(SpacePublicId)) parameters.Add($"spacePublicId={SpacePublicId}");
+        if (!string.IsNullOrEmpty(DiscussionPublicId)) parameters.Add($"discussionPublicId={DiscussionPublicId}");
         if (t != "discussions") parameters.Add($"tab={t}");
         if (offset > 0) parameters.Add($"offset={offset}");
 
@@ -52,11 +64,23 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
 
         if (Tab == "posts")
         {
-            Posts = await _apiClient.SearchPostsAsync(Q, AuthorPublicId, offset: offset, pageSize: 20);
+            Posts = await _apiClient.SearchPostsAsync(
+                Q,
+                AuthorPublicId,
+                DiscussionPublicId,
+                SpacePublicId,
+                offset: offset,
+                pageSize: 20);
         }
         else
         {
-            Discussions = await _apiClient.SearchDiscussionsAsync(Q, AuthorPublicId, offset: offset, pageSize: 20);
+            Discussions = await _apiClient.SearchDiscussionsAsync(
+                Q,
+                AuthorPublicId,
+                SpacePublicId,
+                HubPublicId,
+                offset: offset,
+                pageSize: 20);
         }
 
         // Await remaining tasks

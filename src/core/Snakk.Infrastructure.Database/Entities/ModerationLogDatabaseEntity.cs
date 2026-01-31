@@ -12,9 +12,10 @@ public class ModerationLogDatabaseEntity
     public int ActorUserId { get; set; }
     public virtual UserDatabaseEntity ActorUser { get; set; } = null!;
 
-    // Action type: e.g., "DeletePost", "DeleteDiscussion", "BanUser", "UnbanUser", 
+    // Action type: e.g., "DeletePost", "DeleteDiscussion", "BanUser", "UnbanUser",
     // "AssignRole", "RevokeRole", "ResolveReport", "DismissReport", "EditPost", "LockDiscussion"
-    public required string Action { get; set; }
+    public int ActionId { get; set; }
+    public virtual Lookups.ModerationActionLookup Action { get; set; } = null!;
 
     // Target entity (the thing that was moderated)
     public int? TargetPostId { get; set; }

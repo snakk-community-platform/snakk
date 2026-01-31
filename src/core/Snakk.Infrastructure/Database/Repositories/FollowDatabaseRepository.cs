@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 public class FollowDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<FollowDatabaseEntity>(context), IFollowDatabaseRepository
@@ -34,7 +35,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             .Include(f => f.Discussion)
             .Include(f => f.Space)
             .Include(f => f.FollowedUser)
-            .FirstOrDefaultAsync(f => f.UserId == userId && f.DiscussionId == discussionId && f.TargetType == "Discussion");
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.DiscussionId == discussionId && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion);
     }
 
     public async Task<FollowDatabaseEntity?> GetByUserAndSpaceAsync(int userId, int spaceId)
@@ -44,7 +45,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             .Include(f => f.Discussion)
             .Include(f => f.Space)
             .Include(f => f.FollowedUser)
-            .FirstOrDefaultAsync(f => f.UserId == userId && f.SpaceId == spaceId && f.TargetType == "Space");
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.SpaceId == spaceId && f.TargetTypeId == (int)FollowTargetTypeEnum.Space);
     }
 
     public async Task<FollowDatabaseEntity?> GetByUserAndFollowedUserAsync(int userId, int followedUserId)
@@ -54,14 +55,14 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             .Include(f => f.Discussion)
             .Include(f => f.Space)
             .Include(f => f.FollowedUser)
-            .FirstOrDefaultAsync(f => f.UserId == userId && f.FollowedUserId == followedUserId && f.TargetType == "User");
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.FollowedUserId == followedUserId && f.TargetTypeId == (int)FollowTargetTypeEnum.User);
     }
 
     public async Task<IEnumerable<int>> GetFollowerUserIdsOfDiscussionAsync(int discussionId)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.DiscussionId == discussionId && f.TargetType == "Discussion")
+            .Where(f => f.DiscussionId == discussionId && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion)
             .Select(f => f.UserId)
             .ToListAsync();
     }
@@ -70,7 +71,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.SpaceId == spaceId && f.TargetType == "Space")
+            .Where(f => f.SpaceId == spaceId && f.TargetTypeId == (int)FollowTargetTypeEnum.Space)
             .Select(f => f.UserId)
             .ToListAsync();
     }
@@ -79,7 +80,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.FollowedUserId == userId && f.TargetType == "User")
+            .Where(f => f.FollowedUserId == userId && f.TargetTypeId == (int)FollowTargetTypeEnum.User)
             .Select(f => f.UserId)
             .ToListAsync();
     }
@@ -88,45 +89,45 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .CountAsync(f => f.FollowedUserId == userId && f.TargetType == "User");
+            .CountAsync(f => f.FollowedUserId == userId && f.TargetTypeId == (int)FollowTargetTypeEnum.User);
     }
 
-    public async Task<IEnumerable<(int UserId, string Level)>> GetFollowersOfSpaceWithLevelAsync(int spaceId)
+    public async Task<IEnumerable<(int UserId, int LevelId)>> GetFollowersOfSpaceWithLevelAsync(int spaceId)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.SpaceId == spaceId && f.TargetType == "Space")
-            .Select(f => new { f.UserId, f.Level })
+            .Where(f => f.SpaceId == spaceId && f.TargetTypeId == (int)FollowTargetTypeEnum.Space)
+            .Select(f => new { f.UserId, f.LevelId })
             .ToListAsync()
-            .ContinueWith(t => t.Result.Select(x => (x.UserId, x.Level)));
+            .ContinueWith(t => t.Result.Select(x => (x.UserId, x.LevelId)));
     }
 
     public async Task<bool> IsFollowingDiscussionAsync(int userId, int discussionId)
     {
         return await _dbSet
             .AsNoTracking()
-            .AnyAsync(f => f.UserId == userId && f.DiscussionId == discussionId && f.TargetType == "Discussion");
+            .AnyAsync(f => f.UserId == userId && f.DiscussionId == discussionId && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion);
     }
 
     public async Task<bool> IsFollowingSpaceAsync(int userId, int spaceId)
     {
         return await _dbSet
             .AsNoTracking()
-            .AnyAsync(f => f.UserId == userId && f.SpaceId == spaceId && f.TargetType == "Space");
+            .AnyAsync(f => f.UserId == userId && f.SpaceId == spaceId && f.TargetTypeId == (int)FollowTargetTypeEnum.Space);
     }
 
     public async Task<bool> IsFollowingUserAsync(int userId, int followedUserId)
     {
         return await _dbSet
             .AsNoTracking()
-            .AnyAsync(f => f.UserId == userId && f.FollowedUserId == followedUserId && f.TargetType == "User");
+            .AnyAsync(f => f.UserId == userId && f.FollowedUserId == followedUserId && f.TargetTypeId == (int)FollowTargetTypeEnum.User);
     }
 
     public async Task<IEnumerable<string>> GetFollowedSpacePublicIdsByUserAsync(int userId)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.UserId == userId && f.TargetType == "Space" && f.Space != null)
+            .Where(f => f.UserId == userId && f.TargetTypeId == (int)FollowTargetTypeEnum.Space && f.Space != null)
             .Select(f => f.Space.PublicId)
             .ToListAsync();
     }
@@ -135,7 +136,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.UserId == userId && f.TargetType == "Discussion" && f.Discussion != null)
+            .Where(f => f.UserId == userId && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion && f.Discussion != null)
             .Select(f => f.Discussion.PublicId)
             .ToListAsync();
     }
@@ -144,7 +145,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(f => f.UserId == userId && f.TargetType == "User" && f.FollowedUser != null)
+            .Where(f => f.UserId == userId && f.TargetTypeId == (int)FollowTargetTypeEnum.User && f.FollowedUser != null)
             .Select(f => f.FollowedUser.PublicId)
             .ToListAsync();
     }

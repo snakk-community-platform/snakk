@@ -12,7 +12,8 @@ public class UserBanDatabaseEntity
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     // Ban type: WriteOnly or ReadWrite
-    public required string BanType { get; set; }
+    public int BanTypeId { get; set; }
+    public virtual Lookups.BanTypeLookup BanType { get; set; } = null!;
 
     // Scope - the entity level where the ban applies
     // Ban inherits down the tree (community ban affects all hubs/spaces/discussions in that community)

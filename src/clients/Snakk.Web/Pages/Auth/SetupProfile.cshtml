@@ -17,12 +17,17 @@
                 </div>
             }
 
-            <form method="post" class="space-y-4">
+            <form id="setupProfileForm" class="space-y-4">
+                <div id="errorAlert" class="alert alert-error mb-4 hidden">
+                    <span id="errorMessage"></span>
+                </div>
+
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Display Name</span>
                     </label>
                     <input type="text"
+                           id="displayName"
                            name="displayName"
                            value="@Model.SuggestedDisplayName"
                            class="input input-bordered"
@@ -40,6 +45,47 @@
 
                 <button type="submit" class="btn btn-primary w-full">Continue</button>
             </form>
+
+            <script>
+                const apiBaseUrl = '@Model.ApiBaseUrl';
+                document.getElementById('setupProfileForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const displayName = document.getElementById('displayName').value;
+                    const errorAlert = document.getElementById('errorAlert');
+                    const errorMessage = document.getElementById('errorMessage');
+
+                    try {
+                        const response = await fetch(`${apiBaseUrl}/auth/update-profile`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...window.snakkAuth.getAuthHeaders()
+                            },
+                            body: JSON.stringify({ displayName })
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            errorMessage.textContent = data.error || 'Failed to update profile';
+                            errorAlert.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Update token if API returned a new one
+                        if (data.token) {
+                            window.snakkAuth.setToken(data.token);
+                        }
+
+                        // Redirect to home
+                        window.location.href = '/';
+                    } catch (error) {
+                        errorMessage.textContent = 'Network error. Please try again.';
+                        errorAlert.classList.remove('hidden');
+                    }
+                });
+            </script>
         </div>
     </div>
 </div>

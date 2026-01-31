@@ -11,7 +11,8 @@ public class NotificationDatabaseEntity
     public int RecipientUserId { get; set; }
     public virtual UserDatabaseEntity RecipientUser { get; set; } = null!;
 
-    public required string Type { get; set; } // "Mention", "Reply", "NewPostInFollowedDiscussion", "NewDiscussionInFollowedSpace"
+    public int TypeId { get; set; }
+    public virtual Lookups.NotificationTypeLookup Type { get; set; } = null!;
     public required string Title { get; set; }
     public string? Body { get; set; }
 

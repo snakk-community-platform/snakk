@@ -3,7 +3,7 @@ namespace Snakk.Infrastructure.Services;
 using System.Net;
 using System.Text;
 using Snakk.Domain.Entities;
-using Snakk.Infrastructure.Rendering;
+using Snakk.Application.Services;
 
 /// <summary>
 /// Renders Post entities to HTML fragments for realtime updates.

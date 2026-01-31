@@ -310,12 +310,22 @@
     window.toggleFollowSpace = toggleFollowSpace;
     window.setFollowLevel = setFollowLevel;
 
+    // Track if page has been initialized to prevent duplicate calls
+    let isSpacePageInitialized = false;
+
     // Run on initial page load
-    document.addEventListener('DOMContentLoaded', initSpacePage);
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!isSpacePageInitialized) {
+            isSpacePageInitialized = true;
+            initSpacePage();
+        }
+    });
 
     // Run after HTMX content swap (for SPA-like navigation)
     document.body.addEventListener('htmx:load', function(evt) {
-        if (document.getElementById('discussions-container')) {
+        // Only initialize if this is the space page content AND not already initialized
+        if (document.getElementById('discussions-container') && !isSpacePageInitialized) {
+            isSpacePageInitialized = true;
             initSpacePage();
         }
     });

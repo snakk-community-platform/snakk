@@ -5,7 +5,6 @@ using Snakk.Infrastructure.Database;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Services;
-using Snakk.Infrastructure.Rendering;
 using Snakk.Api.Services;
 
 public static class ServiceCollectionExtensions
@@ -29,25 +28,37 @@ public static class ServiceCollectionExtensions
             options.UseNpgsql(configuration.GetConnectionString("DbConnection")),
             poolSize: 128); // Default is 1024, using 128 for typical web app
 
+        // JWT Service
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
         // Authentication
         var authBuilder = services.AddAuthentication(options =>
         {
-            options.DefaultScheme = "Cookies";
-            options.DefaultChallengeScheme = "Cookies";
+            options.DefaultScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
         })
-        .AddCookie("Cookies", options =>
+        .AddJwtBearer(options =>
         {
-            options.LoginPath = "/auth/login";
-            options.LogoutPath = "/auth/logout";
-            options.AccessDeniedPath = "/auth/access-denied";
-            options.ExpireTimeSpan = TimeSpan.FromDays(30);
-            options.SlidingExpiration = true;
+            var secretKey = configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
+            options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey)),
+                ValidateIssuer = true,
+                ValidIssuer = configuration["Jwt:Issuer"] ?? "Snakk",
+                ValidateAudience = true,
+                ValidAudience = configuration["Jwt:Audience"] ?? "Snakk",
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        })
+        .AddCookie("TempOAuth", options =>
+        {
+            // Temporary cookie scheme only for OAuth flow
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
             options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-            // Set domain to share cookie between API and Web client on localhost
-            // This allows the web server to forward the auth cookie to the API
-            options.Cookie.Domain = "localhost";
         });
 
         // Conditionally add OAuth providers only if they have valid credentials
@@ -61,7 +72,7 @@ public static class ServiceCollectionExtensions
             {
                 options.ClientId = googleClientId;
                 options.ClientSecret = googleClientSecret;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -74,7 +85,7 @@ public static class ServiceCollectionExtensions
             {
                 options.ClientId = microsoftClientId;
                 options.ClientSecret = microsoftClientSecret;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -87,7 +98,7 @@ public static class ServiceCollectionExtensions
             {
                 options.AppId = facebookAppId;
                 options.AppSecret = facebookAppSecret;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -100,7 +111,7 @@ public static class ServiceCollectionExtensions
             {
                 options.ClientId = githubClientId;
                 options.ClientSecret = githubClientSecret;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -113,7 +124,7 @@ public static class ServiceCollectionExtensions
             {
                 options.ClientId = discordClientId;
                 options.ClientSecret = discordClientSecret;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -128,7 +139,7 @@ public static class ServiceCollectionExtensions
                 options.ClientId = appleClientId;
                 options.TeamId = appleTeamId;
                 options.KeyId = appleKeyId;
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = "TempOAuth";
             });
         }
 
@@ -172,6 +183,9 @@ public static class ServiceCollectionExtensions
 
         // Moderation Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IModerationRepository, Infrastructure.Database.Repositories.ModerationRepository>();
+
+        // Stats Repository (Application layer interface, Infrastructure implementation)
+        services.AddScoped<Application.Repositories.IStatsRepository, Infrastructure.Database.Repositories.StatsRepository>();
 
         // Use Cases
         services.AddScoped<CommunityUseCase>();

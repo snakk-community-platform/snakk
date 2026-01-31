@@ -6,6 +6,6 @@ public interface IReactionDatabaseRepository : IGenericDatabaseRepository<Reacti
 {
     Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId);
     Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId);
-    Task<Dictionary<string, int>> GetCountsByPostIdAsync(int postId);
-    Task<string?> GetUserReactionTypeForPostAsync(int userId, int postId);
+    Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId);
+    Task<int?> GetUserReactionTypeForPostAsync(int userId, int postId);
 }

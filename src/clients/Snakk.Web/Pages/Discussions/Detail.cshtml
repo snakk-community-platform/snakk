@@ -1349,13 +1349,22 @@ function initDraftAutoSave(discussionId) {
     }
 }
 
+// Track if page has been initialized to prevent duplicate calls
+let isDiscussionPageInitialized = false;
+
 // Run on initial page load
-document.addEventListener('DOMContentLoaded', initDiscussionPage);
+document.addEventListener('DOMContentLoaded', function() {
+    if (!isDiscussionPageInitialized) {
+        isDiscussionPageInitialized = true;
+        initDiscussionPage();
+    }
+});
 
 // Run after HTMX content swap (for SPA-like navigation)
 document.body.addEventListener('htmx:load', function(evt) {
-    // Only initialize if this is the discussion page content
-    if (document.getElementById('posts-container')) {
+    // Only initialize if this is the discussion page content AND not already initialized
+    if (document.getElementById('posts-container') && !isDiscussionPageInitialized) {
+        isDiscussionPageInitialized = true;
         initDiscussionPage();
     }
 });

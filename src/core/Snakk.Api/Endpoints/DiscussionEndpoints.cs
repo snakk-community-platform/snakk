@@ -2,8 +2,8 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database.Repositories;
 
 public static class DiscussionEndpoints
 {
@@ -29,6 +29,9 @@ public static class DiscussionEndpoints
 
         group.MapGet("/{discussionId}/posts/{postId}/number", GetPostNumberAsync)
             .WithName("GetPostNumber");
+
+        group.MapGet("/{discussionId}/preview", GetDiscussionPreviewAsync)
+            .WithName("GetDiscussionPreview");
     }
 
     private static async Task<IResult> CreateDiscussionAsync(
@@ -91,15 +94,27 @@ public static class DiscussionEndpoints
         return Results.Ok(new { postNumber = result.Value });
     }
 
+    private static async Task<IResult> GetDiscussionPreviewAsync(
+        string discussionId,
+        DiscussionUseCase useCase)
+    {
+        var result = await useCase.GetFirstPostPreviewAsync(DiscussionId.From(discussionId));
+
+        if (!result.IsSuccess)
+            return Results.NotFound(new { error = result.Error });
+
+        return Results.Ok(new { content = result.Value });
+    }
+
     private static async Task<IResult> GetRecentDiscussionsAsync(
         HttpContext httpContext,
         int offset,
         int pageSize,
-        IDiscussionRepository discussionRepo,
+        Application.Repositories.ISearchRepository searchRepo,
         string? communityId = null,
         string? cursor = null)
     {
-        var result = await discussionRepo.GetRecentWithDetailsAsync(offset, pageSize, communityId, cursor);
+        var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, cursor);
 
         return Results.Ok(new
         {
@@ -166,12 +181,27 @@ public static class DiscussionEndpoints
         {
             items = result.Value!.Items.Select(d => new
             {
-                discussionId = d.DiscussionId,
+                publicId = d.DiscussionId,
                 title = d.Title,
                 slug = d.Slug,
                 postCountToday = d.PostCountToday,
-                spaceName = d.SpaceName,
-                hubName = d.HubName
+                space = new
+                {
+                    publicId = d.SpacePublicId,
+                    slug = d.SpaceSlug,
+                    name = d.SpaceName
+                },
+                hub = new
+                {
+                    publicId = d.HubPublicId,
+                    slug = d.HubSlug,
+                    name = d.HubName
+                },
+                author = new
+                {
+                    publicId = d.AuthorPublicId,
+                    displayName = d.AuthorDisplayName
+                }
             })
         });
     }

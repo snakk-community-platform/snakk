@@ -1,10 +1,8 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 
 public static class SpaceEndpoints
 {
@@ -99,101 +97,61 @@ public static class SpaceEndpoints
         string spaceId,
         int offset,
         int pageSize,
-        SnakkDbContext dbContext)
+        Application.Repositories.ISearchRepository searchRepo)
     {
-        // Single query using navigation properties
-        var query = dbContext.Discussions.AsNoTracking()
-            .Where(d => d.Space.PublicId == spaceId)
-            .OrderByDescending(d => d.IsPinned)
-            .ThenByDescending(d => d.LastActivityAt);
+        var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
 
-        var items = await query
-            .Skip(offset)
-            .Take(pageSize + 1)
-            .Select(d => new
+        var items = result.Items.Select(d => new
+        {
+            publicId = d.PublicId,
+            spaceId = d.SpacePublicId,
+            title = d.Title,
+            slug = d.Slug,
+            createdAt = d.CreatedAt,
+            lastActivityAt = d.LastActivityAt,
+            isPinned = d.IsPinned,
+            isLocked = d.IsLocked,
+            postCount = d.PostCount,
+            reactionCount = d.ReactionCount,
+            author = new
             {
-                publicId = d.PublicId,
-                spaceId = d.Space.PublicId,
-                title = d.Title,
-                slug = d.Slug,
-                createdAt = d.CreatedAt,
-                lastActivityAt = d.LastActivityAt,
-                isPinned = d.IsPinned,
-                isLocked = d.IsLocked,
-                postCount = d.Posts.Count(p => !p.IsDeleted),
-                reactionCount = d.ReactionCount,
-                author = new
-                {
-                    publicId = d.CreatedByUser.PublicId,
-                    displayName = d.CreatedByUser.DisplayName,
-                    avatarFileName = d.CreatedByUser.AvatarFileName
-                },
-                tags = d.Tags
-            })
-            .ToListAsync();
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
+                publicId = d.AuthorPublicId,
+                displayName = d.AuthorDisplayName,
+                avatarFileName = d.AuthorAvatarFileName
+            },
+            tags = d.Tags
+        });
 
         return Results.Ok(new
         {
-            items = resultItems,
-            offset,
-            pageSize,
-            hasMoreItems
+            items,
+            offset = result.Offset,
+            pageSize = result.PageSize,
+            hasMoreItems = result.HasMoreItems
         });
     }
 
     private static async Task<IResult> GetTopActiveSpacesTodayAsync(
-        SnakkDbContext dbContext,
+        StatisticsUseCase useCase,
         string? hubId = null,
         string? communityId = null)
     {
-        var today = DateTime.UtcNow.Date;
+        var topSpaces = await useCase.GetTopActiveSpacesTodayAsync(hubId, communityId);
 
-        var postsQuery = dbContext.Posts
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.CreatedAt >= today);
-
-        // Filter by community if specified
-        if (!string.IsNullOrEmpty(communityId))
+        var items = topSpaces.Select(s => new
         {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
-        }
-
-        // Filter by hub if specified
-        if (!string.IsNullOrEmpty(hubId))
-        {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.PublicId == hubId);
-        }
-
-        var topSpaces = await postsQuery
-            .GroupBy(p => p.Discussion.SpaceId)
-            .Select(g => new { SpaceId = g.Key, PostCountToday = g.Count() })
-            .OrderByDescending(x => x.PostCountToday)
-            .Take(5)
-            .Join(
-                dbContext.Spaces.AsNoTracking().Where(s => !s.IsDeleted),
-                x => x.SpaceId,
-                s => s.Id,
-                (x, s) => new { Space = s, x.PostCountToday })
-            .Select(x => new
+            publicId = s.PublicId,
+            name = s.Name,
+            slug = s.Slug,
+            postCountToday = s.PostCountToday,
+            hub = new
             {
-                publicId = x.Space.PublicId,
-                name = x.Space.Name,
-                slug = x.Space.Slug,
-                postCountToday = x.PostCountToday,
-                hub = new
-                {
-                    publicId = x.Space.Hub.PublicId,
-                    slug = x.Space.Hub.Slug,
-                    name = x.Space.Hub.Name
-                }
-            })
-            .ToListAsync();
+                publicId = s.HubPublicId,
+                slug = s.HubSlug,
+                name = s.HubName
+            }
+        });
 
-        return Results.Ok(new { items = topSpaces });
+        return Results.Ok(new { items });
     }
 }

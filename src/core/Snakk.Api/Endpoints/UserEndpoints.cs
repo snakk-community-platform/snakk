@@ -18,6 +18,9 @@ public static class UserEndpoints
 
         group.MapGet("/{publicId}/profile", GetUserProfileAsync)
             .WithName("GetUserProfile");
+
+        group.MapGet("/{publicId}/activity-history", GetUserActivityHistoryAsync)
+            .WithName("GetUserActivityHistory");
     }
 
     private static async Task<IResult> GetUserProfileAsync(
@@ -71,5 +74,30 @@ public static class UserEndpoints
                 postCountToday = c.PostCountToday
             })
         });
+    }
+
+    private static async Task<IResult> GetUserActivityHistoryAsync(
+        string publicId,
+        int days,
+        StatisticsUseCase statisticsUseCase)
+    {
+        var result = await statisticsUseCase.GetUserActivityHistoryAsync(publicId, days);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var response = new
+        {
+            days = result.Value!.Days,
+            data = result.Value.Data.Select(d => new
+            {
+                date = d.Date.ToString("yyyy-MM-dd"),
+                discussions = d.Discussions,
+                posts = d.Posts,
+                total = d.Total
+            })
+        };
+
+        return Results.Ok(response);
     }
 }

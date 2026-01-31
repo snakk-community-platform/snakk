@@ -1,6 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
-using Snakk.Infrastructure.Rendering;
+using Snakk.Application.Services;
 
 public static class MarkupEndpoints
 {
