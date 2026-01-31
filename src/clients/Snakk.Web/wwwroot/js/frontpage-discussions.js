@@ -30,7 +30,7 @@
 
         // Initialize observer for endless scroll
         homeScrollObserver = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && !isLoading && hasMore) {
+            if (entries[0].isIntersecting && !loadMoreRequest && hasMore) {
                 loadMore();
             }
         }, {

@@ -401,7 +401,7 @@
         if (scrollTop >= triggerPoint && !isSticky) {
             // Make sticky
             sidebar.classList.add('sidebar-sticky');
-            sidebar.style.top = `${navHeight}px`;
+            sidebar.style.top = `calc(${navHeight}px + 1rem)`;
             isSticky = true;
         } else if (scrollTop < triggerPoint && isSticky) {
             // Remove sticky

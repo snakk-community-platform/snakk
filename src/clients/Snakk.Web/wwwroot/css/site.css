@@ -10,7 +10,7 @@ html {
 :root,
 [data-theme="lofi"] {
     --bg-primary: #f5f5f5;
-    --bg-secondary: #fff;
+    --bg-secondary: #e5e5e5;
     --bg-tertiary: #fafafa;
     --bg-subtle: #f0f0f0;
     --border-primary: #e0e0e0;
@@ -339,9 +339,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .topic-list {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 8px;
+    border-radius: 0.5rem;
     overflow: hidden;
+    padding: 1rem;
 }
 
 .topic-item-wrapper {
@@ -363,10 +363,6 @@ h1, h2, h3, h4, h5, h6 {
     text-decoration: none;
     color: inherit;
     transition: background-color 0.1s ease;
-}
-
-.topic-item:hover {
-    background-color: var(--bg-tertiary);
 }
 
 .topic-latest-link {
@@ -1567,10 +1563,6 @@ a.hover-link:hover {
    ============================================ */
 
 .stats-panel {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 0.75rem;
-    padding: 1rem;
 }
 
 .stats-grid {
@@ -1610,10 +1602,6 @@ a.hover-link:hover {
    ============================================ */
 
 .sidebar-section {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 0.75rem;
-    padding: 1rem;
     margin-bottom: 1rem;
 }
 
@@ -1635,7 +1623,7 @@ a.hover-link:hover {
 .sidebar-list {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0.25rem;
 }
 
 .sidebar-list li {
@@ -1882,13 +1870,11 @@ a.hover-link:hover {
 .discussion-preview {
     padding: 0.5rem;
     margin: 0 0 0 3rem;
-    background-color: rgba(0, 0, 0, 0.02);
 }
 
 .discussion-preview .preview-content {
     font-size: 0.875rem;
     line-height: 1.5;
-    color: rgba(0, 0, 0, 0.7);
     white-space: pre-wrap;
 }
 
@@ -1927,7 +1913,7 @@ a.hover-link:hover {
 
     #sidebar.sidebar-sticky {
         position: sticky;
-        top: 0;
+        top: 1rem;
     }
 }
 
