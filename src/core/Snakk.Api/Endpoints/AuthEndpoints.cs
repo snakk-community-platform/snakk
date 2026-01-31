@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Authentication;
+using Snakk.Api.Helpers;
 using Snakk.Api.Models;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
@@ -55,8 +56,12 @@ public static class AuthEndpoints
         RegisterRequest request,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        ILogger<object> logger)
     {
+        var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
+        var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
+
         var baseUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
         var result = await authUseCase.RegisterWithEmailAsync(
             request.Email,
@@ -65,7 +70,11 @@ public static class AuthEndpoints
             baseUrl);
 
         if (!result.IsSuccess)
-            return Results.BadRequest(new { error = result.Error });
+        {
+            // Generic error message to prevent account enumeration
+            // Don't leak whether email already exists
+            return Results.BadRequest(new { error = "Registration failed. Please check your details and try again." });
+        }
 
         var user = result.Value!;
 
@@ -76,6 +85,8 @@ public static class AuthEndpoints
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
         if (!refreshTokenResult.IsSuccess)
             return Results.Problem("Registration succeeded but failed to create refresh token");
+
+        AuthAuditLogger.LogRegistration(logger, request.Email, ipAddress, userAgent);
 
         return Results.Ok(new
         {
@@ -95,12 +106,20 @@ public static class AuthEndpoints
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
         AuthenticationUseCase authUseCase,
-        IJwtTokenService jwtService)
+        IJwtTokenService jwtService,
+        HttpContext httpContext,
+        ILogger<object> logger)
     {
+        var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
+        var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
+
         var result = await authUseCase.LoginWithEmailAsync(request.Email, request.Password);
 
         if (!result.IsSuccess)
+        {
+            AuthAuditLogger.LogLoginFailure(logger, request.Email, ipAddress, userAgent);
             return Results.Unauthorized();
+        }
 
         var user = result.Value!;
 
@@ -111,6 +130,8 @@ public static class AuthEndpoints
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
         if (!refreshTokenResult.IsSuccess)
             return Results.Problem("Failed to create refresh token");
+
+        AuthAuditLogger.LogLoginSuccess(logger, request.Email, ipAddress, userAgent);
 
         return Results.Ok(new
         {
@@ -128,12 +149,18 @@ public static class AuthEndpoints
 
     private static async Task<IResult> LogoutAsync(
         HttpContext httpContext,
-        AuthenticationUseCase authUseCase)
+        AuthenticationUseCase authUseCase,
+        ILogger<object> logger)
     {
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId != null)
         {
+            var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
+            var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
+
             await authUseCase.RevokeRefreshTokensAsync(UserId.From(userId));
+
+            AuthAuditLogger.LogLogout(logger, userId, ipAddress, userAgent);
         }
 
         await httpContext.SignOutAsync("Cookies");
@@ -143,7 +170,9 @@ public static class AuthEndpoints
     private static async Task<IResult> RefreshTokenAsync(
         RefreshTokenRequest request,
         AuthenticationUseCase authUseCase,
-        IJwtTokenService jwtService)
+        IJwtTokenService jwtService,
+        HttpContext httpContext,
+        ILogger<object> logger)
     {
         var result = await authUseCase.RefreshTokenAsync(request.RefreshToken);
         if (!result.IsSuccess)
@@ -151,6 +180,10 @@ public static class AuthEndpoints
 
         var (user, newRefreshToken) = result.Value;
         var jwt = jwtService.GenerateToken(user);
+
+        var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
+        var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
+        AuthAuditLogger.LogTokenRefresh(logger, user.PublicId.Value, ipAddress, userAgent);
 
         return Results.Ok(new
         {
@@ -294,9 +327,21 @@ public static class AuthEndpoints
             return Results.Redirect($"{webClientUrl}/auth/login?error={Uri.EscapeDataString($"OAuth provider '{provider}' is not configured. Please add valid credentials to appsettings.json.")}");
         }
 
+        // Generate CSRF state token for OAuth flow protection
+        var stateToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+
+        // Store state in secure HTTP-only cookie (short-lived, 10 minutes)
+        httpContext.Response.Cookies.Append("oauth_state", stateToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = httpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(10)
+        });
+
         var authProperties = new AuthenticationProperties
         {
-            RedirectUri = $"/auth/oauth/callback?provider={provider}&returnUrl={returnUrl ?? "/"}"
+            RedirectUri = $"/auth/oauth/callback?provider={provider}&returnUrl={returnUrl ?? "/"}&state={Uri.EscapeDataString(stateToken)}"
         };
 
         return Results.Challenge(authProperties, new[] { provider });
@@ -305,12 +350,29 @@ public static class AuthEndpoints
     private static async Task<IResult> OAuthCallbackAsync(
         string provider,
         string? returnUrl,
+        string? state,
         HttpContext httpContext,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<object> logger)
     {
+        var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
+        var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
         var webClientUrl = configuration["WebClientUrl"] ?? "https://localhost:7001";
+
+        // Validate CSRF state token
+        var storedState = httpContext.Request.Cookies["oauth_state"];
+        if (string.IsNullOrEmpty(storedState) || storedState != state)
+        {
+            // Delete the cookie
+            httpContext.Response.Cookies.Delete("oauth_state");
+            AuthAuditLogger.LogOAuthStateValidationFailure(logger, provider, ipAddress, userAgent);
+            return Results.Redirect($"{webClientUrl}/auth/login?error=invalid_state_token");
+        }
+
+        // Delete the state cookie after validation (single-use)
+        httpContext.Response.Cookies.Delete("oauth_state");
 
         var authenticateResult = await httpContext.AuthenticateAsync("TempOAuth");
 
@@ -332,6 +394,9 @@ public static class AuthEndpoints
             return Results.Redirect($"{webClientUrl}/auth/login?error={Uri.EscapeDataString(result.Error ?? "Unknown error")}");
 
         var user = result.Value!;
+
+        // Audit log OAuth login
+        AuthAuditLogger.LogOAuthLogin(logger, provider, email, ipAddress, userAgent);
 
         // Generate JWT token
         var token = jwtService.GenerateToken(user);

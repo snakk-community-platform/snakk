@@ -78,3 +78,13 @@ secrets.json
 *.db
 *.sqlite
 *.sqlite3
+
+# Node modules
+**/node_modules/
+
+# Generated CSS (can be rebuilt from Styles/input.css)
+**/wwwroot/css/styles.css
+**/wwwroot/css/tailwind.css
+
+# Temp/error files
+nul

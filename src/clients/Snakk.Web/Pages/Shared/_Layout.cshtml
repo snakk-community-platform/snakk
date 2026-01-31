@@ -17,12 +17,11 @@
     <!-- Theme Management (load early to prevent flash) -->
     <script src="~/js/theme.js" asp-append-version="true"></script>
 
-    <!-- Tailwind CSS + daisyUI -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS + daisyUI (locally compiled) -->
+    <link href="~/css/styles.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="~/js/htmx.min.js" asp-append-version="true"></script>
     <script>
         // Update page title after HTMX content swap
         document.addEventListener('htmx:afterSwap', function(evt) {
@@ -385,7 +384,10 @@
     </footer>
 
     <!-- SignalR Client -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+            integrity="sha512-+a5bV5c/O1GKS3mQCRfIu4tEF/xwy+6aBLg7OVdcWkLMPFwU17f4aqBfY7gm7jhgNCz8y+b2pWEqJu7X4XPEPA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
 
     <!-- Set API URL for SignalR before loading realtime.js -->
     <script>

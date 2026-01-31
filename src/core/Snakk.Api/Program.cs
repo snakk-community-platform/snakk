@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api;
 using Snakk.Api.Endpoints;
+using Snakk.Api.Middleware;
 using Snakk.Api.Services;
 using Snakk.Infrastructure.Database;
 
@@ -32,6 +33,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Security headers - must come early in pipeline
+app.UseSecurityHeaders();
+
 app.UseCors();
 
 app.UseRateLimiter();
@@ -43,6 +47,21 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
     .WithName("HealthCheck")
     .WithTags("Health");
+
+// Security.txt endpoint (RFC 9116)
+app.MapGet("/.well-known/security.txt", () =>
+{
+    var securityTxt = @"Contact: mailto:security@snakk.local
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://snakk.local/.well-known/security.txt
+Policy: https://snakk.local/security-policy
+Acknowledgments: https://snakk.local/security-thanks";
+
+    return Results.Text(securityTxt, "text/plain; charset=utf-8");
+})
+.WithName("SecurityTxt")
+.ExcludeFromDescription();
 
 // Map all endpoint groups
 app.MapCommunityEndpoints();
