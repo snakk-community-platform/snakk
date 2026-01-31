@@ -116,7 +116,7 @@
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol class="breadcrumb-list" itemscope itemtype="https://schema.org/BreadcrumbList">
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                    <a href="/" itemprop="item" hx-boost="false">
+                    <a href="/" itemprop="item">
                         <span itemprop="name">Home</span>
                     </a>
                     <meta itemprop="position" content="1" />
@@ -125,14 +125,14 @@
                 {
                     <li class="breadcrumb-separator" aria-hidden="true">/</li>
                     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                        <a href="/communities" itemprop="item" hx-boost="false">
+                        <a href="/communities" itemprop="item">
                             <span itemprop="name">Communities</span>
                         </a>
                         <meta itemprop="position" content="2" />
                     </li>
                     <li class="breadcrumb-separator" aria-hidden="true">/</li>
                     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                        <a href="/c/@Model.Community.CommunitySlug" itemprop="item" hx-boost="false">
+                        <a href="/c/@Model.Community.CommunitySlug" itemprop="item">
                             <span itemprop="name">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</span>
                         </a>
                         <meta itemprop="position" content="3" />
@@ -140,7 +140,7 @@
                 }
                 <li class="breadcrumb-separator" aria-hidden="true">/</li>
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                    <a href="/hubs" itemprop="item" hx-boost="false">
+                    <a href="/hubs" itemprop="item">
                         <span itemprop="name">Hubs</span>
                     </a>
                     <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 4 : 2)" />
@@ -880,7 +880,7 @@ else
 </dialog>
 
 <!-- Reaction Picker -->
-<div id="reaction-picker" class="hidden fixed z-50 bg-white border border-subtle rounded-lg shadow-lg p-2" hx-boost="false">
+<div id="reaction-picker" class="hidden fixed z-50 bg-white border border-subtle rounded-lg shadow-lg p-2">
     <div class="flex gap-1">
         <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction(currentReactionPostId, 'ThumbsUp'); return false;" class="reaction-pill" title="Thumbs Up">👍</button>
         <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction(currentReactionPostId, 'Heart'); return false;" class="reaction-pill" title="Heart">❤️</button>

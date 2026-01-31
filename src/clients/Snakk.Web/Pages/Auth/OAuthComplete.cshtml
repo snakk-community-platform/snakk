@@ -1,0 +1,68 @@
+@page "/auth/oauth-complete"
+@model Snakk.Web.Pages.Auth.OAuthCompleteModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Completing Login - Snakk</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-base-100 min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <div class="loading loading-spinner loading-lg text-primary mb-4"></div>
+        <h1 class="text-2xl font-bold mb-2">Logging you in...</h1>
+        <p class="text-base-content/70">Just a moment while we complete your login.</p>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const TOKEN_KEY = 'snakk_jwt_token';
+            const REFRESH_TOKEN_KEY = 'snakk_refresh_token';
+
+            console.log('[OAuth Complete] Starting OAuth token processing...');
+
+            try {
+                // Parse tokens from URL fragment (hash)
+                const fragment = window.location.hash.substring(1); // Remove leading #
+                const params = new URLSearchParams(fragment);
+
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                const returnUrl = params.get('returnUrl') || '/';
+
+                console.log('[OAuth Complete] Fragment params:', {
+                    hasAccessToken: !!accessToken,
+                    hasRefreshToken: !!refreshToken,
+                    returnUrl: returnUrl
+                });
+
+                if (!accessToken || !refreshToken) {
+                    throw new Error('Missing tokens in URL fragment');
+                }
+
+                // Store tokens in localStorage
+                localStorage.setItem(TOKEN_KEY, decodeURIComponent(accessToken));
+                localStorage.setItem(REFRESH_TOKEN_KEY, decodeURIComponent(refreshToken));
+
+                console.log('[OAuth Complete] Tokens stored in localStorage');
+                console.log('[OAuth Complete] Redirecting to:', returnUrl);
+
+                // Clear fragment from URL and redirect
+                window.location.href = returnUrl;
+
+            } catch (error) {
+                console.error('[OAuth Complete] Error:', error);
+
+                // Redirect to login page with error
+                window.location.href = '/auth/login?error=' + encodeURIComponent('OAuth login failed. Please try again.');
+            }
+        })();
+    </script>
+</body>
+</html>

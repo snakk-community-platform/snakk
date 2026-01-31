@@ -17,6 +17,27 @@
                 </div>
             }
 
+            <script>
+                // Handle OAuth tokens in URL fragment for new users
+                (function() {
+                    const fragment = window.location.hash.substring(1);
+                    if (fragment) {
+                        const params = new URLSearchParams(fragment);
+                        const accessToken = params.get('access_token');
+                        const refreshToken = params.get('refresh_token');
+
+                        if (accessToken && refreshToken) {
+                            console.log('[Setup Profile] Storing OAuth tokens from fragment');
+                            localStorage.setItem('snakk_jwt_token', decodeURIComponent(accessToken));
+                            localStorage.setItem('snakk_refresh_token', decodeURIComponent(refreshToken));
+
+                            // Clear fragment from URL
+                            history.replaceState(null, '', window.location.pathname);
+                        }
+                    }
+                })();
+            </script>
+
             <form id="setupProfileForm" class="space-y-4">
                 <div id="errorAlert" class="alert alert-error mb-4 hidden">
                     <span id="errorMessage"></span>

@@ -346,44 +346,14 @@ public static class AuthEndpoints
 
         if (isNewUser)
         {
-            // Store tokens in secure HTTP-only cookie for setup page
-            httpContext.Response.Cookies.Append("snakk_setup_token", token, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = httpContext.Request.IsHttps,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddMinutes(10)
-            });
-
-            httpContext.Response.Cookies.Append("snakk_setup_refresh_token", refreshTokenResult.Value!.Value, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = httpContext.Request.IsHttps,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddMinutes(10)
-            });
-
-            return Results.Redirect($"{webClientUrl}/auth/setup-profile");
+            // New users go to profile setup page with tokens in URL fragment
+            var setupFragment = $"#access_token={Uri.EscapeDataString(token)}&refresh_token={Uri.EscapeDataString(refreshTokenResult.Value!.Value)}";
+            return Results.Redirect($"{webClientUrl}/auth/setup-profile{setupFragment}");
         }
 
-        // For existing users, store tokens in secure cookies and redirect
-        httpContext.Response.Cookies.Append("snakk_token", token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = httpContext.Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddMinutes(10)
-        });
-
-        httpContext.Response.Cookies.Append("snakk_refresh_token", refreshTokenResult.Value!.Value, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = httpContext.Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(30)
-        });
-
-        var finalReturnUrl = !string.IsNullOrEmpty(returnUrl) ? returnUrl : webClientUrl;
-        return Results.Redirect(finalReturnUrl);
+        // Existing users go to OAuth completion page with tokens in URL fragment
+        var finalReturnUrl = !string.IsNullOrEmpty(returnUrl) ? returnUrl : "/";
+        var fragment = $"#access_token={Uri.EscapeDataString(token)}&refresh_token={Uri.EscapeDataString(refreshTokenResult.Value!.Value)}&returnUrl={Uri.EscapeDataString(finalReturnUrl)}";
+        return Results.Redirect($"{webClientUrl}/auth/oauth-complete{fragment}");
     }
 }
