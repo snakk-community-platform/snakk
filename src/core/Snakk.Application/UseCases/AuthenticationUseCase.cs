@@ -10,11 +10,13 @@ using Snakk.Shared.Models;
 public class AuthenticationUseCase(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
-    IEmailSender emailSender) : UseCaseBase
+    IEmailSender emailSender,
+    IRefreshTokenRepository refreshTokenRepository) : UseCaseBase
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly IEmailSender _emailSender = emailSender;
+    private readonly IRefreshTokenRepository _refreshTokenRepository = refreshTokenRepository;
 
     public async Task<Result<User>> RegisterWithEmailAsync(
         string email,
@@ -227,5 +229,43 @@ public class AuthenticationUseCase(
 
         // Fallback to GUID
         return $"{displayName}-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+    }
+
+    public async Task<Result<RefreshToken>> CreateRefreshTokenAsync(UserId userId)
+    {
+        var refreshToken = RefreshToken.Create(userId, expirationDays: 30);
+        await _refreshTokenRepository.AddAsync(refreshToken);
+        return Result<RefreshToken>.Success(refreshToken);
+    }
+
+    public async Task<Result<(User user, RefreshToken newRefreshToken)>> RefreshTokenAsync(string refreshTokenValue)
+    {
+        var refreshToken = await _refreshTokenRepository.GetByValueAsync(refreshTokenValue);
+
+        if (refreshToken == null)
+            return Result<(User, RefreshToken)>.Failure("Invalid refresh token");
+
+        if (!refreshToken.IsActive)
+            return Result<(User, RefreshToken)>.Failure("Refresh token is expired or revoked");
+
+        var user = await _userRepository.GetByPublicIdAsync(refreshToken.UserId);
+        if (user == null)
+            return Result<(User, RefreshToken)>.Failure("User not found");
+
+        // Revoke old token
+        var revokedToken = refreshToken.Revoke();
+        await _refreshTokenRepository.UpdateAsync(revokedToken);
+
+        // Create new refresh token
+        var newRefreshToken = RefreshToken.Create(refreshToken.UserId, expirationDays: 30);
+        await _refreshTokenRepository.AddAsync(newRefreshToken);
+
+        return Result<(User, RefreshToken)>.Success((user, newRefreshToken));
+    }
+
+    public async Task<Result> RevokeRefreshTokensAsync(UserId userId)
+    {
+        await _refreshTokenRepository.RevokeAllForUserAsync(userId);
+        return Result.Success();
     }
 }

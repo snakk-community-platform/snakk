@@ -438,8 +438,7 @@ public static class ModerationEndpoints
         if (moderatorUserId == null)
             return Results.Unauthorized();
 
-        // TODO: Add permission check for viewing logs
-
+        // Permission check is handled inside ModerationUseCase.GetModerationLogAsync
         var result = await moderationUseCase.GetModerationLogAsync(
             communityId, hubId, spaceId, offset, pageSize);
 

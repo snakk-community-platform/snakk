@@ -4,10 +4,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Snakk.Domain.Entities;
 
 public interface IJwtTokenService
 {
     string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider);
+    string GenerateToken(User user);
     ClaimsPrincipal? ValidateToken(string token);
 }
 
@@ -59,6 +61,16 @@ public class JwtTokenService : IJwtTokenService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public string GenerateToken(User user)
+    {
+        return GenerateToken(
+            user.PublicId.Value,
+            user.DisplayName,
+            user.Email,
+            user.EmailVerified,
+            user.OAuthProvider);
     }
 
     public ClaimsPrincipal? ValidateToken(string token)

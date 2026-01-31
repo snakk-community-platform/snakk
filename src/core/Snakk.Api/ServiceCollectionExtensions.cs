@@ -1,11 +1,14 @@
 namespace Snakk.Api;
 
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Services;
 using Snakk.Api.Services;
+using Snakk.Api.Validators;
+using Microsoft.AspNetCore.RateLimiting;
 
 public static class ServiceCollectionExtensions
 {
@@ -17,8 +20,8 @@ public static class ServiceCollectionExtensions
             options.AddDefaultPolicy(policy =>
             {
                 policy.WithOrigins("https://localhost:7001", "http://localhost:5001")
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
+                      .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With")
+                      .WithMethods("GET", "POST", "PUT", "DELETE")
                       .AllowCredentials();
             });
         });
@@ -145,6 +148,9 @@ public static class ServiceCollectionExtensions
 
         services.AddAuthorization();
 
+        // FluentValidation
+        services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
         // Database Repositories
         services.AddScoped<Infrastructure.Database.Repositories.ICommunityDatabaseRepository, Infrastructure.Database.Repositories.CommunityDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IHubRepository, Infrastructure.Database.Repositories.HubRepository>();
@@ -164,6 +170,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Infrastructure.Database.Repositories.IReportCommentRepository, Infrastructure.Database.Repositories.ReportCommentRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IReportReasonRepository, Infrastructure.Database.Repositories.ReportReasonRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IModerationLogRepository, Infrastructure.Database.Repositories.ModerationLogRepository>();
+
+        // Refresh Token Repository
+        services.AddScoped<Domain.Repositories.IRefreshTokenRepository, Infrastructure.Database.Repositories.RefreshTokenRepository>();
 
         // Domain Repository Adapters
         services.AddScoped<Domain.Repositories.ICommunityRepository, Infrastructure.Adapters.CommunityRepositoryAdapter>();
@@ -225,6 +234,58 @@ public static class ServiceCollectionExtensions
         // Realtime Services
         services.AddScoped<Infrastructure.Services.IPostHtmlRenderer, Infrastructure.Services.PostHtmlRenderer>();
         services.AddScoped<IRealtimeNotifier, Infrastructure.Services.SignalRRealtimeNotifier>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            // Strict rate limit for authentication endpoints
+            options.AddFixedWindowLimiter("auth", opt =>
+            {
+                opt.PermitLimit = 5; // 5 attempts
+                opt.Window = TimeSpan.FromMinutes(15); // per 15 minutes
+                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+                opt.QueueLimit = 0; // No queueing
+            });
+
+            // Standard rate limit for API endpoints
+            options.AddFixedWindowLimiter("api", opt =>
+            {
+                opt.PermitLimit = 100; // 100 requests
+                opt.Window = TimeSpan.FromMinutes(1); // per minute
+                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+                opt.QueueLimit = 0;
+            });
+
+            // Stricter limit for expensive operations
+            options.AddFixedWindowLimiter("expensive", opt =>
+            {
+                opt.PermitLimit = 10; // 10 requests
+                opt.Window = TimeSpan.FromMinutes(1); // per minute
+                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+                opt.QueueLimit = 0;
+            });
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status429TooManyRequests;
+
+                double? retryAfterSeconds = null;
+                if (context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter))
+                {
+                    retryAfterSeconds = retryAfter.TotalSeconds;
+                }
+
+                await context.HttpContext.Response.WriteAsJsonAsync(new
+                {
+                    error = "Too many requests. Please try again later.",
+                    retryAfter = retryAfterSeconds
+                }, cancellationToken);
+            };
+        });
 
         return services;
     }

@@ -1,9 +1,11 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
+using Snakk.Api.Extensions;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Api.Filters;
 
 public static class DiscussionEndpoints
 {
@@ -13,7 +15,10 @@ public static class DiscussionEndpoints
             .WithTags("Discussions");
 
         group.MapPost("/", CreateDiscussionAsync)
-            .WithName("CreateDiscussion");
+            .WithName("CreateDiscussion")
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .AddEndpointFilter<ValidationFilter<CreateDiscussionRequest>>();
 
         group.MapGet("/{publicId}", GetDiscussionAsync)
             .WithName("GetDiscussion");
@@ -36,11 +41,17 @@ public static class DiscussionEndpoints
 
     private static async Task<IResult> CreateDiscussionAsync(
         CreateDiscussionRequest request,
-        DiscussionUseCase useCase)
+        DiscussionUseCase useCase,
+        HttpContext context)
     {
+        // SECURITY: Extract userId from JWT, NOT from request
+        var userId = context.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
         var result = await useCase.CreateDiscussionAsync(
             SpaceId.From(request.SpaceId),
-            UserId.From(request.UserId),
+            userId,
             request.Title,
             request.Slug,
             request.FirstPostContent);

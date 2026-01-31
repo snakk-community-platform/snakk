@@ -14,3 +14,5 @@ public record UpdateProfileRequest(
 
 public record UpdatePreferencesRequest(
     bool? PreferEndlessScroll);
+
+public record RefreshTokenRequest(string RefreshToken);

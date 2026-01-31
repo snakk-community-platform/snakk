@@ -23,6 +23,10 @@ public static class AuthEndpoints
         group.MapPost("/logout", LogoutAsync)
             .WithName("Logout");
 
+        group.MapPost("/refresh", RefreshTokenAsync)
+            .WithName("RefreshToken")
+            .RequireRateLimiting("auth");
+
         group.MapGet("/verify-email", VerifyEmailAsync)
             .WithName("VerifyEmail");
 
@@ -50,6 +54,7 @@ public static class AuthEndpoints
     private static async Task<IResult> RegisterAsync(
         RegisterRequest request,
         AuthenticationUseCase authUseCase,
+        IJwtTokenService jwtService,
         HttpContext httpContext)
     {
         var baseUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
@@ -62,10 +67,28 @@ public static class AuthEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
+        var user = result.Value!;
+
+        // Generate JWT for immediate login
+        var jwt = jwtService.GenerateToken(user);
+
+        // Generate refresh token
+        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+        if (!refreshTokenResult.IsSuccess)
+            return Results.Problem("Registration succeeded but failed to create refresh token");
+
         return Results.Ok(new
         {
             message = "Registration successful. Please check your email to verify your account.",
-            userId = result.Value!.PublicId.Value
+            accessToken = jwt,
+            refreshToken = refreshTokenResult.Value!.Value,
+            user = new
+            {
+                id = user.PublicId.Value,
+                email = user.Email,
+                displayName = user.DisplayName,
+                emailVerified = user.EmailVerified
+            }
         });
     }
 
@@ -79,27 +102,61 @@ public static class AuthEndpoints
         if (!result.IsSuccess)
             return Results.Unauthorized();
 
-        var token = jwtService.GenerateToken(
-            result.Value!.PublicId.Value,
-            result.Value.DisplayName,
-            result.Value.Email,
-            result.Value.EmailVerified,
-            result.Value.OAuthProvider);
+        var user = result.Value!;
+
+        // Generate JWT
+        var jwt = jwtService.GenerateToken(user);
+
+        // Generate refresh token
+        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+        if (!refreshTokenResult.IsSuccess)
+            return Results.Problem("Failed to create refresh token");
 
         return Results.Ok(new
         {
-            token,
-            userId = result.Value.PublicId.Value,
-            displayName = result.Value.DisplayName,
-            email = result.Value.Email,
-            emailVerified = result.Value.EmailVerified
+            accessToken = jwt,
+            refreshToken = refreshTokenResult.Value!.Value,
+            user = new
+            {
+                id = user.PublicId.Value,
+                email = user.Email,
+                displayName = user.DisplayName,
+                emailVerified = user.EmailVerified
+            }
         });
     }
 
-    private static async Task<IResult> LogoutAsync(HttpContext httpContext)
+    private static async Task<IResult> LogoutAsync(
+        HttpContext httpContext,
+        AuthenticationUseCase authUseCase)
     {
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId != null)
+        {
+            await authUseCase.RevokeRefreshTokensAsync(UserId.From(userId));
+        }
+
         await httpContext.SignOutAsync("Cookies");
         return Results.Ok(new { message = "Logged out successfully" });
+    }
+
+    private static async Task<IResult> RefreshTokenAsync(
+        RefreshTokenRequest request,
+        AuthenticationUseCase authUseCase,
+        IJwtTokenService jwtService)
+    {
+        var result = await authUseCase.RefreshTokenAsync(request.RefreshToken);
+        if (!result.IsSuccess)
+            return Results.Unauthorized();
+
+        var (user, newRefreshToken) = result.Value;
+        var jwt = jwtService.GenerateToken(user);
+
+        return Results.Ok(new
+        {
+            accessToken = jwt,
+            refreshToken = newRefreshToken.Value
+        });
     }
 
     private static async Task<IResult> VerifyEmailAsync(
@@ -274,23 +331,59 @@ public static class AuthEndpoints
         if (!result.IsSuccess)
             return Results.Redirect($"{webClientUrl}/auth/login?error={Uri.EscapeDataString(result.Error ?? "Unknown error")}");
 
+        var user = result.Value!;
+
         // Generate JWT token
-        var token = jwtService.GenerateToken(
-            result.Value!.PublicId.Value,
-            result.Value.DisplayName,
-            result.Value.Email,
-            result.Value.EmailVerified,
-            result.Value.OAuthProvider);
+        var token = jwtService.GenerateToken(user);
+
+        // Generate refresh token
+        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+        if (!refreshTokenResult.IsSuccess)
+            return Results.Redirect($"{webClientUrl}/auth/login?error={Uri.EscapeDataString("Failed to create refresh token")}");
 
         // Check if user was just created (within last 30 seconds) - redirect to profile setup
-        var isNewUser = (DateTime.UtcNow - result.Value.CreatedAt).TotalSeconds < 30;
+        var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
         if (isNewUser)
         {
-            return Results.Redirect($"{webClientUrl}/auth/setup-profile?token={Uri.EscapeDataString(token)}");
+            // Store tokens in secure HTTP-only cookie for setup page
+            httpContext.Response.Cookies.Append("snakk_setup_token", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = httpContext.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(10)
+            });
+
+            httpContext.Response.Cookies.Append("snakk_setup_refresh_token", refreshTokenResult.Value!.Value, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = httpContext.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(10)
+            });
+
+            return Results.Redirect($"{webClientUrl}/auth/setup-profile");
         }
 
+        // For existing users, store tokens in secure cookies and redirect
+        httpContext.Response.Cookies.Append("snakk_token", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = httpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(10)
+        });
+
+        httpContext.Response.Cookies.Append("snakk_refresh_token", refreshTokenResult.Value!.Value, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = httpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
+
         var finalReturnUrl = !string.IsNullOrEmpty(returnUrl) ? returnUrl : webClientUrl;
-        return Results.Redirect($"{finalReturnUrl}?token={Uri.EscapeDataString(token)}");
+        return Results.Redirect(finalReturnUrl);
     }
 }

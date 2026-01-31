@@ -6,6 +6,7 @@ using System.Security.Claims;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
+using Snakk.Api.Helpers;
 
 public static class AvatarEndpoints
 {
@@ -219,6 +220,10 @@ public static class AvatarEndpoints
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
         if (!allowedExtensions.Contains(extension))
             return Results.BadRequest(new { error = "Invalid file extension" });
+
+        // Validate file magic bytes
+        if (!await FileValidationHelper.IsValidImageFileAsync(file, extension))
+            return Results.BadRequest(new { error = "Invalid image file format" });
 
         // Create avatars directory if it doesn't exist
         var avatarsDir = Path.Combine(env.ContentRootPath, "avatars");

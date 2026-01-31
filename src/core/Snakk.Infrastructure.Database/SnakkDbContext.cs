@@ -32,6 +32,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ReportReasonDatabaseEntity> ReportReasons { get; set; } = null!;
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
 
+    // Authentication
+    public DbSet<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = null!;
+
     // Lookup tables
     public DbSet<Entities.Lookups.CommunityVisibilityLookup> CommunityVisibilityLookups { get; set; } = null!;
     public DbSet<Entities.Lookups.FollowTargetTypeLookup> FollowTargetTypeLookups { get; set; } = null!;
@@ -740,5 +743,21 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<PostDatabaseEntity>()
             .HasIndex(p => p.ReplyToPostId)
             .HasDatabaseName("IX_Post_ReplyToPostId");
+
+        // === RefreshToken Configuration ===
+
+        modelBuilder.Entity<RefreshTokenDatabaseEntity>()
+            .HasIndex(r => r.TokenValue)
+            .IsUnique();
+
+        modelBuilder.Entity<RefreshTokenDatabaseEntity>()
+            .HasIndex(r => r.UserId);
+
+        modelBuilder.Entity<RefreshTokenDatabaseEntity>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .HasPrincipalKey(u => u.PublicId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

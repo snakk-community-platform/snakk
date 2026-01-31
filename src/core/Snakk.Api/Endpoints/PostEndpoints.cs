@@ -1,9 +1,12 @@
 namespace Snakk.Api.Endpoints;
 
+using Microsoft.AspNetCore.Mvc;
+using Snakk.Api.Extensions;
 using Snakk.Api.Models;
 using Snakk.Application.UseCases;
-using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Domain.Repositories;
+using Snakk.Api.Filters;
 
 public static class PostEndpoints
 {
@@ -12,18 +15,25 @@ public static class PostEndpoints
         var group = app.MapGroup("/posts")
             .WithTags("Posts");
 
+        // All post endpoints require authentication
         group.MapPost("/", CreatePostAsync)
-            .WithName("CreatePost");
+            .WithName("CreatePost")
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .AddEndpointFilter<ValidationFilter<CreatePostRequest>>();
 
         // API endpoints under /api/posts
         var apiGroup = app.MapGroup("/api/posts")
-            .WithTags("Posts API");
+            .WithTags("Posts API")
+            .RequireAuthorization();
 
         apiGroup.MapPost("/{publicId}/edit", EditPostHtmxAsync)
-            .WithName("EditPostHtmx");
+            .WithName("EditPostHtmx")
+            .RequireRateLimiting("api");
 
         apiGroup.MapDelete("/{publicId}", DeletePostHtmxAsync)
-            .WithName("DeletePostHtmx");
+            .WithName("DeletePostHtmx")
+            .RequireRateLimiting("api");
 
         apiGroup.MapGet("/{publicId}/history", GetPostHistoryHtmxAsync)
             .WithName("GetPostHistoryHtmx");
@@ -31,11 +41,17 @@ public static class PostEndpoints
 
     private static async Task<IResult> CreatePostAsync(
         CreatePostRequest request,
-        PostUseCase useCase)
+        PostUseCase useCase,
+        HttpContext context)
     {
+        // SECURITY: Extract userId from JWT claims, NOT from request
+        var userId = context.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
         var result = await useCase.CreatePostAsync(
             DiscussionId.From(request.DiscussionId),
-            UserId.From(request.UserId),
+            userId,
             request.Content,
             request.ReplyToPostId != null ? PostId.From(request.ReplyToPostId) : null);
 
@@ -53,32 +69,42 @@ public static class PostEndpoints
 
     private static async Task<IResult> EditPostHtmxAsync(
         string publicId,
-        string userId,
         string content,
         PostUseCase useCase,
+        HttpContext context,
         Snakk.Api.Services.IViewRenderingService viewService)
     {
+        // SECURITY: Extract userId from JWT claims
+        var userId = context.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
         var result = await useCase.UpdatePostAsync(
             PostId.From(publicId),
-            UserId.From(userId),
+            userId,
             content);
 
         if (!result.IsSuccess)
             return Results.Content(viewService.RenderError(result.Error!), "text/html");
 
-        var html = viewService.RenderPostCard(result.Value!, userId);
+        var html = viewService.RenderPostCard(result.Value!, userId.Value);
         return Results.Content(html, "text/html");
     }
 
     private static async Task<IResult> DeletePostHtmxAsync(
         string publicId,
-        string userId,
         PostUseCase useCase,
+        HttpContext context,
         Snakk.Api.Services.IViewRenderingService viewService)
     {
+        // SECURITY: Extract userId from JWT claims
+        var userId = context.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
         var result = await useCase.DeletePostAsync(
             PostId.From(publicId),
-            UserId.From(userId));
+            userId);
 
         if (!result.IsSuccess)
             return Results.Content(viewService.RenderError(result.Error!), "text/html");

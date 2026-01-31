@@ -13,6 +13,7 @@ public class AuthenticationUseCaseTests
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
     private readonly Mock<IEmailSender> _mockEmailSender;
+    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository;
     private readonly AuthenticationUseCase _useCase;
 
     public AuthenticationUseCaseTests()
@@ -20,11 +21,13 @@ public class AuthenticationUseCaseTests
         _mockUserRepository = new Mock<IUserRepository>();
         _mockPasswordHasher = new Mock<IPasswordHasher>();
         _mockEmailSender = new Mock<IEmailSender>();
+        _mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
 
         _useCase = new AuthenticationUseCase(
             _mockUserRepository.Object,
             _mockPasswordHasher.Object,
-            _mockEmailSender.Object);
+            _mockEmailSender.Object,
+            _mockRefreshTokenRepository.Object);
     }
 
     #region RegisterWithEmailAsync Tests
