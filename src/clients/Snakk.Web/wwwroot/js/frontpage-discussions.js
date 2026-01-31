@@ -7,6 +7,8 @@
     let hasMore = false;
     let homeScrollObserver = null;
     let loadMoreRequest = null;
+    let previewHandlersAttached = false;
+    const previewCache = new Map();
 
     /**
      * Initialize the frontpage discussion list
@@ -38,6 +40,101 @@
         });
 
         homeScrollObserver.observe(sentinel);
+
+        // Set up event delegation for preview buttons (only once)
+        if (!previewHandlersAttached) {
+            attachPreviewHandlers(container);
+            previewHandlersAttached = true;
+        }
+    }
+
+    /**
+     * Attach preview button handlers using event delegation
+     */
+    function attachPreviewHandlers(container) {
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+
+            // Find the last space before maxLength
+            let truncated = text.substring(0, maxLength);
+            const lastSpace = truncated.lastIndexOf(' ');
+
+            if (lastSpace > 0) {
+                truncated = truncated.substring(0, lastSpace);
+            }
+
+            return truncated + '...';
+        }
+
+        async function fetchPreview(discussionId) {
+            if (previewCache.has(discussionId)) {
+                return previewCache.get(discussionId);
+            }
+
+            try {
+                const config = window.SnakkConfig;
+                const response = await fetch(`${config.apiBaseUrl}/discussions/${discussionId}/preview`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch preview');
+                }
+
+                const data = await response.json();
+                previewCache.set(discussionId, data.content);
+                return data.content;
+            } catch (error) {
+                console.error('Error fetching preview:', error);
+                return null;
+            }
+        }
+
+        function togglePreview(button, previewDiv, discussionId) {
+            const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
+
+            if (isCurrentlyVisible) {
+                // Hide preview
+                previewDiv.classList.add('hidden');
+                button.classList.remove('active');
+            } else {
+                // Show preview
+                const previewContent = previewDiv.querySelector('.preview-content');
+
+                if (previewContent.textContent) {
+                    // Already loaded, just show
+                    previewDiv.classList.remove('hidden');
+                    button.classList.add('active');
+                } else {
+                    // Load and show
+                    previewContent.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
+                    previewDiv.classList.remove('hidden');
+                    button.classList.add('active');
+
+                    fetchPreview(discussionId).then(content => {
+                        if (content) {
+                            const truncated = truncateText(content, 480);
+                            previewContent.textContent = truncated;
+                        } else {
+                            previewContent.textContent = 'Failed to load preview';
+                        }
+                    });
+                }
+            }
+        }
+
+        // Use event delegation for dynamically added preview buttons
+        container.addEventListener('click', function(e) {
+            const button = e.target.closest('.preview-btn');
+            if (!button) return;
+
+            e.preventDefault();
+            const discussionId = button.dataset.discussionId;
+            const wrapper = button.closest('.topic-item-wrapper');
+            const previewDiv = wrapper.nextElementSibling;
+
+            if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
+                togglePreview(button, previewDiv, discussionId);
+            }
+        });
     }
 
     /**
@@ -94,26 +191,45 @@
                     </div>
                     <div class="topic-stats hidden sm:flex">
                         <div class="topic-stat">
+                            <div class="topic-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                                </svg>
+                            </div>
                             <div class="topic-stat-value">${discussion.reactionCount || 0}</div>
-                            <div class="topic-stat-label">Reactions</div>
                         </div>
                         <div class="topic-stat">
+                            <div class="topic-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                            </div>
                             <div class="topic-stat-value">${discussion.postCount || 0}</div>
-                            <div class="topic-stat-label">Replies</div>
                         </div>
                     </div>
                 </div>
+                <button class="preview-btn"
+                        data-discussion-id="${discussion.publicId}"
+                        title="Preview first post"
+                        type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
                 <a href="${unreadUrl}" class="topic-latest-link" title="Jump to first unread post">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
+                    <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </a>
+            </div>
+            <div class="discussion-preview hidden" data-discussion-id="${discussion.publicId}">
+                <div class="preview-content"></div>
             </div>
         `;
 
         const template = document.createElement('template');
         template.innerHTML = html.trim();
-        return template.content.firstChild;
+        return template.content;
     }
 
     /**
