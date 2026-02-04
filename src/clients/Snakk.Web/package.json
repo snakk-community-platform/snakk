@@ -4,8 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:css": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/styles.css --minify",
-    "watch:css": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/styles.css --watch",
+    "build:css": "npm run build:tailwind && npm run build:custom",
+    "build:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/tailwind.css --minify",
+    "build:custom": "sass Styles/site.scss:wwwroot/css/site.css --style=compressed --no-source-map",
+    "watch:css": "npm run watch:tailwind & npm run watch:custom",
+    "watch:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/tailwind.css --watch",
+    "watch:custom": "sass Styles/site.scss:wwwroot/css/site.css --watch --no-source-map",
     "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/htmx.min.js'\"",
     "postinstall": "npm run copy:libs",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,6 +23,7 @@
     "daisyui": "^4.12.14",
     "htmx.org": "^2.0.4",
     "postcss": "^8.5.6",
+    "sass": "^1.97.3",
     "tailwindcss": "^3.4.19"
   }
 }

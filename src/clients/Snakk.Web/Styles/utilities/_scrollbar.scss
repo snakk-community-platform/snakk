@@ -1,0 +1,21 @@
+// ============================================
+// Scrollbar
+// ============================================
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--border-subtle);
+    }
+}

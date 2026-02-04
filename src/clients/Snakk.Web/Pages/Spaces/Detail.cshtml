@@ -314,216 +314,30 @@ else
         </div>
     </div>
 
-    @section Scripts {
-        <style>
-            /* Sticky sidebar with scrollbar - desktop only */
-            @@media (min-width: 1024px) {
-                #sidebar {
-                    overflow-y: auto;
-                    max-height: calc(100vh - 5rem);
-                    scrollbar-width: thin;
-                    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
-                }
+@section Styles {
+    <link rel="stylesheet" href="~/css/space-detail.css" asp-append-version="true" />
+}
 
-                #sidebar::-webkit-scrollbar {
-                    width: 8px;
-                }
-
-                #sidebar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-
-                #sidebar::-webkit-scrollbar-thumb {
-                    background-color: rgba(155, 155, 155, 0.5);
-                    border-radius: 4px;
-                }
-
-                #sidebar::-webkit-scrollbar-thumb:hover {
-                    background-color: rgba(155, 155, 155, 0.7);
-                }
-
-                #sidebar.sidebar-sticky {
-                    position: sticky;
-                    top: 0;
-                }
-            }
-        </style>
-
-        <script>
-        // Global configuration for JavaScript modules
-        window.SnakkConfig = {
-            apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:7291',
-            communityPrefix: '@(Model.Community.IsDefaultCommunity ? "" : $"/c/{Model.Community.CommunitySlug}")',
-            space: {
-                publicId: '@Model.Space.PublicId',
-                hubSlug: '@Model.HubSlug',
-                slug: '@Model.Slug',
-                preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
-                initialDiscussionsCount: @(Model.Discussions?.Items?.Count() ?? 0),
-                hasMoreItems: @(Model.Discussions?.HasMoreItems == true ? "true" : "false"),
-                pageSize: 20
-            }
-        };
-
-        // Sticky sidebar functionality (desktop only)
-        (function() {
-            // Only run on desktop
-            if (window.innerWidth < 1024) return;
-
-            const sidebar = document.getElementById('sidebar');
-            const nav = document.querySelector('nav.navbar');
-
-            if (!sidebar || !nav) return;
-
-            let navHeight = 0;
-            let sidebarOriginalTop = 0;
-            let isSticky = false;
-            let ticking = false;
-
-            function updateDimensions() {
-                navHeight = nav.offsetHeight;
-                const rect = sidebar.getBoundingClientRect();
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                sidebarOriginalTop = rect.top + scrollTop;
-
-                // Update sidebar max-height
-                sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
-            }
-
-            function handleScroll() {
-                if (!ticking) {
-                    requestAnimationFrame(() => {
-                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                        const triggerPoint = sidebarOriginalTop - navHeight;
-
-                        if (scrollTop >= triggerPoint && !isSticky) {
-                            sidebar.classList.add('sidebar-sticky');
-                            sidebar.style.top = `${navHeight}px`;
-                            isSticky = true;
-                        } else if (scrollTop < triggerPoint && isSticky) {
-                            sidebar.classList.remove('sidebar-sticky');
-                            sidebar.style.top = '';
-                            isSticky = false;
-                        }
-
-                        ticking = false;
-                    });
-                    ticking = true;
-                }
-            }
-
-            function handleResize() {
-                // Reset on mobile
-                if (window.innerWidth < 1024) {
-                    sidebar.classList.remove('sidebar-sticky');
-                    sidebar.style.top = '';
-                    sidebar.style.maxHeight = '';
-                    isSticky = false;
-                    return;
-                }
-
-                updateDimensions();
-                handleScroll();
-            }
-
-            // Initial setup
-            updateDimensions();
-            handleScroll();
-
-            // Event listeners
-            window.addEventListener('scroll', handleScroll, { passive: true });
-            window.addEventListener('resize', handleResize);
-        })();
-
-        // Discussion Preview Feature
-        (function() {
-            'use strict';
-
-            const previewCache = new Map();
-
-            function truncateText(text, maxLength) {
-                if (text.length <= maxLength) return text;
-
-                // Find the last space before maxLength
-                let truncated = text.substring(0, maxLength);
-                const lastSpace = truncated.lastIndexOf(' ');
-
-                if (lastSpace > 0) {
-                    truncated = truncated.substring(0, lastSpace);
-                }
-
-                return truncated + '...';
-            }
-
-            async function fetchPreview(discussionId) {
-                if (previewCache.has(discussionId)) {
-                    return previewCache.get(discussionId);
-                }
-
-                try {
-                    const response = await fetch(`@Model.ApiBaseUrl/discussions/${discussionId}/preview`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch preview');
-                    }
-
-                    const data = await response.json();
-                    previewCache.set(discussionId, data.content);
-                    return data.content;
-                } catch (error) {
-                    console.error('Error fetching preview:', error);
-                    return null;
-                }
-            }
-
-            function togglePreview(button, previewDiv, discussionId) {
-                const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
-
-                if (isCurrentlyVisible) {
-                    // Hide preview
-                    previewDiv.classList.add('hidden');
-                    button.classList.remove('active');
-                } else {
-                    // Show preview
-                    const previewContent = previewDiv.querySelector('.preview-content');
-
-                    if (previewContent.textContent) {
-                        // Already loaded, just show
-                        previewDiv.classList.remove('hidden');
-                        button.classList.add('active');
-                    } else {
-                        // Load and show
-                        previewContent.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
-                        previewDiv.classList.remove('hidden');
-                        button.classList.add('active');
-
-                        fetchPreview(discussionId).then(content => {
-                            if (content) {
-                                const truncated = truncateText(content, 480);
-                                previewContent.textContent = truncated;
-                            } else {
-                                previewContent.textContent = 'Failed to load preview';
-                            }
-                        });
-                    }
-                }
-            }
-
-            // Attach click handlers to all preview buttons
-            document.querySelectorAll('.preview-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const discussionId = this.dataset.discussionId;
-                    const wrapper = this.closest('.topic-item-wrapper');
-                    const previewDiv = wrapper.nextElementSibling;
-
-                    if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
-                        togglePreview(this, previewDiv, discussionId);
-                    }
-                });
-            });
-        })();
-        </script>
-        <script src="~/js/utils.js"></script>
-        <script src="~/js/space-detail.js"></script>
+@section Scripts {
+    @* INLINE REASON: Server-side configuration object with Razor syntax (@Model.Space.PublicId, etc.).
+       Values are page-specific and only known at render time. Cannot be in external .js files. *@
+    <script>
+    // Global configuration for JavaScript modules
+    window.SnakkConfig = {
+        apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:7291',
+        communityPrefix: '@(Model.Community.IsDefaultCommunity ? "" : $"/c/{Model.Community.CommunitySlug}")',
+        space: {
+            publicId: '@Model.Space.PublicId',
+            hubSlug: '@Model.HubSlug',
+            slug: '@Model.Slug',
+            preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
+            initialDiscussionsCount: @(Model.Discussions?.Items?.Count() ?? 0),
+            hasMoreItems: @(Model.Discussions?.HasMoreItems == true ? "true" : "false"),
+            pageSize: 20
+        }
+    };
+    </script>
+    <script src="~/js/utils.js" asp-append-version="true"></script>
+    <script src="~/js/space-detail.js" asp-append-version="true"></script>
     }
 }

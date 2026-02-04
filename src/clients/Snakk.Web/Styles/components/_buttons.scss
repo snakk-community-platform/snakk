@@ -1,0 +1,172 @@
+// ============================================
+// Buttons
+// ============================================
+
+.btn-primary {
+    background: var(--text-primary);
+    color: var(--bg-secondary);
+    border: none;
+    font-weight: 500;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: var(--bg-subtle);
+    }
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+
+    &:hover {
+        background: var(--bg-subtle);
+        color: var(--text-primary);
+    }
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+
+    &:hover {
+        background: var(--bg-subtle);
+        border-color: var(--border-subtle);
+    }
+}
+
+// Subtle button (for actions)
+.subtle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--text-primary);
+        background: var(--bg-subtle);
+    }
+
+    svg {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.subtle-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+// Follow button
+.follow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: all 0.15s ease;
+
+    &.btn-primary {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: var(--bg-secondary);
+
+        &:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+    }
+}
+
+#follow-group {
+    flex-shrink: 0;
+
+    .btn-group {
+        display: inline-flex;
+
+        .btn {
+            border-radius: 0;
+
+            &:last-child {
+                border-top-right-radius: 0.375rem;
+                border-bottom-right-radius: 0.375rem;
+            }
+        }
+    }
+}
+
+#level-toggle .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    height: auto;
+    min-height: 2rem;
+}
+
+// Selection quote button
+#selection-quote-btn {
+    background: var(--text-primary);
+    color: var(--bg-secondary);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    &:hover {
+        background: var(--bg-subtle);
+    }
+}
+
+// Toolbar buttons
+.toolbar-btn {
+    padding: 0.375rem;
+    color: var(--text-muted);
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--text-secondary);
+        background: var(--bg-subtle);
+    }
+
+    svg {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+}
+
+.toolbar-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+// Preview button (for discussions)
+.preview-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-right: 0.5rem;
+    color: var(--text-tertiary);
+    transition: all 0.2s;
+    border-radius: 0.375rem;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: var(--link-primary);
+    }
+
+    &.active {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: rgb(59, 130, 246);
+    }
+}

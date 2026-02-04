@@ -4,6 +4,10 @@
     ViewData["Title"] = "Login";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+
 <div class="max-w-md mx-auto py-12">
     <div class="clean-card p-8">
         <h1 class="text-2xl font-semibold mb-6">Login</h1>
@@ -66,7 +70,7 @@
             <div class="text-center mt-6">
                 <p class="text-sm text-muted">
                     Don't have an account?
-                    <a href="/auth/register" class="font-medium" style="color: #f97316;">Register here</a>
+                    <a href="/auth/register" class="font-medium link-primary-color">Register here</a>
                 </p>
             </div>
     </div>

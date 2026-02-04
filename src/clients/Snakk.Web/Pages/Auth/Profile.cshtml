@@ -81,11 +81,11 @@
     <div class="clean-card mb-6">
         <h2 class="text-lg font-semibold mb-4">Display Name</h2>
 
-        <form method="post" asp-page-handler="UpdateDisplayName" class="space-y-4">
+        <form id="display-name-form" asp-page-handler="UpdateDisplayName" class="space-y-4">
             <div class="form-control">
                 <input type="text"
                        name="displayName"
-                       value="@Model.DisplayName"
+                       value=""
                        class="input input-bordered w-full max-w-xs"
                        required
                        placeholder="Your display name" />
@@ -104,16 +104,12 @@
     <div class="clean-card mb-6">
         <h2 class="text-lg font-semibold mb-4">Preferences</h2>
 
-        <form method="post" asp-page-handler="UpdateScrollPreference" class="space-y-4">
+        <div class="space-y-4">
             <div class="form-control">
                 <label class="label cursor-pointer justify-start gap-4">
-                    <input type="hidden" name="preferEndlessScroll" value="false" />
                     <input type="checkbox"
                            name="preferEndlessScroll"
-                           value="true"
-                           @(Model.PreferEndlessScroll ? "checked" : "")
-                           class="toggle toggle-primary"
-                           onchange="this.form.submit()" />
+                           class="toggle toggle-primary" />
                     <span class="label-text">
                         <span class="font-medium">Endless scroll</span>
                         <span class="block text-sm text-muted">
@@ -122,7 +118,7 @@
                     </span>
                 </label>
             </div>
-        </form>
+        </div>
     </div>
 
     <!-- Account Info Section -->
@@ -130,44 +126,114 @@
         <h2 class="text-lg font-semibold mb-4">Account Information</h2>
 
         <dl class="space-y-3">
-            @if (!string.IsNullOrEmpty(Model.Email))
-            {
-                <div class="flex items-center gap-2">
-                    <dt class="text-muted w-24">Email:</dt>
-                    <dd class="flex items-center gap-2">
-                        @Model.Email
-                        @if (Model.EmailVerified)
-                        {
-                            <span class="badge badge-success badge-sm">Verified</span>
-                        }
-                        else
-                        {
-                            <span class="badge badge-warning badge-sm">Not verified</span>
-                        }
-                    </dd>
-                </div>
-            }
+            <div class="flex items-center gap-2" id="email-row">
+                <dt class="text-muted w-24">Email:</dt>
+                <dd class="flex items-center gap-2" id="profile-email-container">
+                    <span id="profile-email"></span>
+                    <span id="profile-email-badge" class="badge badge-sm"></span>
+                </dd>
+            </div>
 
-            @if (!string.IsNullOrEmpty(Model.OAuthProvider))
-            {
-                <div class="flex items-center gap-2">
-                    <dt class="text-muted w-24">Sign in:</dt>
-                    <dd class="capitalize">@Model.OAuthProvider</dd>
-                </div>
-            }
+            <div class="flex items-center gap-2" id="oauth-row" style="display: none;">
+                <dt class="text-muted w-24">Sign in:</dt>
+                <dd class="capitalize" id="profile-oauth"></dd>
+            </div>
 
             <div class="flex items-center gap-2">
                 <dt class="text-muted w-24">User ID:</dt>
-                <dd class="font-mono text-sm">@Model.UserId</dd>
+                <dd class="font-mono text-sm" id="profile-userid"></dd>
             </div>
         </dl>
     </div>
 </div>
 
 <script>
+@* INLINE REASON: Page-specific profile settings functionality including client-side authentication check,
+   profile data loading, avatar upload, and form submissions. Not reused elsewhere. *@
+
 (function() {
-    const apiBaseUrl = '@Model.ApiBaseUrl';
-    const userId = '@Model.UserId';
+    const apiBaseUrl = window.apiBaseUrl || 'https://localhost:7291';
+    let userId = null;
+    let userData = null;
+
+    // Client-side authentication check and profile data loading
+    async function initProfileSettings() {
+        // Check authentication
+        if (!window.snakkAuth || !window.snakkAuth.isAuthenticated()) {
+            console.log('[Profile Settings] Not authenticated, redirecting to login');
+            window.location.href = '/auth/login?returnUrl=/auth/profile';
+            return;
+        }
+
+        // Load profile data from API
+        try {
+            const response = await fetch(`${apiBaseUrl}/auth/me`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load profile');
+            }
+
+            userData = await response.json();
+            userId = userData.publicId;
+
+            console.log('[Profile Settings] Loaded profile data:', userData);
+            populateProfileForm(userData);
+        } catch (error) {
+            console.error('[Profile Settings] Failed to load profile:', error);
+            window.location.href = '/auth/login?returnUrl=/auth/profile';
+        }
+    }
+
+    function populateProfileForm(data) {
+        // Update avatar
+        const avatarImg = document.getElementById('avatar-preview');
+        if (avatarImg) {
+            avatarImg.src = `${apiBaseUrl}/avatars/${data.publicId}`;
+        }
+
+        // Update display name input
+        const displayNameInput = document.querySelector('input[name="displayName"]');
+        if (displayNameInput) {
+            displayNameInput.value = data.displayName || '';
+        }
+
+        // Update preferences checkbox
+        const scrollCheckbox = document.querySelector('input[name="preferEndlessScroll"]');
+        if (scrollCheckbox) {
+            scrollCheckbox.checked = data.preferEndlessScroll !== false;
+        }
+
+        // Update account info section
+        if (data.email) {
+            const emailEl = document.getElementById('profile-email');
+            const emailBadge = document.getElementById('profile-email-badge');
+            const emailRow = document.getElementById('email-row');
+
+            if (emailEl) emailEl.textContent = data.email;
+            if (emailBadge) {
+                emailBadge.textContent = data.emailVerified ? 'Verified' : 'Not verified';
+                emailBadge.className = data.emailVerified
+                    ? 'badge badge-success badge-sm'
+                    : 'badge badge-warning badge-sm';
+            }
+            if (emailRow) emailRow.style.display = '';
+        }
+
+        if (data.oAuthProvider) {
+            const oauthEl = document.getElementById('profile-oauth');
+            const oauthRow = document.getElementById('oauth-row');
+
+            if (oauthEl) oauthEl.textContent = data.oAuthProvider;
+            if (oauthRow) oauthRow.style.display = '';
+        }
+
+        const userIdEl = document.getElementById('profile-userid');
+        if (userIdEl) {
+            userIdEl.textContent = data.publicId;
+        }
+    }
 
     function showStatus(message, isError = false) {
         const statusDiv = document.getElementById('upload-status');
@@ -177,9 +243,33 @@
         statusDiv.classList.remove('hidden');
     }
 
+    function showMessage(message, isError = false) {
+        // Remove existing messages
+        const existingAlerts = document.querySelectorAll('.profile-alert-message');
+        existingAlerts.forEach(el => el.remove());
+
+        // Create new message
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert ${isError ? 'alert-error' : 'alert-success'} mb-6 profile-alert-message`;
+        alertDiv.innerHTML = `<span>${message}</span>`;
+
+        // Insert after page header
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            pageHeader.insertAdjacentElement('afterend', alertDiv);
+            // Scroll to message
+            alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
     function refreshAvatar() {
         const avatarPreview = document.getElementById('avatar-preview');
-        if (!avatarPreview) return;
+        if (!avatarPreview || !userId) return;
         // Add cache-busting query param
         const timestamp = new Date().getTime();
         avatarPreview.src = `${apiBaseUrl}/avatars/${userId}?t=${timestamp}`;
@@ -208,7 +298,7 @@
         }
     }
 
-    async function handleFormSubmit(e) {
+    async function handleAvatarUploadSubmit(e) {
         e.preventDefault();
 
         const fileInput = document.getElementById('avatar-file');
@@ -285,29 +375,133 @@
         }
     }
 
-    function initProfilePage() {
-        const form = document.getElementById('avatar-upload-form');
+    async function handleDisplayNameUpdate(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const displayNameInput = form.querySelector('input[name="displayName"]');
+        const displayName = displayNameInput?.value?.trim();
+
+        if (!displayName) {
+            showMessage('Display name cannot be empty', true);
+            return;
+        }
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+        }
+
+        try {
+            const response = await fetch(`${apiBaseUrl}/auth/update-profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ displayName })
+            });
+
+            if (response.ok) {
+                showMessage('Display name updated successfully');
+            } else {
+                showMessage('Failed to update display name', true);
+            }
+        } catch (error) {
+            console.error('[Profile Settings] Update display name error:', error);
+            showMessage('Network error. Please try again.', true);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Display Name';
+            }
+        }
+    }
+
+    async function handleScrollPreferenceChange(checkbox) {
+        const preferEndlessScroll = checkbox.checked;
+
+        try {
+            const response = await fetch(`${apiBaseUrl}/auth/preferences`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ preferEndlessScroll })
+            });
+
+            if (response.ok) {
+                showMessage('Scroll preference updated successfully');
+            } else {
+                showMessage('Failed to update scroll preference', true);
+                // Revert checkbox on error
+                checkbox.checked = !preferEndlessScroll;
+            }
+        } catch (error) {
+            console.error('[Profile Settings] Update preference error:', error);
+            showMessage('Network error. Please try again.', true);
+            // Revert checkbox on error
+            checkbox.checked = !preferEndlessScroll;
+        }
+    }
+
+    function attachEventListeners() {
+        // Avatar upload form
+        const avatarForm = document.getElementById('avatar-upload-form');
         const fileInput = document.getElementById('avatar-file');
         const deleteBtn = document.getElementById('delete-avatar-btn');
 
-        if (!form || !fileInput || !deleteBtn) return;
+        if (avatarForm && !avatarForm.dataset.initialized) {
+            avatarForm.dataset.initialized = 'true';
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileChange);
+            }
+            avatarForm.addEventListener('submit', handleAvatarUploadSubmit);
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', handleDeleteClick);
+            }
+        }
 
-        // Use data attribute to track initialization to avoid duplicate listeners
-        if (form.dataset.initialized) return;
-        form.dataset.initialized = 'true';
+        // Display name form
+        const displayNameForms = document.querySelectorAll('form[asp-page-handler="UpdateDisplayName"]');
+        displayNameForms.forEach(form => {
+            if (!form.dataset.initialized) {
+                form.dataset.initialized = 'true';
+                form.addEventListener('submit', handleDisplayNameUpdate);
+            }
+        });
 
-        fileInput.addEventListener('change', handleFileChange);
-        form.addEventListener('submit', handleFormSubmit);
-        deleteBtn.addEventListener('click', handleDeleteClick);
+        // Scroll preference checkbox
+        const scrollCheckbox = document.querySelector('input[name="preferEndlessScroll"][type="checkbox"]');
+        if (scrollCheckbox && !scrollCheckbox.dataset.initialized) {
+            scrollCheckbox.dataset.initialized = 'true';
+            scrollCheckbox.addEventListener('change', (e) => {
+                handleScrollPreferenceChange(e.target);
+            });
+        }
     }
 
     // Run on initial page load
-    document.addEventListener('DOMContentLoaded', initProfilePage);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initProfileSettings().then(() => {
+                attachEventListeners();
+            });
+        });
+    } else {
+        initProfileSettings().then(() => {
+            attachEventListeners();
+        });
+    }
 
-    // Run after HTMX content swap (for SPA-like navigation)
+    // Handle HTMX navigation
     document.body.addEventListener('htmx:load', function(evt) {
         if (document.getElementById('avatar-upload-form')) {
-            initProfilePage();
+            initProfileSettings().then(() => {
+                attachEventListeners();
+            });
         }
     });
 })();

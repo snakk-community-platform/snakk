@@ -1,0 +1,54 @@
+// ============================================
+// Notification Badge & Bell
+// ============================================
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    color: var(--bg-secondary);
+    background-color: #ef4444;
+    border-radius: 9px;
+}
+
+.notification-item {
+    transition: background-color 0.15s ease;
+
+    &.unread {
+        background-color: #f0f7ff;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+        }
+    }
+
+    &:hover {
+        background-color: var(--bg-subtle);
+    }
+}
+
+.notification-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-subtle);
+    border-radius: 50%;
+}

@@ -20,7 +20,7 @@ public static class ServiceCollectionExtensions
             options.AddDefaultPolicy(policy =>
             {
                 policy.WithOrigins("https://localhost:7001", "http://localhost:5001")
-                      .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With")
+                      .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "x-signalr-user-agent")
                       .WithMethods("GET", "POST", "PUT", "DELETE")
                       .AllowCredentials();
             });
@@ -162,6 +162,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Infrastructure.Database.Repositories.INotificationDatabaseRepository, Infrastructure.Database.Repositories.NotificationDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IFollowDatabaseRepository, Infrastructure.Database.Repositories.FollowDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IMentionDatabaseRepository, Infrastructure.Database.Repositories.MentionDatabaseRepository>();
+        services.AddScoped<Infrastructure.Database.Repositories.IAchievementRepository, Infrastructure.Database.Repositories.AchievementRepository>();
+        services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementRepository, Infrastructure.Database.Repositories.UserAchievementRepository>();
+        services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementProgressRepository, Infrastructure.Database.Repositories.UserAchievementProgressRepository>();
 
         // Moderation Repositories
         services.AddScoped<Infrastructure.Database.Repositories.IUserRoleRepository, Infrastructure.Database.Repositories.UserRoleRepository>();
@@ -186,6 +189,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Domain.Repositories.INotificationRepository, Infrastructure.Adapters.NotificationRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IFollowRepository, Infrastructure.Adapters.FollowRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IMentionRepository, Infrastructure.Adapters.MentionRepositoryAdapter>();
+        services.AddScoped<Domain.Repositories.IAchievementRepository, Infrastructure.Adapters.AchievementRepositoryAdapter>();
+        services.AddScoped<Domain.Repositories.IUserAchievementRepository, Infrastructure.Adapters.UserAchievementRepositoryAdapter>();
+        services.AddScoped<Domain.Repositories.IUserAchievementProgressRepository, Infrastructure.Adapters.UserAchievementProgressRepositoryAdapter>();
 
         // Search Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.ISearchRepository, Infrastructure.Database.Repositories.SearchRepository>();
@@ -218,6 +224,19 @@ public static class ServiceCollectionExtensions
 
         // Services
         services.AddScoped<Application.Services.MentionService>();
+        services.AddScoped<Application.Services.AchievementService>();
+        services.AddScoped<Infrastructure.Services.MetricsService>();
+
+        // Achievement Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.PostCreatedEvent>,
+            Infrastructure.EventHandlers.Achievements.PostCreatedAchievementHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
+            Infrastructure.EventHandlers.Achievements.DiscussionCreatedAchievementHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.ReactionAddedEvent>,
+            Infrastructure.EventHandlers.Achievements.ReactionAddedAchievementHandler>();
+
+        // Background Workers
+        services.AddHostedService<Infrastructure.BackgroundJobs.AchievementCheckerWorker>();
 
         // Services
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

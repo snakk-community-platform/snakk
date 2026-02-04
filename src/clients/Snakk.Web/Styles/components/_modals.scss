@@ -1,0 +1,13 @@
+// ============================================
+// Modal
+// ============================================
+
+.modal-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}

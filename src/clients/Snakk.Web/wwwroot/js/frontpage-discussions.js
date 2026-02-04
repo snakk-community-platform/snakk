@@ -9,6 +9,9 @@
     let loadMoreRequest = null;
     let previewHandlersAttached = false;
     const previewCache = new Map();
+    let scrollToTopBtn = null;
+    let scrollCounter = null;
+    let initialDiscussionCount = 0;
 
     /**
      * Initialize the frontpage discussion list
@@ -24,6 +27,9 @@
 
         nextCursor = config.discussions.nextCursor || '';
         hasMore = config.discussions.hasMoreItems || false;
+
+        // Count initial discussions
+        initialDiscussionCount = container.querySelectorAll('.topic-item-wrapper').length;
 
         // Disconnect previous observer if it exists
         if (homeScrollObserver) {
@@ -46,6 +52,9 @@
             attachPreviewHandlers(container);
             previewHandlersAttached = true;
         }
+
+        // Initialize scroll-to-top button
+        initScrollToTop();
     }
 
     /**
@@ -233,6 +242,79 @@
     }
 
     /**
+     * Initialize scroll-to-top button
+     */
+    function initScrollToTop() {
+        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
+        scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+        scrollCounter = document.getElementById('scroll-counter');
+
+        if (!scrollWrapper || !scrollToTopBtn) return;
+
+        // Update counter on initial load
+        updateScrollCounter();
+
+        // Show/hide button based on scroll position
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            if (scrollTimeout) {
+                window.cancelAnimationFrame(scrollTimeout);
+            }
+            scrollTimeout = window.requestAnimationFrame(function() {
+                handleScrollPosition();
+            });
+        }, { passive: true });
+
+        // Scroll to top on click
+        scrollToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Initial check
+        handleScrollPosition();
+    }
+
+    /**
+     * Handle scroll position and show/hide button
+     */
+    function handleScrollPosition() {
+        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
+        if (!scrollWrapper) return;
+
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const container = document.getElementById('discussions-container');
+
+        if (!container) return;
+
+        const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
+
+        // Show button after scrolling down 800px OR after loading more discussions
+        const shouldShow = scrollTop > 800 || totalDiscussions > initialDiscussionCount;
+
+        if (shouldShow) {
+            scrollWrapper.classList.remove('hidden');
+        } else {
+            scrollWrapper.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Update the scroll counter badge
+     */
+    function updateScrollCounter() {
+        if (!scrollCounter) return;
+
+        const container = document.getElementById('discussions-container');
+        if (!container) return;
+
+        const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
+        scrollCounter.textContent = totalDiscussions;
+    }
+
+    /**
      * Load more discussions from the API
      */
     async function loadMore() {
@@ -275,6 +357,10 @@
 
                 nextCursor = data.nextCursor || '';
                 hasMore = data.hasMoreItems && !!nextCursor;
+
+                // Update counter after loading more
+                updateScrollCounter();
+                handleScrollPosition();
             } else {
                 hasMore = false;
                 nextCursor = '';

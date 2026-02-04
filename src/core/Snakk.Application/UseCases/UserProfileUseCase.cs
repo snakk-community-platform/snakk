@@ -26,11 +26,9 @@ public class UserProfileUseCase(
         if (user == null)
             return null;
 
-        // Get discussion and post counts in parallel
-        var discussionCountTask = _searchRepository.GetDiscussionCountByAuthorAsync(publicId);
-        var postCountTask = _searchRepository.GetPostCountByAuthorAsync(publicId);
-
-        await Task.WhenAll(discussionCountTask, postCountTask);
+        // Get discussion and post counts (sequential to avoid DbContext concurrency issues)
+        var discussionCount = await _searchRepository.GetDiscussionCountByAuthorAsync(publicId);
+        var postCount = await _searchRepository.GetPostCountByAuthorAsync(publicId);
 
         return new UserProfileDto(
             user.PublicId.Value,
@@ -38,7 +36,7 @@ public class UserProfileUseCase(
             user.AvatarFileName,
             user.CreatedAt,
             user.LastSeenAt,
-            discussionCountTask.Result,
-            postCountTask.Result);
+            discussionCount,
+            postCount);
     }
 }

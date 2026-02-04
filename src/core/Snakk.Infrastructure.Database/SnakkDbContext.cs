@@ -35,6 +35,12 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Authentication
     public DbSet<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = null!;
 
+    // Achievements
+    public DbSet<AchievementDatabaseEntity> Achievements { get; set; } = null!;
+    public DbSet<UserAchievementDatabaseEntity> UserAchievements { get; set; } = null!;
+    public DbSet<UserAchievementProgressDatabaseEntity> UserAchievementProgress { get; set; } = null!;
+    public DbSet<UserMetricDatabaseEntity> UserMetrics { get; set; } = null!;
+
     // Lookup tables
     public DbSet<Entities.Lookups.CommunityVisibilityLookup> CommunityVisibilityLookups { get; set; } = null!;
     public DbSet<Entities.Lookups.FollowTargetTypeLookup> FollowTargetTypeLookups { get; set; } = null!;
@@ -46,6 +52,8 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<Entities.Lookups.BanTypeLookup> BanTypeLookups { get; set; } = null!;
     public DbSet<Entities.Lookups.UserRoleLookup> UserRoleLookups { get; set; } = null!;
     public DbSet<Entities.Lookups.UserRoleTypeLookup> UserRoleTypeLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.AchievementCategoryLookup> AchievementCategoryLookups { get; set; } = null!;
+    public DbSet<Entities.Lookups.AchievementRequirementTypeLookup> AchievementRequirementTypeLookups { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -758,6 +766,106 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .HasPrincipalKey(u => u.PublicId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // === Achievement System Configuration ===
+
+        // Achievement indexes
+        modelBuilder.Entity<AchievementDatabaseEntity>()
+            .HasIndex(a => a.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<AchievementDatabaseEntity>()
+            .HasIndex(a => a.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<AchievementDatabaseEntity>()
+            .HasIndex(a => new { a.IsActive, a.DisplayOrder })
+            .HasDatabaseName("IX_Achievement_IsActive_DisplayOrder");
+
+        // Achievement relationships
+        modelBuilder.Entity<AchievementDatabaseEntity>()
+            .HasOne(a => a.Category)
+            .WithMany(c => c.Achievements)
+            .HasForeignKey(a => a.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<AchievementDatabaseEntity>()
+            .HasOne(a => a.RequirementType)
+            .WithMany(t => t.Achievements)
+            .HasForeignKey(a => a.RequirementTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // UserAchievementProgress indexes
+        modelBuilder.Entity<UserAchievementProgressDatabaseEntity>()
+            .HasIndex(p => new { p.UserId, p.AchievementId })
+            .IsUnique();
+
+        // UserAchievementProgress relationships
+        modelBuilder.Entity<UserAchievementProgressDatabaseEntity>()
+            .HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserAchievementProgressDatabaseEntity>()
+            .HasOne(p => p.Achievement)
+            .WithMany(a => a.UserAchievementProgress)
+            .HasForeignKey(p => p.AchievementId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserAchievement indexes
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasIndex(ua => ua.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasIndex(ua => new { ua.UserId, ua.AchievementId })
+            .IsUnique();
+
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasIndex(ua => new { ua.UserId, ua.EarnedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_UserAchievement_UserId_EarnedAt_Desc");
+
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasIndex(ua => new { ua.UserId, ua.IsDisplayed, ua.DisplayOrder })
+            .HasDatabaseName("IX_UserAchievement_UserId_IsDisplayed_DisplayOrder");
+
+        // UserAchievement relationships
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasOne(ua => ua.User)
+            .WithMany()
+            .HasForeignKey(ua => ua.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserAchievementDatabaseEntity>()
+            .HasOne(ua => ua.Achievement)
+            .WithMany(a => a.UserAchievements)
+            .HasForeignKey(ua => ua.AchievementId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // === UserMetrics Configuration ===
+
+        // Composite primary key
+        modelBuilder.Entity<UserMetricDatabaseEntity>()
+            .HasKey(m => new { m.UserId, m.MetricType, m.Scope, m.ScopeId });
+
+        // Index for finding recently updated metrics
+        modelBuilder.Entity<UserMetricDatabaseEntity>()
+            .HasIndex(m => m.LastUpdated)
+            .HasDatabaseName("IX_UserMetric_LastUpdated");
+
+        // Index for scope-based queries
+        modelBuilder.Entity<UserMetricDatabaseEntity>()
+            .HasIndex(m => new { m.UserId, m.Scope, m.ScopeId })
+            .HasDatabaseName("IX_UserMetric_UserId_Scope_ScopeId");
+
+        // UserMetrics relationship with User
+        modelBuilder.Entity<UserMetricDatabaseEntity>()
+            .HasOne(m => m.User)
+            .WithMany()
+            .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

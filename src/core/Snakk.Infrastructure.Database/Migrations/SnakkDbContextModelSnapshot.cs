@@ -22,6 +22,82 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSecret")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RequirementConfig")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RequirementTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TierLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RequirementTypeId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder")
+                        .HasDatabaseName("IX_Achievement_IsActive_DisplayOrder");
+
+                    b.ToTable("Achievement");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -350,6 +426,36 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("Slug");
 
                     b.ToTable("Hub");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AchievementCategoryLookup");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AchievementRequirementTypeLookup");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", b =>
@@ -1134,6 +1240,92 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Space");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AchievementId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EarnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDisplayed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotificationSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AchievementId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "AchievementId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "EarnedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_UserAchievement_UserId_EarnedAt_Desc");
+
+                    b.HasIndex("UserId", "IsDisplayed", "DisplayOrder")
+                        .HasDatabaseName("IX_UserAchievement_UserId_IsDisplayed_DisplayOrder");
+
+                    b.ToTable("UserAchievement");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementProgressDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AchievementId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CurrentValue")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProgressData")
+                        .HasColumnType("text");
+
+                    b.Property<int>("TargetValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AchievementId");
+
+                    b.HasIndex("UserId", "AchievementId")
+                        .IsUnique();
+
+                    b.ToTable("UserAchievementProgress");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserBanDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1282,6 +1474,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserMetricDatabaseEntity", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MetricType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Scope")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ScopeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId", "MetricType", "Scope", "ScopeId");
+
+                    b.HasIndex("LastUpdated")
+                        .HasDatabaseName("IX_UserMetric_LastUpdated");
+
+                    b.HasIndex("UserId", "Scope", "ScopeId")
+                        .HasDatabaseName("IX_UserMetric_UserId_Scope_ScopeId");
+
+                    b.ToTable("UserMetric");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1345,6 +1568,25 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_UserRole_UserId_RoleId_RevokedAt");
 
                     b.ToTable("UserRole");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", "Category")
+                        .WithMany("Achievements")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", "RequirementType")
+                        .WithMany("Achievements")
+                        .HasForeignKey("RequirementTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("RequirementType");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", b =>
@@ -1814,6 +2056,44 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Hub");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", "Achievement")
+                        .WithMany("UserAchievements")
+                        .HasForeignKey("AchievementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Achievement");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementProgressDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", "Achievement")
+                        .WithMany("UserAchievementProgress")
+                        .HasForeignKey("AchievementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Achievement");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserBanDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", "BanType")
@@ -1879,6 +2159,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserMetricDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "AssignedByUser")
@@ -1934,6 +2225,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
+                {
+                    b.Navigation("UserAchievementProgress");
+
+                    b.Navigation("UserAchievements");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", b =>
                 {
                     b.Navigation("Domains");
@@ -1949,6 +2247,16 @@ namespace Snakk.Infrastructure.Database.Migrations
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", b =>
                 {
                     b.Navigation("Spaces");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", b =>
+                {
+                    b.Navigation("Achievements");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", b =>
+                {
+                    b.Navigation("Achievements");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", b =>

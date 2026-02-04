@@ -1,0 +1,80 @@
+// ============================================
+// Base Layout
+// ============================================
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+main {
+    flex: 1;
+}
+
+// Page header
+.page-header {
+    margin-bottom: 1.5rem;
+
+    h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    p {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+        margin-top: 0.25rem;
+    }
+}
+
+// Section headers
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-secondary);
+}
+
+.section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+// Empty states
+.empty-state-simple {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-tertiary);
+
+    h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    p {
+        font-size: 0.9375rem;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+}
+
+// Footer
+footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+    color: var(--text-tertiary);
+}

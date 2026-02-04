@@ -1,0 +1,88 @@
+// ============================================
+// Activity Feed
+// ============================================
+
+.activity-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-primary);
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.activity-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-text {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+
+    a {
+        color: var(--text-primary);
+        font-weight: 500;
+
+        &:hover {
+            color: var(--link-primary);
+        }
+    }
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+// ============================================
+// Typing Indicator
+// ============================================
+
+.typing-indicator-subtle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+    padding: 0.5rem 0;
+}
+
+.typing-dots-subtle {
+    display: flex;
+    gap: 2px;
+}
+
+.typing-dot-subtle {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--border-subtle);
+    animation: typing-subtle 1.4s infinite ease-in-out;
+
+    &:nth-child(1) { animation-delay: 0s; }
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+}
+
+@keyframes typing-subtle {
+    0%, 80%, 100% { opacity: 0.3; }
+    40% { opacity: 1; }
+}

@@ -18,6 +18,10 @@
             }
 
             <script>
+                @* INLINE REASON: Security-sensitive OAuth token capture for new user flow.
+                   Must execute immediately to process URL fragments before any navigation.
+                   Page-specific, not reused elsewhere. *@
+
                 // Handle OAuth tokens in URL fragment for new users
                 (function() {
                     const fragment = window.location.hash.substring(1);
@@ -68,6 +72,9 @@
             </form>
 
             <script>
+                @* INLINE REASON: Page-specific form submission handler with Razor syntax (@Model.ApiBaseUrl).
+                   Contains setup-profile-specific logic and API integration. Not reused elsewhere. *@
+
                 const apiBaseUrl = '@Model.ApiBaseUrl';
                 document.getElementById('setupProfileForm').addEventListener('submit', async function(e) {
                     e.preventDefault();

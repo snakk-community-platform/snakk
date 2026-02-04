@@ -25,33 +25,50 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
     public string? DiscussionPublicId { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public string Tab { get; set; } = "discussions";
+    public string SearchType { get; set; } = "post";
+
+    [BindProperty(SupportsGet = true)]
+    public string? DateRange { get; set; }
+
+    // Deprecated: kept for backward compatibility with old URLs
+    [BindProperty(SupportsGet = true)]
+    public string? Tab { get; set; }
 
     public PagedResult<DiscussionSearchResultDto>? Discussions { get; set; }
     public PagedResult<PostSearchResultDto>? Posts { get; set; }
+    public PagedResult<dynamic>? Spaces { get; set; } // TODO: Replace with SpaceSearchResultDto when available
+    public PagedResult<UserProfileDto>? Users { get; set; }
     public UserProfileDto? FilteredUser { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
 
-    public string BuildSearchUrl(string? query = null, string? authorPublicId = null, string? tab = null, int offset = 0)
+    public string BuildSearchUrl(string? query = null, string? authorPublicId = null, string? searchType = null, int offset = 0, string? dateRange = null)
     {
         var parameters = new List<string>();
         var q = query ?? Q;
         var author = authorPublicId ?? AuthorPublicId;
-        var t = tab ?? Tab;
+        var type = searchType ?? SearchType;
+        var range = dateRange ?? DateRange;
 
         if (!string.IsNullOrEmpty(q)) parameters.Add($"q={Uri.EscapeDataString(q)}");
         if (!string.IsNullOrEmpty(author)) parameters.Add($"authorPublicId={author}");
-        if (!string.IsNullOrEmpty(HubPublicId)) parameters.Add($"hubPublicId={HubPublicId}");
-        if (!string.IsNullOrEmpty(SpacePublicId)) parameters.Add($"spacePublicId={SpacePublicId}");
-        if (!string.IsNullOrEmpty(DiscussionPublicId)) parameters.Add($"discussionPublicId={DiscussionPublicId}");
-        if (t != "discussions") parameters.Add($"tab={t}");
+        if (!string.IsNullOrEmpty(type) && type != "post") parameters.Add($"searchType={type}");
+        if (!string.IsNullOrEmpty(range)) parameters.Add($"dateRange={Uri.EscapeDataString(range)}");
         if (offset > 0) parameters.Add($"offset={offset}");
 
         return parameters.Count > 0 ? $"/search?{string.Join("&", parameters)}" : "/search";
     }
 
-    public async Task OnGetAsync(int offset = 0)
+    public async Task<IActionResult> OnGetAsync(int offset = 0)
     {
+        // Backward compatibility: map old "tab" parameter to new "searchType"
+        if (!string.IsNullOrEmpty(Tab))
+        {
+            SearchType = Tab == "posts" ? "post" : "discussion";
+        }
+
+        // Normalize search type
+        SearchType = SearchType?.ToLowerInvariant() ?? "post";
+
         // Fetch user preference if authenticated
         var userTask = _apiClient.GetCurrentUserAsync();
 
@@ -62,25 +79,57 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
             filteredUserTask = _apiClient.GetUserProfileAsync(AuthorPublicId);
         }
 
-        if (Tab == "posts")
+        // Execute search based on type
+        switch (SearchType)
         {
-            Posts = await _apiClient.SearchPostsAsync(
-                Q,
-                AuthorPublicId,
-                DiscussionPublicId,
-                SpacePublicId,
-                offset: offset,
-                pageSize: 20);
-        }
-        else
-        {
-            Discussions = await _apiClient.SearchDiscussionsAsync(
-                Q,
-                AuthorPublicId,
-                SpacePublicId,
-                HubPublicId,
-                offset: offset,
-                pageSize: 20);
+            case "post":
+                Posts = await _apiClient.SearchPostsAsync(
+                    Q,
+                    AuthorPublicId,
+                    DiscussionPublicId,
+                    SpacePublicId,
+                    offset: offset,
+                    pageSize: 20);
+                break;
+
+            case "discussion":
+                Discussions = await _apiClient.SearchDiscussionsAsync(
+                    Q,
+                    AuthorPublicId,
+                    SpacePublicId,
+                    HubPublicId,
+                    offset: offset,
+                    pageSize: 20);
+                break;
+
+            case "space":
+                // TODO: Implement space search when API is available
+                Spaces = new PagedResult<dynamic>(
+                    Items: [],
+                    Offset: offset,
+                    PageSize: 20,
+                    HasMoreItems: false);
+                break;
+
+            case "user":
+                // TODO: Implement user search when API is available
+                Users = new PagedResult<UserProfileDto>(
+                    Items: [],
+                    Offset: offset,
+                    PageSize: 20,
+                    HasMoreItems: false);
+                break;
+
+            default:
+                // Default to discussion search
+                Discussions = await _apiClient.SearchDiscussionsAsync(
+                    Q,
+                    AuthorPublicId,
+                    SpacePublicId,
+                    HubPublicId,
+                    offset: offset,
+                    pageSize: 20);
+                break;
         }
 
         // Await remaining tasks
@@ -102,5 +151,13 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
         {
             FilteredUser = filteredUserTask.Result;
         }
+
+        // If this is an HTMX request, return just the partial view
+        if (Request.Headers.ContainsKey("HX-Request"))
+        {
+            return Partial("_SearchResults", this);
+        }
+
+        return Page();
     }
 }

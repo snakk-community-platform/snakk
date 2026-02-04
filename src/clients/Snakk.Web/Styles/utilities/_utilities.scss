@@ -1,0 +1,25 @@
+// ============================================
+// Utility Classes
+// ============================================
+
+.text-muted {
+    color: var(--text-tertiary);
+}
+
+.border-subtle {
+    border-color: var(--border-primary);
+}
+
+.bg-subtle {
+    background: var(--bg-tertiary);
+}
+
+// Link hover state (Sketch style)
+a.hover-link {
+    color: var(--text-primary);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--link-primary);
+    }
+}

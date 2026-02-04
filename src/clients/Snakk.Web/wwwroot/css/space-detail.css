@@ -1,0 +1,33 @@
+/* Space Detail Page Styles */
+
+/* Sticky sidebar with scrollbar - desktop only */
+@media (min-width: 1024px) {
+    #sidebar {
+        overflow-y: auto;
+        max-height: calc(100vh - 5rem);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+    }
+
+    #sidebar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb {
+        background-color: rgba(155, 155, 155, 0.5);
+        border-radius: 4px;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(155, 155, 155, 0.7);
+    }
+
+    #sidebar.sidebar-sticky {
+        position: sticky;
+        top: 0;
+    }
+}

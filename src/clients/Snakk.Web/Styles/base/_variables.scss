@@ -1,0 +1,36 @@
+// ============================================
+// CSS Variables for Theming
+// ============================================
+
+:root,
+[data-theme="lofi"] {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #e5e5e5;
+    --bg-tertiary: #fafafa;
+    --bg-subtle: #f0f0f0;
+    --border-primary: #e0e0e0;
+    --border-secondary: #f0f0f0;
+    --border-subtle: #ccc;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --text-tertiary: #888;
+    --text-muted: #999;
+    --link-primary: #0066cc;
+    --link-hover: #004999;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --bg-tertiary: #232323;
+    --bg-subtle: #333;
+    --border-primary: #3a3a3a;
+    --border-secondary: #2f2f2f;
+    --border-subtle: #555;
+    --text-primary: #e5e5e5;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #888;
+    --text-muted: #666;
+    --link-primary: #60a5fa;
+    --link-hover: #93c5fd;
+}

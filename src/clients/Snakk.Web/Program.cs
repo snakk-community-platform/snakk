@@ -75,54 +75,9 @@ builder.Services.AddWebOptimizer(pipeline =>
     pipeline.MinifyJsFiles();
 });
 
-// Output caching for pages
-builder.Services.AddOutputCache(options =>
-{
-    // Base policy: cache anonymous requests only, vary by HTMX headers
-    options.AddBasePolicy(builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromSeconds(30))
-        .SetVaryByHeader("HX-Request", "HX-Boosted"));
-
-    // Home/Index pages - short cache
-    options.AddPolicy("HomePage", builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromSeconds(30))
-        .SetVaryByHeader("HX-Request", "HX-Boosted")
-        .Tag("home"));
-
-    // Discussion lists - medium cache
-    options.AddPolicy("DiscussionList", builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromSeconds(60))
-        .SetVaryByQuery("offset", "pageSize")
-        .SetVaryByHeader("HX-Request", "HX-Boosted")
-        .Tag("discussions"));
-
-    // Individual discussions - short cache with query variation
-    options.AddPolicy("DiscussionDetail", builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromSeconds(30))
-        .SetVaryByRouteValue("slugWithId")
-        .SetVaryByQuery("offset")
-        .SetVaryByHeader("HX-Request", "HX-Boosted")
-        .Tag("discussions"));
-
-    // Space/Hub pages - medium cache
-    options.AddPolicy("Space", builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromSeconds(60))
-        .SetVaryByRouteValue("spaceSlug", "hubSlug")
-        .SetVaryByHeader("HX-Request", "HX-Boosted")
-        .Tag("spaces"));
-
-    // Communities list - longer cache (changes rarely)
-    options.AddPolicy("CommunitiesList", builder => builder
-        .With(c => !c.HttpContext.User.Identity?.IsAuthenticated ?? true)
-        .Expire(TimeSpan.FromMinutes(5))
-        .SetVaryByHeader("HX-Request", "HX-Boosted")
-        .Tag("communities"));
-});
+// Output caching disabled - JWT auth uses localStorage which can't be checked server-side
+// Caching authenticated pages as anonymous causes logout issues
+// builder.Services.AddOutputCache();
 
 // Configure HttpClient for API with cookie forwarding
 builder.Services.AddTransient<CookieForwardingHandler>();
@@ -170,26 +125,22 @@ app.UseCommunityResolution();
 // HTTP/2 Server Push for critical resources
 app.Use(async (context, next) =>
 {
-    // Only push on initial page loads (HTML requests)
-    if (context.Request.Path == "/" ||
-        context.Request.Path.StartsWithSegments("/discussions") ||
-        context.Request.Path.StartsWithSegments("/spaces") ||
-        context.Request.Path.StartsWithSegments("/hubs"))
-    {
-        // Push critical CSS
-        context.Response.Headers.Append("Link", "</css/site.css>; rel=preload; as=style");
-
-        // Push HTMX library
-        context.Response.Headers.Append("Link", "<https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js>; rel=preload; as=script");
-    }
+    // Push critical resources on all page loads
+    context.Response.Headers.Append("Link", "</css/tailwind.css>; rel=preload; as=style");
+    context.Response.Headers.Append("Link", "</css/site.css>; rel=preload; as=style");
+    context.Response.Headers.Append("Link", "</js/theme.js>; rel=preload; as=script");
+    context.Response.Headers.Append("Link", "</js/htmx.min.js>; rel=preload; as=script");
+    context.Response.Headers.Append("Link", "</js/auth.js>; rel=preload; as=script");
+    context.Response.Headers.Append("Link", "</js/search-focus.js>; rel=preload; as=script");
+    context.Response.Headers.Append("Link", "</js/sidebar-scrollbar.js>; rel=preload; as=script");
 
     await next();
 });
 
 app.UseRouting();
 
-// Output caching (after routing, before authorization)
-app.UseOutputCache();
+// Output caching disabled - causes issues with localStorage-based JWT auth
+// app.UseOutputCache();
 
 app.UseAuthorization();
 

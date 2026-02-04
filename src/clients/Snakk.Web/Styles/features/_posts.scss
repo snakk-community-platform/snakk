@@ -1,0 +1,113 @@
+// ============================================
+// Post Article
+// ============================================
+
+.post-article {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-primary);
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &.first-post {
+        padding-top: 0;
+    }
+
+    &.moderator-post {
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
+        border-left: 3px solid rgba(59, 130, 246, 0.3);
+        padding-left: 1rem;
+        margin-left: -1rem;
+    }
+
+    &.keyboard-selected {
+        background: rgba(0, 102, 204, 0.05);
+        border-left: 3px solid #0066cc;
+        padding-left: 1rem;
+        margin-left: -1rem;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+}
+
+// Post highlight animation
+.post-highlight {
+    animation: highlight-subtle 1.5s ease-out;
+}
+
+@keyframes highlight-subtle {
+    0% { background-color: #e8f4fd; }
+    100% { background-color: transparent; }
+}
+
+// Author Block
+.author-block {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+// Avatar Component
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--border-primary);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.avatar-xs { width: 24px; height: 24px; }
+.avatar-sm { width: 32px; height: 32px; }
+.avatar-md { width: 40px; height: 40px; }
+.avatar-lg { width: 56px; height: 56px; }
+.avatar-xl { width: 80px; height: 80px; }
+
+// Legacy support
+.author-avatar-simple {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+}
+
+.author-info {
+    flex: 1;
+}
+
+.author-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+
+    &:hover {
+        color: var(--link-primary);
+    }
+}
+
+.post-meta {
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+}

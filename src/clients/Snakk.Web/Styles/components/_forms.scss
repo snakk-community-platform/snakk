@@ -1,0 +1,79 @@
+// ============================================
+// Form Elements
+// ============================================
+
+.input, .textarea, .select {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    transition: border-color 0.15s ease;
+
+    &:focus {
+        border-color: var(--text-primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    }
+}
+
+// Composer area
+.composer-area {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+
+    textarea {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        resize: none;
+        min-height: 100px;
+        color: var(--text-primary);
+
+        &:focus {
+            outline: none;
+        }
+
+        &::placeholder {
+            color: var(--text-muted);
+        }
+    }
+}
+
+.composer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-secondary);
+    margin-top: 0.75rem;
+}
+
+// Focus states (accessibility)
+*:focus {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 0;
+    border-color: var(--link-primary);
+}

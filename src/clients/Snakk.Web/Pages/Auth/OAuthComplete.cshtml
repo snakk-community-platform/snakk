@@ -9,7 +9,7 @@
     <title>Completing Login - Snakk</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="~/css/styles.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/tailwind.css" rel="stylesheet" asp-append-version="true" />
 </head>
 <body class="bg-base-100 min-h-screen flex items-center justify-center">
     <div class="text-center">
@@ -19,6 +19,10 @@
     </div>
 
     <script>
+        @* INLINE REASON: Security-sensitive OAuth token handling that must execute immediately.
+           This page-specific code processes URL fragments (tokens) and redirects. Not reused elsewhere.
+           Must run inline to capture tokens before any redirects. Security-critical flow best kept with page. *@
+
         (function() {
             'use strict';
 

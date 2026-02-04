@@ -1,0 +1,118 @@
+// ============================================
+// Dark Mode Adjustments
+// ============================================
+
+[data-theme="dark"] {
+    // Navbar
+    .minimal-nav {
+        .dropdown-content {
+            background: var(--bg-secondary);
+        }
+    }
+
+    // Buttons
+    .btn-primary,
+    #selection-quote-btn {
+        background: #e5e5e5;
+        color: #1a1a1a;
+
+        &:hover {
+            background: #f5f5f5;
+        }
+    }
+
+    // Badge colors
+    .badge-primary-subtle {
+        background: rgba(96, 165, 250, 0.2);
+        color: #93c5fd;
+    }
+
+    .badge-warning-subtle {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    // Notification badge stays red
+    .notification-badge {
+        background-color: #ef4444;
+        color: #fff;
+    }
+
+    // Unread notification indicator
+    .notification-item.unread {
+        background-color: rgba(96, 165, 250, 0.1);
+
+        &::before {
+            background-color: #60a5fa;
+        }
+    }
+
+    // Reaction pills
+    .reaction-pill.active {
+        border-color: #60a5fa;
+        background: rgba(96, 165, 250, 0.2);
+        color: #93c5fd;
+
+        .count {
+            color: #93c5fd;
+        }
+    }
+
+    // Moderator highlights
+    .post-article.moderator-post {
+        background: linear-gradient(90deg, rgba(96, 165, 250, 0.05) 0%, transparent 100%);
+        border-left: 3px solid rgba(96, 165, 250, 0.4);
+    }
+
+    .post-article.keyboard-selected {
+        background: rgba(96, 165, 250, 0.1);
+        border-left: 3px solid #60a5fa;
+    }
+
+    // Skeleton loaders
+    .skeleton {
+        background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+        background-size: 200% 100%;
+    }
+
+    // Hover highlights
+    .preview-btn:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .preview-btn.active {
+        background-color: rgba(96, 165, 250, 0.2);
+        color: #60a5fa;
+    }
+
+    // Popup shadows
+    .snakk-popup {
+        box-shadow:
+            0 4px 6px rgba(0, 0, 0, 0.3),
+            0 12px 28px rgba(0, 0, 0, 0.4),
+            0 20px 40px rgba(0, 0, 0, 0.3);
+        border-color: #555;
+    }
+
+    // Modal backdrop
+    .modal-backdrop {
+        background: rgba(0, 0, 0, 0.7);
+    }
+
+    // Focus states
+    *:focus-visible {
+        outline-color: #60a5fa;
+    }
+
+    .input:focus,
+    .textarea:focus,
+    .select:focus {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+
+    // Search focus pane
+    .search-focus-pane {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+}

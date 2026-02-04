@@ -1,0 +1,47 @@
+// ============================================
+// Mention Autocomplete
+// ============================================
+
+.mention-dropdown {
+    position: absolute;
+    z-index: 50;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    &:hover,
+    &.selected {
+        background-color: var(--bg-subtle);
+    }
+}
+
+.mention-item-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.mention-item-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+// Highlighted mention in content
+.mention-highlight {
+    color: #3b82f6;
+    font-weight: 500;
+}

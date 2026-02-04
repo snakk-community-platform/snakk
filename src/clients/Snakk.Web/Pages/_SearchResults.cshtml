@@ -1,0 +1,188 @@
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model SearchModel
+@{
+    var hasQuery = !string.IsNullOrEmpty(Model.Q);
+}
+
+@if (Model.SearchType == "discussion")
+{
+    @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                @if (hasQuery)
+                {
+                    <h3>No discussions found</h3>
+                    <p>Try adjusting your search</p>
+                }
+                else
+                {
+                    <h3>Enter a search term</h3>
+                    <p>Use the search bar above to find discussions</p>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="topic-list" id="discussions-container">
+            @foreach (var discussion in Model.Discussions.Items)
+            {
+                var discussionUrl = SnakkUrlHelper.Discussion(
+                    Model.Community,
+                    discussion.HubSlug,
+                    discussion.SpaceSlug,
+                    $"{discussion.Slug}~{discussion.PublicId}");
+
+                <a href="@discussionUrl" class="topic-item">
+                    <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
+                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.AuthorPublicId)"
+                             alt="@discussion.AuthorDisplayName" />
+                    </div>
+                    <div class="topic-content">
+                        <div class="topic-title">@discussion.Title</div>
+                        <div class="topic-meta">
+                            <a href="/u/@discussion.AuthorPublicId"
+                               class="hover:underline"
+                               onclick="event.stopPropagation()">@discussion.AuthorDisplayName</a>
+                            <span class="topic-meta-separator">in</span>
+                            <span class="font-medium">@discussion.SpaceName</span>
+                            <span class="topic-meta-separator">·</span>
+                            <span>@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
+                        </div>
+                    </div>
+                    <div class="topic-stats hidden sm:flex">
+                        <div class="topic-stat">
+                            <div class="topic-stat-value">@SnakkUrlHelper.FormatCount(discussion.ReactionCount)</div>
+                            <div class="topic-stat-label">Views</div>
+                        </div>
+                        <div class="topic-stat">
+                            <div class="topic-stat-value">@discussion.PostCount</div>
+                            <div class="topic-stat-label">Replies</div>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+
+        @* Pagination *@
+        @if (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-6">
+                @if (Model.Discussions.Offset > 0)
+                {
+                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize), Model.DateRange)"
+                       class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Discussions.HasMoreItems)
+                {
+                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange)"
+                       class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+}
+else if (Model.SearchType == "post")
+{
+    @if (Model.Posts?.Items == null || !Model.Posts.Items.Any())
+    {
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                @if (hasQuery)
+                {
+                    <h3>No posts found</h3>
+                    <p>Try adjusting your search</p>
+                }
+                else
+                {
+                    <h3>Enter a search term</h3>
+                    <p>Use the search bar above to find posts</p>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-4" id="posts-container">
+            @foreach (var post in Model.Posts.Items)
+            {
+                var discussionUrl = SnakkUrlHelper.Discussion(
+                    Model.Community,
+                    post.HubSlug,
+                    post.SpaceSlug,
+                    $"{post.DiscussionSlug}~{post.DiscussionPublicId}");
+
+                <div class="clean-card">
+                    <div class="flex items-start gap-3">
+                        <div class="avatar avatar-sm flex-shrink-0">
+                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, post.AuthorPublicId)"
+                                 alt="@post.AuthorDisplayName" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 text-sm text-muted mb-2">
+                                <a href="/u/@post.AuthorPublicId" class="font-medium hover:underline">@post.AuthorDisplayName</a>
+                                <span>·</span>
+                                <span>@Model.GetRelativeTime(post.CreatedAt)</span>
+                                <span>·</span>
+                                <a href="@discussionUrl" class="hover:underline truncate">@post.DiscussionTitle</a>
+                            </div>
+                            <div class="prose prose-sm max-w-none">
+                                @post.Content
+                            </div>
+                            <div class="mt-2">
+                                <a href="@discussionUrl" class="text-sm text-primary hover:underline">
+                                    View in discussion
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Pagination *@
+        @if (Model.Posts.Offset > 0 || Model.Posts.HasMoreItems)
+        {
+            <div class="flex justify-center gap-2 mt-6">
+                @if (Model.Posts.Offset > 0)
+                {
+                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Math.Max(0, Model.Posts.Offset - Model.Posts.PageSize), Model.DateRange)"
+                       class="btn btn-ghost btn-sm">
+                        Previous
+                    </a>
+                }
+                @if (Model.Posts.HasMoreItems)
+                {
+                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange)"
+                       class="btn btn-ghost btn-sm">
+                        Next
+                    </a>
+                }
+            </div>
+        }
+    }
+}
+else if (Model.SearchType == "space")
+{
+    <div class="clean-card">
+        <div class="empty-state-simple">
+            <h3>Space search coming soon</h3>
+            <p>This feature is currently under development</p>
+        </div>
+    </div>
+}
+else if (Model.SearchType == "user")
+{
+    <div class="clean-card">
+        <div class="empty-state-simple">
+            <h3>User search coming soon</h3>
+            <p>This feature is currently under development</p>
+        </div>
+    </div>
+}

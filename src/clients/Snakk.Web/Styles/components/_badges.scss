@@ -1,0 +1,47 @@
+// ============================================
+// Badges & Tags
+// ============================================
+
+.badge-subtle {
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.badge-primary-subtle {
+    background: #e8f4fd;
+    color: var(--link-primary);
+}
+
+.badge-warning-subtle {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+// Tags
+.tag-pill {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    border-radius: 9999px;
+    font-weight: 500;
+    text-transform: lowercase;
+    margin-right: 0.25rem;
+
+    &:hover {
+        background: var(--bg-subtle);
+    }
+}
+
+// Sidebar badge
+.sidebar-badge {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--link-primary);
+    background: #e8f4fd;
+    border-radius: 0.25rem;
+}

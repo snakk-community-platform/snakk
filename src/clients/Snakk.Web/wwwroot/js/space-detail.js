@@ -27,6 +27,12 @@
         if (config.space.preferEndlessScroll) {
             initEndlessScroll();
         }
+
+        // Initialize sticky sidebar
+        initStickySidebar();
+
+        // Initialize discussion previews
+        initDiscussionPreviews();
     }
 
     /**
@@ -307,6 +313,167 @@
     }
 
     // Expose functions to global scope for button onclick handlers
+    /**
+     * Sticky sidebar functionality (desktop only)
+     */
+    function initStickySidebar() {
+        // Only run on desktop
+        if (window.innerWidth < 1024) return;
+
+        const sidebar = document.getElementById('sidebar');
+        const nav = document.querySelector('nav.navbar');
+
+        if (!sidebar || !nav) return;
+
+        let navHeight = 0;
+        let sidebarOriginalTop = 0;
+        let isSticky = false;
+        let ticking = false;
+
+        function updateDimensions() {
+            navHeight = nav.offsetHeight;
+            const rect = sidebar.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            sidebarOriginalTop = rect.top + scrollTop;
+
+            // Update sidebar max-height
+            sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
+        }
+
+        function handleScroll() {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    const triggerPoint = sidebarOriginalTop - navHeight;
+
+                    if (scrollTop >= triggerPoint && !isSticky) {
+                        sidebar.classList.add('sidebar-sticky');
+                        sidebar.style.top = `${navHeight}px`;
+                        isSticky = true;
+                    } else if (scrollTop < triggerPoint && isSticky) {
+                        sidebar.classList.remove('sidebar-sticky');
+                        sidebar.style.top = '';
+                        isSticky = false;
+                    }
+
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+
+        function handleResize() {
+            // Reset on mobile
+            if (window.innerWidth < 1024) {
+                sidebar.classList.remove('sidebar-sticky');
+                sidebar.style.top = '';
+                sidebar.style.maxHeight = '';
+                isSticky = false;
+                return;
+            }
+
+            updateDimensions();
+            handleScroll();
+        }
+
+        // Initial setup
+        updateDimensions();
+        handleScroll();
+
+        // Event listeners
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleResize);
+    }
+
+    /**
+     * Discussion Preview Feature
+     */
+    function initDiscussionPreviews() {
+        const previewCache = new Map();
+        const config = window.SnakkConfig;
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+
+            // Find the last space before maxLength
+            let truncated = text.substring(0, maxLength);
+            const lastSpace = truncated.lastIndexOf(' ');
+
+            if (lastSpace > 0) {
+                truncated = truncated.substring(0, lastSpace);
+            }
+
+            return truncated + '...';
+        }
+
+        async function fetchPreview(discussionId) {
+            if (previewCache.has(discussionId)) {
+                return previewCache.get(discussionId);
+            }
+
+            try {
+                const response = await fetch(`${config.apiBaseUrl}/discussions/${discussionId}/preview`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch preview');
+                }
+
+                const data = await response.json();
+                previewCache.set(discussionId, data.content);
+                return data.content;
+            } catch (error) {
+                console.error('Error fetching preview:', error);
+                return null;
+            }
+        }
+
+        function togglePreview(button, previewDiv, discussionId) {
+            const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
+
+            if (isCurrentlyVisible) {
+                // Hide preview
+                previewDiv.classList.add('hidden');
+                button.classList.remove('active');
+            } else {
+                // Show preview
+                const previewContent = previewDiv.querySelector('.preview-content');
+
+                if (previewContent.textContent) {
+                    // Already loaded, just show
+                    previewDiv.classList.remove('hidden');
+                    button.classList.add('active');
+                } else {
+                    // Load and show
+                    previewContent.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
+                    previewDiv.classList.remove('hidden');
+                    button.classList.add('active');
+
+                    fetchPreview(discussionId).then(content => {
+                        if (content) {
+                            const truncated = truncateText(content, 480);
+                            previewContent.textContent = truncated;
+                        } else {
+                            previewContent.textContent = 'Failed to load preview';
+                        }
+                    });
+                }
+            }
+        }
+
+        // Attach click handlers to all preview buttons
+        document.querySelectorAll('.preview-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const discussionId = this.dataset.discussionId;
+                const wrapper = this.closest('.topic-item-wrapper');
+                const previewDiv = wrapper.nextElementSibling;
+
+                if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
+                    togglePreview(this, previewDiv, discussionId);
+                }
+            });
+        });
+    }
+
     window.toggleFollowSpace = toggleFollowSpace;
     window.setFollowLevel = setFollowLevel;
 

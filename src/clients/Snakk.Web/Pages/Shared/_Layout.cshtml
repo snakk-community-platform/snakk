@@ -18,10 +18,13 @@
     <script src="~/js/theme.js" asp-append-version="true"></script>
 
     <!-- Tailwind CSS + daisyUI (locally compiled) -->
-    <link href="~/css/styles.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/tailwind.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- HTMX -->
     <script src="~/js/htmx.min.js" asp-append-version="true"></script>
+    @* INLINE REASON: HTMX framework integration that must run in <head> before page renders.
+       This is tiny (10 lines) and must execute immediately to handle SPA-style navigation.
+       Extracting would add HTTP overhead for minimal code. *@
     <script>
         // Update page title after HTMX content swap
         document.addEventListener('htmx:afterSwap', function(evt) {
@@ -35,8 +38,15 @@
     </script>
 
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
     <!-- JWT Auth -->
     <script src="~/js/auth.js" asp-append-version="true"></script>
+
+    <!-- Set API URL globally for use by auth-navbar, realtime, and other modules -->
+    <script>
+        window.apiBaseUrl = '@(Configuration["ApiBaseUrl"] ?? "https://localhost:7291")';
+        window.snakkApiBaseUrl = window.apiBaseUrl; // Alias for compatibility
+    </script>
 </head>
 <body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true">
     @if (Configuration.GetValue<bool>("Debug:ShowCommunityDebugPane", true))
@@ -74,306 +84,74 @@
             </span>
         </div>
     }
-    <nav class="navbar minimal-nav sticky top-0 z-50 px-4 lg:px-8">
-        <div class="flex-1">
+    <nav class="navbar minimal-nav sticky top-0 z-50">
+        <div class="container mx-auto px-4 lg:px-8 flex items-center gap-4">
+            <!-- Brand -->
             <a class="brand-text" href="/" hx-boost="false">@(CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null ? CommunityContext.CommunityName : "Snakk")</a>
-        </div>
-        <div class="flex-none gap-2">
-            @{
-                var multiCommunityEnabled = Configuration.GetValue<bool>("Features:MultiCommunityEnabled");
-                var showCommunitiesLink = multiCommunityEnabled && !CommunityContext.IsCustomDomain;
-            }
-            <ul class="menu menu-horizontal px-1 gap-1">
-                <li><a href="/">Home</a></li>
-                @if (showCommunitiesLink)
-                {
-                    <li><a href="/communities">Communities</a></li>
-                }
-                else
-                {
-                    <li><a href="/hubs">Hubs</a></li>
-                }
-            </ul>
-            <!-- Quick Search -->
-            <form method="get" action="/search" class="hidden sm:flex items-center gap-1" hx-boost="false">
-                <div class="relative">
-                    <input type="text"
-                           name="q"
-                           placeholder="Search..."
-                           class="input input-bordered input-sm w-48 lg:w-64 pr-8"
-                           autocomplete="off" />
-                    <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle">
+
+            <!-- Desktop Search -->
+            <form method="get" action="/search" class="hidden sm:flex items-center gap-1 flex-1 max-w-md" hx-boost="false" id="search-form">
+                <div class="relative flex-1" id="search-wrapper">
+                    <button type="submit" class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </button>
+                    <input type="text"
+                           id="search-input"
+                           name="q"
+                           placeholder="Search..."
+                           class="input input-bordered input-sm w-full pl-8"
+                           autocomplete="off" />
+
+                    <!-- Search Focus Pane -->
+                    <div id="search-focus-pane" class="search-focus-pane hidden">
+                        <div class="p-4 space-y-4">
+                            <!-- Search Type -->
+                            <div>
+                                <label class="text-sm font-medium mb-2 block">Search Type</label>
+                                <div class="join flex-wrap">
+                                    <input class="join-item btn btn-sm" type="radio" name="search-type" aria-label="Post" checked />
+                                    <input class="join-item btn btn-sm" type="radio" name="search-type" aria-label="Discussion" />
+                                    <input class="join-item btn btn-sm" type="radio" name="search-type" aria-label="Space" />
+                                    <input class="join-item btn btn-sm" type="radio" name="search-type" aria-label="User" />
+                                </div>
+                            </div>
+
+                            <!-- Date Range -->
+                            <div>
+                                <label class="text-sm font-medium mb-2 block">Date Range</label>
+                                <div class="join flex-wrap">
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="Today" checked />
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="Past hour" />
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="Past week" />
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="Past month" />
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="Past year" />
+                                    <input class="join-item btn btn-sm" type="radio" name="date-range" aria-label="All time" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <a href="/search" class="btn btn-ghost btn-sm btn-square" title="Advanced Search">
+            </form>
+
+            <!-- Right: Mobile Search + Auth -->
+            <div class="flex items-center gap-2 ml-auto">
+                <!-- Mobile Search Icon -->
+                <a href="/search" class="btn btn-ghost btn-sm btn-square sm:hidden" title="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </a>
-            </form>
-            <!-- Mobile Search Icon -->
-            <a href="/search" class="btn btn-ghost btn-sm btn-square sm:hidden" title="Search">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </a>
-            <!-- Theme Toggle -->
-            <button id="theme-toggle"
-                    onclick="window.snakkTheme.toggleTheme()"
-                    class="btn btn-ghost btn-sm btn-circle ml-2"
-                    title="Toggle theme">
-                <!-- Icon will be set by theme.js -->
-            </button>
-            <div class="ml-2" id="auth-nav">
-                <!-- Auth UI will be loaded here -->
+                <div id="auth-nav">
+                    <!-- Auth UI will be loaded here -->
+                </div>
             </div>
         </div>
     </nav>
 
-    <script>
-        // Load auth status and update navbar
-        const apiBaseUrl = '@(Configuration["ApiBaseUrl"] ?? "https://localhost:7291")';
-
-        // Proactively clear expired tokens before making the request
-        if (!window.snakkAuth.isAuthenticated()) {
-            window.snakkAuth.clearToken();
-        }
-
-        fetch(`${apiBaseUrl}/auth/status`, { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                const authNav = document.getElementById('auth-nav');
-                // Update debug pane
-                updateDebugAuthInfo(data);
-                if (data.isAuthenticated) {
-                    window.currentUserId = data.publicId;
-                    authNav.innerHTML = `
-                        <!-- Notification Bell -->
-                        <div class="dropdown dropdown-end mr-2">
-                            <label tabindex="0" class="btn btn-ghost btn-sm btn-circle relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span id="notification-badge" class="notification-badge hidden">0</span>
-                            </label>
-                            <div tabindex="0" class="dropdown-content z-[1] mt-3 w-80 max-h-96 overflow-y-auto shadow-lg bg-white border border-subtle rounded-lg">
-                                <div class="flex items-center justify-between p-3 border-b border-subtle">
-                                    <span class="font-semibold">Notifications</span>
-                                    <button onclick="markAllNotificationsAsRead()" class="text-xs text-primary hover:underline">Mark all read</button>
-                                </div>
-                                <div id="notification-list" class="p-2">
-                                    <p class="text-sm text-muted text-center py-4">Loading...</p>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- User Menu -->
-                        <div class="dropdown dropdown-end">
-                            <label tabindex="0" class="btn btn-ghost btn-sm btn-circle p-0">
-                                <div class="avatar avatar-sm">
-                                    <img src="${apiBaseUrl}/avatars/${data.publicId}"
-                                         alt="${data.displayName}"
-                                         loading="lazy" />
-                                </div>
-                            </label>
-                            <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white border border-subtle rounded-lg w-52">
-                                <li class="menu-title px-3 py-2">
-                                    <span class="font-semibold">${data.displayName}</span>
-                                    ${data.emailVerified ? '' : '<span class="badge badge-warning-subtle badge-xs ml-2">Unverified</span>'}
-                                </li>
-                                <li><a href="/auth/profile">Profile Settings</a></li>
-                                <li><a href="/moderation">Moderation</a></li>
-                                <li><hr class="my-1 border-subtle"/></li>
-                                <li><a href="#" onclick="logout(); return false;">Logout</a></li>
-                            </ul>
-                        </div>
-                    `;
-                    // Load notification count and list
-                    loadNotificationCount();
-                    loadNotifications();
-                } else {
-                    // Server says not authenticated - clear any stale/invalid token
-                    window.snakkAuth.clearToken();
-                    authNav.innerHTML = `
-                        <a href="/auth/login" class="btn btn-ghost btn-sm">Login</a>
-                        <a href="/auth/register" class="btn btn-primary btn-sm">Sign Up</a>
-                    `;
-                }
-            })
-            .catch(err => {
-                // Not authenticated or error - clear any stale/invalid token
-                window.snakkAuth.clearToken();
-                const authNav = document.getElementById('auth-nav');
-                authNav.innerHTML = `
-                    <a href="/auth/login" class="btn btn-ghost btn-sm">Login</a>
-                    <a href="/auth/register" class="btn btn-primary btn-sm">Sign Up</a>
-                `;
-                // Update debug pane
-                updateDebugAuthInfo({ isAuthenticated: false, error: err.message });
-            })
-            .finally(() => {
-                // Update theme toggle button icon
-                window.snakkTheme.updateToggleButton();
-            });
-
-        function updateDebugAuthInfo(data) {
-            const debugAuthInfo = document.getElementById('debug-auth-info');
-            if (!debugAuthInfo) return;
-
-            if (data.isAuthenticated) {
-                const verifiedBadge = data.emailVerified
-                    ? '<span class="text-green-400">verified</span>'
-                    : '<span class="text-orange-400">unverified</span>';
-                debugAuthInfo.innerHTML = `
-                    <span class="text-gray-400">Auth:</span>
-                    <span class="text-green-300">logged in</span>
-                    <span class="text-gray-500">|</span>
-                    <span class="text-gray-400">User:</span>
-                    <span class="text-cyan-300">${data.displayName}</span>
-                    <span class="text-gray-600">(${data.publicId})</span>
-                    <span class="text-gray-500">|</span>
-                    <span class="text-gray-400">Email:</span>
-                    ${verifiedBadge}
-                `;
-            } else {
-                debugAuthInfo.innerHTML = `
-                    <span class="text-gray-400">Auth:</span>
-                    <span class="text-red-400">not logged in</span>
-                    ${data.error ? `<span class="text-gray-600">(${data.error})</span>` : ''}
-                `;
-            }
-        }
-
-        function logout() {
-            fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST', credentials: 'include' })
-                .then(() => {
-                    window.snakkAuth.clearToken();
-                    window.location.href = '/';
-                });
-        }
-
-        // ===== Notification Functions =====
-        function loadNotificationCount() {
-            fetch(`/bff/notifications/unread-count`, { credentials: 'include' })
-                .then(res => res.json())
-                .then(data => {
-                    updateNotificationBadge(data.count);
-                })
-                .catch(() => {});
-        }
-
-        function updateNotificationBadge(count) {
-            const badge = document.getElementById('notification-badge');
-            if (badge) {
-                if (count > 0) {
-                    badge.textContent = count > 99 ? '99+' : count;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            }
-        }
-
-        function loadNotifications() {
-            const list = document.getElementById('notification-list');
-            if (!list) return;
-
-            fetch(`/bff/notifications?offset=0&pageSize=10`, { credentials: 'include' })
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.items || data.items.length === 0) {
-                        list.innerHTML = '<p class="text-sm text-muted text-center py-4">No notifications yet</p>';
-                        return;
-                    }
-
-                    list.innerHTML = data.items.map(n => `
-                        <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${n.publicId}">
-                            <div class="flex items-start gap-2 p-2 rounded hover:bg-subtle cursor-pointer" onclick="handleNotificationClick('${n.publicId}', '${n.sourceDiscussionId || ''}')">
-                                <div class="notification-icon ${getNotificationIconClass(n.type)}">
-                                    ${getNotificationIcon(n.type)}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium truncate">${n.title}</p>
-                                    ${n.body ? `<p class="text-xs text-muted line-clamp-2">${n.body}</p>` : ''}
-                                    <p class="text-xs text-muted mt-1">${formatTimeAgo(n.createdAt)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                })
-                .catch(() => {
-                    list.innerHTML = '<p class="text-sm text-error text-center py-4">Failed to load</p>';
-                });
-        }
-
-        function getNotificationIconClass(type) {
-            switch(type) {
-                case 'Reply': return 'text-primary';
-                case 'Mention': return 'text-accent';
-                default: return 'text-muted';
-            }
-        }
-
-        function getNotificationIcon(type) {
-            switch(type) {
-                case 'Reply':
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>';
-                case 'Mention':
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>';
-                case 'NewPostInFollowedDiscussion':
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>';
-                default:
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>';
-            }
-        }
-
-        function formatTimeAgo(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString();
-        }
-
-        function handleNotificationClick(notificationId, discussionId) {
-            // Mark as read
-            fetch(`/bff/notifications/${notificationId}/read`, {
-                method: 'POST',
-                credentials: 'include'
-            }).then(() => {
-                loadNotificationCount();
-                const item = document.querySelector(`[data-id="${notificationId}"]`);
-                if (item) item.classList.remove('unread');
-            });
-
-            // Navigate to discussion if available
-            if (discussionId) {
-                // For now, just reload - in production would navigate to the discussion
-                // window.location.href = `/discussions/${discussionId}`;
-            }
-        }
-
-        function markAllNotificationsAsRead() {
-            fetch(`/bff/notifications/read-all`, {
-                method: 'POST',
-                credentials: 'include'
-            }).then(() => {
-                updateNotificationBadge(0);
-                document.querySelectorAll('.notification-item.unread').forEach(el => {
-                    el.classList.remove('unread');
-                });
-            });
-        }
-    </script>
+    <script src="~/js/auth-navbar.js" asp-append-version="true"></script>
+    <script src="~/js/search-focus.js" asp-append-version="true"></script>
 
     <main id="main-content" class="container mx-auto px-4 py-8">
         <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
@@ -383,22 +161,17 @@
     <footer class="footer footer-center py-6 text-muted mt-16">
     </footer>
 
-    <!-- SignalR Client -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
-            integrity="sha512-+a5bV5c/O1GKS3mQCRfIu4tEF/xwy+6aBLg7OVdcWkLMPFwU17f4aqBfY7gm7jhgNCz8y+b2pWEqJu7X4XPEPA=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"></script>
-
-    <!-- Set API URL for SignalR before loading realtime.js -->
-    <script>
-        window.snakkApiBaseUrl = '@(Configuration["ApiBaseUrl"] ?? "https://localhost:7291")';
-    </script>
+    <!-- SignalR Client (local copy) -->
+    <script src="~/js/signalr.min.js" asp-append-version="true"></script>
 
     <!-- Site JavaScript (hover popups, etc.) -->
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <!-- Realtime Updates -->
     <script src="~/js/realtime.js" asp-append-version="true"></script>
+
+    <!-- Sidebar Scrollbar Detection -->
+    <script src="~/js/sidebar-scrollbar.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

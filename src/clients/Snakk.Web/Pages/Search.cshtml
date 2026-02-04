@@ -11,392 +11,57 @@
 <div class="max-w-4xl mx-auto">
     <!-- Page Header -->
     <div class="page-header">
-        <h1>
-            @if (!string.IsNullOrEmpty(Model.HubPublicId) || !string.IsNullOrEmpty(Model.SpacePublicId) || !string.IsNullOrEmpty(Model.DiscussionPublicId))
-            {
-                <span>Advanced Search</span>
-            }
-            else
-            {
-                <span>Search</span>
-            }
-        </h1>
-        <p>Find discussions and posts across all spaces</p>
+        <h1>Search</h1>
+        <p>Find discussions, posts, spaces, and users</p>
     </div>
 
-    <!-- Search Form -->
-    <div class="clean-card mb-6">
-        <form method="get" action="/search" id="search-form">
-            <input type="hidden" name="authorPublicId" value="@Model.AuthorPublicId" />
-            <input type="hidden" name="tab" value="@Model.Tab" />
+    <!-- Search Filters -->
+    <div id="search-filters" class="mb-6">
+        <div class="space-y-4">
+            <!-- Hidden input for query parameter -->
+            <input type="hidden" id="search-query" name="q" value="@Model.Q" />
 
-            <!-- Main Search -->
-            <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                <div class="flex-1">
-                    <input type="text"
-                           name="q"
-                           value="@Model.Q"
-                           placeholder="Search discussions and posts..."
-                           class="input input-bordered w-full" />
-                </div>
-                <button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search
-                </button>
-            </div>
-
-            <!-- Advanced Filters Toggle -->
-            <div class="border-t border-subtle pt-3">
-                <button type="button"
-                        class="btn btn-ghost btn-sm gap-2"
-                        onclick="toggleAdvancedFilters()">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    <span id="filters-toggle-text">Show Advanced Filters</span>
-                    <svg id="filters-chevron" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-
-                <!-- Advanced Filters Panel -->
-                <div id="advanced-filters" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="label">
-                            <span class="label-text">Hub</span>
-                        </label>
-                        <input type="text"
-                               name="hubPublicId"
-                               value="@Model.HubPublicId"
-                               placeholder="Hub ID (e.g., h_abc123)"
-                               class="input input-bordered input-sm w-full" />
-                        <label class="label">
-                            <span class="label-text-alt text-muted">Leave empty to search all hubs</span>
-                        </label>
-                    </div>
-                    <div>
-                        <label class="label">
-                            <span class="label-text">Space</span>
-                        </label>
-                        <input type="text"
-                               name="spacePublicId"
-                               value="@Model.SpacePublicId"
-                               placeholder="Space ID (e.g., s_abc123)"
-                               class="input input-bordered input-sm w-full" />
-                        <label class="label">
-                            <span class="label-text-alt text-muted">Leave empty to search all spaces</span>
-                        </label>
-                    </div>
-                    @if (Model.Tab == "posts")
-                    {
-                        <div>
-                            <label class="label">
-                                <span class="label-text">Discussion</span>
-                            </label>
-                            <input type="text"
-                                   name="discussionPublicId"
-                                   value="@Model.DiscussionPublicId"
-                                   placeholder="Discussion ID (e.g., d_abc123)"
-                                   class="input input-bordered input-sm w-full" />
-                            <label class="label">
-                                <span class="label-text-alt text-muted">Search within a specific discussion</span>
-                            </label>
-                        </div>
-                    }
+            <!-- Search Type -->
+            <div>
+                <label class="text-sm font-medium mb-2 block">Search Type</label>
+                <div class="join flex-wrap">
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="Post"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="Discussion"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="Space"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="User"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                 </div>
             </div>
-        </form>
-    </div>
 
-    <script>
-        function toggleAdvancedFilters() {
-            const panel = document.getElementById('advanced-filters');
-            const toggleText = document.getElementById('filters-toggle-text');
-            const chevron = document.getElementById('filters-chevron');
-
-            if (panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-                toggleText.textContent = 'Hide Advanced Filters';
-                chevron.style.transform = 'rotate(180deg)';
-            } else {
-                panel.classList.add('hidden');
-                toggleText.textContent = 'Show Advanced Filters';
-                chevron.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        // Auto-expand advanced filters if any are set
-        (function() {
-            const hasAdvancedFilters =
-                document.querySelector('[name="hubPublicId"]')?.value ||
-                document.querySelector('[name="spacePublicId"]')?.value ||
-                document.querySelector('[name="discussionPublicId"]')?.value;
-
-            if (hasAdvancedFilters) {
-                toggleAdvancedFilters();
-            }
-        })();
-    </script>
-
-    @* Active Filters Display *@
-    @if (hasAuthorFilter && Model.FilteredUser != null)
-    {
-        <div class="alert alert-info mb-4">
-            <div class="flex items-center gap-3">
-                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.FilteredUser.PublicId)"
-                     alt="@Model.FilteredUser.DisplayName"
-                     class="w-10 h-10 rounded-full" />
-                <div>
-                    <span class="font-medium">Filtering by @Model.FilteredUser.DisplayName</span>
-                    <span class="text-sm opacity-75 block">@Model.FilteredUser.DiscussionCount discussions, @Model.FilteredUser.PostCount posts</span>
+            <!-- Date Range -->
+            <div>
+                <label class="text-sm font-medium mb-2 block">Date Range</label>
+                <div class="join flex-wrap">
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="Today"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="Past hour"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="Past week"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="Past month"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="Past year"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="All time"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                 </div>
-                <a href="@Model.BuildSearchUrl(Model.Q, null, Model.Tab)" class="btn btn-sm btn-ghost ml-auto">
-                    Clear filter
-                </a>
             </div>
         </div>
-    }
-
-    @if (!string.IsNullOrEmpty(Model.HubPublicId) || !string.IsNullOrEmpty(Model.SpacePublicId) || !string.IsNullOrEmpty(Model.DiscussionPublicId))
-    {
-        <div class="flex flex-wrap gap-2 mb-6">
-            <span class="text-sm text-muted">Active filters:</span>
-            @if (!string.IsNullOrEmpty(Model.HubPublicId))
-            {
-                <div class="badge badge-lg gap-2">
-                    <span>Hub: @Model.HubPublicId</span>
-                    <a href="javascript:clearFilter('hubPublicId')" class="hover:text-error">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </a>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.SpacePublicId))
-            {
-                <div class="badge badge-lg gap-2">
-                    <span>Space: @Model.SpacePublicId</span>
-                    <a href="javascript:clearFilter('spacePublicId')" class="hover:text-error">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </a>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.DiscussionPublicId))
-            {
-                <div class="badge badge-lg gap-2">
-                    <span>Discussion: @Model.DiscussionPublicId</span>
-                    <a href="javascript:clearFilter('discussionPublicId')" class="hover:text-error">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </a>
-                </div>
-            }
-            <a href="/search?q=@Uri.EscapeDataString(Model.Q ?? "")&tab=@Model.Tab@(string.IsNullOrEmpty(Model.AuthorPublicId) ? "" : $"&authorPublicId={Model.AuthorPublicId}")"
-               class="btn btn-ghost btn-xs">
-                Clear all filters
-            </a>
-        </div>
-
-        <script>
-            function clearFilter(filterName) {
-                const form = document.getElementById('search-form');
-                const input = form.querySelector(`[name="${filterName}"]`);
-                if (input) {
-                    input.value = '';
-                    form.submit();
-                }
-            }
-        </script>
-    }
-
-    <!-- Tabs -->
-    <div class="tabs tabs-boxed mb-6">
-        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, "discussions")"
-           class="tab @(Model.Tab == "discussions" ? "tab-active" : "")">
-            Discussions
-            @if (Model.Discussions != null)
-            {
-                <span class="badge badge-sm ml-2">@(Model.Discussions.HasMoreItems ? $"{Model.Discussions.Items.Count()}+" : Model.Discussions.Items.Count().ToString())</span>
-            }
-        </a>
-        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, "posts")"
-           class="tab @(Model.Tab == "posts" ? "tab-active" : "")">
-            Posts
-            @if (Model.Posts != null)
-            {
-                <span class="badge badge-sm ml-2">@(Model.Posts.HasMoreItems ? $"{Model.Posts.Items.Count()}+" : Model.Posts.Items.Count().ToString())</span>
-            }
-        </a>
     </div>
+
 
     <!-- Results -->
-    @if (Model.Tab == "discussions")
-    {
-        @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
-        {
-            <div class="clean-card">
-                <div class="empty-state-simple">
-                    @if (hasQuery || hasAuthorFilter)
-                    {
-                        <h3>No discussions found</h3>
-                        <p>Try adjusting your search or filters</p>
-                    }
-                    else
-                    {
-                        <h3>Enter a search term</h3>
-                        <p>Or browse by author using their profile page</p>
-                    }
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="topic-list" id="discussions-container">
-                @foreach (var discussion in Model.Discussions.Items)
-                {
-                    var discussionUrl = SnakkUrlHelper.Discussion(
-                        Model.Community,
-                        discussion.HubSlug,
-                        discussion.SpaceSlug,
-                        $"{discussion.Slug}~{discussion.PublicId}");
-
-                    <a href="@discussionUrl" class="topic-item">
-                        <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
-                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.AuthorPublicId)"
-                                 alt="@discussion.AuthorDisplayName" />
-                        </div>
-                        <div class="topic-content">
-                            <div class="topic-title">@discussion.Title</div>
-                            <div class="topic-meta">
-                                <a href="/u/@discussion.AuthorPublicId"
-                                   class="hover:underline"
-                                   onclick="event.stopPropagation()">@discussion.AuthorDisplayName</a>
-                                <span class="topic-meta-separator">in</span>
-                                <span class="font-medium">@discussion.SpaceName</span>
-                                <span class="topic-meta-separator">·</span>
-                                <span>@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
-                            </div>
-                        </div>
-                        <div class="topic-stats hidden sm:flex">
-                            <div class="topic-stat">
-                                <div class="topic-stat-value">@SnakkUrlHelper.FormatCount(discussion.ReactionCount)</div>
-                                <div class="topic-stat-label">Views</div>
-                            </div>
-                            <div class="topic-stat">
-                                <div class="topic-stat-value">@discussion.PostCount</div>
-                                <div class="topic-stat-label">Replies</div>
-                            </div>
-                        </div>
-                    </a>
-                }
-            </div>
-
-            @* Pagination *@
-            @if (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems)
-            {
-                <div class="flex justify-center gap-2 mt-6">
-                    @if (Model.Discussions.Offset > 0)
-                    {
-                        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.Tab, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize))"
-                           class="btn btn-ghost btn-sm">
-                            Previous
-                        </a>
-                    }
-                    @if (Model.Discussions.HasMoreItems)
-                    {
-                        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.Tab, Model.Discussions.Offset + Model.Discussions.PageSize)"
-                           class="btn btn-ghost btn-sm">
-                            Next
-                        </a>
-                    }
-                </div>
-            }
-        }
-    }
-    else
-    {
-        @* Posts tab *@
-        @if (Model.Posts?.Items == null || !Model.Posts.Items.Any())
-        {
-            <div class="clean-card">
-                <div class="empty-state-simple">
-                    @if (hasQuery || hasAuthorFilter)
-                    {
-                        <h3>No posts found</h3>
-                        <p>Try adjusting your search or filters</p>
-                    }
-                    else
-                    {
-                        <h3>Enter a search term</h3>
-                        <p>Or browse by author using their profile page</p>
-                    }
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="space-y-4" id="posts-container">
-                @foreach (var post in Model.Posts.Items)
-                {
-                    var discussionUrl = SnakkUrlHelper.Discussion(
-                        Model.Community,
-                        post.HubSlug,
-                        post.SpaceSlug,
-                        $"{post.DiscussionSlug}~{post.DiscussionPublicId}");
-
-                    <div class="clean-card">
-                        <div class="flex items-start gap-3">
-                            <div class="avatar avatar-sm flex-shrink-0">
-                                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, post.AuthorPublicId)"
-                                     alt="@post.AuthorDisplayName" />
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 text-sm text-muted mb-2">
-                                    <a href="/u/@post.AuthorPublicId" class="font-medium hover:underline">@post.AuthorDisplayName</a>
-                                    <span>·</span>
-                                    <span>@Model.GetRelativeTime(post.CreatedAt)</span>
-                                    <span>·</span>
-                                    <a href="@discussionUrl" class="hover:underline truncate">@post.DiscussionTitle</a>
-                                </div>
-                                <div class="prose prose-sm max-w-none">
-                                    @post.Content
-                                </div>
-                                <div class="mt-2">
-                                    <a href="@discussionUrl" class="text-sm text-primary hover:underline">
-                                        View in discussion
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-
-            @* Pagination *@
-            @if (Model.Posts.Offset > 0 || Model.Posts.HasMoreItems)
-            {
-                <div class="flex justify-center gap-2 mt-6">
-                    @if (Model.Posts.Offset > 0)
-                    {
-                        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.Tab, Math.Max(0, Model.Posts.Offset - Model.Posts.PageSize))"
-                           class="btn btn-ghost btn-sm">
-                            Previous
-                        </a>
-                    }
-                    @if (Model.Posts.HasMoreItems)
-                    {
-                        <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.Tab, Model.Posts.Offset + Model.Posts.PageSize)"
-                           class="btn btn-ghost btn-sm">
-                            Next
-                        </a>
-                    }
-                </div>
-            }
-        }
-    }
+    <div id="search-results">
+        <partial name="_SearchResults" model="Model" />
+    </div>
 </div>
+
+<script src="~/js/search-page.js" asp-append-version="true"></script>

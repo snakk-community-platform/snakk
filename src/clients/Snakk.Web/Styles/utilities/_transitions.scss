@@ -1,0 +1,16 @@
+// ============================================
+// HTMX Transitions
+// ============================================
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-swapping {
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+}
+
+.htmx-settling {
+    opacity: 1;
+}

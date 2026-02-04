@@ -1,0 +1,52 @@
+// ============================================
+// Reactions
+// ============================================
+
+.reactions-minimal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+        border-color: var(--border-subtle);
+        background: var(--bg-subtle);
+    }
+
+    &.active {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        color: #1d4ed8;
+
+        .count {
+            color: #1d4ed8;
+        }
+    }
+
+    .count {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    &.add-reaction {
+        color: var(--text-muted);
+        font-weight: 500;
+
+        &:hover {
+            color: var(--text-secondary);
+        }
+    }
+}

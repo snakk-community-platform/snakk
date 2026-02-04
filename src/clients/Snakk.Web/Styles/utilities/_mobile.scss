@@ -1,0 +1,106 @@
+// ============================================
+// Mobile Optimizations
+// ============================================
+
+@media (max-width: 768px) {
+    // Reduce padding on mobile
+    .max-w-6xl {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    // Stack author and content vertically on very small screens
+    @media (max-width: 480px) {
+        .post-article .flex.gap-6 {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .post-article .w-32 {
+            width: 100%;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+
+            .flex-col {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+    }
+
+    // Better touch targets
+    .subtle-btn,
+    .reaction-pill,
+    .btn {
+        min-height: 2.5rem;
+        min-width: 2.5rem;
+        padding: 0.5rem;
+    }
+
+    // Larger text on mobile
+    .prose-content,
+    .prose {
+        font-size: 1rem;
+    }
+
+    // Adjust discussion header
+    .discussion-header .title {
+        font-size: 1.5rem;
+    }
+
+    // Make breadcrumb wrap better
+    .breadcrumb {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    // Adjust reaction pills for better touch
+    .reactions-minimal {
+        gap: 0.5rem;
+    }
+
+    .reaction-pill {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.625rem;
+    }
+
+    // Stack action buttons if needed
+    .subtle-actions {
+        flex-wrap: wrap;
+    }
+
+    // Moderator post styling - less padding on mobile
+    .post-article.moderator-post {
+        margin-left: -0.5rem;
+        padding-left: 0.5rem;
+    }
+
+    // Dropdown menus - make wider for touch
+    .dropdown-content.menu {
+        min-width: 200px;
+    }
+
+    // Ensure dropdowns don't go off screen
+    .dropdown-end .dropdown-content {
+        right: 0;
+    }
+}
+
+// Very small phones
+@media (max-width: 360px) {
+    .discussion-header .title {
+        font-size: 1.25rem;
+    }
+
+    .prose-content,
+    .prose {
+        font-size: 0.9375rem;
+    }
+
+    // Hide some less important badges on tiny screens
+    .badge.badge-xs {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.25rem;
+    }
+}

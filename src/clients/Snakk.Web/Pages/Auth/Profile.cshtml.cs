@@ -19,63 +19,12 @@ public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration
 
     public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:7291";
 
-    public async Task<IActionResult> OnGetAsync()
+    public IActionResult OnGetAsync()
     {
-        var authStatus = await _apiClient.GetAuthStatusAsync();
-        if (authStatus == null || !authStatus.IsAuthenticated)
-        {
-            return RedirectToPage("/Auth/Login", new { returnUrl = "/auth/profile" });
-        }
-
-        UserId = authStatus.PublicId;
-        DisplayName = authStatus.DisplayName;
-
-        // Get full user details
-        var userDetails = await _apiClient.GetCurrentUserAsync();
-        if (userDetails != null)
-        {
-            Email = userDetails.Email;
-            EmailVerified = userDetails.EmailVerified;
-            OAuthProvider = userDetails.OAuthProvider;
-            PreferEndlessScroll = userDetails.PreferEndlessScroll;
-        }
-
+        // Authentication check handled client-side via profile.js
+        // since JWT tokens are stored in localStorage (not accessible server-side)
         return Page();
     }
 
-    public async Task<IActionResult> OnPostUpdateDisplayNameAsync(string displayName)
-    {
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            ErrorMessage = "Display name cannot be empty";
-            return await OnGetAsync();
-        }
-
-        var success = await _apiClient.UpdateProfileAsync(displayName);
-        if (success)
-        {
-            SuccessMessage = "Display name updated successfully";
-        }
-        else
-        {
-            ErrorMessage = "Failed to update display name";
-        }
-
-        return await OnGetAsync();
-    }
-
-    public async Task<IActionResult> OnPostUpdateScrollPreferenceAsync(bool preferEndlessScroll)
-    {
-        var success = await _apiClient.UpdatePreferencesAsync(preferEndlessScroll);
-        if (success)
-        {
-            SuccessMessage = "Scroll preference updated successfully";
-        }
-        else
-        {
-            ErrorMessage = "Failed to update scroll preference";
-        }
-
-        return await OnGetAsync();
-    }
+    // Form posts are removed - all profile updates now happen via client-side fetch
 }

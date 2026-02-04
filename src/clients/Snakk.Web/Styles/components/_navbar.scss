@@ -1,0 +1,51 @@
+// ============================================
+// Navigation
+// ============================================
+
+.minimal-nav {
+    background: var(--bg-primary);
+    border-bottom: 1px solid;
+    border-bottom-color: var(--border-primary);
+
+    a {
+        color: hsl(var(--bc) / 0.7);
+        transition: color 0.15s ease;
+
+        &:hover {
+            color: hsl(var(--bc));
+        }
+    }
+
+    // Dropdown menu - reset colors for white background
+    .dropdown-content {
+        color: var(--text-primary);
+
+        a {
+            color: var(--text-primary);
+
+            &:hover {
+                color: var(--text-primary);
+                background: var(--bg-subtle);
+            }
+        }
+
+        .menu-title {
+            color: var(--text-primary);
+
+            span {
+                color: var(--text-primary);
+            }
+        }
+    }
+}
+
+.brand-text {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--bg-secondary);
+    letter-spacing: -0.01em;
+}
+
+#auth-nav {
+    display: flex;
+}

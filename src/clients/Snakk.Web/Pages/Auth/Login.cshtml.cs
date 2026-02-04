@@ -55,15 +55,19 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        // Copy authentication cookie from API response to web client response
-        if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+        // Extract JWT token from response body
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var loginResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
+
+        if (!loginResponse.TryGetProperty("accessToken", out var tokenElement))
         {
-            foreach (var cookie in cookies)
-            {
-                Response.Headers.Append("Set-Cookie", cookie);
-            }
+            ErrorMessage = "Authentication succeeded but no token was returned.";
+            return Page();
         }
 
-        return RedirectToPage("/Index");
+        var accessToken = tokenElement.GetString();
+
+        // Redirect to home page with token in URL fragment (auth.js will pick it up)
+        return Redirect($"/Index?token={Uri.EscapeDataString(accessToken!)}");
     }
 }

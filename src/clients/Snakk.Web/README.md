@@ -67,7 +67,7 @@ dotnet publish
 The build process is integrated with MSBuild via targets in `Snakk.Web.csproj`:
 
 1. **npm audit** - Scans for security vulnerabilities (fails on high/critical)
-2. **Tailwind CSS build** - Compiles `Styles/input.css` → `wwwroot/css/styles.css`
+2. **Tailwind CSS build** - Compiles `Styles/input.css` → `wwwroot/css/tailwind.css`
 3. **.NET build** - Standard ASP.NET compilation
 
 ### Manual Commands
@@ -139,7 +139,7 @@ src/clients/Snakk.Web/
 │   └── input.css             # Source CSS with Tailwind directives
 ├── wwwroot/
 │   ├── css/
-│   │   └── styles.css        # Generated CSS (DO NOT EDIT - auto-generated)
+│   │   └── tailwind.css        # Generated CSS (DO NOT EDIT - auto-generated)
 │   └── js/
 │       └── htmx.min.js       # Bundled HTMX library
 └── node_modules/             # npm packages (gitignored)
@@ -151,7 +151,7 @@ src/clients/Snakk.Web/
 
 1. Rebuild CSS: `npm run build:css`
 2. Clear browser cache (Ctrl+Shift+R)
-3. Check that `styles.css` has recent timestamp
+3. Check that `tailwind.css` has recent timestamp
 
 ### Build fails with npm audit errors
 

@@ -251,6 +251,11 @@
             return;
         }
 
+        // Skip breadcrumb current items
+        if (triggerEl.classList.contains('breadcrumb-current')) {
+            return;
+        }
+
         // Skip if we're already tracking this trigger
         if (currentTrigger === triggerEl) {
             clearTimeout(hideTimeout);
