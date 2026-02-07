@@ -1,0 +1,5 @@
+# Ignore all generated avatar files
+*.svg
+
+# But keep the directory structure
+!.gitkeep

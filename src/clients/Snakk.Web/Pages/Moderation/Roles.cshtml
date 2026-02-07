@@ -40,7 +40,7 @@
         <!-- User Info -->
         <div class="clean-card mb-6">
             <div class="flex items-center gap-4">
-                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.UserProfile.PublicId)"
+                <img src="@SnakkUrlHelper.UserAvatar(Model.UserProfile.PublicId)"
                      alt="@Model.UserProfile.DisplayName"
                      class="w-16 h-16 rounded-full" />
                 <div class="flex-1">
@@ -86,7 +86,7 @@
                 {
                     <div class="flex items-center justify-between p-4 rounded-lg border border-base-300 hover:bg-base-200 transition-colors">
                         <div class="flex items-center gap-3">
-                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, role.UserPublicId)"
+                            <img src="@SnakkUrlHelper.UserAvatar(role.UserPublicId)"
                                  alt="@role.UserDisplayName"
                                  class="w-10 h-10 rounded-full" />
                             <div>

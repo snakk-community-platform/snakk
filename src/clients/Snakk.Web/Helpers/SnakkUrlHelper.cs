@@ -10,76 +10,76 @@ public static class SnakkUrlHelper
     /// - Empty for custom domains (domain itself identifies the community)
     /// - /c/{slug} for non-default communities accessed via main platform domain
     /// </summary>
-    private static string GetCommunityPrefix(string? communitySlug, bool isDefaultCommunity, bool isCustomDomain = false)
-    {
-        // No prefix needed for default community or custom domains
-        if (string.IsNullOrEmpty(communitySlug) || isDefaultCommunity || isCustomDomain)
-            return "";
-        return $"/c/{communitySlug}";
-    }
+    private static string GetCommunityPrefix(
+        string? communitySlug,
+        bool isDefaultCommunity,
+        bool isCustomDomain = false) 
+        => (string.IsNullOrEmpty(communitySlug) || isDefaultCommunity || isCustomDomain)
+            ? "" // No prefix needed for default community or custom domains
+            : $"/c/{communitySlug}";
 
     /// <summary>
     /// Gets the URL prefix for the current community context.
     /// </summary>
     private static string GetCommunityPrefix(ICommunityContext community)
-    {
-        return GetCommunityPrefix(community.CommunitySlug, community.IsDefaultCommunity, community.IsCustomDomain);
-    }
+        => GetCommunityPrefix(
+            community.CommunitySlug,
+            community.IsDefaultCommunity,
+            community.IsCustomDomain);
 
     // ===== Community-aware URL methods =====
 
-    public static string Community(string communitySlug)
-    {
-        return $"/c/{communitySlug}";
-    }
+    public static string Community(string communitySlug) 
+        => $"/c/{communitySlug}";
 
-    public static string Hub(ICommunityContext community, string hubSlug)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}";
-    }
+    public static string Hub(
+        ICommunityContext community,
+        string hubSlug) 
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}";
+    
+    public static string HubWithOffset(
+        ICommunityContext community,
+        string hubSlug,
+        int offset) 
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}?offset={offset}";
 
-    public static string HubWithOffset(ICommunityContext community, string hubSlug, int offset)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}?offset={offset}";
-    }
+    public static string Space(
+        ICommunityContext community,
+        string hubSlug,
+        string spaceSlug) 
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}";
 
-    public static string Space(ICommunityContext community, string hubSlug, string spaceSlug)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}";
-    }
+    public static string SpaceWithOffset(
+        ICommunityContext community,
+        string hubSlug,
+        string spaceSlug,
+        int offset) 
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}?offset={offset}";
 
-    public static string SpaceWithOffset(ICommunityContext community, string hubSlug, string spaceSlug, int offset)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}?offset={offset}";
-    }
+    public static string Discussion(
+        ICommunityContext community,
+        string hubSlug,
+        string spaceSlug,
+        string slugWithId)
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
 
-    public static string Discussion(ICommunityContext community, string hubSlug, string spaceSlug, string slugWithId)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
-    }
+    public static string DiscussionWithOffset(
+        ICommunityContext community,
+        string hubSlug,
+        string spaceSlug,
+        string slugWithId,
+        int offset)
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}?offset={offset}";
 
-    public static string DiscussionWithOffset(ICommunityContext community, string hubSlug, string spaceSlug, string slugWithId, int offset)
-    {
-        return $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}?offset={offset}";
-    }
+    public static string HubAvatar(string publicId)
+        => $"/storage/avatars/generated/hubs/{publicId}.svg";
 
-    // ===== Utility methods =====
+    public static string SpaceAvatar(string publicId)
+        => $"/storage/avatars/generated/spaces/{publicId}.svg";
 
-    /// <summary>
-    /// Formats a count number as a compact string (e.g., 1000 -> "1k", 1500 -> "1.5k")
-    /// </summary>
-    public static string FormatCount(int count) => 
-        count switch
-        {
-            >= 1_000_000_000 => $"{count / 1_000_000_000.0:0.#}b",
-            >= 1_000_000 => $"{count / 1_000_000.0:0.#}m",
-            >= 1_000 => $"{count / 1_000.0:0.#}k",
-            _ => count.ToString()
-        };
+    public static string CommunityAvatar(string publicId)
+        => $"/storage/avatars/generated/communities/{publicId}.svg";
 
-    // Avatar URL helpers - entities use .svg extension for CDN caching
-    public static string HubAvatar(string apiBaseUrl, string publicId) => $"{apiBaseUrl}/avatars/hub/{publicId}.svg";
-    public static string SpaceAvatar(string apiBaseUrl, string publicId) => $"{apiBaseUrl}/avatars/space/{publicId}.svg";
-    public static string CommunityAvatar(string apiBaseUrl, string publicId) => $"{apiBaseUrl}/avatars/community/{publicId}.svg";
-    public static string UserAvatar(string apiBaseUrl, string publicId) => $"{apiBaseUrl}/avatars/user/{publicId}.svg";
+    public static string UserAvatar(string publicId)
+        => $"/storage/avatars/generated/users/{publicId}.svg";
 }

@@ -1,19 +1,22 @@
 namespace Snakk.Api.Services;
 
 using Microsoft.EntityFrameworkCore;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
-public class DatabaseSeeder(SnakkDbContext context)
+public class DatabaseSeeder(SnakkDbContext context, IPasswordHasher passwordHasher)
 {
     private readonly SnakkDbContext _context = context;
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly Random _random = new(42); // Fixed seed for reproducibility
 
     public async Task SeedAsync()
     {
-        // Always ensure test user exists
+        // Always ensure test user and default admin exist
         await EnsureTestUserExistsAsync();
+        await EnsureDefaultAdminExistsAsync();
 
         // Check if full seeding was already done (look for test communities with custom domains)
         var hasTestCommunities = await _context.CommunityDomains.AnyAsync(d => d.Domain == "test1.snakk.local");
@@ -74,6 +77,31 @@ public class DatabaseSeeder(SnakkDbContext context)
         _context.Users.Add(testUser);
         await _context.SaveChangesAsync();
         Console.WriteLine("Test user created.");
+    }
+
+    private async Task EnsureDefaultAdminExistsAsync()
+    {
+        const string adminEmail = "admin@snakk.local";
+
+        var exists = await _context.AdminUsers.AnyAsync(a => a.Email == adminEmail);
+        if (exists)
+            return;
+
+        // Default password: "admin123" (should be changed on first login in production!)
+        var passwordHash = _passwordHasher.HashPassword("admin123");
+
+        var adminUser = new AdminUserDatabaseEntity
+        {
+            PublicId = "a_01JJQP0000000000000ADMIN",
+            Email = adminEmail,
+            PasswordHash = passwordHash,
+            DisplayName = "Admin User",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.AdminUsers.Add(adminUser);
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Default admin user created: {adminEmail} / admin123");
     }
 
     private async Task<List<UserDatabaseEntity>> SeedUsersAsync()

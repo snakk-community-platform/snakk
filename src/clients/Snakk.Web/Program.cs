@@ -6,6 +6,7 @@ using Snakk.Application.Services;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
 using WebOptimizer;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,6 +117,19 @@ app.UseStaticFiles(new StaticFileOptions
             const int durationInSeconds = 60 * 60 * 24 * 365; // 1 year
             ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={durationInSeconds}");
         }
+    }
+});
+
+// Serve shared storage directory (avatars, uploads, etc.)
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"c:\Snakk\storage"),
+    RequestPath = "/storage",
+    OnPrepareResponse = ctx =>
+    {
+        // Cache avatars and other storage files for 1 hour (they can change)
+        const int durationInSeconds = 60 * 60; // 1 hour
+        ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={durationInSeconds}");
     }
 });
 

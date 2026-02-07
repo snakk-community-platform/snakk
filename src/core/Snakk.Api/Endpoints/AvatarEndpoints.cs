@@ -62,7 +62,7 @@ public static class AvatarEndpoints
         // Handle empty userId - return default avatar for unknown user
         if (string.IsNullOrWhiteSpace(cleanUserId))
         {
-            return GetGeneratedAvatar("unknown", type, httpContext);
+            return GetGeneratedAvatar("unknown", type, httpContext, env);
         }
 
         var user = await userRepository.GetByPublicIdAsync(UserId.From(cleanUserId));
@@ -124,61 +124,154 @@ public static class AvatarEndpoints
             }
         }
 
-        // Fall back to generated avatar with optional type override
-        var typeOverride = Snakk.Shared.Avatars.AvatarGenerator.ParseType(type);
-        var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate(cleanUserId, 80, typeOverride);
+        // Fall back to pre-generated avatar file
+        var generatedPath = Path.Combine(
+            env.ContentRootPath,
+            "avatars",
+            "generated",
+            "users",
+            $"{cleanUserId}.svg"
+        );
 
-        // Set cache headers for CDN (1 year - generated avatars are deterministic)
-        httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return Results.Content(svg, "image/svg+xml");
+        if (File.Exists(generatedPath))
+        {
+            httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+            return Results.File(generatedPath, "image/svg+xml", enableRangeProcessing: true);
+        }
+
+        // If neither uploaded nor generated avatar exists, return 404
+        return Results.NotFound(new { error = "Avatar not found" });
     }
 
     private static IResult GetGeneratedAvatar(
         string userId,
         string? type,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        IWebHostEnvironment env)
     {
-        var typeOverride = Snakk.Shared.Avatars.AvatarGenerator.ParseType(type);
-        var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate(userId, 80, typeOverride);
+        // Strip .svg extension if present
+        var cleanUserId = userId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+            ? userId[..^4]
+            : userId;
+
+        // Build file path
+        var filePath = Path.Combine(
+            env.ContentRootPath,
+            "avatars",
+            "generated",
+            "users",
+            $"{cleanUserId}.svg"
+        );
+
+        // Check if file exists
+        if (!File.Exists(filePath))
+        {
+            return Results.NotFound(new { error = "Avatar not found" });
+        }
+
+        // Set aggressive cache headers
         httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return Results.Content(svg, "image/svg+xml");
+        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+        // Serve static file
+        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
     }
 
     private static IResult GetHubAvatar(
         string publicId,
         string? type,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        IWebHostEnvironment env)
     {
         // Strip .svg extension if present
         var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-        var typeOverride = Snakk.Shared.Avatars.AvatarGenerator.ParseType(type);
-        var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"hub:{cleanId}", 80, typeOverride);
+
+        // Build file path
+        var filePath = Path.Combine(
+            env.ContentRootPath,
+            "avatars",
+            "generated",
+            "hubs",
+            $"{cleanId}.svg"
+        );
+
+        // Check if file exists
+        if (!File.Exists(filePath))
+        {
+            return Results.NotFound(new { error = "Avatar not found" });
+        }
+
+        // Set aggressive cache headers
         httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return Results.Content(svg, "image/svg+xml");
+        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+        // Serve static file
+        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
     }
 
     private static IResult GetSpaceAvatar(
         string publicId,
         string? type,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        IWebHostEnvironment env)
     {
+        // Strip .svg extension if present
         var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-        var typeOverride = Snakk.Shared.Avatars.AvatarGenerator.ParseType(type);
-        var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"space:{cleanId}", 80, typeOverride);
+
+        // Build file path
+        var filePath = Path.Combine(
+            env.ContentRootPath,
+            "avatars",
+            "generated",
+            "spaces",
+            $"{cleanId}.svg"
+        );
+
+        // Check if file exists
+        if (!File.Exists(filePath))
+        {
+            return Results.NotFound(new { error = "Avatar not found" });
+        }
+
+        // Set aggressive cache headers
         httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return Results.Content(svg, "image/svg+xml");
+        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+        // Serve static file
+        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
     }
 
     private static IResult GetCommunityAvatar(
         string publicId,
         string? type,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        IWebHostEnvironment env)
     {
+        // Strip .svg extension if present
         var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-        var typeOverride = Snakk.Shared.Avatars.AvatarGenerator.ParseType(type);
-        var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"community:{cleanId}", 80, typeOverride);
+
+        // Build file path
+        var filePath = Path.Combine(
+            env.ContentRootPath,
+            "avatars",
+            "generated",
+            "communities",
+            $"{cleanId}.svg"
+        );
+
+        // Check if file exists
+        if (!File.Exists(filePath))
+        {
+            return Results.NotFound(new { error = "Avatar not found" });
+        }
+
+        // Set aggressive cache headers
         httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return Results.Content(svg, "image/svg+xml");
+        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+        // Serve static file
+        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
     }
 
     private static async Task<IResult> UploadAvatarAsync(

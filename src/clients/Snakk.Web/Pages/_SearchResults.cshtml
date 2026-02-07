@@ -37,7 +37,7 @@
 
                 <a href="@discussionUrl" class="topic-item">
                     <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
-                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.AuthorPublicId)"
+                        <img src="@SnakkUrlHelper.UserAvatar(discussion.AuthorPublicId)"
                              alt="@discussion.AuthorDisplayName" />
                     </div>
                     <div class="topic-content">
@@ -121,7 +121,7 @@ else if (Model.SearchType == "post")
                 <div class="clean-card">
                     <div class="flex items-start gap-3">
                         <div class="avatar avatar-sm flex-shrink-0">
-                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, post.AuthorPublicId)"
+                            <img src="@SnakkUrlHelper.UserAvatar(post.AuthorPublicId)"
                                  alt="@post.AuthorDisplayName" />
                         </div>
                         <div class="flex-1 min-w-0">

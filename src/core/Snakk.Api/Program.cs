@@ -31,7 +31,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Security headers - must come early in pipeline
 app.UseSecurityHeaders();
@@ -70,6 +74,7 @@ app.MapSpaceEndpoints();
 app.MapDiscussionEndpoints();
 app.MapPostEndpoints();
 app.MapAuthEndpoints();
+app.MapAdminAuthEndpoints();
 app.MapAvatarEndpoints();
 app.MapReactionEndpoints();
 app.MapNotificationEndpoints();

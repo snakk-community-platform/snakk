@@ -46,7 +46,7 @@ else
         <div class="page-header">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div class="flex items-start gap-4">
-                    <img src="@SnakkUrlHelper.HubAvatar(apiBaseUrl, Model.Hub.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
+                    <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
                     <div>
                         <h1>@Model.Hub.Name</h1>
                         @if (!string.IsNullOrEmpty(Model.Hub.Description))
@@ -104,7 +104,7 @@ else
                             <div class="category-card-wrapper">
                                 <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="category-card">
                                     <div class="flex items-start gap-3">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(apiBaseUrl, space.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
                                         <div class="flex-1 min-w-0">
                                             <h3 class="category-title">@space.Name</h3>
                                             @if (!string.IsNullOrEmpty(space.Description))
@@ -201,7 +201,7 @@ else
 
                                     <li>
                                         <a href="@discussionUrl" class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                            <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
                                                  alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
                                             <span class="sidebar-link-content">
                                                 <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
@@ -235,7 +235,7 @@ else
                                 {
                                     <li>
                                         <span class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, contributor.PublicId)"
+                                            <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
                                                  alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
                                             <span class="sidebar-link-content">
                                                 <span class="sidebar-link-title"

@@ -74,7 +74,7 @@
                     {
                         <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="category-card">
                             <div class="flex items-start gap-3">
-                                <img src="@SnakkUrlHelper.HubAvatar(apiBaseUrl, hub.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
                                 <div class="flex-1 min-w-0">
                                     <h2 class="category-title">@hub.Name</h2>
                                     @if (!string.IsNullOrEmpty(hub.Description))
@@ -136,7 +136,7 @@
 
                                 <li>
                                     <a href="@spaceUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(Model.ApiBaseUrl, space.PublicId)"
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
                                              alt="" loading="lazy" class="sidebar-avatar" />
                                         <span class="sidebar-link-content">
                                             <span class="sidebar-link-title">@space.Name</span>
@@ -175,7 +175,7 @@
 
                                 <li>
                                     <a href="@discussionUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                        <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
                                              alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
                                         <span class="sidebar-link-content">
                                             <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
@@ -208,7 +208,7 @@
                             {
                                 <li>
                                     <span class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, contributor.PublicId)"
+                                        <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
                                              alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
                                         <span class="sidebar-link-content">
                                             <span class="sidebar-link-title"

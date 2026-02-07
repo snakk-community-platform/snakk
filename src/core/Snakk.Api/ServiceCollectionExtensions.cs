@@ -14,14 +14,14 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddSnakkServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // CORS - Allow Web client to call API
+        // CORS - Allow Web client and Admin panel to call API
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>
             {
-                policy.WithOrigins("https://localhost:7001", "http://localhost:5001")
+                policy.WithOrigins("https://localhost:7001", "http://localhost:5001", "http://localhost:3000")
                       .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "x-signalr-user-agent")
-                      .WithMethods("GET", "POST", "PUT", "DELETE")
+                      .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                       .AllowCredentials();
             });
         });
@@ -177,6 +177,9 @@ public static class ServiceCollectionExtensions
         // Refresh Token Repository
         services.AddScoped<Domain.Repositories.IRefreshTokenRepository, Infrastructure.Database.Repositories.RefreshTokenRepository>();
 
+        // Admin User Repository
+        services.AddScoped<Infrastructure.Database.Repositories.IAdminUserRepository, Infrastructure.Database.Repositories.AdminUserRepository>();
+
         // Domain Repository Adapters
         services.AddScoped<Domain.Repositories.ICommunityRepository, Infrastructure.Adapters.CommunityRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IHubRepository, Infrastructure.Adapters.HubRepositoryAdapter>();
@@ -222,10 +225,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IViewRenderingService, ViewRenderingService>();
 
+        // Admin Services
+        services.AddScoped<IAdminAuthService, AdminAuthService>();
+
         // Services
         services.AddScoped<Application.Services.MentionService>();
         services.AddScoped<Application.Services.AchievementService>();
         services.AddScoped<Infrastructure.Services.MetricsService>();
+        services.AddSingleton<IFileStorage, Infrastructure.Services.LocalFileStorage>();
+        services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
 
         // Achievement Event Handlers
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.PostCreatedEvent>,
@@ -235,8 +243,27 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.ReactionAddedEvent>,
             Infrastructure.EventHandlers.Achievements.ReactionAddedAchievementHandler>();
 
+        // Avatar Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserCreatedEvent>,
+            Infrastructure.EventHandlers.Avatars.UserCreatedAvatarGenerationHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserDeletedEvent>,
+            Infrastructure.EventHandlers.Avatars.UserDeletedAvatarCleanupHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.HubCreatedEvent>,
+            Infrastructure.EventHandlers.Avatars.HubCreatedAvatarGenerationHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.HubDeletedEvent>,
+            Infrastructure.EventHandlers.Avatars.HubDeletedAvatarCleanupHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.SpaceCreatedEvent>,
+            Infrastructure.EventHandlers.Avatars.SpaceCreatedAvatarGenerationHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.SpaceDeletedEvent>,
+            Infrastructure.EventHandlers.Avatars.SpaceDeletedAvatarCleanupHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.CommunityCreatedEvent>,
+            Infrastructure.EventHandlers.Avatars.CommunityCreatedAvatarGenerationHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.CommunityDeletedEvent>,
+            Infrastructure.EventHandlers.Avatars.CommunityDeletedAvatarCleanupHandler>();
+
         // Background Workers
         services.AddHostedService<Infrastructure.BackgroundJobs.AchievementCheckerWorker>();
+        services.AddHostedService<Infrastructure.BackgroundJobs.AvatarGenerationHostedService>();
 
         // Services
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

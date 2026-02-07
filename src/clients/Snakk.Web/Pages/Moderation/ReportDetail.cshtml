@@ -60,7 +60,7 @@
                 <div class="clean-card">
                     <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Reporter</h2>
                     <div class="flex items-center gap-3">
-                        <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ReporterUserPublicId)"
+                        <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ReporterUserPublicId)"
                              alt="@Model.Report.ReporterUserDisplayName"
                              class="w-10 h-10 rounded-full" />
                         <div>
@@ -76,7 +76,7 @@
                     @if (!string.IsNullOrEmpty(Model.Report.ReportedUserPublicId))
                     {
                         <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
-                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ReportedUserPublicId)"
+                            <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ReportedUserPublicId)"
                                  alt="@Model.Report.ReportedUserDisplayName"
                                  class="w-10 h-10 rounded-full" />
                             <div>
@@ -136,7 +136,7 @@
                         <div class="flex items-center gap-3 mb-2">
                             @if (!string.IsNullOrEmpty(Model.Report.ResolvedByUserPublicId))
                             {
-                                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, Model.Report.ResolvedByUserPublicId)"
+                                <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ResolvedByUserPublicId)"
                                      alt="@Model.Report.ResolvedByUserDisplayName"
                                      class="w-8 h-8 rounded-full" />
                             }
@@ -173,7 +173,7 @@
                             @foreach (var comment in Model.Report.Comments.OrderBy(c => c.CreatedAt))
                             {
                                 <div class="flex items-start gap-3 p-3 bg-base-200 rounded-lg">
-                                    <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, comment.AuthorUserPublicId)"
+                                    <img src="@SnakkUrlHelper.UserAvatar(comment.AuthorUserPublicId)"
                                          alt="@comment.AuthorUserDisplayName"
                                          class="w-8 h-8 rounded-full" />
                                     <div class="flex-1">

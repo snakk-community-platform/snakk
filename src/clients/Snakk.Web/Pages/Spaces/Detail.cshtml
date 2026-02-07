@@ -51,7 +51,7 @@ else
         <div class="page-header">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div class="flex items-start gap-4">
-                    <img src="@SnakkUrlHelper.SpaceAvatar(apiBaseUrl, Model.Space.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
+                    <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
                     <div>
                         <h1>@Model.Space.Name</h1>
                         @if (!string.IsNullOrEmpty(Model.Space.Description))
@@ -261,7 +261,7 @@ else
 
                                     <li>
                                         <a href="@discussionUrl" class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, discussion.Author.PublicId)"
+                                            <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
                                                  alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
                                             <span class="sidebar-link-content">
                                                 <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
@@ -292,7 +292,7 @@ else
                                 {
                                     <li>
                                         <a href="/u/@contributor.PublicId" class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, contributor.PublicId)"
+                                            <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
                                                  alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
                                             <span class="sidebar-link-content">
                                                 <span class="sidebar-link-title"

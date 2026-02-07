@@ -134,7 +134,7 @@
                         {
                             <a href="/moderation/reports/@report.PublicId" class="block p-3 hover:bg-base-200 rounded-lg transition-colors border border-base-300">
                                 <div class="flex items-start gap-3">
-                                    <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, report.ReporterUserPublicId)"
+                                    <img src="@SnakkUrlHelper.UserAvatar(report.ReporterUserPublicId)"
                                          alt="@report.ReporterUserDisplayName"
                                          class="w-8 h-8 rounded-full" />
                                     <div class="flex-1 min-w-0">
@@ -188,7 +188,7 @@
                         @foreach (var log in Model.RecentLogs.Items.Take(10))
                         {
                             <div class="flex items-start gap-3 p-2 rounded-lg">
-                                <img src="@SnakkUrlHelper.UserAvatar(Model.ApiBaseUrl, log.ActorUserPublicId)"
+                                <img src="@SnakkUrlHelper.UserAvatar(log.ActorUserPublicId)"
                                      alt="@log.ActorUserDisplayName"
                                      class="w-8 h-8 rounded-full" />
                                 <div class="flex-1 min-w-0">

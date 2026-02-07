@@ -34,6 +34,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
     // Authentication
     public DbSet<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = null!;
+    public DbSet<AdminUserDatabaseEntity> AdminUsers { get; set; } = null!;
 
     // Achievements
     public DbSet<AchievementDatabaseEntity> Achievements { get; set; } = null!;
@@ -767,6 +768,16 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(r => r.UserId)
             .HasPrincipalKey(u => u.PublicId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // === AdminUser Configuration ===
+
+        modelBuilder.Entity<AdminUserDatabaseEntity>()
+            .HasIndex(a => a.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<AdminUserDatabaseEntity>()
+            .HasIndex(a => a.Email)
+            .IsUnique();
 
         // === Achievement System Configuration ===
 
