@@ -107,10 +107,9 @@ app.UseResponseCompression();
 // WebOptimizer middleware (must be before UseStaticFiles)
 app.UseWebOptimizer();
 
-// Serve wwwroot under /static (CSS, JS, lib files)
+// Serve wwwroot from root (default behavior) - allows /robots.txt, /favicon.ico, etc.
 app.UseStaticFiles(new StaticFileOptions
 {
-    RequestPath = "/static",
     OnPrepareResponse = ctx =>
     {
         // Cache static files for 1 year in production
@@ -122,23 +121,28 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
-// Serve user-uploaded assets (avatars, uploads, etc.)
+// Serve avatars from configured storage path
+var storagePath = Path.Combine(
+    builder.Configuration["FileStorage:BasePath"] ?? "storage",
+    "avatars"
+);
+var avatarsPath = Path.GetFullPath(storagePath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(@"c:\Snakk\storage"),
-    RequestPath = "/assets",
+    FileProvider = new PhysicalFileProvider(avatarsPath),
+    RequestPath = "/avatars",
     OnPrepareResponse = ctx =>
     {
-        // Generated avatars never change (deterministic SVGs based on user ID hash)
-        // Cache them aggressively with immutable directive
-        if (ctx.Context.Request.Path.StartsWithSegments("/assets/avatars/generated"))
+        // Generated avatars are immutable (deterministic SVGs based on ID hash)
+        if (ctx.Context.Request.Path.StartsWithSegments("/avatars/generated"))
         {
             const int oneYear = 60 * 60 * 24 * 365;
             ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={oneYear},immutable");
         }
         else
         {
-            // Uploaded avatars and other files can change - shorter cache time
+            // Uploaded avatars can change - shorter cache time
             const int oneHour = 60 * 60;
             ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={oneHour}");
         }

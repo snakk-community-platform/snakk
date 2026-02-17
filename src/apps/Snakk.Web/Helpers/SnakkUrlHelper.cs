@@ -88,25 +88,25 @@ public static class SnakkUrlHelper
 
     /// <summary>
     /// Gets the URL for a CSS file.
-    /// - isVendor: true → /static/css/vendor/{filename}.css
-    /// - isVendor: false → /static/css/dist/{filename}.css
+    /// - isVendor: true → /css/vendor/{filename}.css
+    /// - isVendor: false → /css/dist/{filename}.css
     /// </summary>
     public static string Css(string filename, bool isVendor = false)
     {
         var extension = filename.EndsWith(".css") ? "" : ".css";
         var folder = isVendor ? "vendor" : "dist";
-        return $"/static/css/{folder}/{filename}{extension}";
+        return $"/css/{folder}/{filename}{extension}";
     }
 
     /// <summary>
     /// Gets the URL for a JavaScript file.
-    /// - isVendor: true → /static/js/vendor/{filename}.js
-    /// - isVendor: false → /static/js/dist/{filename}.js
+    /// - isVendor: true → /js/vendor/{filename}.js
+    /// - isVendor: false → /js/dist/{filename}.js
     /// </summary>
     public static string Js(string filename, bool isVendor = false)
     {
         var extension = filename.EndsWith(".js") ? "" : ".js";
         var folder = isVendor ? "vendor" : "dist";
-        return $"/static/js/{folder}/{filename}{extension}";
+        return $"/js/{folder}/{filename}{extension}";
     }
 }
