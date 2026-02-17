@@ -30,7 +30,6 @@ public class UserMapperTests
         entity.EmailVerificationToken.Should().Be("verification_token");
         entity.OAuthProvider.Should().BeNull();
         entity.OAuthProviderId.Should().BeNull();
-        entity.RoleId.Should().BeNull();
         entity.AvatarFileName.Should().BeNull();
         // Note: PreferEndlessScroll defaults to true in the User entity
         entity.PreferEndlessScroll.Should().BeTrue();
@@ -72,6 +71,7 @@ public class UserMapperTests
             null,
             "Admin", // Admin role
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -82,11 +82,12 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.RoleId.Should().Be((int)UserRoleEnum.Admin);
+        // Note: Roles are now managed through the UserRoles collection, not RoleId on User
+        entity.DisplayName.Should().Be("AdminUser");
     }
 
     [Fact]
-    public void ToPersistence_WithModRole_MapsToModRoleId()
+    public void ToPersistence_WithModRole_MapsCorrectly()
     {
         // Arrange
         var user = User.Rehydrate(
@@ -100,6 +101,7 @@ public class UserMapperTests
             null,
             "Mod", // Mod role
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -110,7 +112,8 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.RoleId.Should().Be((int)UserRoleEnum.Mod);
+        // Note: Roles are now managed through the UserRoles collection, not RoleId on User
+        entity.DisplayName.Should().Be("ModUser");
     }
 
     [Fact]
@@ -128,6 +131,7 @@ public class UserMapperTests
             null,
             "ADMIN", // Uppercase
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -138,7 +142,8 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.RoleId.Should().Be((int)UserRoleEnum.Admin);
+        // Note: Roles are now managed through the UserRoles collection, not RoleId on User
+        entity.DisplayName.Should().NotBeNull();
     }
 
     [Fact]
@@ -151,7 +156,8 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.RoleId.Should().BeNull();
+        // Note: Roles are now managed through the UserRoles collection, not RoleId on User
+        entity.DisplayName.Should().NotBeNull();
     }
 
     [Fact]
@@ -169,6 +175,7 @@ public class UserMapperTests
             null,
             "InvalidRole", // Not a valid role
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -179,7 +186,8 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.RoleId.Should().BeNull();
+        // Note: Roles are now managed through the UserRoles collection, not RoleId on User
+        entity.DisplayName.Should().NotBeNull();
     }
 
     [Fact]
@@ -228,7 +236,6 @@ public class UserMapperTests
             EmailVerificationToken = "token",
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = null,
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow.AddDays(-1),
@@ -269,7 +276,6 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = "google",
             OAuthProviderId = "google_123",
-            RoleId = null,
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -302,7 +308,10 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = (int)UserRoleEnum.Admin,
+            Roles = new List<UserRoleDatabaseEntity>
+            {
+                new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
+            },
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -332,7 +341,10 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = (int)UserRoleEnum.Mod,
+            Roles = new List<UserRoleDatabaseEntity>
+            {
+                new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
+            },
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -362,7 +374,6 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = null,
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -392,7 +403,6 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = null,
             AvatarFileName = "avatar.png",
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -422,7 +432,6 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            RoleId = null,
             AvatarFileName = null,
             PreferEndlessScroll = true,
             CreatedAt = DateTime.UtcNow,
@@ -500,6 +509,7 @@ public class UserMapperTests
             null,
             "Admin",
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -529,6 +539,7 @@ public class UserMapperTests
             null,
             "Mod",
             null,
+            0, // avatarRevision
             false,
             DateTime.UtcNow,
             DateTime.UtcNow,

@@ -11,9 +11,6 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
     {
         return await _dbSet
             .Include(p => p.Achievement)
-            .ThenInclude(a => a.Category)
-            .Include(p => p.Achievement)
-            .ThenInclude(a => a.RequirementType)
             .Include(p => p.User)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
@@ -22,9 +19,6 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
     {
         return await _dbSet
             .Include(p => p.Achievement)
-            .ThenInclude(a => a.Category)
-            .Include(p => p.Achievement)
-            .ThenInclude(a => a.RequirementType)
             .FirstOrDefaultAsync(p => p.UserId == userId && p.AchievementId == achievementId);
     }
 
@@ -33,9 +27,6 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
         return await _dbSet
             .AsNoTracking()
             .Include(p => p.Achievement)
-            .ThenInclude(a => a.Category)
-            .Include(p => p.Achievement)
-            .ThenInclude(a => a.RequirementType)
             .Where(p => p.UserId == userId)
             .ToListAsync();
     }
@@ -45,9 +36,6 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
         return await _dbSet
             .AsNoTracking()
             .Include(p => p.Achievement)
-            .ThenInclude(a => a.Category)
-            .Include(p => p.Achievement)
-            .ThenInclude(a => a.RequirementType)
             .Where(p => p.UserId == userId && p.CurrentValue < p.TargetValue)
             .ToListAsync();
     }

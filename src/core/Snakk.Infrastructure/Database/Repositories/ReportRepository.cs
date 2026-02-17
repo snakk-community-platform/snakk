@@ -48,7 +48,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.CommunityId == communityId);
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -60,7 +60,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.HubId == hubId || (r.SpaceId != null && r.Space!.HubId == hubId));
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -71,7 +71,7 @@ public class ReportRepository(SnakkDbContext context)
             .Where(r => r.SpaceId == spaceId);
         
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
         
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -147,7 +147,7 @@ public class ReportRepository(SnakkDbContext context)
             .Take(pageSize)
             .Select(r => new ReportListDto(
                 r.PublicId,
-                r.Status.Name,
+                ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,

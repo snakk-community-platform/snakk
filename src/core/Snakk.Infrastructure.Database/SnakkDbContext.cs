@@ -31,10 +31,24 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ReportCommentDatabaseEntity> ReportComments { get; set; } = null!;
     public DbSet<ReportReasonDatabaseEntity> ReportReasons { get; set; } = null!;
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
+    public DbSet<AuditLogDatabaseEntity> AuditLogs { get; set; } = null!;
 
-    // Authentication
+    // Permissions
+    public DbSet<PermissionDatabaseEntity> Permissions { get; set; } = null!;
+    public DbSet<RolePermissionDatabaseEntity> RolePermissions { get; set; } = null!;
+    public DbSet<TemporaryRoleElevationDatabaseEntity> TemporaryRoleElevations { get; set; } = null!;
+
+    // Authentication & 2FA
     public DbSet<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = null!;
-    public DbSet<AdminUserDatabaseEntity> AdminUsers { get; set; } = null!;
+    public DbSet<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = null!;
+    public DbSet<BackupCodeDatabaseEntity> BackupCodes { get; set; } = null!;
+
+    // Settings
+    public DbSet<SystemSettingDatabaseEntity> SystemSettings { get; set; } = null!;
+
+    // Integrations
+    public DbSet<WebhookDatabaseEntity> Webhooks { get; set; } = null!;
+    public DbSet<WebhookDeliveryLogDatabaseEntity> WebhookDeliveryLogs { get; set; } = null!;
 
     // Achievements
     public DbSet<AchievementDatabaseEntity> Achievements { get; set; } = null!;
@@ -42,19 +56,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<UserAchievementProgressDatabaseEntity> UserAchievementProgress { get; set; } = null!;
     public DbSet<UserMetricDatabaseEntity> UserMetrics { get; set; } = null!;
 
-    // Lookup tables
-    public DbSet<Entities.Lookups.CommunityVisibilityLookup> CommunityVisibilityLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.FollowTargetTypeLookup> FollowTargetTypeLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.FollowLevelLookup> FollowLevelLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.ModerationActionLookup> ModerationActionLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.NotificationTypeLookup> NotificationTypeLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.ReactionTypeLookup> ReactionTypeLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.ReportStatusLookup> ReportStatusLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.BanTypeLookup> BanTypeLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.UserRoleLookup> UserRoleLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.UserRoleTypeLookup> UserRoleTypeLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.AchievementCategoryLookup> AchievementCategoryLookups { get; set; } = null!;
-    public DbSet<Entities.Lookups.AchievementRequirementTypeLookup> AchievementRequirementTypeLookups { get; set; } = null!;
+    // Note: Lookup tables removed - now using enums directly (see Snakk.Shared.Enums)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,75 +105,8 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .IsUnique();
 
         // === Lookup Table Relationships ===
-
-        // CommunityVisibility
-        modelBuilder.Entity<CommunityDatabaseEntity>()
-            .HasOne(c => c.Visibility)
-            .WithMany(v => v.Communities)
-            .HasForeignKey(c => c.VisibilityId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // FollowTargetType and FollowLevel
-        modelBuilder.Entity<FollowDatabaseEntity>()
-            .HasOne(f => f.TargetType)
-            .WithMany(t => t.Follows)
-            .HasForeignKey(f => f.TargetTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<FollowDatabaseEntity>()
-            .HasOne(f => f.Level)
-            .WithMany(l => l.Follows)
-            .HasForeignKey(f => f.LevelId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // ModerationAction
-        modelBuilder.Entity<ModerationLogDatabaseEntity>()
-            .HasOne(m => m.Action)
-            .WithMany(a => a.ModerationLogs)
-            .HasForeignKey(m => m.ActionId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // NotificationType
-        modelBuilder.Entity<NotificationDatabaseEntity>()
-            .HasOne(n => n.Type)
-            .WithMany(t => t.Notifications)
-            .HasForeignKey(n => n.TypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // ReactionType
-        modelBuilder.Entity<ReactionDatabaseEntity>()
-            .HasOne(r => r.Type)
-            .WithMany(t => t.Reactions)
-            .HasForeignKey(r => r.TypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // ReportStatus
-        modelBuilder.Entity<ReportDatabaseEntity>()
-            .HasOne(r => r.Status)
-            .WithMany(s => s.Reports)
-            .HasForeignKey(r => r.StatusId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // BanType
-        modelBuilder.Entity<UserBanDatabaseEntity>()
-            .HasOne(b => b.BanType)
-            .WithMany(t => t.UserBans)
-            .HasForeignKey(b => b.BanTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // UserRole (nullable)
-        modelBuilder.Entity<UserDatabaseEntity>()
-            .HasOne(u => u.Role)
-            .WithMany(r => r.Users)
-            .HasForeignKey(u => u.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // UserRoleType
-        modelBuilder.Entity<UserRoleDatabaseEntity>()
-            .HasOne(r => r.Role)
-            .WithMany(t => t.UserRoles)
-            .HasForeignKey(r => r.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // NOTE: Lookup tables now use enums instead of navigation properties
+        // Foreign keys are still present for data integrity but no navigation properties
 
         // Configure Hub -> Spaces relationship
         modelBuilder.Entity<SpaceDatabaseEntity>()
@@ -425,7 +360,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         modelBuilder.Entity<UserRoleDatabaseEntity>()
             .HasOne(ur => ur.User)
-            .WithMany()
+            .WithMany(u => u.Roles)
             .HasForeignKey(ur => ur.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -699,6 +634,90 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(ml => ml.SpaceId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // === Permissions Configuration ===
+
+        // Permission indexes
+        modelBuilder.Entity<PermissionDatabaseEntity>()
+            .HasIndex(p => p.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<PermissionDatabaseEntity>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<PermissionDatabaseEntity>()
+            .HasIndex(p => p.Category)
+            .HasDatabaseName("IX_Permission_Category");
+
+        // RolePermission indexes
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+            .IsUnique();
+
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasIndex(rp => rp.RoleId)
+            .HasDatabaseName("IX_RolePermission_RoleId");
+
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasIndex(rp => rp.PermissionId)
+            .HasDatabaseName("IX_RolePermission_PermissionId");
+
+        // RolePermission relationships
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RolePermissionDatabaseEntity>()
+            .HasOne(rp => rp.GrantedBy)
+            .WithMany()
+            .HasForeignKey(rp => rp.GrantedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // TemporaryRoleElevation indexes
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasIndex(tre => tre.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasIndex(tre => tre.UserId)
+            .HasDatabaseName("IX_TemporaryRoleElevation_UserId");
+
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasIndex(tre => tre.ExpiresAt)
+            .HasDatabaseName("IX_TemporaryRoleElevation_ExpiresAt");
+
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasIndex(tre => new { tre.UserId, tre.ExpiresAt })
+            .HasFilter("\"RevokedAt\" IS NULL")
+            .HasDatabaseName("IX_TemporaryRoleElevation_UserId_ExpiresAt_Active");
+
+        // TemporaryRoleElevation relationships
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasOne(tre => tre.User)
+            .WithMany()
+            .HasForeignKey(tre => tre.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasOne(tre => tre.GrantedBy)
+            .WithMany()
+            .HasForeignKey(tre => tre.GrantedById)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TemporaryRoleElevationDatabaseEntity>()
+            .HasOne(tre => tre.RevokedBy)
+            .WithMany()
+            .HasForeignKey(tre => tre.RevokedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // === User Indexes ===
 
         // PublicId unique constraint
@@ -764,20 +783,64 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         modelBuilder.Entity<RefreshTokenDatabaseEntity>()
             .HasOne(r => r.User)
-            .WithMany()
+            .WithMany(u => u.RefreshTokens)
             .HasForeignKey(r => r.UserId)
-            .HasPrincipalKey(u => u.PublicId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // === AdminUser Configuration ===
+        // RefreshToken: self-referencing relationship for token rotation
+        modelBuilder.Entity<RefreshTokenDatabaseEntity>()
+            .HasOne(r => r.ReplacedByToken)
+            .WithMany()
+            .HasForeignKey(r => r.ReplacedByTokenId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<AdminUserDatabaseEntity>()
-            .HasIndex(a => a.PublicId)
+        // === 2FA Configuration ===
+
+        // TrustedDevice configuration
+        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+            .HasIndex(t => t.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<AdminUserDatabaseEntity>()
-            .HasIndex(a => a.Email)
+        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+            .HasOne(t => t.User)
+            .WithMany(u => u.TrustedDevices)
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+            .HasIndex(t => new { t.UserId, t.DeviceFingerprint });
+
+        // BackupCode configuration
+        modelBuilder.Entity<BackupCodeDatabaseEntity>()
+            .HasIndex(b => b.PublicId)
             .IsUnique();
+
+        modelBuilder.Entity<BackupCodeDatabaseEntity>()
+            .HasOne(b => b.User)
+            .WithMany(u => u.BackupCodes)
+            .HasForeignKey(b => b.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // === SystemSettings Configuration ===
+
+        modelBuilder.Entity<SystemSettingDatabaseEntity>()
+            .HasIndex(s => s.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<SystemSettingDatabaseEntity>()
+            .HasIndex(s => s.Category)
+            .HasDatabaseName("IX_SystemSettings_Category");
+
+        modelBuilder.Entity<SystemSettingDatabaseEntity>()
+            .HasIndex(s => new { s.Category, s.Key })
+            .IsUnique()
+            .HasDatabaseName("IX_SystemSettings_Category_Key");
+
+        modelBuilder.Entity<SystemSettingDatabaseEntity>()
+            .HasOne(s => s.UpdatedBy)
+            .WithMany()
+            .HasForeignKey(s => s.UpdatedById)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // === Achievement System Configuration ===
 
@@ -794,18 +857,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(a => new { a.IsActive, a.DisplayOrder })
             .HasDatabaseName("IX_Achievement_IsActive_DisplayOrder");
 
-        // Achievement relationships
-        modelBuilder.Entity<AchievementDatabaseEntity>()
-            .HasOne(a => a.Category)
-            .WithMany(c => c.Achievements)
-            .HasForeignKey(a => a.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<AchievementDatabaseEntity>()
-            .HasOne(a => a.RequirementType)
-            .WithMany(t => t.Achievements)
-            .HasForeignKey(a => a.RequirementTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // Note: Achievement Category and RequirementType now use enums (no FK relationships)
 
         // UserAchievementProgress indexes
         modelBuilder.Entity<UserAchievementProgressDatabaseEntity>()
@@ -877,6 +929,56 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasOne(m => m.User)
             .WithMany()
             .HasForeignKey(m => m.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // === Webhooks Configuration ===
+
+        // Webhook indexes
+        modelBuilder.Entity<WebhookDatabaseEntity>()
+            .HasIndex(w => w.Id)
+            .IsUnique();
+
+        modelBuilder.Entity<WebhookDatabaseEntity>()
+            .HasIndex(w => w.IsActive)
+            .HasDatabaseName("IX_Webhook_IsActive");
+
+        modelBuilder.Entity<WebhookDatabaseEntity>()
+            .HasIndex(w => w.CreatedAt)
+            .IsDescending(true)
+            .HasDatabaseName("IX_Webhook_CreatedAt_Desc");
+
+        // Webhook relationships
+        modelBuilder.Entity<WebhookDatabaseEntity>()
+            .HasOne(w => w.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(w => w.CreatedBy)
+            .HasPrincipalKey(u => u.PublicId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // WebhookDeliveryLog indexes
+        modelBuilder.Entity<WebhookDeliveryLogDatabaseEntity>()
+            .HasIndex(wdl => wdl.WebhookId)
+            .HasDatabaseName("IX_WebhookDeliveryLog_WebhookId");
+
+        modelBuilder.Entity<WebhookDeliveryLogDatabaseEntity>()
+            .HasIndex(wdl => new { wdl.WebhookId, wdl.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_WebhookDeliveryLog_WebhookId_CreatedAt_Desc");
+
+        modelBuilder.Entity<WebhookDeliveryLogDatabaseEntity>()
+            .HasIndex(wdl => new { wdl.IsSuccess, wdl.NextRetryAt })
+            .HasFilter("\"NextRetryAt\" IS NOT NULL")
+            .HasDatabaseName("IX_WebhookDeliveryLog_IsSuccess_NextRetryAt");
+
+        modelBuilder.Entity<WebhookDeliveryLogDatabaseEntity>()
+            .HasIndex(wdl => wdl.EventType)
+            .HasDatabaseName("IX_WebhookDeliveryLog_EventType");
+
+        // WebhookDeliveryLog relationships
+        modelBuilder.Entity<WebhookDeliveryLogDatabaseEntity>()
+            .HasOne(wdl => wdl.Webhook)
+            .WithMany(w => w.DeliveryLogs)
+            .HasForeignKey(wdl => wdl.WebhookId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -24,7 +24,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 ur.Community != null ? ur.Community.PublicId : null,
                 ur.Community != null ? ur.Community.Name : null,
                 ur.Hub != null ? ur.Hub.PublicId : null,
@@ -47,7 +47,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 ur.Community != null ? ur.Community.PublicId : null,
                 ur.Community != null ? ur.Community.Name : null,
                 ur.Hub != null ? ur.Hub.PublicId : null,
@@ -70,7 +70,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 ur.Community!.PublicId,
                 ur.Community.Name,
                 null, null, null, null,
@@ -90,7 +90,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 null, null,
                 ur.Hub!.PublicId,
                 ur.Hub.Name,
@@ -111,7 +111,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 null, null, null, null,
                 ur.Space!.PublicId,
                 ur.Space.Name,
@@ -131,7 +131,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.PublicId,
                 ur.User.PublicId,
                 ur.User.DisplayName,
-                ur.Role.Name,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 null, null, null, null, null, null,
                 ur.AssignedByUser.PublicId,
                 ur.AssignedByUser.DisplayName,
@@ -221,7 +221,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Include(ur => ur.Community)
             .Include(ur => ur.Hub)
             .Include(ur => ur.Space)
-            .Include(ur => ur.Role)
             .FirstOrDefaultAsync(ur => ur.PublicId == rolePublicId)
             ?? throw new InvalidOperationException("Role not found");
 
@@ -238,7 +237,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             communityPublicId: role.Community?.PublicId,
             hubPublicId: role.Hub?.PublicId,
             spacePublicId: role.Space?.PublicId,
-            details: $"Revoked role {role.Role.Name}");
+            details: $"Revoked role {((UserRoleTypeEnum)role.RoleId).ToString()}");
     }
 
     public async Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
@@ -341,7 +340,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.PublicId,
                 ub.User.PublicId,
                 ub.User.DisplayName,
-                ub.BanType.Name,
+                ((BanTypeEnum)ub.BanTypeId).ToString(),
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
                 ub.Hub != null ? ub.Hub.PublicId : null,
@@ -369,7 +368,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.PublicId,
                 ub.User.PublicId,
                 ub.User.DisplayName,
-                ub.BanType.Name,
+                ((BanTypeEnum)ub.BanTypeId).ToString(),
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
                 ub.Hub != null ? ub.Hub.PublicId : null,
@@ -540,7 +539,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDto(
                 r.PublicId,
-                r.Status.Name,
+                ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
@@ -561,7 +560,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDetailDto(
                 r.PublicId,
-                r.Status.Name,
+                ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
@@ -600,7 +599,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.Community != null && r.Community.PublicId == communityPublicId);
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -612,7 +611,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                         (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -623,7 +622,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Where(r => r.Space != null && r.Space.PublicId == spacePublicId);
 
         if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.Status.Name == status);
+            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
@@ -673,7 +672,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Take(pageSize)
             .Select(r => new ReportListDto(
                 r.PublicId,
-                r.Status.Name,
+                ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
@@ -931,7 +930,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ml.PublicId,
                 ml.ActorUser.PublicId,
                 ml.ActorUser.DisplayName,
-                ml.Action.Name,
+                ((ModerationActionEnum)ml.ActionId).ToString(),
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.Title : null,

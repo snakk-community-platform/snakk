@@ -11,15 +11,13 @@ public class FollowDatabaseEntity
     public int UserId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
-    public int TargetTypeId { get; set; }
-    public virtual Lookups.FollowTargetTypeLookup TargetType { get; set; } = null!;
+    public int TargetTypeId { get; set; } // Maps to FollowTargetTypeEnum
 
     /// <summary>
     /// Notification level: "DiscussionsOnly" or "DiscussionsAndPosts".
     /// Only meaningful for Space follows.
     /// </summary>
-    public int LevelId { get; set; }
-    public virtual Lookups.FollowLevelLookup Level { get; set; } = null!;
+    public int LevelId { get; set; } // Maps to FollowLevelEnum
 
     public int? DiscussionId { get; set; }
     public virtual DiscussionDatabaseEntity? Discussion { get; set; }

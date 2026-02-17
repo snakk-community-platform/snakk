@@ -24,6 +24,9 @@ public class SpaceDatabaseEntity
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 
+    // Avatar revision number (incremented when avatar changes)
+    public int AvatarRevision { get; set; } = 0;
+
     // Denormalized counts for performance
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }

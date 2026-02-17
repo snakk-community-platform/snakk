@@ -223,11 +223,12 @@ public class PostUseCase(
                     user.DisplayName,
                     user.Role,
                     user.AvatarFileName,
+                    user.AvatarRevision,
                     false);
             }
             else
             {
-                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, true);
+                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true);
             }
         }
 
@@ -315,6 +316,7 @@ public record AuthorInfo(
     string DisplayName,
     string? Role,
     string? AvatarFileName,
+    int AvatarRevision,
     bool IsDeleted);
 
 public record ReplyToInfo(

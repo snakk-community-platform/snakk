@@ -41,6 +41,6 @@ public interface IFileStorage
     /// Gets the public URL for accessing a file
     /// </summary>
     /// <param name="relativePath">Relative path from storage root</param>
-    /// <returns>Public URL that can be used in HTML (e.g., "/storage/avatars/generated/users/u_123.svg")</returns>
+    /// <returns>Public URL that can be used in HTML (e.g., "/assets/avatars/generated/users/u_123.svg")</returns>
     string GetPublicUrl(string relativePath);
 }

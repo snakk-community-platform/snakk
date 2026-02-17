@@ -80,11 +80,15 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<bool> HasRoleAtOrAboveAsync(int userId, string roleType, int? communityId = null, int? hubId = null, int? spaceId = null)
     {
         // Check for exact role at the specified scope
+        if (!Enum.TryParse<UserRoleTypeEnum>(roleType, out var roleEnum))
+            return false;
+
+        var roleId = (int)roleEnum;
         return await _dbSet
             .AsNoTracking()
             .AnyAsync(ur =>
                 ur.UserId == userId &&
-                ur.Role.Name == roleType && 
+                ur.RoleId == roleId &&
                 ur.RevokedAt == null &&
                 (ur.CommunityId == communityId || communityId == null) &&
                 (ur.HubId == hubId || hubId == null) &&

@@ -82,12 +82,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
                     b.HasIndex("PublicId")
                         .IsUnique();
-
-                    b.HasIndex("RequirementTypeId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -98,7 +94,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Achievement");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AdminUserDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AuditLogDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -106,43 +102,100 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
+                    b.Property<string>("Details")
                         .HasColumnType("text");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
+                    b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
+                    b.Property<string>("IpAddress")
                         .HasColumnType("text");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SeverityId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TargetDisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("ActorUserId");
+
+                    b.ToTable("AuditLog");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BackupCodeDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsedIp")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.ToTable("AdminUser");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BackupCode");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", b =>
@@ -152,6 +205,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AvatarRevision")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -205,8 +261,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("Slug")
                         .IsUnique();
-
-                    b.HasIndex("VisibilityId");
 
                     b.ToTable("Community");
                 });
@@ -395,14 +449,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("FollowedUserId");
 
-                    b.HasIndex("LevelId");
-
                     b.HasIndex("PublicId")
                         .IsUnique();
 
                     b.HasIndex("SpaceId");
-
-                    b.HasIndex("TargetTypeId");
 
                     b.HasIndex("UserId", "TargetTypeId", "DiscussionId", "SpaceId", "FollowedUserId")
                         .IsUnique();
@@ -420,6 +470,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("AllowAnonymousReading")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("AvatarRevision")
+                        .HasColumnType("integer");
 
                     b.Property<int>("CommunityId")
                         .HasColumnType("integer");
@@ -473,189 +526,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("Slug");
 
                     b.ToTable("Hub");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AchievementCategoryLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AchievementRequirementTypeLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BanTypeLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.CommunityVisibilityLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CommunityVisibilityLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.FollowLevelLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FollowLevelLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.FollowTargetTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FollowTargetTypeLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ModerationActionLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ModerationActionLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.NotificationTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("NotificationTypeLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ReactionTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ReactionTypeLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ReportStatusLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ReportStatusLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UserRoleLookup");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleTypeLookup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UserRoleTypeLookup");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MentionDatabaseEntity", b =>
@@ -748,8 +618,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ActionId");
-
                     b.HasIndex("HubId");
 
                     b.HasIndex("PublicId")
@@ -839,11 +707,55 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("SourceSpaceId");
 
-                    b.HasIndex("TypeId");
-
                     b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
 
                     b.ToTable("Notification");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PermissionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsSystemPermission")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_Permission_Category");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("Permissions");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", b =>
@@ -984,8 +896,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.HasIndex("TypeId");
-
                     b.HasIndex("UserId");
 
                     b.HasIndex("PostId", "UserId", "TypeId")
@@ -1005,23 +915,48 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DeviceFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceName")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("RevokedAt")
+                    b.Property<string>("IpAddress")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReplacedByTokenId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RevocationReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenValue")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReplacedByTokenId");
 
                     b.HasIndex("TokenValue")
                         .IsUnique();
@@ -1225,6 +1160,42 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("ReportReason");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RolePermissionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("GrantedById")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrantedById");
+
+                    b.HasIndex("PermissionId")
+                        .HasDatabaseName("IX_RolePermission_PermissionId");
+
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("IX_RolePermission_RoleId");
+
+                    b.HasIndex("RoleId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("RolePermissions");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1235,6 +1206,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("AllowAnonymousReading")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("AvatarRevision")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1285,6 +1259,189 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("Slug");
 
                     b.ToTable("Space");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEncrypted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ValueType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_SystemSettings_Category");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("Category", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SystemSettings_Category_Key");
+
+                    b.ToTable("SystemSettings");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TemporaryRoleElevationDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GrantedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RevokedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RevokedReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RoleType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("ScopeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("IX_TemporaryRoleElevation_ExpiresAt");
+
+                    b.HasIndex("GrantedById");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RevokedById");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_TemporaryRoleElevation_UserId");
+
+                    b.HasIndex("UserId", "ExpiresAt")
+                        .HasDatabaseName("IX_TemporaryRoleElevation_UserId_ExpiresAt_Active")
+                        .HasFilter("\"RevokedAt\" IS NULL");
+
+                    b.ToTable("TemporaryRoleElevations");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TrustedDeviceDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DeviceFingerprint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastUsedIp")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevocationReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("TrustedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "DeviceFingerprint");
+
+                    b.ToTable("TrustedDevice");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementDatabaseEntity", b =>
@@ -1420,8 +1577,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BanTypeId");
-
                     b.HasIndex("BannedByUserId");
 
                     b.HasIndex("CommunityId");
@@ -1451,6 +1606,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
+
+                    b.Property<int>("AvatarRevision")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1499,8 +1657,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("RoleId")
-                        .HasColumnType("integer");
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("TwoFactorEnabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1515,8 +1679,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("PublicId")
                         .IsUnique();
-
-                    b.HasIndex("RoleId");
 
                     b.ToTable("User");
                 });
@@ -1600,8 +1762,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("RevokedByUserId");
 
-                    b.HasIndex("RoleId");
-
                     b.HasIndex("CommunityId", "RoleId", "RevokedAt")
                         .HasDatabaseName("IX_UserRole_CommunityId_Role_RevokedAt");
 
@@ -1617,34 +1777,160 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("UserRole");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", "Category")
-                        .WithMany("Achievements")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", "RequirementType")
-                        .WithMany("Achievements")
-                        .HasForeignKey("RequirementTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Navigation("Category");
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
-                    b.Navigation("RequirementType");
+                    b.Property<string>("CustomHeaders")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EventTypes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Secret")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .IsDescending()
+                        .HasDatabaseName("IX_Webhook_CreatedAt_Desc");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Webhook_IsActive");
+
+                    b.ToTable("Webhooks");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDeliveryLogDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.CommunityVisibilityLookup", "Visibility")
-                        .WithMany("Communities")
-                        .HasForeignKey("VisibilityId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("HttpStatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseBody")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("WebhookId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventType")
+                        .HasDatabaseName("IX_WebhookDeliveryLog_EventType");
+
+                    b.HasIndex("WebhookId")
+                        .HasDatabaseName("IX_WebhookDeliveryLog_WebhookId");
+
+                    b.HasIndex("IsSuccess", "NextRetryAt")
+                        .HasDatabaseName("IX_WebhookDeliveryLog_IsSuccess_NextRetryAt")
+                        .HasFilter("\"NextRetryAt\" IS NOT NULL");
+
+                    b.HasIndex("WebhookId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_WebhookDeliveryLog_WebhookId_CreatedAt_Desc");
+
+                    b.ToTable("WebhookDeliveryLogs");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AuditLogDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId");
+
+                    b.Navigation("ActorUser");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BackupCodeDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("BackupCodes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Visibility");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityDomainDatabaseEntity", b =>
@@ -1689,22 +1975,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasForeignKey("FollowedUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.FollowLevelLookup", "Level")
-                        .WithMany("Follows")
-                        .HasForeignKey("LevelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
                         .WithMany()
                         .HasForeignKey("SpaceId")
                         .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.FollowTargetTypeLookup", "TargetType")
-                        .WithMany("Follows")
-                        .HasForeignKey("TargetTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
 
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
                         .WithMany()
@@ -1716,11 +1990,7 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Navigation("FollowedUser");
 
-                    b.Navigation("Level");
-
                     b.Navigation("Space");
-
-                    b.Navigation("TargetType");
 
                     b.Navigation("User");
                 });
@@ -1757,12 +2027,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ModerationLogDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.ModerationActionLookup", "Action")
-                        .WithMany("ModerationLogs")
-                        .HasForeignKey("ActionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ActorUser")
                         .WithMany()
                         .HasForeignKey("ActorUserId")
@@ -1814,8 +2078,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasForeignKey("TargetUserRoleId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.Navigation("Action");
-
                     b.Navigation("ActorUser");
 
                     b.Navigation("Community");
@@ -1865,12 +2127,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasForeignKey("SourceSpaceId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.NotificationTypeLookup", "Type")
-                        .WithMany("Notifications")
-                        .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ActorUser");
 
                     b.Navigation("RecipientUser");
@@ -1880,8 +2136,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("SourcePost");
 
                     b.Navigation("SourceSpace");
-
-                    b.Navigation("Type");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", b =>
@@ -1936,12 +2190,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.ReactionTypeLookup", "Type")
-                        .WithMany("Reactions")
-                        .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -1950,19 +2198,23 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Navigation("Post");
 
-                    b.Navigation("Type");
-
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RefreshTokenDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.RefreshTokenDatabaseEntity", "ReplacedByToken")
                         .WithMany()
+                        .HasForeignKey("ReplacedByTokenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .HasPrincipalKey("PublicId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ReplacedByToken");
 
                     b.Navigation("User");
                 });
@@ -2034,12 +2286,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasForeignKey("SpaceId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.ReportStatusLookup", "Status")
-                        .WithMany("Reports")
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Community");
 
                     b.Navigation("Hub");
@@ -2057,8 +2303,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("ResolvedByUser");
 
                     b.Navigation("Space");
-
-                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ReportReasonDatabaseEntity", b =>
@@ -2092,6 +2336,32 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Space");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RolePermissionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "GrantedBy")
+                        .WithMany()
+                        .HasForeignKey("GrantedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PermissionDatabaseEntity", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GrantedBy");
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", "Hub")
@@ -2101,6 +2371,53 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Hub");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TemporaryRoleElevationDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "GrantedBy")
+                        .WithMany()
+                        .HasForeignKey("GrantedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "RevokedBy")
+                        .WithMany()
+                        .HasForeignKey("RevokedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GrantedBy");
+
+                    b.Navigation("RevokedBy");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TrustedDeviceDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("TrustedDevices")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserAchievementDatabaseEntity", b =>
@@ -2143,12 +2460,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserBanDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", "BanType")
-                        .WithMany("UserBans")
-                        .HasForeignKey("BanTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "BannedByUser")
                         .WithMany()
                         .HasForeignKey("BannedByUserId")
@@ -2181,8 +2492,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("BanType");
-
                     b.Navigation("BannedByUser");
 
                     b.Navigation("Community");
@@ -2194,16 +2503,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("UnbannedByUser");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleLookup", "Role")
-                        .WithMany("Users")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserMetricDatabaseEntity", b =>
@@ -2240,19 +2539,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasForeignKey("RevokedByUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleTypeLookup", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
                         .WithMany()
                         .HasForeignKey("SpaceId")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany()
+                        .WithMany("Roles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2265,11 +2558,32 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Navigation("RevokedByUser");
 
-                    b.Navigation("Role");
-
                     b.Navigation("Space");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("PublicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDeliveryLogDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", "Webhook")
+                        .WithMany("DeliveryLogs")
+                        .HasForeignKey("WebhookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Webhook");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
@@ -2296,64 +2610,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Spaces");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementCategoryLookup", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PermissionDatabaseEntity", b =>
                 {
-                    b.Navigation("Achievements");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.AchievementRequirementTypeLookup", b =>
-                {
-                    b.Navigation("Achievements");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.BanTypeLookup", b =>
-                {
-                    b.Navigation("UserBans");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.CommunityVisibilityLookup", b =>
-                {
-                    b.Navigation("Communities");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.FollowLevelLookup", b =>
-                {
-                    b.Navigation("Follows");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.FollowTargetTypeLookup", b =>
-                {
-                    b.Navigation("Follows");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ModerationActionLookup", b =>
-                {
-                    b.Navigation("ModerationLogs");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.NotificationTypeLookup", b =>
-                {
-                    b.Navigation("Notifications");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ReactionTypeLookup", b =>
-                {
-                    b.Navigation("Reactions");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.ReportStatusLookup", b =>
-                {
-                    b.Navigation("Reports");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleLookup", b =>
-                {
-                    b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.Lookups.UserRoleTypeLookup", b =>
-                {
-                    b.Navigation("UserRoles");
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ReportDatabaseEntity", b =>
@@ -2364,6 +2623,27 @@ namespace Snakk.Infrastructure.Database.Migrations
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", b =>
                 {
                     b.Navigation("Discussions");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
+                {
+                    b.Navigation("BackupCodes");
+
+                    b.Navigation("RefreshTokens");
+
+                    b.Navigation("Roles");
+
+                    b.Navigation("TrustedDevices");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
+                {
+                    b.Navigation("DeliveryLogs");
                 });
 #pragma warning restore 612, 618
         }

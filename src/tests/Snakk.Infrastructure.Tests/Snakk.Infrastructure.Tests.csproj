@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Domain\Snakk.Domain.csproj" />
+    <ProjectReference Include="..\..\services\Snakk.Worker\Snakk.Worker.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,12 +11,14 @@ public class AuthenticationUseCase(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
     IEmailSender emailSender,
-    IRefreshTokenRepository refreshTokenRepository) : UseCaseBase
+    IRefreshTokenRepository refreshTokenRepository,
+    IDomainEventDispatcher eventDispatcher) : UseCaseBase
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly IEmailSender _emailSender = emailSender;
     private readonly IRefreshTokenRepository _refreshTokenRepository = refreshTokenRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher = eventDispatcher;
 
     public async Task<Result<User>> RegisterWithEmailAsync(
         string email,
@@ -59,6 +61,10 @@ public class AuthenticationUseCase(
             verificationToken);
 
         await _userRepository.AddAsync(user);
+
+        // Dispatch domain events
+        await _eventDispatcher.DispatchAsync(user.DomainEvents);
+        user.ClearDomainEvents();
 
         // Send verification email
         await _emailSender.SendEmailVerificationAsync(email, suggestedDisplayName, verificationToken, baseUrl);
@@ -127,6 +133,10 @@ public class AuthenticationUseCase(
             oauthProviderId);
 
         await _userRepository.AddAsync(user);
+
+        // Dispatch domain events
+        await _eventDispatcher.DispatchAsync(user.DomainEvents);
+        user.ClearDomainEvents();
 
         // Send welcome email
         await _emailSender.SendWelcomeEmailAsync(email, suggestedDisplayName);

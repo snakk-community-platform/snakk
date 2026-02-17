@@ -10,24 +10,18 @@ public class AchievementRepository(SnakkDbContext context)
     public override async Task<AchievementDatabaseEntity?> GetByIdAsync(int id)
     {
         return await _dbSet
-            .Include(a => a.Category)
-            .Include(a => a.RequirementType)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
     public async Task<AchievementDatabaseEntity?> GetByPublicIdAsync(string publicId)
     {
         return await _dbSet
-            .Include(a => a.Category)
-            .Include(a => a.RequirementType)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
     }
 
     public async Task<AchievementDatabaseEntity?> GetBySlugAsync(string slug)
     {
         return await _dbSet
-            .Include(a => a.Category)
-            .Include(a => a.RequirementType)
             .FirstOrDefaultAsync(a => a.Slug == slug);
     }
 
@@ -35,8 +29,6 @@ public class AchievementRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Include(a => a.Category)
-            .Include(a => a.RequirementType)
             .Where(a => a.IsActive)
             .OrderBy(a => a.DisplayOrder)
             .ToListAsync();
@@ -46,8 +38,6 @@ public class AchievementRepository(SnakkDbContext context)
     {
         return await _dbSet
             .AsNoTracking()
-            .Include(a => a.Category)
-            .Include(a => a.RequirementType)
             .Where(a => a.CategoryId == categoryId && a.IsActive)
             .OrderBy(a => a.DisplayOrder)
             .ToListAsync();

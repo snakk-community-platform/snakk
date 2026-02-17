@@ -16,6 +16,7 @@ public class UserRegistrationWorkflowTests
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
     private readonly Mock<IEmailSender> _mockEmailSender;
     private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository;
+    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
     private readonly AuthenticationUseCase _useCase;
 
     public UserRegistrationWorkflowTests()
@@ -24,12 +25,14 @@ public class UserRegistrationWorkflowTests
         _mockPasswordHasher = new Mock<IPasswordHasher>();
         _mockEmailSender = new Mock<IEmailSender>();
         _mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
+        _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
 
         _useCase = new AuthenticationUseCase(
             _mockUserRepository.Object,
             _mockPasswordHasher.Object,
             _mockEmailSender.Object,
-            _mockRefreshTokenRepository.Object);
+            _mockRefreshTokenRepository.Object,
+            _mockEventDispatcher.Object);
     }
 
     [Fact]

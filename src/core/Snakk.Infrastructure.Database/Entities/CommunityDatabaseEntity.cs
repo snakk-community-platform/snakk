@@ -16,14 +16,16 @@ public class CommunityDatabaseEntity
     public required DateTime CreatedAt { get; set; }
 
     // Visibility and feed settings
-    public int VisibilityId { get; set; }
-    public virtual Lookups.CommunityVisibilityLookup Visibility { get; set; } = null!;
+    public int VisibilityId { get; set; } // Maps to CommunityVisibilityEnum
     public bool ExposeToPlatformFeed { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+
+    // Avatar revision number (incremented when avatar changes)
+    public int AvatarRevision { get; set; } = 0;
 
     // Denormalized counts for performance
     public int HubCount { get; set; }

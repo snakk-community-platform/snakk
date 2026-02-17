@@ -26,13 +26,23 @@ public class UserDatabaseEntity
     public DateTime? DeletedAt { get; set; }
     public DateTime? LastSeenAt { get; set; }
 
-    // Role: "admin", "mod", or null for regular users
-    public int? RoleId { get; set; }
-    public virtual Lookups.UserRoleLookup? Role { get; set; }
-
     // Avatar: uploaded filename (null = use generated avatar)
     public string? AvatarFileName { get; set; }
 
+    // Avatar revision number (incremented when user changes avatar)
+    public int AvatarRevision { get; set; } = 0;
+
     // User preferences
     public bool PreferEndlessScroll { get; set; } = true;
+
+    // 2FA (Two-Factor Authentication)
+    public bool TwoFactorEnabled { get; set; } = false;
+    public string? TwoFactorSecret { get; set; } // Base32-encoded TOTP secret
+    public DateTime? TwoFactorEnabledAt { get; set; }
+
+    // Navigation properties
+    public virtual ICollection<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = new List<TrustedDeviceDatabaseEntity>();
+    public virtual ICollection<BackupCodeDatabaseEntity> BackupCodes { get; set; } = new List<BackupCodeDatabaseEntity>();
+    public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = new List<RefreshTokenDatabaseEntity>();
+    public virtual ICollection<UserRoleDatabaseEntity> Roles { get; set; } = new List<UserRoleDatabaseEntity>();
 }

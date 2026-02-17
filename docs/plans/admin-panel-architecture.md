@@ -1,7 +1,19 @@
-# Snakk Admin Panel - Architecture & Feature Plan
+# ⚠️ OBSOLETE DOCUMENT - DO NOT USE
 
-**Project:** Snakk.Admin (Next.js)
-**Status:** Planning
+**This document is outdated and describes a Next.js admin panel that was never implemented.**
+
+**Current Implementation**: The admin panel is built with **Blazor Server + Microsoft Fluent UI**, NOT Next.js.
+
+**See Instead**: `docs/ARCHITECTURE.md` for current, accurate architecture documentation.
+
+**Status**: ❌ OBSOLETE - For historical reference only
+
+---
+
+# Snakk Admin Panel - Architecture & Feature Plan (OBSOLETE)
+
+**Project:** Snakk.Admin (Next.js) - ❌ NEVER IMPLEMENTED
+**Status:** ~~Planning~~ **OBSOLETE - Replaced by Blazor implementation**
 **Created:** 2026-02-06
 **Target:** Full-featured administration dashboard for Snakk forum platform
 

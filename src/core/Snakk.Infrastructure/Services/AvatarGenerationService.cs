@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Domain.Repositories;
+using Snakk.Shared.Helpers;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -241,15 +242,18 @@ public class AvatarGenerationService : IAvatarGenerationService
         }
     }
 
-    private string GetAvatarRelativePath(string entityType, string entityId)
+    private string GetAvatarRelativePath(string entityType, string entityId, int revision = 0)
     {
-        // Normalize entity type to directory name (e.g., "user" -> "users")
-        var directory = entityType.ToLowerInvariant();
-        if (!directory.EndsWith("s"))
+        // Map entity type string to enum
+        var avatarEntityType = entityType.ToLowerInvariant() switch
         {
-            directory += "s";
-        }
+            "user" or "users" => AvatarEntityType.User,
+            "community" or "communities" => AvatarEntityType.Community,
+            "hub" or "hubs" => AvatarEntityType.Hub,
+            "space" or "spaces" => AvatarEntityType.Space,
+            _ => throw new ArgumentException($"Unknown entity type: {entityType}")
+        };
 
-        return $"avatars/generated/{directory}/{entityId}.svg";
+        return AvatarHelper.GetFullRelativePath(entityId, avatarEntityType, revision);
     }
 }

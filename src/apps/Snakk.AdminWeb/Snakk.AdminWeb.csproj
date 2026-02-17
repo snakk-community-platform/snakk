@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Fluent UI Blazor -->
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.10.2" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.10.2" />
+
+    <!-- JWT for token handling -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\Snakk.Sdk\Snakk.Sdk.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
+  </ItemGroup>
+
+</Project>

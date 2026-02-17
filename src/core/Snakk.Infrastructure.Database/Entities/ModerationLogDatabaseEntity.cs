@@ -14,8 +14,7 @@ public class ModerationLogDatabaseEntity
 
     // Action type: e.g., "DeletePost", "DeleteDiscussion", "BanUser", "UnbanUser",
     // "AssignRole", "RevokeRole", "ResolveReport", "DismissReport", "EditPost", "LockDiscussion"
-    public int ActionId { get; set; }
-    public virtual Lookups.ModerationActionLookup Action { get; set; } = null!;
+    public int ActionId { get; set; } // Maps to ModerationActionEnum
 
     // Target entity (the thing that was moderated)
     public int? TargetPostId { get; set; }

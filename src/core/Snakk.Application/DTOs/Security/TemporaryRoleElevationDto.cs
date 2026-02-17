@@ -1,0 +1,24 @@
+namespace Snakk.Application.DTOs.Security;
+
+public class TemporaryRoleElevationDto
+{
+    public required string PublicId { get; set; }
+    public required int UserId { get; set; }
+    public required string UserDisplayName { get; set; }
+    public required string RoleType { get; set; }
+    public required string Scope { get; set; }
+    public required int ScopeId { get; set; }
+    public required DateTime ExpiresAt { get; set; }
+    public string? Reason { get; set; }
+    public required int GrantedById { get; set; }
+    public required string GrantedByEmail { get; set; }
+    public DateTime? RevokedAt { get; set; }
+    public int? RevokedById { get; set; }
+    public string? RevokedByEmail { get; set; }
+    public string? RevokedReason { get; set; }
+    public required DateTime CreatedAt { get; set; }
+
+    // Computed properties
+    public bool IsActive => RevokedAt == null && ExpiresAt > DateTime.UtcNow;
+    public bool IsExpired => RevokedAt == null && ExpiresAt <= DateTime.UtcNow;
+}

@@ -1,5 +1,6 @@
 namespace Snakk.Domain.Entities;
 
+using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
 
 public class User
@@ -14,11 +15,15 @@ public class User
     public string? OAuthProviderId { get; private set; }
     public string? Role { get; private set; } // "admin", "mod", or null for regular users
     public string? AvatarFileName { get; private set; } // Uploaded avatar filename (null = use generated)
+    public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
     public bool PreferEndlessScroll { get; private set; } = true; // User preference for endless scroll vs pagination
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
+
+    private readonly List<IDomainEvent> _domainEvents = [];
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
 #pragma warning disable CS8618 // Non-nullable property must contain a non-null value when exiting constructor
     private User()
@@ -37,6 +42,7 @@ public class User
         string? oauthProviderId,
         string? role,
         string? avatarFileName,
+        int avatarRevision,
         bool preferEndlessScroll,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
@@ -53,6 +59,7 @@ public class User
         OAuthProviderId = oauthProviderId;
         Role = role;
         AvatarFileName = avatarFileName;
+        AvatarRevision = avatarRevision;
         PreferEndlessScroll = preferEndlessScroll;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
@@ -73,7 +80,7 @@ public class User
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException("Password hash cannot be empty", nameof(passwordHash));
 
-        return new User(
+        var user = new User(
             UserId.New(),
             displayName,
             email,
@@ -84,9 +91,14 @@ public class User
             oauthProviderId: null,
             role: null,
             avatarFileName: null,
+            avatarRevision: 0,
             preferEndlessScroll: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
+
+        user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
+
+        return user;
     }
 
     public static User CreateWithOAuth(
@@ -100,7 +112,7 @@ public class User
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email cannot be empty", nameof(email));
 
-        return new User(
+        var user = new User(
             UserId.New(),
             displayName,
             email,
@@ -111,9 +123,14 @@ public class User
             oauthProviderId,
             role: null,
             avatarFileName: null,
+            avatarRevision: 0,
             preferEndlessScroll: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
+
+        user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
+
+        return user;
     }
 
     public static User Create(
@@ -135,6 +152,7 @@ public class User
             oauthProviderId,
             role: null,
             avatarFileName: null,
+            avatarRevision: 0,
             preferEndlessScroll: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
@@ -151,6 +169,7 @@ public class User
         string? oauthProviderId,
         string? role,
         string? avatarFileName,
+        int avatarRevision,
         bool preferEndlessScroll,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
@@ -168,6 +187,7 @@ public class User
             oauthProviderId,
             role,
             avatarFileName,
+            avatarRevision,
             preferEndlessScroll,
             createdAt,
             lastModifiedAt,
@@ -251,5 +271,15 @@ public class User
     {
         PreferEndlessScroll = prefer;
         LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void AddDomainEvent(IDomainEvent domainEvent)
+    {
+        _domainEvents.Add(domainEvent);
+    }
+
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
     }
 }

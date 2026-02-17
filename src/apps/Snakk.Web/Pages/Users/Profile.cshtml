@@ -1,0 +1,268 @@
+@page "/u/{publicId}"
+@using Snakk.Web.Helpers
+@model ProfileModel
+@{
+    ViewData["Title"] = Model.Profile?.DisplayName ?? "User Profile";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" />
+}
+
+<div class="max-w-4xl mx-auto">
+    @if (Model.Profile != null)
+    {
+        <!-- Profile Header Card -->
+        <div class="clean-card mb-6">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6">
+                <div class="avatar avatar-lg">
+                    <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId)"
+                         alt="@Model.Profile.DisplayName"
+                         class="rounded-full w-24 h-24" />
+                </div>
+                <div class="flex-1 text-center sm:text-left">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+                        <h1 class="text-2xl font-bold">@Model.Profile.DisplayName</h1>
+                        <div id="user-badges" class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                            <!-- Badges will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="text-muted space-y-1">
+                        <p class="flex items-center justify-center sm:justify-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Joined @Model.FormatDate(Model.Profile.JoinedAt)</span>
+                        </p>
+                        @if (Model.Profile.LastSeenAt.HasValue)
+                        {
+                            <p class="flex items-center justify-center sm:justify-start gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt)</span>
+                            </p>
+                        }
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2" id="profile-actions">
+                    <!-- Follow button will be loaded here -->
+                    <div class="skeleton h-10 w-32"></div>
+                </div>
+            </div>
+
+            <div class="divider my-0"></div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-primary">@Model.Profile.DiscussionCount</div>
+                    <div class="text-sm text-muted">Discussions</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-primary" id="stat-replies">@Model.Profile.PostCount</div>
+                    <div class="text-sm text-muted">Replies</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-accent">@(Model.Profile.DiscussionCount + Model.Profile.PostCount)</div>
+                    <div class="text-sm text-muted">Total Activity</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-secondary" id="stat-followers">
+                        <div class="skeleton h-10 w-16 mx-auto"></div>
+                    </div>
+                    <div class="text-sm text-muted">Followers</div>
+                </div>
+            </div>
+
+            <div class="divider my-0"></div>
+
+            <!-- Activity Metrics -->
+            <div class="px-6 pb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="stat bg-base-200 rounded-lg p-4">
+                        <div class="stat-title text-xs">Member for</div>
+                        <div class="stat-value text-2xl">
+                            @{
+                                var daysSinceJoined = (DateTime.UtcNow - Model.Profile.JoinedAt).Days;
+                            }
+                            @daysSinceJoined days
+                        </div>
+                        <div class="stat-desc text-xs">
+                            @{
+                                var avgPerDay = daysSinceJoined > 0 ? (Model.Profile.DiscussionCount + Model.Profile.PostCount) / (double)daysSinceJoined : 0;
+                            }
+                            ~@avgPerDay.ToString("F1") contributions/day
+                        </div>
+                    </div>
+                    <div class="stat bg-base-200 rounded-lg p-4">
+                        <div class="stat-title text-xs">Recent Activity</div>
+                        <div class="stat-value text-2xl">
+                            @if (Model.Profile.LastSeenAt.HasValue)
+                            {
+                                @Model.GetRelativeTime(Model.Profile.LastSeenAt)
+                            }
+                            else
+                            {
+                                <span>Never</span>
+                            }
+                        </div>
+                        <div class="stat-desc text-xs">Last seen on platform</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Tabs -->
+        <div class="tabs tabs-boxed mb-6">
+            <a href="/u/@Model.Profile.PublicId?tab=overview"
+               class="tab @(Model.Tab == "overview" ? "tab-active" : "")">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Overview
+            </a>
+            <a href="/u/@Model.Profile.PublicId?tab=discussions"
+               class="tab @(Model.Tab == "discussions" ? "tab-active" : "")">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Discussions
+            </a>
+            <a href="/u/@Model.Profile.PublicId?tab=posts"
+               class="tab @(Model.Tab == "posts" ? "tab-active" : "")">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                Posts
+            </a>
+        </div>
+
+        <!-- Tab Content -->
+        @if (Model.Tab == "overview")
+        {
+            <div class="space-y-6">
+                <!-- Activity Chart -->
+                <div class="clean-card">
+                    <div class="p-4 border-b border-subtle">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold">Activity History</h3>
+                            <div class="flex gap-2">
+                                <button onclick="loadActivityChart(14)" class="btn btn-ghost btn-xs" id="chart-14">14 days</button>
+                                <button onclick="loadActivityChart(30)" class="btn btn-ghost btn-xs btn-active" id="chart-30">30 days</button>
+                                <button onclick="loadActivityChart(90)" class="btn btn-ghost btn-xs" id="chart-90">90 days</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="activity-chart" class="p-6">
+                        <!-- Skeleton loader -->
+                        <div class="space-y-3">
+                            <div class="skeleton h-48 w-full"></div>
+                            <div class="flex justify-center gap-4">
+                                <div class="skeleton h-4 w-24"></div>
+                                <div class="skeleton h-4 w-24"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Contributions -->
+                <div class="clean-card">
+                    <div class="p-4 border-b border-subtle">
+                        <h3 class="font-semibold">Top Contributions</h3>
+                    </div>
+                    <div id="top-contributions" class="p-4">
+                        <!-- Skeleton loader -->
+                        <div class="space-y-4">
+                            <div class="skeleton h-14 w-full"></div>
+                            <div class="skeleton h-14 w-full"></div>
+                            <div class="skeleton h-14 w-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Discussions -->
+                <div class="clean-card">
+                    <div class="flex items-center justify-between p-4 border-b border-subtle">
+                        <h3 class="font-semibold">Recent Discussions</h3>
+                        <a href="/u/@Model.Profile.PublicId?tab=discussions" class="text-sm text-primary hover:underline">View all</a>
+                    </div>
+                    <div id="recent-discussions" class="p-4">
+                        <!-- Skeleton loader -->
+                        <div class="space-y-4">
+                            <div class="skeleton h-16 w-full"></div>
+                            <div class="skeleton h-16 w-full"></div>
+                            <div class="skeleton h-16 w-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Posts -->
+                <div class="clean-card">
+                    <div class="flex items-center justify-between p-4 border-b border-subtle">
+                        <h3 class="font-semibold">Recent Posts</h3>
+                        <a href="/u/@Model.Profile.PublicId?tab=posts" class="text-sm text-primary hover:underline">View all</a>
+                    </div>
+                    <div id="recent-posts" class="p-4">
+                        <!-- Skeleton loader -->
+                        <div class="space-y-4">
+                            <div class="skeleton h-20 w-full"></div>
+                            <div class="skeleton h-20 w-full"></div>
+                            <div class="skeleton h-20 w-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (Model.Tab == "discussions")
+        {
+            <div class="clean-card">
+                <div id="all-discussions" class="p-4">
+                    <!-- Skeleton loader -->
+                    <div class="space-y-4">
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (Model.Tab == "posts")
+        {
+            <div class="clean-card">
+                <div id="all-posts" class="p-4">
+                    <!-- Skeleton loader -->
+                    <div class="space-y-4">
+                        <div class="skeleton h-24 w-full"></div>
+                        <div class="skeleton h-24 w-full"></div>
+                        <div class="skeleton h-24 w-full"></div>
+                        <div class="skeleton h-24 w-full"></div>
+                        <div class="skeleton h-24 w-full"></div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true"></script>
+    @* INLINE REASON: Initialization code with Razor syntax (@Model.Profile.X) for server-side data.
+       Passes render-time values to external profile.js. Must stay inline to access @Model. *@
+    <script>
+        // Initialize profile with server-side data
+        const totalActivity = @Model.Profile.DiscussionCount + @Model.Profile.PostCount;
+        const daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt).Days);
+        const discussionCount = @Model.Profile.DiscussionCount;
+        const postCount = @Model.Profile.PostCount;
+
+        initializeProfile('@Model.Profile?.PublicId', '@Model.Tab', {
+            totalActivity: totalActivity,
+            daysSinceJoined: daysSinceJoined,
+            discussionCount: discussionCount,
+            postCount: postCount
+        });
+    </script>
+}

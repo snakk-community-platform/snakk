@@ -1,5 +1,6 @@
 namespace Snakk.Infrastructure.Mappers;
 
+using System.Linq;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
@@ -9,14 +10,10 @@ public static class UserMapper
 {
     public static User FromPersistence(this UserDatabaseEntity entity)
     {
-        // Convert int? RoleId to string? Role: 1="Admin", 2="Mod", null=null
-        string? role = entity.RoleId.HasValue
-            ? ((UserRoleEnum)entity.RoleId.Value) switch
-            {
-                UserRoleEnum.Admin => "Admin",
-                UserRoleEnum.Mod => "Mod",
-                _ => null
-            }
+        // Check if user has GlobalAdmin role in the Roles collection
+        // Note: Roles collection must be loaded for this to work
+        string? role = entity.Roles?.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) == true
+            ? "Admin"
             : null;
 
         return User.Rehydrate(
@@ -30,6 +27,7 @@ public static class UserMapper
             entity.OAuthProviderId,
             role,
             entity.AvatarFileName,
+            entity.AvatarRevision,
             entity.PreferEndlessScroll,
             entity.CreatedAt,
             entity.LastModifiedAt,
@@ -39,14 +37,8 @@ public static class UserMapper
 
     public static UserDatabaseEntity ToPersistence(this User user)
     {
-        // Convert string? Role to int? RoleId: "Admin"=1, "Mod"=2, null=null
-        int? roleId = user.Role?.ToLowerInvariant() switch
-        {
-            "admin" => (int)UserRoleEnum.Admin,
-            "mod" => (int)UserRoleEnum.Mod,
-            _ => null
-        };
-
+        // Note: User.Role is derived from UserRoles collection, not stored as a column
+        // Role assignments are managed through the UserRole table
         return new UserDatabaseEntity
         {
             PublicId = user.PublicId,
@@ -57,8 +49,8 @@ public static class UserMapper
             EmailVerificationToken = user.EmailVerificationToken,
             OAuthProvider = user.OAuthProvider,
             OAuthProviderId = user.OAuthProviderId,
-            RoleId = roleId,
             AvatarFileName = user.AvatarFileName,
+            AvatarRevision = user.AvatarRevision,
             PreferEndlessScroll = user.PreferEndlessScroll,
             CreatedAt = user.CreatedAt,
             LastModifiedAt = user.LastModifiedAt,

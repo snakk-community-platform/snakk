@@ -87,4 +87,22 @@ public class ConsoleEmailSender : IEmailSender
 
         return Task.CompletedTask;
     }
+
+    public Task SendEmailAsync(string toEmail, string subject, string body)
+    {
+        _logger.LogInformation("""
+
+            ================================================
+            GENERIC EMAIL
+            ================================================
+            To: {ToEmail}
+            Subject: {Subject}
+
+            {Body}
+
+            ================================================
+            """, toEmail, subject, body);
+
+        return Task.CompletedTask;
+    }
 }

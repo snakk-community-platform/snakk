@@ -18,6 +18,7 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     public async Task<RefreshToken?> GetByValueAsync(string tokenValue)
     {
         var entity = await _context.RefreshTokens
+            .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
 
         return entity?.FromPersistence();
@@ -26,7 +27,8 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     public async Task<IEnumerable<RefreshToken>> GetByUserIdAsync(UserId userId)
     {
         var entities = await _context.RefreshTokens
-            .Where(t => t.UserId == userId.Value)
+            .Include(t => t.User)
+            .Where(t => t.User.PublicId == userId.Value)
             .ToListAsync();
 
         return entities.Select(e => e.FromPersistence());
@@ -34,7 +36,21 @@ public class RefreshTokenRepository : IRefreshTokenRepository
 
     public async Task AddAsync(RefreshToken token)
     {
-        var entity = token.ToPersistence();
+        // Look up the user's internal ID
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == token.UserId.Value);
+        if (user == null)
+            throw new InvalidOperationException($"User {token.UserId} not found");
+
+        var entity = new RefreshTokenDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            TokenValue = token.Value,
+            UserId = user.Id,
+            ExpiresAt = token.ExpiresAt,
+            CreatedAt = token.CreatedAt,
+            RevokedAt = string.IsNullOrEmpty(token.RevokedAt) ? null : DateTime.Parse(token.RevokedAt)
+        };
+
         await _context.RefreshTokens.AddAsync(entity);
         await _context.SaveChangesAsync();
     }
@@ -46,7 +62,7 @@ public class RefreshTokenRepository : IRefreshTokenRepository
 
         if (entity != null)
         {
-            entity.RevokedAt = token.RevokedAt;
+            entity.RevokedAt = string.IsNullOrEmpty(token.RevokedAt) ? null : DateTime.Parse(token.RevokedAt);
             await _context.SaveChangesAsync();
         }
     }
@@ -54,12 +70,12 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     public async Task RevokeAllForUserAsync(UserId userId)
     {
         var tokens = await _context.RefreshTokens
-            .Where(t => t.UserId == userId.Value && t.RevokedAt == null)
+            .Where(t => t.User.PublicId == userId.Value && t.RevokedAt == null)
             .ToListAsync();
 
         foreach (var token in tokens)
         {
-            token.RevokedAt = DateTime.UtcNow.ToString("O");
+            token.RevokedAt = DateTime.UtcNow;
         }
 
         await _context.SaveChangesAsync();

@@ -1,0 +1,296 @@
+@page "{slug}"
+@model Snakk.AdminWeb.Pages.Communities.DetailsModel
+@{
+    ViewData["Title"] = Model.Community?.Name ?? "Community Details";
+    var activeTab = Request.Query["tab"].ToString() ?? "overview";
+}
+
+<div class="page-header">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="page-title">@Model.Community?.Name</h1>
+            <p class="page-description">@Model.Community?.Slug</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/Communities/Edit/@Model.Community?.Slug" class="btn btn-primary">Edit Settings</a>
+            <a href="/Communities" class="btn btn-outline">Back to List</a>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div style="border-bottom: 2px solid #e5e7eb; margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem;">
+        <a href="?tab=overview" class="tab-link @(activeTab == "overview" ? "active" : "")">Overview</a>
+        <a href="?tab=settings" class="tab-link @(activeTab == "settings" ? "active" : "")">Settings</a>
+        <a href="?tab=members" class="tab-link @(activeTab == "members" ? "active" : "")">Members</a>
+        <a href="?tab=moderation" class="tab-link @(activeTab == "moderation" ? "active" : "")">Moderation</a>
+    </div>
+</div>
+
+@if (activeTab == "overview")
+{
+    <!-- Overview Tab -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Members</div>
+            <div class="stat-value">@Model.Overview?.TotalMembers.ToString("N0")</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Posts</div>
+            <div class="stat-value">@Model.Overview?.TotalPosts.ToString("N0")</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Today</div>
+            <div class="stat-value">@Model.Overview?.ActiveToday.ToString("N0")</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pending Reports</div>
+            <div class="stat-value">@Model.Overview?.PendingReports.ToString("N0")</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recent Activity</h2>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Activity</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Overview?.RecentActivity.Any() == true)
+                    {
+                        @foreach (var activity in Model.Overview.RecentActivity)
+                        {
+                            <tr>
+                                <td>@AdminDisplayHelper.FormatTimeAgo(activity.Timestamp)</td>
+                                <td>@activity.Description</td>
+                                <td>@activity.Username</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center">No recent activity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Community Team</h2>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Since</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Overview?.Team.Any() == true)
+                    {
+                        @foreach (var member in Model.Overview.Team)
+                        {
+                            <tr>
+                                <td>@member.Username</td>
+                                <td><span class="badge badge-primary">@member.Role</span></td>
+                                <td>@AdminDisplayHelper.FormatTimeAgo(member.Since)</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center">No team members</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else if (activeTab == "settings")
+{
+    <!-- Settings Tab -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Community Settings</h2>
+        </div>
+        <div style="display: grid; gap: 1rem;">
+            <div>
+                <div class="form-label">Name</div>
+                <div>@Model.Community?.Name</div>
+            </div>
+            <div>
+                <div class="form-label">Description</div>
+                <div>@Model.Community?.Description</div>
+            </div>
+            <div>
+                <div class="form-label">Visibility</div>
+                <div>
+                    <span class="badge @(Model.Community?.IsPrivate == true ? "badge-warning" : "badge-success")">
+                        @(Model.Community?.IsPrivate == true ? "Private" : "Public")
+                    </span>
+                </div>
+            </div>
+            <div>
+                <div class="form-label">Status</div>
+                <div>
+                    <span class="badge @(Model.Community?.IsActive == true ? "badge-success" : "badge-secondary")">
+                        @(Model.Community?.IsActive == true ? "Active" : "Inactive")
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <a href="/Communities/Edit/@Model.Community?.Slug" class="btn btn-primary">Edit Settings</a>
+        </div>
+    </div>
+}
+else if (activeTab == "members")
+{
+    <!-- Members Tab -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Community Members (@Model.Members?.Count ?? 0)</h2>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Posts</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Members?.Any() == true)
+                    {
+                        @foreach (var member in Model.Members)
+                        {
+                            <tr>
+                                <td>@member.Username</td>
+                                <td><span class="badge badge-primary">@member.Role</span></td>
+                                <td>@AdminDisplayHelper.FormatTimeAgo(member.JoinedAt)</td>
+                                <td>@member.PostCount</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline">Change Role</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No members found</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else if (activeTab == "moderation")
+{
+    <!-- Moderation Tab -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Pending Reports</div>
+            <div class="stat-value">@Model.Moderation?.PendingReports ?? 0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Resolved Reports</div>
+            <div class="stat-value">@Model.Moderation?.ResolvedReports ?? 0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Banned Users</div>
+            <div class="stat-value">@Model.Moderation?.BannedUsers ?? 0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Removed Posts</div>
+            <div class="stat-value">@Model.Moderation?.RemovedPosts ?? 0</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recent Reports</h2>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reported Item</th>
+                        <th>Reason</th>
+                        <th>Reporter</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ModerationReports?.Any() == true)
+                    {
+                        @foreach (var report in Model.ModerationReports)
+                        {
+                            <tr>
+                                <td>@report.ItemType: @AdminDisplayHelper.TruncateText(report.ItemContent, 40)</td>
+                                <td>@report.Reason</td>
+                                <td>@report.ReporterUsername</td>
+                                <td><span class="badge @AdminDisplayHelper.GetBadgeClass(report.Status)">@report.Status</span></td>
+                                <td>@AdminDisplayHelper.FormatTimeAgo(report.CreatedAt)</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary">Review</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">No reports found</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <style>
+        .tab-link {
+            display: inline-block;
+            padding: 0.75rem 1rem;
+            color: #6b7280;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-link:hover {
+            color: #111827;
+        }
+
+        .tab-link.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+    </style>
+}

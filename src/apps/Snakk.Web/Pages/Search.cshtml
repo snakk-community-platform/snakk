@@ -1,0 +1,67 @@
+@page
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model SearchModel
+@{
+    ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? "Search" : $"Search: {Model.Q}";
+    var hasQuery = !string.IsNullOrEmpty(Model.Q);
+    var hasAuthorFilter = !string.IsNullOrEmpty(Model.AuthorPublicId);
+}
+
+<div class="max-w-4xl mx-auto">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Search</h1>
+        <p>Find discussions, posts, spaces, and users</p>
+    </div>
+
+    <!-- Search Filters -->
+    <div id="search-filters" class="mb-6">
+        <div class="space-y-4">
+            <!-- Hidden input for query parameter -->
+            <input type="hidden" id="search-query" name="q" value="@Model.Q" />
+
+            <!-- Search Type -->
+            <div>
+                <label class="text-sm font-medium mb-2 block">Search Type</label>
+                <div class="join flex-wrap">
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="Post"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="Discussion"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="Space"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="User"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div>
+                <label class="text-sm font-medium mb-2 block">Date Range</label>
+                <div class="join flex-wrap">
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="Today"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="Past hour"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="Past week"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="Past month"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="Past year"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="All time"
+                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Results -->
+    <div id="search-results">
+        <partial name="_SearchResults" model="Model" />
+    </div>
+</div>
+
+<script src="@SnakkUrlHelper.Js("pages/search-page")" asp-append-version="true"></script>

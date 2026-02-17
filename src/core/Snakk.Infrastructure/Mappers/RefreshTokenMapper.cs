@@ -7,24 +7,18 @@ public static class RefreshTokenMapper
 {
     public static RefreshToken FromPersistence(this RefreshTokenDatabaseEntity entity)
     {
+        if (entity.User == null)
+            throw new InvalidOperationException("User navigation property must be loaded");
+
         return RefreshToken.Rehydrate(
             entity.TokenValue,
-            UserId.From(entity.UserId),
+            UserId.From(entity.User.PublicId),
             entity.ExpiresAt,
             entity.CreatedAt,
-            entity.RevokedAt
+            entity.RevokedAt?.ToString("O")
         );
     }
 
-    public static RefreshTokenDatabaseEntity ToPersistence(this RefreshToken token)
-    {
-        return new RefreshTokenDatabaseEntity
-        {
-            TokenValue = token.Value,
-            UserId = token.UserId.Value,
-            ExpiresAt = token.ExpiresAt,
-            CreatedAt = token.CreatedAt,
-            RevokedAt = token.RevokedAt
-        };
-    }
+    // Note: ToPersistence is not used because we need to look up User.Id from the database
+    // Use repository methods directly instead
 }

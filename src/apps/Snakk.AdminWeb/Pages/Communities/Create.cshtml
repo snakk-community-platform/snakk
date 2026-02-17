@@ -1,0 +1,103 @@
+@page
+@model Snakk.AdminWeb.Pages.Communities.CreateModel
+@{
+    ViewData["Title"] = "Create Community";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Create Community</h1>
+    <p class="page-description">Add a new community to the platform</p>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-group">
+            <label for="name" class="form-label">Name *</label>
+            <input type="text"
+                   id="name"
+                   name="name"
+                   class="form-input"
+                   placeholder="Enter community name"
+                   required
+                   autofocus />
+            <span class="form-error" asp-validation-for="Name"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="slug" class="form-label">Slug *</label>
+            <input type="text"
+                   id="slug"
+                   name="slug"
+                   class="form-input"
+                   placeholder="community-slug (lowercase, no spaces)"
+                   required />
+            <span class="form-error" asp-validation-for="Slug"></span>
+            <small style="color: #6b7280; font-size: 0.813rem;">URL-friendly identifier (e.g., 'technology', 'gaming')</small>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="form-label">Description *</label>
+            <textarea id="description"
+                      name="description"
+                      class="form-textarea"
+                      placeholder="Enter community description"
+                      required></textarea>
+            <span class="form-error" asp-validation-for="Description"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="icon" class="form-label">Icon URL</label>
+            <input type="text"
+                   id="icon"
+                   name="icon"
+                   class="form-input"
+                   placeholder="https://example.com/icon.png" />
+            <span class="form-error" asp-validation-for="Icon"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="banner" class="form-label">Banner URL</label>
+            <input type="text"
+                   id="banner"
+                   name="banner"
+                   class="form-input"
+                   placeholder="https://example.com/banner.png" />
+            <span class="form-error" asp-validation-for="Banner"></span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox" name="isPrivate" /> Private Community
+            </label>
+            <small style="color: #6b7280; font-size: 0.813rem;">Private communities require approval to join</small>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Create Community</button>
+            <a href="/Communities" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-generate slug from name
+        const nameInput = document.getElementById('name');
+        const slugInput = document.getElementById('slug');
+        let manualSlugEdit = false;
+
+        slugInput.addEventListener('input', () => {
+            manualSlugEdit = slugInput.value.length > 0;
+        });
+
+        nameInput.addEventListener('input', () => {
+            if (!manualSlugEdit) {
+                const slug = nameInput.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                slugInput.value = slug;
+            }
+        });
+    </script>
+}

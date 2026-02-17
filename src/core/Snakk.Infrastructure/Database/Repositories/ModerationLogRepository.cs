@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class ModerationLogRepository(SnakkDbContext context)
@@ -74,7 +75,7 @@ public class ModerationLogRepository(SnakkDbContext context)
                 ml.PublicId,
                 ml.ActorUser.PublicId,
                 ml.ActorUser.DisplayName,
-                ml.Action.Name,
+                ((ModerationActionEnum)ml.ActionId).ToString(),
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.Title : null,

@@ -1,8 +1,8 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
@@ -12,7 +12,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 
 public class AvatarGenerationServiceTests : IDisposable
 {
-    private readonly Mock<IWebHostEnvironment> _mockEnv;
+    private readonly Mock<IFileStorage> _mockFileStorage;
     private readonly IConfiguration _configuration;
     private readonly Mock<ILogger<AvatarGenerationService>> _mockLogger;
     private readonly Mock<IUserRepository> _mockUserRepository;
@@ -30,13 +30,19 @@ public class AvatarGenerationServiceTests : IDisposable
         _generatedAvatarsPath = "avatars/generated";
         Directory.CreateDirectory(_testRootPath);
 
-        _mockEnv = new Mock<IWebHostEnvironment>();
-        _mockEnv.Setup(x => x.ContentRootPath).Returns(_testRootPath);
+        _mockFileStorage = new Mock<IFileStorage>();
+
+        // Setup mock to return false for ExistsAsync (so it generates new avatars)
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        // Setup mock to return public URL
+        _mockFileStorage.Setup(x => x.GetPublicUrl(It.IsAny<string>()))
+            .Returns<string>(path => $"/storage/{path}");
 
         // Create real configuration
         var configValues = new Dictionary<string, string?>
         {
-            ["AvatarSettings:GeneratedAvatarsPath"] = _generatedAvatarsPath,
             ["AvatarSettings:DefaultSize"] = "80"
         };
         _configuration = new ConfigurationBuilder()
@@ -50,7 +56,7 @@ public class AvatarGenerationServiceTests : IDisposable
         _mockCommunityRepository = new Mock<ICommunityRepository>();
 
         _service = new AvatarGenerationService(
-            _mockEnv.Object,
+            _mockFileStorage.Object,
             _configuration,
             _mockLogger.Object,
             _mockUserRepository.Object,

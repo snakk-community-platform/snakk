@@ -27,12 +27,9 @@ public class AchievementDatabaseEntity
     // JSON configuration (will be JSONB in PostgreSQL)
     public required string RequirementConfig { get; set; }
 
-    // Many-to-one relationships
-    public int CategoryId { get; set; }
-    public virtual Lookups.AchievementCategoryLookup Category { get; set; } = null!;
-
-    public int RequirementTypeId { get; set; }
-    public virtual Lookups.AchievementRequirementTypeLookup RequirementType { get; set; } = null!;
+    // Category and requirement type (map to enums)
+    public int CategoryId { get; set; } // Maps to AchievementCategoryEnum
+    public int RequirementTypeId { get; set; } // Maps to AchievementRequirementTypeEnum
 
     // One-to-many relationships
     public virtual ICollection<UserAchievementDatabaseEntity> UserAchievements { get; set; } = [];

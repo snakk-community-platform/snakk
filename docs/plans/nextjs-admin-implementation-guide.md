@@ -1,7 +1,19 @@
-# Next.js 14 Admin Panel - Implementation Guide
+# ⚠️ OBSOLETE DOCUMENT - DO NOT USE
 
-**Project:** Snakk.Admin (Next.js)
-**Status:** Implementation Guide
+**This implementation guide is outdated and describes a Next.js admin panel that was never implemented.**
+
+**Current Implementation**: The admin panel is built with **Blazor Server + Microsoft Fluent UI**, NOT Next.js.
+
+**See Instead**: `docs/ARCHITECTURE.md` for current, accurate architecture documentation.
+
+**Status**: ❌ OBSOLETE - For historical reference only
+
+---
+
+# Next.js 14 Admin Panel - Implementation Guide (OBSOLETE)
+
+**Project:** Snakk.Admin (Next.js) - ❌ NEVER IMPLEMENTED
+**Status:** ~~Implementation Guide~~ **OBSOLETE - Replaced by Blazor**
 **Created:** 2026-02-06
 **Framework:** Next.js 14 with App Router
 

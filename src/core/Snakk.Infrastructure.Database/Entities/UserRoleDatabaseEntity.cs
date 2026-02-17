@@ -12,8 +12,8 @@ public class UserRoleDatabaseEntity
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     // Role type: GlobalAdmin, CommunityAdmin, CommunityMod, HubMod, SpaceMod
+    // Maps to UserRoleTypeEnum
     public int RoleId { get; set; }
-    public virtual Lookups.UserRoleTypeLookup Role { get; set; } = null!;
 
     // Scope - only one of these is set based on role type
     // GlobalAdmin: all null
@@ -39,4 +39,7 @@ public class UserRoleDatabaseEntity
     public DateTime? RevokedAt { get; set; }
     public int? RevokedByUserId { get; set; }
     public virtual UserDatabaseEntity? RevokedByUser { get; set; }
+
+    // Navigation properties
+    public ICollection<RolePermissionDatabaseEntity> RolePermissions { get; set; } = new List<RolePermissionDatabaseEntity>();
 }

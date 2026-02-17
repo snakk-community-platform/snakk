@@ -20,4 +20,9 @@ public interface IEmailSender
     /// Send a welcome email after successful registration
     /// </summary>
     Task SendWelcomeEmailAsync(string toEmail, string displayName);
+
+    /// <summary>
+    /// Send a generic email message
+    /// </summary>
+    Task SendEmailAsync(string toEmail, string subject, string body);
 }

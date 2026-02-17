@@ -14,7 +14,6 @@ public class ReactionDatabaseEntity
     public int UserId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
-    public int TypeId { get; set; }
-    public virtual Lookups.ReactionTypeLookup Type { get; set; } = null!;
+    public int TypeId { get; set; } // Maps to ReactionTypeEnum
     public required DateTime CreatedAt { get; set; }
 }

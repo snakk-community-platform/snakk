@@ -1,0 +1,54 @@
+namespace Snakk.Realtime.Middleware;
+
+/// <summary>
+/// Middleware to validate API key for internal service calls
+/// </summary>
+public class ApiKeyAuthMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly string _apiKey;
+
+    public ApiKeyAuthMiddleware(RequestDelegate next, IConfiguration configuration)
+    {
+        _next = next;
+        _apiKey = configuration["ApiKey"] ?? throw new InvalidOperationException("ApiKey not configured");
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Skip API key check for SignalR WebSocket negotiation and hub connections
+        if (context.Request.Path.StartsWithSegments("/realtime"))
+        {
+            await _next(context);
+            return;
+        }
+
+        // Require API key for /api/* endpoints
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            if (!context.Request.Headers.TryGetValue("X-Api-Key", out var extractedApiKey))
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(new { error = "API Key missing" });
+                return;
+            }
+
+            if (extractedApiKey != _apiKey)
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(new { error = "Invalid API Key" });
+                return;
+            }
+        }
+
+        await _next(context);
+    }
+}
+
+public static class ApiKeyAuthMiddlewareExtensions
+{
+    public static IApplicationBuilder UseApiKeyAuth(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ApiKeyAuthMiddleware>();
+    }
+}
