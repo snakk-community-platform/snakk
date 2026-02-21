@@ -13,11 +13,13 @@ public class CommunityResolutionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly string _defaultCommunitySlug;
+    private readonly bool _isMultiCommunity;
 
     public CommunityResolutionMiddleware(RequestDelegate next, IConfiguration configuration)
     {
         _next = next;
         _defaultCommunitySlug = configuration["Snakk:DefaultCommunitySlug"] ?? "main";
+        _isMultiCommunity = configuration.GetValue<bool>("Features:MultiCommunityEnabled");
     }
 
     public async Task InvokeAsync(
@@ -34,7 +36,7 @@ public class CommunityResolutionMiddleware
         {
             // Custom domain resolved - set community context with name
             var isDefault = domainLookup.CommunitySlug.Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase);
-            communityContext.SetCommunity(domainLookup.CommunitySlug, isDefault, isCustomDomain: true, name: domainLookup.CommunityName);
+            communityContext.SetCommunity(domainLookup.CommunitySlug, isDefault, isCustomDomain: true, name: domainLookup.CommunityName, isMultiCommunity: _isMultiCommunity);
 
             // No path rewriting needed for custom domains
             await _next(context);
@@ -55,7 +57,7 @@ public class CommunityResolutionMiddleware
 
                 // Set community context
                 var isDefault = communitySlug.Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase);
-                communityContext.SetCommunity(communitySlug, isDefault);
+                communityContext.SetCommunity(communitySlug, isDefault, isMultiCommunity: _isMultiCommunity);
 
                 // Rewrite path to remove /c/{community} prefix
                 context.Request.Path = newPath;
@@ -65,13 +67,14 @@ public class CommunityResolutionMiddleware
                 // Just /c/{community} with no trailing path - this goes to community detail page
                 // Don't rewrite, let the /c/{slug} page handle it
                 communityContext.SetCommunity(remainingPath.TrimEnd('/'),
-                    remainingPath.TrimEnd('/').Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase));
+                    remainingPath.TrimEnd('/').Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase),
+                    isMultiCommunity: _isMultiCommunity);
             }
         }
         else
         {
             // Step 3: No /c/ prefix - use default community
-            communityContext.SetCommunity(_defaultCommunitySlug, isDefault: true);
+            communityContext.SetCommunity(_defaultCommunitySlug, isDefault: true, isMultiCommunity: _isMultiCommunity);
         }
 
         await _next(context);

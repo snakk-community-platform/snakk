@@ -29,6 +29,8 @@
         <div class="topic-list" id="discussions-container">
             @foreach (var discussion in Model.Discussions.Items)
             {
+                // TODO: In multi-community mode, cross-community search results need CommunitySlug
+                // from the API to generate correct /c/{slug}/h/... URLs. Currently uses page context.
                 var discussionUrl = SnakkUrlHelper.Discussion(
                     Model.Community,
                     discussion.HubSlug,
@@ -112,6 +114,7 @@ else if (Model.SearchType == "post")
         <div class="space-y-4" id="posts-container">
             @foreach (var post in Model.Posts.Items)
             {
+                // TODO: Same as above — needs CommunitySlug from API for cross-community search
                 var discussionUrl = SnakkUrlHelper.Discussion(
                     Model.Community,
                     post.HubSlug,

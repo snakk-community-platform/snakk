@@ -75,11 +75,17 @@
                 <div class="topic-list" id="discussions-container">
                     @foreach (var discussion in Model.RecentDiscussions.Items)
                     {
-                        var baseUrl = SnakkUrlHelper.Discussion(
-                            Model.Community,
-                            discussion.Hub.Slug,
-                            discussion.Space.Slug,
-                            $"{discussion.Slug}~{discussion.PublicId}");
+                        var baseUrl = Model.ShowCommunityInDiscussionList
+                            ? SnakkUrlHelper.Discussion(
+                                discussion.Community.Slug,
+                                discussion.Hub.Slug,
+                                discussion.Space.Slug,
+                                $"{discussion.Slug}~{discussion.PublicId}")
+                            : SnakkUrlHelper.Discussion(
+                                Model.Community,
+                                discussion.Hub.Slug,
+                                discussion.Space.Slug,
+                                $"{discussion.Slug}~{discussion.PublicId}");
 
                         var unreadUrl = $"{baseUrl}?gotoUnread=true";
 
@@ -126,7 +132,15 @@
                                                 <polyline points="9 18 15 12 9 6"></polyline>
                                             </svg>
                                         }
-                                        <a href="@SnakkUrlHelper.Hub(Model.Community, discussion.Hub.Slug)"
+                                        @{
+                                            var hubUrl = Model.ShowCommunityInDiscussionList
+                                                ? SnakkUrlHelper.Hub(discussion.Community.Slug, discussion.Hub.Slug)
+                                                : SnakkUrlHelper.Hub(Model.Community, discussion.Hub.Slug);
+                                            var spaceUrl = Model.ShowCommunityInDiscussionList
+                                                ? SnakkUrlHelper.Space(discussion.Community.Slug, discussion.Hub.Slug, discussion.Space.Slug)
+                                                : SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug);
+                                        }
+                                        <a href="@hubUrl"
                                            class="topic-meta-link"
                                            data-popup-type="hub"
                                            data-popup-id="@discussion.Hub.PublicId"
@@ -134,7 +148,7 @@
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <polyline points="9 18 15 12 9 6"></polyline>
                                             </svg>
-                                        <a href="@SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug)"
+                                        <a href="@spaceUrl"
                                            class="topic-meta-link"
                                            data-popup-type="space"
                                            data-popup-id="@discussion.Space.PublicId"
@@ -376,7 +390,7 @@
     // Global configuration for JavaScript modules
     window.SnakkConfig = {
         apiBaseUrl: '@Model.ApiBaseUrl',
-        communityPrefix: '@(Model.Community.IsDefaultCommunity ? "" : $"/c/{Model.Community.CommunitySlug}")',
+        communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
         showCommunityInDiscussionList: @(Model.ShowCommunityInDiscussionList ? "true" : "false"),
         discussions: {
             pageSize: @(Model.RecentDiscussions?.PageSize ?? 0),

@@ -217,7 +217,10 @@ class FrontpageDiscussions {
         const { formatRelativeTime, formatDiscussionBadges, escapeHtml } = window.SnakkUtils || {};
 
         const config = window.SnakkConfig;
-        const baseUrl = `${config.communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}/${discussion.slug}~${discussion.publicId}`;
+        const communityPrefix = (config.showCommunityInDiscussionList && discussion.community?.slug)
+            ? `/c/${discussion.community.slug}`
+            : config.communityPrefix;
+        const baseUrl = `${communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}/${discussion.slug}~${discussion.publicId}`;
         const unreadUrl = `${baseUrl}?gotoUnread=true`;
         const spaceAvatarUrl = discussion.space.avatarUrl;
         const relativeTime = formatRelativeTime(discussion.lastActivityAt || discussion.createdAt);
@@ -249,13 +252,13 @@ class FrontpageDiscussions {
                         </div>
                         <div class="topic-meta">
                             ${communityLink}
-                            <a href="${config.communityPrefix}/h/${discussion.hub.slug}"
+                            <a href="${communityPrefix}/h/${discussion.hub.slug}"
                                class="topic-meta-link"
                                data-popup-type="hub"
                                data-popup-id="${discussion.hub.publicId}"
                                data-popup-name="${escapeHtml(discussion.hub.name)}">${escapeHtml(discussion.hub.name)}</a>
                             <span class="topic-meta-separator">/</span>
-                            <a href="${config.communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}"
+                            <a href="${communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}"
                                class="topic-meta-link"
                                data-popup-type="space"
                                data-popup-id="${discussion.space.publicId}"

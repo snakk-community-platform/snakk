@@ -7,16 +7,18 @@ public static class SnakkUrlHelper
 {
     /// <summary>
     /// Gets the URL prefix for a community.
-    /// - Empty for default community (no prefix needed)
     /// - Empty for custom domains (domain itself identifies the community)
-    /// - /c/{slug} for non-default communities accessed via main platform domain
+    /// - Empty for default community in single-community mode (shortcut)
+    /// - /c/{slug} for all communities in multi-community mode
+    /// - /c/{slug} for non-default communities
     /// </summary>
     private static string GetCommunityPrefix(
         string? communitySlug,
         bool isDefaultCommunity,
-        bool isCustomDomain = false) 
-        => (string.IsNullOrEmpty(communitySlug) || isDefaultCommunity || isCustomDomain)
-            ? "" // No prefix needed for default community or custom domains
+        bool isCustomDomain = false,
+        bool isMultiCommunity = false)
+        => (string.IsNullOrEmpty(communitySlug) || isCustomDomain || (isDefaultCommunity && !isMultiCommunity))
+            ? ""
             : $"/c/{communitySlug}";
 
     /// <summary>
@@ -26,7 +28,14 @@ public static class SnakkUrlHelper
         => GetCommunityPrefix(
             community.CommunitySlug,
             community.IsDefaultCommunity,
-            community.IsCustomDomain);
+            community.IsCustomDomain,
+            community.IsMultiCommunityEnabled);
+
+    /// <summary>
+    /// Public accessor for the community prefix, used by inline JavaScript.
+    /// </summary>
+    public static string CommunityPrefix(ICommunityContext community)
+        => GetCommunityPrefix(community);
 
     // ===== Community-aware URL methods =====
 
@@ -72,6 +81,19 @@ public static class SnakkUrlHelper
         int offset)
         => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}?offset={offset}";
 
+
+    // ===== Explicit-slug overloads (for cross-community listings) =====
+    // These always include /c/{slug} prefix — used when rendering items
+    // from mixed communities (e.g., frontpage in multi-community mode)
+
+    public static string Hub(string communitySlug, string hubSlug)
+        => $"/c/{communitySlug}/h/{hubSlug}";
+
+    public static string Space(string communitySlug, string hubSlug, string spaceSlug)
+        => $"/c/{communitySlug}/h/{hubSlug}/{spaceSlug}";
+
+    public static string Discussion(string communitySlug, string hubSlug, string spaceSlug, string slugWithId)
+        => $"/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
 
     // ===== Manage URL methods (always include /c/{slug} for gateway routing) =====
 

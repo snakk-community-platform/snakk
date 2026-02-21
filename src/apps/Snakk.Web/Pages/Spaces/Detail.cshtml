@@ -431,7 +431,7 @@ else
     // Global configuration for JavaScript modules
     window.SnakkConfig = {
         apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:7291',
-        communityPrefix: '@(Model.Community.IsDefaultCommunity ? "" : $"/c/{Model.Community.CommunitySlug}")',
+        communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
         space: {
             publicId: '@Model.Space.PublicId',
             hubSlug: '@Model.HubSlug',
