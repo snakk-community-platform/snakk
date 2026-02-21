@@ -40,25 +40,43 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
-})
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.CallbackPath = "/oauth/google/callback";
-})
-.AddGitHub(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "";
-    options.CallbackPath = "/oauth/github/callback";
-})
-.AddDiscord(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Discord:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"] ?? "";
-    options.CallbackPath = "/oauth/discord/callback";
 });
+
+// Only register OAuth providers when their ClientId is configured.
+// Without this guard, OAuthOptions.Validate() throws on every request
+// when ClientId is an empty string (e.g. fresh install without OAuth).
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+if (!string.IsNullOrEmpty(googleClientId))
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/google/callback";
+    });
+}
+
+var githubClientId = builder.Configuration["Authentication:GitHub:ClientId"];
+if (!string.IsNullOrEmpty(githubClientId))
+{
+    builder.Services.AddAuthentication().AddGitHub(options =>
+    {
+        options.ClientId = githubClientId;
+        options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/github/callback";
+    });
+}
+
+var discordClientId = builder.Configuration["Authentication:Discord:ClientId"];
+if (!string.IsNullOrEmpty(discordClientId))
+{
+    builder.Services.AddAuthentication().AddDiscord(options =>
+    {
+        options.ClientId = discordClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/discord/callback";
+    });
+}
 
 // Configure forwarded headers for proxy scenarios
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
