@@ -53,7 +53,7 @@
 
     <!-- Realtime Service Configuration -->
     <script>
-        window.realtimeServiceUrl = '@(Configuration["RealtimeServiceUrl"] ?? "http://localhost:5300/realtime")';
+        window.realtimeServiceUrl = '@(Configuration["RealtimeServiceUrl"] ?? "/realtime")';
     </script>
 
     <!-- Note: JavaScript only calls /bff/* endpoints for HTTP (Backend-for-Frontend pattern)
