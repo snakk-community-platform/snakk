@@ -46,6 +46,10 @@ public class AuthRedirectMiddleware
 
     private static bool IsPublicPath(string path)
     {
+        // Allow setup pages (first-run wizard handles its own access)
+        if (path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase))
+            return true;
+
         // Allow auth endpoints (avoid redirect loop)
         if (path.StartsWith("/auth/", StringComparison.OrdinalIgnoreCase))
             return true;
