@@ -50,7 +50,8 @@ app.UseApiKeyAuth();
 app.UseCors();
 
 // SignalR hub for browser WebSocket connections
-app.MapHub<RealtimeHub>("/realtime");
+// Hub is at "/" because Gateway strips the /realtime prefix before forwarding
+app.MapHub<RealtimeHub>("/");
 
 // HTTP API for internal services to broadcast events (protected by API key)
 app.MapPost("/api/broadcast", BroadcastEndpoints.BroadcastEvent);
