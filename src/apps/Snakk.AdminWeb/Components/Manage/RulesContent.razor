@@ -1,0 +1,139 @@
+@inject AdminApiClientService ApiService
+
+<FluentCard>
+    <FluentStack Orientation="Orientation.Horizontal" Style="justify-content: space-between;">
+        <h2>Space Rules</h2>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@(() => _showAdd = true)">
+            <FluentIcon Value="@(new Icons.Regular.Size16.Add())" /> Add Rule
+        </FluentButton>
+    </FluentStack>
+</FluentCard>
+
+@if (_showAdd)
+{
+    <FluentCard Style="margin-top: 16px;">
+        <h3>Add New Rule</h3>
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+            <FluentTextField @bind-Value="_newRuleTitle" Label="Rule Title" Placeholder="e.g., Be respectful" />
+            <FluentTextArea @bind-Value="_newRuleDescription" Label="Description" Rows="3"
+                            Placeholder="Describe the rule in detail..." />
+            <FluentStack Orientation="Orientation.Horizontal">
+                <FluentButton Appearance="Appearance.Accent" OnClick="@AddRule">Add</FluentButton>
+                <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => _showAdd = false)">Cancel</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+}
+
+<FluentCard Style="margin-top: 16px;">
+    @if (_loading)
+    {
+        <FluentProgressRing />
+    }
+    else if (_rules.Count == 0)
+    {
+        <p>No rules defined for this space yet.</p>
+    }
+    else
+    {
+        @for (var i = 0; i < _rules.Count; i++)
+        {
+            var rule = _rules[i];
+            var index = i;
+            <FluentCard Style="margin-bottom: 8px; padding: 12px;">
+                <FluentStack Orientation="Orientation.Horizontal" Style="justify-content: space-between;">
+                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
+                        <FluentBadge>@(index + 1)</FluentBadge>
+                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 2px;">
+                            <FluentLabel Weight="FontWeight.Bold">@rule.Title</FluentLabel>
+                            <FluentLabel Style="color: var(--neutral-foreground-hint);">@rule.Description</FluentLabel>
+                        </FluentStack>
+                    </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 4px;">
+                        @if (index > 0)
+                        {
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Lightweight"
+                                          OnClick="@(() => MoveUp(index))">Up</FluentButton>
+                        }
+                        @if (index < _rules.Count - 1)
+                        {
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Lightweight"
+                                          OnClick="@(() => MoveDown(index))">Down</FluentButton>
+                        }
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Lightweight" Color="Color.Error"
+                                      OnClick="@(() => DeleteRule(rule.Id))">Delete</FluentButton>
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
+        }
+    }
+</FluentCard>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _showAdd;
+    private string _newRuleTitle = "";
+    private string _newRuleDescription = "";
+    private List<RuleItem> _rules = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        await LoadRules();
+    }
+
+    private async Task LoadRules()
+    {
+        _loading = true;
+        // TODO: Load rules from API
+        _rules = new();
+        _loading = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task AddRule()
+    {
+        // TODO: Call API to add rule
+        _showAdd = false;
+        _newRuleTitle = "";
+        _newRuleDescription = "";
+        await LoadRules();
+    }
+
+    private async Task MoveUp(int index)
+    {
+        if (index > 0)
+        {
+            (_rules[index], _rules[index - 1]) = (_rules[index - 1], _rules[index]);
+            // TODO: Save new order to API
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task MoveDown(int index)
+    {
+        if (index < _rules.Count - 1)
+        {
+            (_rules[index], _rules[index + 1]) = (_rules[index + 1], _rules[index]);
+            // TODO: Save new order to API
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteRule(string id)
+    {
+        // TODO: Call API to delete rule
+        await LoadRules();
+    }
+
+    private class RuleItem
+    {
+        public string Id { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public int Order { get; set; }
+    }
+}

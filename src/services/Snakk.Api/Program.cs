@@ -7,12 +7,20 @@ using Snakk.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load shared production config (written by setup wizard)
+var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
+builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+
 // Add services to the container
 builder.Services.AddOpenApi();
 builder.Services.AddSnakkServices(builder.Configuration);
 builder.Services.AddRateLimiting();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SnakkDbContext>();
+
 
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -37,10 +45,8 @@ app.UseAuthentication();
 app.UseMiddleware<Snakk.Api.Middleware.TokenRefreshMiddleware>();
 app.UseAuthorization();
 
-// Health check endpoint
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
-    .WithName("HealthCheck")
-    .WithTags("Health");
+// Health check endpoint (checks DB connectivity)
+app.MapHealthChecks("/health");
 
 // Security.txt endpoint (RFC 9116)
 app.MapGet("/.well-known/security.txt", () =>
@@ -85,10 +91,7 @@ app.MapMarkupEndpoints();
 app.MapReadStateEndpoints();
 app.MapSearchEndpoints();
 app.MapModerationEndpoints();
+app.MapManageContextEndpoints();
 app.MapSitemapEndpoints();
-
-// SignalR removed - handled by dedicated Snakk.Realtime microservice
-// Browser connects directly to Snakk.Realtime for WebSocket (no proxy)
-// API posts events to Snakk.Realtime via HTTP (fire-and-forget)
 
 app.Run();

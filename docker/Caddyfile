@@ -1,0 +1,27 @@
+# =============================================================================
+# Snakk — Caddy Reverse Proxy Configuration
+# =============================================================================
+# Copy this file to /etc/caddy/Caddyfile on your server.
+# Replace "snakk.example.com" with your actual domain.
+# Caddy automatically provisions HTTPS certificates via Let's Encrypt.
+#
+# After editing:
+#   sudo systemctl reload caddy
+
+snakk.example.com {
+    reverse_proxy localhost:17000
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/snakk.log
+        format json
+    }
+}

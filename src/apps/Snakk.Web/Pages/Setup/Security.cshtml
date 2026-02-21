@@ -1,0 +1,34 @@
+@page
+@model Snakk.Web.Pages.Setup.SecurityModel
+
+<h2 class="text-xl font-semibold mb-4">Security Keys</h2>
+<p class="text-base-content/70 mb-6">
+    These keys are used for JWT authentication and internal service communication.
+    They've been auto-generated for you. You can customize them or regenerate new ones.
+</p>
+
+<form method="post" class="space-y-4">
+    <div class="form-control">
+        <label class="label"><span class="label-text">JWT Secret Key</span></label>
+        <input type="text" asp-for="JwtSecretKey" class="input input-bordered font-mono text-sm" />
+        <label class="label"><span class="label-text-alt text-base-content/50">Used to sign authentication tokens. Keep this secret!</span></label>
+        <span asp-validation-for="JwtSecretKey" class="text-error text-sm"></span>
+    </div>
+
+    <div class="form-control">
+        <label class="label"><span class="label-text">Realtime API Key</span></label>
+        <input type="text" asp-for="RealtimeApiKey" class="input input-bordered font-mono text-sm" />
+        <label class="label"><span class="label-text-alt text-base-content/50">Used for internal communication with the SignalR realtime service</span></label>
+    </div>
+
+    <div class="flex gap-2">
+        <button type="submit" asp-page-handler="Regenerate" class="btn btn-outline btn-sm">Regenerate Both</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="flex justify-between">
+        <a asp-page="TestData" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>

@@ -1,0 +1,67 @@
+[
+  {
+    "Name": "Proxied Debug (All Services)",
+    "Projects": [
+      {
+        "Path": "services\\Snakk.Gateway\\Snakk.Gateway.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      },
+      {
+        "Path": "apps\\Snakk.Auth\\Snakk.Auth.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      },
+      {
+        "Path": "services\\Snakk.Api\\Snakk.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      },
+      {
+        "Path": "services\\Snakk.Realtime\\Snakk.Realtime.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      },
+      {
+        "Path": "apps\\Snakk.Web\\Snakk.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      },
+      {
+        "Path": "apps\\Snakk.AdminWeb\\Snakk.AdminWeb.csproj",
+        "Action": "Start",
+        "DebugTarget": "Proxied Debug"
+      }
+    ]
+  },
+  {
+    "Name": "Development (All Services)",
+    "Projects": [
+      {
+        "Path": "apps\\Snakk.Auth\\Snakk.Auth.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "services\\Snakk.Api\\Snakk.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "services\\Snakk.Realtime\\Snakk.Realtime.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "apps\\Snakk.Web\\Snakk.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "apps\\Snakk.AdminWeb\\Snakk.AdminWeb.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      }
+    ]
+  }
+]

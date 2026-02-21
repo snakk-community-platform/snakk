@@ -1,0 +1,82 @@
+@inject AdminApiClientService ApiService
+
+<FluentCard>
+    <h2>@Scope?.ScopeType Settings</h2>
+</FluentCard>
+
+<FluentCard Style="margin-top: 16px;">
+    @if (_loading)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; max-width: 600px;">
+            <FluentTextField @bind-Value="_name" Label="Name" />
+            <FluentTextArea @bind-Value="_description" Label="Description" Rows="4" />
+
+            @if (Scope?.ScopeType == "Community")
+            {
+                <FluentSelect @bind-Value="_visibility" TOption="string" Label="Visibility">
+                    <FluentOption Value="@("Public")">Public</FluentOption>
+                    <FluentOption Value="@("Private")">Private</FluentOption>
+                    <FluentOption Value="@("Unlisted")">Unlisted</FluentOption>
+                </FluentSelect>
+            }
+
+            @if (Scope?.ScopeType == "Space")
+            {
+                <FluentSelect @bind-Value="_defaultSort" TOption="string" Label="Default Sort">
+                    <FluentOption Value="@("latest")">Latest Activity</FluentOption>
+                    <FluentOption Value="@("newest")">Newest First</FluentOption>
+                    <FluentOption Value="@("oldest")">Oldest First</FluentOption>
+                </FluentSelect>
+            }
+
+            <FluentButton Appearance="Appearance.Accent" OnClick="@SaveSettings"
+                          Disabled="@_saving">
+                @if (_saving) { <FluentProgressRing Style="width: 16px; height: 16px;" /> }
+                Save Settings
+            </FluentButton>
+
+            @if (_saved)
+            {
+                <FluentMessageBar Title="Settings saved" Intent="MessageIntent.Success" />
+            }
+        </FluentStack>
+    }
+</FluentCard>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+    private string _name = "";
+    private string _description = "";
+    private string _visibility = "Public";
+    private string _defaultSort = "latest";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        _loading = true;
+        // TODO: Load current settings from API
+        _name = Scope.ScopeName;
+        _description = "";
+        _loading = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task SaveSettings()
+    {
+        _saving = true;
+        _saved = false;
+        // TODO: Call API to save settings
+        await Task.CompletedTask;
+        _saving = false;
+        _saved = true;
+    }
+}

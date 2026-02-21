@@ -1006,11 +1006,11 @@ function createPostElement(post, isSameAuthorAsPrevious, currentUserId, isAuthen
     if (!isSameAuthorAsPrevious) {
         let rolesBadge = '';
         if (post.author.role === 'admin') {
-            rolesBadge = '<span class="badge badge-subtle badge-xs ml-1">Admin</span>';
+            rolesBadge = '<span class="badge badge badge-xs ml-1">Admin</span>';
         } else if (post.author.role === 'mod') {
-            rolesBadge = '<span class="badge badge-subtle badge-xs ml-1">Mod</span>';
+            rolesBadge = '<span class="badge badge badge-xs ml-1">Mod</span>';
         }
-        const opBadge = isOP ? '<span class="badge badge-primary-subtle badge-xs ml-1">OP</span>' : '';
+        const opBadge = isOP ? '<span class="badge badge-primary badge-xs ml-1">OP</span>' : '';
         const editedTag = post.editedAt ? '<span class="ml-1">(edited)</span>' : '';
 
         if (post.author.isDeleted) {

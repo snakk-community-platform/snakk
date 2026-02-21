@@ -56,7 +56,7 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
         return await _dbSet
             .AsNoTracking()
             .Where(r => r.UserId == userId && r.PostId == postId)
-            .Select(r => r.TypeId)
+            .Select(r => (int?)r.TypeId)
             .FirstOrDefaultAsync();
     }
 }

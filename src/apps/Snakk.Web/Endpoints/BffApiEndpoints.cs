@@ -333,10 +333,14 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetPostReactionsAsync(postId);
+        var reactions = apiResult ?? new Dictionary<string, int>();
 
         var bffResponse = new Models.Bff.BffReactionsResponse
         {
-            Reactions = apiResult ?? new Dictionary<string, int>()
+            ThumbsUp = reactions.GetValueOrDefault("thumbsUp"),
+            Heart = reactions.GetValueOrDefault("heart"),
+            Eyes = reactions.GetValueOrDefault("eyes"),
+            Crazy = reactions.GetValueOrDefault("crazy")
         };
 
         return Results.Ok(bffResponse);
@@ -350,7 +354,7 @@ public static class BffApiEndpoints
 
         var bffResponse = new Models.Bff.BffMyReactionResponse
         {
-            Emoji = apiResult?.Emoji
+            Reaction = apiResult?.Reaction
         };
 
         return Results.Ok(bffResponse);
@@ -361,7 +365,7 @@ public static class BffApiEndpoints
         [FromBody] ToggleReactionRequest request,
         SnakkApiClient apiClient)
     {
-        await apiClient.TogglePostReactionAsync(postId, request.Emoji);
+        await apiClient.TogglePostReactionAsync(postId, request.Type);
         return Results.Ok();
     }
 
@@ -483,9 +487,10 @@ public static class BffApiEndpoints
         return Results.Ok(bffResponse);
     }
 
-    private static async Task<IResult> LogoutAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> LogoutAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
         await apiClient.LogoutAsync();
+        httpContext.Response.Cookies.Delete(".Snakk.Auth");
         return Results.Ok();
     }
 
@@ -788,7 +793,7 @@ public static class BffApiEndpoints
     // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
 }
 
-public record ToggleReactionRequest(string Emoji);
+public record ToggleReactionRequest(int Type);
 public record RefreshTokenRequestDto(string RefreshToken);
 public record PreviewMarkupRequest(string Content);
 public record BffCreateReportRequest(string EntityType, string EntityId, string Reason, string? Description);

@@ -1,6 +1,7 @@
 @page "/h/{hubSlug}/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Spaces.DetailModel
 @inject IConfiguration Configuration
 @{
@@ -53,7 +54,19 @@ else
                 <div class="flex items-start gap-4">
                     <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
                     <div>
-                        <h1>@Model.Space.Name</h1>
+                        <div class="flex items-center gap-2">
+                            <h1>@Model.Space.Name</h1>
+                            @if (Model.IsAuthenticated && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                            {
+                                <a href="@SnakkUrlHelper.ManageSpace(Model.Community.CommunitySlug, Model.HubSlug, Model.Space.Slug)"
+                                   class="btn btn-ghost btn-sm ml-2" title="Manage space">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </a>
+                            }
+                        </div>
                         @if (!string.IsNullOrEmpty(Model.Space.Description))
                         {
                             <p>@Model.Space.Description</p>
@@ -61,6 +74,13 @@ else
                     </div>
                 </div>
                 <div class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3">
+                    @if (Model.IsAuthenticated && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                    {
+                        <div class="flex justify-end">
+                            <a href="@SnakkUrlHelper.ManageSpace(Model.Community.CommunitySlug, Model.HubSlug, Model.Space.Slug)" class="btn btn-primary">Manage Space</a>
+                        </div>
+                    }
+                    @*
                     @if (Model.SpaceStats != null)
                     {
                         <div class="stats-panel">
@@ -80,6 +100,7 @@ else
                             </div>
                         </div>
                     }
+                    *@
                     @if (Model.IsAuthenticated)
                     {
                         <!-- Follow Button Group: [Following][Discussions][+Posts] -->
@@ -143,11 +164,11 @@ else
                                             @discussion.Title
                                             @if (discussion.IsPinned)
                                             {
-                                                <span class="badge badge-primary-subtle badge-xs ml-2">Pinned</span>
+                                                <span class="badge badge-primary badge-xs ml-2">Pinned</span>
                                             }
                                             @if (discussion.IsLocked)
                                             {
-                                                <span class="badge badge-warning-subtle badge-xs ml-2">Locked</span>
+                                                <span class="badge badge-warning badge-xs ml-2">Locked</span>
                                             }
                                             @if (!string.IsNullOrEmpty(discussion.Tags))
                                             {
@@ -238,8 +259,93 @@ else
                 }
             </div>
 
-            <!-- Right Column: Trending -->
+            <!-- Right Column: Sidebar -->
             <aside id="sidebar" class="w-full lg:w-80 flex-shrink-0">
+                <!-- Space Info -->
+                @if (Model.Space != null)
+                {
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">About this Space</h3>
+                        @if (!string.IsNullOrEmpty(Model.Space.Description))
+                        {
+                            <p class="text-sm text-base-content/70 mb-3">@Model.Space.Description</p>
+                        }
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <div class="text-lg font-semibold">@FormatCount(Model.Space.DiscussionCount)</div>
+                                <div class="text-xs text-base-content/50">Discussions</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-semibold">@FormatCount(Model.Space.ReplyCount)</div>
+                                <div class="text-xs text-base-content/50">Replies</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Rules -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Rules</h3>
+
+                    @{
+                        // Placeholder space rules — replace with real data when DB backing is implemented
+                        var spaceRules = new[]
+                        {
+                            new { Title = "Be respectful", Content = "Treat all community members with respect. No harassment, hate speech, or personal attacks." },
+                            new { Title = "Stay on topic", Content = "Keep discussions relevant to this space. Off-topic posts may be moved or removed." },
+                            new { Title = "No spam", Content = "Do not post spam, excessive self-promotion, or unsolicited advertising." }
+                        };
+                    }
+
+                    @foreach (var (rule, index) in spaceRules.Select((r, i) => (r, i)))
+                    {
+                        <details class="group">
+                            <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
+                                <span>@(index + 1). @rule.Title</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                     class="flex-shrink-0 transition-transform group-open:rotate-180">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </summary>
+                            <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Content</p>
+                        </details>
+                    }
+
+                    <div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
+                        @if (Model.Hub != null)
+                        {
+                            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)/rules"
+                               class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                                <span>Hub Rules</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </a>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                        {
+                            <a href="/c/@Model.Community.CommunitySlug/rules"
+                               class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                                <span>Community Rules</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </a>
+                        }
+                        <a href="/rules"
+                           class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                            <span>Site Rules</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
                 @if (Model.ShowTrendingDiscussions)
                 {
                     <div class="sidebar-section">

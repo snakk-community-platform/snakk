@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>snakk-worker-secrets</UserSecretsId>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Infrastructure.Database\Snakk.Infrastructure.Database.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Domain\Snakk.Domain.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

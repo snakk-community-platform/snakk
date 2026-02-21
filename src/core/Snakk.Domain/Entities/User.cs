@@ -17,6 +17,7 @@ public class User
     public string? AvatarFileName { get; private set; } // Uploaded avatar filename (null = use generated)
     public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
     public bool PreferEndlessScroll { get; private set; } = true; // User preference for endless scroll vs pagination
+    public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
@@ -44,6 +45,7 @@ public class User
         string? avatarFileName,
         int avatarRevision,
         bool preferEndlessScroll,
+        bool autoFollowOnReply,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
@@ -61,6 +63,7 @@ public class User
         AvatarFileName = avatarFileName;
         AvatarRevision = avatarRevision;
         PreferEndlessScroll = preferEndlessScroll;
+        AutoFollowOnReply = autoFollowOnReply;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -93,6 +96,7 @@ public class User
             avatarFileName: null,
             avatarRevision: 0,
             preferEndlessScroll: true,
+            autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
 
@@ -125,6 +129,7 @@ public class User
             avatarFileName: null,
             avatarRevision: 0,
             preferEndlessScroll: true,
+            autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
 
@@ -154,6 +159,7 @@ public class User
             avatarFileName: null,
             avatarRevision: 0,
             preferEndlessScroll: true,
+            autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
     }
@@ -171,6 +177,7 @@ public class User
         string? avatarFileName,
         int avatarRevision,
         bool preferEndlessScroll,
+        bool autoFollowOnReply,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
@@ -189,6 +196,7 @@ public class User
             avatarFileName,
             avatarRevision,
             preferEndlessScroll,
+            autoFollowOnReply,
             createdAt,
             lastModifiedAt,
             lastSeenAt,
@@ -270,6 +278,12 @@ public class User
     public void SetPreferEndlessScroll(bool prefer)
     {
         PreferEndlessScroll = prefer;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAutoFollowOnReply(bool autoFollow)
+    {
+        AutoFollowOnReply = autoFollow;
         LastModifiedAt = DateTime.UtcNow;
     }
 

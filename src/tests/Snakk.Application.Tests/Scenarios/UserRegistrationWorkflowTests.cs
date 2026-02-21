@@ -265,7 +265,7 @@ public class UserRegistrationWorkflowTests
             .ReturnsAsync(user);
 
         // Act - Update to enable endless scroll
-        var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, preferEndlessScroll: true);
+        var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
         updateResult.IsSuccess.Should().BeTrue();

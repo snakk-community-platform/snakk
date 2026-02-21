@@ -1,0 +1,30 @@
+{
+  "runtime": "Net80",
+  "documentGenerator": {
+    "fromDocument": {
+      "json": "openapi.json"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "className": "SnakkApiClient",
+      "namespace": "Snakk.Sdk",
+      "generateClientInterfaces": true,
+      "generateDtoTypes": true,
+      "generateOptionalParameters": true,
+      "generateDefaultValues": true,
+      "generateDataAnnotations": false,
+      "useBaseUrl": true,
+      "httpClientType": "System.Net.Http.HttpClient",
+      "injectHttpClient": true,
+      "disposeHttpClient": false,
+      "generateClientClasses": true,
+      "generateExceptionClasses": true,
+      "exceptionClass": "SnakkApiException",
+      "wrapDtoExceptions": true,
+      "useHttpClientCreationMethod": false,
+      "jsonLibrary": "SystemTextJson",
+      "output": "Generated/SnakkApiClient.cs"
+    }
+  }
+}

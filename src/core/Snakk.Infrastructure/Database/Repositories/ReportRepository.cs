@@ -42,37 +42,37 @@ public class ReportRepository(SnakkDbContext context)
             .FirstOrDefaultAsync(r => r.PublicId == publicId);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(int communityId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(int communityId, int? statusId, int offset, int pageSize)
     {
         var query = _dbSet.AsNoTracking()
             .Where(r => r.CommunityId == communityId);
-        
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
-        
+
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
+
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(int hubId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(int hubId, int? statusId, int offset, int pageSize)
     {
         // Hub mods see reports for their hub AND all spaces within the hub
         var query = _dbSet.AsNoTracking()
             .Where(r => r.HubId == hubId || (r.SpaceId != null && r.Space!.HubId == hubId));
-        
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
-        
+
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
+
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(int spaceId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(int spaceId, int? statusId, int offset, int pageSize)
     {
         var query = _dbSet.AsNoTracking()
             .Where(r => r.SpaceId == spaceId);
-        
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
-        
+
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
+
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 

@@ -21,6 +21,7 @@ public class PostLifecycleWorkflowTests
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
     private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier;
+    private readonly Mock<IFollowRepository> _mockFollowRepository;
     private readonly Mock<ICounterService> _mockCounterService;
     private readonly Mock<ReactionUseCase> _mockReactionUseCase;
     private readonly PostUseCase _useCase;
@@ -30,6 +31,7 @@ public class PostLifecycleWorkflowTests
         _mockPostRepository = new Mock<IPostRepository>();
         _mockDiscussionRepository = new Mock<IDiscussionRepository>();
         _mockUserRepository = new Mock<IUserRepository>();
+        _mockFollowRepository = new Mock<IFollowRepository>();
         _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
         _mockRealtimeNotifier = new Mock<IRealtimeNotifier>();
         _mockCounterService = new Mock<ICounterService>();
@@ -43,6 +45,7 @@ public class PostLifecycleWorkflowTests
             _mockPostRepository.Object,
             _mockDiscussionRepository.Object,
             _mockUserRepository.Object,
+            _mockFollowRepository.Object,
             _mockEventDispatcher.Object,
             _mockRealtimeNotifier.Object,
             _mockCounterService.Object,

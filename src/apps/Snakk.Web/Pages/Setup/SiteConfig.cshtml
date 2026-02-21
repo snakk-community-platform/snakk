@@ -1,0 +1,41 @@
+@page
+@model Snakk.Web.Pages.Setup.SiteConfigModel
+
+<h2 class="text-xl font-semibold mb-4">Site Configuration</h2>
+<p class="text-base-content/70 mb-6">Configure your community's domain and basic settings.</p>
+
+<form method="post" class="space-y-4">
+    <div class="form-control">
+        <label class="label"><span class="label-text">Domain</span></label>
+        <input type="text" asp-for="Domain" class="input input-bordered" placeholder="snakk.example.com" />
+        <label class="label"><span class="label-text-alt text-base-content/50">The domain where your Snakk instance will be accessible (without https://)</span></label>
+        <span asp-validation-for="Domain" class="text-error text-sm"></span>
+    </div>
+
+    <div class="form-control">
+        <label class="label"><span class="label-text">Site Name</span></label>
+        <input type="text" asp-for="SiteName" class="input input-bordered" placeholder="My Community" />
+        <label class="label"><span class="label-text-alt text-base-content/50">Displayed in the browser title and header</span></label>
+    </div>
+
+    <div class="form-control">
+        <label class="label"><span class="label-text">Default Community Slug</span></label>
+        <input type="text" asp-for="DefaultCommunitySlug" class="input input-bordered" placeholder="main" />
+        <label class="label"><span class="label-text-alt text-base-content/50">URL-friendly identifier for the default community</span></label>
+    </div>
+
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" asp-for="MultiCommunityEnabled" class="toggle toggle-primary" />
+            <span class="label-text">Enable Multi-Community Mode</span>
+        </label>
+        <label class="label"><span class="label-text-alt text-base-content/50">Allow multiple independent communities on this instance</span></label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="flex justify-between">
+        <a asp-page="Database" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>

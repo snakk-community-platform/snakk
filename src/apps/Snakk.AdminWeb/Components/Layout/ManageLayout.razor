@@ -1,0 +1,158 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<FluentLayout>
+    <FluentHeader Style="background-color: var(--neutral-layer-2);">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Left">
+            @if (Scope != null)
+            {
+                <FluentLabel Typo="Typography.H5" Style="margin: 0; padding: 0 16px;">
+                    Manage: @Scope.ScopeName
+                </FluentLabel>
+                <FluentBadge Appearance="Appearance.Accent">@Scope.ScopeType</FluentBadge>
+            }
+            else
+            {
+                <FluentLabel Typo="Typography.H5" Style="margin: 0; padding: 0 16px;">Manage</FluentLabel>
+            }
+        </FluentStack>
+        <FluentSpacer />
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
+            @if (Scope != null)
+            {
+                <FluentAnchor Href="@ManageScopeService.GetSiteUrl(Scope)"
+                              Appearance="Appearance.Lightweight"
+                              Target="_self">
+                    Back to Site
+                </FluentAnchor>
+            }
+            <AuthorizeView>
+                <Authorized>
+                    <FluentLabel>@context.User.Identity?.Name</FluentLabel>
+                    <FluentButton Appearance="Appearance.Lightweight" OnClick="@Logout">Logout</FluentButton>
+                </Authorized>
+            </AuthorizeView>
+        </FluentStack>
+    </FluentHeader>
+
+    <FluentStack Orientation="Orientation.Horizontal" Width="100%" Style="height: calc(100vh - 50px);">
+        <FluentNavMenu Width="250" Collapsible="true" Style="height: 100%;">
+            @if (Scope != null)
+            {
+                <!-- Breadcrumbs -->
+                <div style="padding: 8px 16px; font-size: 12px; color: var(--neutral-foreground-hint);">
+                    <a href="/c/@Scope.CommunitySlug/manage" style="text-decoration: none; color: inherit;">@Scope.CommunityName</a>
+                    @if (Scope.HubName != null)
+                    {
+                        <span> / </span>
+                        <a href="/c/@Scope.CommunitySlug/h/@Scope.HubSlug/manage" style="text-decoration: none; color: inherit;">@Scope.HubName</a>
+                    }
+                    @if (Scope.SpaceName != null)
+                    {
+                        <span> / </span>
+                        <a href="/c/@Scope.CommunitySlug/h/@Scope.HubSlug/s/@Scope.SpaceSlug/manage" style="text-decoration: none; color: inherit;">@Scope.SpaceName</a>
+                    }
+                </div>
+                <FluentDivider Style="margin: 0;" />
+
+                @if (HasPermission(ManagePermissionEnum.ViewDashboard))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}")" Icon="@(new Icons.Regular.Size24.Home())" Match="NavLinkMatch.All">
+                        Dashboard
+                    </FluentNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageContent))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/content")" Icon="@(new Icons.Regular.Size20.Document())">
+                        Content Moderation
+                    </FluentNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageReports))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/reports")" Icon="@(new Icons.Regular.Size20.Warning())">
+                        Reports
+                    </FluentNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageBans))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/bans")" Icon="@(new Icons.Regular.Size20.PersonProhibited())">
+                        Bans
+                    </FluentNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ViewDashboard))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/log")" Icon="@(new Icons.Regular.Size20.History())">
+                        Moderation Log
+                    </FluentNavLink>
+                }
+
+                <FluentDivider Style="margin: 4px 0;" />
+
+                @if (HasPermission(ManagePermissionEnum.ManageSettings))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/settings")" Icon="@(new Icons.Regular.Size20.Settings())">
+                        Settings
+                    </FluentNavLink>
+
+                    <FluentNavLink Href="@($"{BaseUrl}/report-reasons")" Icon="@(new Icons.Regular.Size20.TextBulletListSquare())">
+                        Report Reasons
+                    </FluentNavLink>
+
+                    @if (Scope.ScopeType == "Space")
+                    {
+                        <FluentNavLink Href="@($"{BaseUrl}/rules")" Icon="@(new Icons.Regular.Size20.BookOpen())">
+                            Rules
+                        </FluentNavLink>
+                    }
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageTeam))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/team")" Icon="@(new Icons.Regular.Size20.PeopleTeam())">
+                        Team
+                    </FluentNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageWebhooks))
+                {
+                    <FluentNavLink Href="@($"{BaseUrl}/webhooks")" Icon="@(new Icons.Regular.Size20.PlugConnected())">
+                        Webhooks
+                    </FluentNavLink>
+                }
+            }
+            else
+            {
+                <FluentNavLink Href="/" Icon="@(new Icons.Regular.Size24.Home())">
+                    Loading...
+                </FluentNavLink>
+            }
+        </FluentNavMenu>
+
+        <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="padding: 16px; overflow-y: auto;">
+            <FluentMessageBarProvider />
+
+            @Body
+        </FluentStack>
+    </FluentStack>
+</FluentLayout>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private string BaseUrl => Scope != null ? ManageScopeService.GetManageUrl(Scope) : "";
+
+    private bool HasPermission(ManagePermissionEnum permission)
+    {
+        return Scope?.Permissions.Contains(permission) ?? false;
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("/Auth/Logout", true);
+    }
+}

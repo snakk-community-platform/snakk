@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Snakk.Application.DTOs.Settings;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Shared.Enums;
 using Snakk.Infrastructure.Database.Entities;
 
 public class SettingsService : ISettingsService
@@ -144,7 +145,7 @@ public class SettingsService : ISettingsService
             targetType: "Setting",
             targetId: setting.PublicId,
             details: $"Updated {category}.{key}",
-            severity: "Info");
+            severity: AuditLogSeverityEnum.Info);
 
         return new SettingDto
         {

@@ -995,13 +995,13 @@ public class SnakkApiClient(HttpClient httpClient)
         }
     }
 
-    public async Task TogglePostReactionAsync(string postId, string emoji)
+    public async Task TogglePostReactionAsync(string postId, int type)
     {
         try
         {
             await _httpClient.PostAsJsonAsync(
                 $"/api/posts/{postId}/reactions",
-                new { emoji });
+                new { type });
         }
         catch { }
     }
@@ -1242,7 +1242,7 @@ public record FollowedEntitiesResult(List<string> PublicIds);
 public record ReadStateUpdateDto(string DiscussionId, string PostId, long Timestamp);
 
 // Reaction DTOs
-public record MyReactionDto(string? Emoji);
+public record MyReactionDto(string? Reaction);
 
 // Markup DTOs
 public record MarkupPreviewResult(string Html);

@@ -17,7 +17,7 @@ public record CommunityListDto(
     string Name,
     string Slug,
     string? Description,
-    string Visibility,
+    int VisibilityId,
     bool ExposeToPlatformFeed,
     DateTime CreatedAt);
 
@@ -26,7 +26,7 @@ public record CommunityDetailDto(
     string Name,
     string Slug,
     string? Description,
-    string Visibility,
+    int VisibilityId,
     bool ExposeToPlatformFeed,
     DateTime CreatedAt,
     DateTime? LastModifiedAt);

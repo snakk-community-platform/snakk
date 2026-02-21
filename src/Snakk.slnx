@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/aspire/">
+    <Project Path="aspire/Snakk.AppHost/Snakk.AppHost.csproj" />
+  </Folder>
   <Folder Name="/core/">
     <Project Path="core/Snakk.Application/Snakk.Application.csproj" />
     <Project Path="core/Snakk.Domain/Snakk.Domain.csproj" />
@@ -9,13 +12,16 @@
   </Folder>
   <Folder Name="/services/">
     <Project Path="services/Snakk.Api/Snakk.Api.csproj" />
+    <Project Path="services/Snakk.Gateway/Snakk.Gateway.csproj" />
     <Project Path="services/Snakk.Realtime/Snakk.Realtime.csproj" />
     <Project Path="services/Snakk.Worker/Snakk.Worker.csproj" />
   </Folder>
   <Folder Name="/apps/">
     <Project Path="apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj" />
+    <Project Path="apps/Snakk.Auth/Snakk.Auth.csproj" />
     <Project Path="apps/Snakk.Web/Snakk.Web.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/" />
   <Folder Name="/tests/">
     <Project Path="tests/Snakk.Application.Tests/Snakk.Application.Tests.csproj" />
     <Project Path="tests/Snakk.Domain.Tests/Snakk.Domain.Tests.csproj" />

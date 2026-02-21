@@ -41,13 +41,14 @@ public record PostReactionsDto(
 public record ReactionCountsDto(
     int ThumbsUp,
     int Heart,
-    int Eyes);
+    int Eyes,
+    int Crazy);
 
 // Author info embedded in post response
 public record PostAuthorDto(
     string PublicId,
     string DisplayName,
-    string? AvatarFileName, // Sharded path like "4a/userId-r5.svg"
+    string? AvatarUrl, // Full avatar URL like "/avatars/generated/users/4a/userId.svg"
     string? Role, // "admin", "mod", or null
     bool IsDeleted);
 

@@ -1604,6 +1604,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AutoFollowOnReply")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
 

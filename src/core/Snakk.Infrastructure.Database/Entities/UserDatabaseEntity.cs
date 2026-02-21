@@ -34,6 +34,7 @@ public class UserDatabaseEntity
 
     // User preferences
     public bool PreferEndlessScroll { get; set; } = true;
+    public bool AutoFollowOnReply { get; set; } = true;
 
     // 2FA (Two-Factor Authentication)
     public bool TwoFactorEnabled { get; set; } = false;

@@ -1,6 +1,7 @@
 namespace Snakk.Application.Services;
 
 using Snakk.Application.DTOs.Security;
+using Snakk.Shared.Enums;
 
 public interface ISecurityService
 {
@@ -32,5 +33,5 @@ public interface ISecurityService
         string? ipAddress = null,
         string? userAgent = null,
         bool success = true,
-        string severity = "Info");
+        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info);
 }

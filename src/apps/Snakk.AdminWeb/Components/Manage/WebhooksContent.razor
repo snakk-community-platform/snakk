@@ -1,0 +1,18 @@
+<FluentCard>
+    <h2>Webhooks</h2>
+</FluentCard>
+
+<FluentCard Style="margin-top: 16px; text-align: center; padding: 48px;">
+    <FluentIcon Value="@(new Icons.Regular.Size24.PlugConnected())" Color="Color.Neutral" />
+    <h3 style="margin-top: 16px;">Coming Soon</h3>
+    <p style="color: var(--neutral-foreground-hint);">
+        Outgoing webhooks will allow you to integrate with external services.
+        You'll be able to configure webhook endpoints for events like new posts,
+        reports, and moderation actions.
+    </p>
+</FluentCard>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+}

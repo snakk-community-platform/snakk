@@ -72,6 +72,18 @@ public static class SnakkUrlHelper
         int offset)
         => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}?offset={offset}";
 
+
+    // ===== Manage URL methods (always include /c/{slug} for gateway routing) =====
+
+    public static string ManageCommunity(string communitySlug)
+        => $"/c/{communitySlug}/manage";
+
+    public static string ManageHub(string communitySlug, string hubSlug)
+        => $"/c/{communitySlug}/h/{hubSlug}/manage";
+
+    public static string ManageSpace(string communitySlug, string hubSlug, string spaceSlug)
+        => $"/c/{communitySlug}/h/{hubSlug}/s/{spaceSlug}/manage";
+
     public static string HubAvatar(string publicId, int revision = 0)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Hub, revision);
 

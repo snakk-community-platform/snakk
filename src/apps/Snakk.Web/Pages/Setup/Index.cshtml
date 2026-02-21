@@ -1,0 +1,22 @@
+@page
+@model Snakk.Web.Pages.Setup.IndexModel
+
+<div class="text-center space-y-6">
+    <div class="text-6xl">&#128640;</div>
+    <h2 class="text-2xl font-bold">Welcome to Snakk</h2>
+    <p class="text-base-content/70 max-w-md mx-auto">
+        This wizard will guide you through setting up your Snakk community platform.
+        You'll configure your database, site settings, and create your admin account.
+    </p>
+    <div class="text-sm text-base-content/50 space-y-1">
+        <p>What you'll need:</p>
+        <ul class="list-disc list-inside text-left max-w-xs mx-auto">
+            <li>PostgreSQL database credentials</li>
+            <li>Your domain name</li>
+            <li>An email for the admin account</li>
+        </ul>
+    </div>
+    <form method="post">
+        <button type="submit" class="btn btn-primary btn-lg">Begin Setup</button>
+    </form>
+</div>

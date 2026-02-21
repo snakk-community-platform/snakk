@@ -526,6 +526,7 @@ public class UserTests
             "avatar.jpg",
             0,
             false,
+            false,
             createdAt,
             lastModifiedAt,
             lastSeenAt,

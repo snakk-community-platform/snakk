@@ -5,6 +5,7 @@ using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
+using Snakk.Shared.Enums;
 using System.Security.Claims;
 
 public static class AdminModerationEndpoints
@@ -250,9 +251,11 @@ public static class AdminModerationEndpoints
         const int pageSize = 20;
         var offset = (page - 1) * pageSize;
 
+        var statusId = ParseReportStatus(status);
+
         var result = await moderationUseCase.GetReportsForModeratorAsync(
             adminUserId, // Admin can see all reports platform-wide
-            status,
+            statusId,
             offset,
             pageSize);
 
@@ -437,6 +440,14 @@ public static class AdminModerationEndpoints
 
         return httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
+
+    private static int? ParseReportStatus(string? status) => status?.ToLowerInvariant() switch
+    {
+        "pending" => (int)ReportStatusEnum.Pending,
+        "resolved" => (int)ReportStatusEnum.Resolved,
+        "dismissed" => (int)ReportStatusEnum.Dismissed,
+        _ => null
+    };
 }
 
 // Request models

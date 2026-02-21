@@ -14,6 +14,13 @@
                 <h1>Latest Discussions</h1>
                 <p>Recent activity across all spaces</p>
             </div>
+            @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
+            {
+                <div class="flex-shrink-0">
+                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community.CommunitySlug)" class="btn btn-primary">Manage Community</a>
+                </div>
+            }
+            @*
             @if (Model.PlatformStats != null || Model.CommunityStats != null)
             {
                 <div class="w-full lg:w-80 flex-shrink-0">
@@ -46,6 +53,7 @@
                     </div>
                 </div>
             }
+            *@
         </div>
     </div>
 
@@ -87,11 +95,11 @@
                                         <a href="@baseUrl" class="topic-title-link">@discussion.Title</a>
                                         @if (discussion.IsPinned)
                                         {
-                                            <span class="badge badge-primary-subtle badge-xs ml-2">Pinned</span>
+                                            <span class="badge badge-primary badge-xs ml-2">Pinned</span>
                                         }
                                         @if (discussion.IsLocked)
                                         {
-                                            <span class="badge badge-warning-subtle badge-xs ml-2">Locked</span>
+                                            <span class="badge badge-warning badge-xs ml-2">Locked</span>
                                         }
                                         @if (discussion.Tags != null && discussion.Tags.Length > 0)
                                         {
@@ -104,6 +112,7 @@
                                                 <span class="text-muted ml-1">...</span>
                                             }
                                         }
+                                        <span class="text-xs text-muted ml-2">@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
                                     </div>
                                     <div class="topic-meta">
                                         @if (Model.ShowCommunityInDiscussionList)
@@ -130,8 +139,6 @@
                                            data-popup-type="space"
                                            data-popup-id="@discussion.Space.PublicId"
                                            data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
-                                        <span class="topic-meta-separator">·</span>
-                                        <span>@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
                                     </div>
                                 </div>
                                 <div class="topic-stats hidden sm:flex">

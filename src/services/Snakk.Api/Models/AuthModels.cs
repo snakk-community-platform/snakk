@@ -13,6 +13,7 @@ public record UpdateProfileRequest(
     string DisplayName);
 
 public record UpdatePreferencesRequest(
-    bool? PreferEndlessScroll);
+    bool? PreferEndlessScroll,
+    bool? AutoFollowOnReply);
 
 public record RefreshTokenRequest(string RefreshToken);

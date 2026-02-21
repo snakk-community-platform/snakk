@@ -1,6 +1,7 @@
 @page "/h/{hubSlug}/{spaceSlug}/{slugWithId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Discussions.DetailModel
 
 @section Styles {
@@ -197,11 +198,11 @@
                         </time>
                         @if (Model.Discussion.IsPinned)
                         {
-                            <span class="badge badge-primary-subtle badge-sm">Pinned</span>
+                            <span class="badge badge-primary badge-sm">Pinned</span>
                         }
                         @if (Model.Discussion.IsLocked)
                         {
-                            <span class="badge badge-warning-subtle badge-sm">Locked</span>
+                            <span class="badge badge-warning badge-sm">Locked</span>
                         }
                     </div>
                 </div>
@@ -224,7 +225,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                 </svg>
                             </button>
-                            <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-white border border-subtle rounded-lg w-48 z-20">
+                            <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
                                 <li>
                                     <button id="mute-discussion-btn" onclick="toggleMuteDiscussion('@Model.Discussion.PublicId')" class="text-sm">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -274,8 +275,14 @@
         </div>
     }
 
+    <!-- Two Column Layout -->
+    <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col lg:flex-row gap-6">
+    <!-- Left Column: Posts + Reply -->
+    <div class="flex-1 min-w-0">
+
     <!-- Posts Container -->
-    <div id="posts-container" class="max-w-6xl mx-auto">
+                <div id="posts-container" class="flex flex-col gap-6">
         @if (Model.Posts != null && Model.Posts.Items.Any())
         {
             var postList = Model.Posts.Items.ToList();
@@ -290,77 +297,301 @@
                 var hasReplyTo = post.ReplyTo != null;
                 var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
 
-                <!-- Post Article - Timeline layout -->
                 <article id="post-@post.PostNumber"
-                         class="post-item post-article group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") timeline @(i == postList.Count - 1 ? "timeline-end-item" : "")"
+                         class="post-item post-article group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "")"
                          data-author-id="@post.Author.PublicId"
                          data-post-id="@post.PublicId"
                          data-post-number="@post.PostNumber"
                          role="article"
                          aria-label="Post @post.PostNumber by @post.Author.DisplayName">
 
-                    <div class="timeline-start"></div>
-                    <div class="timeline-middle">
-                        <a href="#post-@post.PostNumber" class="timeline-badge" title="Post #@post.PostNumber">
-                            @post.PostNumber
-                        </a>
-                    </div>
-                    <div class="timeline-end w-full">
-                        <!-- Two-column layout: Author left, Content right -->
-                        <div class="flex gap-6 pb-8">
-                            <!-- Left: Author sidebar -->
-                            <div class="w-32 flex-shrink-0">
-                            @if (!isSameAuthorAsPrevious)
+                    @if (!isSameAuthorAsPrevious)
+                    {
+                        <div class="flex items-start gap-3">
+                            @if (post.Author.IsDeleted)
                             {
-                                <div class="flex flex-col items-start gap-1">
+                                <div class="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                            }
+                            else
+                            {
+                                <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
+                                     alt="@post.Author.DisplayName"
+                                     class="w-8 h-8 rounded-full flex-shrink-0"
+                                     loading="lazy" />
+                            }
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
                                     @if (post.Author.IsDeleted)
                                     {
-                                        <div class="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </div>
-                                        <span class="text-sm italic text-muted">@post.Author.DisplayName</span>
+                                        <span class="text-sm font-semibold italic text-muted">@post.Author.DisplayName</span>
                                     }
                                     else
                                     {
-                                        <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
-                                             alt="@post.Author.DisplayName"
-                                             class="w-10 h-10 rounded-full"
-                                             loading="lazy" />
                                         <a href="/u/@post.Author.PublicId"
-                                           class="text-sm font-medium hover:underline"
+                                           class="text-sm font-semibold hover:underline"
                                            data-popup-type="user"
                                            data-popup-id="@post.Author.PublicId"
                                            data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
                                     }
-                                    <div class="flex flex-wrap gap-1">
-                                        @if (post.Author.Role == "admin")
-                                        {
-                                            <span class="badge badge-error-subtle badge-xs">Admin</span>
-                                        }
-                                        else if (post.Author.Role == "mod")
-                                        {
-                                            <span class="badge badge-info-subtle badge-xs">Mod</span>
-                                        }
-                                        @if (isOP)
-                                        {
-                                            <span class="badge badge-primary-subtle badge-xs">OP</span>
-                                        }
-                                    </div>
+                                    @if (post.Author.Role == "admin")
+                                    {
+                                        <span class="badge badge-error badge-xs">Admin</span>
+                                    }
+                                    else if (post.Author.Role == "mod")
+                                    {
+                                        <span class="badge badge-info badge-xs">Mod</span>
+                                    }
+                                    @if (isOP)
+                                    {
+                                        <span class="badge badge-primary badge-xs">OP</span>
+                                    }
                                 </div>
-                            }
-                            <div class="text-xs text-muted @(!isSameAuthorAsPrevious ? "mt-1" : "")">
+                                <div class="text-xs text-muted">
+                                    @Model.FormatRelativeTime(post.CreatedAt)
+                                    @if (post.EditedAt.HasValue)
+                                    {
+                                        <span class="ml-1">(edited)</span>
+                                    }
+                                </div>
+                            </div>
+                            <!-- Action Buttons -->
+                            <div class="subtle-actions flex items-center gap-1">
+                                @if (!Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                {
+                                    <div class="hidden group-hover:flex items-center gap-1">
+                                    <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
+                                            class="subtle-btn"
+                                            aria-label="Reply to @post.Author.DisplayName">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                        Reply
+                                    </button>
+                                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@post.Author.DisplayName')"
+                                            class="subtle-btn"
+                                            aria-label="Quote post by @post.Author.DisplayName">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                        </svg>
+                                        Quote
+                                    </button>
+                                    </div>
+                                }
+                                @{
+                                    var hasReactions1 = (post.Reactions?.Counts?.ThumbsUp > 0) || (post.Reactions?.Counts?.Heart > 0) || (post.Reactions?.Counts?.Eyes > 0) || (post.Reactions?.Counts?.Crazy > 0);
+                                }
+                                <!-- Reaction counts (clickable to open picker if authenticated) -->
+                                <div class="flex items-center gap-2 text-xs text-muted@(Model.IsAuthenticated && !Model.Discussion.IsLocked ? " cursor-pointer" : "")"
+                                     id="reactions-@post.PublicId"
+                                     data-count-thumbsup="@(post.Reactions?.Counts?.ThumbsUp ?? 0)"
+                                     data-count-heart="@(post.Reactions?.Counts?.Heart ?? 0)"
+                                     data-count-eyes="@(post.Reactions?.Counts?.Eyes ?? 0)"
+                                     data-count-crazy="@(post.Reactions?.Counts?.Crazy ?? 0)"
+                                     data-my-reaction=""
+                                     @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                     {
+                                         <text>onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"</text>
+                                     }
+                                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                                    @if (post.Reactions?.Counts?.ThumbsUp > 0)
+                                    {
+                                        <span data-type="ThumbsUp">👍 @post.Reactions.Counts.ThumbsUp</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Heart > 0)
+                                    {
+                                        <span data-type="Heart">❤️ @post.Reactions.Counts.Heart</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Eyes > 0)
+                                    {
+                                        <span data-type="Eyes">👀 @post.Reactions.Counts.Eyes</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Crazy > 0)
+                                    {
+                                        <span data-type="Crazy">🤯 @post.Reactions.Counts.Crazy</span>
+                                    }
+                                    @if (!hasReactions1 && !Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                    {
+                                        <span class="hidden group-hover:inline" data-reaction-placeholder>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </span>
+                                    }
+                                </div>
+                                <div class="dropdown dropdown-end">
+                                    <button tabindex="0" class="subtle-btn" aria-label="Post options">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                        </svg>
+                                    </button>
+                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
+                                        <li>
+                                            <button hx-get="/api/posts/@post.PublicId/history"
+                                                    hx-target="#history-modal-content"
+                                                    hx-swap="innerHTML"
+                                                    onclick="history_modal.showModal()"
+                                                    class="text-sm">
+                                                History
+                                            </button>
+                                        </li>
+                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
+                                        {
+                                            <li><button onclick="editPost('@post.PublicId', '@Model.CurrentUserId')" class="text-sm">Edit</button></li>
+                                            <li>
+                                                <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
+                                                        hx-target="#post-@post.PublicId"
+                                                        hx-swap="outerHTML"
+                                                        hx-confirm="Are you sure you want to delete this post?"
+                                                        class="text-sm text-error">
+                                                    Delete
+                                                </button>
+                                            </li>
+                                        }
+                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
+                                        {
+                                            <li>
+                                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@post.Author.DisplayName')" class="text-sm">
+                                                    Hide posts from user
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button onclick="openReportModal('post', '@post.PublicId', 'this post')" class="text-sm text-error">
+                                                    Report post
+                                                </button>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="flex items-center gap-2 pl-11">
+                            <span class="text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">
                                 @Model.FormatRelativeTime(post.CreatedAt)
                                 @if (post.EditedAt.HasValue)
                                 {
                                     <span>(edited)</span>
                                 }
+                            </span>
+                            <!-- Action Buttons -->
+                            <div class="subtle-actions flex-1 flex justify-end gap-1">
+                                @if (!Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                {
+                                    <div class="hidden group-hover:flex items-center gap-1">
+                                    <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
+                                            class="subtle-btn"
+                                            aria-label="Reply to @post.Author.DisplayName">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                        Reply
+                                    </button>
+                                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@post.Author.DisplayName')"
+                                            class="subtle-btn"
+                                            aria-label="Quote post by @post.Author.DisplayName">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                        </svg>
+                                        Quote
+                                    </button>
+                                    </div>
+                                }
+                                @{
+                                    var hasReactions2 = (post.Reactions?.Counts?.ThumbsUp > 0) || (post.Reactions?.Counts?.Heart > 0) || (post.Reactions?.Counts?.Eyes > 0) || (post.Reactions?.Counts?.Crazy > 0);
+                                }
+                                <!-- Reaction counts (clickable to open picker if authenticated) -->
+                                <div class="flex items-center gap-2 text-xs text-muted@(Model.IsAuthenticated && !Model.Discussion.IsLocked ? " cursor-pointer" : "")"
+                                     id="reactions-@post.PublicId"
+                                     data-count-thumbsup="@(post.Reactions?.Counts?.ThumbsUp ?? 0)"
+                                     data-count-heart="@(post.Reactions?.Counts?.Heart ?? 0)"
+                                     data-count-eyes="@(post.Reactions?.Counts?.Eyes ?? 0)"
+                                     data-count-crazy="@(post.Reactions?.Counts?.Crazy ?? 0)"
+                                     data-my-reaction=""
+                                     @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                     {
+                                         <text>onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"</text>
+                                     }
+                                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                                    @if (post.Reactions?.Counts?.ThumbsUp > 0)
+                                    {
+                                        <span data-type="ThumbsUp">👍 @post.Reactions.Counts.ThumbsUp</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Heart > 0)
+                                    {
+                                        <span data-type="Heart">❤️ @post.Reactions.Counts.Heart</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Eyes > 0)
+                                    {
+                                        <span data-type="Eyes">👀 @post.Reactions.Counts.Eyes</span>
+                                    }
+                                    @if (post.Reactions?.Counts?.Crazy > 0)
+                                    {
+                                        <span data-type="Crazy">🤯 @post.Reactions.Counts.Crazy</span>
+                                    }
+                                    @if (!hasReactions2 && !Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                    {
+                                        <span class="hidden group-hover:inline" data-reaction-placeholder>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </span>
+                                    }
+                                </div>
+                                <div class="dropdown dropdown-end">
+                                    <button tabindex="0" class="subtle-btn" aria-label="Post options">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                        </svg>
+                                    </button>
+                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
+                                        <li>
+                                            <button hx-get="/api/posts/@post.PublicId/history"
+                                                    hx-target="#history-modal-content"
+                                                    hx-swap="innerHTML"
+                                                    onclick="history_modal.showModal()"
+                                                    class="text-sm">
+                                                History
+                                            </button>
+                                        </li>
+                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
+                                        {
+                                            <li><button onclick="editPost('@post.PublicId', '@Model.CurrentUserId')" class="text-sm">Edit</button></li>
+                                            <li>
+                                                <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
+                                                        hx-target="#post-@post.PublicId"
+                                                        hx-swap="outerHTML"
+                                                        hx-confirm="Are you sure you want to delete this post?"
+                                                        class="text-sm text-error">
+                                                    Delete
+                                                </button>
+                                            </li>
+                                        }
+                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
+                                        {
+                                            <li>
+                                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@post.Author.DisplayName')" class="text-sm">
+                                                    Hide posts from user
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button onclick="openReportModal('post', '@post.PublicId', 'this post')" class="text-sm text-error">
+                                                    Report post
+                                                </button>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
                             </div>
                         </div>
+                    }
 
-                        <!-- Right: Main content area -->
-                        <div class="flex-1 min-w-0">
+                    <div class="pl-11">
                             <!-- Reply-to Quote Block -->
                             @if (hasReplyTo)
                             {
@@ -374,237 +605,14 @@
 
                             <!-- Post Content -->
                             <div id="post-content-@post.PublicId"
-                                 class="prose prose-content"
+                                class="prose prose-content flex flex-col gap-4 leading-6 pr-4"
                                  data-raw-content="@Model.EscapeForHtmlAttribute(post.Content)"
                                  data-author-name="@post.Author.DisplayName">
                                 @Html.Raw(Model.RenderMarkup(post.Content))
                             </div>
 
-                            <!-- Reactions + Actions row -->
-                            <div class="flex items-center gap-4 mt-3">
-                                <!-- Reactions (server-rendered) -->
-                                <div class="reactions-minimal" id="reactions-@post.PublicId">
-                                    @if (post.Reactions?.Counts?.ThumbsUp > 0)
-                                    {
-                                        var isActive = post.Reactions?.UserReaction == "ThumbsUp" ? "active" : "";
-                                        <button type="button" class="reaction-pill @isActive" data-type="ThumbsUp" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction('@post.PublicId', 'ThumbsUp'); return false;">👍 <span class="count">@post.Reactions.Counts.ThumbsUp</span></button>
-                                    }
-                                    @if (post.Reactions?.Counts?.Heart > 0)
-                                    {
-                                        var isActive = post.Reactions?.UserReaction == "Heart" ? "active" : "";
-                                        <button type="button" class="reaction-pill @isActive" data-type="Heart" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction('@post.PublicId', 'Heart'); return false;">❤️ <span class="count">@post.Reactions.Counts.Heart</span></button>
-                                    }
-                                    @if (post.Reactions?.Counts?.Eyes > 0)
-                                    {
-                                        var isActive = post.Reactions?.UserReaction == "Eyes" ? "active" : "";
-                                        <button type="button" class="reaction-pill @isActive" data-type="Eyes" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction('@post.PublicId', 'Eyes'); return false;">👀 <span class="count">@post.Reactions.Counts.Eyes</span></button>
-                                    }
-                                    @if (string.IsNullOrEmpty(post.Reactions?.UserReaction))
-                                    {
-                                        <button type="button"
-                                                class="reaction-pill add-reaction"
-                                                onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"
-                                                title="Add reaction"
-                                                aria-label="Add reaction to post">
-                                            +
-                                        </button>
-                                    }
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="subtle-actions flex-1">
-                                    @if (!Model.Discussion.IsLocked && Model.IsAuthenticated)
-                                    {
-                                        <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
-                                                class="subtle-btn flex items-center gap-1"
-                                                aria-label="Reply to @post.Author.DisplayName">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                            </svg>
-                                            Reply
-                                        </button>
-                                        <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@post.Author.DisplayName')"
-                                                class="subtle-btn flex items-center gap-1"
-                                                aria-label="Quote post by @post.Author.DisplayName">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                            </svg>
-                                            Quote
-                                        </button>
-                                    }
-
-                                    <!-- Right-aligned actions -->
-                                    <div class="ml-auto flex items-center gap-1">
-                                        <button hx-get="/api/posts/@post.PublicId/history"
-                                                hx-target="#history-modal-content"
-                                                hx-swap="innerHTML"
-                                                onclick="history_modal.showModal()"
-                                                class="subtle-btn"
-                                                title="History"
-                                                aria-label="View post edit history">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                                <circle cx="12" cy="12" r="11" fill="transparent" pointer-events="all" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
-                                        {
-                                            <!-- Non-owner actions dropdown -->
-                                            <div class="dropdown dropdown-end">
-                                                <button tabindex="0" class="subtle-btn" aria-label="Post options">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                                                    </svg>
-                                                </button>
-                                                <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-white border border-subtle rounded-lg w-48 z-20">
-                                                    <li>
-                                                        <button onclick="hidePostsFromUser('@post.Author.PublicId', '@post.Author.DisplayName')" class="text-sm">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                                            </svg>
-                                                            Hide posts from user
-                                                        </button>
-                                                    </li>
-                                                    <li>
-                                                        <button onclick="openReportModal('post', '@post.PublicId', 'this post')" class="text-sm text-error">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                                                            </svg>
-                                                            Report post
-                                                        </button>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        }
-                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
-                                        {
-                                            <!-- Owner actions dropdown -->
-                                            <div class="dropdown dropdown-end">
-                                                <button tabindex="0" class="subtle-btn">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                                                    </svg>
-                                                </button>
-                                                <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-white border border-subtle rounded-lg w-36 z-20">
-                                                    <li>
-                                                        <button onclick="editPost('@post.PublicId', '@Model.CurrentUserId')" class="text-sm">
-                                                            Edit
-                                                        </button>
-                                                    </li>
-                                                    <li>
-                                                        <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
-                                                                hx-target="#post-@post.PublicId"
-                                                                hx-swap="outerHTML"
-                                                                hx-confirm="Are you sure you want to delete this post?"
-                                                                class="text-sm text-error">
-                                                            Delete
-                                                        </button>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        </div>
                     </div>
 
-                    @* ==================== OLD LAYOUT - Author on top (commented out) ====================
-                    <!-- Author Block -->
-                    @if (!isSameAuthorAsPrevious)
-                    {
-                        <div class="author-block">
-                            @if (post.Author.IsDeleted)
-                            {
-                                <div class="author-avatar-simple">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="author-avatar-simple">
-                                    <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)" alt="@post.Author.DisplayName" loading="lazy" />
-                                </div>
-                            }
-                            <div class="author-info">
-                                @if (post.Author.IsDeleted)
-                                {
-                                    <span class="author-name italic text-muted">@post.Author.DisplayName</span>
-                                }
-                                else
-                                {
-                                    <a href="/u/@post.Author.PublicId"
-                                       class="author-name hover:underline"
-                                       data-popup-type="user"
-                                       data-popup-id="@post.Author.PublicId"
-                                       data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
-                                }
-                                @if (post.Author.Role == "admin")
-                                {
-                                    <span class="badge badge-subtle badge-xs ml-1">Admin</span>
-                                }
-                                else if (post.Author.Role == "mod")
-                                {
-                                    <span class="badge badge-subtle badge-xs ml-1">Mod</span>
-                                }
-                                @if (isOP)
-                                {
-                                    <span class="badge badge-primary-subtle badge-xs ml-1">OP</span>
-                                }
-                                <div class="post-meta">
-                                    @Model.FormatRelativeTime(post.CreatedAt)
-                                    @if (post.EditedAt.HasValue)
-                                    {
-                                        <span class="ml-1">(edited)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <!-- Continuation: timestamp only -->
-                        <div class="post-meta mb-2">
-                            @Model.FormatRelativeTime(post.CreatedAt)
-                            @if (post.EditedAt.HasValue)
-                            {
-                                <span class="ml-1">(edited)</span>
-                            }
-                        </div>
-                    }
-
-                    <!-- Reply-to Quote Block -->
-                    @if (hasReplyTo)
-                    {
-                        <a href="#post-@post.ReplyTo!.PostId"
-                           class="editorial-quote block mb-4 text-sm"
-                           onclick="highlightPost('@post.ReplyTo!.PostId')">
-                            <span class="quote-author">@post.ReplyTo!.AuthorName wrote:</span>
-                            <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
-                        </a>
-                    }
-
-                    <!-- Post Content -->
-                    <div id="post-content-@post.PublicId"
-                         class="prose prose-content"
-                         data-raw-content="@Model.EscapeForHtmlAttribute(post.Content)"
-                         data-author-name="@post.Author.DisplayName">
-                        @Html.Raw(Model.RenderMarkup(post.Content))
-                    </div>
-
-                    <!-- Reactions -->
-                    <div class="reactions-minimal" id="reactions-@post.PublicId">
-                        <button type="button"
-                                class="reaction-pill add-reaction"
-                                onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"
-                                title="Add reaction">
-                            +
-                        </button>
-                    </div>
-                    ==================== END OLD LAYOUT ==================== *@
                 </article>
 
                 previousAuthorId = post.Author.PublicId;
@@ -618,26 +626,24 @@
                 <div id="loading-indicator" class="hidden">
                     <!-- Skeleton loaders -->
                     <div class="skeleton-post">
-                        <div class="flex gap-6">
-                            <div class="w-32 flex-shrink-0">
-                                <div class="skeleton skeleton-avatar"></div>
-                            </div>
+                        <div class="flex items-start gap-3">
+                            <div class="skeleton w-8 h-8 rounded-full flex-shrink-0"></div>
                             <div class="flex-1">
                                 <div class="skeleton skeleton-line skeleton-width-30"></div>
-                                <div class="skeleton skeleton-line"></div>
+                                <div class="skeleton skeleton-line skeleton-width-20 mt-1"></div>
+                                <div class="skeleton skeleton-line mt-3"></div>
                                 <div class="skeleton skeleton-line"></div>
                                 <div class="skeleton skeleton-line short"></div>
                             </div>
                         </div>
                     </div>
                     <div class="skeleton-post">
-                        <div class="flex gap-6">
-                            <div class="w-32 flex-shrink-0">
-                                <div class="skeleton skeleton-avatar"></div>
-                            </div>
+                        <div class="flex items-start gap-3">
+                            <div class="skeleton w-8 h-8 rounded-full flex-shrink-0"></div>
                             <div class="flex-1">
                                 <div class="skeleton skeleton-line skeleton-width-25"></div>
-                                <div class="skeleton skeleton-line"></div>
+                                <div class="skeleton skeleton-line skeleton-width-20 mt-1"></div>
+                                <div class="skeleton skeleton-line mt-3"></div>
                                 <div class="skeleton skeleton-line short"></div>
                             </div>
                         </div>
@@ -697,12 +703,12 @@
     </div>
 
     <!-- Typing Indicator -->
-    <div id="typing-indicator" class="hidden max-w-6xl mx-auto mt-4">
-        <div class="typing-indicator-subtle">
-            <div class="typing-dots-subtle">
-                <div class="typing-dot-subtle"></div>
-                <div class="typing-dot-subtle"></div>
-                <div class="typing-dot-subtle"></div>
+    <div id="typing-indicator" class="hidden mt-4">
+        <div class="typing-indicator">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
             </div>
             <span id="typing-users">Someone is typing...</span>
         </div>
@@ -711,7 +717,7 @@
     <!-- Reply Form -->
     @if (Model.Discussion.IsLocked)
     {
-        <div class="max-w-6xl mx-auto mt-8">
+        <div class="mt-8">
             <div class="clean-card p-6 text-center">
                 <h3 class="font-semibold mb-1">Discussion Locked</h3>
                 <p class="text-sm text-muted">This discussion has been locked. No new replies can be added.</p>
@@ -720,7 +726,7 @@
     }
     else if (!Model.IsAuthenticated)
     {
-        <div class="max-w-6xl mx-auto mt-8">
+        <div class="mt-8">
             <div class="clean-card p-6 text-center">
                 <h3 class="font-semibold mb-1">Join the conversation</h3>
                 <p class="text-sm text-muted mb-4">Log in to reply to this discussion.</p>
@@ -736,7 +742,7 @@
     }
     else
     {
-        <div id="reply-form-container" class="max-w-6xl mx-auto mt-8">
+        <div id="reply-form-container" class="mt-8">
             <!-- Reply context indicator -->
             <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
                 <span class="text-sm text-muted">
@@ -796,6 +802,97 @@
             </div>
         </div>
     }
+
+    </div> <!-- End left column -->
+
+    <!-- Right Column: Sidebar -->
+    <aside id="sidebar" class="w-full lg:w-80 flex-shrink-0">
+        <!-- Space Info -->
+        @if (Model.Space != null)
+        {
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">About this Space</h3>
+                @if (!string.IsNullOrEmpty(Model.Space.Description))
+                {
+                    <p class="text-sm text-base-content/70 mb-3">@Model.Space.Description</p>
+                }
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.Space.DiscussionCount)</div>
+                        <div class="text-xs text-base-content/50">Discussions</div>
+                    </div>
+                    <div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.Space.ReplyCount)</div>
+                        <div class="text-xs text-base-content/50">Replies</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Rules -->
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Rules</h3>
+
+            @{
+                var spaceRules = new[]
+                {
+                    new { Title = "Be respectful", Content = "Treat all community members with respect. No harassment, hate speech, or personal attacks." },
+                    new { Title = "Stay on topic", Content = "Keep discussions relevant to this space. Off-topic posts may be moved or removed." },
+                    new { Title = "No spam", Content = "Do not post spam, excessive self-promotion, or unsolicited advertising." }
+                };
+            }
+
+            @foreach (var (rule, index) in spaceRules.Select((r, i) => (r, i)))
+            {
+                <details class="group">
+                    <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
+                        <span>@(index + 1). @rule.Title</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                             class="flex-shrink-0 transition-transform group-open:rotate-180">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </summary>
+                    <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Content</p>
+                </details>
+            }
+
+            <div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
+                @if (Model.Hub != null)
+                {
+                    <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)/rules"
+                       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                        <span>Hub Rules</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                {
+                    <a href="/c/@Model.Community.CommunitySlug/rules"
+                       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                        <span>Community Rules</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
+                }
+                <a href="/rules"
+                   class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+                    <span>Site Rules</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </aside>
+    </div> <!-- End flex row -->
+    </div> <!-- End max-w wrapper -->
 }
 else
 {
@@ -885,11 +982,12 @@ else
 </dialog>
 
 <!-- Reaction Picker -->
-<div id="reaction-picker" class="hidden fixed z-50 bg-white border border-subtle rounded-lg shadow-lg p-2">
+<div id="reaction-picker" class="hidden fixed z-50 bg-base-100 border border-subtle rounded-lg shadow-lg p-2" data-post-id="">
     <div class="flex gap-1">
-        <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction(currentReactionPostId, 'ThumbsUp'); return false;" class="reaction-pill" title="Thumbs Up">👍</button>
-        <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction(currentReactionPostId, 'Heart'); return false;" class="reaction-pill" title="Heart">❤️</button>
-        <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleReaction(currentReactionPostId, 'Eyes'); return false;" class="reaction-pill" title="Eyes">👀</button>
+        <button type="button" class="reaction-pill" data-reaction-type="ThumbsUp" title="Thumbs Up">👍</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Heart" title="Heart">❤️</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Eyes" title="Eyes">👀</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Crazy" title="Crazy">🤯</button>
     </div>
 </div>
 

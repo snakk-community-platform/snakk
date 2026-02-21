@@ -40,7 +40,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Name,
                 c.Slug,
                 c.Description,
-                ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
+                c.VisibilityId,
                 c.ExposeToPlatformFeed,
                 c.CreatedAt))
             .ToListAsync();
@@ -70,7 +70,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Name,
                 c.Slug,
                 c.Description,
-                ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
+                c.VisibilityId,
                 c.ExposeToPlatformFeed,
                 c.CreatedAt))
             .ToListAsync();

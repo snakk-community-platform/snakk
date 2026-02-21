@@ -58,7 +58,8 @@ public static class ReactionEndpoints
         {
             thumbsUp = counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
             heart = counts.GetValueOrDefault(ReactionType.Heart, 0),
-            eyes = counts.GetValueOrDefault(ReactionType.Eyes, 0)
+            eyes = counts.GetValueOrDefault(ReactionType.Eyes, 0),
+            crazy = counts.GetValueOrDefault(ReactionType.Crazy, 0)
         });
     }
 

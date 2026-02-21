@@ -275,7 +275,8 @@ public static class DiscussionEndpoints
                     {
                         thumbsUp = p.ReactionCounts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
                         heart = p.ReactionCounts.GetValueOrDefault(ReactionType.Heart, 0),
-                        eyes = p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0)
+                        eyes = p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0),
+                        crazy = p.ReactionCounts.GetValueOrDefault(ReactionType.Crazy, 0)
                     },
                     userReaction = p.UserReaction?.ToString()
                 }

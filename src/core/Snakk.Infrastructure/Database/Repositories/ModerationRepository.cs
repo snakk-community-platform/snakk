@@ -593,45 +593,45 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .FirstOrDefaultAsync();
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, int? statusId, int offset, int pageSize)
     {
         var query = _context.Reports.AsNoTracking()
             .Where(r => r.Community != null && r.Community.PublicId == communityPublicId);
 
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, int? statusId, int offset, int pageSize)
     {
         var query = _context.Reports.AsNoTracking()
             .Where(r => (r.Hub != null && r.Hub.PublicId == hubPublicId) ||
                         (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
 
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, int? statusId, int offset, int pageSize)
     {
         var query = _context.Reports.AsNoTracking()
             .Where(r => r.Space != null && r.Space.PublicId == spacePublicId);
 
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(r => r.StatusId == (int)Enum.Parse<ReportStatusEnum>(status, true));
+        if (statusId.HasValue)
+            query = query.Where(r => r.StatusId == statusId.Value);
 
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(string moderatorPublicId, string? status, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(string moderatorPublicId, int? statusId, int offset, int pageSize)
     {
         // Get moderator's roles
         var roles = await GetActiveRolesForUserAsync(moderatorPublicId);
-        
+
         if (!roles.Any())
             return new PagedResult<ReportListDto> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
@@ -647,18 +647,18 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         }).First();
 
         if (!string.IsNullOrEmpty(highestRole.CommunityPublicId))
-            return await GetReportsForCommunityAsync(highestRole.CommunityPublicId, status, offset, pageSize);
+            return await GetReportsForCommunityAsync(highestRole.CommunityPublicId, statusId, offset, pageSize);
         if (!string.IsNullOrEmpty(highestRole.HubPublicId))
-            return await GetReportsForHubAsync(highestRole.HubPublicId, status, offset, pageSize);
+            return await GetReportsForHubAsync(highestRole.HubPublicId, statusId, offset, pageSize);
         if (!string.IsNullOrEmpty(highestRole.SpacePublicId))
-            return await GetReportsForSpaceAsync(highestRole.SpacePublicId, status, offset, pageSize);
+            return await GetReportsForSpaceAsync(highestRole.SpacePublicId, statusId, offset, pageSize);
 
         return new PagedResult<ReportListDto> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
     }
 
     public async Task<int> GetPendingReportCountForModeratorAsync(string moderatorPublicId)
     {
-        var reports = await GetReportsForModeratorAsync(moderatorPublicId, "Pending", 0, 1000);
+        var reports = await GetReportsForModeratorAsync(moderatorPublicId, (int)ReportStatusEnum.Pending, 0, 1000);
         return reports.Items.Count();
     }
 

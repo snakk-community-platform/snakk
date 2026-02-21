@@ -4,6 +4,7 @@ using Snakk.Api.Models;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 using System.Security.Claims;
 
 public static class ModerationEndpoints
@@ -246,8 +247,10 @@ public static class ModerationEndpoints
         if (moderatorUserId == null)
             return Results.Unauthorized();
 
+        var statusId = ParseReportStatus(status);
+
         var result = await moderationUseCase.GetReportsForModeratorAsync(
-            moderatorUserId, status, offset, pageSize);
+            moderatorUserId, statusId, offset, pageSize);
 
         return Results.Ok(new
         {
@@ -460,4 +463,12 @@ public static class ModerationEndpoints
 
         return httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
+
+    private static int? ParseReportStatus(string? status) => status?.ToLowerInvariant() switch
+    {
+        "pending" => (int)ReportStatusEnum.Pending,
+        "resolved" => (int)ReportStatusEnum.Resolved,
+        "dismissed" => (int)ReportStatusEnum.Dismissed,
+        _ => null
+    };
 }

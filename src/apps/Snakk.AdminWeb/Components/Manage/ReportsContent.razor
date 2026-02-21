@@ -1,0 +1,99 @@
+@inject AdminApiClientService ApiService
+
+<FluentCard>
+    <FluentStack Orientation="Orientation.Horizontal" Style="justify-content: space-between;">
+        <h2>Reports</h2>
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentSelect @bind-Value="_statusFilter" TOption="string" Style="min-width: 150px;">
+                <FluentOption Value="@("all")">All Status</FluentOption>
+                <FluentOption Value="@("open")">Open</FluentOption>
+                <FluentOption Value="@("resolved")">Resolved</FluentOption>
+                <FluentOption Value="@("dismissed")">Dismissed</FluentOption>
+            </FluentSelect>
+        </FluentStack>
+    </FluentStack>
+</FluentCard>
+
+<FluentCard Style="margin-top: 16px;">
+    @if (_loading)
+    {
+        <FluentProgressRing />
+    }
+    else if (_reports.Count == 0)
+    {
+        <FluentCard>
+            <p>No reports found for this scope.</p>
+        </FluentCard>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_reports.AsQueryable()" Style="width: 100%;">
+            <PropertyColumn Property="@(x => x.TargetType)" Title="Type" />
+            <PropertyColumn Property="@(x => x.Reason)" Title="Reason" />
+            <PropertyColumn Property="@(x => x.ReporterName)" Title="Reported By" />
+            <PropertyColumn Property="@(x => x.Status)" Title="Status" />
+            <PropertyColumn Property="@(x => x.CreatedAt)" Title="When" Format="g" />
+            <TemplateColumn Title="Actions">
+                <FluentStack Orientation="Orientation.Horizontal">
+                    @if (context.Status == "Open")
+                    {
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Accent"
+                                      OnClick="@(() => ResolveReport(context.Id))">
+                            Resolve
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Lightweight"
+                                      OnClick="@(() => DismissReport(context.Id))">
+                            Dismiss
+                        </FluentButton>
+                    }
+                </FluentStack>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</FluentCard>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private string _statusFilter = "all";
+    private bool _loading = true;
+    private List<ReportItem> _reports = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        await LoadReports();
+    }
+
+    private async Task LoadReports()
+    {
+        _loading = true;
+        // TODO: Load reports from API with scope filtering
+        _reports = new();
+        _loading = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task ResolveReport(string reportId)
+    {
+        // TODO: Call API to resolve report
+        await LoadReports();
+    }
+
+    private async Task DismissReport(string reportId)
+    {
+        // TODO: Call API to dismiss report
+        await LoadReports();
+    }
+
+    private class ReportItem
+    {
+        public string Id { get; set; } = "";
+        public string TargetType { get; set; } = "";
+        public string Reason { get; set; } = "";
+        public string ReporterName { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

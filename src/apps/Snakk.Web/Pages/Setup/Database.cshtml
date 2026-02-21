@@ -1,0 +1,76 @@
+@page
+@model Snakk.Web.Pages.Setup.DatabaseModel
+
+<h2 class="text-xl font-semibold mb-4">Database Connection</h2>
+<p class="text-base-content/70 mb-6">Enter your PostgreSQL database credentials. The database will be created if it doesn't exist.</p>
+
+<form method="post" id="db-form" class="space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+        <div class="form-control">
+            <label class="label"><span class="label-text">Host</span></label>
+            <input type="text" asp-for="DbHost" class="input input-bordered" placeholder="localhost" />
+            <span asp-validation-for="DbHost" class="text-error text-sm"></span>
+        </div>
+        <div class="form-control">
+            <label class="label"><span class="label-text">Port</span></label>
+            <input type="number" asp-for="DbPort" class="input input-bordered" placeholder="5432" />
+        </div>
+    </div>
+
+    <div class="form-control">
+        <label class="label"><span class="label-text">Database Name</span></label>
+        <input type="text" asp-for="DbName" class="input input-bordered" placeholder="snakk" />
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div class="form-control">
+            <label class="label"><span class="label-text">Username</span></label>
+            <input type="text" asp-for="DbUsername" class="input input-bordered" placeholder="snakk" />
+        </div>
+        <div class="form-control">
+            <label class="label"><span class="label-text">Password</span></label>
+            <input type="password" asp-for="DbPassword" class="input input-bordered" />
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button type="button" onclick="testConnection()" class="btn btn-outline btn-sm">Test Connection</button>
+        <span id="test-result" class="text-sm"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="flex justify-between">
+        <a asp-page="Index" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>
+
+<script>
+    async function testConnection() {
+        const resultEl = document.getElementById('test-result');
+        resultEl.textContent = 'Testing...';
+        resultEl.className = 'text-sm text-info';
+
+        const form = document.getElementById('db-form');
+        const formData = new FormData(form);
+
+        try {
+            const res = await fetch('/setup/database?handler=TestConnection', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                resultEl.textContent = 'Connection successful!';
+                resultEl.className = 'text-sm text-success';
+            } else {
+                resultEl.textContent = 'Failed: ' + data.error;
+                resultEl.className = 'text-sm text-error';
+            }
+        } catch (e) {
+            resultEl.textContent = 'Error: ' + e.message;
+            resultEl.className = 'text-sm text-error';
+        }
+    }
+</script>

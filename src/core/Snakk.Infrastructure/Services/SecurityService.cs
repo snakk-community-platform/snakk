@@ -205,7 +205,7 @@ public class SecurityService : ISecurityService
             ipAddress: ipAddress,
             userAgent: userAgent,
             success: true,
-            severity: "Info");
+            severity: AuditLogSeverityEnum.Info);
 
         return new UserDataExportDto
         {
@@ -224,7 +224,7 @@ public class SecurityService : ISecurityService
         string? ipAddress = null,
         string? userAgent = null,
         bool success = true,
-        string severity = "Info")
+        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info)
     {
         int? actorUserIdInt = null;
         if (!string.IsNullOrEmpty(actorUserId))
@@ -238,18 +238,6 @@ public class SecurityService : ISecurityService
                 actorUserIdInt = actorUser;
         }
 
-        // Parse severity from enum
-        int severityId;
-        try
-        {
-            severityId = (int)Enum.Parse<AuditLogSeverityEnum>(severity, true);
-        }
-        catch
-        {
-            // Default to Info if severity not found
-            severityId = (int)AuditLogSeverityEnum.Info;
-        }
-
         var auditLog = new AuditLogDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString("N"),
@@ -261,7 +249,7 @@ public class SecurityService : ISecurityService
             Details = details,
             IpAddress = ipAddress,
             Success = success,
-            SeverityId = severityId,
+            SeverityId = (int)severity,
             CreatedAt = DateTime.UtcNow
         };
 

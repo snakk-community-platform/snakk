@@ -13,9 +13,9 @@ public interface IReportRepository : IGenericDatabaseRepository<ReportDatabaseEn
     /// Get reports by status for moderator queue
     /// Reports bubble up: space mods see space reports, hub mods see hub + space reports, etc.
     /// </summary>
-    Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(int communityId, string? status, int offset, int pageSize);
-    Task<PagedResult<ReportListDto>> GetReportsForHubAsync(int hubId, string? status, int offset, int pageSize);
-    Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(int spaceId, string? status, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(int communityId, int? statusId, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForHubAsync(int hubId, int? statusId, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(int spaceId, int? statusId, int offset, int pageSize);
     
     /// <summary>
     /// Get all pending reports visible to a moderator

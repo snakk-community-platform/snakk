@@ -3,17 +3,6 @@
 // ============================================
 
 .post-article {
-    padding: 1.5rem 0;
-    border-bottom: 1px solid var(--border-primary);
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &.first-post {
-        padding-top: 0;
-    }
-
     &.moderator-post {
         background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
         border-left: 3px solid rgba(59, 130, 246, 0.3);

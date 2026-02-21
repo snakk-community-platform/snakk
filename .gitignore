@@ -89,3 +89,4 @@ secrets.json
 # Temp/error files
 nul
 hubs
+/CLAUDE.md

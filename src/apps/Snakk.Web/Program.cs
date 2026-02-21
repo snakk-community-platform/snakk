@@ -6,10 +6,16 @@ using Snakk.Application.Services;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
-using WebOptimizer;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load shared production config (written by setup wizard)
+var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
+builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
 // Configure Kestrel for HTTP/2 and Server Push
 builder.WebHost.ConfigureKestrel(options =>
@@ -90,6 +96,56 @@ builder.Services.AddHttpClient("InternalApi", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Setup wizard service (scoped — uses IConfiguration)
+builder.Services.AddScoped<SetupService>();
+
+// Session for setup wizard state
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// JWT-based authentication from SSO service
+// During first-run setup, Jwt:SecretKey is not configured yet — use a placeholder.
+// SetupMiddleware blocks all non-setup requests, so the placeholder key is never used for real auth.
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
+    ?? "SETUP_NOT_COMPLETE_PLACEHOLDER_KEY_MINIMUM_32_CHARS_LONG_FOR_HMAC256";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Snakk";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Snakk";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+        };
+
+        // Read JWT from cookie instead of Authorization header
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Cookies[".Snakk.Auth"];
+                if (!string.IsNullOrEmpty(token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -121,12 +177,13 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
-// Serve avatars from configured storage path
+// Serve avatars from configured storage path (ensure directory exists for first-run)
 var storagePath = Path.Combine(
     builder.Configuration["FileStorage:BasePath"] ?? "storage",
     "avatars"
 );
 var avatarsPath = Path.GetFullPath(storagePath);
+Directory.CreateDirectory(avatarsPath);
 
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -149,12 +206,22 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// Session (required by setup wizard for state management)
+app.UseSession();
+
+// First-run setup wizard — redirects to /setup if not configured
+app.UseMiddleware<SetupMiddleware>();
+
 // Resolve community from URL (must be before routing)
 app.UseCommunityResolution();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Redirect unauthenticated users to SSO login for protected actions
+app.UseAuthRedirect();
 
 app.MapRazorPages();
 

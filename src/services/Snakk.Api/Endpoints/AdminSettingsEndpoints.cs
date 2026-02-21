@@ -3,6 +3,7 @@ namespace Snakk.Api.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 using Snakk.Application.DTOs.Settings;
 using Snakk.Application.Services;
+using Snakk.Shared.Enums;
 using System.Security.Claims;
 
 public static class AdminSettingsEndpoints
@@ -89,7 +90,7 @@ public static class AdminSettingsEndpoints
                 targetType: "Settings",
                 targetId: "General",
                 details: "Updated general site settings",
-                severity: "Info");
+                severity: AuditLogSeverityEnum.Info);
 
             return Results.Ok(siteInfo);
         }
@@ -134,7 +135,7 @@ public static class AdminSettingsEndpoints
                 targetType: "OAuthProvider",
                 targetId: provider,
                 details: $"{provider} OAuth provider {(request.Enabled ? "enabled" : "disabled")}",
-                severity: "Info");
+                severity: AuditLogSeverityEnum.Info);
 
             return Results.Ok(new { provider, enabled = request.Enabled });
         }
@@ -174,7 +175,7 @@ public static class AdminSettingsEndpoints
                 targetType: "Settings",
                 targetId: "Email",
                 details: "Updated email configuration",
-                severity: "Info");
+                severity: AuditLogSeverityEnum.Info);
 
             return Results.Ok(config);
         }
@@ -233,7 +234,7 @@ public static class AdminSettingsEndpoints
                 targetType: "Settings",
                 targetId: "Avatar",
                 details: "Updated avatar settings",
-                severity: "Info");
+                severity: AuditLogSeverityEnum.Info);
 
             return Results.Ok(settings);
         }
@@ -273,7 +274,7 @@ public static class AdminSettingsEndpoints
                 targetType: "Settings",
                 targetId: "Content",
                 details: "Updated content settings",
-                severity: "Info");
+                severity: AuditLogSeverityEnum.Info);
 
             return Results.Ok(settings);
         }
@@ -313,7 +314,7 @@ public static class AdminSettingsEndpoints
                 targetType: "Settings",
                 targetId: "RateLimiting",
                 details: "Updated rate limiting settings",
-                severity: "Warning"); // Warning because it affects security
+                severity: AuditLogSeverityEnum.Warning); // Warning because it affects security
 
             return Results.Ok(settings);
         }

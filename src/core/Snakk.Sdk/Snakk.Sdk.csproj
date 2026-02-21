@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,9 +25,7 @@
   <!-- Auto-generate SDK client from OpenAPI spec -->
   <Target Name="GenerateClient" BeforeTargets="CoreCompile" Inputs="openapi.json;nswag.json" Outputs="Generated\SnakkApiClient.cs">
     <Message Text="Generating Snakk SDK client from openapi.json..." Importance="high" />
-    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          ContinueOnError="false" />
+    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)" WorkingDirectory="$(MSBuildProjectDirectory)" ContinueOnError="false" />
   </Target>
 
   <!-- .NET SDK automatically includes all .cs files, so no need to explicitly include Generated files -->

@@ -1,0 +1,33 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/node_modules/
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+
+# Tests and dev orchestration (not needed in production)
+src/tests/
+src/aspire/
+
+# Documentation
+docs/
+CLAUDE.md
+
+# Development-only config
+**/*.Development.json
+**/launchSettings.json
+
+# Local storage
+storage/
+
+# Misc
+*.bak
+api-debug-*.txt

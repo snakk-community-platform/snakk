@@ -1,0 +1,69 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<FluentLayout>
+    <FluentHeader Style="background-color: var(--neutral-layer-2);">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Left">
+            <FluentLabel Typo="Typography.H4" Style="margin: 0; padding: 0 16px;">Snakk Admin</FluentLabel>
+        </FluentStack>
+        <FluentSpacer />
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
+            <AuthorizeView>
+                <Authorized>
+                    <FluentLabel>@context.User.Identity?.Name</FluentLabel>
+                    <FluentButton Appearance="Appearance.Lightweight" OnClick="@Logout">Logout</FluentButton>
+                </Authorized>
+            </AuthorizeView>
+        </FluentStack>
+    </FluentHeader>
+
+    <FluentStack Orientation="Orientation.Horizontal" Width="100%" Style="height: calc(100vh - 50px);">
+        <AuthorizeView>
+            <Authorized>
+                <FluentNavMenu Width="250" Collapsible="true" Style="height: 100%;">
+                    <FluentNavLink Href="/" Icon="@(new Icons.Regular.Size24.Home())" Match="NavLinkMatch.All">
+                        Dashboard
+                    </FluentNavLink>
+
+                    <FluentNavGroup Label="Content Management" Icon="@(new Icons.Regular.Size20.Folder())">
+                        <FluentNavLink Href="/communities" Icon="@(new Icons.Regular.Size20.People())">
+                            Communities
+                        </FluentNavLink>
+                        <FluentNavLink Href="/hubs" Icon="@(new Icons.Regular.Size20.Grid())">
+                            Hubs
+                        </FluentNavLink>
+                        <FluentNavLink Href="/spaces" Icon="@(new Icons.Regular.Size20.ChatBubblesQuestion())">
+                            Spaces
+                        </FluentNavLink>
+                    </FluentNavGroup>
+
+                    <FluentNavGroup Label="User Management" Icon="@(new Icons.Regular.Size20.PeopleTeam())">
+                        <FluentNavLink Href="/users" Icon="@(new Icons.Regular.Size20.Person())">
+                            Users
+                        </FluentNavLink>
+                    </FluentNavGroup>
+
+                    <FluentNavGroup Label="Moderation" Icon="@(new Icons.Regular.Size20.Shield())">
+                        <FluentNavLink Href="/moderation/reports" Icon="@(new Icons.Regular.Size20.Warning())">
+                            Reports
+                        </FluentNavLink>
+                    </FluentNavGroup>
+                </FluentNavMenu>
+            </Authorized>
+        </AuthorizeView>
+
+        <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="padding: 16px; overflow-y: auto;">
+            <FluentMessageBarProvider />
+
+            @Body
+        </FluentStack>
+    </FluentStack>
+</FluentLayout>
+
+@code {
+    private async Task Logout()
+    {
+        Navigation.NavigateTo("/Auth/Logout", true);
+    }
+}

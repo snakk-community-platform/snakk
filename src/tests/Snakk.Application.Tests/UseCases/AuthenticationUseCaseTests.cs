@@ -538,7 +538,7 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync(user);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true);
+        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -558,7 +558,7 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync(user);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: null);
+        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: null, autoFollowOnReply: null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -575,7 +575,7 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true);
+        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
         result.IsSuccess.Should().BeFalse();

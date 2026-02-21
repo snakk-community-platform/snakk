@@ -333,6 +333,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.ISecurityService, Infrastructure.Services.SecurityService>();
         services.AddScoped<Application.Services.ISettingsService, Infrastructure.Services.SettingsService>();
         services.AddScoped<Application.Services.IPermissionService, Infrastructure.Services.PermissionService>();
+        services.AddScoped<Application.Services.IManagePermissionService, Infrastructure.Services.ManagePermissionService>();
         services.AddScoped<Application.Services.IAuthorizationService, Infrastructure.Services.AuthorizationService>();
 
         // Session Management

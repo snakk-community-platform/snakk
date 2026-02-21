@@ -1,20 +1,13 @@
 namespace Snakk.Web.Services;
 
 /// <summary>
-/// HTTP message handler that forwards authentication cookies from the incoming
-/// browser request to outgoing API requests.
+/// HTTP message handler that forwards JWT authentication from SSO cookie to outgoing API requests.
+/// Reads the ".Snakk.Auth" cookie and adds it as a Bearer token in the Authorization header.
 /// </summary>
 public class CookieForwardingHandler(IHttpContextAccessor httpContextAccessor) : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-
-    // Cookie names that might be used by ASP.NET Core authentication
-    private static readonly string[] AuthCookieNames =
-    [
-        ".AspNetCore.Cookies",           // Default for scheme "Cookies"
-        ".AspNetCore.Application",       // Default application cookie
-        ".AspNetCore.Identity.Application" // Identity cookie
-    ];
+    private const string AuthCookieName = ".Snakk.Auth";
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -24,36 +17,13 @@ public class CookieForwardingHandler(IHttpContextAccessor httpContextAccessor) :
 
         if (httpContext != null)
         {
-            // Forward Authorization header (JWT token from localStorage)
-            if (httpContext.Request.Headers.TryGetValue("Authorization", out var authHeader))
-            {
-                request.Headers.TryAddWithoutValidation("Authorization", authHeader.ToString());
-            }
+            // Read JWT from SSO cookie
+            var token = httpContext.Request.Cookies[AuthCookieName];
 
-            // Collect all cookies to forward
-            var cookiesToForward = new List<string>();
-
-            // Forward known auth cookies
-            foreach (var cookieName in AuthCookieNames)
+            if (!string.IsNullOrEmpty(token))
             {
-                if (httpContext.Request.Cookies.TryGetValue(cookieName, out var cookieValue))
-                {
-                    cookiesToForward.Add($"{cookieName}={cookieValue}");
-                }
-            }
-
-            // Also forward any cookies that look like auth cookies (start with .AspNetCore)
-            foreach (var cookie in httpContext.Request.Cookies)
-            {
-                if (cookie.Key.StartsWith(".AspNetCore") && !AuthCookieNames.Contains(cookie.Key))
-                {
-                    cookiesToForward.Add($"{cookie.Key}={cookie.Value}");
-                }
-            }
-
-            if (cookiesToForward.Count > 0)
-            {
-                request.Headers.Add("Cookie", string.Join("; ", cookiesToForward));
+                // Add JWT as Bearer token to Authorization header
+                request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {token}");
             }
         }
 

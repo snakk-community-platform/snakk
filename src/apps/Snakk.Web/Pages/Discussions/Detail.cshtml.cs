@@ -15,6 +15,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
     public PagedResult<PostDto>? Posts { get; set; }
     public HubDetailDto? Hub { get; set; }
     public SpaceDetailDto? Space { get; set; }
+    public CommunityDetailDto? CommunityDetail { get; set; }
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
     public string SlugWithId { get; set; } = string.Empty;
@@ -99,13 +100,17 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
                 // If no unread or calculation failed, fall through to normal rendering
             }
 
-            // Load hub, space, discussion, and posts
+            // Load hub, space, community, discussion, and posts
             var hubTask = _apiClient.GetHubBySlugAsync(hubSlug);
             var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug);
-            await Task.WhenAll(hubTask, spaceTask);
+            var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
+                ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
+                : Task.FromResult<CommunityDetailDto?>(null);
+            await Task.WhenAll(hubTask, spaceTask, communityTask);
 
             Hub = hubTask.Result;
             Space = spaceTask.Result;
+            CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
             Discussion = await _apiClient.GetDiscussionAsync(PublicId);
             if (Discussion == null)

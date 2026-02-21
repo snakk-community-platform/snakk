@@ -195,7 +195,7 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
-    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll)
+    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll, bool? autoFollowOnReply)
     {
         var user = await _userRepository.GetByPublicIdAsync(userId);
         if (user == null)
@@ -203,6 +203,9 @@ public class AuthenticationUseCase(
 
         if (preferEndlessScroll.HasValue)
             user.SetPreferEndlessScroll(preferEndlessScroll.Value);
+
+        if (autoFollowOnReply.HasValue)
+            user.SetAutoFollowOnReply(autoFollowOnReply.Value);
 
         await _userRepository.UpdateAsync(user);
 

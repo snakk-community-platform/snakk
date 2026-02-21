@@ -11,6 +11,7 @@ public class PostUseCase(
     IPostRepository postRepository,
     IDiscussionRepository discussionRepository,
     IUserRepository userRepository,
+    IFollowRepository followRepository,
     IDomainEventDispatcher eventDispatcher,
     IRealtimeNotifier realtimeNotifier,
     ICounterService counterService,
@@ -19,6 +20,7 @@ public class PostUseCase(
     private readonly IPostRepository _postRepository = postRepository;
     private readonly IDiscussionRepository _discussionRepository = discussionRepository;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IFollowRepository _followRepository = followRepository;
     private readonly IDomainEventDispatcher _eventDispatcher = eventDispatcher;
     private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
     private readonly ICounterService _counterService = counterService;
@@ -54,6 +56,17 @@ public class PostUseCase(
 
         // Create post
         var post = Post.Create(discussionId, userId, content, replyToPostId: replyToPostId);
+
+        // Auto-follow discussion if user has the preference enabled
+        if (user.AutoFollowOnReply)
+        {
+            var existingFollow = await _followRepository.GetByUserAndDiscussionAsync(userId, discussionId);
+            if (existingFollow == null)
+            {
+                var follow = Follow.CreateForDiscussion(userId, discussionId);
+                await _followRepository.AddAsync(follow);
+            }
+        }
 
         // Update discussion activity
         discussion.UpdateActivity();
@@ -285,7 +298,7 @@ public class PostUseCase(
                 ? replyToPosts[p.ReplyToPostId.Value]
                 : null,
             ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
-            UserReaction: userReactions.GetValueOrDefault(p.PublicId.Value)
+            UserReaction: userReactions.TryGetValue(p.PublicId.Value, out var ur) ? ur : null
         )).ToList();
 
         return Result<EnrichedPostsResult>.Success(new EnrichedPostsResult(

@@ -53,10 +53,10 @@ public interface IModerationRepository
     
     Task<ReportDto?> GetReportByPublicIdAsync(string publicId);
     Task<ReportDetailDto?> GetReportDetailByPublicIdAsync(string publicId);
-    Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, string? status, int offset, int pageSize);
-    Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, string? status, int offset, int pageSize);
-    Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, string? status, int offset, int pageSize);
-    Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(string moderatorPublicId, string? status, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, int? statusId, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, int? statusId, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, int? statusId, int offset, int pageSize);
+    Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(string moderatorPublicId, int? statusId, int offset, int pageSize);
     Task<int> GetPendingReportCountForModeratorAsync(string moderatorPublicId);
     
     Task<ReportDto> CreateReportAsync(

@@ -7,5 +7,6 @@ public enum ReactionTypeEnum
 {
     ThumbsUp = 1,   // 👍
     Heart = 2,      // ❤️
-    Eyes = 3        // 👀
+    Eyes = 3,       // 👀
+    Crazy = 4       // 🤯
 }

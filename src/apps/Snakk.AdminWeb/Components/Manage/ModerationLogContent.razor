@@ -1,0 +1,70 @@
+@inject AdminApiClientService ApiService
+
+<FluentCard>
+    <FluentStack Orientation="Orientation.Horizontal" Style="justify-content: space-between;">
+        <h2>Moderation Log</h2>
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentSelect @bind-Value="_actionFilter" TOption="string" Style="min-width: 150px;">
+                <FluentOption Value="@("all")">All Actions</FluentOption>
+                <FluentOption Value="@("DeletePost")">Delete Post</FluentOption>
+                <FluentOption Value="@("DeleteDiscussion")">Delete Discussion</FluentOption>
+                <FluentOption Value="@("BanUser")">Ban User</FluentOption>
+                <FluentOption Value="@("UnbanUser")">Unban User</FluentOption>
+                <FluentOption Value="@("LockDiscussion")">Lock Discussion</FluentOption>
+                <FluentOption Value="@("ResolveReport")">Resolve Report</FluentOption>
+                <FluentOption Value="@("DismissReport")">Dismiss Report</FluentOption>
+                <FluentOption Value="@("AssignRole")">Assign Role</FluentOption>
+                <FluentOption Value="@("RevokeRole")">Revoke Role</FluentOption>
+            </FluentSelect>
+        </FluentStack>
+    </FluentStack>
+</FluentCard>
+
+<FluentCard Style="margin-top: 16px;">
+    @if (_loading)
+    {
+        <FluentProgressRing />
+    }
+    else if (_logEntries.Count == 0)
+    {
+        <p>No moderation log entries found for this scope.</p>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_logEntries.AsQueryable()" Style="width: 100%;">
+            <PropertyColumn Property="@(x => x.ActionType)" Title="Action" />
+            <PropertyColumn Property="@(x => x.ActorName)" Title="Moderator" />
+            <PropertyColumn Property="@(x => x.TargetName)" Title="Target" />
+            <PropertyColumn Property="@(x => x.Reason)" Title="Reason" />
+            <PropertyColumn Property="@(x => x.CreatedAt)" Title="When" Format="g" />
+        </FluentDataGrid>
+    }
+</FluentCard>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private string _actionFilter = "all";
+    private bool _loading = true;
+    private List<LogEntry> _logEntries = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        _loading = true;
+        // TODO: Load moderation log from API with scope filtering
+        _logEntries = new();
+        _loading = false;
+        await Task.CompletedTask;
+    }
+
+    private class LogEntry
+    {
+        public string ActionType { get; set; } = "";
+        public string ActorName { get; set; } = "";
+        public string TargetName { get; set; } = "";
+        public string? Reason { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

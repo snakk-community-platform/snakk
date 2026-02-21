@@ -17,6 +17,7 @@ public static class EnumConversionExtensions
             ReactionType.ThumbsUp => ReactionTypeEnum.ThumbsUp,
             ReactionType.Heart => ReactionTypeEnum.Heart,
             ReactionType.Eyes => ReactionTypeEnum.Eyes,
+            ReactionType.Crazy => ReactionTypeEnum.Crazy,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown ReactionType")
         };
     }
@@ -28,6 +29,7 @@ public static class EnumConversionExtensions
             ReactionTypeEnum.ThumbsUp => ReactionType.ThumbsUp,
             ReactionTypeEnum.Heart => ReactionType.Heart,
             ReactionTypeEnum.Eyes => ReactionType.Eyes,
+            ReactionTypeEnum.Crazy => ReactionType.Crazy,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown ReactionTypeEnum")
         };
     }

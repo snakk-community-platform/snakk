@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: snakk
+      POSTGRES_USER: snakk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env file}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snakk -d snakk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Internal only — not exposed to host
+    expose:
+      - "5432"
+
+  snakk:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${SNAKK_PORT:-17000}:17000"
+    volumes:
+      - snakk-storage:/app/storage
+    environment:
+      # Database host for entrypoint migration check
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      # Connection string for DbSeeder on restart (pending migrations)
+      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
+
+volumes:
+  pgdata:
+    driver: local
+  snakk-storage:
+    driver: local

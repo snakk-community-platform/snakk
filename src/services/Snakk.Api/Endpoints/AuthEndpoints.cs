@@ -412,7 +412,7 @@ public static class AuthEndpoints
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdValue);
-        var result = await authUseCase.UpdatePreferencesAsync(userId, request.PreferEndlessScroll);
+        var result = await authUseCase.UpdatePreferencesAsync(userId, request.PreferEndlessScroll, request.AutoFollowOnReply);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });

@@ -217,11 +217,11 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
 
     public async Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(
         string moderatorPublicId,
-        string? status,
+        int? statusId,
         int offset,
         int pageSize)
     {
-        return await _moderationRepository.GetReportsForModeratorAsync(moderatorPublicId, status, offset, pageSize);
+        return await _moderationRepository.GetReportsForModeratorAsync(moderatorPublicId, statusId, offset, pageSize);
     }
 
     public async Task<ReportDetailDto?> GetReportDetailAsync(string reportPublicId)

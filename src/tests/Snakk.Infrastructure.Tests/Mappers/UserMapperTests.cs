@@ -73,6 +73,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -103,6 +104,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -133,6 +135,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -177,6 +180,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -511,6 +515,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -541,6 +546,7 @@ public class UserMapperTests
             null,
             0, // avatarRevision
             false,
+            false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,

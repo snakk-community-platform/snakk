@@ -13,6 +13,7 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
 
     public SpaceDetailDto? Space { get; set; }
     public HubDetailDto? Hub { get; set; }
+    public CommunityDetailDto? CommunityDetail { get; set; }
     public PagedResult<DiscussionDto>? Discussions { get; set; }
     public TopActiveDiscussionsResult? TrendingDiscussions { get; set; }
     public TopContributorsResult? TrendingContributors { get; set; }
@@ -31,15 +32,19 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
         HubSlug = hubSlug;
         Slug = slug;
 
-        // Fetch hub, space, and user info in parallel
+        // Fetch hub, space, community, and user info in parallel
         var hubTask = _apiClient.GetHubBySlugAsync(hubSlug);
         var spaceTask = _apiClient.GetSpaceBySlugAsync(slug);
         var userTask = _apiClient.GetCurrentUserAsync();
+        var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
+            ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
+            : Task.FromResult<CommunityDetailDto?>(null);
 
-        await Task.WhenAll(hubTask, spaceTask, userTask);
+        await Task.WhenAll(hubTask, spaceTask, userTask, communityTask);
 
         Hub = hubTask.Result;
         Space = spaceTask.Result;
+        CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
         // Set authentication status and preferences
         var user = userTask.IsCompletedSuccessfully ? userTask.Result : null;

@@ -64,6 +64,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-height: 2rem; // Match .subtle-btn height to prevent layout shift on hover
 }
 
 // Follow button
