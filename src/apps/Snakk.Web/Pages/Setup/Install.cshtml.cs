@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Setup;
 
+[IgnoreAntiforgeryToken]
 public class InstallModel : SetupPageBase
 {
     private readonly SetupService _setupService;
