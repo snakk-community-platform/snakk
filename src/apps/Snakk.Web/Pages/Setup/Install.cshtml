@@ -96,7 +96,17 @@
                     method: 'POST',
                     body: formData
                 });
-                var data = await res.json();
+                var text = await res.text();
+                if (!res.ok) {
+                    throw new Error('Server returned ' + res.status + ': ' + (text.substring(0, 500) || '(empty response)'));
+                }
+                if (!text) {
+                    throw new Error('Server returned empty response (status ' + res.status + ')');
+                }
+                var data;
+                try { data = JSON.parse(text); } catch (e) {
+                    throw new Error('Invalid JSON (status ' + res.status + '): ' + text.substring(0, 500));
+                }
 
                 if (data.success) {
                     markStep('step-config', 'done');
