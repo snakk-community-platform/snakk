@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y curl && \
 WORKDIR /src
 
 # --- NuGet restore (cached layer — only invalidated when csproj files change) ---
-COPY src/Snakk.slnx ./
+COPY docker/Snakk.Docker.slnx Snakk.slnx
 COPY src/core/Snakk.Domain/Snakk.Domain.csproj core/Snakk.Domain/
 COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
 COPY src/core/Snakk.Infrastructure/Snakk.Infrastructure.csproj core/Snakk.Infrastructure/
