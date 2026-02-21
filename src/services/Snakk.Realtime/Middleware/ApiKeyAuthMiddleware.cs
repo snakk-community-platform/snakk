@@ -16,14 +16,8 @@ public class ApiKeyAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Skip API key check for SignalR WebSocket negotiation and hub connections
-        if (context.Request.Path.StartsWithSegments("/realtime"))
-        {
-            await _next(context);
-            return;
-        }
-
-        // Require API key for /api/* endpoints
+        // Require API key only for /api/* endpoints (internal service calls).
+        // All other paths (SignalR hub at /, negotiate, WebSocket) pass through freely.
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             if (!context.Request.Headers.TryGetValue("X-Api-Key", out var extractedApiKey))
