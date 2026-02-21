@@ -209,7 +209,7 @@ public class SetupService
         await using var conn = new Npgsql.NpgsqlConnection(state.GetConnectionString());
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT \"PublicId\" FROM \"Users\" WHERE \"Email\" = @email LIMIT 1";
+        cmd.CommandText = "SELECT \"PublicId\" FROM \"User\" WHERE \"Email\" = @email LIMIT 1";
         cmd.Parameters.AddWithValue("email", state.AdminEmail);
         var result = await cmd.ExecuteScalarAsync();
         var publicId = result?.ToString()
