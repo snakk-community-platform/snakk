@@ -46,8 +46,8 @@ COPY src/ ./
 # Manual htmx copy (the postinstall script uses PowerShell which doesn't work on Linux)
 RUN cp apps/Snakk.Web/node_modules/htmx.org/dist/htmx.min.js apps/Snakk.Web/wwwroot/js/vendor/htmx.min.js
 
-# Build TypeScript (not auto-triggered by MSBuild, must run explicitly)
-RUN cd apps/Snakk.Web && npx tsc
+# Build TypeScript + Tailwind CSS + Sass (not auto-triggered by MSBuild, must run explicitly)
+RUN cd apps/Snakk.Web && npm run build
 
 # Prevent NSwag from regenerating the committed SDK client
 # (Docker COPY resets timestamps, which makes MSBuild think the output is stale)
