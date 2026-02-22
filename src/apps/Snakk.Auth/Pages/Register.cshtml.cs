@@ -101,18 +101,21 @@ public class RegisterModel : PageModel
                 return RedirectToPage("/Login", new { returnUrl = ReturnUrl });
             }
 
-            // Set JWT cookie
+            // Set auth cookies (access + refresh)
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddHours(8),
-                Path = "/",
-                Domain = null
+                Path = "/"
             };
 
             Response.Cookies.Append(".Snakk.Auth", registerResponse.AccessToken, cookieOptions);
+            if (!string.IsNullOrEmpty(registerResponse.RefreshToken))
+            {
+                Response.Cookies.Append(".Snakk.Auth.Refresh", registerResponse.RefreshToken, cookieOptions);
+            }
 
             // Redirect to return URL or home
             var returnUrl = ReturnUrl ?? "/";

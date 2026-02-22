@@ -12,41 +12,17 @@
      * Initialize auth navbar on page load
      */
     async function initAuthNavbar() {
-        console.log('[Auth Navbar] Initializing auth navbar...');
-        // Check localStorage tokens before making the request
-        const localToken = localStorage.getItem('snakk_jwt_token');
-        const localRefreshToken = localStorage.getItem('snakk_refresh_token');
-        console.log('[Auth Navbar] LocalStorage check:', {
-            hasToken: !!localToken,
-            hasRefreshToken: !!localRefreshToken
-        });
         try {
-            console.log('[Auth Navbar] Fetching auth status from BFF...');
             const response = await fetch('/bff/auth/status', { credentials: 'include' });
-            console.log('[Auth Navbar] BFF response status:', response.status);
-            // Only clear tokens on explicit auth failures (401/403), not network errors
-            if (response.status === 401 || response.status === 403) {
-                console.log('[Auth Navbar] Auth failure detected, clearing tokens');
-                window.snakkAuth?.clearToken();
-            }
             const data = await response.json();
-            console.log('[Auth Navbar] Auth status data:', {
-                isAuthenticated: data.isAuthenticated,
-                publicId: data.publicId,
-                displayName: data.displayName
-            });
             updateDebugAuthInfo(data);
             if (data.isAuthenticated && data.publicId) {
-                console.log('[Auth Navbar] User is authenticated, rendering authenticated nav');
                 window.currentUserId = data.publicId; // Keep for backwards compat
                 renderAuthenticatedNav(data);
                 loadNotificationCount();
                 loadNotifications();
             }
             else {
-                console.log('[Auth Navbar] User is not authenticated, rendering login/signup buttons');
-                // Server says not authenticated - clear any stale/invalid token
-                window.snakkAuth?.clearToken();
                 renderUnauthenticatedNav();
             }
             // Dispatch event for other modules
@@ -55,7 +31,6 @@
             }));
         }
         catch (err) {
-            // Network error - do NOT clear tokens (might be temporary)
             const errorMessage = err instanceof Error ? err.message : 'Unknown error';
             console.warn('[Auth Navbar] Failed to fetch auth status:', err);
             renderUnauthenticatedNav();
@@ -221,27 +196,17 @@
      * Handle logout
      */
     async function handleLogout() {
-        console.log('[Auth Navbar] Logout initiated...');
         try {
             await fetch('/bff/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             });
-            console.log('[Auth Navbar] Logout API call succeeded');
         }
         catch (err) {
             console.warn('[Auth Navbar] Logout error:', err);
         }
         finally {
-            console.log('[Auth Navbar] Clearing tokens from localStorage...');
-            window.snakkAuth?.clearToken();
-            // Verify tokens were cleared
-            const remainingToken = localStorage.getItem('snakk_jwt_token');
-            const remainingRefreshToken = localStorage.getItem('snakk_refresh_token');
-            console.log('[Auth Navbar] Token cleared:', !remainingToken);
-            console.log('[Auth Navbar] Refresh token cleared:', !remainingRefreshToken);
             // Force hard reload to clear any cached responses and ensure clean state
-            console.log('[Auth Navbar] Forcing hard reload to frontpage...');
             window.location.replace('/');
         }
     }

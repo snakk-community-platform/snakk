@@ -18,22 +18,28 @@
             }
 
             <script>
-                @* INLINE REASON: Security-sensitive OAuth token capture for new user flow.
+                @* INLINE REASON: OAuth token capture for new user flow.
                    Must execute immediately to process URL fragments before any navigation.
                    Page-specific, not reused elsewhere. *@
 
-                // Handle OAuth tokens in URL fragment for new users
+                // Handle OAuth tokens in URL fragment for new users — POST to BFF to set HttpOnly cookies
                 (function() {
-                    const fragment = window.location.hash.substring(1);
+                    var fragment = window.location.hash.substring(1);
                     if (fragment) {
-                        const params = new URLSearchParams(fragment);
-                        const accessToken = params.get('access_token');
-                        const refreshToken = params.get('refresh_token');
+                        var params = new URLSearchParams(fragment);
+                        var accessToken = params.get('access_token');
+                        var refreshToken = params.get('refresh_token');
 
                         if (accessToken && refreshToken) {
-                            console.log('[Setup Profile] Storing OAuth tokens from fragment');
-                            localStorage.setItem('snakk_jwt_token', decodeURIComponent(accessToken));
-                            localStorage.setItem('snakk_refresh_token', decodeURIComponent(refreshToken));
+                            fetch('/bff/auth/set-tokens', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    accessToken: decodeURIComponent(accessToken),
+                                    refreshToken: decodeURIComponent(refreshToken)
+                                }),
+                                credentials: 'include'
+                            });
 
                             // Clear fragment from URL
                             history.replaceState(null, '', window.location.pathname);
@@ -72,38 +78,30 @@
             </form>
 
             <script>
-                @* INLINE REASON: Page-specific form submission handler with Razor syntax (@Model.ApiBaseUrl).
-                   Contains setup-profile-specific logic and API integration. Not reused elsewhere. *@
+                @* INLINE REASON: Page-specific form submission handler.
+                   Contains setup-profile-specific logic. Not reused elsewhere. *@
 
-                const apiBaseUrl = '@Model.ApiBaseUrl';
                 document.getElementById('setupProfileForm').addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    const displayName = document.getElementById('displayName').value;
-                    const errorAlert = document.getElementById('errorAlert');
-                    const errorMessage = document.getElementById('errorMessage');
+                    var displayName = document.getElementById('displayName').value;
+                    var errorAlert = document.getElementById('errorAlert');
+                    var errorMessage = document.getElementById('errorMessage');
 
                     try {
-                        const response = await fetch(`${apiBaseUrl}/auth/update-profile`, {
+                        // Use BFF endpoint (cookies handle auth automatically)
+                        var response = await fetch('/bff/auth/update-profile', {
                             method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...window.snakkAuth.getAuthHeaders()
-                            },
-                            body: JSON.stringify({ displayName })
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ displayName }),
+                            credentials: 'include'
                         });
 
-                        const data = await response.json();
-
                         if (!response.ok) {
+                            var data = await response.json();
                             errorMessage.textContent = data.error || 'Failed to update profile';
                             errorAlert.classList.remove('hidden');
                             return;
-                        }
-
-                        // Update token if API returned a new one
-                        if (data.token) {
-                            window.snakkAuth.setToken(data.token);
                         }
 
                         // Redirect to home

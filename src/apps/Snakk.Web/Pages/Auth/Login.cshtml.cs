@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Web.Services;
 using System.Text;
 using System.Text.Json;
 
@@ -31,7 +32,7 @@ public class LoginModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAsync(string email, string password)
+    public async Task<IActionResult> OnPostAsync(string email, string password, string? returnUrl)
     {
         var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "https://localhost:7291";
         var httpClient = _httpClientFactory.CreateClient();
@@ -75,8 +76,16 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        // Redirect to OAuth completion page with both tokens (reuses OAuth flow logic)
-        var fragment = $"#access_token={Uri.EscapeDataString(accessToken)}&refresh_token={Uri.EscapeDataString(refreshToken)}&returnUrl=/";
-        return Redirect($"/auth/oauth-complete{fragment}");
+        // Set auth cookies directly (no more redirect to OAuthComplete)
+        AuthCookieHelper.SetAuthCookies(HttpContext, accessToken, refreshToken);
+
+        // Redirect to return URL or home
+        var redirectUrl = returnUrl ?? "/";
+        if (!Url.IsLocalUrl(redirectUrl))
+        {
+            redirectUrl = "/";
+        }
+
+        return Redirect(redirectUrl);
     }
 }

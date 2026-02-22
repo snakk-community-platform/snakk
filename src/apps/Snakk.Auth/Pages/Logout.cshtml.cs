@@ -7,12 +7,9 @@ public class LogoutModel : PageModel
 {
     public IActionResult OnGet()
     {
-        // Delete JWT cookie
-        Response.Cookies.Delete(".Snakk.Auth", new CookieOptions
-        {
-            Path = "/",
-            Domain = null
-        });
+        // Delete both auth cookies
+        Response.Cookies.Delete(".Snakk.Auth", new CookieOptions { Path = "/" });
+        Response.Cookies.Delete(".Snakk.Auth.Refresh", new CookieOptions { Path = "/" });
 
         // Redirect to home
         return Redirect("/");

@@ -83,18 +83,21 @@ public class CallbackModel : PageModel
                 return RedirectToPage("/Login", new { error = "oauth_token_missing" });
             }
 
-            // Set JWT cookie
+            // Set auth cookies (access + refresh)
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(30),
-                Path = "/",
-                Domain = null
+                Path = "/"
             };
 
             Response.Cookies.Append(".Snakk.Auth", loginResponse.AccessToken, cookieOptions);
+            if (!string.IsNullOrEmpty(loginResponse.RefreshToken))
+            {
+                Response.Cookies.Append(".Snakk.Auth.Refresh", loginResponse.RefreshToken, cookieOptions);
+            }
 
             // Get return URL from session
             var returnUrl = HttpContext.Session.GetString("OAuth_ReturnUrl") ?? "/";

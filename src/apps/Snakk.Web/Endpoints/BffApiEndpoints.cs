@@ -101,6 +101,13 @@ public static class BffApiEndpoints
             .WithName("BffRefreshToken")
             .AllowAnonymous(); // Refresh can happen before auth expires
 
+        group.MapPost("/auth/set-tokens", SetTokensAsync)
+            .WithName("BffSetTokens")
+            .AllowAnonymous(); // Used by OAuthComplete and SetupProfile pages
+
+        group.MapPut("/auth/update-profile", UpdateProfileAsync)
+            .WithName("BffUpdateProfile");
+
         // User operations
         group.MapGet("/users/{userId}/stats", GetUserStatsAsync)
             .WithName("BffGetUserStats");
@@ -490,23 +497,28 @@ public static class BffApiEndpoints
     private static async Task<IResult> LogoutAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
         await apiClient.LogoutAsync();
-        httpContext.Response.Cookies.Delete(".Snakk.Auth");
+        AuthCookieHelper.DeleteAuthCookies(httpContext);
         return Results.Ok();
     }
 
     private static async Task<IResult> RefreshTokenAsync(
-        [FromBody] RefreshTokenRequestDto request,
+        HttpContext httpContext,
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration)
     {
         try
         {
+            // Read refresh token from cookie (not from request body)
+            var currentRefreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+            if (string.IsNullOrEmpty(currentRefreshToken))
+                return Results.Unauthorized();
+
             var httpClient = httpClientFactory.CreateClient();
             var apiBaseUrl = configuration["ApiBaseUrl"] ?? "http://localhost:5000";
 
             var requestBody = new
             {
-                refreshToken = request.RefreshToken
+                refreshToken = currentRefreshToken
             };
 
             var content = new StringContent(
@@ -528,16 +540,39 @@ public static class BffApiEndpoints
                 return Results.Unauthorized();
             }
 
-            return Results.Ok(new
-            {
-                accessToken = accessToken.GetString(),
-                refreshToken = refreshToken.GetString()
-            });
+            var newAccessToken = accessToken.GetString();
+            var newRefreshToken = refreshToken.GetString();
+
+            if (string.IsNullOrEmpty(newAccessToken) || string.IsNullOrEmpty(newRefreshToken))
+                return Results.Unauthorized();
+
+            // Set updated cookies (no tokens in response body)
+            AuthCookieHelper.SetAuthCookies(httpContext, newAccessToken, newRefreshToken);
+            return Results.Ok();
         }
         catch
         {
             return Results.Unauthorized();
         }
+    }
+
+    private static Task<IResult> SetTokensAsync(
+        [FromBody] SetTokensRequestDto request,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrEmpty(request.AccessToken) || string.IsNullOrEmpty(request.RefreshToken))
+            return Task.FromResult(Results.BadRequest("Both accessToken and refreshToken are required."));
+
+        AuthCookieHelper.SetAuthCookies(httpContext, request.AccessToken, request.RefreshToken);
+        return Task.FromResult(Results.Ok());
+    }
+
+    private static async Task<IResult> UpdateProfileAsync(
+        [FromBody] UpdateProfileRequestDto request,
+        SnakkApiClient apiClient)
+    {
+        var success = await apiClient.UpdateProfileAsync(request.DisplayName);
+        return success ? Results.Ok() : Results.BadRequest(new { error = "Failed to update profile" });
     }
 
     // User endpoints
@@ -794,7 +829,8 @@ public static class BffApiEndpoints
 }
 
 public record ToggleReactionRequest(int Type);
-public record RefreshTokenRequestDto(string RefreshToken);
 public record PreviewMarkupRequest(string Content);
 public record BffCreateReportRequest(string EntityType, string EntityId, string Reason, string? Description);
 public record BatchUpdateReadStatesRequest(List<Services.ReadStateUpdateDto> Updates);
+public record SetTokensRequestDto(string AccessToken, string RefreshToken);
+public record UpdateProfileRequestDto(string DisplayName);

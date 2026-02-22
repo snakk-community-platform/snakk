@@ -98,18 +98,21 @@ public class LoginModel : PageModel
                 return Page();
             }
 
-            // Set JWT cookie
+            // Set auth cookies (access + refresh)
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = Input.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(8),
-                Path = "/",
-                Domain = null // Will use current domain
+                Path = "/"
             };
 
             Response.Cookies.Append(".Snakk.Auth", loginResponse.AccessToken, cookieOptions);
+            if (!string.IsNullOrEmpty(loginResponse.RefreshToken))
+            {
+                Response.Cookies.Append(".Snakk.Auth.Refresh", loginResponse.RefreshToken, cookieOptions);
+            }
 
             // Redirect to return URL or home
             var returnUrl = Input.ReturnUrl ?? ReturnUrl ?? "/";

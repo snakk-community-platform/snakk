@@ -80,9 +80,8 @@
 
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
-    <!-- JWT Auth -->
+    <!-- Auth (CSRF interceptor) -->
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true"></script>
-    <script src="@SnakkUrlHelper.Js("core/token-refresh")" asp-append-version="true"></script>
 
     <!-- Realtime Service Configuration -->
     <script>

@@ -27,52 +27,36 @@
         (function() {
             'use strict';
 
-            const TOKEN_KEY = 'snakk_jwt_token';
-            const REFRESH_TOKEN_KEY = 'snakk_refresh_token';
-
-            console.log('[OAuth Complete] Starting OAuth token processing...');
-            console.log('[OAuth Complete] Full URL:', window.location.href);
-            console.log('[OAuth Complete] Hash fragment:', window.location.hash);
-
             try {
                 // Parse tokens from URL fragment (hash)
-                const fragment = window.location.hash.substring(1); // Remove leading #
-                console.log('[OAuth Complete] Fragment string:', fragment);
+                var fragment = window.location.hash.substring(1);
+                var params = new URLSearchParams(fragment);
 
-                const params = new URLSearchParams(fragment);
-
-                const accessToken = params.get('access_token');
-                const refreshToken = params.get('refresh_token');
-                const returnUrl = params.get('returnUrl') || '/';
-
-                console.log('[OAuth Complete] Parsed params:', {
-                    accessToken: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
-                    refreshToken: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null',
-                    returnUrl: returnUrl
-                });
+                var accessToken = params.get('access_token');
+                var refreshToken = params.get('refresh_token');
+                var returnUrl = params.get('returnUrl') || '/';
 
                 if (!accessToken || !refreshToken) {
-                    console.error('[OAuth Complete] Missing tokens!');
                     throw new Error('Missing tokens in URL fragment');
                 }
 
-                // Store tokens in localStorage
-                localStorage.setItem(TOKEN_KEY, decodeURIComponent(accessToken));
-                localStorage.setItem(REFRESH_TOKEN_KEY, decodeURIComponent(refreshToken));
-
-                console.log('[OAuth Complete] ✅ Tokens stored successfully');
-                console.log('[OAuth Complete] Verifying storage...');
-                console.log('[OAuth Complete] Stored access token:', localStorage.getItem(TOKEN_KEY)?.substring(0, 20) + '...');
-                console.log('[OAuth Complete] Stored refresh token:', localStorage.getItem(REFRESH_TOKEN_KEY)?.substring(0, 20) + '...');
-                console.log('[OAuth Complete] 🚀 Redirecting to:', returnUrl);
-
-                // Clear fragment from URL and redirect
-                window.location.href = returnUrl;
+                // POST tokens to BFF to set HttpOnly cookies
+                fetch('/bff/auth/set-tokens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accessToken: decodeURIComponent(accessToken),
+                        refreshToken: decodeURIComponent(refreshToken)
+                    }),
+                    credentials: 'include'
+                }).then(function(response) {
+                    if (!response.ok) throw new Error('Failed to set tokens');
+                    window.location.href = returnUrl;
+                }).catch(function() {
+                    window.location.href = '/auth/login?error=' + encodeURIComponent('Login failed. Please try again.');
+                });
 
             } catch (error) {
-                console.error('[OAuth Complete] Error:', error);
-
-                // Redirect to login page with error
                 window.location.href = '/auth/login?error=' + encodeURIComponent('OAuth login failed. Please try again.');
             }
         })();
