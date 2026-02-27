@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -10,37 +9,30 @@ using Snakk.Infrastructure.Services;
 
 namespace Snakk.Infrastructure.Tests.Services;
 
-public class AvatarGenerationServiceTests : IDisposable
+public class AvatarGenerationServiceTests
 {
-    private readonly Mock<IFileStorage> _mockFileStorage;
-    private readonly IConfiguration _configuration;
-    private readonly Mock<ILogger<AvatarGenerationService>> _mockLogger;
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly Mock<IHubRepository> _mockHubRepository;
-    private readonly Mock<ISpaceRepository> _mockSpaceRepository;
-    private readonly Mock<ICommunityRepository> _mockCommunityRepository;
-    private readonly AvatarGenerationService _service;
-    private readonly string _testRootPath;
-    private readonly string _generatedAvatarsPath;
+    private Mock<IFileStorage> _mockFileStorage = null!;
+    private IConfiguration _configuration = null!;
+    private Mock<ILogger<AvatarGenerationService>> _mockLogger = null!;
+    private Mock<IUserRepository> _mockUserRepository = null!;
+    private Mock<IHubRepository> _mockHubRepository = null!;
+    private Mock<ISpaceRepository> _mockSpaceRepository = null!;
+    private Mock<ICommunityRepository> _mockCommunityRepository = null!;
+    private AvatarGenerationService _service = null!;
 
-    public AvatarGenerationServiceTests()
+    [Before(Test)]
+    public void Setup()
     {
-        // Create a unique temp directory for each test run
-        _testRootPath = Path.Combine(Path.GetTempPath(), $"avatar-tests-{Guid.NewGuid()}");
-        _generatedAvatarsPath = "avatars/generated";
-        Directory.CreateDirectory(_testRootPath);
-
         _mockFileStorage = new Mock<IFileStorage>();
 
-        // Setup mock to return false for ExistsAsync (so it generates new avatars)
+        // Default: file does not exist
         _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        // Setup mock to return public URL
+        // Return a public URL for any path
         _mockFileStorage.Setup(x => x.GetPublicUrl(It.IsAny<string>()))
             .Returns<string>(path => $"/storage/{path}");
 
-        // Create real configuration
         var configValues = new Dictionary<string, string?>
         {
             ["AvatarSettings:DefaultSize"] = "80"
@@ -65,229 +57,221 @@ public class AvatarGenerationServiceTests : IDisposable
             _mockCommunityRepository.Object);
     }
 
-    public void Dispose()
-    {
-        // Cleanup test directory
-        if (Directory.Exists(_testRootPath))
-        {
-            Directory.Delete(_testRootPath, recursive: true);
-        }
-    }
-
     #region GenerateUserAvatarAsync Tests
 
-    [Fact]
-    public async Task GenerateUserAvatarAsync_CreatesFile_WhenNotExists()
+    [Test]
+    public async Task GenerateUserAvatarAsync_SavesFile_WhenNotExists()
     {
         // Arrange
         var userId = "u_test123";
 
         // Act
-        var filePath = await _service.GenerateUserAvatarAsync(userId);
+        var url = await _service.GenerateUserAvatarAsync(userId);
 
-        // Assert
-        File.Exists(filePath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(filePath);
-        content.Should().Contain("<svg");
-        content.Should().Contain("</svg>");
+        // Assert - Verify file was saved via IFileStorage
+        _mockFileStorage.Verify(x => x.ExistsAsync(It.Is<string>(p => p.Contains("users")), It.IsAny<CancellationToken>()), Times.Once);
+        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("users")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        await Assert.That(url).Contains("/storage/");
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateUserAvatarAsync_SkipsExistingFile_WhenAlreadyExists()
     {
         // Arrange
         var userId = "u_test456";
-        await _service.GenerateUserAvatarAsync(userId);
-        var firstModified = File.GetLastWriteTimeUtc(GetUserAvatarPath(userId));
-
-        // Wait a moment to ensure timestamp would change if file was regenerated
-        await Task.Delay(10);
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true); // File already exists
 
         // Act
-        await _service.GenerateUserAvatarAsync(userId);
-        var secondModified = File.GetLastWriteTimeUtc(GetUserAvatarPath(userId));
+        var url = await _service.GenerateUserAvatarAsync(userId);
 
-        // Assert
-        secondModified.Should().Be(firstModified);
+        // Assert - SaveAsync should NOT be called since file exists
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        await Assert.That(url).Contains("/storage/");
     }
 
-    [Fact]
-    public async Task GenerateUserAvatarAsync_CreatesDirectories_WhenNotExist()
+    [Test]
+    public async Task GenerateUserAvatarAsync_ReturnsPublicUrl()
     {
         // Arrange
         var userId = "u_newuser";
 
         // Act
-        var filePath = await _service.GenerateUserAvatarAsync(userId);
+        var url = await _service.GenerateUserAvatarAsync(userId);
 
         // Assert
-        var directory = Path.GetDirectoryName(filePath);
-        Directory.Exists(directory).Should().BeTrue();
+        _mockFileStorage.Verify(x => x.GetPublicUrl(It.IsAny<string>()), Times.Once);
+        await Assert.That(url).StartsWith("/storage/");
     }
 
-    [Fact]
-    public async Task GenerateUserAvatarAsync_GeneratesDeterministicContent_ForSameUserId()
+    [Test]
+    public async Task GenerateUserAvatarAsync_SavesSvgContent()
     {
         // Arrange
         var userId = "u_deterministic";
+        Stream? savedStream = null;
+        _mockFileStorage.Setup(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Callback<string, Stream, CancellationToken>((path, stream, ct) =>
+            {
+                // Capture the stream content
+                savedStream = new MemoryStream();
+                stream.CopyTo(savedStream);
+                savedStream.Position = 0;
+            });
 
         // Act
         await _service.GenerateUserAvatarAsync(userId);
-        var content1 = await File.ReadAllTextAsync(GetUserAvatarPath(userId));
 
-        // Delete and regenerate
-        File.Delete(GetUserAvatarPath(userId));
-        await _service.GenerateUserAvatarAsync(userId);
-        var content2 = await File.ReadAllTextAsync(GetUserAvatarPath(userId));
-
-        // Assert
-        content1.Should().Be(content2);
+        // Assert - Verify SVG content was saved
+        await Assert.That(savedStream).IsNotNull();
+        using var reader = new StreamReader(savedStream!);
+        var content = await reader.ReadToEndAsync();
+        await Assert.That(content).Contains("<svg");
+        await Assert.That(content).Contains("</svg>");
     }
 
     #endregion
 
     #region GenerateHubAvatarAsync Tests
 
-    [Fact]
-    public async Task GenerateHubAvatarAsync_CreatesFile_WithHubPrefix()
+    [Test]
+    public async Task GenerateHubAvatarAsync_SavesFile_WithHubPath()
     {
         // Arrange
         var hubId = "h_hub123";
 
         // Act
-        var filePath = await _service.GenerateHubAvatarAsync(hubId);
+        var url = await _service.GenerateHubAvatarAsync(hubId);
 
         // Assert
-        File.Exists(filePath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(filePath);
-        content.Should().Contain("<svg");
+        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("hub")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        await Assert.That(url).Contains("/storage/");
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateHubAvatarAsync_SkipsExistingFile()
     {
         // Arrange
         var hubId = "h_existing";
-        await _service.GenerateHubAvatarAsync(hubId);
-        var firstModified = File.GetLastWriteTimeUtc(GetHubAvatarPath(hubId));
-
-        await Task.Delay(10);
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         await _service.GenerateHubAvatarAsync(hubId);
-        var secondModified = File.GetLastWriteTimeUtc(GetHubAvatarPath(hubId));
 
         // Assert
-        secondModified.Should().Be(firstModified);
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
 
     #region GenerateSpaceAvatarAsync Tests
 
-    [Fact]
-    public async Task GenerateSpaceAvatarAsync_CreatesFile_WithSpacePrefix()
+    [Test]
+    public async Task GenerateSpaceAvatarAsync_SavesFile_WithSpacePath()
     {
         // Arrange
         var spaceId = "s_space123";
 
         // Act
-        var filePath = await _service.GenerateSpaceAvatarAsync(spaceId);
+        var url = await _service.GenerateSpaceAvatarAsync(spaceId);
 
         // Assert
-        File.Exists(filePath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(filePath);
-        content.Should().Contain("<svg");
+        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("space")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        await Assert.That(url).Contains("/storage/");
     }
 
     #endregion
 
     #region GenerateCommunityAvatarAsync Tests
 
-    [Fact]
-    public async Task GenerateCommunityAvatarAsync_CreatesFile_WithCommunityPrefix()
+    [Test]
+    public async Task GenerateCommunityAvatarAsync_SavesFile_WithCommunityPath()
     {
         // Arrange
         var communityId = "c_community123";
 
         // Act
-        var filePath = await _service.GenerateCommunityAvatarAsync(communityId);
+        var url = await _service.GenerateCommunityAvatarAsync(communityId);
 
         // Assert
-        File.Exists(filePath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(filePath);
-        content.Should().Contain("<svg");
+        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("communit")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        await Assert.That(url).Contains("/storage/");
     }
 
     #endregion
 
     #region AvatarExistsAsync Tests
 
-    [Fact]
+    [Test]
     public async Task AvatarExistsAsync_ReturnsTrue_WhenFileExists()
     {
         // Arrange
         var userId = "u_exists";
-        await _service.GenerateUserAvatarAsync(userId);
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         var exists = await _service.AvatarExistsAsync("user", userId);
 
         // Assert
-        exists.Should().BeTrue();
+        await Assert.That(exists).IsTrue();
+        _mockFileStorage.Verify(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task AvatarExistsAsync_ReturnsFalse_WhenFileDoesNotExist()
     {
         // Arrange
         var userId = "u_notexists";
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         // Act
         var exists = await _service.AvatarExistsAsync("user", userId);
 
         // Assert
-        exists.Should().BeFalse();
+        await Assert.That(exists).IsFalse();
     }
 
     #endregion
 
     #region DeleteAvatarAsync Tests
 
-    [Fact]
-    public async Task DeleteAvatarAsync_RemovesFile_WhenExists()
+    [Test]
+    public async Task DeleteAvatarAsync_DeletesFile_WhenExists()
     {
         // Arrange
         var userId = "u_delete";
-        await _service.GenerateUserAvatarAsync(userId);
-        var filePath = GetUserAvatarPath(userId);
-        File.Exists(filePath).Should().BeTrue();
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         await _service.DeleteAvatarAsync("user", userId);
 
         // Assert
-        File.Exists(filePath).Should().BeFalse();
+        _mockFileStorage.Verify(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task DeleteAvatarAsync_DoesNotThrow_WhenFileDoesNotExist()
+    [Test]
+    public async Task DeleteAvatarAsync_DoesNotDelete_WhenFileDoesNotExist()
     {
         // Arrange
         var userId = "u_notexists";
+        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
-        // Act
+        // Act & Assert - should not throw
         var act = async () => await _service.DeleteAvatarAsync("user", userId);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
+        _mockFileStorage.Verify(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
 
     #region GenerateAllMissingAvatarsAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GenerateAllMissingAvatarsAsync_GeneratesForAllUsers()
     {
         // Arrange
@@ -305,14 +289,12 @@ public class AvatarGenerationServiceTests : IDisposable
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
         // Assert
-        count.Should().Be(3);
-        // Check that files were created for the actual user IDs
-        File.Exists(GetUserAvatarPath(users[0].PublicId.Value)).Should().BeTrue();
-        File.Exists(GetUserAvatarPath(users[1].PublicId.Value)).Should().BeTrue();
-        File.Exists(GetUserAvatarPath(users[2].PublicId.Value)).Should().BeTrue();
+        await Assert.That(count).IsEqualTo(3);
+        // SaveAsync should be called 3 times (once per user)
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateAllMissingAvatarsAsync_GeneratesForAllEntityTypes()
     {
         // Arrange
@@ -328,13 +310,11 @@ public class AvatarGenerationServiceTests : IDisposable
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
         // Assert
-        count.Should().Be(3);
-        File.Exists(GetUserAvatarPath(users[0].PublicId.Value)).Should().BeTrue();
-        File.Exists(GetHubAvatarPath(hubs[0].PublicId.Value)).Should().BeTrue();
-        File.Exists(GetSpaceAvatarPath(spaces[0].PublicId.Value)).Should().BeTrue();
+        await Assert.That(count).IsEqualTo(3);
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateAllMissingAvatarsAsync_SkipsExistingFiles()
     {
         // Arrange
@@ -347,17 +327,19 @@ public class AvatarGenerationServiceTests : IDisposable
         _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
         _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
 
-        // Pre-create one avatar for the first user
-        await _service.GenerateUserAvatarAsync(users[0].PublicId.Value);
+        // First user's avatar already exists (both in GenerateAllMissing check AND in GenerateUserAvatar check)
+        var user1Path = Snakk.Shared.Helpers.AvatarHelper.GetFullRelativePath(users[0].PublicId.Value, Snakk.Shared.Helpers.AvatarEntityType.User, 0);
+        _mockFileStorage.Setup(x => x.ExistsAsync(user1Path, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
-        // Assert
-        count.Should().Be(1); // Only user2 should be generated (user1 already exists)
+        // Assert - Only user2 should be generated
+        await Assert.That(count).IsEqualTo(1);
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateAllMissingAvatarsAsync_HandlesEmptyRepositories()
     {
         // Arrange
@@ -369,10 +351,11 @@ public class AvatarGenerationServiceTests : IDisposable
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
         // Assert
-        count.Should().Be(0);
+        await Assert.That(count).IsEqualTo(0);
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task GenerateAllMissingAvatarsAsync_ContinuesOnIndividualFailure()
     {
         // Arrange
@@ -385,23 +368,28 @@ public class AvatarGenerationServiceTests : IDisposable
         _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
         _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
 
-        // Make the directory read-only to cause a failure for user1
-        var user1Dir = Path.Combine(_testRootPath, _generatedAvatarsPath, "users");
-        Directory.CreateDirectory(user1Dir);
+        // Make SaveAsync throw for the first user's path
+        var callCount = 0;
+        _mockFileStorage.Setup(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Returns<string, Stream, CancellationToken>((path, stream, ct) =>
+            {
+                if (Interlocked.Increment(ref callCount) == 1)
+                    throw new IOException("Simulated failure");
+                return Task.CompletedTask;
+            });
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
-        // Assert
-        // At least one should succeed even if one fails
-        count.Should().BeGreaterThanOrEqualTo(0);
+        // Assert - Should handle failure gracefully
+        await Assert.That(count).IsGreaterThanOrEqualTo(0);
     }
 
     #endregion
 
     #region Custom Size Tests
 
-    [Fact]
+    [Test]
     public async Task GenerateUserAvatarAsync_SupportsCustomSize()
     {
         // Arrange
@@ -409,32 +397,16 @@ public class AvatarGenerationServiceTests : IDisposable
         var customSize = 120;
 
         // Act
-        var filePath = await _service.GenerateUserAvatarAsync(userId, customSize);
+        var url = await _service.GenerateUserAvatarAsync(userId, customSize);
 
         // Assert
-        File.Exists(filePath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(filePath);
-        content.Should().Contain("<svg");
+        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        await Assert.That(url).Contains("/storage/");
     }
 
     #endregion
 
     #region Helper Methods
-
-    private string GetUserAvatarPath(string userId)
-    {
-        return Path.Combine(_testRootPath, _generatedAvatarsPath, "users", $"{userId}.svg");
-    }
-
-    private string GetHubAvatarPath(string hubId)
-    {
-        return Path.Combine(_testRootPath, _generatedAvatarsPath, "hubs", $"{hubId}.svg");
-    }
-
-    private string GetSpaceAvatarPath(string spaceId)
-    {
-        return Path.Combine(_testRootPath, _generatedAvatarsPath, "spaces", $"{spaceId}.svg");
-    }
 
     private User CreateUser(string publicId)
     {

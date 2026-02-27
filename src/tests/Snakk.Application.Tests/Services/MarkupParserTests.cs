@@ -1,6 +1,4 @@
-using FluentAssertions;
 using Snakk.Application.Services;
-using Xunit;
 
 namespace Snakk.Application.Tests.Services;
 
@@ -10,8 +8,8 @@ public class MarkupParserTests
 
     #region XSS Prevention Tests (CRITICAL SECURITY)
 
-    [Fact]
-    public void ToHtml_WithScriptTag_EscapesScriptTag()
+    [Test]
+    public async Task ToHtml_WithScriptTag_EscapesScriptTag()
     {
         // Arrange
         const string maliciousInput = "<script>alert('XSS')</script>";
@@ -20,14 +18,14 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("<script>");
-        result.Should().NotContain("</script>");
-        result.Should().Contain("&lt;script&gt;");
-        result.Should().Contain("&lt;/script&gt;");
+        await Assert.That(result).DoesNotContain("<script>");
+        await Assert.That(result).DoesNotContain("</script>");
+        await Assert.That(result).Contains("&lt;script&gt;");
+        await Assert.That(result).Contains("&lt;/script&gt;");
     }
 
-    [Fact]
-    public void ToHtml_WithOnClickAttribute_EscapesAttribute()
+    [Test]
+    public async Task ToHtml_WithOnClickAttribute_EscapesAttribute()
     {
         // Arrange
         const string maliciousInput = "<img src=x onerror=alert('XSS')>";
@@ -36,13 +34,13 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("onerror=alert('XSS')"); // Should be HTML encoded, not executable
-        result.Should().Contain("&lt;img");
-        result.Should().Contain("&#39;"); // Single quotes should be encoded
+        await Assert.That(result).DoesNotContain("onerror=alert('XSS')");
+        await Assert.That(result).Contains("&lt;img");
+        await Assert.That(result).Contains("&#39;");
     }
 
-    [Fact]
-    public void ToHtml_WithIframe_EscapesIframe()
+    [Test]
+    public async Task ToHtml_WithIframe_EscapesIframe()
     {
         // Arrange
         const string maliciousInput = "<iframe src='javascript:alert(1)'></iframe>";
@@ -51,12 +49,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("<iframe");
-        result.Should().Contain("&lt;iframe");
+        await Assert.That(result).DoesNotContain("<iframe");
+        await Assert.That(result).Contains("&lt;iframe");
     }
 
-    [Fact]
-    public void ToHtml_WithStyleTag_EscapesStyleTag()
+    [Test]
+    public async Task ToHtml_WithStyleTag_EscapesStyleTag()
     {
         // Arrange
         const string maliciousInput = "<style>body { background: url('javascript:alert(1)') }</style>";
@@ -65,12 +63,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("<style>");
-        result.Should().Contain("&lt;style&gt;");
+        await Assert.That(result).DoesNotContain("<style>");
+        await Assert.That(result).Contains("&lt;style&gt;");
     }
 
-    [Fact]
-    public void ToHtml_WithObjectTag_EscapesObjectTag()
+    [Test]
+    public async Task ToHtml_WithObjectTag_EscapesObjectTag()
     {
         // Arrange
         const string maliciousInput = "<object data='javascript:alert(1)'></object>";
@@ -79,12 +77,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("<object");
-        result.Should().Contain("&lt;object");
+        await Assert.That(result).DoesNotContain("<object");
+        await Assert.That(result).Contains("&lt;object");
     }
 
-    [Fact]
-    public void ToHtml_WithEmbedTag_EscapesEmbedTag()
+    [Test]
+    public async Task ToHtml_WithEmbedTag_EscapesEmbedTag()
     {
         // Arrange
         const string maliciousInput = "<embed src='javascript:alert(1)'>";
@@ -93,31 +91,31 @@ public class MarkupParserTests
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().NotContain("<embed");
-        result.Should().Contain("&lt;embed");
+        await Assert.That(result).DoesNotContain("<embed");
+        await Assert.That(result).Contains("&lt;embed");
     }
 
-    [Theory]
-    [InlineData("<div>test</div>")]
-    [InlineData("<span onclick='alert(1)'>test</span>")]
-    [InlineData("<a href='javascript:void(0)'>test</a>")]
-    [InlineData("<svg onload=alert(1)>")]
-    public void ToHtml_WithAnyHtmlTag_EscapesTag(string maliciousInput)
+    [Test]
+    [Arguments("<div>test</div>")]
+    [Arguments("<span onclick='alert(1)'>test</span>")]
+    [Arguments("<a href='javascript:void(0)'>test</a>")]
+    [Arguments("<svg onload=alert(1)>")]
+    public async Task ToHtml_WithAnyHtmlTag_EscapesTag(string maliciousInput)
     {
         // Act
         var result = _parser.ToHtml(maliciousInput);
 
         // Assert
-        result.Should().Contain("&lt;");
-        result.Should().Contain("&gt;");
+        await Assert.That(result).Contains("&lt;");
+        await Assert.That(result).Contains("&gt;");
     }
 
     #endregion
 
     #region URL Validation Tests (CRITICAL SECURITY)
 
-    [Fact]
-    public void ToHtml_WithJavaScriptProtocol_DoesNotCreateLink()
+    [Test]
+    public async Task ToHtml_WithJavaScriptProtocol_DoesNotCreateLink()
     {
         // Arrange
         const string input = "[click me](javascript:alert('XSS'))";
@@ -126,12 +124,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<a href=\"javascript:");
-        result.Should().Contain("[click me]");
+        await Assert.That(result).DoesNotContain("<a href=\"javascript:");
+        await Assert.That(result).Contains("[click me]");
     }
 
-    [Fact]
-    public void ToHtml_WithDataProtocol_DoesNotCreateLink()
+    [Test]
+    public async Task ToHtml_WithDataProtocol_DoesNotCreateLink()
     {
         // Arrange
         const string input = "[click me](data:text/html,<script>alert(1)</script>)";
@@ -140,12 +138,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<a href=\"data:");
-        result.Should().Contain("[click me]");
+        await Assert.That(result).DoesNotContain("<a href=\"data:");
+        await Assert.That(result).Contains("[click me]");
     }
 
-    [Fact]
-    public void ToHtml_WithVbscriptProtocol_DoesNotCreateLink()
+    [Test]
+    public async Task ToHtml_WithVbscriptProtocol_DoesNotCreateLink()
     {
         // Arrange
         const string input = "[click me](vbscript:msgbox(1))";
@@ -154,12 +152,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<a href=\"vbscript:");
-        result.Should().Contain("[click me]");
+        await Assert.That(result).DoesNotContain("<a href=\"vbscript:");
+        await Assert.That(result).Contains("[click me]");
     }
 
-    [Fact]
-    public void ToHtml_WithFileProtocol_DoesNotCreateLink()
+    [Test]
+    public async Task ToHtml_WithFileProtocol_DoesNotCreateLink()
     {
         // Arrange
         const string input = "[click me](file:///etc/passwd)";
@@ -168,12 +166,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<a href=\"file:");
-        result.Should().Contain("[click me]");
+        await Assert.That(result).DoesNotContain("<a href=\"file:");
+        await Assert.That(result).Contains("[click me]");
     }
 
-    [Fact]
-    public void ToHtml_WithHttpUrl_CreatesLink()
+    [Test]
+    public async Task ToHtml_WithHttpUrl_CreatesLink()
     {
         // Arrange
         const string input = "[Google](http://google.com)";
@@ -182,14 +180,14 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<a href=\"http://google.com\"");
-        result.Should().Contain("target=\"_blank\"");
-        result.Should().Contain("rel=\"noopener noreferrer\"");
-        result.Should().Contain(">Google</a>");
+        await Assert.That(result).Contains("<a href=\"http://google.com\"");
+        await Assert.That(result).Contains("target=\"_blank\"");
+        await Assert.That(result).Contains("rel=\"noopener noreferrer\"");
+        await Assert.That(result).Contains(">Google</a>");
     }
 
-    [Fact]
-    public void ToHtml_WithHttpsUrl_CreatesLink()
+    [Test]
+    public async Task ToHtml_WithHttpsUrl_CreatesLink()
     {
         // Arrange
         const string input = "[Secure Site](https://example.com)";
@@ -198,12 +196,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<a href=\"https://example.com\"");
-        result.Should().Contain(">Secure Site</a>");
+        await Assert.That(result).Contains("<a href=\"https://example.com\"");
+        await Assert.That(result).Contains(">Secure Site</a>");
     }
 
-    [Fact]
-    public void ToHtml_WithMailtoUrl_CreatesLink()
+    [Test]
+    public async Task ToHtml_WithMailtoUrl_CreatesLink()
     {
         // Arrange
         const string input = "[Email me](mailto:test@example.com)";
@@ -212,12 +210,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<a href=\"mailto:test@example.com\"");
-        result.Should().Contain(">Email me</a>");
+        await Assert.That(result).Contains("<a href=\"mailto:test@example.com\"");
+        await Assert.That(result).Contains(">Email me</a>");
     }
 
-    [Fact]
-    public void ToHtml_WithRelativeUrl_CreatesLink()
+    [Test]
+    public async Task ToHtml_WithRelativeUrl_CreatesLink()
     {
         // Arrange
         const string input = "[Internal Link](/some/path)";
@@ -226,12 +224,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<a href=\"/some/path\"");
-        result.Should().Contain(">Internal Link</a>");
+        await Assert.That(result).Contains("<a href=\"/some/path\"");
+        await Assert.That(result).Contains(">Internal Link</a>");
     }
 
-    [Fact]
-    public void ToHtml_WithProtocolRelativeUrl_DoesNotCreateLink()
+    [Test]
+    public async Task ToHtml_WithProtocolRelativeUrl_DoesNotCreateLink()
     {
         // Arrange - Protocol-relative URLs (//example.com) are not allowed
         const string input = "[Link](//example.com/path)";
@@ -240,12 +238,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<a href=\"//example.com");
-        result.Should().Contain("[Link]");
+        await Assert.That(result).DoesNotContain("<a href=\"//example.com");
+        await Assert.That(result).Contains("[Link]");
     }
 
-    [Fact]
-    public void ToHtml_WithUrlContainingXss_EscapesUrl()
+    [Test]
+    public async Task ToHtml_WithUrlContainingXss_EscapesUrl()
     {
         // Arrange
         const string input = "[Link](http://example.com/<script>alert(1)</script>)";
@@ -254,16 +252,16 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("&lt;script&gt;");
-        result.Should().NotContain("<script>");
+        await Assert.That(result).Contains("&lt;script&gt;");
+        await Assert.That(result).DoesNotContain("<script>");
     }
 
     #endregion
 
     #region Bold Formatting Tests
 
-    [Fact]
-    public void ToHtml_WithAsteriskBold_ConvertsToBold()
+    [Test]
+    public async Task ToHtml_WithAsteriskBold_ConvertsToBold()
     {
         // Arrange
         const string input = "This is **bold** text";
@@ -272,11 +270,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<strong>bold</strong>");
+        await Assert.That(result).Contains("<strong>bold</strong>");
     }
 
-    [Fact]
-    public void ToHtml_WithUnderscoreBold_ConvertsToBold()
+    [Test]
+    public async Task ToHtml_WithUnderscoreBold_ConvertsToBold()
     {
         // Arrange
         const string input = "This is __bold__ text";
@@ -285,11 +283,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<strong>bold</strong>");
+        await Assert.That(result).Contains("<strong>bold</strong>");
     }
 
-    [Fact]
-    public void ToHtml_WithMultipleBoldSections_ConvertsAll()
+    [Test]
+    public async Task ToHtml_WithMultipleBoldSections_ConvertsAll()
     {
         // Arrange
         const string input = "**first** and **second** bold";
@@ -298,16 +296,16 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<strong>first</strong>");
-        result.Should().Contain("<strong>second</strong>");
+        await Assert.That(result).Contains("<strong>first</strong>");
+        await Assert.That(result).Contains("<strong>second</strong>");
     }
 
     #endregion
 
     #region Italic Formatting Tests
 
-    [Fact]
-    public void ToHtml_WithAsteriskItalic_ConvertsToItalic()
+    [Test]
+    public async Task ToHtml_WithAsteriskItalic_ConvertsToItalic()
     {
         // Arrange
         const string input = "This is *italic* text";
@@ -316,11 +314,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<em>italic</em>");
+        await Assert.That(result).Contains("<em>italic</em>");
     }
 
-    [Fact]
-    public void ToHtml_WithUnderscoreItalic_ConvertsToItalic()
+    [Test]
+    public async Task ToHtml_WithUnderscoreItalic_ConvertsToItalic()
     {
         // Arrange
         const string input = "This is _italic_ text";
@@ -329,15 +327,15 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<em>italic</em>");
+        await Assert.That(result).Contains("<em>italic</em>");
     }
 
     #endregion
 
     #region Combined Bold and Italic Tests
 
-    [Fact]
-    public void ToHtml_WithBoldAndItalic_ConvertsBoth()
+    [Test]
+    public async Task ToHtml_WithBoldAndItalic_ConvertsBoth()
     {
         // Arrange
         const string input = "**bold** and *italic*";
@@ -346,12 +344,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<strong>bold</strong>");
-        result.Should().Contain("<em>italic</em>");
+        await Assert.That(result).Contains("<strong>bold</strong>");
+        await Assert.That(result).Contains("<em>italic</em>");
     }
 
-    [Fact]
-    public void ToHtml_WithNestedBoldItalic_HandlesCorrectly()
+    [Test]
+    public async Task ToHtml_WithNestedBoldItalic_HandlesCorrectly()
     {
         // Arrange - In markdown, *** would be bold+italic
         const string input = "***bold and italic***";
@@ -361,16 +359,16 @@ public class MarkupParserTests
 
         // Assert
         // Should convert ** first (bold), then * (italic)
-        result.Should().Contain("<strong>");
-        result.Should().Contain("</strong>");
+        await Assert.That(result).Contains("<strong>");
+        await Assert.That(result).Contains("</strong>");
     }
 
     #endregion
 
     #region Inline Code Tests
 
-    [Fact]
-    public void ToHtml_WithInlineCode_ConvertsToCode()
+    [Test]
+    public async Task ToHtml_WithInlineCode_ConvertsToCode()
     {
         // Arrange
         const string input = "Use the `code` function";
@@ -379,12 +377,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<code");
-        result.Should().Contain(">code</code>");
+        await Assert.That(result).Contains("<code");
+        await Assert.That(result).Contains(">code</code>");
     }
 
-    [Fact]
-    public void ToHtml_WithMultipleInlineCodes_ConvertsAll()
+    [Test]
+    public async Task ToHtml_WithMultipleInlineCodes_ConvertsAll()
     {
         // Arrange
         const string input = "Use `func1()` or `func2()`";
@@ -393,12 +391,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain(">func1()</code>");
-        result.Should().Contain(">func2()</code>");
+        await Assert.That(result).Contains(">func1()</code>");
+        await Assert.That(result).Contains(">func2()</code>");
     }
 
-    [Fact]
-    public void ToHtml_WithHtmlInInlineCode_EscapesHtml()
+    [Test]
+    public async Task ToHtml_WithHtmlInInlineCode_EscapesHtml()
     {
         // Arrange
         const string input = "Code: `<script>alert(1)</script>`";
@@ -407,16 +405,16 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("&lt;script&gt;");
-        result.Should().NotContain("<script>");
+        await Assert.That(result).Contains("&lt;script&gt;");
+        await Assert.That(result).DoesNotContain("<script>");
     }
 
     #endregion
 
     #region Code Block Tests
 
-    [Fact]
-    public void ToHtml_WithCodeBlock_ConvertsToPreCode()
+    [Test]
+    public async Task ToHtml_WithCodeBlock_ConvertsToPreCode()
     {
         // Arrange
         const string input = "```\nfunction test() {\n  return 42;\n}\n```";
@@ -425,12 +423,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<pre");
-        result.Should().Contain("<code");
+        await Assert.That(result).Contains("<pre");
+        await Assert.That(result).Contains("<code");
     }
 
-    [Fact]
-    public void ToHtml_WithHtmlInCodeBlock_EscapesHtml()
+    [Test]
+    public async Task ToHtml_WithHtmlInCodeBlock_EscapesHtml()
     {
         // Arrange
         const string input = "```\n<script>alert('XSS')</script>\n```";
@@ -439,12 +437,12 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("&lt;script&gt;");
-        result.Should().NotContain("<script>");
+        await Assert.That(result).Contains("&lt;script&gt;");
+        await Assert.That(result).DoesNotContain("<script>");
     }
 
-    [Fact]
-    public void ToHtml_WithCodeBlock_DoesNotApplyFormatting()
+    [Test]
+    public async Task ToHtml_WithCodeBlock_DoesNotApplyFormatting()
     {
         // Arrange
         const string input = "```\n**not bold** and *not italic*\n```";
@@ -453,16 +451,16 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().NotContain("<strong>");
-        result.Should().NotContain("<em>");
+        await Assert.That(result).DoesNotContain("<strong>");
+        await Assert.That(result).DoesNotContain("<em>");
     }
 
     #endregion
 
     #region Blockquote Tests
 
-    [Fact]
-    public void ToHtml_WithBlockquote_ConvertsToBlockquote()
+    [Test]
+    public async Task ToHtml_WithBlockquote_ConvertsToBlockquote()
     {
         // Arrange
         const string input = "> This is a quote";
@@ -471,13 +469,13 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<blockquote");
-        result.Should().Contain("This is a quote");
-        result.Should().Contain("</blockquote>");
+        await Assert.That(result).Contains("<blockquote");
+        await Assert.That(result).Contains("This is a quote");
+        await Assert.That(result).Contains("</blockquote>");
     }
 
-    [Fact]
-    public void ToHtml_WithMultilineBlockquote_KeepsInSameBlockquote()
+    [Test]
+    public async Task ToHtml_WithMultilineBlockquote_KeepsInSameBlockquote()
     {
         // Arrange
         const string input = "> Line 1\n> Line 2\n> Line 3";
@@ -486,20 +484,20 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("Line 1");
-        result.Should().Contain("Line 2");
-        result.Should().Contain("Line 3");
+        await Assert.That(result).Contains("Line 1");
+        await Assert.That(result).Contains("Line 2");
+        await Assert.That(result).Contains("Line 3");
         // Should only have one opening and one closing blockquote tag
-        result.Split("<blockquote").Should().HaveCount(2); // Original + 1 split
-        result.Split("</blockquote>").Should().HaveCount(2);
+        await Assert.That(result.Split("<blockquote")).Count().IsEqualTo(2);
+        await Assert.That(result.Split("</blockquote>")).Count().IsEqualTo(2);
     }
 
     #endregion
 
     #region List Tests
 
-    [Fact]
-    public void ToHtml_WithUnorderedList_ConvertsToUl()
+    [Test]
+    public async Task ToHtml_WithUnorderedList_ConvertsToUl()
     {
         // Arrange
         const string input = "- Item 1\n- Item 2\n- Item 3";
@@ -508,15 +506,15 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<ul");
-        result.Should().Contain("<li>Item 1</li>");
-        result.Should().Contain("<li>Item 2</li>");
-        result.Should().Contain("<li>Item 3</li>");
-        result.Should().Contain("</ul>");
+        await Assert.That(result).Contains("<ul");
+        await Assert.That(result).Contains("<li>Item 1</li>");
+        await Assert.That(result).Contains("<li>Item 2</li>");
+        await Assert.That(result).Contains("<li>Item 3</li>");
+        await Assert.That(result).Contains("</ul>");
     }
 
-    [Fact]
-    public void ToHtml_WithOrderedList_ConvertsToOl()
+    [Test]
+    public async Task ToHtml_WithOrderedList_ConvertsToOl()
     {
         // Arrange
         const string input = "1. First\n2. Second\n3. Third";
@@ -525,15 +523,15 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<ol");
-        result.Should().Contain("<li>First</li>");
-        result.Should().Contain("<li>Second</li>");
-        result.Should().Contain("<li>Third</li>");
-        result.Should().Contain("</ol>");
+        await Assert.That(result).Contains("<ol");
+        await Assert.That(result).Contains("<li>First</li>");
+        await Assert.That(result).Contains("<li>Second</li>");
+        await Assert.That(result).Contains("<li>Third</li>");
+        await Assert.That(result).Contains("</ol>");
     }
 
-    [Fact]
-    public void ToHtml_WithAsteriskList_ConvertsToUl()
+    [Test]
+    public async Task ToHtml_WithAsteriskList_ConvertsToUl()
     {
         // Arrange
         const string input = "* Item A\n* Item B";
@@ -542,17 +540,17 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<ul");
-        result.Should().Contain("<li>Item A</li>");
-        result.Should().Contain("<li>Item B</li>");
+        await Assert.That(result).Contains("<ul");
+        await Assert.That(result).Contains("<li>Item A</li>");
+        await Assert.That(result).Contains("<li>Item B</li>");
     }
 
     #endregion
 
     #region Edge Cases and Complex Scenarios
 
-    [Fact]
-    public void ToHtml_WithEmptyString_ReturnsEmptyString()
+    [Test]
+    public async Task ToHtml_WithEmptyString_ReturnsEmptyString()
     {
         // Arrange
         const string input = "";
@@ -561,11 +559,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().BeEmpty();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void ToHtml_WithNull_ReturnsEmptyString()
+    [Test]
+    public async Task ToHtml_WithNull_ReturnsEmptyString()
     {
         // Arrange
         string? input = null;
@@ -574,11 +572,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input!);
 
         // Assert
-        result.Should().BeEmpty();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void ToHtml_WithPlainText_WrapsInParagraph()
+    [Test]
+    public async Task ToHtml_WithPlainText_WrapsInParagraph()
     {
         // Arrange
         const string input = "Just plain text";
@@ -587,13 +585,13 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<p");
-        result.Should().Contain("Just plain text");
-        result.Should().Contain("</p>");
+        await Assert.That(result).Contains("<p");
+        await Assert.That(result).Contains("Just plain text");
+        await Assert.That(result).Contains("</p>");
     }
 
-    [Fact]
-    public void ToHtml_WithLineBreaks_ConvertsToBr()
+    [Test]
+    public async Task ToHtml_WithLineBreaks_ConvertsToBr()
     {
         // Arrange
         const string input = "Line 1\nLine 2";
@@ -602,11 +600,11 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<br>");
+        await Assert.That(result).Contains("<br>");
     }
 
-    [Fact]
-    public void ToHtml_WithDoubleLineBreaks_CreatesParagraphs()
+    [Test]
+    public async Task ToHtml_WithDoubleLineBreaks_CreatesParagraphs()
     {
         // Arrange
         const string input = "Paragraph 1\n\nParagraph 2";
@@ -615,13 +613,13 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("Paragraph 1");
-        result.Should().Contain("Paragraph 2");
-        result.Should().Contain("</p><p");
+        await Assert.That(result).Contains("Paragraph 1");
+        await Assert.That(result).Contains("Paragraph 2");
+        await Assert.That(result).Contains("</p><p");
     }
 
-    [Fact]
-    public void ToHtml_WithMixedFormatting_HandlesAllFormats()
+    [Test]
+    public async Task ToHtml_WithMixedFormatting_HandlesAllFormats()
     {
         // Arrange
         const string input = "**Bold** and *italic* with [link](https://example.com) and `code`";
@@ -630,15 +628,15 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("<strong>Bold</strong>");
-        result.Should().Contain("<em>italic</em>");
-        result.Should().Contain("<a href=\"https://example.com\"");
-        result.Should().Contain(">link</a>");
-        result.Should().Contain(">code</code>");
+        await Assert.That(result).Contains("<strong>Bold</strong>");
+        await Assert.That(result).Contains("<em>italic</em>");
+        await Assert.That(result).Contains("<a href=\"https://example.com\"");
+        await Assert.That(result).Contains(">link</a>");
+        await Assert.That(result).Contains(">code</code>");
     }
 
-    [Fact]
-    public void ToHtml_WithSpecialHtmlCharacters_EscapesCharacters()
+    [Test]
+    public async Task ToHtml_WithSpecialHtmlCharacters_EscapesCharacters()
     {
         // Arrange
         const string input = "2 < 3 && 4 > 1";
@@ -647,17 +645,17 @@ public class MarkupParserTests
         var result = _parser.ToHtml(input);
 
         // Assert
-        result.Should().Contain("&lt;");
-        result.Should().Contain("&gt;");
-        result.Should().Contain("&amp;");
+        await Assert.That(result).Contains("&lt;");
+        await Assert.That(result).Contains("&gt;");
+        await Assert.That(result).Contains("&amp;");
     }
 
     #endregion
 
     #region ToPlainText Tests
 
-    [Fact]
-    public void ToPlainText_RemovesBoldFormatting()
+    [Test]
+    public async Task ToPlainText_RemovesBoldFormatting()
     {
         // Arrange
         const string input = "This is **bold** text";
@@ -666,11 +664,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Be("This is bold text");
+        await Assert.That(result).IsEqualTo("This is bold text");
     }
 
-    [Fact]
-    public void ToPlainText_RemovesItalicFormatting()
+    [Test]
+    public async Task ToPlainText_RemovesItalicFormatting()
     {
         // Arrange
         const string input = "This is *italic* text";
@@ -679,11 +677,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Be("This is italic text");
+        await Assert.That(result).IsEqualTo("This is italic text");
     }
 
-    [Fact]
-    public void ToPlainText_RemovesCodeMarkers()
+    [Test]
+    public async Task ToPlainText_RemovesCodeMarkers()
     {
         // Arrange
         const string input = "Use `code` here";
@@ -692,11 +690,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Be("Use code here");
+        await Assert.That(result).IsEqualTo("Use code here");
     }
 
-    [Fact]
-    public void ToPlainText_ExtractsLinkText()
+    [Test]
+    public async Task ToPlainText_ExtractsLinkText()
     {
         // Arrange
         const string input = "Check [this link](https://example.com)";
@@ -705,11 +703,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Be("Check this link");
+        await Assert.That(result).IsEqualTo("Check this link");
     }
 
-    [Fact]
-    public void ToPlainText_RemovesListMarkers()
+    [Test]
+    public async Task ToPlainText_RemovesListMarkers()
     {
         // Arrange
         const string input = "- Item 1\n- Item 2";
@@ -718,13 +716,13 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Contain("Item 1");
-        result.Should().Contain("Item 2");
-        result.Should().NotContain("-");
+        await Assert.That(result).Contains("Item 1");
+        await Assert.That(result).Contains("Item 2");
+        await Assert.That(result).DoesNotContain("-");
     }
 
-    [Fact]
-    public void ToPlainText_RemovesBlockquoteMarkers()
+    [Test]
+    public async Task ToPlainText_RemovesBlockquoteMarkers()
     {
         // Arrange
         const string input = "> Quote text";
@@ -733,11 +731,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Be("Quote text");
+        await Assert.That(result).IsEqualTo("Quote text");
     }
 
-    [Fact]
-    public void ToPlainText_WithNull_ReturnsEmptyString()
+    [Test]
+    public async Task ToPlainText_WithNull_ReturnsEmptyString()
     {
         // Arrange
         string? input = null;
@@ -746,11 +744,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input!);
 
         // Assert
-        result.Should().BeEmpty();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void ToPlainText_WithEmptyString_ReturnsEmptyString()
+    [Test]
+    public async Task ToPlainText_WithEmptyString_ReturnsEmptyString()
     {
         // Arrange
         const string input = "";
@@ -759,11 +757,11 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().BeEmpty();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void ToPlainText_WithAllFormattingTypes_RemovesAll()
+    [Test]
+    public async Task ToPlainText_WithAllFormattingTypes_RemovesAll()
     {
         // Arrange
         const string input = "**Bold** *italic* `code` [link](url)\n> quote\n- list";
@@ -772,18 +770,18 @@ public class MarkupParserTests
         var result = _parser.ToPlainText(input);
 
         // Assert
-        result.Should().Contain("Bold");
-        result.Should().Contain("italic");
-        result.Should().Contain("code");
-        result.Should().Contain("link");
-        result.Should().Contain("quote");
-        result.Should().Contain("list");
-        result.Should().NotContain("**");
-        result.Should().NotContain("*");
-        result.Should().NotContain("`");
-        result.Should().NotContain("[");
-        result.Should().NotContain(">");
-        result.Should().NotContain("-");
+        await Assert.That(result).Contains("Bold");
+        await Assert.That(result).Contains("italic");
+        await Assert.That(result).Contains("code");
+        await Assert.That(result).Contains("link");
+        await Assert.That(result).Contains("quote");
+        await Assert.That(result).Contains("list");
+        await Assert.That(result).DoesNotContain("**");
+        await Assert.That(result).DoesNotContain("*");
+        await Assert.That(result).DoesNotContain("`");
+        await Assert.That(result).DoesNotContain("[");
+        await Assert.That(result).DoesNotContain(">");
+        await Assert.That(result).DoesNotContain("-");
     }
 
     #endregion

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -10,20 +9,13 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Avatars;
 
 public class UserAvatarEventHandlersTests
 {
-    private readonly Mock<IAvatarGenerationService> _mockAvatarService;
-    private readonly Mock<ILogger<UserCreatedAvatarGenerationHandler>> _mockCreationLogger;
-    private readonly Mock<ILogger<UserDeletedAvatarCleanupHandler>> _mockDeletionLogger;
-
-    public UserAvatarEventHandlersTests()
-    {
-        _mockAvatarService = new Mock<IAvatarGenerationService>();
-        _mockCreationLogger = new Mock<ILogger<UserCreatedAvatarGenerationHandler>>();
-        _mockDeletionLogger = new Mock<ILogger<UserDeletedAvatarCleanupHandler>>();
-    }
+    private readonly Mock<IAvatarGenerationService> _mockAvatarService = new();
+    private readonly Mock<ILogger<UserCreatedAvatarGenerationHandler>> _mockCreationLogger = new();
+    private readonly Mock<ILogger<UserDeletedAvatarCleanupHandler>> _mockDeletionLogger = new();
 
     #region UserCreatedAvatarGenerationHandler Tests
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_GeneratesAvatar_WhenUserCreated()
     {
         // Arrange
@@ -42,7 +34,7 @@ public class UserAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.GenerateUserAvatarAsync(userId.Value, It.IsAny<int>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_DoesNotThrow_WhenGenerationFails()
     {
         // Arrange
@@ -54,14 +46,12 @@ public class UserAvatarEventHandlersTests
             .Setup(x => x.GenerateUserAvatarAsync(userId.Value, It.IsAny<int>()))
             .ThrowsAsync(new IOException("Disk full"));
 
-        // Act
+        // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_LogsError_WhenGenerationFails()
     {
         // Arrange
@@ -92,7 +82,7 @@ public class UserAvatarEventHandlersTests
 
     #region UserDeletedAvatarCleanupHandler Tests
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_DeletesAvatar_WhenUserDeleted()
     {
         // Arrange
@@ -111,7 +101,7 @@ public class UserAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.DeleteAvatarAsync("user", userId.Value), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_DoesNotThrow_WhenDeletionFails()
     {
         // Arrange
@@ -123,14 +113,12 @@ public class UserAvatarEventHandlersTests
             .Setup(x => x.DeleteAvatarAsync("user", userId.Value))
             .ThrowsAsync(new IOException("File locked"));
 
-        // Act
+        // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_LogsError_WhenDeletionFails()
     {
         // Arrange

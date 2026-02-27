@@ -1,8 +1,6 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
-using Xunit;
 
 namespace Snakk.Domain.Tests.Entities;
 
@@ -10,8 +8,8 @@ public class PostTests
 {
     #region Create Tests
 
-    [Fact]
-    public void Create_WithValidParameters_CreatesPost()
+    [Test]
+    public async Task Create_WithValidParameters_CreatesPost()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -22,21 +20,21 @@ public class PostTests
         var post = Post.Create(discussionId, userId, content);
 
         // Assert
-        post.Should().NotBeNull();
-        post.PublicId.Should().NotBeNull();
-        post.DiscussionId.Should().Be(discussionId);
-        post.CreatedByUserId.Should().Be(userId);
-        post.Content.Should().Be(content);
-        post.IsDeleted.Should().BeFalse();
-        post.IsFirstPost.Should().BeFalse();
-        post.ReplyToPostId.Should().BeNull();
-        post.EditedAt.Should().BeNull();
-        post.RevisionCount.Should().Be(0);
-        post.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(post).IsNotNull();
+        await Assert.That(post.PublicId).IsNotNull();
+        await Assert.That(post.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(post.CreatedByUserId).IsEqualTo(userId);
+        await Assert.That(post.Content).IsEqualTo(content);
+        await Assert.That(post.IsDeleted).IsFalse();
+        await Assert.That(post.IsFirstPost).IsFalse();
+        await Assert.That((object?)post.ReplyToPostId).IsNull();
+        await Assert.That(post.EditedAt).IsNull();
+        await Assert.That(post.RevisionCount).IsEqualTo(0);
+        await Assert.That(post.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void Create_FiresPostCreatedEvent()
+    [Test]
+    public async Task Create_FiresPostCreatedEvent()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -46,17 +44,17 @@ public class PostTests
         var post = Post.Create(discussionId, userId, "content");
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
         var domainEvent = post.DomainEvents.First();
-        domainEvent.Should().BeOfType<PostCreatedEvent>();
+        await Assert.That(domainEvent).IsTypeOf<PostCreatedEvent>();
         var postCreatedEvent = (PostCreatedEvent)domainEvent;
-        postCreatedEvent.PostId.Should().Be(post.PublicId);
-        postCreatedEvent.DiscussionId.Should().Be(discussionId);
-        postCreatedEvent.CreatedByUserId.Should().Be(userId);
+        await Assert.That(postCreatedEvent.PostId).IsEqualTo(post.PublicId);
+        await Assert.That(postCreatedEvent.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(postCreatedEvent.CreatedByUserId).IsEqualTo(userId);
     }
 
-    [Fact]
-    public void Create_WithIsFirstPostTrue_SetsIsFirstPost()
+    [Test]
+    public async Task Create_WithIsFirstPostTrue_SetsIsFirstPost()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -66,11 +64,11 @@ public class PostTests
         var post = Post.Create(discussionId, userId, "content", isFirstPost: true);
 
         // Assert
-        post.IsFirstPost.Should().BeTrue();
+        await Assert.That(post.IsFirstPost).IsTrue();
     }
 
-    [Fact]
-    public void Create_WithReplyToPostId_SetsReplyToPostId()
+    [Test]
+    public async Task Create_WithReplyToPostId_SetsReplyToPostId()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -81,33 +79,29 @@ public class PostTests
         var post = Post.Create(discussionId, userId, "reply content", replyToPostId: replyToPostId);
 
         // Assert
-        post.ReplyToPostId.Should().Be(replyToPostId);
+        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Create_WithEmptyContent_ThrowsArgumentException(string? emptyContent)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task Create_WithEmptyContent_ThrowsArgumentException(string? emptyContent)
     {
         // Arrange
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
 
-        // Act
-        Action act = () => Post.Create(discussionId, userId, emptyContent!);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Post content cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => Post.Create(discussionId, userId, emptyContent!)).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region UpdateContent Tests
 
-    [Fact]
-    public void UpdateContent_WithValidContent_UpdatesContentAndCreatesRevision()
+    [Test]
+    public async Task UpdateContent_WithValidContent_UpdatesContentAndCreatesRevision()
     {
         // Arrange
         var post = Post.Create(DiscussionId.New(), UserId.New(), "original content");
@@ -118,16 +112,16 @@ public class PostTests
         post.UpdateContent("updated content", editorUserId);
 
         // Assert
-        post.Content.Should().Be("updated content");
-        post.EditedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        post.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        post.RevisionCount.Should().Be(1);
-        post.Revisions.Should().HaveCount(1);
-        post.Revisions.First().Content.Should().Be("original content");
+        await Assert.That(post.Content).IsEqualTo("updated content");
+        await Assert.That(post.EditedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(post.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(post.RevisionCount).IsEqualTo(1);
+        await Assert.That(post.Revisions).Count().IsEqualTo(1);
+        await Assert.That(post.Revisions.First().Content).IsEqualTo("original content");
     }
 
-    [Fact]
-    public void UpdateContent_FiresPostEditedEvent()
+    [Test]
+    public async Task UpdateContent_FiresPostEditedEvent()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -139,16 +133,16 @@ public class PostTests
         post.UpdateContent("updated content", userId);
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
         var domainEvent = post.DomainEvents.First();
-        domainEvent.Should().BeOfType<PostEditedEvent>();
+        await Assert.That(domainEvent).IsTypeOf<PostEditedEvent>();
         var postEditedEvent = (PostEditedEvent)domainEvent;
-        postEditedEvent.PostId.Should().Be(post.PublicId);
-        postEditedEvent.DiscussionId.Should().Be(discussionId);
+        await Assert.That(postEditedEvent.PostId).IsEqualTo(post.PublicId);
+        await Assert.That(postEditedEvent.DiscussionId).IsEqualTo(discussionId);
     }
 
-    [Fact]
-    public void UpdateContent_MultipleEdits_CreatesMultipleRevisions()
+    [Test]
+    public async Task UpdateContent_MultipleEdits_CreatesMultipleRevisions()
     {
         // Arrange
         var userId = UserId.New();
@@ -160,70 +154,58 @@ public class PostTests
         post.UpdateContent("edit3", userId);
 
         // Assert
-        post.Content.Should().Be("edit3");
-        post.RevisionCount.Should().Be(3);
-        post.Revisions.Should().HaveCount(3);
-        post.Revisions.ToList()[0].Content.Should().Be("original");
-        post.Revisions.ToList()[1].Content.Should().Be("edit1");
-        post.Revisions.ToList()[2].Content.Should().Be("edit2");
+        await Assert.That(post.Content).IsEqualTo("edit3");
+        await Assert.That(post.RevisionCount).IsEqualTo(3);
+        await Assert.That(post.Revisions).Count().IsEqualTo(3);
+        await Assert.That(post.Revisions.ToList()[0].Content).IsEqualTo("original");
+        await Assert.That(post.Revisions.ToList()[1].Content).IsEqualTo("edit1");
+        await Assert.That(post.Revisions.ToList()[2].Content).IsEqualTo("edit2");
     }
 
-    [Fact]
-    public void UpdateContent_OnDeletedPost_ThrowsInvalidOperationException()
+    [Test]
+    public async Task UpdateContent_OnDeletedPost_ThrowsInvalidOperationException()
     {
         // Arrange
         var userId = UserId.New();
         var post = Post.Create(DiscussionId.New(), userId, "content");
         post.SoftDelete(userId);
 
-        // Act
-        Action act = () => post.UpdateContent("new content", userId);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Cannot edit a deleted post");
+        // Act & Assert
+        await Assert.That(() => post.UpdateContent("new content", userId)).Throws<InvalidOperationException>();
     }
 
-    [Fact]
-    public void UpdateContent_ByDifferentUser_ThrowsInvalidOperationException()
+    [Test]
+    public async Task UpdateContent_ByDifferentUser_ThrowsInvalidOperationException()
     {
         // Arrange
         var originalUserId = UserId.New();
         var differentUserId = UserId.New();
         var post = Post.Create(DiscussionId.New(), originalUserId, "content");
 
-        // Act
-        Action act = () => post.UpdateContent("new content", differentUserId);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Only the author can edit this post");
+        // Act & Assert
+        await Assert.That(() => post.UpdateContent("new content", differentUserId)).Throws<InvalidOperationException>();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void UpdateContent_WithEmptyContent_ThrowsArgumentException(string? emptyContent)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task UpdateContent_WithEmptyContent_ThrowsArgumentException(string? emptyContent)
     {
         // Arrange
         var userId = UserId.New();
         var post = Post.Create(DiscussionId.New(), userId, "original");
 
-        // Act
-        Action act = () => post.UpdateContent(emptyContent!, userId);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Post content cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => post.UpdateContent(emptyContent!, userId)).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region SoftDelete Tests
 
-    [Fact]
-    public void SoftDelete_MarkPostAsDeleted()
+    [Test]
+    public async Task SoftDelete_MarkPostAsDeleted()
     {
         // Arrange
         var userId = UserId.New();
@@ -235,12 +217,12 @@ public class PostTests
         post.SoftDelete(userId);
 
         // Assert
-        post.IsDeleted.Should().BeTrue();
-        post.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(post.IsDeleted).IsTrue();
+        await Assert.That(post.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void SoftDelete_FiresPostDeletedEventWithSoftDeleteFlag()
+    [Test]
+    public async Task SoftDelete_FiresPostDeletedEventWithSoftDeleteFlag()
     {
         // Arrange
         var userId = UserId.New();
@@ -252,38 +234,34 @@ public class PostTests
         post.SoftDelete(userId);
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
         var domainEvent = post.DomainEvents.First();
-        domainEvent.Should().BeOfType<PostDeletedEvent>();
+        await Assert.That(domainEvent).IsTypeOf<PostDeletedEvent>();
         var deleteEvent = (PostDeletedEvent)domainEvent;
-        deleteEvent.PostId.Should().Be(post.PublicId);
-        deleteEvent.DiscussionId.Should().Be(discussionId);
-        deleteEvent.DeletedByUserId.Should().Be(userId);
-        deleteEvent.IsHardDelete.Should().BeFalse();
+        await Assert.That(deleteEvent.PostId).IsEqualTo(post.PublicId);
+        await Assert.That(deleteEvent.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(deleteEvent.DeletedByUserId).IsEqualTo(userId);
+        await Assert.That(deleteEvent.IsHardDelete).IsFalse();
     }
 
-    [Fact]
-    public void SoftDelete_OnAlreadyDeletedPost_ThrowsInvalidOperationException()
+    [Test]
+    public async Task SoftDelete_OnAlreadyDeletedPost_ThrowsInvalidOperationException()
     {
         // Arrange
         var userId = UserId.New();
         var post = Post.Create(DiscussionId.New(), userId, "content");
         post.SoftDelete(userId);
 
-        // Act
-        Action act = () => post.SoftDelete(userId);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Post is already deleted");
+        // Act & Assert
+        await Assert.That(() => post.SoftDelete(userId)).Throws<InvalidOperationException>();
     }
 
     #endregion
 
     #region HardDelete Tests
 
-    [Fact]
-    public void HardDelete_FiresPostDeletedEventWithHardDeleteFlag()
+    [Test]
+    public async Task HardDelete_FiresPostDeletedEventWithHardDeleteFlag()
     {
         // Arrange
         var userId = UserId.New();
@@ -295,19 +273,19 @@ public class PostTests
         post.HardDelete(userId);
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
         var domainEvent = post.DomainEvents.First();
-        domainEvent.Should().BeOfType<PostDeletedEvent>();
+        await Assert.That(domainEvent).IsTypeOf<PostDeletedEvent>();
         var deleteEvent = (PostDeletedEvent)domainEvent;
-        deleteEvent.IsHardDelete.Should().BeTrue();
+        await Assert.That(deleteEvent.IsHardDelete).IsTrue();
     }
 
     #endregion
 
     #region CanHardDelete Tests
 
-    [Fact]
-    public void CanHardDelete_WithinFiveMinutes_ReturnsTrue()
+    [Test]
+    public async Task CanHardDelete_WithinFiveMinutes_ReturnsTrue()
     {
         // Arrange - Create post (will have current time)
         var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
@@ -316,11 +294,11 @@ public class PostTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeTrue();
+        await Assert.That(canHardDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanHardDelete_ExactlyFiveMinutesAgo_ReturnsFalse()
+    [Test]
+    public async Task CanHardDelete_ExactlyFiveMinutesAgo_ReturnsFalse()
     {
         // Arrange - Rehydrate post with CreatedAt exactly 5 minutes ago
         var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
@@ -335,11 +313,11 @@ public class PostTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeFalse();
+        await Assert.That(canHardDelete).IsFalse();
     }
 
-    [Fact]
-    public void CanHardDelete_MoreThanFiveMinutesAgo_ReturnsFalse()
+    [Test]
+    public async Task CanHardDelete_MoreThanFiveMinutesAgo_ReturnsFalse()
     {
         // Arrange - Rehydrate post with CreatedAt 10 minutes ago
         var tenMinutesAgo = DateTime.UtcNow.AddMinutes(-10);
@@ -354,11 +332,11 @@ public class PostTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeFalse();
+        await Assert.That(canHardDelete).IsFalse();
     }
 
-    [Fact]
-    public void CanHardDelete_JustUnderFiveMinutes_ReturnsTrue()
+    [Test]
+    public async Task CanHardDelete_JustUnderFiveMinutes_ReturnsTrue()
     {
         // Arrange - 4 minutes 59 seconds ago
         var almostFiveMinutesAgo = DateTime.UtcNow.AddMinutes(-4).AddSeconds(-59);
@@ -373,11 +351,11 @@ public class PostTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeTrue();
+        await Assert.That(canHardDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanHardDelete_OneHourAgo_ReturnsFalse()
+    [Test]
+    public async Task CanHardDelete_OneHourAgo_ReturnsFalse()
     {
         // Arrange
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
@@ -392,15 +370,15 @@ public class PostTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeFalse();
+        await Assert.That(canHardDelete).IsFalse();
     }
 
     #endregion
 
     #region CanEdit Tests
 
-    [Fact]
-    public void CanEdit_ByAuthor_ReturnsTrue()
+    [Test]
+    public async Task CanEdit_ByAuthor_ReturnsTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -410,11 +388,11 @@ public class PostTests
         var canEdit = post.CanEdit(userId);
 
         // Assert
-        canEdit.Should().BeTrue();
+        await Assert.That(canEdit).IsTrue();
     }
 
-    [Fact]
-    public void CanEdit_ByDifferentUser_ReturnsFalse()
+    [Test]
+    public async Task CanEdit_ByDifferentUser_ReturnsFalse()
     {
         // Arrange
         var authorId = UserId.New();
@@ -425,15 +403,15 @@ public class PostTests
         var canEdit = post.CanEdit(otherId);
 
         // Assert
-        canEdit.Should().BeFalse();
+        await Assert.That(canEdit).IsFalse();
     }
 
     #endregion
 
     #region CanDelete Tests
 
-    [Fact]
-    public void CanDelete_ByAuthor_ReturnsTrue()
+    [Test]
+    public async Task CanDelete_ByAuthor_ReturnsTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -443,11 +421,11 @@ public class PostTests
         var canDelete = post.CanDelete(userId);
 
         // Assert
-        canDelete.Should().BeTrue();
+        await Assert.That(canDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanDelete_ByDifferentUser_ReturnsFalse()
+    [Test]
+    public async Task CanDelete_ByDifferentUser_ReturnsFalse()
     {
         // Arrange
         var authorId = UserId.New();
@@ -458,33 +436,33 @@ public class PostTests
         var canDelete = post.CanDelete(otherId);
 
         // Assert
-        canDelete.Should().BeFalse();
+        await Assert.That(canDelete).IsFalse();
     }
 
     #endregion
 
     #region ClearDomainEvents Tests
 
-    [Fact]
-    public void ClearDomainEvents_RemovesAllEvents()
+    [Test]
+    public async Task ClearDomainEvents_RemovesAllEvents()
     {
         // Arrange
         var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
 
         // Act
         post.ClearDomainEvents();
 
         // Assert
-        post.DomainEvents.Should().BeEmpty();
+        await Assert.That(post.DomainEvents).IsEmpty();
     }
 
     #endregion
 
     #region Rehydrate Tests
 
-    [Fact]
-    public void Rehydrate_WithAllParameters_CreatesPostWithExactState()
+    [Test]
+    public async Task Rehydrate_WithAllParameters_CreatesPostWithExactState()
     {
         // Arrange
         var postId = PostId.New();
@@ -512,19 +490,18 @@ public class PostTests
             revisions);
 
         // Assert
-        post.PublicId.Should().Be(postId);
-        post.DiscussionId.Should().Be(discussionId);
-        post.CreatedByUserId.Should().Be(userId);
-        post.Content.Should().Be("content");
-        post.CreatedAt.Should().Be(createdAt);
-        post.LastModifiedAt.Should().Be(lastModifiedAt);
-        post.EditedAt.Should().Be(editedAt);
-        post.IsFirstPost.Should().BeTrue();
-        post.ReplyToPostId.Should().Be(replyToPostId);
-        post.IsDeleted.Should().BeTrue();
-        post.RevisionCount.Should().Be(3);
-        post.Revisions.Should().BeEquivalentTo(revisions);
-        post.DomainEvents.Should().BeEmpty(); // Rehydrated posts have no events
+        await Assert.That(post.PublicId).IsEqualTo(postId);
+        await Assert.That(post.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(post.CreatedByUserId).IsEqualTo(userId);
+        await Assert.That(post.Content).IsEqualTo("content");
+        await Assert.That(post.CreatedAt).IsEqualTo(createdAt);
+        await Assert.That(post.LastModifiedAt).IsEqualTo(lastModifiedAt);
+        await Assert.That(post.EditedAt).IsEqualTo(editedAt);
+        await Assert.That(post.IsFirstPost).IsTrue();
+        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
+        await Assert.That(post.IsDeleted).IsTrue();
+        await Assert.That(post.RevisionCount).IsEqualTo(3);
+        await Assert.That(post.DomainEvents).IsEmpty(); // Rehydrated posts have no events
     }
 
     #endregion

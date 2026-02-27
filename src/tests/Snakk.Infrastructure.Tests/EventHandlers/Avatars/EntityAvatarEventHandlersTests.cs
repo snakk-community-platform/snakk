@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -10,16 +9,11 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Avatars;
 
 public class EntityAvatarEventHandlersTests
 {
-    private readonly Mock<IAvatarGenerationService> _mockAvatarService;
-
-    public EntityAvatarEventHandlersTests()
-    {
-        _mockAvatarService = new Mock<IAvatarGenerationService>();
-    }
+    private readonly Mock<IAvatarGenerationService> _mockAvatarService = new();
 
     #region Hub Event Handlers Tests
 
-    [Fact]
+    [Test]
     public async Task HubCreatedHandler_GeneratesAvatar_WhenHubCreated()
     {
         // Arrange
@@ -39,7 +33,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task HubDeletedHandler_DeletesAvatar_WhenHubDeleted()
     {
         // Arrange
@@ -55,7 +49,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.DeleteAvatarAsync("hub", hubId.Value), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task HubCreatedHandler_DoesNotThrow_WhenGenerationFails()
     {
         // Arrange
@@ -68,18 +62,16 @@ public class EntityAvatarEventHandlersTests
             .Setup(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()))
             .ThrowsAsync(new IOException("Error"));
 
-        // Act
+        // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
     #endregion
 
     #region Space Event Handlers Tests
 
-    [Fact]
+    [Test]
     public async Task SpaceCreatedHandler_GeneratesAvatar_WhenSpaceCreated()
     {
         // Arrange
@@ -99,7 +91,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.GenerateSpaceAvatarAsync(spaceId.Value, It.IsAny<int>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task SpaceDeletedHandler_DeletesAvatar_WhenSpaceDeleted()
     {
         // Arrange
@@ -115,7 +107,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.DeleteAvatarAsync("space", spaceId.Value), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task SpaceCreatedHandler_DoesNotThrow_WhenGenerationFails()
     {
         // Arrange
@@ -128,18 +120,16 @@ public class EntityAvatarEventHandlersTests
             .Setup(x => x.GenerateSpaceAvatarAsync(spaceId.Value, It.IsAny<int>()))
             .ThrowsAsync(new IOException("Error"));
 
-        // Act
+        // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
     #endregion
 
     #region Community Event Handlers Tests
 
-    [Fact]
+    [Test]
     public async Task CommunityCreatedHandler_GeneratesAvatar_WhenCommunityCreated()
     {
         // Arrange
@@ -159,7 +149,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.GenerateCommunityAvatarAsync(communityId.Value, It.IsAny<int>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task CommunityDeletedHandler_DeletesAvatar_WhenCommunityDeleted()
     {
         // Arrange
@@ -175,7 +165,7 @@ public class EntityAvatarEventHandlersTests
         _mockAvatarService.Verify(x => x.DeleteAvatarAsync("community", communityId.Value), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task CommunityCreatedHandler_DoesNotThrow_WhenGenerationFails()
     {
         // Arrange
@@ -188,18 +178,16 @@ public class EntityAvatarEventHandlersTests
             .Setup(x => x.GenerateCommunityAvatarAsync(communityId.Value, It.IsAny<int>()))
             .ThrowsAsync(new IOException("Error"));
 
-        // Act
+        // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
     #endregion
 
     #region Error Handling Tests
 
-    [Fact]
+    [Test]
     public async Task AllCreationHandlers_LogErrors_WhenGenerationFails()
     {
         // This test ensures all creation handlers follow the same error handling pattern
@@ -227,7 +215,7 @@ public class EntityAvatarEventHandlersTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task AllDeletionHandlers_LogErrors_WhenDeletionFails()
     {
         // This test ensures all deletion handlers follow the same error handling pattern

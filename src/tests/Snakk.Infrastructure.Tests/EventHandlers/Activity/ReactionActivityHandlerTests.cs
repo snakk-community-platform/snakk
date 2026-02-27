@@ -1,0 +1,326 @@
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using Snakk.Application.Services;
+using Snakk.Domain.Events;
+using Snakk.Domain.ValueObjects;
+using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.EventHandlers.Activity;
+using Snakk.Shared.Enums;
+
+namespace Snakk.Infrastructure.Tests.EventHandlers.Activity;
+
+public class ReactionActivityHandlerTests : IDisposable
+{
+    private readonly SnakkDbContext _context;
+    private readonly Mock<IActivityBroadcaster> _mockBroadcaster;
+
+    public ReactionActivityHandlerTests()
+    {
+        var options = new DbContextOptionsBuilder<SnakkDbContext>()
+            .UseInMemoryDatabase(databaseName: $"ReactionActivityHandlerTests_{Guid.NewGuid()}")
+            .Options;
+        _context = new SnakkDbContext(options);
+        _mockBroadcaster = new Mock<IActivityBroadcaster>();
+    }
+
+    public void Dispose()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
+    }
+
+    private async Task<(UserDatabaseEntity user, CommunityDatabaseEntity community, HubDatabaseEntity hub, SpaceDatabaseEntity space, DiscussionDatabaseEntity discussion, PostDatabaseEntity post)> SetupFullHierarchyWithPost()
+    {
+        var user = new UserDatabaseEntity
+        {
+            PublicId = "user_react",
+            DisplayName = "ReactUser",
+            Email = "react@example.com",
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Users.Add(user);
+
+        var community = new CommunityDatabaseEntity
+        {
+            PublicId = "comm_react",
+            Name = "Reaction Community",
+            Slug = "reaction-community",
+            CreatedAt = DateTime.UtcNow,
+            VisibilityId = 1
+        };
+        _context.Communities.Add(community);
+        await _context.SaveChangesAsync();
+
+        var hub = new HubDatabaseEntity
+        {
+            PublicId = "hub_react",
+            Name = "Reaction Hub",
+            Slug = "reaction-hub",
+            CommunityId = community.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Hubs.Add(hub);
+        await _context.SaveChangesAsync();
+
+        var space = new SpaceDatabaseEntity
+        {
+            PublicId = "space_react",
+            Name = "Reaction Space",
+            Slug = "reaction-space",
+            HubId = hub.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Spaces.Add(space);
+        await _context.SaveChangesAsync();
+
+        var discussion = new DiscussionDatabaseEntity
+        {
+            PublicId = "disc_react",
+            Title = "Reaction Discussion",
+            Slug = "reaction-discussion",
+            SpaceId = space.Id,
+            CreatedByUserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Discussions.Add(discussion);
+        await _context.SaveChangesAsync();
+
+        var post = new PostDatabaseEntity
+        {
+            PublicId = "post_react",
+            Content = "Post for reactions",
+            DiscussionId = discussion.Id,
+            CreatedByUserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Posts.Add(post);
+        await _context.SaveChangesAsync();
+
+        return (user, community, hub, space, discussion, post);
+    }
+
+    [Test]
+    public async Task HandleAsync_ReactionNotFound_DoesNotBroadcast()
+    {
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("nonexistent"),
+            PostId.From("nonexistent"),
+            UserId.From("nonexistent"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task HandleAsync_ThumbsUpReaction_BroadcastsCorrectReactionType()
+    {
+        var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_thumbsup",
+            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_thumbsup"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            "user_react",
+            "ReactUser",
+            "ThumbsUp",
+            "post",
+            "post_react",
+            "Reaction Discussion"), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_HeartReaction_BroadcastsCorrectReactionType()
+    {
+        var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_heart",
+            TypeId = (int)ReactionTypeEnum.Heart,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_heart"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.Heart);
+
+        await handler.HandleAsync(@event);
+
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            "user_react",
+            "ReactUser",
+            "Heart",
+            "post",
+            "post_react",
+            "Reaction Discussion"), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_AlwaysUsesPostAsTargetType()
+    {
+        var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_target",
+            TypeId = (int)ReactionTypeEnum.Eyes,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_target"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            "post",
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_BroadcastsUserIdFromEvent()
+    {
+        var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_userid",
+            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_userid"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        // Verify the userId comes from the event, not from the database lookup
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            "user_react",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_ResolvesDisplayNameFromDatabase()
+    {
+        var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_display",
+            TypeId = (int)ReactionTypeEnum.Crazy,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_display"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        // Verify the display name "ReactUser" is resolved from the database entity
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            It.IsAny<string>(),
+            "ReactUser",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_ResolvesDiscussionTitleFromPostRelationship()
+    {
+        var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
+
+        var reaction = new ReactionDatabaseEntity
+        {
+            PublicId = "react_title",
+            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            PostId = post.Id,
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Reactions.Add(reaction);
+        await _context.SaveChangesAsync();
+
+        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var @event = new ReactionAddedEvent(
+            ReactionId.From("react_title"),
+            PostId.From("post_react"),
+            UserId.From("user_react"),
+            ReactionType.ThumbsUp);
+
+        await handler.HandleAsync(@event);
+
+        // Verify discussion title is resolved through the post -> discussion relationship
+        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            "Reaction Discussion"), Times.Once);
+    }
+}

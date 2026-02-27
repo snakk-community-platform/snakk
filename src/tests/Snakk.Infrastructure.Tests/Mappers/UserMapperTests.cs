@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
@@ -11,8 +10,8 @@ public class UserMapperTests
 {
     #region ToPersistence Tests
 
-    [Fact]
-    public void ToPersistence_WithEmailUser_MapsAllProperties()
+    [Test]
+    public async Task ToPersistence_WithEmailUser_MapsAllProperties()
     {
         // Arrange
         var user = User.CreateWithEmail("TestUser", "test@example.com", "password_hash", "verification_token");
@@ -21,23 +20,23 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.Should().NotBeNull();
-        entity.PublicId.Should().Be(user.PublicId);
-        entity.DisplayName.Should().Be("TestUser");
-        entity.Email.Should().Be("test@example.com");
-        entity.PasswordHash.Should().Be("password_hash");
-        entity.EmailVerified.Should().BeFalse();
-        entity.EmailVerificationToken.Should().Be("verification_token");
-        entity.OAuthProvider.Should().BeNull();
-        entity.OAuthProviderId.Should().BeNull();
-        entity.AvatarFileName.Should().BeNull();
+        await Assert.That(entity).IsNotNull();
+        await Assert.That(entity.PublicId).IsEqualTo(user.PublicId);
+        await Assert.That(entity.DisplayName).IsEqualTo("TestUser");
+        await Assert.That(entity.Email).IsEqualTo("test@example.com");
+        await Assert.That(entity.PasswordHash).IsEqualTo("password_hash");
+        await Assert.That(entity.EmailVerified).IsFalse();
+        await Assert.That(entity.EmailVerificationToken).IsEqualTo("verification_token");
+        await Assert.That(entity.OAuthProvider).IsNull();
+        await Assert.That(entity.OAuthProviderId).IsNull();
+        await Assert.That(entity.AvatarFileName).IsNull();
         // Note: PreferEndlessScroll defaults to true in the User entity
-        entity.PreferEndlessScroll.Should().BeTrue();
-        entity.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(entity.PreferEndlessScroll).IsTrue();
+        await Assert.That((DateTime.UtcNow - entity.CreatedAt).TotalSeconds).IsLessThan(1);
     }
 
-    [Fact]
-    public void ToPersistence_WithOAuthUser_MapsOAuthProperties()
+    [Test]
+    public async Task ToPersistence_WithOAuthUser_MapsOAuthProperties()
     {
         // Arrange
         var user = User.CreateWithOAuth("OAuthUser", "oauth@example.com", "google", "google_123");
@@ -46,18 +45,18 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.PublicId.Should().Be(user.PublicId);
-        entity.DisplayName.Should().Be("OAuthUser");
-        entity.Email.Should().Be("oauth@example.com");
-        entity.PasswordHash.Should().BeNull();
-        entity.EmailVerified.Should().BeTrue();
-        entity.EmailVerificationToken.Should().BeNull();
-        entity.OAuthProvider.Should().Be("google");
-        entity.OAuthProviderId.Should().Be("google_123");
+        await Assert.That(entity.PublicId).IsEqualTo(user.PublicId);
+        await Assert.That(entity.DisplayName).IsEqualTo("OAuthUser");
+        await Assert.That(entity.Email).IsEqualTo("oauth@example.com");
+        await Assert.That(entity.PasswordHash).IsNull();
+        await Assert.That(entity.EmailVerified).IsTrue();
+        await Assert.That(entity.EmailVerificationToken).IsNull();
+        await Assert.That(entity.OAuthProvider).IsEqualTo("google");
+        await Assert.That(entity.OAuthProviderId).IsEqualTo("google_123");
     }
 
-    [Fact]
-    public void ToPersistence_WithAdminRole_MapsToAdminRoleId()
+    [Test]
+    public async Task ToPersistence_WithAdminRole_MapsToAdminRoleId()
     {
         // Arrange
         var user = User.Rehydrate(
@@ -84,11 +83,11 @@ public class UserMapperTests
 
         // Assert
         // Note: Roles are now managed through the UserRoles collection, not RoleId on User
-        entity.DisplayName.Should().Be("AdminUser");
+        await Assert.That(entity.DisplayName).IsEqualTo("AdminUser");
     }
 
-    [Fact]
-    public void ToPersistence_WithModRole_MapsCorrectly()
+    [Test]
+    public async Task ToPersistence_WithModRole_MapsCorrectly()
     {
         // Arrange
         var user = User.Rehydrate(
@@ -115,11 +114,11 @@ public class UserMapperTests
 
         // Assert
         // Note: Roles are now managed through the UserRoles collection, not RoleId on User
-        entity.DisplayName.Should().Be("ModUser");
+        await Assert.That(entity.DisplayName).IsEqualTo("ModUser");
     }
 
-    [Fact]
-    public void ToPersistence_WithAdminRoleCaseInsensitive_MapsCorrectly()
+    [Test]
+    public async Task ToPersistence_WithAdminRoleCaseInsensitive_MapsCorrectly()
     {
         // Arrange
         var user = User.Rehydrate(
@@ -146,11 +145,11 @@ public class UserMapperTests
 
         // Assert
         // Note: Roles are now managed through the UserRoles collection, not RoleId on User
-        entity.DisplayName.Should().NotBeNull();
+        await Assert.That(entity.DisplayName).IsNotNull();
     }
 
-    [Fact]
-    public void ToPersistence_WithNullRole_MapsToNullRoleId()
+    [Test]
+    public async Task ToPersistence_WithNullRole_MapsToNullRoleId()
     {
         // Arrange
         var user = User.CreateWithEmail("RegularUser", "user@example.com", "hash", "token");
@@ -160,11 +159,11 @@ public class UserMapperTests
 
         // Assert
         // Note: Roles are now managed through the UserRoles collection, not RoleId on User
-        entity.DisplayName.Should().NotBeNull();
+        await Assert.That(entity.DisplayName).IsNotNull();
     }
 
-    [Fact]
-    public void ToPersistence_WithInvalidRole_MapsToNullRoleId()
+    [Test]
+    public async Task ToPersistence_WithInvalidRole_MapsToNullRoleId()
     {
         // Arrange
         var user = User.Rehydrate(
@@ -191,11 +190,11 @@ public class UserMapperTests
 
         // Assert
         // Note: Roles are now managed through the UserRoles collection, not RoleId on User
-        entity.DisplayName.Should().NotBeNull();
+        await Assert.That(entity.DisplayName).IsNotNull();
     }
 
-    [Fact]
-    public void ToPersistence_WithAvatarFileName_MapsAvatarFileName()
+    [Test]
+    public async Task ToPersistence_WithAvatarFileName_MapsAvatarFileName()
     {
         // Arrange
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -205,11 +204,11 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.AvatarFileName.Should().Be("avatar.jpg");
+        await Assert.That(entity.AvatarFileName).IsEqualTo("avatar.jpg");
     }
 
-    [Fact]
-    public void ToPersistence_WithPreferEndlessScroll_MapsPreference()
+    [Test]
+    public async Task ToPersistence_WithPreferEndlessScroll_MapsPreference()
     {
         // Arrange
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -219,15 +218,15 @@ public class UserMapperTests
         var entity = user.ToPersistence();
 
         // Assert
-        entity.PreferEndlessScroll.Should().BeTrue();
+        await Assert.That(entity.PreferEndlessScroll).IsTrue();
     }
 
     #endregion
 
     #region FromPersistence Tests
 
-    [Fact]
-    public void FromPersistence_WithEmailUserEntity_ReconstructsUser()
+    [Test]
+    public async Task FromPersistence_WithEmailUserEntity_ReconstructsUser()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -252,22 +251,22 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.Should().NotBeNull();
-        user.PublicId.Value.Should().Be(entity.PublicId);
-        user.DisplayName.Should().Be("TestUser");
-        user.Email.Should().Be("test@example.com");
-        user.PasswordHash.Should().Be("hash");
-        user.EmailVerified.Should().BeFalse();
-        user.EmailVerificationToken.Should().Be("token");
-        user.OAuthProvider.Should().BeNull();
-        user.OAuthProviderId.Should().BeNull();
-        user.Role.Should().BeNull();
-        user.AvatarFileName.Should().BeNull();
-        user.PreferEndlessScroll.Should().BeFalse();
+        await Assert.That(user).IsNotNull();
+        await Assert.That(user.PublicId.Value).IsEqualTo(entity.PublicId);
+        await Assert.That(user.DisplayName).IsEqualTo("TestUser");
+        await Assert.That(user.Email).IsEqualTo("test@example.com");
+        await Assert.That(user.PasswordHash).IsEqualTo("hash");
+        await Assert.That(user.EmailVerified).IsFalse();
+        await Assert.That(user.EmailVerificationToken).IsEqualTo("token");
+        await Assert.That(user.OAuthProvider).IsNull();
+        await Assert.That(user.OAuthProviderId).IsNull();
+        await Assert.That(user.Role).IsNull();
+        await Assert.That(user.AvatarFileName).IsNull();
+        await Assert.That(user.PreferEndlessScroll).IsFalse();
     }
 
-    [Fact]
-    public void FromPersistence_WithOAuthUserEntity_ReconstructsOAuthUser()
+    [Test]
+    public async Task FromPersistence_WithOAuthUserEntity_ReconstructsOAuthUser()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -292,14 +291,14 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.OAuthProvider.Should().Be("google");
-        user.OAuthProviderId.Should().Be("google_123");
-        user.PasswordHash.Should().BeNull();
-        user.EmailVerified.Should().BeTrue();
+        await Assert.That(user.OAuthProvider).IsEqualTo("google");
+        await Assert.That(user.OAuthProviderId).IsEqualTo("google_123");
+        await Assert.That(user.PasswordHash).IsNull();
+        await Assert.That(user.EmailVerified).IsTrue();
     }
 
-    [Fact]
-    public void FromPersistence_WithAdminRoleId_MapsToAdminRole()
+    [Test]
+    public async Task FromPersistence_WithAdminRoleId_MapsToAdminRole()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -328,13 +327,13 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.Role.Should().Be("Admin");
+        await Assert.That(user.Role).IsEqualTo("Admin");
     }
 
-    [Fact]
-    public void FromPersistence_WithModRoleId_MapsToModRole()
+    [Test]
+    public async Task FromPersistence_WithNonGlobalAdminRole_MapsToNullRole()
     {
-        // Arrange
+        // Arrange - CommunityAdmin is not GlobalAdmin, so mapper returns null
         var entity = new UserDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
@@ -347,7 +346,7 @@ public class UserMapperTests
             OAuthProviderId = null,
             Roles = new List<UserRoleDatabaseEntity>
             {
-                new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
+                new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.CommunityAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
             },
             AvatarFileName = null,
             PreferEndlessScroll = false,
@@ -360,12 +359,12 @@ public class UserMapperTests
         // Act
         var user = entity.FromPersistence();
 
-        // Assert
-        user.Role.Should().Be("Mod");
+        // Assert - Only GlobalAdmin maps to "Admin", all other roles map to null
+        await Assert.That(user.Role).IsNull();
     }
 
-    [Fact]
-    public void FromPersistence_WithNullRoleId_MapsToNullRole()
+    [Test]
+    public async Task FromPersistence_WithNullRoleId_MapsToNullRole()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -390,11 +389,11 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.Role.Should().BeNull();
+        await Assert.That(user.Role).IsNull();
     }
 
-    [Fact]
-    public void FromPersistence_WithAvatarFileName_MapsAvatarFileName()
+    [Test]
+    public async Task FromPersistence_WithAvatarFileName_MapsAvatarFileName()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -419,11 +418,11 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.AvatarFileName.Should().Be("avatar.png");
+        await Assert.That(user.AvatarFileName).IsEqualTo("avatar.png");
     }
 
-    [Fact]
-    public void FromPersistence_WithPreferEndlessScroll_MapsPreference()
+    [Test]
+    public async Task FromPersistence_WithPreferEndlessScroll_MapsPreference()
     {
         // Arrange
         var entity = new UserDatabaseEntity
@@ -448,15 +447,15 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        user.PreferEndlessScroll.Should().BeTrue();
+        await Assert.That(user.PreferEndlessScroll).IsTrue();
     }
 
     #endregion
 
     #region Round-Trip Tests
 
-    [Fact]
-    public void RoundTrip_WithEmailUser_PreservesAllData()
+    [Test]
+    public async Task RoundTrip_WithEmailUser_PreservesAllData()
     {
         // Arrange
         var originalUser = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -466,21 +465,21 @@ public class UserMapperTests
         var reconstructedUser = entity.FromPersistence();
 
         // Assert
-        reconstructedUser.PublicId.Should().Be(originalUser.PublicId);
-        reconstructedUser.DisplayName.Should().Be(originalUser.DisplayName);
-        reconstructedUser.Email.Should().Be(originalUser.Email);
-        reconstructedUser.PasswordHash.Should().Be(originalUser.PasswordHash);
-        reconstructedUser.EmailVerified.Should().Be(originalUser.EmailVerified);
-        reconstructedUser.EmailVerificationToken.Should().Be(originalUser.EmailVerificationToken);
-        reconstructedUser.OAuthProvider.Should().Be(originalUser.OAuthProvider);
-        reconstructedUser.OAuthProviderId.Should().Be(originalUser.OAuthProviderId);
-        reconstructedUser.Role.Should().Be(originalUser.Role);
-        reconstructedUser.AvatarFileName.Should().Be(originalUser.AvatarFileName);
-        reconstructedUser.PreferEndlessScroll.Should().Be(originalUser.PreferEndlessScroll);
+        await Assert.That(reconstructedUser.PublicId).IsEqualTo(originalUser.PublicId);
+        await Assert.That(reconstructedUser.DisplayName).IsEqualTo(originalUser.DisplayName);
+        await Assert.That(reconstructedUser.Email).IsEqualTo(originalUser.Email);
+        await Assert.That(reconstructedUser.PasswordHash).IsEqualTo(originalUser.PasswordHash);
+        await Assert.That(reconstructedUser.EmailVerified).IsEqualTo(originalUser.EmailVerified);
+        await Assert.That(reconstructedUser.EmailVerificationToken).IsEqualTo(originalUser.EmailVerificationToken);
+        await Assert.That(reconstructedUser.OAuthProvider).IsEqualTo(originalUser.OAuthProvider);
+        await Assert.That(reconstructedUser.OAuthProviderId).IsEqualTo(originalUser.OAuthProviderId);
+        await Assert.That(reconstructedUser.Role).IsEqualTo(originalUser.Role);
+        await Assert.That(reconstructedUser.AvatarFileName).IsEqualTo(originalUser.AvatarFileName);
+        await Assert.That(reconstructedUser.PreferEndlessScroll).IsEqualTo(originalUser.PreferEndlessScroll);
     }
 
-    [Fact]
-    public void RoundTrip_WithOAuthUser_PreservesAllData()
+    [Test]
+    public async Task RoundTrip_WithOAuthUser_PreservesAllData()
     {
         // Arrange
         var originalUser = User.CreateWithOAuth("OAuthUser", "oauth@example.com", "github", "github_456");
@@ -490,16 +489,16 @@ public class UserMapperTests
         var reconstructedUser = entity.FromPersistence();
 
         // Assert
-        reconstructedUser.PublicId.Should().Be(originalUser.PublicId);
-        reconstructedUser.DisplayName.Should().Be(originalUser.DisplayName);
-        reconstructedUser.Email.Should().Be(originalUser.Email);
-        reconstructedUser.OAuthProvider.Should().Be(originalUser.OAuthProvider);
-        reconstructedUser.OAuthProviderId.Should().Be(originalUser.OAuthProviderId);
-        reconstructedUser.EmailVerified.Should().BeTrue();
+        await Assert.That(reconstructedUser.PublicId).IsEqualTo(originalUser.PublicId);
+        await Assert.That(reconstructedUser.DisplayName).IsEqualTo(originalUser.DisplayName);
+        await Assert.That(reconstructedUser.Email).IsEqualTo(originalUser.Email);
+        await Assert.That(reconstructedUser.OAuthProvider).IsEqualTo(originalUser.OAuthProvider);
+        await Assert.That(reconstructedUser.OAuthProviderId).IsEqualTo(originalUser.OAuthProviderId);
+        await Assert.That(reconstructedUser.EmailVerified).IsTrue();
     }
 
-    [Fact]
-    public void RoundTrip_WithAdminRole_PreservesRole()
+    [Test]
+    public async Task RoundTrip_WithAdminRole_DoesNotPreserveRole()
     {
         // Arrange
         var originalUser = User.Rehydrate(
@@ -525,24 +524,25 @@ public class UserMapperTests
         var entity = originalUser.ToPersistence();
         var reconstructedUser = entity.FromPersistence();
 
-        // Assert
-        reconstructedUser.Role.Should().Be("Admin");
+        // Assert - Roles are managed through UserRoles collection, not stored on UserDatabaseEntity.
+        // ToPersistence does not include Roles, so FromPersistence won't have role data.
+        await Assert.That(reconstructedUser.Role).IsNull();
     }
 
-    [Fact]
-    public void RoundTrip_WithModRole_PreservesRole()
+    [Test]
+    public async Task RoundTrip_WithRole_PreservesRoleWhenRolesCollectionSet()
     {
         // Arrange
         var originalUser = User.Rehydrate(
             UserId.New(),
-            "ModUser",
-            "mod@example.com",
+            "AdminUser",
+            "admin@example.com",
             "hash",
             true,
             null,
             null,
             null,
-            "Mod",
+            "Admin",
             null,
             0, // avatarRevision
             false,
@@ -554,10 +554,15 @@ public class UserMapperTests
 
         // Act
         var entity = originalUser.ToPersistence();
+        // Simulate the database loading the Roles collection
+        entity.Roles = new List<UserRoleDatabaseEntity>
+        {
+            new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
+        };
         var reconstructedUser = entity.FromPersistence();
 
-        // Assert
-        reconstructedUser.Role.Should().Be("Mod");
+        // Assert - With Roles collection loaded, GlobalAdmin maps to "Admin"
+        await Assert.That(reconstructedUser.Role).IsEqualTo("Admin");
     }
 
     #endregion

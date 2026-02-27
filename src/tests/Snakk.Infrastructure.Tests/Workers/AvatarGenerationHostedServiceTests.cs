@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -47,7 +46,7 @@ public class AvatarGenerationHostedServiceTests
             .Build();
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_GeneratesAvatars_WhenEnabled()
     {
         // Arrange
@@ -66,7 +65,7 @@ public class AvatarGenerationHostedServiceTests
         _mockAvatarService.Verify(x => x.GenerateAllMissingAvatarsAsync(), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_SkipsGeneration_WhenDisabled()
     {
         // Arrange
@@ -84,7 +83,7 @@ public class AvatarGenerationHostedServiceTests
         _mockAvatarService.Verify(x => x.GenerateAllMissingAvatarsAsync(), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_LogsSuccess_WhenGenerationCompletes()
     {
         // Arrange
@@ -111,7 +110,7 @@ public class AvatarGenerationHostedServiceTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_DoesNotThrow_WhenGenerationFails()
     {
         // Arrange
@@ -125,14 +124,12 @@ public class AvatarGenerationHostedServiceTests
             _mockLogger.Object,
             configuration);
 
-        // Act
+        // Act & Assert
         var act = async () => await service.StartAsync(CancellationToken.None);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_LogsError_WhenGenerationFails()
     {
         // Arrange
@@ -161,7 +158,7 @@ public class AvatarGenerationHostedServiceTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_LogsStartMessage()
     {
         // Arrange
@@ -187,7 +184,7 @@ public class AvatarGenerationHostedServiceTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_LogsDisabledMessage_WhenDisabled()
     {
         // Arrange
@@ -212,7 +209,7 @@ public class AvatarGenerationHostedServiceTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StopAsync_CompletesSuccessfully()
     {
         // Arrange
@@ -222,14 +219,12 @@ public class AvatarGenerationHostedServiceTests
             _mockLogger.Object,
             configuration);
 
-        // Act
+        // Act & Assert
         var act = async () => await service.StopAsync(CancellationToken.None);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        await Assert.That(act).ThrowsNothing();
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_CreatesNewScope()
     {
         // Arrange
@@ -248,7 +243,7 @@ public class AvatarGenerationHostedServiceTests
         _mockScopeFactory.Verify(x => x.CreateScope(), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_DisposesScope_AfterGeneration()
     {
         // Arrange
@@ -267,7 +262,7 @@ public class AvatarGenerationHostedServiceTests
         _mockScope.Verify(x => x.Dispose(), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task StartAsync_LogsTimingInformation()
     {
         // Arrange

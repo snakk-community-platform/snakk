@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 
@@ -6,8 +5,8 @@ namespace Snakk.Domain.Tests.Entities;
 
 public class DiscussionTests
 {
-    [Fact]
-    public void Create_WithValidParameters_CreatesDiscussion()
+    [Test]
+    public async Task Create_WithValidParameters_CreatesDiscussion()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -19,20 +18,20 @@ public class DiscussionTests
         var discussion = Discussion.Create(spaceId, authorId, title, slug);
 
         // Assert
-        discussion.Should().NotBeNull();
-        discussion.PublicId.Should().NotBe(Guid.Empty);
-        discussion.SpaceId.Should().Be(spaceId);
-        discussion.CreatedByUserId.Should().Be(authorId);
-        discussion.Title.Should().Be(title);
-        discussion.Slug.Should().Be(slug);
-        discussion.IsPinned.Should().BeFalse();
-        discussion.IsLocked.Should().BeFalse();
-        discussion.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        discussion.LastActivityAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(discussion).IsNotNull();
+        await Assert.That(discussion.PublicId).IsNotNull();
+        await Assert.That(discussion.SpaceId).IsEqualTo(spaceId);
+        await Assert.That(discussion.CreatedByUserId).IsEqualTo(authorId);
+        await Assert.That(discussion.Title).IsEqualTo(title);
+        await Assert.That(discussion.Slug).IsEqualTo(slug);
+        await Assert.That(discussion.IsPinned).IsFalse();
+        await Assert.That(discussion.IsLocked).IsFalse();
+        await Assert.That(discussion.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(discussion.LastActivityAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void Create_WithEmptyTitle_ThrowsArgumentException()
+    [Test]
+    public async Task Create_WithEmptyTitle_ThrowsArgumentException()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -40,16 +39,12 @@ public class DiscussionTests
         const string emptyTitle = "";
         const string slug = "test-discussion";
 
-        // Act
-        var act = () => Discussion.Create(spaceId, authorId, emptyTitle, slug);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*title*");
+        // Act & Assert
+        await Assert.That(() => Discussion.Create(spaceId, authorId, emptyTitle, slug)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void Create_WithWhitespaceTitle_ThrowsArgumentException()
+    [Test]
+    public async Task Create_WithWhitespaceTitle_ThrowsArgumentException()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -57,16 +52,12 @@ public class DiscussionTests
         const string whitespaceTitle = "   ";
         const string slug = "test-discussion";
 
-        // Act
-        var act = () => Discussion.Create(spaceId, authorId, whitespaceTitle, slug);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*title*");
+        // Act & Assert
+        await Assert.That(() => Discussion.Create(spaceId, authorId, whitespaceTitle, slug)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void Create_WithEmptySlug_ThrowsArgumentException()
+    [Test]
+    public async Task Create_WithEmptySlug_ThrowsArgumentException()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -74,16 +65,12 @@ public class DiscussionTests
         const string title = "Test Discussion";
         const string emptySlug = "";
 
-        // Act
-        var act = () => Discussion.Create(spaceId, authorId, title, emptySlug);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*slug*");
+        // Act & Assert
+        await Assert.That(() => Discussion.Create(spaceId, authorId, title, emptySlug)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void Create_WithWhitespaceSlug_ThrowsArgumentException()
+    [Test]
+    public async Task Create_WithWhitespaceSlug_ThrowsArgumentException()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -91,16 +78,12 @@ public class DiscussionTests
         const string title = "Test Discussion";
         const string whitespaceSlug = "   ";
 
-        // Act
-        var act = () => Discussion.Create(spaceId, authorId, title, whitespaceSlug);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*slug*");
+        // Act & Assert
+        await Assert.That(() => Discussion.Create(spaceId, authorId, title, whitespaceSlug)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void Rehydrate_WithValidParameters_RestoresDiscussion()
+    [Test]
+    public async Task Rehydrate_WithValidParameters_RestoresDiscussion()
     {
         // Arrange
         var publicId = DiscussionId.New();
@@ -127,19 +110,19 @@ public class DiscussionTests
             isLocked);
 
         // Assert
-        discussion.PublicId.Should().Be(publicId);
-        discussion.SpaceId.Should().Be(spaceId);
-        discussion.CreatedByUserId.Should().Be(authorId);
-        discussion.Title.Should().Be(title);
-        discussion.Slug.Should().Be(slug);
-        discussion.CreatedAt.Should().Be(createdAt);
-        discussion.LastActivityAt.Should().Be(lastActivityAt);
-        discussion.IsPinned.Should().BeTrue();
-        discussion.IsLocked.Should().BeFalse();
+        await Assert.That(discussion.PublicId).IsEqualTo(publicId);
+        await Assert.That(discussion.SpaceId).IsEqualTo(spaceId);
+        await Assert.That(discussion.CreatedByUserId).IsEqualTo(authorId);
+        await Assert.That(discussion.Title).IsEqualTo(title);
+        await Assert.That(discussion.Slug).IsEqualTo(slug);
+        await Assert.That(discussion.CreatedAt).IsEqualTo(createdAt);
+        await Assert.That(discussion.LastActivityAt).IsEqualTo(lastActivityAt);
+        await Assert.That(discussion.IsPinned).IsTrue();
+        await Assert.That(discussion.IsLocked).IsFalse();
     }
 
-    [Fact]
-    public void UpdateTitle_WithValidTitle_UpdatesTitle()
+    [Test]
+    public async Task UpdateTitle_WithValidTitle_UpdatesTitle()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Old Title", "old-title");
@@ -149,42 +132,34 @@ public class DiscussionTests
         discussion.UpdateTitle(newTitle);
 
         // Assert
-        discussion.Title.Should().Be(newTitle);
+        await Assert.That(discussion.Title).IsEqualTo(newTitle);
     }
 
-    [Fact]
-    public void UpdateTitle_WithEmptyTitle_ThrowsArgumentException()
+    [Test]
+    public async Task UpdateTitle_WithEmptyTitle_ThrowsArgumentException()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Original Title", "original-title");
         const string emptyTitle = "";
 
-        // Act
-        var act = () => discussion.UpdateTitle(emptyTitle);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*title*");
+        // Act & Assert
+        await Assert.That(() => discussion.UpdateTitle(emptyTitle)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void UpdateTitle_WhenLocked_ThrowsInvalidOperationException()
+    [Test]
+    public async Task UpdateTitle_WhenLocked_ThrowsInvalidOperationException()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Original Title", "original-title");
         discussion.Lock();
         const string newTitle = "New Title";
 
-        // Act
-        var act = () => discussion.UpdateTitle(newTitle);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*locked*");
+        // Act & Assert
+        await Assert.That(() => discussion.UpdateTitle(newTitle)).Throws<InvalidOperationException>();
     }
 
-    [Fact]
-    public void Pin_SetsIsPinnedToTrue()
+    [Test]
+    public async Task Pin_SetsIsPinnedToTrue()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
@@ -193,11 +168,11 @@ public class DiscussionTests
         discussion.Pin();
 
         // Assert
-        discussion.IsPinned.Should().BeTrue();
+        await Assert.That(discussion.IsPinned).IsTrue();
     }
 
-    [Fact]
-    public void Unpin_SetsIsPinnedToFalse()
+    [Test]
+    public async Task Unpin_SetsIsPinnedToFalse()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
@@ -207,11 +182,11 @@ public class DiscussionTests
         discussion.Unpin();
 
         // Assert
-        discussion.IsPinned.Should().BeFalse();
+        await Assert.That(discussion.IsPinned).IsFalse();
     }
 
-    [Fact]
-    public void Lock_SetsIsLockedToTrue()
+    [Test]
+    public async Task Lock_SetsIsLockedToTrue()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
@@ -220,11 +195,11 @@ public class DiscussionTests
         discussion.Lock();
 
         // Assert
-        discussion.IsLocked.Should().BeTrue();
+        await Assert.That(discussion.IsLocked).IsTrue();
     }
 
-    [Fact]
-    public void Unlock_SetsIsLockedToFalse()
+    [Test]
+    public async Task Unlock_SetsIsLockedToFalse()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
@@ -234,27 +209,27 @@ public class DiscussionTests
         discussion.Unlock();
 
         // Assert
-        discussion.IsLocked.Should().BeFalse();
+        await Assert.That(discussion.IsLocked).IsFalse();
     }
 
-    [Fact]
-    public void UpdateActivity_UpdatesLastActivityAt()
+    [Test]
+    public async Task UpdateActivity_UpdatesLastActivityAt()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
-        var originalActivity = discussion.LastActivityAt;
+        var originalActivity = discussion.LastActivityAt!.Value;
         Thread.Sleep(10); // Small delay to ensure time difference
 
         // Act
         discussion.UpdateActivity();
 
         // Assert
-        discussion.LastActivityAt!.Value.Should().BeAfter(originalActivity!.Value);
-        discussion.LastActivityAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(discussion.LastActivityAt!.Value).IsGreaterThan(originalActivity);
+        await Assert.That(discussion.LastActivityAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void RehydrateForList_WithMinimalParameters_RestoresDiscussion()
+    [Test]
+    public async Task RehydrateForList_WithMinimalParameters_RestoresDiscussion()
     {
         // Arrange
         var publicId = DiscussionId.New();
@@ -280,57 +255,57 @@ public class DiscussionTests
             isLocked);
 
         // Assert
-        discussion.PublicId.Should().Be(publicId);
-        discussion.SpaceId.Should().Be(spaceId);
-        discussion.CreatedByUserId.Should().Be(authorId);
-        discussion.Title.Should().Be(title);
-        discussion.Slug.Should().Be(slug);
-        discussion.CreatedAt.Should().Be(createdAt);
-        discussion.LastActivityAt.Should().Be(lastActivityAt);
-        discussion.IsPinned.Should().BeTrue();
-        discussion.IsLocked.Should().BeFalse();
+        await Assert.That(discussion.PublicId).IsEqualTo(publicId);
+        await Assert.That(discussion.SpaceId).IsEqualTo(spaceId);
+        await Assert.That(discussion.CreatedByUserId).IsEqualTo(authorId);
+        await Assert.That(discussion.Title).IsEqualTo(title);
+        await Assert.That(discussion.Slug).IsEqualTo(slug);
+        await Assert.That(discussion.CreatedAt).IsEqualTo(createdAt);
+        await Assert.That(discussion.LastActivityAt).IsEqualTo(lastActivityAt);
+        await Assert.That(discussion.IsPinned).IsTrue();
+        await Assert.That(discussion.IsLocked).IsFalse();
     }
 
-    [Fact]
-    public void Pin_AfterUnpin_TogglesCorrectly()
+    [Test]
+    public async Task Pin_AfterUnpin_TogglesCorrectly()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
 
         // Act & Assert
-        discussion.IsPinned.Should().BeFalse();
+        await Assert.That(discussion.IsPinned).IsFalse();
 
         discussion.Pin();
-        discussion.IsPinned.Should().BeTrue();
+        await Assert.That(discussion.IsPinned).IsTrue();
 
         discussion.Unpin();
-        discussion.IsPinned.Should().BeFalse();
+        await Assert.That(discussion.IsPinned).IsFalse();
 
         discussion.Pin();
-        discussion.IsPinned.Should().BeTrue();
+        await Assert.That(discussion.IsPinned).IsTrue();
     }
 
-    [Fact]
-    public void Lock_AfterUnlock_TogglesCorrectly()
+    [Test]
+    public async Task Lock_AfterUnlock_TogglesCorrectly()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
 
         // Act & Assert
-        discussion.IsLocked.Should().BeFalse();
+        await Assert.That(discussion.IsLocked).IsFalse();
 
         discussion.Lock();
-        discussion.IsLocked.Should().BeTrue();
+        await Assert.That(discussion.IsLocked).IsTrue();
 
         discussion.Unlock();
-        discussion.IsLocked.Should().BeFalse();
+        await Assert.That(discussion.IsLocked).IsFalse();
 
         discussion.Lock();
-        discussion.IsLocked.Should().BeTrue();
+        await Assert.That(discussion.IsLocked).IsTrue();
     }
 
-    [Fact]
-    public void Create_GeneratesDomainEvents()
+    [Test]
+    public async Task Create_GeneratesDomainEvents()
     {
         // Arrange
         var spaceId = SpaceId.New();
@@ -342,41 +317,38 @@ public class DiscussionTests
         var discussion = Discussion.Create(spaceId, authorId, title, slug);
 
         // Assert
-        discussion.DomainEvents.Should().NotBeEmpty();
+        await Assert.That(discussion.DomainEvents).IsNotEmpty();
     }
 
-    [Fact]
-    public void UpdateTitle_WhenNotLocked_DoesNotThrow()
+    [Test]
+    public async Task UpdateTitle_WhenNotLocked_DoesNotThrow()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Original Title", "original-title");
         const string newTitle = "Updated Title";
 
-        // Act
-        var act = () => discussion.UpdateTitle(newTitle);
-
-        // Assert
-        act.Should().NotThrow();
-        discussion.Title.Should().Be(newTitle);
+        // Act & Assert
+        await Assert.That(() => discussion.UpdateTitle(newTitle)).ThrowsNothing();
+        await Assert.That(discussion.Title).IsEqualTo(newTitle);
     }
 
-    [Fact]
-    public void UpdateActivity_CalledMultipleTimes_AlwaysUpdatesToCurrentTime()
+    [Test]
+    public async Task UpdateActivity_CalledMultipleTimes_AlwaysUpdatesToCurrentTime()
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
 
         // Act & Assert
-        var firstActivity = discussion.LastActivityAt;
+        var firstActivity = discussion.LastActivityAt!.Value;
         Thread.Sleep(10);
 
         discussion.UpdateActivity();
-        var secondActivity = discussion.LastActivityAt;
-        secondActivity!.Value.Should().BeAfter(firstActivity!.Value);
+        var secondActivity = discussion.LastActivityAt!.Value;
+        await Assert.That(secondActivity).IsGreaterThan(firstActivity);
         Thread.Sleep(10);
 
         discussion.UpdateActivity();
-        var thirdActivity = discussion.LastActivityAt;
-        thirdActivity!.Value.Should().BeAfter(secondActivity!.Value);
+        var thirdActivity = discussion.LastActivityAt!.Value;
+        await Assert.That(thirdActivity).IsGreaterThan(secondActivity);
     }
 }

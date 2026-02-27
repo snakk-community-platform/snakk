@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
@@ -10,8 +9,8 @@ public class PostMapperTests
 {
     #region ToPersistence Tests
 
-    [Fact]
-    public void ToPersistence_WithNewPost_MapsAllProperties()
+    [Test]
+    public async Task ToPersistence_WithNewPost_MapsAllProperties()
     {
         // Arrange
         var post = Post.Create(DiscussionId.New(), UserId.New(), "Test content");
@@ -20,20 +19,20 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.Should().NotBeNull();
-        entity.PublicId.Should().Be(post.PublicId);
-        entity.Content.Should().Be("Test content");
-        entity.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(entity).IsNotNull();
+        await Assert.That(entity.PublicId).IsEqualTo(post.PublicId);
+        await Assert.That(entity.Content).IsEqualTo("Test content");
+        await Assert.That((DateTime.UtcNow - entity.CreatedAt).TotalSeconds).IsLessThan(1);
         // Note: LastModifiedAt is nullable and is NOT set when a post is created (only set when edited/deleted)
-        entity.LastModifiedAt.Should().BeNull();
-        entity.EditedAt.Should().BeNull();
-        entity.IsFirstPost.Should().BeFalse();
-        entity.IsDeleted.Should().BeFalse();
-        entity.RevisionCount.Should().Be(0);
+        await Assert.That(entity.LastModifiedAt).IsNull();
+        await Assert.That(entity.EditedAt).IsNull();
+        await Assert.That(entity.IsFirstPost).IsFalse();
+        await Assert.That(entity.IsDeleted).IsFalse();
+        await Assert.That(entity.RevisionCount).IsEqualTo(0);
     }
 
-    [Fact]
-    public void ToPersistence_WithReply_MapsCorrectly()
+    [Test]
+    public async Task ToPersistence_WithReply_MapsCorrectly()
     {
         // Arrange
         var replyToPostId = PostId.New();
@@ -43,12 +42,12 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.Content.Should().Be("Reply content");
+        await Assert.That(entity.Content).IsEqualTo("Reply content");
         // Note: ReplyToPostId is set by repository adapter, not by mapper
     }
 
-    [Fact]
-    public void ToPersistence_WithEditedPost_MapsEditedAt()
+    [Test]
+    public async Task ToPersistence_WithEditedPost_MapsEditedAt()
     {
         // Arrange
         var userId = UserId.New();
@@ -59,14 +58,14 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.Content.Should().Be("Updated content");
-        entity.EditedAt.Should().NotBeNull();
-        entity.EditedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        entity.RevisionCount.Should().Be(1);
+        await Assert.That(entity.Content).IsEqualTo("Updated content");
+        await Assert.That(entity.EditedAt).IsNotNull();
+        await Assert.That((DateTime.UtcNow - entity.EditedAt!.Value).TotalSeconds).IsLessThan(1);
+        await Assert.That(entity.RevisionCount).IsEqualTo(1);
     }
 
-    [Fact]
-    public void ToPersistence_WithSoftDeletedPost_MapsIsDeletedTrue()
+    [Test]
+    public async Task ToPersistence_WithSoftDeletedPost_MapsIsDeletedTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -79,11 +78,11 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.IsDeleted.Should().BeTrue();
+        await Assert.That(entity.IsDeleted).IsTrue();
     }
 
-    [Fact]
-    public void ToPersistence_WithFirstPost_MapsIsFirstPostTrue()
+    [Test]
+    public async Task ToPersistence_WithFirstPost_MapsIsFirstPostTrue()
     {
         // Arrange
         var post = Post.Rehydrate(
@@ -103,15 +102,15 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.IsFirstPost.Should().BeTrue();
+        await Assert.That(entity.IsFirstPost).IsTrue();
     }
 
     #endregion
 
     #region FromPersistence Tests
 
-    [Fact]
-    public void FromPersistence_WithBasicPost_ReconstructsPost()
+    [Test]
+    public async Task FromPersistence_WithBasicPost_ReconstructsPost()
     {
         // Arrange
         var discussionPublicId = Guid.NewGuid().ToString();
@@ -149,22 +148,22 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.Should().NotBeNull();
-        post.PublicId.Value.Should().Be(entity.PublicId);
-        post.Content.Should().Be("Test content");
-        post.DiscussionId.Value.Should().Be(discussionPublicId);
-        post.CreatedByUserId.Value.Should().Be(userPublicId);
-        post.CreatedAt.Should().Be(entity.CreatedAt);
-        post.LastModifiedAt.Should().Be(entity.LastModifiedAt);
-        post.EditedAt.Should().BeNull();
-        post.IsFirstPost.Should().BeFalse();
-        post.ReplyToPostId.Should().BeNull();
-        post.IsDeleted.Should().BeFalse();
-        post.RevisionCount.Should().Be(0);
+        await Assert.That(post).IsNotNull();
+        await Assert.That(post.PublicId.Value).IsEqualTo(entity.PublicId);
+        await Assert.That(post.Content).IsEqualTo("Test content");
+        await Assert.That(post.DiscussionId.Value).IsEqualTo(discussionPublicId);
+        await Assert.That(post.CreatedByUserId.Value).IsEqualTo(userPublicId);
+        await Assert.That(post.CreatedAt).IsEqualTo(entity.CreatedAt);
+        await Assert.That(post.LastModifiedAt).IsEqualTo(entity.LastModifiedAt);
+        await Assert.That(post.EditedAt).IsNull();
+        await Assert.That(post.IsFirstPost).IsFalse();
+        await Assert.That((object?)post.ReplyToPostId).IsNull();
+        await Assert.That(post.IsDeleted).IsFalse();
+        await Assert.That(post.RevisionCount).IsEqualTo(0);
     }
 
-    [Fact]
-    public void FromPersistence_WithReply_MapsReplyToPostId()
+    [Test]
+    public async Task FromPersistence_WithReply_MapsReplyToPostId()
     {
         // Arrange
         var replyToPostPublicId = Guid.NewGuid().ToString();
@@ -207,12 +206,12 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.ReplyToPostId.Should().NotBeNull();
-        post.ReplyToPostId!.Value.Should().Be(replyToPostPublicId);
+        await Assert.That(post.ReplyToPostId).IsNotNull();
+        await Assert.That(post.ReplyToPostId!.Value).IsEqualTo(replyToPostPublicId);
     }
 
-    [Fact]
-    public void FromPersistence_WithNullReplyToPost_MapsNullReplyToPostId()
+    [Test]
+    public async Task FromPersistence_WithNullReplyToPost_MapsNullReplyToPostId()
     {
         // Arrange
         var entity = new PostDatabaseEntity
@@ -248,11 +247,11 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.ReplyToPostId.Should().BeNull();
+        await Assert.That((object?)post.ReplyToPostId).IsNull();
     }
 
-    [Fact]
-    public void FromPersistence_WithEditedPost_MapsEditedAt()
+    [Test]
+    public async Task FromPersistence_WithEditedPost_MapsEditedAt()
     {
         // Arrange
         var editedAt = DateTime.UtcNow.AddMinutes(-30);
@@ -289,12 +288,12 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.EditedAt.Should().Be(editedAt);
-        post.RevisionCount.Should().Be(2);
+        await Assert.That(post.EditedAt).IsEqualTo(editedAt);
+        await Assert.That(post.RevisionCount).IsEqualTo(2);
     }
 
-    [Fact]
-    public void FromPersistence_WithSoftDeletedPost_MapsIsDeletedTrue()
+    [Test]
+    public async Task FromPersistence_WithSoftDeletedPost_MapsIsDeletedTrue()
     {
         // Arrange
         var entity = new PostDatabaseEntity
@@ -330,11 +329,11 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.IsDeleted.Should().BeTrue();
+        await Assert.That(post.IsDeleted).IsTrue();
     }
 
-    [Fact]
-    public void FromPersistence_WithFirstPost_MapsIsFirstPostTrue()
+    [Test]
+    public async Task FromPersistence_WithFirstPost_MapsIsFirstPostTrue()
     {
         // Arrange
         var entity = new PostDatabaseEntity
@@ -370,15 +369,15 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.IsFirstPost.Should().BeTrue();
+        await Assert.That(post.IsFirstPost).IsTrue();
     }
 
     #endregion
 
     #region Round-Trip Tests
 
-    [Fact]
-    public void RoundTrip_WithNewPost_PreservesAllData()
+    [Test]
+    public async Task RoundTrip_WithNewPost_PreservesAllData()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -406,18 +405,18 @@ public class PostMapperTests
         var reconstructedPost = entity.FromPersistence();
 
         // Assert
-        reconstructedPost.PublicId.Should().Be(originalPost.PublicId);
-        reconstructedPost.Content.Should().Be(originalPost.Content);
-        reconstructedPost.DiscussionId.Should().Be(discussionId);
-        reconstructedPost.CreatedByUserId.Should().Be(userId);
-        reconstructedPost.IsFirstPost.Should().Be(originalPost.IsFirstPost);
-        reconstructedPost.IsDeleted.Should().Be(originalPost.IsDeleted);
-        reconstructedPost.RevisionCount.Should().Be(originalPost.RevisionCount);
-        reconstructedPost.EditedAt.Should().Be(originalPost.EditedAt);
+        await Assert.That(reconstructedPost.PublicId).IsEqualTo(originalPost.PublicId);
+        await Assert.That(reconstructedPost.Content).IsEqualTo(originalPost.Content);
+        await Assert.That(reconstructedPost.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(reconstructedPost.CreatedByUserId).IsEqualTo(userId);
+        await Assert.That(reconstructedPost.IsFirstPost).IsEqualTo(originalPost.IsFirstPost);
+        await Assert.That(reconstructedPost.IsDeleted).IsEqualTo(originalPost.IsDeleted);
+        await Assert.That(reconstructedPost.RevisionCount).IsEqualTo(originalPost.RevisionCount);
+        await Assert.That(reconstructedPost.EditedAt).IsEqualTo(originalPost.EditedAt);
     }
 
-    [Fact]
-    public void RoundTrip_WithReply_PreservesReplyToPostId()
+    [Test]
+    public async Task RoundTrip_WithReply_PreservesReplyToPostId()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -453,12 +452,12 @@ public class PostMapperTests
         var reconstructedPost = entity.FromPersistence();
 
         // Assert
-        reconstructedPost.ReplyToPostId.Should().NotBeNull();
-        reconstructedPost.ReplyToPostId.Should().Be(replyToPostId);
+        await Assert.That(reconstructedPost.ReplyToPostId).IsNotNull();
+        await Assert.That(reconstructedPost.ReplyToPostId).IsEqualTo(replyToPostId);
     }
 
-    [Fact]
-    public void RoundTrip_WithEditedPost_PreservesEditedAtAndRevisionCount()
+    [Test]
+    public async Task RoundTrip_WithEditedPost_PreservesEditedAtAndRevisionCount()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -486,13 +485,13 @@ public class PostMapperTests
         var reconstructedPost = entity.FromPersistence();
 
         // Assert
-        reconstructedPost.EditedAt.Should().NotBeNull();
-        reconstructedPost.RevisionCount.Should().Be(1);
-        reconstructedPost.Content.Should().Be("Updated content");
+        await Assert.That(reconstructedPost.EditedAt).IsNotNull();
+        await Assert.That(reconstructedPost.RevisionCount).IsEqualTo(1);
+        await Assert.That(reconstructedPost.Content).IsEqualTo("Updated content");
     }
 
-    [Fact]
-    public void RoundTrip_WithDeletedPost_PreservesIsDeleted()
+    [Test]
+    public async Task RoundTrip_WithDeletedPost_PreservesIsDeleted()
     {
         // Arrange
         var discussionId = DiscussionId.New();
@@ -521,15 +520,15 @@ public class PostMapperTests
         var reconstructedPost = entity.FromPersistence();
 
         // Assert
-        reconstructedPost.IsDeleted.Should().BeTrue();
+        await Assert.That(reconstructedPost.IsDeleted).IsTrue();
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
-    public void ToPersistence_PreservesCreatedAt()
+    [Test]
+    public async Task ToPersistence_PreservesCreatedAt()
     {
         // Arrange
         var specificTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc);
@@ -544,11 +543,11 @@ public class PostMapperTests
         var entity = post.ToPersistence();
 
         // Assert
-        entity.CreatedAt.Should().Be(specificTime);
+        await Assert.That(entity.CreatedAt).IsEqualTo(specificTime);
     }
 
-    [Fact]
-    public void FromPersistence_PreservesAllTimestamps()
+    [Test]
+    public async Task FromPersistence_PreservesAllTimestamps()
     {
         // Arrange
         var createdAt = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
@@ -588,9 +587,9 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        post.CreatedAt.Should().Be(createdAt);
-        post.LastModifiedAt.Should().Be(lastModifiedAt);
-        post.EditedAt.Should().Be(editedAt);
+        await Assert.That(post.CreatedAt).IsEqualTo(createdAt);
+        await Assert.That(post.LastModifiedAt).IsEqualTo(lastModifiedAt);
+        await Assert.That(post.EditedAt).IsEqualTo(editedAt);
     }
 
     #endregion

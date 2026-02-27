@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -16,25 +15,19 @@ namespace Snakk.Application.Tests.Scenarios;
 /// </summary>
 public class PostLifecycleWorkflowTests
 {
-    private readonly Mock<IPostRepository> _mockPostRepository;
-    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository;
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
-    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier;
-    private readonly Mock<IFollowRepository> _mockFollowRepository;
-    private readonly Mock<ICounterService> _mockCounterService;
-    private readonly Mock<ReactionUseCase> _mockReactionUseCase;
-    private readonly PostUseCase _useCase;
+    private readonly Mock<IPostRepository> _mockPostRepository = new();
+    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
+    private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
+    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<IFollowRepository> _mockFollowRepository = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
+    private Mock<ReactionUseCase> _mockReactionUseCase = null!;
+    private PostUseCase _useCase = null!;
 
-    public PostLifecycleWorkflowTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockPostRepository = new Mock<IPostRepository>();
-        _mockDiscussionRepository = new Mock<IDiscussionRepository>();
-        _mockUserRepository = new Mock<IUserRepository>();
-        _mockFollowRepository = new Mock<IFollowRepository>();
-        _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
-        _mockRealtimeNotifier = new Mock<IRealtimeNotifier>();
-        _mockCounterService = new Mock<ICounterService>();
         _mockReactionUseCase = new Mock<ReactionUseCase>(
             Mock.Of<IReactionRepository>(),
             Mock.Of<IPostRepository>(),
@@ -52,7 +45,7 @@ public class PostLifecycleWorkflowTests
             _mockReactionUseCase.Object);
     }
 
-    [Fact]
+    [Test]
     public async Task CompletePostLifecycle_CreateEditDelete_WorksEndToEnd()
     {
         // Arrange
@@ -70,11 +63,11 @@ public class PostLifecycleWorkflowTests
         var createResult = await _useCase.CreatePostAsync(discussionId, userId, "Original content");
 
         // Assert creation
-        createResult.IsSuccess.Should().BeTrue();
+        await Assert.That(createResult.IsSuccess).IsTrue();
         var post = createResult.Value!;
-        post.Content.Should().Be("Original content");
-        post.RevisionCount.Should().Be(0);
-        post.IsDeleted.Should().BeFalse();
+        await Assert.That(post.Content).IsEqualTo("Original content");
+        await Assert.That(post.RevisionCount).IsEqualTo(0);
+        await Assert.That(post.IsDeleted).IsFalse();
 
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Once);
         _mockCounterService.Verify(c => c.IncrementPostCountAsync(discussionId), Times.Once);
@@ -86,10 +79,10 @@ public class PostLifecycleWorkflowTests
         var updateResult = await _useCase.UpdatePostAsync(post.PublicId, userId, "Updated content");
 
         // Assert update
-        updateResult.IsSuccess.Should().BeTrue();
-        post.Content.Should().Be("Updated content");
-        post.RevisionCount.Should().Be(1);
-        post.EditedAt.Should().NotBeNull();
+        await Assert.That(updateResult.IsSuccess).IsTrue();
+        await Assert.That(post.Content).IsEqualTo("Updated content");
+        await Assert.That(post.RevisionCount).IsEqualTo(1);
+        await Assert.That(post.EditedAt).IsNotNull();
 
         _mockPostRepository.Verify(r => r.UpdateAsync(post), Times.Once);
         _mockPostRepository.Verify(r => r.AddRevisionAsync(It.IsAny<PostRevision>()), Times.Once);
@@ -98,13 +91,13 @@ public class PostLifecycleWorkflowTests
         var deleteResult = await _useCase.DeletePostAsync(post.PublicId, userId);
 
         // Assert deletion
-        deleteResult.IsSuccess.Should().BeTrue();
+        await Assert.That(deleteResult.IsSuccess).IsTrue();
         _mockPostRepository.Verify(r => r.DeleteAsync(post), Times.Once); // Hard delete
         _mockCounterService.Verify(c => c.DecrementPostCountAsync(discussionId), Times.Once);
         _mockRealtimeNotifier.Verify(n => n.NotifyPostDeletedAsync(post.PublicId, discussionId, true), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_CreateEditMultipleTimes_MaintainsRevisionHistory()
     {
         // Arrange
@@ -131,19 +124,19 @@ public class PostLifecycleWorkflowTests
         await _useCase.UpdatePostAsync(post.PublicId, userId, "Version 4");
 
         // Assert
-        post.Content.Should().Be("Version 4");
-        post.RevisionCount.Should().Be(3);
-        post.Revisions.Should().HaveCount(3);
-        post.Revisions.ElementAt(0).Content.Should().Be("Version 1");
-        post.Revisions.ElementAt(1).Content.Should().Be("Version 2");
-        post.Revisions.ElementAt(2).Content.Should().Be("Version 3");
+        await Assert.That(post.Content).IsEqualTo("Version 4");
+        await Assert.That(post.RevisionCount).IsEqualTo(3);
+        await Assert.That(post.Revisions).Count().IsEqualTo(3);
+        await Assert.That(post.Revisions.ElementAt(0).Content).IsEqualTo("Version 1");
+        await Assert.That(post.Revisions.ElementAt(1).Content).IsEqualTo("Version 2");
+        await Assert.That(post.Revisions.ElementAt(2).Content).IsEqualTo("Version 3");
 
         // Only new revisions are saved (not all revisions on every update)
         // First edit: 1 revision saved, Second edit: 1 revision saved, Third edit: 1 revision saved = 3 total calls
         _mockPostRepository.Verify(r => r.AddRevisionAsync(It.IsAny<PostRevision>()), Times.Exactly(3));
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_CreateOldPostThenDelete_PerformsSoftDelete()
     {
         // Arrange - Create post that's already > 5 minutes old
@@ -159,14 +152,14 @@ public class PostLifecycleWorkflowTests
         var deleteResult = await _useCase.DeletePostAsync(oldPost.PublicId, userId);
 
         // Assert - Should be soft delete
-        deleteResult.IsSuccess.Should().BeTrue();
-        oldPost.IsDeleted.Should().BeTrue();
+        await Assert.That(deleteResult.IsSuccess).IsTrue();
+        await Assert.That(oldPost.IsDeleted).IsTrue();
         _mockPostRepository.Verify(r => r.UpdateAsync(oldPost), Times.Once); // Soft delete
         _mockPostRepository.Verify(r => r.DeleteAsync(It.IsAny<Post>()), Times.Never); // Not hard delete
         _mockRealtimeNotifier.Verify(n => n.NotifyPostDeletedAsync(oldPost.PublicId, discussionId, false), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_CreateReplyChain_MaintainsReplyReferences()
     {
         // Arrange
@@ -199,14 +192,14 @@ public class PostLifecycleWorkflowTests
         var reply2 = reply2Result.Value!;
 
         // Assert reply chain
-        originalPost.ReplyToPostId.Should().BeNull();
-        reply1.ReplyToPostId.Should().Be(originalPost.PublicId);
-        reply2.ReplyToPostId.Should().Be(reply1.PublicId);
+        await Assert.That((object?)originalPost.ReplyToPostId).IsNull();
+        await Assert.That(reply1.ReplyToPostId!.Value).IsEqualTo(originalPost.PublicId.Value);
+        await Assert.That(reply2.ReplyToPostId!.Value).IsEqualTo(reply1.PublicId.Value);
 
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Exactly(3));
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_CreateInLockedDiscussion_Fails()
     {
         // Arrange
@@ -222,12 +215,12 @@ public class PostLifecycleWorkflowTests
         var createResult = await _useCase.CreatePostAsync(discussionId, userId, "Blocked content");
 
         // Assert
-        createResult.IsSuccess.Should().BeFalse();
-        createResult.Error.Should().Contain("locked");
+        await Assert.That(createResult.IsSuccess).IsFalse();
+        await Assert.That(createResult.Error).Contains("locked");
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_EditDeletedPost_Fails()
     {
         // Arrange
@@ -251,12 +244,12 @@ public class PostLifecycleWorkflowTests
         var updateResult = await _useCase.UpdatePostAsync(post.PublicId, userId, "New content");
 
         // Assert
-        updateResult.IsSuccess.Should().BeFalse();
-        updateResult.Error.Should().Contain("deleted");
+        await Assert.That(updateResult.IsSuccess).IsFalse();
+        await Assert.That(updateResult.Error).Contains("deleted");
         _mockPostRepository.Verify(r => r.UpdateAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_NonAuthorEdit_Fails()
     {
         // Arrange
@@ -279,11 +272,11 @@ public class PostLifecycleWorkflowTests
         var updateResult = await _useCase.UpdatePostAsync(post.PublicId, otherUserId, "Unauthorized edit");
 
         // Assert
-        updateResult.IsSuccess.Should().BeFalse();
+        await Assert.That(updateResult.IsSuccess).IsFalse();
         _mockPostRepository.Verify(r => r.UpdateAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_GetPostHistory_ReturnsAllRevisions()
     {
         // Arrange
@@ -302,11 +295,10 @@ public class PostLifecycleWorkflowTests
         var history = await _useCase.GetPostHistoryAsync(postId);
 
         // Assert
-        history.Should().HaveCount(3);
-        history.Should().BeEquivalentTo(revisions);
+        await Assert.That(history).Count().IsEqualTo(3);
     }
 
-    [Fact]
+    [Test]
     public async Task PostLifecycle_CreateEditWaitSixMinutesDelete_PerformsSoftDelete()
     {
         // This test simulates the real-world scenario where a post is created,
@@ -330,9 +322,9 @@ public class PostLifecycleWorkflowTests
         var deleteResult = await _useCase.DeletePostAsync(post.PublicId, userId);
 
         // Assert - Should be soft delete because post is > 5 minutes old
-        deleteResult.IsSuccess.Should().BeTrue();
+        await Assert.That(deleteResult.IsSuccess).IsTrue();
         _mockPostRepository.Verify(r => r.UpdateAsync(post), Times.Once); // Soft delete
         _mockPostRepository.Verify(r => r.DeleteAsync(It.IsAny<Post>()), Times.Never);
-        post.IsDeleted.Should().BeTrue();
+        await Assert.That(post.IsDeleted).IsTrue();
     }
 }

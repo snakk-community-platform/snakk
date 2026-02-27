@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -10,19 +9,15 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class ReactionUseCaseTests
 {
-    private readonly Mock<IReactionRepository> _mockReactionRepository;
-    private readonly Mock<IPostRepository> _mockPostRepository;
-    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier;
-    private readonly Mock<ICounterService> _mockCounterService;
-    private readonly ReactionUseCase _useCase;
+    private readonly Mock<IReactionRepository> _mockReactionRepository = new();
+    private readonly Mock<IPostRepository> _mockPostRepository = new();
+    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
+    private ReactionUseCase _useCase = null!;
 
-    public ReactionUseCaseTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockReactionRepository = new Mock<IReactionRepository>();
-        _mockPostRepository = new Mock<IPostRepository>();
-        _mockRealtimeNotifier = new Mock<IRealtimeNotifier>();
-        _mockCounterService = new Mock<ICounterService>();
-
         _useCase = new ReactionUseCase(
             _mockReactionRepository.Object,
             _mockPostRepository.Object,
@@ -32,7 +27,7 @@ public class ReactionUseCaseTests
 
     #region ToggleReactionAsync Tests
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_WithNoExistingReaction_AddsReaction()
     {
         // Arrange
@@ -55,8 +50,8 @@ public class ReactionUseCaseTests
         var result = await _useCase.ToggleReactionAsync(postId, userId, type);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Returns true when reaction is added
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Once);
         _mockReactionRepository.Verify(r => r.DeleteAsync(It.IsAny<Reaction>()), Times.Never);
@@ -64,7 +59,7 @@ public class ReactionUseCaseTests
         _mockRealtimeNotifier.Verify(n => n.NotifyReactionUpdatedAsync(postId, discussionId, reactionCounts), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_WithSameExistingReaction_RemovesReaction()
     {
         // Arrange
@@ -88,8 +83,8 @@ public class ReactionUseCaseTests
         var result = await _useCase.ToggleReactionAsync(postId, userId, type);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeFalse(); // Returns false when reaction is removed
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsFalse();
 
         _mockReactionRepository.Verify(r => r.DeleteAsync(existingReaction), Times.Once);
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Never);
@@ -97,7 +92,7 @@ public class ReactionUseCaseTests
         _mockRealtimeNotifier.Verify(n => n.NotifyReactionUpdatedAsync(postId, discussionId, reactionCounts), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_WithDifferentExistingReaction_ChangesReaction()
     {
         // Arrange
@@ -122,8 +117,8 @@ public class ReactionUseCaseTests
         var result = await _useCase.ToggleReactionAsync(postId, userId, newType);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Returns true when new reaction is added
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockReactionRepository.Verify(r => r.DeleteAsync(existingReaction), Times.Once); // Remove old
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Once); // Add new
@@ -131,7 +126,7 @@ public class ReactionUseCaseTests
         _mockRealtimeNotifier.Verify(n => n.NotifyReactionUpdatedAsync(postId, discussionId, reactionCounts), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_WithNonExistentPost_ReturnsFailure()
     {
         // Arrange
@@ -145,13 +140,13 @@ public class ReactionUseCaseTests
         var result = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Heart);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Post not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Post not found");
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Never);
         _mockReactionRepository.Verify(r => r.DeleteAsync(It.IsAny<Reaction>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_AllReactionTypes_AreSupported()
     {
         // Arrange
@@ -169,13 +164,13 @@ public class ReactionUseCaseTests
 
         // Act & Assert - All reaction types should work
         var thumbsUpResult = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.ThumbsUp);
-        thumbsUpResult.IsSuccess.Should().BeTrue();
+        await Assert.That(thumbsUpResult.IsSuccess).IsTrue();
 
         var heartResult = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Heart);
-        heartResult.IsSuccess.Should().BeTrue();
+        await Assert.That(heartResult.IsSuccess).IsTrue();
 
         var eyesResult = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Eyes);
-        eyesResult.IsSuccess.Should().BeTrue();
+        await Assert.That(eyesResult.IsSuccess).IsTrue();
 
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Exactly(3));
     }
@@ -184,7 +179,7 @@ public class ReactionUseCaseTests
 
     #region GetReactionCountsAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetReactionCountsAsync_ReturnsCounts()
     {
         // Arrange
@@ -203,18 +198,18 @@ public class ReactionUseCaseTests
         var result = await _useCase.GetReactionCountsAsync(postId);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(3);
-        result[ReactionType.ThumbsUp].Should().Be(5);
-        result[ReactionType.Heart].Should().Be(3);
-        result[ReactionType.Eyes].Should().Be(1);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).Count().IsEqualTo(3);
+        await Assert.That(result[ReactionType.ThumbsUp]).IsEqualTo(5);
+        await Assert.That(result[ReactionType.Heart]).IsEqualTo(3);
+        await Assert.That(result[ReactionType.Eyes]).IsEqualTo(1);
     }
 
     #endregion
 
     #region GetUserReactionAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetUserReactionAsync_WithExistingReaction_ReturnsReactionType()
     {
         // Arrange
@@ -229,10 +224,10 @@ public class ReactionUseCaseTests
         var result = await _useCase.GetUserReactionAsync(postId, userId);
 
         // Assert
-        result.Should().Be(type);
+        await Assert.That(result).IsEqualTo(type);
     }
 
-    [Fact]
+    [Test]
     public async Task GetUserReactionAsync_WithNoReaction_ReturnsNull()
     {
         // Arrange
@@ -246,14 +241,14 @@ public class ReactionUseCaseTests
         var result = await _useCase.GetUserReactionAsync(postId, userId);
 
         // Assert
-        result.Should().BeNull();
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region Batch Methods Tests
 
-    [Fact]
+    [Test]
     public async Task GetReactionCountsBatchAsync_ReturnsCountsForMultiplePosts()
     {
         // Arrange
@@ -272,14 +267,14 @@ public class ReactionUseCaseTests
         var result = await _useCase.GetReactionCountsBatchAsync(postIds);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(3);
-        result[postIds[0].Value][ReactionType.ThumbsUp].Should().Be(3);
-        result[postIds[1].Value][ReactionType.Heart].Should().Be(5);
-        result[postIds[2].Value].Should().BeEmpty();
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).Count().IsEqualTo(3);
+        await Assert.That(result[postIds[0].Value][ReactionType.ThumbsUp]).IsEqualTo(3);
+        await Assert.That(result[postIds[1].Value][ReactionType.Heart]).IsEqualTo(5);
+        await Assert.That(result[postIds[2].Value]).IsEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task GetUserReactionsBatchAsync_ReturnsUserReactionsForMultiplePosts()
     {
         // Arrange
@@ -299,18 +294,18 @@ public class ReactionUseCaseTests
         var result = await _useCase.GetUserReactionsBatchAsync(userId, postIds);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(2);
-        result[postIds[0].Value].Should().Be(ReactionType.ThumbsUp);
-        result[postIds[2].Value].Should().Be(ReactionType.Eyes);
-        result.Should().NotContainKey(postIds[1].Value);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).Count().IsEqualTo(2);
+        await Assert.That(result[postIds[0].Value]).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(result[postIds[2].Value]).IsEqualTo(ReactionType.Eyes);
+        await Assert.That(result.ContainsKey(postIds[1].Value)).IsFalse();
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_ToggleTwice_AddsAndRemoves()
     {
         // Arrange
@@ -333,8 +328,8 @@ public class ReactionUseCaseTests
         var firstResult = await _useCase.ToggleReactionAsync(postId, userId, type);
 
         // Assert first toggle
-        firstResult.IsSuccess.Should().BeTrue();
-        firstResult.Value.Should().BeTrue(); // Added
+        await Assert.That(firstResult.IsSuccess).IsTrue();
+        await Assert.That(firstResult.Value).IsTrue();
 
         // Arrange - Second call - now there's an existing reaction
         var addedReaction = Reaction.Create(postId, userId, type);
@@ -345,14 +340,14 @@ public class ReactionUseCaseTests
         var secondResult = await _useCase.ToggleReactionAsync(postId, userId, type);
 
         // Assert second toggle
-        secondResult.IsSuccess.Should().BeTrue();
-        secondResult.Value.Should().BeFalse(); // Removed
+        await Assert.That(secondResult.IsSuccess).IsTrue();
+        await Assert.That(secondResult.Value).IsFalse();
 
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Once);
         _mockReactionRepository.Verify(r => r.DeleteAsync(It.IsAny<Reaction>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleReactionAsync_ChangingReactionType_DeletesOldAndAddsNew()
     {
         // Arrange
@@ -374,8 +369,8 @@ public class ReactionUseCaseTests
         var result = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Heart);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Returns true (reaction added)
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockReactionRepository.Verify(r => r.DeleteAsync(thumbsUpReaction), Times.Once);
         _mockReactionRepository.Verify(r => r.AddAsync(It.Is<Reaction>(r => r.Type == ReactionType.Heart)), Times.Once);

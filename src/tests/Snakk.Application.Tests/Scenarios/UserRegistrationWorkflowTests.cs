@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -12,21 +11,16 @@ namespace Snakk.Application.Tests.Scenarios;
 /// </summary>
 public class UserRegistrationWorkflowTests
 {
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly Mock<IPasswordHasher> _mockPasswordHasher;
-    private readonly Mock<IEmailSender> _mockEmailSender;
-    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository;
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
-    private readonly AuthenticationUseCase _useCase;
+    private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private readonly Mock<IPasswordHasher> _mockPasswordHasher = new();
+    private readonly Mock<IEmailSender> _mockEmailSender = new();
+    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository = new();
+    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
+    private AuthenticationUseCase _useCase = null!;
 
-    public UserRegistrationWorkflowTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockUserRepository = new Mock<IUserRepository>();
-        _mockPasswordHasher = new Mock<IPasswordHasher>();
-        _mockEmailSender = new Mock<IEmailSender>();
-        _mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
-        _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
-
         _useCase = new AuthenticationUseCase(
             _mockUserRepository.Object,
             _mockPasswordHasher.Object,
@@ -35,7 +29,7 @@ public class UserRegistrationWorkflowTests
             _mockEventDispatcher.Object);
     }
 
-    [Fact]
+    [Test]
     public async Task FullRegistrationWorkflow_RegisterVerifyLogin_WorksEndToEnd()
     {
         // Arrange
@@ -55,11 +49,11 @@ public class UserRegistrationWorkflowTests
         var registerResult = await _useCase.RegisterWithEmailAsync(email, password, displayName, baseUrl);
 
         // Assert registration
-        registerResult.IsSuccess.Should().BeTrue();
+        await Assert.That(registerResult.IsSuccess).IsTrue();
         var registeredUser = registerResult.Value!;
-        registeredUser.Email.Should().Be(email);
-        registeredUser.EmailVerified.Should().BeFalse();
-        registeredUser.EmailVerificationToken.Should().NotBeNullOrEmpty();
+        await Assert.That(registeredUser.Email).IsEqualTo(email);
+        await Assert.That(registeredUser.EmailVerified).IsFalse();
+        await Assert.That(registeredUser.EmailVerificationToken).IsNotNull();
 
         var verificationToken = registeredUser.EmailVerificationToken!;
 
@@ -70,9 +64,9 @@ public class UserRegistrationWorkflowTests
         var verifyResult = await _useCase.VerifyEmailAsync(verificationToken);
 
         // Assert verification
-        verifyResult.IsSuccess.Should().BeTrue();
-        registeredUser.EmailVerified.Should().BeTrue();
-        registeredUser.EmailVerificationToken.Should().BeNull();
+        await Assert.That(verifyResult.IsSuccess).IsTrue();
+        await Assert.That(registeredUser.EmailVerified).IsTrue();
+        await Assert.That(registeredUser.EmailVerificationToken).IsNull();
 
         // Step 3: Login
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
@@ -83,8 +77,8 @@ public class UserRegistrationWorkflowTests
         var loginResult = await _useCase.LoginWithEmailAsync(email, password);
 
         // Assert login
-        loginResult.IsSuccess.Should().BeTrue();
-        loginResult.Value.Should().Be(registeredUser);
+        await Assert.That(loginResult.IsSuccess).IsTrue();
+        await Assert.That(loginResult.Value).IsEqualTo(registeredUser);
 
         // Verify all expected calls were made
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
@@ -94,7 +88,7 @@ public class UserRegistrationWorkflowTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task RegistrationWorkflow_WithDuplicateDisplayName_GeneratesUniqueName()
     {
         // Arrange
@@ -116,13 +110,13 @@ public class UserRegistrationWorkflowTests
         var registerResult = await _useCase.RegisterWithEmailAsync(email, password, displayName, "https://example.com");
 
         // Assert
-        registerResult.IsSuccess.Should().BeTrue();
-        registerResult.Value!.DisplayName.Should().NotBe(displayName);
-        registerResult.Value.DisplayName.Should().StartWith(displayName);
-        registerResult.Value.DisplayName.Should().MatchRegex(@"PopularName-\d+");
+        await Assert.That(registerResult.IsSuccess).IsTrue();
+        await Assert.That(registerResult.Value!.DisplayName).IsNotEqualTo(displayName);
+        await Assert.That(registerResult.Value.DisplayName).StartsWith(displayName);
+        await Assert.That(registerResult.Value.DisplayName).Matches(@"PopularName-\d+");
     }
 
-    [Fact]
+    [Test]
     public async Task RegistrationWorkflow_LoginBeforeVerification_SucceedsButShowsUnverified()
     {
         // Arrange
@@ -149,11 +143,11 @@ public class UserRegistrationWorkflowTests
         var loginResult = await _useCase.LoginWithEmailAsync(email, password);
 
         // Assert - Can login but email is not verified
-        loginResult.IsSuccess.Should().BeTrue();
-        loginResult.Value!.EmailVerified.Should().BeFalse();
+        await Assert.That(loginResult.IsSuccess).IsTrue();
+        await Assert.That(loginResult.Value!.EmailVerified).IsFalse();
     }
 
-    [Fact]
+    [Test]
     public async Task RegistrationWorkflow_DoubleVerification_SecondVerificationFails()
     {
         // Arrange
@@ -166,8 +160,8 @@ public class UserRegistrationWorkflowTests
         // Step 1: First verification (succeeds)
         var firstVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
 
-        firstVerifyResult.IsSuccess.Should().BeTrue();
-        user.EmailVerified.Should().BeTrue();
+        await Assert.That(firstVerifyResult.IsSuccess).IsTrue();
+        await Assert.That(user.EmailVerified).IsTrue();
 
         // Step 2: Try to verify again
         var secondVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
@@ -175,11 +169,11 @@ public class UserRegistrationWorkflowTests
         // Assert - Second verification should fail
         // Note: After verification succeeds, the token is set to null, so when we try to verify again
         // with the same token, the user lookup by token returns null, hence "Invalid or expired verification token"
-        secondVerifyResult.IsSuccess.Should().BeFalse();
-        secondVerifyResult.Error.Should().Contain("Invalid or expired verification token");
+        await Assert.That(secondVerifyResult.IsSuccess).IsFalse();
+        await Assert.That(secondVerifyResult.Error).Contains("Invalid or expired verification token");
     }
 
-    [Fact]
+    [Test]
     public async Task OAuthRegistrationWorkflow_NewUser_CreatesAndLogsIn()
     {
         // Arrange
@@ -199,19 +193,19 @@ public class UserRegistrationWorkflowTests
         var loginResult = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, email, displayName);
 
         // Assert
-        loginResult.IsSuccess.Should().BeTrue();
+        await Assert.That(loginResult.IsSuccess).IsTrue();
         var user = loginResult.Value!;
-        user.Email.Should().Be(email);
-        user.OAuthProvider.Should().Be(oauthProvider);
-        user.OAuthProviderId.Should().Be(oauthProviderId);
-        user.EmailVerified.Should().BeTrue(); // OAuth users are auto-verified
-        user.HasPassword().Should().BeFalse();
+        await Assert.That(user.Email).IsEqualTo(email);
+        await Assert.That(user.OAuthProvider).IsEqualTo(oauthProvider);
+        await Assert.That(user.OAuthProviderId).IsEqualTo(oauthProviderId);
+        await Assert.That(user.EmailVerified).IsTrue();
+        await Assert.That(user.HasPassword()).IsFalse();
 
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
         _mockEmailSender.Verify(e => e.SendWelcomeEmailAsync(email, It.IsAny<string>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task OAuthRegistrationWorkflow_ExistingOAuthUser_JustLogsIn()
     {
         // Arrange
@@ -226,15 +220,15 @@ public class UserRegistrationWorkflowTests
         var loginResult = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, "existing@example.com", "ExistingUser");
 
         // Assert
-        loginResult.IsSuccess.Should().BeTrue();
-        loginResult.Value.Should().Be(existingUser);
+        await Assert.That(loginResult.IsSuccess).IsTrue();
+        await Assert.That(loginResult.Value).IsEqualTo(existingUser);
 
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never); // No new user created
         _mockUserRepository.Verify(r => r.UpdateAsync(existingUser), Times.Once); // LastLogin updated
         _mockEmailSender.Verify(e => e.SendWelcomeEmailAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateDisplayNameWorkflow_CheckAvailabilityAndUpdate_Works()
     {
         // Arrange
@@ -250,12 +244,12 @@ public class UserRegistrationWorkflowTests
         var updateResult = await _useCase.UpdateDisplayNameAsync(user.PublicId, newDisplayName);
 
         // Assert
-        updateResult.IsSuccess.Should().BeTrue();
-        user.DisplayName.Should().Be(newDisplayName);
+        await Assert.That(updateResult.IsSuccess).IsTrue();
+        await Assert.That(user.DisplayName).IsEqualTo(newDisplayName);
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePreferencesWorkflow_UpdateMultiplePreferences_Works()
     {
         // Arrange
@@ -268,8 +262,8 @@ public class UserRegistrationWorkflowTests
         var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
-        updateResult.IsSuccess.Should().BeTrue();
-        user.PreferEndlessScroll.Should().BeTrue();
+        await Assert.That(updateResult.IsSuccess).IsTrue();
+        await Assert.That(user.PreferEndlessScroll).IsTrue();
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 }

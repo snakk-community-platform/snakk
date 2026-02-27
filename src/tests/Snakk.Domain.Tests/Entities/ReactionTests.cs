@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
@@ -7,8 +6,8 @@ namespace Snakk.Domain.Tests.Entities;
 
 public class ReactionTests
 {
-    [Fact]
-    public void Create_WithValidParameters_CreatesReaction()
+    [Test]
+    public async Task Create_WithValidParameters_CreatesReaction()
     {
         // Arrange
         var postId = PostId.New();
@@ -19,16 +18,16 @@ public class ReactionTests
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction.Should().NotBeNull();
-        reaction.PublicId.Should().NotBe(Guid.Empty);
-        reaction.PostId.Should().Be(postId);
-        reaction.UserId.Should().Be(userId);
-        reaction.Type.Should().Be(type);
-        reaction.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(reaction).IsNotNull();
+        await Assert.That(reaction.PublicId).IsNotNull();
+        await Assert.That(reaction.PostId).IsEqualTo(postId);
+        await Assert.That(reaction.UserId).IsEqualTo(userId);
+        await Assert.That(reaction.Type).IsEqualTo(type);
+        await Assert.That(reaction.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void Create_WithThumbsUpType_CreatesThumbsUpReaction()
+    [Test]
+    public async Task Create_WithThumbsUpType_CreatesThumbsUpReaction()
     {
         // Arrange
         var postId = PostId.New();
@@ -39,11 +38,11 @@ public class ReactionTests
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction.Type.Should().Be(ReactionType.ThumbsUp);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.ThumbsUp);
     }
 
-    [Fact]
-    public void Create_WithHeartType_CreatesHeartReaction()
+    [Test]
+    public async Task Create_WithHeartType_CreatesHeartReaction()
     {
         // Arrange
         var postId = PostId.New();
@@ -54,11 +53,11 @@ public class ReactionTests
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction.Type.Should().Be(ReactionType.Heart);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Heart);
     }
 
-    [Fact]
-    public void Create_WithEyesType_CreatesEyesReaction()
+    [Test]
+    public async Task Create_WithEyesType_CreatesEyesReaction()
     {
         // Arrange
         var postId = PostId.New();
@@ -69,11 +68,11 @@ public class ReactionTests
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction.Type.Should().Be(ReactionType.Eyes);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Eyes);
     }
 
-    [Fact]
-    public void Create_GeneratesReactionAddedEvent()
+    [Test]
+    public async Task Create_GeneratesReactionAddedEvent()
     {
         // Arrange
         var postId = PostId.New();
@@ -84,18 +83,18 @@ public class ReactionTests
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction.DomainEvents.Should().ContainSingle();
-        reaction.DomainEvents.First().Should().BeOfType<ReactionAddedEvent>();
+        await Assert.That(reaction.DomainEvents).Count().IsEqualTo(1);
+        await Assert.That(reaction.DomainEvents.First()).IsTypeOf<ReactionAddedEvent>();
 
         var addedEvent = reaction.DomainEvents.First() as ReactionAddedEvent;
-        addedEvent.Should().NotBeNull();
-        addedEvent!.ReactionId.Should().Be(reaction.PublicId);
-        addedEvent.PostId.Should().Be(postId);
-        addedEvent.UserId.Should().Be(userId);
+        await Assert.That(addedEvent).IsNotNull();
+        await Assert.That(addedEvent!.ReactionId).IsEqualTo(reaction.PublicId);
+        await Assert.That(addedEvent.PostId).IsEqualTo(postId);
+        await Assert.That(addedEvent.UserId).IsEqualTo(userId);
     }
 
-    [Fact]
-    public void Rehydrate_WithValidParameters_RestoresReaction()
+    [Test]
+    public async Task Rehydrate_WithValidParameters_RestoresReaction()
     {
         // Arrange
         var reactionId = ReactionId.New();
@@ -108,15 +107,15 @@ public class ReactionTests
         var reaction = Reaction.Rehydrate(reactionId, postId, userId, type, createdAt);
 
         // Assert
-        reaction.PublicId.Should().Be(reactionId);
-        reaction.PostId.Should().Be(postId);
-        reaction.UserId.Should().Be(userId);
-        reaction.Type.Should().Be(type);
-        reaction.CreatedAt.Should().Be(createdAt);
+        await Assert.That(reaction.PublicId).IsEqualTo(reactionId);
+        await Assert.That(reaction.PostId).IsEqualTo(postId);
+        await Assert.That(reaction.UserId).IsEqualTo(userId);
+        await Assert.That(reaction.Type).IsEqualTo(type);
+        await Assert.That(reaction.CreatedAt).IsEqualTo(createdAt);
     }
 
-    [Fact]
-    public void Rehydrate_DoesNotGenerateDomainEvents()
+    [Test]
+    public async Task Rehydrate_DoesNotGenerateDomainEvents()
     {
         // Arrange
         var reactionId = ReactionId.New();
@@ -129,11 +128,11 @@ public class ReactionTests
         var reaction = Reaction.Rehydrate(reactionId, postId, userId, type, createdAt);
 
         // Assert
-        reaction.DomainEvents.Should().BeEmpty();
+        await Assert.That(reaction.DomainEvents).IsEmpty();
     }
 
-    [Fact]
-    public void MarkForRemoval_GeneratesReactionRemovedEvent()
+    [Test]
+    public async Task MarkForRemoval_GeneratesReactionRemovedEvent()
     {
         // Arrange
         var postId = PostId.New();
@@ -145,18 +144,18 @@ public class ReactionTests
         reaction.MarkForRemoval();
 
         // Assert
-        reaction.DomainEvents.Should().ContainSingle();
-        reaction.DomainEvents.First().Should().BeOfType<ReactionRemovedEvent>();
+        await Assert.That(reaction.DomainEvents).Count().IsEqualTo(1);
+        await Assert.That(reaction.DomainEvents.First()).IsTypeOf<ReactionRemovedEvent>();
 
         var removedEvent = reaction.DomainEvents.First() as ReactionRemovedEvent;
-        removedEvent.Should().NotBeNull();
-        removedEvent!.ReactionId.Should().Be(reaction.PublicId);
-        removedEvent.PostId.Should().Be(postId);
-        removedEvent.UserId.Should().Be(userId);
+        await Assert.That(removedEvent).IsNotNull();
+        await Assert.That(removedEvent!.ReactionId).IsEqualTo(reaction.PublicId);
+        await Assert.That(removedEvent.PostId).IsEqualTo(postId);
+        await Assert.That(removedEvent.UserId).IsEqualTo(userId);
     }
 
-    [Fact]
-    public void MarkForRemoval_CalledMultipleTimes_GeneratesMultipleEvents()
+    [Test]
+    public async Task MarkForRemoval_CalledMultipleTimes_GeneratesMultipleEvents()
     {
         // Arrange
         var postId = PostId.New();
@@ -169,12 +168,11 @@ public class ReactionTests
         reaction.MarkForRemoval();
 
         // Assert
-        reaction.DomainEvents.Should().HaveCount(2);
-        reaction.DomainEvents.Should().AllBeOfType<ReactionRemovedEvent>();
+        await Assert.That(reaction.DomainEvents).Count().IsEqualTo(2);
     }
 
-    [Fact]
-    public void Create_WithDifferentUsers_CreatesDifferentReactions()
+    [Test]
+    public async Task Create_WithDifferentUsers_CreatesDifferentReactions()
     {
         // Arrange
         var postId = PostId.New();
@@ -187,15 +185,15 @@ public class ReactionTests
         var reaction2 = Reaction.Create(postId, userId2, type);
 
         // Assert
-        reaction1.PublicId.Should().NotBe(reaction2.PublicId);
-        reaction1.UserId.Should().Be(userId1);
-        reaction2.UserId.Should().Be(userId2);
-        reaction1.PostId.Should().Be(postId);
-        reaction2.PostId.Should().Be(postId);
+        await Assert.That(reaction1.PublicId).IsNotEqualTo(reaction2.PublicId);
+        await Assert.That(reaction1.UserId).IsEqualTo(userId1);
+        await Assert.That(reaction2.UserId).IsEqualTo(userId2);
+        await Assert.That(reaction1.PostId).IsEqualTo(postId);
+        await Assert.That(reaction2.PostId).IsEqualTo(postId);
     }
 
-    [Fact]
-    public void Create_WithDifferentPosts_CreatesDifferentReactions()
+    [Test]
+    public async Task Create_WithDifferentPosts_CreatesDifferentReactions()
     {
         // Arrange
         var postId1 = PostId.New();
@@ -208,15 +206,15 @@ public class ReactionTests
         var reaction2 = Reaction.Create(postId2, userId, type);
 
         // Assert
-        reaction1.PublicId.Should().NotBe(reaction2.PublicId);
-        reaction1.PostId.Should().Be(postId1);
-        reaction2.PostId.Should().Be(postId2);
-        reaction1.UserId.Should().Be(userId);
-        reaction2.UserId.Should().Be(userId);
+        await Assert.That(reaction1.PublicId).IsNotEqualTo(reaction2.PublicId);
+        await Assert.That(reaction1.PostId).IsEqualTo(postId1);
+        await Assert.That(reaction2.PostId).IsEqualTo(postId2);
+        await Assert.That(reaction1.UserId).IsEqualTo(userId);
+        await Assert.That(reaction2.UserId).IsEqualTo(userId);
     }
 
-    [Fact]
-    public void Create_SameUserSamePostDifferentType_CreatesDifferentReactions()
+    [Test]
+    public async Task Create_SameUserSamePostDifferentType_CreatesDifferentReactions()
     {
         // Arrange
         var postId = PostId.New();
@@ -228,15 +226,15 @@ public class ReactionTests
         var eyes = Reaction.Create(postId, userId, ReactionType.Eyes);
 
         // Assert
-        thumbsUp.PublicId.Should().NotBe(heart.PublicId);
-        heart.PublicId.Should().NotBe(eyes.PublicId);
-        thumbsUp.Type.Should().Be(ReactionType.ThumbsUp);
-        heart.Type.Should().Be(ReactionType.Heart);
-        eyes.Type.Should().Be(ReactionType.Eyes);
+        await Assert.That(thumbsUp.PublicId).IsNotEqualTo(heart.PublicId);
+        await Assert.That(heart.PublicId).IsNotEqualTo(eyes.PublicId);
+        await Assert.That(thumbsUp.Type).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(heart.Type).IsEqualTo(ReactionType.Heart);
+        await Assert.That(eyes.Type).IsEqualTo(ReactionType.Eyes);
     }
 
-    [Fact]
-    public void Rehydrate_PreservesAllProperties()
+    [Test]
+    public async Task Rehydrate_PreservesAllProperties()
     {
         // Arrange
         var reactionId = ReactionId.New();
@@ -249,15 +247,15 @@ public class ReactionTests
         var reaction = Reaction.Rehydrate(reactionId, postId, userId, type, createdAt);
 
         // Assert
-        reaction.PublicId.Should().Be(reactionId);
-        reaction.PostId.Should().Be(postId);
-        reaction.UserId.Should().Be(userId);
-        reaction.Type.Should().Be(type);
-        reaction.CreatedAt.Should().Be(createdAt);
+        await Assert.That(reaction.PublicId).IsEqualTo(reactionId);
+        await Assert.That(reaction.PostId).IsEqualTo(postId);
+        await Assert.That(reaction.UserId).IsEqualTo(userId);
+        await Assert.That(reaction.Type).IsEqualTo(type);
+        await Assert.That(reaction.CreatedAt).IsEqualTo(createdAt);
     }
 
-    [Fact]
-    public void Create_AssignsUniqueReactionIds()
+    [Test]
+    public async Task Create_AssignsUniqueReactionIds()
     {
         // Arrange
         var postId = PostId.New();
@@ -270,13 +268,13 @@ public class ReactionTests
         var reaction3 = Reaction.Create(postId, userId, type);
 
         // Assert
-        reaction1.PublicId.Should().NotBe(reaction2.PublicId);
-        reaction2.PublicId.Should().NotBe(reaction3.PublicId);
-        reaction1.PublicId.Should().NotBe(reaction3.PublicId);
+        await Assert.That(reaction1.PublicId).IsNotEqualTo(reaction2.PublicId);
+        await Assert.That(reaction2.PublicId).IsNotEqualTo(reaction3.PublicId);
+        await Assert.That(reaction1.PublicId).IsNotEqualTo(reaction3.PublicId);
     }
 
-    [Fact]
-    public void MarkForRemoval_AfterRehydrate_GeneratesEvent()
+    [Test]
+    public async Task MarkForRemoval_AfterRehydrate_GeneratesEvent()
     {
         // Arrange
         var reactionId = ReactionId.New();
@@ -288,12 +286,12 @@ public class ReactionTests
         reaction.MarkForRemoval();
 
         // Assert
-        reaction.DomainEvents.Should().ContainSingle();
-        reaction.DomainEvents.First().Should().BeOfType<ReactionRemovedEvent>();
+        await Assert.That(reaction.DomainEvents).Count().IsEqualTo(1);
+        await Assert.That(reaction.DomainEvents.First()).IsTypeOf<ReactionRemovedEvent>();
     }
 
-    [Fact]
-    public void Create_AllReactionTypes_AreSupported()
+    [Test]
+    public async Task Create_AllReactionTypes_AreSupported()
     {
         // Arrange
         var postId = PostId.New();
@@ -301,12 +299,12 @@ public class ReactionTests
 
         // Act & Assert - All enum values should be creatable
         var thumbsUp = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
-        thumbsUp.Type.Should().Be(ReactionType.ThumbsUp);
+        await Assert.That(thumbsUp.Type).IsEqualTo(ReactionType.ThumbsUp);
 
         var heart = Reaction.Create(postId, userId, ReactionType.Heart);
-        heart.Type.Should().Be(ReactionType.Heart);
+        await Assert.That(heart.Type).IsEqualTo(ReactionType.Heart);
 
         var eyes = Reaction.Create(postId, userId, ReactionType.Eyes);
-        eyes.Type.Should().Be(ReactionType.Eyes);
+        await Assert.That(eyes.Type).IsEqualTo(ReactionType.Eyes);
     }
 }

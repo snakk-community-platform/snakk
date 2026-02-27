@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 
@@ -11,8 +10,8 @@ public class PostEdgeCasesTests
 {
     #region 5-Minute Hard Delete Boundary Tests
 
-    [Fact]
-    public void CanHardDelete_Exactly299Seconds_ReturnsTrue()
+    [Test]
+    public async Task CanHardDelete_Exactly299Seconds_ReturnsTrue()
     {
         // Arrange - 4 minutes 59 seconds ago (just under 5 minutes)
         var createdAt = DateTime.UtcNow.AddSeconds(-299);
@@ -22,11 +21,11 @@ public class PostEdgeCasesTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeTrue("post created 4:59 ago should allow hard delete");
+        await Assert.That(canHardDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanHardDelete_Exactly300Seconds_ReturnsFalse()
+    [Test]
+    public async Task CanHardDelete_Exactly300Seconds_ReturnsFalse()
     {
         // Arrange - Exactly 5 minutes (300 seconds) ago
         var createdAt = DateTime.UtcNow.AddSeconds(-300);
@@ -36,11 +35,11 @@ public class PostEdgeCasesTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeFalse("post created exactly 5:00 ago should not allow hard delete");
+        await Assert.That(canHardDelete).IsFalse();
     }
 
-    [Fact]
-    public void CanHardDelete_Exactly301Seconds_ReturnsFalse()
+    [Test]
+    public async Task CanHardDelete_Exactly301Seconds_ReturnsFalse()
     {
         // Arrange - 5 minutes 1 second ago (just over 5 minutes)
         var createdAt = DateTime.UtcNow.AddSeconds(-301);
@@ -50,11 +49,11 @@ public class PostEdgeCasesTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeFalse("post created 5:01 ago should not allow hard delete");
+        await Assert.That(canHardDelete).IsFalse();
     }
 
-    [Fact]
-    public void CanHardDelete_1SecondOld_ReturnsTrue()
+    [Test]
+    public async Task CanHardDelete_1SecondOld_ReturnsTrue()
     {
         // Arrange - Very recently created post
         var createdAt = DateTime.UtcNow.AddSeconds(-1);
@@ -64,11 +63,11 @@ public class PostEdgeCasesTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeTrue("very recent post should allow hard delete");
+        await Assert.That(canHardDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanHardDelete_JustCreated_ReturnsTrue()
+    [Test]
+    public async Task CanHardDelete_JustCreated_ReturnsTrue()
     {
         // Arrange - Post created right now
         var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
@@ -77,15 +76,15 @@ public class PostEdgeCasesTests
         var canHardDelete = post.CanHardDelete();
 
         // Assert
-        canHardDelete.Should().BeTrue("newly created post should allow hard delete");
+        await Assert.That(canHardDelete).IsTrue();
     }
 
     #endregion
 
     #region Content Edge Cases
 
-    [Fact]
-    public void Create_WithVeryLongContent_CreatesPost()
+    [Test]
+    public async Task Create_WithVeryLongContent_CreatesPost()
     {
         // Arrange - 10,000 character content
         var longContent = new string('a', 10000);
@@ -94,41 +93,33 @@ public class PostEdgeCasesTests
         var post = Post.Create(DiscussionId.New(), UserId.New(), longContent);
 
         // Assert
-        post.Content.Should().HaveLength(10000);
+        await Assert.That(post.Content).Length().IsEqualTo(10000);
     }
 
-    [Fact]
-    public void UpdateContent_WithEmptyString_ThrowsArgumentException()
+    [Test]
+    public async Task UpdateContent_WithEmptyString_ThrowsArgumentException()
     {
         // Arrange
         var userId = UserId.New();
         var post = Post.Create(DiscussionId.New(), userId, "Original content");
 
-        // Act
-        var act = () => post.UpdateContent("", userId);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*content*");
+        // Act & Assert
+        await Assert.That(() => post.UpdateContent("", userId)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void UpdateContent_WithWhitespaceOnly_ThrowsArgumentException()
+    [Test]
+    public async Task UpdateContent_WithWhitespaceOnly_ThrowsArgumentException()
     {
         // Arrange
         var userId = UserId.New();
         var post = Post.Create(DiscussionId.New(), userId, "Original content");
 
-        // Act
-        var act = () => post.UpdateContent("   ", userId);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*content*");
+        // Act & Assert
+        await Assert.That(() => post.UpdateContent("   ", userId)).Throws<ArgumentException>();
     }
 
-    [Fact]
-    public void UpdateContent_MultipleTimesInSuccession_CreatesMultipleRevisions()
+    [Test]
+    public async Task UpdateContent_MultipleTimesInSuccession_CreatesMultipleRevisions()
     {
         // Arrange
         var userId = UserId.New();
@@ -140,17 +131,17 @@ public class PostEdgeCasesTests
         post.UpdateContent("Edit 3", userId);
 
         // Assert
-        post.Content.Should().Be("Edit 3");
-        post.RevisionCount.Should().Be(3);
-        post.Revisions.Should().HaveCount(3);
+        await Assert.That(post.Content).IsEqualTo("Edit 3");
+        await Assert.That(post.RevisionCount).IsEqualTo(3);
+        await Assert.That(post.Revisions).Count().IsEqualTo(3);
     }
 
     #endregion
 
     #region Permission Edge Cases
 
-    [Fact]
-    public void CanEdit_AfterSoftDelete_ReturnsTrue()
+    [Test]
+    public async Task CanEdit_AfterSoftDelete_ReturnsTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -162,11 +153,11 @@ public class PostEdgeCasesTests
         var canEdit = post.CanEdit(userId);
 
         // Assert
-        canEdit.Should().BeTrue("CanEdit only checks authorship, not deletion status");
+        await Assert.That(canEdit).IsTrue();
     }
 
-    [Fact]
-    public void CanEdit_ByAuthorBeforeDelete_ReturnsTrue()
+    [Test]
+    public async Task CanEdit_ByAuthorBeforeDelete_ReturnsTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -176,11 +167,11 @@ public class PostEdgeCasesTests
         var canEdit = post.CanEdit(userId);
 
         // Assert
-        canEdit.Should().BeTrue("author should be able to edit their own post");
+        await Assert.That(canEdit).IsTrue();
     }
 
-    [Fact]
-    public void CanDelete_ByAuthor_ReturnsTrue()
+    [Test]
+    public async Task CanDelete_ByAuthor_ReturnsTrue()
     {
         // Arrange
         var userId = UserId.New();
@@ -190,11 +181,11 @@ public class PostEdgeCasesTests
         var canDelete = post.CanDelete(userId);
 
         // Assert
-        canDelete.Should().BeTrue("author should be able to delete their own post");
+        await Assert.That(canDelete).IsTrue();
     }
 
-    [Fact]
-    public void CanDelete_ByDifferentUser_ReturnsFalse()
+    [Test]
+    public async Task CanDelete_ByDifferentUser_ReturnsFalse()
     {
         // Arrange
         var authorId = UserId.New();
@@ -205,15 +196,15 @@ public class PostEdgeCasesTests
         var canDelete = post.CanDelete(differentUserId);
 
         // Assert
-        canDelete.Should().BeFalse("non-authors cannot delete posts");
+        await Assert.That(canDelete).IsFalse();
     }
 
     #endregion
 
     #region Revision Edge Cases
 
-    [Fact]
-    public void Revisions_AfterMultipleEdits_ContainsAllPreviousVersions()
+    [Test]
+    public async Task Revisions_AfterMultipleEdits_ContainsAllPreviousVersions()
     {
         // Arrange
         var userId = UserId.New();
@@ -224,13 +215,13 @@ public class PostEdgeCasesTests
         post.UpdateContent("Version 3", userId);
 
         // Assert
-        post.Revisions.Should().HaveCount(2);
-        post.Revisions.ToList()[0].Content.Should().Be("Version 1");
-        post.Revisions.ToList()[1].Content.Should().Be("Version 2");
+        await Assert.That(post.Revisions).Count().IsEqualTo(2);
+        await Assert.That(post.Revisions.ToList()[0].Content).IsEqualTo("Version 1");
+        await Assert.That(post.Revisions.ToList()[1].Content).IsEqualTo("Version 2");
     }
 
-    [Fact]
-    public void UpdateContent_SameContent_StillCreatesRevision()
+    [Test]
+    public async Task UpdateContent_SameContent_StillCreatesRevision()
     {
         // Arrange
         var userId = UserId.New();
@@ -240,16 +231,16 @@ public class PostEdgeCasesTests
         post.UpdateContent("Same content", userId);
 
         // Assert
-        post.RevisionCount.Should().Be(1);
-        post.Revisions.Should().HaveCount(1);
+        await Assert.That(post.RevisionCount).IsEqualTo(1);
+        await Assert.That(post.Revisions).Count().IsEqualTo(1);
     }
 
     #endregion
 
     #region Delete Edge Cases
 
-    [Fact]
-    public void SoftDelete_AlreadyDeleted_ThrowsInvalidOperationException()
+    [Test]
+    public async Task SoftDelete_AlreadyDeleted_ThrowsInvalidOperationException()
     {
         // Arrange
         var userId = UserId.New();
@@ -257,16 +248,12 @@ public class PostEdgeCasesTests
         var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", sixMinutesAgo);
         post.SoftDelete(userId);
 
-        // Act
-        var act = () => post.SoftDelete(userId);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Post is already deleted");
+        // Act & Assert
+        await Assert.That(() => post.SoftDelete(userId)).Throws<InvalidOperationException>();
     }
 
-    [Fact]
-    public void HardDelete_WithinFiveMinutes_GeneratesEvent()
+    [Test]
+    public async Task HardDelete_WithinFiveMinutes_GeneratesEvent()
     {
         // Arrange
         var userId = UserId.New();
@@ -277,11 +264,11 @@ public class PostEdgeCasesTests
         post.HardDelete(userId);
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
     }
 
-    [Fact]
-    public void SoftDelete_AfterFiveMinutes_GeneratesEvent()
+    [Test]
+    public async Task SoftDelete_AfterFiveMinutes_GeneratesEvent()
     {
         // Arrange
         var userId = UserId.New();
@@ -292,15 +279,15 @@ public class PostEdgeCasesTests
         post.SoftDelete(userId);
 
         // Assert
-        post.DomainEvents.Should().HaveCount(1);
+        await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
     }
 
     #endregion
 
     #region Reply Edge Cases
 
-    [Fact]
-    public void Create_WithReplyToPostId_SetsReplyToPostId()
+    [Test]
+    public async Task Create_WithReplyToPostId_SetsReplyToPostId()
     {
         // Arrange
         var replyToPostId = PostId.New();
@@ -309,17 +296,17 @@ public class PostEdgeCasesTests
         var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply", replyToPostId: replyToPostId);
 
         // Assert
-        post.ReplyToPostId.Should().Be(replyToPostId);
+        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
     }
 
-    [Fact]
-    public void Create_WithNullReplyToPostId_SetsReplyToPostIdToNull()
+    [Test]
+    public async Task Create_WithNullReplyToPostId_SetsReplyToPostIdToNull()
     {
         // Act
         var post = Post.Create(DiscussionId.New(), UserId.New(), "Post", replyToPostId: null);
 
         // Assert
-        post.ReplyToPostId.Should().BeNull();
+        await Assert.That((object?)post.ReplyToPostId).IsNull();
     }
 
     #endregion

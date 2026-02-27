@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -13,26 +12,19 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class PostUseCaseTests
 {
-    private readonly Mock<IPostRepository> _mockPostRepository;
-    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository;
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
-    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier;
-    private readonly Mock<IFollowRepository> _mockFollowRepository;
-    private readonly Mock<ICounterService> _mockCounterService;
-    private readonly Mock<ReactionUseCase> _mockReactionUseCase;
-    private readonly PostUseCase _useCase;
+    private readonly Mock<IPostRepository> _mockPostRepository = new();
+    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
+    private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
+    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<IFollowRepository> _mockFollowRepository = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
+    private Mock<ReactionUseCase> _mockReactionUseCase = null!;
+    private PostUseCase _useCase = null!;
 
-    public PostUseCaseTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockPostRepository = new Mock<IPostRepository>();
-        _mockDiscussionRepository = new Mock<IDiscussionRepository>();
-        _mockUserRepository = new Mock<IUserRepository>();
-        _mockFollowRepository = new Mock<IFollowRepository>();
-        _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
-        _mockRealtimeNotifier = new Mock<IRealtimeNotifier>();
-        _mockCounterService = new Mock<ICounterService>();
-
         // ReactionUseCase needs its own dependencies
         _mockReactionUseCase = new Mock<ReactionUseCase>(
             Mock.Of<IReactionRepository>(),
@@ -53,7 +45,7 @@ public class PostUseCaseTests
 
     #region CreatePostAsync Tests
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithValidParameters_CreatesPost()
     {
         // Arrange
@@ -73,11 +65,11 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, content);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Content.Should().Be(content);
-        result.Value.DiscussionId.Should().Be(discussionId);
-        result.Value.CreatedByUserId.Should().Be(userId);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.Content).IsEqualTo(content);
+        await Assert.That(result.Value.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(result.Value.CreatedByUserId).IsEqualTo(userId);
 
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Once);
         _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
@@ -86,7 +78,7 @@ public class PostUseCaseTests
         _mockRealtimeNotifier.Verify(n => n.NotifyPostCreatedAsync(It.IsAny<Post>(), user, discussion), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
         // Arrange
@@ -100,13 +92,13 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, "content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Discussion");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Discussion");
+        await Assert.That(result.Error).Contains("not found");
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithLockedDiscussion_ReturnsFailure()
     {
         // Arrange
@@ -122,12 +114,12 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, "content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("locked");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("locked");
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithNonExistentUser_ReturnsFailure()
     {
         // Arrange
@@ -144,13 +136,13 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, "content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("User");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("User");
+        await Assert.That(result.Error).Contains("not found");
         _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithReplyToPost_ValidatesReplyToPostExists()
     {
         // Arrange
@@ -172,12 +164,12 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, "content", replyToPostId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Reply-to post");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Reply-to post");
+        await Assert.That(result.Error).Contains("not found");
     }
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_WithValidReplyToPost_CreatesReply()
     {
         // Arrange
@@ -200,16 +192,16 @@ public class PostUseCaseTests
         var result = await _useCase.CreatePostAsync(discussionId, userId, "Reply content", replyToPostId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.ReplyToPostId.Should().Be(replyToPostId);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.ReplyToPostId).IsEqualTo(replyToPostId);
     }
 
     #endregion
 
     #region UpdatePostAsync Tests
 
-    [Fact]
+    [Test]
     public async Task UpdatePostAsync_WithValidParameters_UpdatesPost()
     {
         // Arrange
@@ -232,9 +224,9 @@ public class PostUseCaseTests
         var result = await _useCase.UpdatePostAsync(post.PublicId, userId, newContent);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Content.Should().Be(newContent);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.Content).IsEqualTo(newContent);
 
         _mockPostRepository.Verify(r => r.UpdateAsync(post), Times.Once);
         _mockPostRepository.Verify(r => r.AddRevisionAsync(It.IsAny<PostRevision>()), Times.Once);
@@ -242,7 +234,7 @@ public class PostUseCaseTests
         _mockRealtimeNotifier.Verify(n => n.NotifyPostEditedAsync(post, user, discussion), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePostAsync_WithNonExistentPost_ReturnsFailure()
     {
         // Arrange
@@ -256,12 +248,12 @@ public class PostUseCaseTests
         var result = await _useCase.UpdatePostAsync(postId, userId, "new content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Post");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Post");
+        await Assert.That(result.Error).Contains("not found");
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePostAsync_ByNonAuthor_ReturnsFailure()
     {
         // Arrange
@@ -284,11 +276,11 @@ public class PostUseCaseTests
         var result = await _useCase.UpdatePostAsync(post.PublicId, differentUserId, "new content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
+        await Assert.That(result.IsSuccess).IsFalse();
         _mockPostRepository.Verify(r => r.UpdateAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePostAsync_OnDeletedPost_ReturnsFailure()
     {
         // Arrange
@@ -311,15 +303,15 @@ public class PostUseCaseTests
         var result = await _useCase.UpdatePostAsync(post.PublicId, userId, "new content");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("deleted");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("deleted");
     }
 
     #endregion
 
     #region DeletePostAsync Tests
 
-    [Fact]
+    [Test]
     public async Task DeletePostAsync_WithinFiveMinutes_PerformsHardDelete()
     {
         // Arrange
@@ -334,14 +326,14 @@ public class PostUseCaseTests
         var result = await _useCase.DeletePostAsync(post.PublicId, userId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
         _mockPostRepository.Verify(r => r.DeleteAsync(post), Times.Once); // Hard delete
         _mockPostRepository.Verify(r => r.UpdateAsync(It.IsAny<Post>()), Times.Never);
         _mockCounterService.Verify(c => c.DecrementPostCountAsync(discussionId), Times.Once);
         _mockRealtimeNotifier.Verify(n => n.NotifyPostDeletedAsync(post.PublicId, discussionId, true), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task DeletePostAsync_AfterFiveMinutes_PerformsSoftDelete()
     {
         // Arrange
@@ -357,14 +349,14 @@ public class PostUseCaseTests
         var result = await _useCase.DeletePostAsync(post.PublicId, userId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
         _mockPostRepository.Verify(r => r.UpdateAsync(post), Times.Once); // Soft delete
         _mockPostRepository.Verify(r => r.DeleteAsync(It.IsAny<Post>()), Times.Never);
         _mockCounterService.Verify(c => c.DecrementPostCountAsync(discussionId), Times.Once);
         _mockRealtimeNotifier.Verify(n => n.NotifyPostDeletedAsync(post.PublicId, discussionId, false), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task DeletePostAsync_ByNonAuthor_ReturnsFailure()
     {
         // Arrange
@@ -380,13 +372,13 @@ public class PostUseCaseTests
         var result = await _useCase.DeletePostAsync(post.PublicId, differentUserId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("only delete your own posts");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("only delete your own posts");
         _mockPostRepository.Verify(r => r.DeleteAsync(It.IsAny<Post>()), Times.Never);
         _mockPostRepository.Verify(r => r.UpdateAsync(It.IsAny<Post>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task DeletePostAsync_WithNonExistentPost_ReturnsFailure()
     {
         // Arrange
@@ -400,16 +392,16 @@ public class PostUseCaseTests
         var result = await _useCase.DeletePostAsync(postId, userId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Post");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Post");
+        await Assert.That(result.Error).Contains("not found");
     }
 
     #endregion
 
     #region GetPostAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetPostAsync_WithExistingPost_ReturnsPost()
     {
         // Arrange
@@ -422,11 +414,11 @@ public class PostUseCaseTests
         var result = await _useCase.GetPostAsync(post.PublicId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(post);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(post);
     }
 
-    [Fact]
+    [Test]
     public async Task GetPostAsync_WithNonExistentPost_ReturnsFailure()
     {
         // Arrange
@@ -439,16 +431,16 @@ public class PostUseCaseTests
         var result = await _useCase.GetPostAsync(postId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Post");
-        result.Error.Should().Contain("not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Post");
+        await Assert.That(result.Error).Contains("not found");
     }
 
     #endregion
 
     #region GetPostsByDiscussionAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetPostsByDiscussionAsync_ReturnsPagedResults()
     {
         // Arrange
@@ -468,18 +460,18 @@ public class PostUseCaseTests
         var result = await _useCase.GetPostsByDiscussionAsync(discussionId, 0, 20);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Items.Should().HaveCount(2);
-        result.Offset.Should().Be(0);
-        result.PageSize.Should().Be(20);
-        result.HasMoreItems.Should().BeFalse();
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Items).Count().IsEqualTo(2);
+        await Assert.That(result.Offset).IsEqualTo(0);
+        await Assert.That(result.PageSize).IsEqualTo(20);
+        await Assert.That(result.HasMoreItems).IsFalse();
     }
 
     #endregion
 
     #region GetPostHistoryAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetPostHistoryAsync_ReturnsRevisions()
     {
         // Arrange
@@ -497,15 +489,15 @@ public class PostUseCaseTests
         var result = await _useCase.GetPostHistoryAsync(postId);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(2);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).Count().IsEqualTo(2);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
+    [Test]
     public async Task CreatePostAsync_UpdatesDiscussionActivity()
     {
         // Arrange
@@ -526,10 +518,10 @@ public class PostUseCaseTests
         await _useCase.CreatePostAsync(discussionId, userId, "content");
 
         // Assert
-        discussion.LastActivityAt.Should().BeAfter(originalActivity ?? DateTime.MinValue);
+        await Assert.That(discussion.LastActivityAt!.Value).IsGreaterThan(originalActivity ?? DateTime.MinValue);
     }
 
-    [Fact]
+    [Test]
     public async Task DeletePostAsync_ExactlyFiveMinutesAgo_PerformsSoftDelete()
     {
         // Arrange - Post created exactly 5 minutes ago
@@ -545,7 +537,7 @@ public class PostUseCaseTests
         var result = await _useCase.DeletePostAsync(post.PublicId, userId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
         _mockPostRepository.Verify(r => r.UpdateAsync(post), Times.Once); // Soft delete
         _mockPostRepository.Verify(r => r.DeleteAsync(It.IsAny<Post>()), Times.Never);
     }

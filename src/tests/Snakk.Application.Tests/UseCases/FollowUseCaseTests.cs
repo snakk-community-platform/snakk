@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
@@ -9,19 +8,15 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class FollowUseCaseTests
 {
-    private readonly Mock<IFollowRepository> _mockFollowRepository;
-    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository;
-    private readonly Mock<ISpaceRepository> _mockSpaceRepository;
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly FollowUseCase _useCase;
+    private readonly Mock<IFollowRepository> _mockFollowRepository = new();
+    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
+    private readonly Mock<ISpaceRepository> _mockSpaceRepository = new();
+    private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private FollowUseCase _useCase = null!;
 
-    public FollowUseCaseTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockFollowRepository = new Mock<IFollowRepository>();
-        _mockDiscussionRepository = new Mock<IDiscussionRepository>();
-        _mockSpaceRepository = new Mock<ISpaceRepository>();
-        _mockUserRepository = new Mock<IUserRepository>();
-
         _useCase = new FollowUseCase(
             _mockFollowRepository.Object,
             _mockDiscussionRepository.Object,
@@ -31,7 +26,7 @@ public class FollowUseCaseTests
 
     #region ToggleFollowDiscussionAsync Tests
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowDiscussionAsync_WhenNotFollowing_CreatesFollow()
     {
         // Arrange
@@ -48,14 +43,14 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Now following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
         _mockFollowRepository.Verify(r => r.DeleteAsync(It.IsAny<Follow>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowDiscussionAsync_WhenAlreadyFollowing_RemovesFollow()
     {
         // Arrange
@@ -73,14 +68,14 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeFalse(); // No longer following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsFalse();
 
         _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
         // Arrange
@@ -94,8 +89,8 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Discussion not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Discussion not found");
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
     }
 
@@ -103,7 +98,7 @@ public class FollowUseCaseTests
 
     #region ToggleFollowSpaceAsync Tests
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowSpaceAsync_WhenNotFollowing_CreatesFollow()
     {
         // Arrange
@@ -120,15 +115,15 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId, FollowLevel.DiscussionsOnly);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Now following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockFollowRepository.Verify(r => r.AddAsync(It.Is<Follow>(f =>
             f.SpaceId == spaceId &&
             f.Level == FollowLevel.DiscussionsOnly)), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowSpaceAsync_WhenAlreadyFollowing_RemovesFollow()
     {
         // Arrange
@@ -146,14 +141,14 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeFalse(); // No longer following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsFalse();
 
         _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowSpaceAsync_WithNonExistentSpace_ReturnsFailure()
     {
         // Arrange
@@ -167,11 +162,11 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Space not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Space not found");
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowSpaceAsync_WithDiscussionsAndPostsLevel_CreatesFollowWithCorrectLevel()
     {
         // Arrange
@@ -188,7 +183,7 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
         _mockFollowRepository.Verify(r => r.AddAsync(It.Is<Follow>(f =>
             f.Level == FollowLevel.DiscussionsAndPosts)), Times.Once);
     }
@@ -197,7 +192,7 @@ public class FollowUseCaseTests
 
     #region ToggleFollowUserAsync Tests
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowUserAsync_WhenNotFollowing_CreatesFollow()
     {
         // Arrange
@@ -214,13 +209,13 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue(); // Now following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsTrue();
 
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowUserAsync_WhenAlreadyFollowing_RemovesFollow()
     {
         // Arrange
@@ -238,13 +233,13 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeFalse(); // No longer following
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsFalse();
 
         _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowUserAsync_FollowingSelf_ReturnsFailure()
     {
         // Arrange
@@ -254,12 +249,12 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowUserAsync(userId, userId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Cannot follow yourself");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Cannot follow yourself");
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowUserAsync_WithNonExistentUser_ReturnsFailure()
     {
         // Arrange
@@ -273,15 +268,15 @@ public class FollowUseCaseTests
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("User not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("User not found");
     }
 
     #endregion
 
     #region UpdateSpaceFollowLevelAsync Tests
 
-    [Fact]
+    [Test]
     public async Task UpdateSpaceFollowLevelAsync_WhenFollowing_UpdatesLevel()
     {
         // Arrange
@@ -296,13 +291,13 @@ public class FollowUseCaseTests
         var result = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(FollowLevel.DiscussionsAndPosts);
-        existingFollow.Level.Should().Be(FollowLevel.DiscussionsAndPosts);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(FollowLevel.DiscussionsAndPosts);
+        await Assert.That(existingFollow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
         _mockFollowRepository.Verify(r => r.UpdateAsync(existingFollow), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateSpaceFollowLevelAsync_WhenNotFollowing_ReturnsFailure()
     {
         // Arrange
@@ -316,8 +311,8 @@ public class FollowUseCaseTests
         var result = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Not following this space");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Not following this space");
         _mockFollowRepository.Verify(r => r.UpdateAsync(It.IsAny<Follow>()), Times.Never);
     }
 
@@ -325,7 +320,7 @@ public class FollowUseCaseTests
 
     #region Query Methods Tests
 
-    [Fact]
+    [Test]
     public async Task IsFollowingDiscussionAsync_WhenFollowing_ReturnsTrue()
     {
         // Arrange
@@ -339,10 +334,10 @@ public class FollowUseCaseTests
         var result = await _useCase.IsFollowingDiscussionAsync(userId, discussionId);
 
         // Assert
-        result.Should().BeTrue();
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task IsFollowingDiscussionAsync_WhenNotFollowing_ReturnsFalse()
     {
         // Arrange
@@ -356,10 +351,10 @@ public class FollowUseCaseTests
         var result = await _useCase.IsFollowingDiscussionAsync(userId, discussionId);
 
         // Assert
-        result.Should().BeFalse();
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
+    [Test]
     public async Task IsFollowingSpaceAsync_WhenFollowing_ReturnsTrue()
     {
         // Arrange
@@ -373,10 +368,10 @@ public class FollowUseCaseTests
         var result = await _useCase.IsFollowingSpaceAsync(userId, spaceId);
 
         // Assert
-        result.Should().BeTrue();
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task IsFollowingUserAsync_WhenFollowing_ReturnsTrue()
     {
         // Arrange
@@ -390,10 +385,10 @@ public class FollowUseCaseTests
         var result = await _useCase.IsFollowingUserAsync(userId, followedUserId);
 
         // Assert
-        result.Should().BeTrue();
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task GetSpaceFollowStatusAsync_WhenFollowing_ReturnsStatusAndLevel()
     {
         // Arrange
@@ -408,11 +403,11 @@ public class FollowUseCaseTests
         var (isFollowing, level) = await _useCase.GetSpaceFollowStatusAsync(userId, spaceId);
 
         // Assert
-        isFollowing.Should().BeTrue();
-        level.Should().Be(FollowLevel.DiscussionsAndPosts);
+        await Assert.That(isFollowing).IsTrue();
+        await Assert.That(level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
     }
 
-    [Fact]
+    [Test]
     public async Task GetSpaceFollowStatusAsync_WhenNotFollowing_ReturnsNotFollowing()
     {
         // Arrange
@@ -426,11 +421,11 @@ public class FollowUseCaseTests
         var (isFollowing, level) = await _useCase.GetSpaceFollowStatusAsync(userId, spaceId);
 
         // Assert
-        isFollowing.Should().BeFalse();
-        level.Should().BeNull();
+        await Assert.That(isFollowing).IsFalse();
+        await Assert.That(level).IsNull();
     }
 
-    [Fact]
+    [Test]
     public async Task GetFollowersOfDiscussionAsync_ReturnsFollowerIds()
     {
         // Arrange
@@ -444,11 +439,10 @@ public class FollowUseCaseTests
         var result = await _useCase.GetFollowersOfDiscussionAsync(discussionId);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().BeEquivalentTo(followerIds);
+        await Assert.That(result).Count().IsEqualTo(3);
     }
 
-    [Fact]
+    [Test]
     public async Task GetFollowerCountOfUserAsync_ReturnsCount()
     {
         // Arrange
@@ -462,10 +456,10 @@ public class FollowUseCaseTests
         var result = await _useCase.GetFollowerCountOfUserAsync(userId);
 
         // Assert
-        result.Should().Be(expectedCount);
+        await Assert.That(result).IsEqualTo(expectedCount);
     }
 
-    [Fact]
+    [Test]
     public async Task GetFollowedSpacesAsync_ReturnsSpaceIds()
     {
         // Arrange
@@ -479,11 +473,10 @@ public class FollowUseCaseTests
         var result = await _useCase.GetFollowedSpacesAsync(userId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().BeEquivalentTo(spaceIds);
+        await Assert.That(result).Count().IsEqualTo(2);
     }
 
-    [Fact]
+    [Test]
     public async Task GetFollowedDiscussionsAsync_ReturnsDiscussionIds()
     {
         // Arrange
@@ -497,11 +490,10 @@ public class FollowUseCaseTests
         var result = await _useCase.GetFollowedDiscussionsAsync(userId);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().BeEquivalentTo(discussionIds);
+        await Assert.That(result).Count().IsEqualTo(3);
     }
 
-    [Fact]
+    [Test]
     public async Task GetFollowedUsersAsync_ReturnsUserIds()
     {
         // Arrange
@@ -515,15 +507,14 @@ public class FollowUseCaseTests
         var result = await _useCase.GetFollowedUsersAsync(userId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().BeEquivalentTo(followedUserIds);
+        await Assert.That(result).Count().IsEqualTo(2);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
+    [Test]
     public async Task ToggleFollowSpaceAsync_ToggleTwice_FollowsAndUnfollows()
     {
         // Arrange
@@ -542,8 +533,8 @@ public class FollowUseCaseTests
         var firstResult = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
 
         // Assert first toggle
-        firstResult.IsSuccess.Should().BeTrue();
-        firstResult.Value.Should().BeTrue(); // Now following
+        await Assert.That(firstResult.IsSuccess).IsTrue();
+        await Assert.That(firstResult.Value).IsTrue();
 
         // Arrange - Second call - now following
         var createdFollow = Follow.CreateForSpace(userId, spaceId);
@@ -554,14 +545,14 @@ public class FollowUseCaseTests
         var secondResult = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
 
         // Assert second toggle
-        secondResult.IsSuccess.Should().BeTrue();
-        secondResult.Value.Should().BeFalse(); // No longer following
+        await Assert.That(secondResult.IsSuccess).IsTrue();
+        await Assert.That(secondResult.Value).IsFalse();
 
         _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
         _mockFollowRepository.Verify(r => r.DeleteAsync(It.IsAny<Follow>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateSpaceFollowLevelAsync_ToggleBetweenLevels_Works()
     {
         // Arrange
@@ -574,13 +565,13 @@ public class FollowUseCaseTests
 
         // Act & Assert - Toggle to DiscussionsAndPosts
         var result1 = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
-        result1.IsSuccess.Should().BeTrue();
-        follow.Level.Should().Be(FollowLevel.DiscussionsAndPosts);
+        await Assert.That(result1.IsSuccess).IsTrue();
+        await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
 
         // Act & Assert - Toggle back to DiscussionsOnly
         var result2 = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsOnly);
-        result2.IsSuccess.Should().BeTrue();
-        follow.Level.Should().Be(FollowLevel.DiscussionsOnly);
+        await Assert.That(result2.IsSuccess).IsTrue();
+        await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsOnly);
 
         _mockFollowRepository.Verify(r => r.UpdateAsync(follow), Times.Exactly(2));
     }

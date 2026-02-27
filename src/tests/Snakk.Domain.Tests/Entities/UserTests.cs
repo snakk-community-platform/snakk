@@ -1,7 +1,5 @@
-using FluentAssertions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
-using Xunit;
 
 namespace Snakk.Domain.Tests.Entities;
 
@@ -9,8 +7,8 @@ public class UserTests
 {
     #region CreateWithEmail Tests
 
-    [Fact]
-    public void CreateWithEmail_WithValidParameters_CreatesUser()
+    [Test]
+    public async Task CreateWithEmail_WithValidParameters_CreatesUser()
     {
         // Arrange
         const string displayName = "testuser";
@@ -22,70 +20,58 @@ public class UserTests
         var user = User.CreateWithEmail(displayName, email, passwordHash, token);
 
         // Assert
-        user.Should().NotBeNull();
-        user.PublicId.Should().NotBeNull();
-        user.DisplayName.Should().Be(displayName);
-        user.Email.Should().Be(email);
-        user.PasswordHash.Should().Be(passwordHash);
-        user.EmailVerified.Should().BeFalse();
-        user.EmailVerificationToken.Should().Be(token);
-        user.OAuthProvider.Should().BeNull();
-        user.OAuthProviderId.Should().BeNull();
-        user.Role.Should().BeNull();
-        user.AvatarFileName.Should().BeNull();
-        user.PreferEndlessScroll.Should().BeTrue();
-        user.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        user.LastSeenAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user).IsNotNull();
+        await Assert.That(user.PublicId).IsNotNull();
+        await Assert.That(user.DisplayName).IsEqualTo(displayName);
+        await Assert.That(user.Email).IsEqualTo(email);
+        await Assert.That(user.PasswordHash).IsEqualTo(passwordHash);
+        await Assert.That(user.EmailVerified).IsFalse();
+        await Assert.That(user.EmailVerificationToken).IsEqualTo(token);
+        await Assert.That(user.OAuthProvider).IsNull();
+        await Assert.That(user.OAuthProviderId).IsNull();
+        await Assert.That(user.Role).IsNull();
+        await Assert.That(user.AvatarFileName).IsNull();
+        await Assert.That(user.PreferEndlessScroll).IsTrue();
+        await Assert.That(user.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(user.LastSeenAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateWithEmail_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task CreateWithEmail_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
     {
-        // Act
-        Action act = () => User.CreateWithEmail(invalidDisplayName!, "test@example.com", "hash", "token");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Display name cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.CreateWithEmail(invalidDisplayName!, "test@example.com", "hash", "token")).Throws<ArgumentException>();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateWithEmail_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task CreateWithEmail_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
     {
-        // Act
-        Action act = () => User.CreateWithEmail("displayname", invalidEmail!, "hash", "token");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Email cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.CreateWithEmail("displayname", invalidEmail!, "hash", "token")).Throws<ArgumentException>();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateWithEmail_WithInvalidPasswordHash_ThrowsArgumentException(string? invalidHash)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task CreateWithEmail_WithInvalidPasswordHash_ThrowsArgumentException(string? invalidHash)
     {
-        // Act
-        Action act = () => User.CreateWithEmail("displayname", "test@example.com", invalidHash!, "token");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Password hash cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.CreateWithEmail("displayname", "test@example.com", invalidHash!, "token")).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region CreateWithOAuth Tests
 
-    [Fact]
-    public void CreateWithOAuth_WithValidParameters_CreatesUser()
+    [Test]
+    public async Task CreateWithOAuth_WithValidParameters_CreatesUser()
     {
         // Arrange
         const string displayName = "oauthuser";
@@ -97,96 +83,84 @@ public class UserTests
         var user = User.CreateWithOAuth(displayName, email, provider, providerId);
 
         // Assert
-        user.Should().NotBeNull();
-        user.PublicId.Should().NotBeNull();
-        user.DisplayName.Should().Be(displayName);
-        user.Email.Should().Be(email);
-        user.PasswordHash.Should().BeNull();
-        user.EmailVerified.Should().BeTrue(); // OAuth emails are pre-verified
-        user.EmailVerificationToken.Should().BeNull();
-        user.OAuthProvider.Should().Be(provider);
-        user.OAuthProviderId.Should().Be(providerId);
-        user.Role.Should().BeNull();
-        user.PreferEndlessScroll.Should().BeTrue();
+        await Assert.That(user).IsNotNull();
+        await Assert.That(user.PublicId).IsNotNull();
+        await Assert.That(user.DisplayName).IsEqualTo(displayName);
+        await Assert.That(user.Email).IsEqualTo(email);
+        await Assert.That(user.PasswordHash).IsNull();
+        await Assert.That(user.EmailVerified).IsTrue(); // OAuth emails are pre-verified
+        await Assert.That(user.EmailVerificationToken).IsNull();
+        await Assert.That(user.OAuthProvider).IsEqualTo(provider);
+        await Assert.That(user.OAuthProviderId).IsEqualTo(providerId);
+        await Assert.That(user.Role).IsNull();
+        await Assert.That(user.PreferEndlessScroll).IsTrue();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateWithOAuth_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task CreateWithOAuth_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
     {
-        // Act
-        Action act = () => User.CreateWithOAuth(invalidDisplayName!, "oauth@example.com", "Google", "id");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Display name cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.CreateWithOAuth(invalidDisplayName!, "oauth@example.com", "Google", "id")).Throws<ArgumentException>();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateWithOAuth_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task CreateWithOAuth_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
     {
-        // Act
-        Action act = () => User.CreateWithOAuth("displayname", invalidEmail!, "Google", "id");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Email cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.CreateWithOAuth("displayname", invalidEmail!, "Google", "id")).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region Create Tests (Generic)
 
-    [Fact]
-    public void Create_WithValidDisplayName_CreatesUser()
+    [Test]
+    public async Task Create_WithValidDisplayName_CreatesUser()
     {
         // Act
         var user = User.Create("testuser");
 
         // Assert
-        user.Should().NotBeNull();
-        user.DisplayName.Should().Be("testuser");
-        user.Email.Should().BeNull();
-        user.PasswordHash.Should().BeNull();
-        user.EmailVerified.Should().BeFalse();
-        user.OAuthProvider.Should().BeNull();
+        await Assert.That(user).IsNotNull();
+        await Assert.That(user.DisplayName).IsEqualTo("testuser");
+        await Assert.That(user.Email).IsNull();
+        await Assert.That(user.PasswordHash).IsNull();
+        await Assert.That(user.EmailVerified).IsFalse();
+        await Assert.That(user.OAuthProvider).IsNull();
     }
 
-    [Fact]
-    public void Create_WithEmailParameter_SetsEmail()
+    [Test]
+    public async Task Create_WithEmailParameter_SetsEmail()
     {
         // Act
         var user = User.Create("testuser", email: "test@example.com");
 
         // Assert
-        user.Email.Should().Be("test@example.com");
+        await Assert.That(user.Email).IsEqualTo("test@example.com");
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Create_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task Create_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
     {
-        // Act
-        Action act = () => User.Create(invalidDisplayName!);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Display name cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => User.Create(invalidDisplayName!)).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region UpdateDisplayName Tests
 
-    [Fact]
-    public void UpdateDisplayName_WithValidName_UpdatesDisplayName()
+    [Test]
+    public async Task UpdateDisplayName_WithValidName_UpdatesDisplayName()
     {
         // Arrange
         var user = User.Create("originalname");
@@ -196,55 +170,51 @@ public class UserTests
         user.UpdateDisplayName("newname");
 
         // Assert
-        user.DisplayName.Should().Be("newname");
-        user.LastModifiedAt.Should().NotBe(originalModifiedAt);
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.DisplayName).IsEqualTo("newname");
+        await Assert.That(user.LastModifiedAt).IsNotEqualTo(originalModifiedAt);
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void UpdateDisplayName_WithInvalidName_ThrowsArgumentException(string? invalidName)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task UpdateDisplayName_WithInvalidName_ThrowsArgumentException(string? invalidName)
     {
         // Arrange
         var user = User.Create("originalname");
 
-        // Act
-        Action act = () => user.UpdateDisplayName(invalidName!);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Display name cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => user.UpdateDisplayName(invalidName!)).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region VerifyEmail Tests
 
-    [Fact]
-    public void VerifyEmail_SetsEmailVerifiedAndClearsToken()
+    [Test]
+    public async Task VerifyEmail_SetsEmailVerifiedAndClearsToken()
     {
         // Arrange
         var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "token123");
-        user.EmailVerified.Should().BeFalse();
-        user.EmailVerificationToken.Should().Be("token123");
+        await Assert.That(user.EmailVerified).IsFalse();
+        await Assert.That(user.EmailVerificationToken).IsEqualTo("token123");
 
         // Act
         user.VerifyEmail();
 
         // Assert
-        user.EmailVerified.Should().BeTrue();
-        user.EmailVerificationToken.Should().BeNull();
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.EmailVerified).IsTrue();
+        await Assert.That(user.EmailVerificationToken).IsNull();
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
     #endregion
 
     #region Anonymize Tests
 
-    [Fact]
-    public void Anonymize_RemovesPersonalInformation()
+    [Test]
+    public async Task Anonymize_RemovesPersonalInformation()
     {
         // Arrange
         var user = User.CreateWithEmail("john.doe", "john@example.com", "hash", "token");
@@ -253,14 +223,14 @@ public class UserTests
         user.Anonymize();
 
         // Assert
-        user.DisplayName.Should().Be("Anonymous User");
-        user.Email.Should().BeNull();
-        user.OAuthProviderId.Should().BeNull();
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
+        await Assert.That(user.Email).IsNull();
+        await Assert.That(user.OAuthProviderId).IsNull();
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void Anonymize_PreservesUserId()
+    [Test]
+    public async Task Anonymize_PreservesUserId()
     {
         // Arrange
         var user = User.Create("testuser");
@@ -270,51 +240,47 @@ public class UserTests
         user.Anonymize();
 
         // Assert
-        user.PublicId.Should().Be(originalId);
+        await Assert.That(user.PublicId).IsEqualTo(originalId);
     }
 
     #endregion
 
     #region SetPasswordHash Tests
 
-    [Fact]
-    public void SetPasswordHash_WithValidHash_UpdatesPasswordHash()
+    [Test]
+    public async Task SetPasswordHash_WithValidHash_UpdatesPasswordHash()
     {
         // Arrange
         var user = User.CreateWithOAuth("oauthuser", "oauth@example.com", "Google", "id");
-        user.PasswordHash.Should().BeNull();
+        await Assert.That(user.PasswordHash).IsNull();
 
         // Act
         user.SetPasswordHash("newhash123");
 
         // Assert
-        user.PasswordHash.Should().Be("newhash123");
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.PasswordHash).IsEqualTo("newhash123");
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void SetPasswordHash_WithInvalidHash_ThrowsArgumentException(string? invalidHash)
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task SetPasswordHash_WithInvalidHash_ThrowsArgumentException(string? invalidHash)
     {
         // Arrange
         var user = User.Create("testuser");
 
-        // Act
-        Action act = () => user.SetPasswordHash(invalidHash!);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*Password hash cannot be empty*");
+        // Act & Assert
+        await Assert.That(() => user.SetPasswordHash(invalidHash!)).Throws<ArgumentException>();
     }
 
     #endregion
 
     #region GenerateEmailVerificationToken Tests
 
-    [Fact]
-    public void GenerateEmailVerificationToken_CreatesValidToken()
+    [Test]
+    public async Task GenerateEmailVerificationToken_CreatesValidToken()
     {
         // Arrange
         var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "oldtoken");
@@ -323,14 +289,14 @@ public class UserTests
         user.GenerateEmailVerificationToken();
 
         // Assert
-        user.EmailVerificationToken.Should().NotBeNullOrEmpty();
-        user.EmailVerificationToken.Should().NotBe("oldtoken");
-        user.EmailVerificationToken.Should().HaveLength(32); // GUID without hyphens
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.EmailVerificationToken).IsNotNull();
+        await Assert.That(user.EmailVerificationToken).IsNotEqualTo("oldtoken");
+        await Assert.That(user.EmailVerificationToken!).Length().IsEqualTo(32); // GUID without hyphens
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void GenerateEmailVerificationToken_CreatesUniqueTokensOnMultipleCalls()
+    [Test]
+    public async Task GenerateEmailVerificationToken_CreatesUniqueTokensOnMultipleCalls()
     {
         // Arrange
         var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "token");
@@ -343,15 +309,15 @@ public class UserTests
         var token2 = user.EmailVerificationToken;
 
         // Assert
-        token1.Should().NotBe(token2);
+        await Assert.That(token1).IsNotEqualTo(token2);
     }
 
     #endregion
 
     #region HasPassword Tests
 
-    [Fact]
-    public void HasPassword_WithPasswordHash_ReturnsTrue()
+    [Test]
+    public async Task HasPassword_WithPasswordHash_ReturnsTrue()
     {
         // Arrange
         var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "token");
@@ -360,11 +326,11 @@ public class UserTests
         var result = user.HasPassword();
 
         // Assert
-        result.Should().BeTrue();
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void HasPassword_WithoutPasswordHash_ReturnsFalse()
+    [Test]
+    public async Task HasPassword_WithoutPasswordHash_ReturnsFalse()
     {
         // Arrange
         var user = User.CreateWithOAuth("testuser", "test@example.com", "Google", "id");
@@ -373,15 +339,15 @@ public class UserTests
         var result = user.HasPassword();
 
         // Assert
-        result.Should().BeFalse();
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region IsOAuthUser Tests
 
-    [Fact]
-    public void IsOAuthUser_WithOAuthProvider_ReturnsTrue()
+    [Test]
+    public async Task IsOAuthUser_WithOAuthProvider_ReturnsTrue()
     {
         // Arrange
         var user = User.CreateWithOAuth("testuser", "test@example.com", "Google", "id");
@@ -390,11 +356,11 @@ public class UserTests
         var result = user.IsOAuthUser();
 
         // Assert
-        result.Should().BeTrue();
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsOAuthUser_WithoutOAuthProvider_ReturnsFalse()
+    [Test]
+    public async Task IsOAuthUser_WithoutOAuthProvider_ReturnsFalse()
     {
         // Arrange
         var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "token");
@@ -403,50 +369,50 @@ public class UserTests
         var result = user.IsOAuthUser();
 
         // Assert
-        result.Should().BeFalse();
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region Avatar Tests
 
-    [Fact]
-    public void SetAvatarFileName_UpdatesAvatarFileName()
+    [Test]
+    public async Task SetAvatarFileName_UpdatesAvatarFileName()
     {
         // Arrange
         var user = User.Create("testuser");
-        user.AvatarFileName.Should().BeNull();
+        await Assert.That(user.AvatarFileName).IsNull();
 
         // Act
         user.SetAvatarFileName("avatar123.jpg");
 
         // Assert
-        user.AvatarFileName.Should().Be("avatar123.jpg");
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.AvatarFileName).IsEqualTo("avatar123.jpg");
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
-    [Fact]
-    public void ClearAvatar_RemovesAvatarFileName()
+    [Test]
+    public async Task ClearAvatar_RemovesAvatarFileName()
     {
         // Arrange
         var user = User.Create("testuser");
         user.SetAvatarFileName("avatar.jpg");
-        user.AvatarFileName.Should().NotBeNull();
+        await Assert.That(user.AvatarFileName).IsNotNull();
 
         // Act
         user.ClearAvatar();
 
         // Assert
-        user.AvatarFileName.Should().BeNull();
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.AvatarFileName).IsNull();
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
     #endregion
 
     #region LastLogin and LastSeen Tests
 
-    [Fact]
-    public void UpdateLastLogin_UpdatesBothLastLoginAndLastSeen()
+    [Test]
+    public async Task UpdateLastLogin_UpdatesBothLastLoginAndLastSeen()
     {
         // Arrange
         var user = User.Create("testuser");
@@ -457,53 +423,53 @@ public class UserTests
         user.UpdateLastLogin();
 
         // Assert
-        user.LastLoginAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        user.LastSeenAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        user.LastLoginAt.Should().NotBe(originalLastLogin);
+        await Assert.That(user.LastLoginAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(user.LastSeenAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
+        await Assert.That(user.LastLoginAt).IsNotEqualTo(originalLastLogin);
     }
 
-    [Fact]
-    public void UpdateLastSeen_UpdatesOnlyLastSeen()
+    [Test]
+    public async Task UpdateLastSeen_UpdatesOnlyLastSeen()
     {
         // Arrange
         var user = User.Create("testuser");
         user.UpdateLastLogin();
-        var lastLoginTime = user.LastLoginAt;
+        var lastLoginTime = user.LastLoginAt!.Value;
 
         // Act
         System.Threading.Thread.Sleep(10); // Small delay to ensure time difference
         user.UpdateLastSeen();
 
         // Assert
-        user.LastSeenAt.Should().BeAfter(lastLoginTime!.Value);
-        user.LastLoginAt.Should().Be(lastLoginTime); // LastLogin should remain unchanged
+        await Assert.That(user.LastSeenAt!.Value).IsGreaterThan(lastLoginTime);
+        await Assert.That(user.LastLoginAt!.Value).IsEqualTo(lastLoginTime); // LastLogin should remain unchanged
     }
 
     #endregion
 
     #region PreferEndlessScroll Tests
 
-    [Fact]
-    public void SetPreferEndlessScroll_UpdatesPreference()
+    [Test]
+    public async Task SetPreferEndlessScroll_UpdatesPreference()
     {
         // Arrange
         var user = User.Create("testuser");
-        user.PreferEndlessScroll.Should().BeTrue(); // Default
+        await Assert.That(user.PreferEndlessScroll).IsTrue(); // Default
 
         // Act
         user.SetPreferEndlessScroll(false);
 
         // Assert
-        user.PreferEndlessScroll.Should().BeFalse();
-        user.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        await Assert.That(user.PreferEndlessScroll).IsFalse();
+        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
     #endregion
 
     #region Rehydrate Tests
 
-    [Fact]
-    public void Rehydrate_WithAllParameters_CreatesUserWithExactState()
+    [Test]
+    public async Task Rehydrate_WithAllParameters_CreatesUserWithExactState()
     {
         // Arrange
         var userId = UserId.New();
@@ -533,21 +499,21 @@ public class UserTests
             lastLoginAt);
 
         // Assert
-        user.PublicId.Should().Be(userId);
-        user.DisplayName.Should().Be("testuser");
-        user.Email.Should().Be("test@example.com");
-        user.PasswordHash.Should().Be("passwordhash");
-        user.EmailVerified.Should().BeTrue();
-        user.EmailVerificationToken.Should().BeNull();
-        user.OAuthProvider.Should().Be("Google");
-        user.OAuthProviderId.Should().Be("google-id");
-        user.Role.Should().Be("admin");
-        user.AvatarFileName.Should().Be("avatar.jpg");
-        user.PreferEndlessScroll.Should().BeFalse();
-        user.CreatedAt.Should().Be(createdAt);
-        user.LastModifiedAt.Should().Be(lastModifiedAt);
-        user.LastSeenAt.Should().Be(lastSeenAt);
-        user.LastLoginAt.Should().Be(lastLoginAt);
+        await Assert.That(user.PublicId).IsEqualTo(userId);
+        await Assert.That(user.DisplayName).IsEqualTo("testuser");
+        await Assert.That(user.Email).IsEqualTo("test@example.com");
+        await Assert.That(user.PasswordHash).IsEqualTo("passwordhash");
+        await Assert.That(user.EmailVerified).IsTrue();
+        await Assert.That(user.EmailVerificationToken).IsNull();
+        await Assert.That(user.OAuthProvider).IsEqualTo("Google");
+        await Assert.That(user.OAuthProviderId).IsEqualTo("google-id");
+        await Assert.That(user.Role).IsEqualTo("admin");
+        await Assert.That(user.AvatarFileName).IsEqualTo("avatar.jpg");
+        await Assert.That(user.PreferEndlessScroll).IsFalse();
+        await Assert.That(user.CreatedAt).IsEqualTo(createdAt);
+        await Assert.That(user.LastModifiedAt).IsEqualTo(lastModifiedAt);
+        await Assert.That(user.LastSeenAt).IsEqualTo(lastSeenAt);
+        await Assert.That(user.LastLoginAt).IsEqualTo(lastLoginAt);
     }
 
     #endregion

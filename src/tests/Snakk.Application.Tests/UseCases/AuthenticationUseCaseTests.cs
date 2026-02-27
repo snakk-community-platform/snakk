@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -10,21 +9,16 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class AuthenticationUseCaseTests
 {
-    private readonly Mock<IUserRepository> _mockUserRepository;
-    private readonly Mock<IPasswordHasher> _mockPasswordHasher;
-    private readonly Mock<IEmailSender> _mockEmailSender;
-    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository;
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
-    private readonly AuthenticationUseCase _useCase;
+    private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private readonly Mock<IPasswordHasher> _mockPasswordHasher = new();
+    private readonly Mock<IEmailSender> _mockEmailSender = new();
+    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository = new();
+    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
+    private AuthenticationUseCase _useCase = null!;
 
-    public AuthenticationUseCaseTests()
+    [Before(Test)]
+    public void Setup()
     {
-        _mockUserRepository = new Mock<IUserRepository>();
-        _mockPasswordHasher = new Mock<IPasswordHasher>();
-        _mockEmailSender = new Mock<IEmailSender>();
-        _mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
-        _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
-
         _useCase = new AuthenticationUseCase(
             _mockUserRepository.Object,
             _mockPasswordHasher.Object,
@@ -35,7 +29,7 @@ public class AuthenticationUseCaseTests
 
     #region RegisterWithEmailAsync Tests
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithValidParameters_CreatesUser()
     {
         // Arrange
@@ -56,11 +50,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.RegisterWithEmailAsync(email, password, displayName, baseUrl);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Email.Should().Be(email);
-        result.Value.DisplayName.Should().Be(displayName);
-        result.Value.EmailVerified.Should().BeFalse();
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.Email).IsEqualTo(email);
+        await Assert.That(result.Value.DisplayName).IsEqualTo(displayName);
+        await Assert.That(result.Value.EmailVerified).IsFalse();
 
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
         _mockEmailSender.Verify(
@@ -68,63 +62,63 @@ public class AuthenticationUseCaseTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithEmptyEmail_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync("", "Password123!", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Email is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Email is required");
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithNullEmail_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync(null!, "Password123!", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Email is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Email is required");
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithWhitespaceEmail_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync("   ", "Password123!", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Email is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Email is required");
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithEmptyPassword_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync("test@example.com", "", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Password is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Password is required");
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithPasswordLessThan8Characters_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Pass123", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Password must be at least 8 characters");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Password must be at least 8 characters");
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithExactly8CharacterPassword_Succeeds()
     {
         // Arrange
@@ -139,21 +133,21 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Pass1234", "TestUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithEmptyDisplayName_ReturnsFailure()
     {
         // Act
         var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Password123!", "", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Display name is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Display name is required");
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithExistingEmail_ReturnsFailure()
     {
         // Arrange
@@ -167,12 +161,12 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.RegisterWithEmailAsync(email, "Password123!", "NewUser", "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Email is already registered");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Email is already registered");
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task RegisterWithEmailAsync_WithTakenDisplayName_GeneratesUniqueDisplayName()
     {
         // Arrange
@@ -191,17 +185,17 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.RegisterWithEmailAsync(email, "Password123!", displayName, "https://example.com");
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.DisplayName.Should().NotBe(displayName); // Should have suffix
-        result.Value.DisplayName.Should().StartWith(displayName);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.DisplayName).IsNotEqualTo(displayName);
+        await Assert.That(result.Value.DisplayName).StartsWith(displayName);
     }
 
     #endregion
 
     #region LoginWithEmailAsync Tests
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithValidCredentials_ReturnsUser()
     {
         // Arrange
@@ -220,35 +214,35 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithEmailAsync(email, password);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Email.Should().Be(email);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.Email).IsEqualTo(email);
         _mockUserRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithEmptyEmail_ReturnsFailure()
     {
         // Act
         var result = await _useCase.LoginWithEmailAsync("", "Password123!");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Email is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Email is required");
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithEmptyPassword_ReturnsFailure()
     {
         // Act
         var result = await _useCase.LoginWithEmailAsync("test@example.com", "");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Password is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Password is required");
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithNonExistentEmail_ReturnsFailure()
     {
         // Arrange
@@ -259,11 +253,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithEmailAsync("nonexistent@example.com", "Password123!");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Invalid email or password");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Invalid email or password");
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithInvalidPassword_ReturnsFailure()
     {
         // Arrange
@@ -279,11 +273,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithEmailAsync(email, "WrongPassword");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Invalid email or password");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Invalid email or password");
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithEmailAsync_WithOAuthUser_ReturnsFailure()
     {
         // Arrange - OAuth user has no password
@@ -297,15 +291,15 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithEmailAsync(email, "AnyPassword");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Invalid email or password");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Invalid email or password");
     }
 
     #endregion
 
     #region LoginWithOAuthAsync Tests
 
-    [Fact]
+    [Test]
     public async Task LoginWithOAuthAsync_WithExistingOAuthUser_ReturnsUser()
     {
         // Arrange
@@ -319,13 +313,13 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithOAuthAsync("google", oauthProviderId, "test@example.com", "TestUser");
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(existingUser);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(existingUser);
         _mockUserRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithOAuthAsync_WithNewOAuthUser_CreatesUser()
     {
         // Arrange
@@ -345,15 +339,15 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, email, displayName);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Email.Should().Be(email);
-        result.Value.EmailVerified.Should().BeTrue(); // OAuth users are auto-verified
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsNotNull();
+        await Assert.That(result.Value!.Email).IsEqualTo(email);
+        await Assert.That(result.Value.EmailVerified).IsTrue();
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
         _mockEmailSender.Verify(e => e.SendWelcomeEmailAsync(email, It.IsAny<string>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task LoginWithOAuthAsync_WithExistingEmail_ReturnsFailure()
     {
         // Arrange - Email exists but not linked to OAuth
@@ -369,9 +363,9 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.LoginWithOAuthAsync("google", "google789", email, "DisplayName");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("already exists");
-        result.Error.Should().Contain("login with your password");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("already exists");
+        await Assert.That(result.Error).Contains("login with your password");
         _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
     }
 
@@ -379,7 +373,7 @@ public class AuthenticationUseCaseTests
 
     #region VerifyEmailAsync Tests
 
-    [Fact]
+    [Test]
     public async Task VerifyEmailAsync_WithValidToken_VerifiesEmail()
     {
         // Arrange
@@ -393,23 +387,23 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.VerifyEmailAsync(token);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        user.EmailVerified.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(user.EmailVerified).IsTrue();
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task VerifyEmailAsync_WithEmptyToken_ReturnsFailure()
     {
         // Act
         var result = await _useCase.VerifyEmailAsync("");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Verification token is required");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Verification token is required");
     }
 
-    [Fact]
+    [Test]
     public async Task VerifyEmailAsync_WithInvalidToken_ReturnsFailure()
     {
         // Arrange
@@ -420,11 +414,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.VerifyEmailAsync("invalid_token");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Invalid or expired verification token");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Invalid or expired verification token");
     }
 
-    [Fact]
+    [Test]
     public async Task VerifyEmailAsync_WhenAlreadyVerified_ReturnsFailure()
     {
         // Arrange
@@ -441,15 +435,15 @@ public class AuthenticationUseCaseTests
         // Assert
         // Note: After verification, the token is set to null, so when we try to verify again
         // with the same token, the user lookup by token returns null (no user has this token)
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Invalid or expired verification token");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Invalid or expired verification token");
     }
 
     #endregion
 
     #region UpdateDisplayNameAsync Tests
 
-    [Fact]
+    [Test]
     public async Task UpdateDisplayNameAsync_WithAvailableName_UpdatesDisplayName()
     {
         // Arrange
@@ -466,12 +460,12 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdateDisplayNameAsync(userId, newDisplayName);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        user.DisplayName.Should().Be(newDisplayName);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(user.DisplayName).IsEqualTo(newDisplayName);
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateDisplayNameAsync_WithTakenName_ReturnsFailure()
     {
         // Arrange
@@ -488,12 +482,12 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdateDisplayNameAsync(userId, "TakenName");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("is taken");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("is taken");
         _mockUserRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateDisplayNameAsync_WithEmptyName_ReturnsFailure()
     {
         // Arrange
@@ -503,11 +497,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdateDisplayNameAsync(userId, "");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Display name cannot be empty");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("Display name cannot be empty");
     }
 
-    [Fact]
+    [Test]
     public async Task UpdateDisplayNameAsync_WithNonExistentUser_ReturnsFailure()
     {
         // Arrange
@@ -519,15 +513,15 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdateDisplayNameAsync(userId, "NewName");
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("User not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("User not found");
     }
 
     #endregion
 
     #region UpdatePreferencesAsync Tests
 
-    [Fact]
+    [Test]
     public async Task UpdatePreferencesAsync_WithValidPreference_UpdatesUser()
     {
         // Arrange
@@ -541,12 +535,12 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        user.PreferEndlessScroll.Should().BeTrue();
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(user.PreferEndlessScroll).IsTrue();
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePreferencesAsync_WithNullPreference_DoesNotUpdateAnything()
     {
         // Arrange
@@ -561,12 +555,12 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: null, autoFollowOnReply: null);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        user.PreferEndlessScroll.Should().Be(originalPreference);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(user.PreferEndlessScroll).IsEqualTo(originalPreference);
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once); // Still updates (could be optimized)
     }
 
-    [Fact]
+    [Test]
     public async Task UpdatePreferencesAsync_WithNonExistentUser_ReturnsFailure()
     {
         // Arrange
@@ -578,15 +572,15 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("User not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("User not found");
     }
 
     #endregion
 
     #region GetUserByIdAsync Tests
 
-    [Fact]
+    [Test]
     public async Task GetUserByIdAsync_WithExistingUser_ReturnsUser()
     {
         // Arrange
@@ -600,11 +594,11 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.GetUserByIdAsync(userId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(user);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(user);
     }
 
-    [Fact]
+    [Test]
     public async Task GetUserByIdAsync_WithNonExistentUser_ReturnsFailure()
     {
         // Arrange
@@ -616,8 +610,8 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.GetUserByIdAsync(userId);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("User not found");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Error).Contains("User not found");
     }
 
     #endregion

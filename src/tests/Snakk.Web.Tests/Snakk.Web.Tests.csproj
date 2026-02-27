@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="TUnit" Version="1.17.36" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\apps\Snakk.Web\Snakk.Web.csproj" />
+    <ProjectReference Include="..\..\apps\Snakk.AdminWeb\Snakk.AdminWeb.csproj">
+      <Aliases>AdminWeb</Aliases>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>
