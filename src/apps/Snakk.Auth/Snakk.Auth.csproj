@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>
 

@@ -817,6 +817,10 @@
             if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
                 return;
             }
+            // Don't intercept browser shortcuts (Ctrl+R, Ctrl+J, etc.)
+            if (e.ctrlKey || e.altKey || e.metaKey) {
+                return;
+            }
             // Don't intercept if modals/pickers are open
             const picker = document.getElementById('reaction-picker');
             if (picker && !picker.classList.contains('hidden')) {

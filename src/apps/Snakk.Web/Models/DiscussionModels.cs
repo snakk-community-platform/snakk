@@ -92,21 +92,21 @@ public record RecentDiscussionSpaceDto(
     string PublicId,
     string Slug,
     string Name,
-    string? AvatarFileName);
+    string? AvatarUrl);
 
 public record RecentDiscussionHubDto(
     string PublicId,
     string Slug,
     string Name,
-    string? AvatarFileName);
+    string? AvatarUrl);
 
 public record RecentDiscussionCommunityDto(
     string PublicId,
     string Slug,
     string Name,
-    string? AvatarFileName);
+    string? AvatarUrl);
 
 public record RecentDiscussionAuthorDto(
     string PublicId,
     string DisplayName,
-    string? AvatarFileName);
+    string? AvatarUrl);

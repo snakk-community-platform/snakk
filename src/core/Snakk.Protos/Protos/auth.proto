@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Auth";
+
+package snakk.auth;
+
+import "google/protobuf/wrappers.proto";
+
+// Auth service — handles login, registration, token refresh, user profile
+service AuthService {
+  // Authentication
+  rpc Register (RegisterRequest) returns (AuthTokenResponse);
+  rpc Login (LoginRequest) returns (AuthTokenResponse);
+  rpc Logout (LogoutRequest) returns (MessageResponse);
+  rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc VerifyEmail (VerifyEmailRequest) returns (MessageResponse);
+
+  // Auth status & user info
+  rpc GetAuthStatus (GetAuthStatusRequest) returns (AuthStatusResponse);
+  rpc GetCurrentUser (GetCurrentUserRequest) returns (CurrentUserResponse);
+
+  // Profile & preferences
+  rpc UpdateProfile (UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc UpdatePreferences (UpdatePreferencesRequest) returns (MessageResponse);
+
+  // OAuth (server-to-server only — challenge/callback stay as HTTP redirects)
+  rpc OAuthCallback (OAuthCallbackRequest) returns (OAuthCallbackResponse);
+}
+
+// --- Request Messages ---
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string display_name = 3;
+  string base_url = 4; // For email verification link
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string ip_address = 3;  // Forwarded from caller for audit
+  string user_agent = 4;  // Forwarded from caller for audit
+}
+
+message LogoutRequest {
+  // User ID comes from JWT metadata (authorization header)
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message VerifyEmailRequest {
+  string token = 1;
+}
+
+message GetAuthStatusRequest {
+  // User info comes from JWT metadata
+}
+
+message GetCurrentUserRequest {
+  // User info comes from JWT metadata
+}
+
+message UpdateProfileRequest {
+  string display_name = 1;
+}
+
+message UpdatePreferencesRequest {
+  optional bool prefer_endless_scroll = 1;
+  optional bool auto_follow_on_reply = 2;
+}
+
+message OAuthCallbackRequest {
+  string provider = 1;
+  string provider_user_id = 2;
+  string email = 3;
+  string display_name = 4;
+  string ip_address = 5;
+  string user_agent = 6;
+}
+
+// --- Response Messages ---
+
+message AuthTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  UserInfo user = 3;
+  string message = 4; // Optional message (e.g., "Please verify email")
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message AuthStatusResponse {
+  bool is_authenticated = 1;
+  optional string public_id = 2;
+  optional string display_name = 3;
+  optional bool email_verified = 4;
+  optional string role = 5;
+  optional string avatar_url = 6;
+}
+
+message CurrentUserResponse {
+  string public_id = 1;
+  string display_name = 2;
+  string email = 3;
+  bool email_verified = 4;
+  optional string oauth_provider = 5;
+  bool prefer_endless_scroll = 6;
+}
+
+message UpdateProfileResponse {
+  string message = 1;
+  optional string token = 2; // New JWT with updated display name
+}
+
+message OAuthCallbackResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bool is_new_user = 3;
+  UserInfo user = 4;
+}
+
+message UserInfo {
+  string id = 1;
+  string email = 2;
+  string display_name = 3;
+  bool email_verified = 4;
+  repeated string roles = 5;
+}
+
+message MessageResponse {
+  string message = 1;
+}

@@ -23,10 +23,14 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+
+    <!-- gRPC -->
+    <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure.Database\Snakk.Infrastructure.Database.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />

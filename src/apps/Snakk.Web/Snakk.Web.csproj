@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +21,9 @@
 
     <!-- PostgreSQL (for setup wizard DB connection test) -->
     <PackageReference Include="Npgsql" Version="10.0.0" />
+
+    <!-- gRPC client -->
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
   </ItemGroup>
 
   <!-- Security: Audit npm packages for vulnerabilities before build -->

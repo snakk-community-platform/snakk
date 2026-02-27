@@ -7,6 +7,7 @@
     <Project Path="core/Snakk.Domain/Snakk.Domain.csproj" />
     <Project Path="core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj" />
     <Project Path="core/Snakk.Infrastructure/Snakk.Infrastructure.csproj" />
+    <Project Path="core/Snakk.Protos/Snakk.Protos.csproj" />
     <Project Path="core/Snakk.Sdk/Snakk.Sdk.csproj" />
     <Project Path="core/Snakk.Shared/Snakk.Shared.csproj" />
   </Folder>
@@ -26,9 +27,14 @@
     <Project Path="tests/Snakk.Application.Tests/Snakk.Application.Tests.csproj" />
     <Project Path="tests/Snakk.Domain.Tests/Snakk.Domain.Tests.csproj" />
     <Project Path="tests/Snakk.Infrastructure.Tests/Snakk.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Snakk.Realtime.Tests/Snakk.Realtime.Tests.csproj" />
+    <Project Path="tests/Snakk.Shared.Tests/Snakk.Shared.Tests.csproj" />
+    <Project Path="tests/Snakk.Api.Tests/Snakk.Api.Tests.csproj" />
+    <Project Path="tests/Snakk.Web.Tests/Snakk.Web.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj" />
+    <Project Path="tools/Snakk.VBulletinImporter/Snakk.VBulletinImporter.csproj" />
   </Folder>
 
 </Solution>

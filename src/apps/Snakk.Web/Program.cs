@@ -9,6 +9,7 @@ using System.IO.Compression;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Grpc.Core.Interceptors;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,7 +81,7 @@ builder.Services.AddWebOptimizer(pipeline =>
     pipeline.MinifyCssFiles();
 });
 
-// Configure HttpClient for API with cookie forwarding
+// Configure HttpClient for API with cookie forwarding (REST — used during gRPC migration)
 builder.Services.AddTransient<CookieForwardingHandler>();
 builder.Services.AddHttpClient<SnakkApiClient>(client =>
 {
@@ -94,6 +95,27 @@ builder.Services.AddHttpClient("InternalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242");
     client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// gRPC channel + clients for API communication
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242";
+builder.Services.AddSingleton(sp =>
+{
+    return Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
+    {
+        HttpHandler = new SocketsHttpHandler
+        {
+            EnableMultipleHttp2Connections = true
+        }
+    });
+});
+builder.Services.AddScoped<GrpcAuthInterceptor>();
+builder.Services.AddScoped(sp =>
+{
+    var channel = sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>();
+    var interceptor = sp.GetRequiredService<GrpcAuthInterceptor>();
+    var invoker = channel.CreateCallInvoker().Intercept(interceptor);
+    return new Snakk.Protos.Auth.AuthService.AuthServiceClient(invoker);
 });
 
 // Setup wizard service (scoped — uses IConfiguration)

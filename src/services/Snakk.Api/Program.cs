@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api;
 using Snakk.Api.Endpoints;
@@ -11,8 +12,18 @@ var builder = WebApplication.CreateBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
+// Configure Kestrel for HTTP/1.1 (REST) + HTTP/2 (gRPC) on the same port
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureEndpointDefaults(listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+});
+
 // Add services to the container
 builder.Services.AddOpenApi();
+builder.Services.AddGrpc();
 builder.Services.AddSnakkServices(builder.Configuration);
 builder.Services.AddRateLimiting();
 builder.Services.AddHealthChecks()
@@ -63,7 +74,10 @@ Acknowledgments: https://snakk.local/security-thanks";
 .WithName("SecurityTxt")
 .ExcludeFromDescription();
 
-// Map all endpoint groups
+// Map gRPC services
+app.MapGrpcService<Snakk.Api.GrpcServices.AuthGrpcService>();
+
+// Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();
 app.MapHubEndpoints();
 app.MapSpaceEndpoints();

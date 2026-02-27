@@ -1078,9 +1078,15 @@ public class SnakkApiClient(HttpClient httpClient)
 
     public async Task<FollowResultDto?> ToggleUserFollowAsync(string userId)
     {
-        var response = await _httpClient.PostAsync($"/api/users/{userId}/follow", null);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<FollowResultDto>();
+        try
+        {
+            var response = await _httpClient.PostAsync($"/api/users/{userId}/follow", null);
+            return await response.Content.ReadFromJsonAsync<FollowResultDto>();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     // Post edit operations

@@ -218,6 +218,11 @@ public class PostUseCase(
         int offset,
         int pageSize)
     {
+        // 0. Validate discussion exists
+        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
+        if (discussion == null)
+            return Result<EnrichedPostsResult>.Failure($"Discussion '{discussionId}' not found");
+
         // 1. Fetch posts
         var postsResult = await GetPostsByDiscussionAsync(discussionId, offset, pageSize);
         var visiblePosts = postsResult.Items.Where(p => !p.IsDeleted).ToList();

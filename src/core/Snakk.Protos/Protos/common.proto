@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos";
+
+package snakk;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+// Generic paged result wrapper
+message PagedResult {
+  int32 offset = 1;
+  int32 page_size = 2;
+  bool has_more_items = 3;
+  optional string next_cursor = 4;
+}
+
+// Generic error response
+message ErrorResponse {
+  string error = 1;
+}
+
+// Empty request/response for simple RPCs
+message Empty {}
+
+// Generic message response (e.g., "Logged out successfully")
+message MessageResponse {
+  string message = 1;
+}
