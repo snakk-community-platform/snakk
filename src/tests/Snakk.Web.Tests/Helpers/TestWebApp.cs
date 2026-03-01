@@ -71,7 +71,8 @@ public class TestWebApp : WebApplicationFactory<Program>
                 new Snakk.Protos.User.UserService.UserServiceClient(dummyChannel),
                 new Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient(dummyChannel),
                 new Snakk.Protos.Markup.MarkupService.MarkupServiceClient(dummyChannel),
-                new Snakk.Protos.Auth.AuthService.AuthServiceClient(dummyChannel)));
+                new Snakk.Protos.Auth.AuthService.AuthServiceClient(dummyChannel),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<SnakkApiClient>.Instance));
 
             // Replace the "InternalApi" named HttpClient factory with one that uses MockApiHandler
             services.RemoveAll<IHttpClientFactory>();

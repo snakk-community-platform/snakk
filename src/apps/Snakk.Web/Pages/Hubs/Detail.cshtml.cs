@@ -28,10 +28,10 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
     public bool ShowTrendingDiscussions => configuration.GetValue("Trending:SpaceList:ShowDiscussions", true);
     public bool ShowTrendingContributors => configuration.GetValue("Trending:SpaceList:ShowContributors", true);
 
-    // Whether to show community in breadcrumb (multi-community enabled, default community, not on custom domain)
+    // Whether to show community in breadcrumb (multi-community enabled, non-default community, not on custom domain)
     public bool ShowCommunityInBreadcrumb =>
         configuration.GetValue<bool>("Features:MultiCommunityEnabled") &&
-        communityContext.IsDefaultCommunity &&
+        !communityContext.IsDefaultCommunity &&
         !communityContext.IsCustomDomain;
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
