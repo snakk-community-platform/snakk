@@ -1,19 +1,24 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.Repositories;
 using Snakk.Application.UseCases;
+using Snakk.Shared.Models;
 
 public static class SearchEndpoints
 {
     public static void MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/search")
+        var group = app.MapGroup("/search")
             .WithTags("Search");
 
         group.MapGet("/discussions", SearchDiscussionsAsync)
-            .WithName("SearchDiscussions");
+            .WithName("SearchDiscussions")
+            .Produces<PagedResult<DiscussionSearchResultDto>>();
 
         group.MapGet("/posts", SearchPostsAsync)
-            .WithName("SearchPosts");
+            .WithName("SearchPosts")
+            .Produces<PagedResult<PostSearchResultDto>>();
     }
 
     private static async Task<IResult> SearchDiscussionsAsync(
@@ -37,7 +42,7 @@ public static class SearchEndpoints
             offset,
             pageSize);
 
-        return Results.Ok(results);
+        return TypedResults.Ok(results);
     }
 
     private static async Task<IResult> SearchPostsAsync(
@@ -61,6 +66,6 @@ public static class SearchEndpoints
             offset,
             pageSize);
 
-        return Results.Ok(results);
+        return TypedResults.Ok(results);
     }
 }

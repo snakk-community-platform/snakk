@@ -9,88 +9,82 @@ public static class SpaceManagementEndpoints
 {
     public static void MapSpaceManagementEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/c/{communitySlug}/s/{spaceSlug}/manage")
+        var group = app.MapGroup("/spaces/{spaceId}/manage")
             .WithTags("Space Management")
             .RequireAuthorization();
 
         // Overview
         group.MapGet("/overview", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var overview = await service.GetOverviewAsync(communitySlug, spaceSlug, cancellationToken);
+            var overview = await service.GetOverviewAsync(spaceId, cancellationToken);
             return overview != null ? Results.Ok(overview) : Results.NotFound();
         })
-        .RequireSpaceModerator("spaceSlug")
+        .RequireSpaceModerator("spaceId")
         .WithName("GetSpaceOverview");
 
         // Settings - Get
         group.MapGet("/settings", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.GetSettingsAsync(communitySlug, spaceSlug, cancellationToken);
+            var settings = await service.GetSettingsAsync(spaceId, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireSpaceModerator("spaceSlug")
+        .RequireSpaceModerator("spaceId")
         .WithName("GetSpaceSettings");
 
         // Settings - Update
         group.MapPut("/settings", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromBody] UpdateSpaceSettingsRequest request,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.UpdateSettingsAsync(communitySlug, spaceSlug, request, cancellationToken);
+            var settings = await service.UpdateSettingsAsync(spaceId, request, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireSpaceModerator("spaceSlug")
+        .RequireSpaceModerator("spaceId")
         .WithName("UpdateSpaceSettings");
 
         // Moderation
         group.MapGet("/moderation", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var moderation = await service.GetModerationDataAsync(communitySlug, spaceSlug, cancellationToken);
+            var moderation = await service.GetModerationDataAsync(spaceId, cancellationToken);
             return Results.Ok(moderation);
         })
-        .RequireSpaceModerator("spaceSlug")
+        .RequireSpaceModerator("spaceId")
         .WithName("GetSpaceModeration");
 
         // Rules - Get
         group.MapGet("/rules", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.GetRulesAsync(communitySlug, spaceSlug, cancellationToken);
+            var rules = await service.GetRulesAsync(spaceId, cancellationToken);
             return Results.Ok(rules);
         })
-        .RequireSpaceModerator("spaceSlug")
-        .WithName("GetSpaceRules");
+        .RequireSpaceModerator("spaceId")
+        .WithName("GetSpaceRulesManagement");
 
         // Rules - Update
         group.MapPut("/rules", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string spaceSlug,
+            [FromRoute] string spaceId,
             [FromBody] UpdateSpaceRulesRequest request,
             [FromServices] ISpaceManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.UpdateRulesAsync(communitySlug, spaceSlug, request, cancellationToken);
+            var rules = await service.UpdateRulesAsync(spaceId, request, cancellationToken);
             return Results.Ok(rules);
         })
-        .RequireSpaceModerator("spaceSlug")
+        .RequireSpaceModerator("spaceId")
         .WithName("UpdateSpaceRules");
     }
 }

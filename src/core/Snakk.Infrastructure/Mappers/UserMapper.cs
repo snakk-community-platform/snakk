@@ -33,7 +33,8 @@ public static class UserMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             entity.LastSeenAt,
-            entity.LastLoginAt);
+            entity.LastLoginAt,
+            entity.NeedsProfileSetup);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user)
@@ -54,6 +55,7 @@ public static class UserMapper
             AvatarRevision = user.AvatarRevision,
             PreferEndlessScroll = user.PreferEndlessScroll,
             AutoFollowOnReply = user.AutoFollowOnReply,
+            NeedsProfileSetup = user.NeedsProfileSetup,
             CreatedAt = user.CreatedAt,
             LastModifiedAt = user.LastModifiedAt,
             LastLoginAt = user.LastLoginAt,

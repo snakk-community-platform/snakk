@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.ReadState";
+
+package snakk.readstate;
+
+import "google/protobuf/timestamp.proto";
+
+service ReadStateService {
+  rpc GetReadState (GetReadStateRequest) returns (ReadStateInfo);
+  rpc MarkAsRead (MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc BatchMarkAsRead (BatchMarkAsReadRequest) returns (BatchMarkAsReadResponse);
+}
+
+// --- Requests ---
+
+message GetReadStateRequest {
+  string discussion_id = 1;
+}
+
+message MarkAsReadRequest {
+  string discussion_id = 1;
+  string last_read_post_id = 2;
+}
+
+message BatchMarkAsReadRequest {
+  repeated BatchReadStateItem items = 1;
+}
+
+message BatchReadStateItem {
+  string discussion_id = 1;
+  string last_read_post_id = 2;
+}
+
+// --- Responses ---
+
+message ReadStateInfo {
+  optional string last_read_post_id = 1;
+  optional google.protobuf.Timestamp last_read_at = 2;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+}
+
+message BatchMarkAsReadResponse {
+  bool success = 1;
+  int32 processed = 2;
+}

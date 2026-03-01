@@ -24,26 +24,26 @@ public class ManagePermissionService : IManagePermissionService
         _logger = logger;
     }
 
-    public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(string userId, string scopeType, int scopeId)
+    public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(string userId, string scopeType, string scopePublicId)
     {
-        var cacheKey = $"manage_perms_{userId}_{scopeType}_{scopeId}";
+        var cacheKey = $"manage_perms_{userId}_{scopeType}_{scopePublicId}";
 
         var cached = await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            return await ComputePermissionsAsync(userId, scopeType, scopeId);
+            return await ComputePermissionsAsync(userId, scopeType, scopePublicId);
         });
 
         return cached ?? ManagePermissionSet.None;
     }
 
-    public async Task<bool> HasPermissionAsync(string userId, string scopeType, int scopeId, ManagePermissionEnum permission)
+    public async Task<bool> HasPermissionAsync(string userId, string scopeType, string scopePublicId, ManagePermissionEnum permission)
     {
-        var permissionSet = await GetPermissionsForScopeAsync(userId, scopeType, scopeId);
+        var permissionSet = await GetPermissionsForScopeAsync(userId, scopeType, scopePublicId);
         return permissionSet.HasPermission(permission);
     }
 
-    private async Task<ManagePermissionSet> ComputePermissionsAsync(string userId, string scopeType, int scopeId)
+    private async Task<ManagePermissionSet> ComputePermissionsAsync(string userId, string scopeType, string scopePublicId)
     {
         var user = await _context.Users
             .Where(u => u.PublicId == userId)
@@ -93,11 +93,11 @@ public class ManagePermissionService : IManagePermissionService
         }
 
         // Determine the highest-level matching role for the requested scope
-        var matchingRoleType = await GetHighestMatchingRoleAsync(activeRoles, scopeType, scopeId);
+        var matchingRoleType = await GetHighestMatchingRoleAsync(activeRoles, scopeType, scopePublicId);
 
         if (matchingRoleType == null)
         {
-            _logger.LogDebug("User {UserId} has no matching role for {ScopeType}:{ScopeId}", userId, scopeType, scopeId);
+            _logger.LogDebug("User {UserId} has no matching role for {ScopeType}:{ScopePublicId}", userId, scopeType, scopePublicId);
             return ManagePermissionSet.None;
         }
 
@@ -107,16 +107,24 @@ public class ManagePermissionService : IManagePermissionService
     private async Task<UserRoleTypeEnum?> GetHighestMatchingRoleAsync(
         List<RoleWithScope> roles,
         string scopeType,
-        int scopeId)
+        string scopePublicId)
     {
         UserRoleTypeEnum? highest = null;
 
         switch (scopeType.ToLower())
         {
             case "community":
+                // Resolve community publicId to internal ID
+                var communityId = await _context.Communities
+                    .Where(c => c.PublicId == scopePublicId)
+                    .Select(c => c.Id)
+                    .FirstOrDefaultAsync();
+
+                if (communityId == 0) return null;
+
                 foreach (var role in roles)
                 {
-                    if (role.CommunityId == scopeId)
+                    if (role.CommunityId == communityId)
                     {
                         if (role.RoleType == UserRoleTypeEnum.CommunityAdmin)
                             return UserRoleTypeEnum.CommunityAdmin;
@@ -127,9 +135,10 @@ public class ManagePermissionService : IManagePermissionService
                 break;
 
             case "hub":
+                // Resolve hub publicId to internal ID + parent community
                 var hub = await _context.Hubs
-                    .Where(h => h.Id == scopeId)
-                    .Select(h => new { h.CommunityId })
+                    .Where(h => h.PublicId == scopePublicId)
+                    .Select(h => new { h.Id, h.CommunityId })
                     .FirstOrDefaultAsync();
 
                 if (hub == null) return null;
@@ -146,7 +155,7 @@ public class ManagePermissionService : IManagePermissionService
                     }
 
                     // Direct hub role
-                    if (role.HubId == scopeId && role.RoleType == UserRoleTypeEnum.HubMod)
+                    if (role.HubId == hub.Id && role.RoleType == UserRoleTypeEnum.HubMod)
                     {
                         if (highest == null)
                             highest = UserRoleTypeEnum.HubMod;
@@ -155,10 +164,11 @@ public class ManagePermissionService : IManagePermissionService
                 break;
 
             case "space":
+                // Resolve space publicId to internal ID + parent hub/community
                 var space = await _context.Spaces
                     .Include(s => s.Hub)
-                    .Where(s => s.Id == scopeId)
-                    .Select(s => new { s.HubId, s.Hub.CommunityId })
+                    .Where(s => s.PublicId == scopePublicId)
+                    .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
                     .FirstOrDefaultAsync();
 
                 if (space == null) return null;
@@ -183,7 +193,7 @@ public class ManagePermissionService : IManagePermissionService
                     }
 
                     // Direct space role
-                    if (role.SpaceId == scopeId && role.RoleType == UserRoleTypeEnum.SpaceMod)
+                    if (role.SpaceId == space.Id && role.RoleType == UserRoleTypeEnum.SpaceMod)
                     {
                         if (highest == null)
                             highest = UserRoleTypeEnum.SpaceMod;

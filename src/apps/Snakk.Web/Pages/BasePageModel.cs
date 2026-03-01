@@ -28,6 +28,18 @@ public abstract class BasePageModel : PageModel
         return dateTime.Value.ToString("MMM d, yyyy");
     }
 
+    public string GetRelativeTime(DateTimeOffset? dateTime)
+    {
+        if (!dateTime.HasValue) return "";
+        var diff = DateTimeOffset.UtcNow - dateTime.Value;
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
+        if (diff.TotalDays < 365) return dateTime.Value.ToString("MMM d");
+        return dateTime.Value.ToString("MMM d, yyyy");
+    }
+
     public string FormatRelativeTime(DateTime dateTime)
     {
         var now = DateTime.UtcNow;
@@ -39,6 +51,9 @@ public abstract class BasePageModel : PageModel
         if (diff.TotalDays < 365) return dateTime.ToString("MMM d");
         return dateTime.ToString("MMM d, yyyy");
     }
+
+    public string FormatRelativeTime(DateTimeOffset dateTime)
+        => FormatRelativeTime(dateTime.DateTime);
 
     public string GetInitials(string name)
     {

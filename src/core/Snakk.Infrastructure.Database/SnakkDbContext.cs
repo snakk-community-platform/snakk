@@ -12,6 +12,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Core entities
     public DbSet<HubDatabaseEntity> Hubs { get; set; } = null!;
     public DbSet<SpaceDatabaseEntity> Spaces { get; set; } = null!;
+    public DbSet<SpaceRuleDatabaseEntity> SpaceRules { get; set; } = null!;
+    public DbSet<HubRuleDatabaseEntity> HubRules { get; set; } = null!;
+    public DbSet<CommunityRuleDatabaseEntity> CommunityRules { get; set; } = null!;
     public DbSet<DiscussionDatabaseEntity> Discussions { get; set; } = null!;
     public DbSet<PostDatabaseEntity> Posts { get; set; } = null!;
     public DbSet<PostRevisionDatabaseEntity> PostRevisions { get; set; } = null!;
@@ -115,6 +118,66 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(s => s.HubId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure Space -> Rules relationship
+        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
+            .HasOne(r => r.Space)
+            .WithMany(s => s.Rules)
+            .HasForeignKey(r => r.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
+            .Property(r => r.Title)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
+            .Property(r => r.Description)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
+            .HasIndex(r => r.SpaceId);
+
+        // Configure Hub -> Rules relationship
+        modelBuilder.Entity<HubRuleDatabaseEntity>()
+            .HasOne(r => r.Hub)
+            .WithMany(h => h.Rules)
+            .HasForeignKey(r => r.HubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<HubRuleDatabaseEntity>()
+            .Property(r => r.Title)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<HubRuleDatabaseEntity>()
+            .Property(r => r.Description)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        modelBuilder.Entity<HubRuleDatabaseEntity>()
+            .HasIndex(r => r.HubId);
+
+        // Configure Community -> Rules relationship
+        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
+            .HasOne(r => r.Community)
+            .WithMany(c => c.Rules)
+            .HasForeignKey(r => r.CommunityId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
+            .Property(r => r.Title)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
+            .Property(r => r.Description)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
+            .HasIndex(r => r.CommunityId);
+
         // Configure Space -> Discussions relationship
         modelBuilder.Entity<DiscussionDatabaseEntity>()
             .HasOne(d => d.Space)
@@ -204,6 +267,11 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(p => new { p.CreatedByUserId, p.CreatedAt, p.Id })
             .IsDescending(false, true, true)
             .HasDatabaseName("IX_Post_CreatedByUserId_CreatedAt_Id_Desc");
+
+        // Post PublicId unique index (for API lookups)
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => p.PublicId)
+            .IsUnique();
 
         // Discussion feed: user's discussions (for profile/search)
         modelBuilder.Entity<DiscussionDatabaseEntity>()
@@ -980,5 +1048,48 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany(w => w.DeliveryLogs)
             .HasForeignKey(wdl => wdl.WebhookId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // === AuditLog Indexes ===
+
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => a.PublicId)
+            .IsUnique();
+
+        // Primary query index: admin audit log page (paginated, filtered, sorted by CreatedAt)
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => new { a.CreatedAt, a.Category, a.Action })
+            .IsDescending(true, false, false)
+            .HasDatabaseName("IX_AuditLog_CreatedAt_Desc_Category_Action");
+
+        // Suspicious activity detection (severity + time range)
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => new { a.SeverityId, a.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_AuditLog_SeverityId_CreatedAt_Desc");
+
+        // Moderation action panels (category-scoped + time-sorted)
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => new { a.Category, a.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_AuditLog_Category_CreatedAt_Desc");
+
+        // Actor-filtered audit log queries
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => a.ActorUserId)
+            .HasDatabaseName("IX_AuditLog_ActorUserId");
+
+        // Failed login detection (action + success + time range)
+        modelBuilder.Entity<AuditLogDatabaseEntity>()
+            .HasIndex(a => new { a.Action, a.Success, a.CreatedAt })
+            .IsDescending(false, false, true)
+            .HasDatabaseName("IX_AuditLog_Action_Success_CreatedAt_Desc");
+
+        // === Additional Discussion Indexes ===
+
+        // Discussion date-range queries scoped to a space (newDiscussionsToday/thisWeek)
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.SpaceId, d.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Discussion_SpaceId_CreatedAt_Desc");
     }
 }

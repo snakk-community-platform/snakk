@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Notification";
+
+package snakk.notification;
+
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+  rpc GetNotifications (GetNotificationsRequest) returns (PagedNotificationList);
+  rpc GetUnreadCount (GetUnreadCountRequest) returns (UnreadCountResponse);
+  rpc MarkAsRead (MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc MarkAllAsRead (MarkAllAsReadRequest) returns (MarkAllAsReadResponse);
+}
+
+// --- Requests ---
+
+message GetNotificationsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+}
+
+message GetUnreadCountRequest {}
+
+message MarkAsReadRequest {
+  string notification_id = 1;
+}
+
+message MarkAllAsReadRequest {}
+
+// --- Responses ---
+
+message NotificationInfo {
+  string public_id = 1;
+  string type = 2;
+  string message = 3;
+  optional string source_public_id = 4;
+  optional string source_type = 5;
+  optional string source_display_name = 6;
+  optional string target_public_id = 7;
+  optional string target_type = 8;
+  optional string target_title = 9;
+  google.protobuf.Timestamp created_at = 10;
+  bool is_read = 11;
+}
+
+message PagedNotificationList {
+  repeated NotificationInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message UnreadCountResponse {
+  int32 count = 1;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+}
+
+message MarkAllAsReadResponse {
+  bool success = 1;
+}

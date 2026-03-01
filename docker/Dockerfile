@@ -22,6 +22,7 @@ COPY src/core/Snakk.Domain/Snakk.Domain.csproj core/Snakk.Domain/
 COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
 COPY src/core/Snakk.Infrastructure/Snakk.Infrastructure.csproj core/Snakk.Infrastructure/
 COPY src/core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj core/Snakk.Infrastructure.Database/
+COPY src/core/Snakk.Protos/Snakk.Protos.csproj core/Snakk.Protos/
 COPY src/core/Snakk.Sdk/Snakk.Sdk.csproj core/Snakk.Sdk/
 COPY src/core/Snakk.Shared/Snakk.Shared.csproj core/Snakk.Shared/
 COPY src/services/Snakk.Api/Snakk.Api.csproj services/Snakk.Api/

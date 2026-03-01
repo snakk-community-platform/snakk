@@ -1,0 +1,383 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Moderation";
+
+package snakk.moderation;
+
+import "google/protobuf/timestamp.proto";
+
+service ModerationService {
+  // Permission checks
+  rpc CanModerate (CanModerateRequest) returns (CanModerateResponse);
+  rpc CanAdminister (CanAdministerRequest) returns (CanAdministerResponse);
+
+  // Role management
+  rpc GetMyRoles (GetMyRolesRequest) returns (RoleListResponse);
+  rpc GetUserRoles (GetUserRolesRequest) returns (RoleListResponse);
+  rpc GetRolesForCommunity (GetRolesForScopeRequest) returns (RoleListResponse);
+  rpc GetRolesForHub (GetRolesForScopeRequest) returns (RoleListResponse);
+  rpc GetRolesForSpace (GetRolesForScopeRequest) returns (RoleListResponse);
+  rpc AssignRole (AssignRoleRequest) returns (RoleInfo);
+  rpc RevokeRole (RevokeRoleRequest) returns (RevokeRoleResponse);
+
+  // Ban management
+  rpc GetUserBans (GetUserBansRequest) returns (BanListResponse);
+  rpc CheckUserBan (CheckUserBanRequest) returns (BanStatusResponse);
+  rpc BanUser (BanUserRequest) returns (BanInfo);
+  rpc UnbanUser (UnbanUserRequest) returns (UnbanResponse);
+
+  // Report management
+  rpc GetPendingReportCount (GetPendingReportCountRequest) returns (PendingReportCountResponse);
+  rpc GetReports (GetReportsRequest) returns (PagedReportList);
+  rpc GetReportDetail (GetReportDetailRequest) returns (ReportDetailInfo);
+  rpc CreateReport (CreateReportRequest) returns (ReportCreatedResponse);
+  rpc ResolveReport (ResolveReportRequest) returns (ResolveReportResponse);
+  rpc AddReportComment (AddReportCommentRequest) returns (ReportCommentInfo);
+  rpc GetReportReasons (GetReportReasonsRequest) returns (ReportReasonsResponse);
+
+  // Content moderation
+  rpc DeletePost (DeletePostRequest) returns (ContentModResponse);
+  rpc DeleteDiscussion (DeleteDiscussionRequest) returns (ContentModResponse);
+  rpc LockDiscussion (LockDiscussionRequest) returns (ContentModResponse);
+  rpc UnlockDiscussion (UnlockDiscussionRequest) returns (ContentModResponse);
+
+  // Moderation log
+  rpc GetModerationLogs (GetModerationLogsRequest) returns (PagedModerationLogList);
+}
+
+// --- Permission Requests ---
+
+message CanModerateRequest {
+  optional string community_id = 1;
+  optional string hub_id = 2;
+  optional string space_id = 3;
+}
+
+message CanAdministerRequest {
+  optional string community_id = 1;
+  optional string hub_id = 2;
+  optional string space_id = 3;
+}
+
+message CanModerateResponse {
+  bool can_moderate = 1;
+}
+
+message CanAdministerResponse {
+  bool can_administer = 1;
+}
+
+// --- Role Requests ---
+
+message GetMyRolesRequest {}
+
+message GetUserRolesRequest {
+  string user_id = 1;
+}
+
+message GetRolesForScopeRequest {
+  string scope_id = 1;
+}
+
+message AssignRoleRequest {
+  string user_id = 1;
+  string role = 2;
+  optional string community_id = 3;
+  optional string hub_id = 4;
+  optional string space_id = 5;
+}
+
+message RevokeRoleRequest {
+  string role_id = 1;
+}
+
+// --- Role Responses ---
+
+message RoleInfo {
+  string public_id = 1;
+  string user_public_id = 2;
+  string user_display_name = 3;
+  string role = 4;
+  optional string community_id = 5;
+  optional string community_name = 6;
+  optional string hub_id = 7;
+  optional string hub_name = 8;
+  optional string space_id = 9;
+  optional string space_name = 10;
+  string assigned_by_user_public_id = 11;
+  string assigned_by_user_display_name = 12;
+  google.protobuf.Timestamp assigned_at = 13;
+  optional google.protobuf.Timestamp revoked_at = 14;
+}
+
+message RoleListResponse {
+  repeated RoleInfo items = 1;
+}
+
+message RevokeRoleResponse {
+  bool success = 1;
+}
+
+// --- Ban Requests ---
+
+message GetUserBansRequest {
+  string user_id = 1;
+}
+
+message CheckUserBanRequest {
+  string user_id = 1;
+  optional string community_id = 2;
+  optional string hub_id = 3;
+  optional string space_id = 4;
+}
+
+message BanUserRequest {
+  string user_id = 1;
+  string ban_type = 2;
+  optional string community_id = 3;
+  optional string hub_id = 4;
+  optional string space_id = 5;
+  optional string reason = 6;
+  optional google.protobuf.Timestamp expires_at = 7;
+}
+
+message UnbanUserRequest {
+  string ban_id = 1;
+}
+
+// --- Ban Responses ---
+
+message BanInfo {
+  string public_id = 1;
+  string user_public_id = 2;
+  string user_display_name = 3;
+  string ban_type = 4;
+  optional string community_id = 5;
+  optional string community_name = 6;
+  optional string hub_id = 7;
+  optional string hub_name = 8;
+  optional string space_id = 9;
+  optional string space_name = 10;
+  optional string reason = 11;
+  google.protobuf.Timestamp banned_at = 12;
+  optional google.protobuf.Timestamp expires_at = 13;
+  string banned_by_user_public_id = 14;
+  string banned_by_user_display_name = 15;
+  optional google.protobuf.Timestamp unbanned_at = 16;
+  optional string unbanned_by_user_public_id = 17;
+  optional string unbanned_by_user_display_name = 18;
+}
+
+message BanListResponse {
+  repeated BanInfo items = 1;
+}
+
+message BanStatusResponse {
+  bool is_banned = 1;
+  optional BanInfo ban = 2;
+}
+
+message UnbanResponse {
+  bool success = 1;
+}
+
+// --- Report Requests ---
+
+message GetPendingReportCountRequest {}
+
+message GetReportsRequest {
+  optional int32 status_id = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+}
+
+message GetReportDetailRequest {
+  string report_id = 1;
+}
+
+message CreateReportRequest {
+  optional string post_id = 1;
+  optional string discussion_id = 2;
+  optional string user_id = 3;
+  optional string reason_id = 4;
+  optional string details = 5;
+}
+
+message ResolveReportRequest {
+  string report_id = 1;
+  optional string resolution_note = 2;
+  bool dismiss = 3;
+}
+
+message AddReportCommentRequest {
+  string report_id = 1;
+  string content = 2;
+}
+
+message GetReportReasonsRequest {
+  optional string space_id = 1;
+}
+
+// --- Report Responses ---
+
+message PendingReportCountResponse {
+  int32 count = 1;
+}
+
+message ReportListItem {
+  string public_id = 1;
+  string status = 2;
+  string reporter_user_public_id = 3;
+  string reporter_user_display_name = 4;
+  optional string reported_post_public_id = 5;
+  optional string reported_post_content_snippet = 6;
+  optional string reported_discussion_public_id = 7;
+  optional string reported_discussion_title = 8;
+  optional string reported_user_public_id = 9;
+  optional string reported_user_display_name = 10;
+  optional string reason_name = 11;
+  optional string details = 12;
+  google.protobuf.Timestamp created_at = 13;
+  optional google.protobuf.Timestamp resolved_at = 14;
+  optional string resolved_by_user_public_id = 15;
+  optional string resolved_by_user_display_name = 16;
+  optional string resolution_note = 17;
+  optional string space_public_id = 18;
+  optional string space_name = 19;
+  optional string hub_public_id = 20;
+  optional string hub_name = 21;
+  optional string community_public_id = 22;
+  optional string community_name = 23;
+  int32 comment_count = 24;
+}
+
+message PagedReportList {
+  repeated ReportListItem items = 1;
+  int32 total = 2;
+  int32 offset = 3;
+  int32 page_size = 4;
+}
+
+message ReportDetailInfo {
+  string public_id = 1;
+  string status = 2;
+  string reporter_user_public_id = 3;
+  string reporter_user_display_name = 4;
+  optional string reported_post_public_id = 5;
+  optional string reported_post_content = 6;
+  optional string reported_discussion_public_id = 7;
+  optional string reported_discussion_title = 8;
+  optional string reported_user_public_id = 9;
+  optional string reported_user_display_name = 10;
+  optional string reason_name = 11;
+  optional string reason_description = 12;
+  optional string details = 13;
+  google.protobuf.Timestamp created_at = 14;
+  optional google.protobuf.Timestamp resolved_at = 15;
+  optional string resolved_by_user_public_id = 16;
+  optional string resolved_by_user_display_name = 17;
+  optional string resolution_note = 18;
+  optional string space_public_id = 19;
+  optional string space_name = 20;
+  optional string hub_public_id = 21;
+  optional string hub_name = 22;
+  optional string community_public_id = 23;
+  optional string community_name = 24;
+  repeated ReportCommentInfo comments = 25;
+}
+
+message ReportCommentInfo {
+  string public_id = 1;
+  string author_user_public_id = 2;
+  string author_user_display_name = 3;
+  string content = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp edited_at = 6;
+}
+
+message ReportCreatedResponse {
+  string public_id = 1;
+  string status = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message ResolveReportResponse {
+  bool success = 1;
+}
+
+message ReportReasonInfo {
+  string public_id = 1;
+  string name = 2;
+  optional string description = 3;
+  optional string community_public_id = 4;
+  optional string hub_public_id = 5;
+  optional string space_public_id = 6;
+  int32 display_order = 7;
+}
+
+message ReportReasonsResponse {
+  repeated ReportReasonInfo items = 1;
+}
+
+// --- Content Moderation Requests ---
+
+message DeletePostRequest {
+  string post_id = 1;
+  optional string reason = 2;
+}
+
+message DeleteDiscussionRequest {
+  string discussion_id = 1;
+  optional string reason = 2;
+}
+
+message LockDiscussionRequest {
+  string discussion_id = 1;
+  optional string reason = 2;
+}
+
+message UnlockDiscussionRequest {
+  string discussion_id = 1;
+}
+
+message ContentModResponse {
+  bool success = 1;
+}
+
+// --- Moderation Log ---
+
+message GetModerationLogsRequest {
+  optional string community_id = 1;
+  optional string hub_id = 2;
+  optional string space_id = 3;
+  int32 offset = 4;
+  int32 page_size = 5;
+}
+
+message ModerationLogItem {
+  string public_id = 1;
+  string actor_user_public_id = 2;
+  string actor_user_display_name = 3;
+  string action = 4;
+  optional string target_post_public_id = 5;
+  optional string target_discussion_public_id = 6;
+  optional string target_discussion_title = 7;
+  optional string target_user_public_id = 8;
+  optional string target_user_display_name = 9;
+  optional string community_public_id = 10;
+  optional string community_name = 11;
+  optional string hub_public_id = 12;
+  optional string hub_name = 13;
+  optional string space_public_id = 14;
+  optional string space_name = 15;
+  optional string details = 16;
+  optional string reason = 17;
+  google.protobuf.Timestamp created_at = 18;
+}
+
+message PagedModerationLogList {
+  repeated ModerationLogItem items = 1;
+  int32 total = 2;
+  int32 offset = 3;
+  int32 page_size = 4;
+}

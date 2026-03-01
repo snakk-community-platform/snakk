@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Web.Models;
 using Snakk.Web.Services;
+using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
@@ -20,7 +21,7 @@ public class RolesModel(SnakkApiClient apiClient, IConfiguration configuration, 
     public string? SpaceId { get; set; }
 
     public IEnumerable<UserRoleDto>? Roles { get; set; }
-    public UserProfileDto? UserProfile { get; set; }
+    public UserProfileInfo? UserProfile { get; set; }
     public bool CanAdminister { get; set; }
 
     [BindProperty]

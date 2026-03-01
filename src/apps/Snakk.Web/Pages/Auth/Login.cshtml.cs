@@ -1,23 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Grpc.Core;
+using Snakk.Protos.Auth;
 using Snakk.Web.Services;
-using System.Text;
-using System.Text.Json;
 
 namespace Snakk.Web.Pages.Auth;
 
-public class LoginModel : PageModel
+public class LoginModel(AuthService.AuthServiceClient authClient) : PageModel
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
-
     public string? ErrorMessage { get; set; }
-
-    public LoginModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
-    {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
-    }
 
     public void OnGet(string? error)
     {
@@ -34,58 +25,38 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string email, string password, string? returnUrl)
     {
-        var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "https://localhost:7291";
-        var httpClient = _httpClientFactory.CreateClient();
-
-        var loginRequest = new
+        try
         {
-            email,
-            password
-        };
+            var response = await authClient.LoginAsync(new LoginRequest
+            {
+                Email = email,
+                Password = password,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+            });
 
-        var content = new StringContent(
-            JsonSerializer.Serialize(loginRequest),
-            Encoding.UTF8,
-            "application/json");
+            if (string.IsNullOrEmpty(response.AccessToken) || string.IsNullOrEmpty(response.RefreshToken))
+            {
+                ErrorMessage = "Authentication succeeded but tokens were empty.";
+                return Page();
+            }
 
-        var response = await httpClient.PostAsync($"{apiBaseUrl}/auth/login", content);
+            AuthCookieHelper.SetAuthCookies(HttpContext, response.AccessToken, response.RefreshToken);
 
-        if (!response.IsSuccessStatusCode)
+            var redirectUrl = returnUrl ?? "/";
+            if (!Url.IsLocalUrl(redirectUrl))
+            {
+                redirectUrl = "/";
+            }
+
+            return Redirect(redirectUrl);
+        }
+        catch (RpcException ex)
         {
-            ErrorMessage = "Invalid email or password.";
+            ErrorMessage = ex.StatusCode == Grpc.Core.StatusCode.Unauthenticated
+                ? "Invalid email or password."
+                : "Login failed. Please try again.";
             return Page();
         }
-
-        // Extract JWT tokens from response body
-        var responseBody = await response.Content.ReadAsStringAsync();
-        var loginResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
-
-        if (!loginResponse.TryGetProperty("accessToken", out var accessTokenElement) ||
-            !loginResponse.TryGetProperty("refreshToken", out var refreshTokenElement))
-        {
-            ErrorMessage = "Authentication succeeded but tokens were not returned.";
-            return Page();
-        }
-
-        var accessToken = accessTokenElement.GetString();
-        var refreshToken = refreshTokenElement.GetString();
-
-        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
-        {
-            ErrorMessage = "Authentication succeeded but tokens were empty.";
-            return Page();
-        }
-
-        // Set auth cookies directly (no more redirect to OAuthComplete)
-        AuthCookieHelper.SetAuthCookies(HttpContext, accessToken, refreshToken);
-
-        // Redirect to return URL or home
-        var redirectUrl = returnUrl ?? "/";
-        if (!Url.IsLocalUrl(redirectUrl))
-        {
-            redirectUrl = "/";
-        }
-
-        return Redirect(redirectUrl);
     }
 }

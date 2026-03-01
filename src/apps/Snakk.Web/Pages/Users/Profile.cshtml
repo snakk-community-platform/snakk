@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" />
 }
 
-<div class="max-w-4xl mx-auto">
+<div class="breadcrumb-bar">
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+    </nav>
+</div>
+<div class="max-w-4xl mx-auto px-4 py-8">
     @if (Model.Profile != null)
     {
         <!-- Profile Header Card -->
@@ -32,15 +37,15 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span>Joined @Model.FormatDate(Model.Profile.JoinedAt)</span>
+                            <span>Joined @Model.FormatDate(Model.Profile.JoinedAt?.ToDateTime())</span>
                         </p>
-                        @if (Model.Profile.LastSeenAt.HasValue)
+                        @if (Model.Profile.LastSeenAt != null)
                         {
                             <p class="flex items-center justify-center sm:justify-start gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt)</span>
+                                <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt?.ToDateTime())</span>
                             </p>
                         }
                     </div>
@@ -84,7 +89,7 @@
                         <div class="stat-title text-xs">Member for</div>
                         <div class="stat-value text-2xl">
                             @{
-                                var daysSinceJoined = (DateTime.UtcNow - Model.Profile.JoinedAt).Days;
+                                var daysSinceJoined = (DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days;
                             }
                             @daysSinceJoined days
                         </div>
@@ -98,9 +103,9 @@
                     <div class="stat bg-base-200 rounded-lg p-4">
                         <div class="stat-title text-xs">Recent Activity</div>
                         <div class="stat-value text-2xl">
-                            @if (Model.Profile.LastSeenAt.HasValue)
+                            @if (Model.Profile.LastSeenAt != null)
                             {
-                                @Model.GetRelativeTime(Model.Profile.LastSeenAt)
+                                @Model.GetRelativeTime(Model.Profile.LastSeenAt?.ToDateTime())
                             }
                             else
                             {
@@ -254,7 +259,7 @@
     <script>
         // Initialize profile with server-side data
         const totalActivity = @Model.Profile.DiscussionCount + @Model.Profile.PostCount;
-        const daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt).Days);
+        const daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days);
         const discussionCount = @Model.Profile.DiscussionCount;
         const postCount = @Model.Profile.PostCount;
 

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.User";
+
+package snakk.user;
+
+import "google/protobuf/timestamp.proto";
+
+service UserService {
+  rpc GetUserProfile (GetUserProfileRequest) returns (UserProfileInfo);
+  rpc SearchUsers (SearchUsersRequest) returns (UserSearchResults);
+}
+
+// --- Requests ---
+
+message GetUserProfileRequest {
+  string public_id = 1;
+}
+
+message SearchUsersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+// --- Responses ---
+
+message UserProfileInfo {
+  string public_id = 1;
+  string display_name = 2;
+  optional string avatar_file_name = 3;
+  google.protobuf.Timestamp joined_at = 4;
+  optional google.protobuf.Timestamp last_seen_at = 5;
+  int32 discussion_count = 6;
+  int32 post_count = 7;
+}
+
+message UserSearchResultItem {
+  string public_id = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+}
+
+message UserSearchResults {
+  repeated UserSearchResultItem items = 1;
+}

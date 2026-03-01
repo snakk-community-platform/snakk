@@ -8,10 +8,12 @@ using Snakk.Shared.Models;
 
 public class NotificationUseCase(
     INotificationRepository notificationRepository,
-    IRealtimeNotifier realtimeNotifier)
+    IRealtimeNotifier realtimeNotifier,
+    ICounterService counterService)
 {
     private readonly INotificationRepository _notificationRepository = notificationRepository;
     private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
+    private readonly ICounterService _counterService = counterService;
 
     public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(UserId userId, int offset, int pageSize)
     {
@@ -52,6 +54,9 @@ public class NotificationUseCase(
         notification.MarkAsRead();
         await _notificationRepository.UpdateAsync(notification);
 
+        // Update denormalized count
+        await _counterService.DecrementUnreadNotificationCountAsync(userId);
+
         // Notify client to update badge
         var unreadCount = await _notificationRepository.GetUnreadCountAsync(userId);
         await _realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, unreadCount);
@@ -63,6 +68,9 @@ public class NotificationUseCase(
     {
         await _notificationRepository.MarkAllAsReadAsync(userId);
 
+        // Reset denormalized count
+        await _counterService.ResetUnreadNotificationCountAsync(userId);
+
         // Notify client to update badge
         await _realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, 0);
     }
@@ -70,6 +78,9 @@ public class NotificationUseCase(
     public async Task CreateNotificationAsync(Notification notification)
     {
         await _notificationRepository.AddAsync(notification);
+
+        // Update denormalized count
+        await _counterService.IncrementUnreadNotificationCountAsync(notification.RecipientUserId);
 
         // Real-time delivery
         await _realtimeNotifier.NotifyUserAsync(notification.RecipientUserId, new

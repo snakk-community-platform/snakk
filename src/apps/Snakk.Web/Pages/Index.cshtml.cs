@@ -1,29 +1,23 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
-using Snakk.Web.Models;
+using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
+using Snakk.Protos.Discussion;
 
 namespace Snakk.Web.Pages;
 
 [OutputCache(PolicyName = "HomePage")]
-public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
-    public PagedResult<RecentDiscussionDto>? RecentDiscussions { get; set; }
-    public TopActiveDiscussionsResult? TopActiveDiscussions { get; set; }
-    public TopActiveSpacesResult? TopActiveSpaces { get; set; }
-    public TopContributorsResult? TopContributors { get; set; }
-    public PlatformStatsDto? PlatformStats { get; set; }
-    public CommunityStatsDto? CommunityStats { get; set; }
+    public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
 
-    // Stats accessor that works for both platform and community-scoped views
-    public int HubCount => CommunityStats?.HubCount ?? PlatformStats?.HubCount ?? 0;
-    public int SpaceCount => CommunityStats?.SpaceCount ?? PlatformStats?.SpaceCount ?? 0;
-    public int DiscussionCount => CommunityStats?.DiscussionCount ?? PlatformStats?.DiscussionCount ?? 0;
-    public int ReplyCount => CommunityStats?.ReplyCount ?? PlatformStats?.ReplyCount ?? 0;
+    // Sidebar scope for HTMX partials
+    public string SidebarScopeType { get; set; } = "platform";
+    public string SidebarScopeId { get; set; } = "global";
 
     // Trending settings
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:FrontPage:ShowDiscussions", true);
@@ -36,10 +30,16 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
         CommunityContext.IsDefaultCommunity &&
         !CommunityContext.IsCustomDomain;
 
+    // Inline sidebar data (populated from cache, null = HTMX fallback)
+    public SidebarPlatformStatsVM? InlinePlatformStats { get; set; }
+    public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
+    public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
+    public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
+
     public async Task OnGetAsync(int offset = 0)
     {
-        // Fetch user preference if authenticated
-        var userTask = _apiClient.GetCurrentUserAsync();
+        // Read preference from cookie (set by /bff/me on page load)
+        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // Determine if we need to scope to a community
         string? communityId = null;
@@ -50,63 +50,52 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
             communityId = community?.PublicId;
         }
 
-        var recentDiscussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 50, communityId);
-        var tasks = new List<Task> { recentDiscussionsTask, userTask };
-
-        // Use community stats if on custom domain, otherwise platform stats
-        Task<CommunityStatsDto?>? communityStatsTask = null;
-        Task<PlatformStatsDto?>? platformStatsTask = null;
-
+        // Set sidebar scope for HTMX partials
         if (!string.IsNullOrEmpty(communityId))
         {
-            communityStatsTask = _apiClient.GetCommunityStatsAsync(communityId);
-            tasks.Add(communityStatsTask);
-        }
-        else
-        {
-            platformStatsTask = _apiClient.GetPlatformStatsAsync();
-            tasks.Add(platformStatsTask);
+            SidebarScopeType = "community";
+            SidebarScopeId = communityId;
         }
 
-        // Only fetch trending data if enabled
-        Task<TopActiveDiscussionsResult?>? topDiscussionsTask = null;
-        Task<TopActiveSpacesResult?>? topSpacesTask = null;
-        Task<TopContributorsResult?>? topContributorsTask = null;
-
-        if (ShowTrendingDiscussions)
-        {
-            topDiscussionsTask = _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId);
-            tasks.Add(topDiscussionsTask);
-        }
-        if (ShowTrendingSpaces)
-        {
-            topSpacesTask = _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId);
-            tasks.Add(topSpacesTask);
-        }
-        if (ShowTrendingContributors)
-        {
-            topContributorsTask = _apiClient.GetTopContributorsTodayAsync(communityId: communityId);
-            tasks.Add(topContributorsTask);
-        }
+        // Check cache for sidebar data — inline if warm, prefetch if cold
+        ResolveSidebarData(communityId);
 
         try
         {
-            await Task.WhenAll(tasks);
+            RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(offset, 50, communityId);
         }
         catch
         {
-            // Continue with whatever succeeded
+            // Continue with null
+        }
+    }
+
+    private void ResolveSidebarData(string? communityId)
+    {
+        // Platform stats (two source types → mapped to one VM)
+        if (!string.IsNullOrEmpty(communityId))
+        {
+            var data = prefetchCache.ResolveOrPrefetch($"platform-stats:community:{communityId}", () => _apiClient.GetCommunityStatsAsync(communityId));
+            if (data != null)
+                InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
+        }
+        else
+        {
+            var data = prefetchCache.ResolveOrPrefetch("platform-stats:platform:global", () => _apiClient.GetPlatformStatsAsync());
+            if (data != null)
+                InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
         }
 
-        RecentDiscussions = recentDiscussionsTask.IsCompletedSuccessfully ? recentDiscussionsTask.Result : null;
-        PlatformStats = platformStatsTask?.IsCompletedSuccessfully == true ? platformStatsTask.Result : null;
-        CommunityStats = communityStatsTask?.IsCompletedSuccessfully == true ? communityStatsTask.Result : null;
-        TopActiveDiscussions = topDiscussionsTask?.IsCompletedSuccessfully == true ? topDiscussionsTask.Result : null;
-        TopActiveSpaces = topSpacesTask?.IsCompletedSuccessfully == true ? topSpacesTask.Result : null;
-        TopContributors = topContributorsTask?.IsCompletedSuccessfully == true ? topContributorsTask.Result : null;
+        if (ShowTrendingDiscussions)
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch($"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId), d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
-        // Get user preference (defaults to true if not authenticated)
-        var user = userTask.IsCompletedSuccessfully ? userTask.Result : null;
-        PreferEndlessScroll = user?.PreferEndlessScroll ?? true;
+        if (ShowTrendingSpaces)
+            InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch($"trending-spaces:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId), d => new SidebarTrendingSpacesVM(d, CommunityContext, "cache"));
+
+        if (ShowTrendingContributors)
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch($"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(communityId: communityId), d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
     }
 }

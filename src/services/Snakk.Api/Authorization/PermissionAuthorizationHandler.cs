@@ -39,17 +39,14 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             return;
         }
 
-        // Extract scope ID from route if specified
-        int? scopeId = null;
+        // Extract scope public ID from route if specified
+        string? scopePublicId = null;
         if (!string.IsNullOrEmpty(requirement.ScopeIdRouteKey))
         {
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext != null && httpContext.Request.RouteValues.TryGetValue(requirement.ScopeIdRouteKey, out var routeValue))
             {
-                if (int.TryParse(routeValue?.ToString(), out var parsedId))
-                {
-                    scopeId = parsedId;
-                }
+                scopePublicId = routeValue?.ToString();
             }
         }
 
@@ -57,18 +54,18 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             userId,
             requirement.PermissionName,
             requirement.Scope,
-            scopeId);
+            scopePublicId);
 
         if (hasPermission)
         {
-            _logger.LogDebug("User {UserId} granted access to {Permission} in {Scope}:{ScopeId}",
-                userId, requirement.PermissionName, requirement.Scope ?? "global", scopeId);
+            _logger.LogDebug("User {UserId} granted access to {Permission} in {Scope}:{ScopePublicId}",
+                userId, requirement.PermissionName, requirement.Scope ?? "global", scopePublicId);
             context.Succeed(requirement);
         }
         else
         {
-            _logger.LogWarning("User {UserId} denied access to {Permission} in {Scope}:{ScopeId}",
-                userId, requirement.PermissionName, requirement.Scope ?? "global", scopeId);
+            _logger.LogWarning("User {UserId} denied access to {Permission} in {Scope}:{ScopePublicId}",
+                userId, requirement.PermissionName, requirement.Scope ?? "global", scopePublicId);
             context.Fail();
         }
     }

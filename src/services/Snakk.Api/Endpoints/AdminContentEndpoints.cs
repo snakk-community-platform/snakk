@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.EntityFrameworkCore;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Infrastructure.Database;
 using Snakk.Shared.Enums;
 
@@ -14,29 +15,36 @@ public static class AdminContentEndpoints
 
         // Overview
         group.MapGet("/overview", GetContentOverviewAsync)
-            .WithName("AdminGetContentOverview");
+            .WithName("AdminGetContentOverview")
+            .Produces<ContentOverviewResponse>();
 
         // Communities
         group.MapGet("/communities", GetCommunitiesAsync)
-            .WithName("AdminGetCommunities");
+            .WithName("AdminGetCommunities")
+            .Produces<AdminCommunityListResponse>();
 
         group.MapGet("/communities/{id}", GetCommunityAsync)
-            .WithName("AdminGetCommunity");
+            .WithName("AdminGetCommunity")
+            .Produces<AdminCommunityDetailResponse>();
 
         // Hubs
         group.MapGet("/hubs", GetHubsAsync)
-            .WithName("AdminGetHubs");
+            .WithName("AdminGetHubs")
+            .Produces<AdminHubListResponse>();
 
         // Spaces
         group.MapGet("/spaces", GetSpacesAsync)
-            .WithName("AdminGetSpaces");
+            .WithName("AdminGetSpaces")
+            .Produces<AdminSpaceListResponse>();
 
         // Discussions
         group.MapGet("/discussions", GetDiscussionsAsync)
-            .WithName("AdminGetDiscussions");
+            .WithName("AdminGetDiscussions")
+            .Produces<AdminDiscussionListResponse>();
 
         group.MapGet("/discussions/{id}", GetDiscussionAsync)
-            .WithName("AdminGetDiscussion");
+            .WithName("AdminGetDiscussion")
+            .Produces<AdminDiscussionDetailResponse>();
 
         group.MapPost("/discussions/{id}/pin", PinDiscussionAsync)
             .WithName("AdminPinDiscussion");
@@ -65,16 +73,14 @@ public static class AdminContentEndpoints
         var pinnedDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted && d.IsPinned);
         var lockedDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted && d.IsLocked);
 
-        return Results.Ok(new
-        {
+        return TypedResults.Ok(new ContentOverviewResponse(
             totalCommunities,
             totalHubs,
             totalSpaces,
             totalDiscussions,
             totalPosts,
             pinnedDiscussions,
-            lockedDiscussions
-        });
+            lockedDiscussions));
     }
 
     private static async Task<IResult> GetCommunitiesAsync(
@@ -104,26 +110,22 @@ public static class AdminContentEndpoints
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new
-            {
-                id = c.PublicId,
-                name = c.Name,
-                slug = c.Slug,
-                description = c.Description,
-                visibility = ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
-                createdAt = c.CreatedAt,
-                hubCount = context.Hubs.Count(h => h.CommunityId == c.Id && !h.IsDeleted),
-                memberCount = 0 // TODO: Implement community membership tracking
-            })
+            .Select(c => new AdminCommunityItemResponse(
+                Id: c.PublicId,
+                Name: c.Name,
+                Slug: c.Slug,
+                Description: c.Description,
+                Visibility: ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
+                CreatedAt: c.CreatedAt,
+                HubCount: c.HubCount,
+                MemberCount: 0))
             .ToListAsync();
 
-        return Results.Ok(new
-        {
+        return TypedResults.Ok(new AdminCommunityListResponse(
             communities,
             total,
             page,
-            pageSize
-        });
+            pageSize));
     }
 
     private static async Task<IResult> GetCommunityAsync(
@@ -132,33 +134,29 @@ public static class AdminContentEndpoints
     {
         var community = await context.Communities
             .Where(c => c.PublicId == id && !c.IsDeleted)
-            .Select(c => new
-            {
-                id = c.PublicId,
-                name = c.Name,
-                slug = c.Slug,
-                description = c.Description,
-                visibility = ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
-                createdAt = c.CreatedAt,
-                hubCount = context.Hubs.Count(h => h.CommunityId == c.Id && !h.IsDeleted),
-                memberCount = 0, // TODO: Implement community membership tracking
-                hubs = context.Hubs
+            .Select(c => new AdminCommunityDetailResponse(
+                Id: c.PublicId,
+                Name: c.Name,
+                Slug: c.Slug,
+                Description: c.Description,
+                Visibility: ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
+                CreatedAt: c.CreatedAt,
+                HubCount: c.HubCount,
+                MemberCount: 0,
+                Hubs: context.Hubs
                     .Where(h => h.CommunityId == c.Id && !h.IsDeleted)
-                    .Select(h => new
-                    {
-                        id = h.PublicId,
-                        name = h.Name,
-                        slug = h.Slug,
-                        spaceCount = context.Spaces.Count(s => s.HubId == h.Id && !s.IsDeleted)
-                    })
-                    .ToList()
-            })
+                    .Select(h => new AdminHubSummaryResponse(
+                        h.PublicId,
+                        h.Name,
+                        h.Slug,
+                        h.SpaceCount))
+                    .ToList()))
             .FirstOrDefaultAsync();
 
         if (community == null)
             return Results.NotFound();
 
-        return Results.Ok(community);
+        return TypedResults.Ok(community);
     }
 
     private static async Task<IResult> GetHubsAsync(
@@ -194,26 +192,22 @@ public static class AdminContentEndpoints
             .OrderByDescending(h => h.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(h => new
-            {
-                id = h.PublicId,
-                name = h.Name,
-                slug = h.Slug,
-                description = h.Description,
-                communityId = h.Community.PublicId,
-                communityName = h.Community.Name,
-                createdAt = h.CreatedAt,
-                spaceCount = context.Spaces.Count(s => s.HubId == h.Id && !s.IsDeleted)
-            })
+            .Select(h => new AdminHubItemResponse(
+                Id: h.PublicId,
+                Name: h.Name,
+                Slug: h.Slug,
+                Description: h.Description,
+                CommunityId: h.Community.PublicId,
+                CommunityName: h.Community.Name,
+                CreatedAt: h.CreatedAt,
+                SpaceCount: h.SpaceCount))
             .ToListAsync();
 
-        return Results.Ok(new
-        {
+        return TypedResults.Ok(new AdminHubListResponse(
             hubs,
             total,
             page,
-            pageSize
-        });
+            pageSize));
     }
 
     private static async Task<IResult> GetSpacesAsync(
@@ -249,28 +243,24 @@ public static class AdminContentEndpoints
             .OrderByDescending(s => s.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(s => new
-            {
-                id = s.PublicId,
-                name = s.Name,
-                slug = s.Slug,
-                description = s.Description,
-                hubId = s.Hub.PublicId,
-                hubName = s.Hub.Name,
-                communityId = s.Hub.Community.PublicId,
-                communityName = s.Hub.Community.Name,
-                createdAt = s.CreatedAt,
-                discussionCount = context.Discussions.Count(d => d.SpaceId == s.Id && !d.IsDeleted)
-            })
+            .Select(s => new AdminSpaceItemResponse(
+                Id: s.PublicId,
+                Name: s.Name,
+                Slug: s.Slug,
+                Description: s.Description,
+                HubId: s.Hub.PublicId,
+                HubName: s.Hub.Name,
+                CommunityId: s.Hub.Community.PublicId,
+                CommunityName: s.Hub.Community.Name,
+                CreatedAt: s.CreatedAt,
+                DiscussionCount: s.DiscussionCount))
             .ToListAsync();
 
-        return Results.Ok(new
-        {
+        return TypedResults.Ok(new AdminSpaceListResponse(
             spaces,
             total,
             page,
-            pageSize
-        });
+            pageSize));
     }
 
     private static async Task<IResult> GetDiscussionsAsync(
@@ -316,34 +306,30 @@ public static class AdminContentEndpoints
             .OrderByDescending(d => d.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(d => new
-            {
-                id = d.PublicId,
-                title = d.Title,
-                slug = d.Slug,
-                spaceId = d.Space.PublicId,
-                spaceName = d.Space.Name,
-                hubId = d.Space.Hub.PublicId,
-                hubName = d.Space.Hub.Name,
-                communityId = d.Space.Hub.Community.PublicId,
-                communityName = d.Space.Hub.Community.Name,
-                authorId = d.CreatedByUser.PublicId,
-                authorName = d.CreatedByUser.DisplayName,
-                postCount = d.PostCount,
-                isPinned = d.IsPinned,
-                isLocked = d.IsLocked,
-                createdAt = d.CreatedAt,
-                lastActivityAt = d.LastActivityAt
-            })
+            .Select(d => new AdminDiscussionItemResponse(
+                Id: d.PublicId,
+                Title: d.Title,
+                Slug: d.Slug,
+                SpaceId: d.Space.PublicId,
+                SpaceName: d.Space.Name,
+                HubId: d.Space.Hub.PublicId,
+                HubName: d.Space.Hub.Name,
+                CommunityId: d.Space.Hub.Community.PublicId,
+                CommunityName: d.Space.Hub.Community.Name,
+                AuthorId: d.CreatedByUser.PublicId,
+                AuthorName: d.CreatedByUser.DisplayName,
+                PostCount: d.PostCount,
+                IsPinned: d.IsPinned,
+                IsLocked: d.IsLocked,
+                CreatedAt: d.CreatedAt,
+                LastActivityAt: d.LastActivityAt))
             .ToListAsync();
 
-        return Results.Ok(new
-        {
+        return TypedResults.Ok(new AdminDiscussionListResponse(
             discussions,
             total,
             page,
-            pageSize
-        });
+            pageSize));
     }
 
     private static async Task<IResult> GetDiscussionAsync(
@@ -352,33 +338,31 @@ public static class AdminContentEndpoints
     {
         var discussion = await context.Discussions
             .Where(d => d.PublicId == id && !d.IsDeleted)
-            .Select(d => new
-            {
-                id = d.PublicId,
-                title = d.Title,
-                slug = d.Slug,
-                spaceId = d.Space.PublicId,
-                spaceName = d.Space.Name,
-                hubId = d.Space.Hub.PublicId,
-                hubName = d.Space.Hub.Name,
-                communityId = d.Space.Hub.Community.PublicId,
-                communityName = d.Space.Hub.Community.Name,
-                authorId = d.CreatedByUser.PublicId,
-                authorName = d.CreatedByUser.DisplayName,
-                postCount = d.PostCount,
-                reactionCount = d.ReactionCount,
-                isPinned = d.IsPinned,
-                isLocked = d.IsLocked,
-                tags = d.Tags,
-                createdAt = d.CreatedAt,
-                lastActivityAt = d.LastActivityAt
-            })
+            .Select(d => new AdminDiscussionDetailResponse(
+                Id: d.PublicId,
+                Title: d.Title,
+                Slug: d.Slug,
+                SpaceId: d.Space.PublicId,
+                SpaceName: d.Space.Name,
+                HubId: d.Space.Hub.PublicId,
+                HubName: d.Space.Hub.Name,
+                CommunityId: d.Space.Hub.Community.PublicId,
+                CommunityName: d.Space.Hub.Community.Name,
+                AuthorId: d.CreatedByUser.PublicId,
+                AuthorName: d.CreatedByUser.DisplayName,
+                PostCount: d.PostCount,
+                ReactionCount: d.ReactionCount,
+                IsPinned: d.IsPinned,
+                IsLocked: d.IsLocked,
+                Tags: d.Tags,
+                CreatedAt: d.CreatedAt,
+                LastActivityAt: d.LastActivityAt))
             .FirstOrDefaultAsync();
 
         if (discussion == null)
             return Results.NotFound();
 
-        return Results.Ok(discussion);
+        return TypedResults.Ok(discussion);
     }
 
     private static async Task<IResult> PinDiscussionAsync(

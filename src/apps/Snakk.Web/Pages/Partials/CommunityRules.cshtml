@@ -1,0 +1,9 @@
+@page "/partials/community-rules"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.CommunityRulesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_CommunityRules"
+         model="new SidebarCommunityRulesVM(Model.Rules, Model.CacheSource)" />

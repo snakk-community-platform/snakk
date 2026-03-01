@@ -18,7 +18,6 @@ var worker = builder.AddProject<Projects.Snakk_Worker>("snakk-worker")
 var web = builder.AddProject<Projects.Snakk_Web>("snakk-web")
     .WithEndpoint("https", e => { e.Port = 17110; })
     .WithEnvironment("ApiBaseUrl", api.GetEndpoint("https"))
-    .WithEnvironment("RealtimeServiceUrl", realtime.GetEndpoint("https"))
     .WaitFor(api);
 
 var auth = builder.AddProject<Projects.Snakk_Auth>("snakk-auth")

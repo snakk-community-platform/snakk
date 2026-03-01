@@ -59,19 +59,19 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
 
         // Act & Assert
         // SpaceMod grants access to Space A
-        var spaceAAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", spaceA.Id);
+        var spaceAAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", spaceA.PublicId);
         await Assert.That(spaceAAccess).IsTrue();
 
         // HubMod grants access to Hub B
-        var hubBAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hubB.Id);
+        var hubBAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hubB.PublicId);
         await Assert.That(hubBAccess).IsTrue();
 
         // HubMod on Hub B also grants access to Space B (child of Hub B)
-        var spaceBAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", spaceB.Id);
+        var spaceBAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", spaceB.PublicId);
         await Assert.That(spaceBAccess).IsTrue();
 
         // SpaceMod on Space A does NOT grant access to Hub A (no upward bubble)
-        var hubAAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hubA.Id);
+        var hubAAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hubA.PublicId);
         await Assert.That(hubAAccess).IsFalse();
     }
 
@@ -89,9 +89,9 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, admin.Id, spaceId: space.Id);
 
         // Act - CommunityAdmin gives community-level access (higher than SpaceMod)
-        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.Id);
-        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
-        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.PublicId);
+        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
+        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
 
         // Assert
         await Assert.That(communityAccess).IsTrue();
@@ -120,11 +120,11 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
 
         // Act & Assert
         // No community access (CommunityAdmin was revoked)
-        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.Id);
+        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.PublicId);
         await Assert.That(communityAccess).IsFalse();
 
         // Yes space access (SpaceMod is active)
-        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
         await Assert.That(spaceAccess).IsTrue();
     }
 
@@ -140,7 +140,7 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityMod, admin.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -166,17 +166,17 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, admin.Id, hubId: hub1.Id);
 
         // Act & Assert - can access hub1's spaces
-        var space1aAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space1a.Id);
+        var space1aAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space1a.PublicId);
         await Assert.That(space1aAccess).IsTrue();
 
-        var space1bAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space1b.Id);
+        var space1bAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space1b.PublicId);
         await Assert.That(space1bAccess).IsTrue();
 
         // Cannot access hub2's spaces
-        var space2aAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2a.Id);
+        var space2aAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2a.PublicId);
         await Assert.That(space2aAccess).IsFalse();
 
-        var space2bAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2b.Id);
+        var space2bAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2b.PublicId);
         await Assert.That(space2bAccess).IsFalse();
     }
 
@@ -190,13 +190,13 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         var space = await _builder.CreateSpaceAsync(hub.Id);
 
         // Act & Assert
-        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.Id);
+        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.PublicId);
         await Assert.That(communityAccess).IsFalse();
 
-        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
         await Assert.That(hubAccess).IsFalse();
 
-        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
         await Assert.That(spaceAccess).IsFalse();
 
         var noScopeAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate");
@@ -386,7 +386,7 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         await _db.Context.SaveChangesAsync();
 
         // Act - user lookup should fail due to query filter
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", 1);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", "1");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -412,7 +412,7 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         await _db.Context.SaveChangesAsync();
 
         // Verify access is denied after revocation
-        var accessAfterRevoke = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var accessAfterRevoke = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
         await Assert.That(accessAfterRevoke).IsFalse();
 
         // Create a new elevation
@@ -421,7 +421,7 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
             expiresAt: DateTime.UtcNow.AddHours(4));
 
         // Act - new elevation should grant access
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();

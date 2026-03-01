@@ -48,7 +48,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.GlobalAdmin, user.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "AnyPermission", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "AnyPermission", "community", community.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -77,16 +77,16 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(admin.Id, UserRoleTypeEnum.GlobalAdmin, admin.Id);
 
         // Act & Assert - verify access at every level of the hierarchy
-        var communityAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "community", community.Id);
+        var communityAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "community", community.PublicId);
         await Assert.That(communityAccess).IsTrue();
 
-        var hubAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "hub", hub.Id);
+        var hubAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "hub", hub.PublicId);
         await Assert.That(hubAccess).IsTrue();
 
-        var spaceAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "space", space.Id);
+        var spaceAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "space", space.PublicId);
         await Assert.That(spaceAccess).IsTrue();
 
-        var discussionAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "discussion", discussion.Id);
+        var discussionAccess = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "discussion", discussion.PublicId);
         await Assert.That(discussionAccess).IsTrue();
     }
 
@@ -105,7 +105,7 @@ public class PermissionServiceSqliteTests : IDisposable
         var otherSpace = await _builder.CreateSpaceAsync(otherHub.Id);
 
         // Act - GlobalAdmin should still grant access to the other community's space
-        var result = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "space", otherSpace.Id);
+        var result = await _service.UserHasPermissionAsync(admin.PublicId, "Moderate", "space", otherSpace.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -124,7 +124,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -140,7 +140,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act - hub scope resolves Hub.CommunityId FK to find parent community
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -157,7 +157,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act - space scope resolves Space->Hub->Community chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -175,7 +175,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act - discussion scope resolves Discussion->Space->Hub->Community chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -193,16 +193,16 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityMod, user.Id, communityId: community.Id);
 
         // Act & Assert - CommunityMod access at every level
-        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.Id);
+        var communityAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "community", community.PublicId);
         await Assert.That(communityAccess).IsTrue();
 
-        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
         await Assert.That(hubAccess).IsTrue();
 
-        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
         await Assert.That(spaceAccess).IsTrue();
 
-        var discussionAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.Id);
+        var discussionAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.PublicId);
         await Assert.That(discussionAccess).IsTrue();
     }
 
@@ -220,7 +220,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -237,7 +237,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act - space scope resolves Space.HubId FK
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -255,7 +255,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act - discussion->space->hub chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -272,7 +272,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub1.Id);
 
         // Act - user is HubMod for hub1, not hub2
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub2.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub2.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -293,7 +293,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -311,7 +311,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "discussion", discussion.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -328,7 +328,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act - permissions do NOT bubble up
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -346,7 +346,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space1.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space2.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -369,7 +369,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act - post->discussion->space chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -388,7 +388,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act - post->discussion->space->hub chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -407,7 +407,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act - post->discussion->space->hub->community chain
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "post", post.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -421,7 +421,7 @@ public class PermissionServiceSqliteTests : IDisposable
     public async Task NonExistentUser_ReturnsFalse()
     {
         // Act - user PublicId does not exist in the database
-        var result = await _service.UserHasPermissionAsync("nonexistent-user-id", "Moderate", "community", 1);
+        var result = await _service.UserHasPermissionAsync("nonexistent-user-id", "Moderate", "community", "1");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -437,7 +437,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act - querying a hub ID that doesn't exist in the database
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", 99999);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", "99999");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -454,7 +454,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act - querying a space ID that doesn't exist
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", 99999);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", "99999");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -473,7 +473,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _builder.AssignRoleAsync(regularUser.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act - "invalid" is not a recognized scope
-        var result = await _service.UserHasPermissionAsync(regularUser.PublicId, "Moderate", "invalid", community.Id);
+        var result = await _service.UserHasPermissionAsync(regularUser.PublicId, "Moderate", "invalid", community.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -502,7 +502,7 @@ public class PermissionServiceSqliteTests : IDisposable
             reason: "Emergency coverage");
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -526,7 +526,7 @@ public class PermissionServiceSqliteTests : IDisposable
             expiresAt: DateTime.UtcNow.AddHours(-1)); // Expired 1 hour ago
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -556,7 +556,7 @@ public class PermissionServiceSqliteTests : IDisposable
         await _db.Context.SaveChangesAsync();
 
         // Act
-        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -586,11 +586,11 @@ public class PermissionServiceSqliteTests : IDisposable
 
         // Act & Assert
         // Space access from permanent SpaceMod
-        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.Id);
+        var spaceAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "space", space.PublicId);
         await Assert.That(spaceAccess).IsTrue();
 
         // Hub access from temporary HubMod
-        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.Id);
+        var hubAccess = await _service.UserHasPermissionAsync(user.PublicId, "Moderate", "hub", hub.PublicId);
         await Assert.That(hubAccess).IsTrue();
     }
 

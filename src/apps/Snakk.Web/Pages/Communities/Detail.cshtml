@@ -8,19 +8,14 @@
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
 }
 
-<div class="max-w-6xl mx-auto">
-    <!-- Breadcrumb -->
+<div class="breadcrumb-bar">
     <nav class="breadcrumb">
         <a href="/">Home</a>
         <span class="breadcrumb-separator">/</span>
         <a href="/communities">Communities</a>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current"
-              data-popup-type="community"
-              data-popup-id="@Model.Community?.PublicId"
-              data-popup-name="@Model.Community?.Name">@Model.Community?.Name</span>
     </nav>
-
+</div>
+<div class="max-w-6xl mx-auto px-4 py-8">
     <!-- Community Header -->
     <div class="page-header">
         <div class="flex items-start gap-4">
@@ -49,6 +44,22 @@
             </div>
         </div>
     </div>
+
+    @if (Model.Community?.HasRules == true)
+    {
+        <div class="sidebar-section mb-6 max-w-xl">
+            <h3 class="sidebar-title">Community Rules</h3>
+            <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
+                             model="Model.InlineCommunityRules"
+                             htmx-url="/partials/community-rules?communityId=@Model.Community.PublicId&rev=@Model.Community.RulesRevision">
+                <div class="flex flex-col gap-2">
+                    <div class="skeleton h-4 w-full"></div>
+                    <div class="skeleton h-4 w-5/6"></div>
+                    <div class="skeleton h-4 w-4/6"></div>
+                </div>
+            </inline-or-htmx>
+        </div>
+    }
 
     <!-- Hubs in this Community -->
     <h2 class="text-xl font-semibold mb-4">Hubs</h2>

@@ -10,18 +10,19 @@ public static class ManageContextEndpoints
 {
     public static void MapManageContextEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/manage")
+        var group = app.MapGroup("/manage")
             .WithTags("Management")
             .RequireAuthorization();
 
         group.MapGet("/resolve", ResolveScopeAsync)
-            .WithName("ResolveManageScope");
+            .WithName("ResolveManageScope")
+            .Produces<ManageScopeDto>();
     }
 
     private static async Task<IResult> ResolveScopeAsync(
-        string communitySlug,
-        string? hubSlug,
-        string? spaceSlug,
+        string communityId,
+        string? hubId,
+        string? spaceId,
         ClaimsPrincipal user,
         SnakkDbContext context,
         IManagePermissionService permissionService)
@@ -32,17 +33,17 @@ public static class ManageContextEndpoints
 
         // Resolve community
         var community = await context.Communities
-            .Where(c => c.Slug == communitySlug)
-            .Select(c => new { c.Id, c.Name, c.Slug })
+            .Where(c => c.PublicId == communityId)
+            .Select(c => new { c.Id, c.Name, c.Slug, c.PublicId })
             .FirstOrDefaultAsync();
 
         if (community == null)
             return Results.NotFound(new { error = "Community not found" });
 
-        // If only community slug provided, return community scope
-        if (string.IsNullOrEmpty(hubSlug))
+        // If only community provided, return community scope
+        if (string.IsNullOrEmpty(hubId))
         {
-            var communityPermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Community", community.Id);
+            var communityPermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Community", communityId);
             if (!communityPermissions.HasAnyPermission)
                 return Results.Forbid();
 
@@ -60,17 +61,17 @@ public static class ManageContextEndpoints
 
         // Resolve hub
         var hub = await context.Hubs
-            .Where(h => h.Slug == hubSlug && h.CommunityId == community.Id)
-            .Select(h => new { h.Id, h.Name, h.Slug })
+            .Where(h => h.PublicId == hubId && h.CommunityId == community.Id)
+            .Select(h => new { h.Id, h.Name, h.Slug, h.PublicId })
             .FirstOrDefaultAsync();
 
         if (hub == null)
             return Results.NotFound(new { error = "Hub not found" });
 
-        // If no space slug, return hub scope
-        if (string.IsNullOrEmpty(spaceSlug))
+        // If no space, return hub scope
+        if (string.IsNullOrEmpty(spaceId))
         {
-            var hubPermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Hub", hub.Id);
+            var hubPermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Hub", hubId);
             if (!hubPermissions.HasAnyPermission)
                 return Results.Forbid();
 
@@ -91,14 +92,14 @@ public static class ManageContextEndpoints
 
         // Resolve space
         var space = await context.Spaces
-            .Where(s => s.Slug == spaceSlug && s.HubId == hub.Id)
-            .Select(s => new { s.Id, s.Name, s.Slug })
+            .Where(s => s.PublicId == spaceId && s.HubId == hub.Id)
+            .Select(s => new { s.Id, s.Name, s.Slug, s.PublicId })
             .FirstOrDefaultAsync();
 
         if (space == null)
             return Results.NotFound(new { error = "Space not found" });
 
-        var spacePermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Space", space.Id);
+        var spacePermissions = await permissionService.GetPermissionsForScopeAsync(userId, "Space", spaceId);
         if (!spacePermissions.HasAnyPermission)
             return Results.Forbid();
 

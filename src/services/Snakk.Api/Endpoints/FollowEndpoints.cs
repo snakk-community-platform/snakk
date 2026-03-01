@@ -1,5 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
@@ -10,55 +11,65 @@ public static class FollowEndpoints
     public static void MapFollowEndpoints(this IEndpointRouteBuilder app)
     {
         // Discussion follow endpoints
-        var discussionGroup = app.MapGroup("/api/discussions/{discussionId}")
+        var discussionGroup = app.MapGroup("/discussions/{discussionId}")
             .WithTags("Follow");
 
         discussionGroup.MapPost("/follow", ToggleFollowDiscussionAsync)
             .WithName("ToggleFollowDiscussion")
+            .Produces<FollowToggleResponse>()
             .RequireAuthorization();
 
         discussionGroup.MapGet("/follow-status", GetDiscussionFollowStatusAsync)
-            .WithName("GetDiscussionFollowStatus");
+            .WithName("GetDiscussionFollowStatus")
+            .Produces<FollowToggleResponse>();
 
         // Space follow endpoints
-        var spaceGroup = app.MapGroup("/api/spaces/{spaceId}")
+        var spaceGroup = app.MapGroup("/spaces/{spaceId}")
             .WithTags("Follow");
 
         spaceGroup.MapPost("/follow", ToggleFollowSpaceAsync)
             .WithName("ToggleFollowSpace")
+            .Produces<SpaceFollowToggleResponse>()
             .RequireAuthorization();
 
         spaceGroup.MapPut("/follow-level", UpdateSpaceFollowLevelAsync)
             .WithName("UpdateSpaceFollowLevel")
+            .Produces<FollowLevelResponse>()
             .RequireAuthorization();
 
         spaceGroup.MapGet("/follow-status", GetSpaceFollowStatusAsync)
-            .WithName("GetSpaceFollowStatus");
+            .WithName("GetSpaceFollowStatus")
+            .Produces<SpaceFollowStatusResponse>();
 
         // User follow endpoints
-        var userGroup = app.MapGroup("/api/users/{userId}")
+        var userGroup = app.MapGroup("/users/{userId}")
             .WithTags("Follow");
 
         userGroup.MapPost("/follow", ToggleFollowUserAsync)
             .WithName("ToggleFollowUser")
+            .Produces<FollowToggleResponse>()
             .RequireAuthorization();
 
         userGroup.MapGet("/follow-status", GetUserFollowStatusAsync)
-            .WithName("GetUserFollowStatus");
+            .WithName("GetUserFollowStatus")
+            .Produces<FollowToggleResponse>();
 
         // Follow list endpoints (for caching)
-        var followGroup = app.MapGroup("/api/follows")
+        var followGroup = app.MapGroup("/follows")
             .WithTags("Follow")
             .RequireAuthorization();
 
         followGroup.MapGet("/spaces", GetFollowedSpacesAsync)
-            .WithName("GetFollowedSpaces");
+            .WithName("GetFollowedSpaces")
+            .Produces<FollowedIdsResponse>();
 
         followGroup.MapGet("/discussions", GetFollowedDiscussionsAsync)
-            .WithName("GetFollowedDiscussions");
+            .WithName("GetFollowedDiscussions")
+            .Produces<FollowedIdsResponse>();
 
         followGroup.MapGet("/users", GetFollowedUsersAsync)
-            .WithName("GetFollowedUsers");
+            .WithName("GetFollowedUsers")
+            .Produces<FollowedIdsResponse>();
     }
 
     private static async Task<IResult> ToggleFollowDiscussionAsync(
@@ -80,7 +91,7 @@ public static class FollowEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { isFollowing = result.Value });
+        return TypedResults.Ok(new FollowToggleResponse(result.Value));
     }
 
     private static async Task<IResult> GetDiscussionFollowStatusAsync(
@@ -89,17 +100,17 @@ public static class FollowEndpoints
         FollowUseCase followUseCase)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
-            return Results.Ok(new { isFollowing = false });
+            return TypedResults.Ok(new FollowToggleResponse(false));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null)
-            return Results.Ok(new { isFollowing = false });
+            return TypedResults.Ok(new FollowToggleResponse(false));
 
         var isFollowing = await followUseCase.IsFollowingDiscussionAsync(
             UserId.From(userIdClaim.Value),
             DiscussionId.From(discussionId));
 
-        return Results.Ok(new { isFollowing });
+        return TypedResults.Ok(new FollowToggleResponse(isFollowing));
     }
 
     private static async Task<IResult> ToggleFollowSpaceAsync(
@@ -129,7 +140,7 @@ public static class FollowEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { isFollowing = result.Value, level = followLevel.ToString() });
+        return TypedResults.Ok(new SpaceFollowToggleResponse(result.Value, followLevel.ToString()));
     }
 
     private static async Task<IResult> UpdateSpaceFollowLevelAsync(
@@ -159,7 +170,7 @@ public static class FollowEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { level = result.Value.ToString() });
+        return TypedResults.Ok(new FollowLevelResponse(result.Value.ToString()));
     }
 
     private static async Task<IResult> GetSpaceFollowStatusAsync(
@@ -168,17 +179,17 @@ public static class FollowEndpoints
         FollowUseCase followUseCase)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
-            return Results.Ok(new { isFollowing = false, level = (string?)null });
+            return TypedResults.Ok(new SpaceFollowStatusResponse(false, null));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null)
-            return Results.Ok(new { isFollowing = false, level = (string?)null });
+            return TypedResults.Ok(new SpaceFollowStatusResponse(false, null));
 
         var (isFollowing, level) = await followUseCase.GetSpaceFollowStatusAsync(
             UserId.From(userIdClaim.Value),
             SpaceId.From(spaceId));
 
-        return Results.Ok(new { isFollowing, level = level?.ToString() });
+        return TypedResults.Ok(new SpaceFollowStatusResponse(isFollowing, level?.ToString()));
     }
 
     private static async Task<IResult> ToggleFollowUserAsync(
@@ -200,7 +211,7 @@ public static class FollowEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { isFollowing = result.Value });
+        return TypedResults.Ok(new FollowToggleResponse(result.Value));
     }
 
     private static async Task<IResult> GetUserFollowStatusAsync(
@@ -209,17 +220,17 @@ public static class FollowEndpoints
         FollowUseCase followUseCase)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
-            return Results.Ok(new { isFollowing = false });
+            return TypedResults.Ok(new FollowToggleResponse(false));
 
         var currentUserIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (currentUserIdClaim == null)
-            return Results.Ok(new { isFollowing = false });
+            return TypedResults.Ok(new FollowToggleResponse(false));
 
         var isFollowing = await followUseCase.IsFollowingUserAsync(
             UserId.From(currentUserIdClaim.Value),
             UserId.From(userId));
 
-        return Results.Ok(new { isFollowing });
+        return TypedResults.Ok(new FollowToggleResponse(isFollowing));
     }
 
     private static async Task<IResult> GetFollowedSpacesAsync(
@@ -237,7 +248,7 @@ public static class FollowEndpoints
             UserId.From(userIdClaim.Value));
 
         var publicIds = followedSpaces.Select(s => s.Value).ToList();
-        return Results.Ok(new { publicIds });
+        return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 
     private static async Task<IResult> GetFollowedDiscussionsAsync(
@@ -255,7 +266,7 @@ public static class FollowEndpoints
             UserId.From(userIdClaim.Value));
 
         var publicIds = followedDiscussions.Select(d => d.Value).ToList();
-        return Results.Ok(new { publicIds });
+        return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 
     private static async Task<IResult> GetFollowedUsersAsync(
@@ -273,6 +284,6 @@ public static class FollowEndpoints
             UserId.From(userIdClaim.Value));
 
         var publicIds = followedUsers.Select(u => u.Value).ToList();
-        return Results.Ok(new { publicIds });
+        return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 }

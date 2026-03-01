@@ -1,5 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
@@ -8,7 +9,7 @@ public static class NotificationEndpoints
 {
     public static void MapNotificationEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/notifications")
+        var group = app.MapGroup("/notifications")
             .WithTags("Notifications")
             .RequireAuthorization();
 
@@ -16,13 +17,16 @@ public static class NotificationEndpoints
             .WithName("GetNotifications");
 
         group.MapGet("/unread-count", GetUnreadCountAsync)
-            .WithName("GetUnreadNotificationCount");
+            .WithName("GetUnreadNotificationCount")
+            .Produces<UnreadCountResponse>();
 
         group.MapPost("/{notificationId}/read", MarkAsReadAsync)
-            .WithName("MarkNotificationAsRead");
+            .WithName("MarkNotificationAsRead")
+            .Produces<SuccessResponse>();
 
         group.MapPost("/read-all", MarkAllAsReadAsync)
-            .WithName("MarkAllNotificationsAsRead");
+            .WithName("MarkAllNotificationsAsRead")
+            .Produces<SuccessResponse>();
     }
 
     private static async Task<IResult> GetNotificationsAsync(
@@ -59,7 +63,7 @@ public static class NotificationEndpoints
 
         var count = await notificationUseCase.GetUnreadCountAsync(UserId.From(userIdClaim.Value));
 
-        return Results.Ok(new { count });
+        return TypedResults.Ok(new UnreadCountResponse(count));
     }
 
     private static async Task<IResult> MarkAsReadAsync(
@@ -81,7 +85,7 @@ public static class NotificationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { success = true });
+        return TypedResults.Ok(new SuccessResponse(true));
     }
 
     private static async Task<IResult> MarkAllAsReadAsync(
@@ -97,6 +101,6 @@ public static class NotificationEndpoints
 
         await notificationUseCase.MarkAllAsReadAsync(UserId.From(userIdClaim.Value));
 
-        return Results.Ok(new { success = true });
+        return TypedResults.Ok(new SuccessResponse(true));
     }
 }

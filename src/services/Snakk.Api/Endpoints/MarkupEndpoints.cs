@@ -6,7 +6,7 @@ public static class MarkupEndpoints
 {
     public static void MapMarkupEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/markup")
+        var group = app.MapGroup("/markup")
             .WithTags("Markup");
 
         group.MapPost("/preview", PreviewMarkupAsync)

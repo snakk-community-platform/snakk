@@ -52,6 +52,7 @@ public class DiscussionUseCase(
         // Update denormalized counts
         await _counterService.IncrementDiscussionCountAsync(spaceId);
         await _counterService.IncrementPostCountAsync(discussion.PublicId);
+        await _counterService.IncrementUserDiscussionCountAsync(userId);
 
         // Dispatch domain events
         await _eventDispatcher.DispatchAsync(discussion.DomainEvents);

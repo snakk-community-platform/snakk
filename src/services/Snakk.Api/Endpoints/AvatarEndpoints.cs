@@ -1,11 +1,9 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
 using Snakk.Api.Helpers;
 
 public static class AvatarEndpoints
@@ -15,263 +13,16 @@ public static class AvatarEndpoints
         var group = app.MapGroup("/avatars")
             .WithTags("Avatars");
 
-        group.MapGet("/{userId}", GetAvatarAsync)
-            .WithName("GetAvatar");
-
-        group.MapGet("/user/{userId}", GetAvatarAsync)
-            .WithName("GetUserAvatar");
-
-        group.MapGet("/{userId}/generated", GetGeneratedAvatar)
-            .WithName("GetGeneratedAvatar");
-
-        group.MapGet("/hub/{publicId}", GetHubAvatar)
-            .WithName("GetHubAvatar");
-
-        group.MapGet("/space/{publicId}", GetSpaceAvatar)
-            .WithName("GetSpaceAvatar");
-
-        group.MapGet("/community/{publicId}", GetCommunityAvatar)
-            .WithName("GetCommunityAvatar");
-
         group.MapPost("/upload", UploadAvatarAsync)
             .WithName("UploadAvatar")
+            .Produces<AvatarUploadResponse>()
             .RequireAuthorization()
             .DisableAntiforgery();
 
         group.MapDelete("/", DeleteAvatarAsync)
             .WithName("DeleteAvatar")
+            .Produces<MessageResponse>()
             .RequireAuthorization();
-    }
-
-    private static async Task<IResult> GetAvatarAsync(
-        string userId,
-        string? type,
-        HttpContext httpContext,
-        IUserRepository userRepository,
-        IWebHostEnvironment env)
-    {
-        // Strip .svg extension if present (for CDN-friendly URLs)
-        var cleanUserId = userId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
-            ? userId[..^4]
-            : userId;
-
-        // Check if browser supports WebP
-        var acceptHeader = httpContext.Request.Headers.Accept.ToString();
-        var supportsWebP = acceptHeader.Contains("image/webp", StringComparison.OrdinalIgnoreCase);
-
-        // Handle empty userId - return default avatar for unknown user
-        if (string.IsNullOrWhiteSpace(cleanUserId))
-        {
-            return GetGeneratedAvatar("unknown", type, httpContext, env);
-        }
-
-        var user = await userRepository.GetByPublicIdAsync(UserId.From(cleanUserId));
-
-        // If user has uploaded avatar, serve it (type parameter is ignored for uploaded avatars)
-        if (user != null && !string.IsNullOrEmpty(user.AvatarFileName))
-        {
-            var avatarPath = Path.Combine(env.ContentRootPath, "avatars", user.AvatarFileName);
-            if (File.Exists(avatarPath))
-            {
-                var extension = Path.GetExtension(user.AvatarFileName).ToLowerInvariant();
-
-                // If browser supports WebP and image is not already WebP, convert on-the-fly
-                if (supportsWebP && extension != ".webp" && (extension == ".jpg" || extension == ".jpeg" || extension == ".png"))
-                {
-                    // Check for cached WebP version
-                    var webpCachePath = Path.Combine(env.ContentRootPath, "avatars", "webp-cache", $"{Path.GetFileNameWithoutExtension(user.AvatarFileName)}.webp");
-                    byte[] webpData;
-
-                    if (File.Exists(webpCachePath))
-                    {
-                        // Serve cached WebP
-                        webpData = await File.ReadAllBytesAsync(webpCachePath);
-                    }
-                    else
-                    {
-                        // Convert to WebP and cache
-                        Directory.CreateDirectory(Path.Combine(env.ContentRootPath, "avatars", "webp-cache"));
-
-                        using var image = await Image.LoadAsync(avatarPath);
-                        using var ms = new MemoryStream();
-                        await image.SaveAsync(ms, new WebpEncoder { Quality = 85 });
-                        webpData = ms.ToArray();
-
-                        // Cache the WebP version
-                        await File.WriteAllBytesAsync(webpCachePath, webpData);
-                    }
-
-                    httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-                    return Results.File(webpData, "image/webp", enableRangeProcessing: true);
-                }
-
-                // Serve original format
-                var contentType = extension switch
-                {
-                    ".jpg" or ".jpeg" => "image/jpeg",
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".webp" => "image/webp",
-                    _ => "application/octet-stream"
-                };
-
-                // Set cache headers for CDN (1 year for immutable content)
-                httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-                return Results.File(
-                    await File.ReadAllBytesAsync(avatarPath),
-                    contentType,
-                    enableRangeProcessing: true);
-            }
-        }
-
-        // Fall back to pre-generated avatar file
-        var generatedPath = Path.Combine(
-            env.ContentRootPath,
-            "avatars",
-            "generated",
-            "users",
-            $"{cleanUserId}.svg"
-        );
-
-        if (File.Exists(generatedPath))
-        {
-            httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-            httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-            return Results.File(generatedPath, "image/svg+xml", enableRangeProcessing: true);
-        }
-
-        // If neither uploaded nor generated avatar exists, return 404
-        return Results.NotFound(new { error = "Avatar not found" });
-    }
-
-    private static IResult GetGeneratedAvatar(
-        string userId,
-        string? type,
-        HttpContext httpContext,
-        IWebHostEnvironment env)
-    {
-        // Strip .svg extension if present
-        var cleanUserId = userId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
-            ? userId[..^4]
-            : userId;
-
-        // Build file path
-        var filePath = Path.Combine(
-            env.ContentRootPath,
-            "avatars",
-            "generated",
-            "users",
-            $"{cleanUserId}.svg"
-        );
-
-        // Check if file exists
-        if (!File.Exists(filePath))
-        {
-            return Results.NotFound(new { error = "Avatar not found" });
-        }
-
-        // Set aggressive cache headers
-        httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-
-        // Serve static file
-        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
-    }
-
-    private static IResult GetHubAvatar(
-        string publicId,
-        string? type,
-        HttpContext httpContext,
-        IWebHostEnvironment env)
-    {
-        // Strip .svg extension if present
-        var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-
-        // Build file path
-        var filePath = Path.Combine(
-            env.ContentRootPath,
-            "avatars",
-            "generated",
-            "hubs",
-            $"{cleanId}.svg"
-        );
-
-        // Check if file exists
-        if (!File.Exists(filePath))
-        {
-            return Results.NotFound(new { error = "Avatar not found" });
-        }
-
-        // Set aggressive cache headers
-        httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-
-        // Serve static file
-        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
-    }
-
-    private static IResult GetSpaceAvatar(
-        string publicId,
-        string? type,
-        HttpContext httpContext,
-        IWebHostEnvironment env)
-    {
-        // Strip .svg extension if present
-        var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-
-        // Build file path
-        var filePath = Path.Combine(
-            env.ContentRootPath,
-            "avatars",
-            "generated",
-            "spaces",
-            $"{cleanId}.svg"
-        );
-
-        // Check if file exists
-        if (!File.Exists(filePath))
-        {
-            return Results.NotFound(new { error = "Avatar not found" });
-        }
-
-        // Set aggressive cache headers
-        httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-
-        // Serve static file
-        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
-    }
-
-    private static IResult GetCommunityAvatar(
-        string publicId,
-        string? type,
-        HttpContext httpContext,
-        IWebHostEnvironment env)
-    {
-        // Strip .svg extension if present
-        var cleanId = publicId.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? publicId[..^4] : publicId;
-
-        // Build file path
-        var filePath = Path.Combine(
-            env.ContentRootPath,
-            "avatars",
-            "generated",
-            "communities",
-            $"{cleanId}.svg"
-        );
-
-        // Check if file exists
-        if (!File.Exists(filePath))
-        {
-            return Results.NotFound(new { error = "Avatar not found" });
-        }
-
-        // Set aggressive cache headers
-        httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-
-        // Serve static file
-        return Results.File(filePath, "image/svg+xml", enableRangeProcessing: true);
     }
 
     private static async Task<IResult> UploadAvatarAsync(
@@ -344,11 +95,9 @@ public static class AvatarEndpoints
         user.SetAvatarFileName(newFileName);
         await userRepository.UpdateAsync(user);
 
-        return Results.Ok(new
-        {
-            message = "Avatar uploaded successfully",
-            avatarUrl = $"/avatars/{userId.Value}"
-        });
+        return TypedResults.Ok(new AvatarUploadResponse(
+            "Avatar uploaded successfully",
+            $"/avatars/{userId.Value}"));
     }
 
     private static async Task<IResult> DeleteAvatarAsync(
@@ -383,6 +132,6 @@ public static class AvatarEndpoints
         user.ClearAvatar();
         await userRepository.UpdateAsync(user);
 
-        return Results.Ok(new { message = "Avatar deleted. Using generated avatar." });
+        return TypedResults.Ok(new MessageResponse("Avatar deleted. Using generated avatar."));
     }
 }

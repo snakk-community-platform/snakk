@@ -65,6 +65,7 @@ public class PostUseCase(
             {
                 var follow = Follow.CreateForDiscussion(userId, discussionId);
                 await _followRepository.AddAsync(follow);
+                await _counterService.IncrementDiscussionFollowerCountAsync(discussionId);
             }
         }
 
@@ -77,6 +78,7 @@ public class PostUseCase(
 
         // Update denormalized counts
         await _counterService.IncrementPostCountAsync(discussionId);
+        await _counterService.IncrementUserReplyCountAsync(userId);
 
         // Dispatch domain events
         await _eventDispatcher.DispatchAsync(post.DomainEvents);
@@ -192,6 +194,8 @@ public class PostUseCase(
 
             // Decrement denormalized counts
             await _counterService.DecrementPostCountAsync(discussionId);
+            if (!post.IsFirstPost)
+                await _counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
 
             // Send realtime notification
             await _realtimeNotifier.NotifyPostDeletedAsync(postId, discussionId, isHardDelete);

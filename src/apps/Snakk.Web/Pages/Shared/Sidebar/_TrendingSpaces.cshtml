@@ -1,0 +1,35 @@
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.ViewModels.SidebarTrendingSpacesVM
+
+<div data-cache-source="@Model.CacheSource">
+@if (Model.Spaces?.Items == null || Model.Spaces.Items.Count == 0)
+{
+    <p class="sidebar-empty">No activity today yet</p>
+}
+else
+{
+    <ul class="sidebar-list">
+        @foreach (var space in Model.Spaces.Items)
+        {
+            var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
+
+            <li>
+                <a href="@spaceUrl" class="sidebar-link">
+                    <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
+                         alt=""
+                         loading="lazy"
+                         class="sidebar-avatar" />
+                    <span class="sidebar-link-content">
+                        <span class="sidebar-link-title">@space.Name</span>
+                        <span class="sidebar-link-meta">
+                            <span class="sidebar-badge">@space.PostCountToday posts today</span>
+                            <span>@space.Hub.Name</span>
+                        </span>
+                    </span>
+                </a>
+            </li>
+        }
+    </ul>
+}
+</div>

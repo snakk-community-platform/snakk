@@ -104,7 +104,7 @@ public class HubManagementServiceTests : IDisposable
         await CreatePostAsync(disc2.Id, user.Id, "Post 3", isFirstPost: true);
         await CreatePostAsync(disc3.Id, user.Id, "Post 4", isFirstPost: true);
 
-        var result = await _service.GetOverviewAsync("test-community", "test-hub");
+        var result = await _service.GetOverviewAsync("hub-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Test Hub");
@@ -124,7 +124,7 @@ public class HubManagementServiceTests : IDisposable
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetOverviewAsync("empty-community", "nonexistent-hub");
+        var result = await _service.GetOverviewAsync("nonexistent-hub");
 
         await Assert.That(result).IsNull();
     }
@@ -152,7 +152,7 @@ public class HubManagementServiceTests : IDisposable
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetSettingsAsync("settings-community", "settings-hub");
+        var result = await _service.GetSettingsAsync("hub-settings");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Settings Hub");
@@ -189,7 +189,7 @@ public class HubManagementServiceTests : IDisposable
             Description = "Updated hub description"
         };
 
-        var result = await _service.UpdateSettingsAsync("update-community", "update-hub", request);
+        var result = await _service.UpdateSettingsAsync("hub-update", request);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Updated Hub Name");
@@ -226,7 +226,7 @@ public class HubManagementServiceTests : IDisposable
         var disc3 = await CreateDiscussionAsync(space2.Id, user.Id, "Disc C");
         await CreatePostAsync(disc3.Id, user.Id, "Post D", isFirstPost: true);
 
-        var result = await _service.GetSpacesAsync("test-community", "test-hub");
+        var result = await _service.GetSpacesAsync("hub-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result.Total).IsEqualTo(2);

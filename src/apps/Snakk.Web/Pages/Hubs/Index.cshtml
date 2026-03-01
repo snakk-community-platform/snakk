@@ -8,8 +8,7 @@
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
 }
 
-<div class="max-w-6xl mx-auto">
-    <!-- Breadcrumb -->
+<div class="breadcrumb-bar">
     <nav class="breadcrumb">
         <a href="/">Home</a>
         @if (Model.ShowCommunityInBreadcrumb)
@@ -19,10 +18,9 @@
             <span class="breadcrumb-separator">/</span>
             <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
         }
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current">Hubs</span>
     </nav>
-
+</div>
+<div class="max-w-6xl mx-auto px-4 py-8">
     <!-- Page Header with Stats -->
     <div class="page-header">
         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -125,113 +123,52 @@
         </div>
 
         <!-- Right Column: Trending -->
-        <aside class="w-full lg:w-80 flex-shrink-0">
+        <aside class="w-full lg:w-80 flex-shrink-0" hx-push-url="false">
             @if (Model.ShowTrendingSpaces)
             {
-                <!-- Trending Spaces -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Spaces</h3>
-                    @if (Model.TrendingSpaces?.Items == null || Model.TrendingSpaces.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No activity today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var space in Model.TrendingSpaces.Items)
-                            {
-                                var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
-
-                                <li>
-                                    <a href="@spaceUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
-                                             alt="" loading="lazy" class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title">@space.Name</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@space.PostCountToday posts today</span>
-                                                <span>@space.Hub.Name</span>
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
+                                     model="Model.InlineTrendingSpaces"
+                                     htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
 
             @if (Model.ShowTrendingDiscussions)
             {
-                <!-- Trending Discussions -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Discussions</h3>
-                    @if (Model.TrendingDiscussions?.Items == null || Model.TrendingDiscussions.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No activity today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var discussion in Model.TrendingDiscussions.Items)
-                            {
-                                var discussionUrl = SnakkUrlHelper.Discussion(
-                                    Model.Community,
-                                    discussion.Hub.Slug,
-                                    discussion.Space.Slug,
-                                    $"{discussion.Slug}~{discussion.PublicId}");
-
-                                <li>
-                                    <a href="@discussionUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
-                                             alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
-                                                <span>@discussion.Space.Name</span>
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
+                                     model="Model.InlineTrendingDiscussions"
+                                     htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
 
             @if (Model.ShowTrendingContributors)
             {
-                <!-- Trending Contributors -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Contributors</h3>
-                    @if (Model.TrendingContributors?.Items == null || Model.TrendingContributors.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No contributors today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var contributor in Model.TrendingContributors.Items)
-                            {
-                                <li>
-                                    <span class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
-                                             alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title"
-                                                  data-popup-type="user"
-                                                  data-popup-id="@contributor.PublicId"
-                                                  data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
-                                            </span>
-                                        </span>
-                                    </span>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
+                                     model="Model.InlineTrendingContributors"
+                                     htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
         </aside>

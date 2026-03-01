@@ -112,7 +112,7 @@ public class SpaceManagementServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetOverviewAsync("test-community", "test-space");
+        var result = await _service.GetOverviewAsync("space-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Test Space");
@@ -138,7 +138,7 @@ public class SpaceManagementServiceTests : IDisposable
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetOverviewAsync("empty-community", "nonexistent-space");
+        var result = await _service.GetOverviewAsync("nonexistent-space");
 
         await Assert.That(result).IsNull();
     }
@@ -170,7 +170,7 @@ public class SpaceManagementServiceTests : IDisposable
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetSettingsAsync("settings-community", "settings-space");
+        var result = await _service.GetSettingsAsync("space-settings");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Settings Space");
@@ -211,7 +211,7 @@ public class SpaceManagementServiceTests : IDisposable
             Description = "Updated space description"
         };
 
-        var result = await _service.UpdateSettingsAsync("update-community", "update-space", request);
+        var result = await _service.UpdateSettingsAsync("space-update", request);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Updated Space Name");
@@ -231,7 +231,7 @@ public class SpaceManagementServiceTests : IDisposable
     public async Task GetModerationDataAsync_WhenSpaceNotFound_ReturnsEmptyModerationData()
     {
         // No data seeded at all - spaceId will be 0
-        var result = await _service.GetModerationDataAsync("nonexistent-community", "nonexistent-space");
+        var result = await _service.GetModerationDataAsync("nonexistent-space");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result.PendingReports.Count).IsEqualTo(0);

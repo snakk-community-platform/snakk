@@ -9,7 +9,7 @@
 (function () {
     'use strict';
     function checkSidebarScrollbar() {
-        const sidebar = document.getElementById('sidebar');
+        const sidebar = document.getElementById('sticky-sidebar');
         if (!sidebar)
             return;
         // Check if sidebar has a scrollbar (scrollHeight > clientHeight)

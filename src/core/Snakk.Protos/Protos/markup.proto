@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Markup";
+
+package snakk.markup;
+
+service MarkupService {
+  rpc Preview (PreviewMarkupRequest) returns (PreviewMarkupResponse);
+}
+
+message PreviewMarkupRequest {
+  string content = 1;
+}
+
+message PreviewMarkupResponse {
+  string html = 1;
+}

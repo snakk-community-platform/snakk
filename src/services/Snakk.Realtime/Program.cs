@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(
-                builder.Configuration["Cors:AllowedOrigins"]?.Split(',') ?? ["https://localhost:17000"])
+                builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? ["https://localhost:17000"])
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -37,12 +37,6 @@ var app = builder.Build();
 
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();
-
-// Use path base when running behind gateway
-if (app.Environment.IsDevelopment())
-{
-    app.UsePathBase("/realtime");
-}
 
 // API Key authentication for internal service calls
 app.UseApiKeyAuth();

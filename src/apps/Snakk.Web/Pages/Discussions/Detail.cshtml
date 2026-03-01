@@ -38,7 +38,7 @@
         {
             <meta property="og:image" content="@($"{baseUrl}{authorAvatar}")" />
         }
-        <meta property="article:published_time" content="@Model.Discussion.CreatedAt.ToString("O")" />
+        <meta property="article:published_time" content="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")" />
         <meta property="article:author" content="@(firstPost?.Author?.DisplayName ?? "Anonymous")" />
 
         <!-- Twitter Card -->
@@ -57,7 +57,7 @@
             "@@type": "DiscussionForumPosting",
             "headline": "@Model.Discussion.Title",
             "url": "@url",
-            "datePublished": "@Model.Discussion.CreatedAt.ToString("O")",
+            "datePublished": "@Model.Discussion.CreatedAt.ToDateTime().ToString("O")",
             "author": {
                 "@@type": "Person",
                 "name": "@(firstPost?.Author?.DisplayName ?? "Anonymous")"
@@ -65,7 +65,7 @@
             "interactionStatistic": {
                 "@@type": "InteractionCounter",
                 "interactionType": "https://schema.org/CommentAction",
-                "userInteractionCount": @(Model.Discussion.PostCount)
+                "userInteractionCount": @(Model.Posts?.Items?.Count ?? 0)
             },
             "isPartOf": {
                 "@@type": "WebPage",
@@ -118,7 +118,7 @@
 @if (Model.Discussion != null)
 {
     <!-- Breadcrumb -->
-    <div class="max-w-6xl mx-auto">
+    <div class="breadcrumb-bar">
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol class="breadcrumb-list" itemscope itemtype="https://schema.org/BreadcrumbList">
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -146,109 +146,28 @@
                 }
                 <li class="breadcrumb-separator" aria-hidden="true">/</li>
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                    <a href="/hubs" itemprop="item">
-                        <span itemprop="name">Hubs</span>
+                    <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)"
+                       itemprop="item"
+                       data-popup-type="hub"
+                       data-popup-id="@Model.Hub?.PublicId"
+                       data-popup-name="@Model.Hub?.Name">
+                        <span itemprop="name">@(Model.Hub?.Name ?? Model.HubSlug)</span>
                     </a>
                     <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 4 : 2)" />
                 </li>
                 <li class="breadcrumb-separator" aria-hidden="true">/</li>
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                    <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)"
-                       itemprop="item"
-                                             data-popup-type="hub"
-                       data-popup-id="@Model.Hub?.PublicId"
-                       data-popup-name="@Model.Hub?.Name">
-                        <span itemprop="name">@(Model.Hub?.Name ?? Model.HubSlug)</span>
-                    </a>
-                    <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 5 : 3)" />
-                </li>
-                <li class="breadcrumb-separator" aria-hidden="true">/</li>
-                <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
                     <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)"
                        itemprop="item"
-                                             data-popup-type="space"
+                       data-popup-type="space"
                        data-popup-id="@Model.Space?.PublicId"
                        data-popup-name="@Model.Space?.Name">
                         <span itemprop="name">@(Model.Space?.Name ?? Model.SpaceSlug)</span>
                     </a>
-                    <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 6 : 4)" />
-                </li>
-                <li class="breadcrumb-separator" aria-hidden="true">/</li>
-                <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                    <span class="breadcrumb-current truncate max-w-xs"
-                          data-popup-type="discussion"
-                          data-popup-id="@Model.Discussion.PublicId"
-                          data-popup-name="@Model.Discussion.Title"
-                          itemprop="name">@Model.Discussion.Title</span>
-                    <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 7 : 5)" />
+                    <meta itemprop="position" content="@(Model.ShowCommunityInBreadcrumb ? 5 : 3)" />
                 </li>
             </ol>
         </nav>
-    </div>
-
-    <!-- Thread Header -->
-    <div class="max-w-6xl mx-auto">
-        <header class="discussion-header">
-            <div class="flex items-start justify-between">
-                <div>
-                    <h1 class="title">@Model.Discussion.Title</h1>
-                    <div class="meta flex items-center gap-2">
-                        <time datetime="@Model.Discussion.CreatedAt.ToString("O")">
-                            @Model.Discussion.CreatedAt.ToString("MMMM d, yyyy")
-                        </time>
-                        @if (Model.Discussion.IsPinned)
-                        {
-                            <span class="badge badge-primary badge-sm">Pinned</span>
-                        }
-                        @if (Model.Discussion.IsLocked)
-                        {
-                            <span class="badge badge-warning badge-sm">Locked</span>
-                        }
-                    </div>
-                </div>
-                @if (Model.IsAuthenticated)
-                {
-                    <div class="flex items-center gap-2">
-                        <button id="follow-btn"
-                                onclick="toggleFollowDiscussion('@Model.Discussion.PublicId')"
-                                class="btn btn-ghost btn-sm follow-btn"
-                                aria-label="Follow this discussion">
-                            <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                            <span id="follow-text">Follow</span>
-                        </button>
-                        <!-- Discussion actions dropdown -->
-                        <div class="dropdown dropdown-end">
-                            <button tabindex="0" class="btn btn-ghost btn-sm btn-square" aria-label="Discussion options">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                            </button>
-                            <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
-                                <li>
-                                    <button id="mute-discussion-btn" onclick="toggleMuteDiscussion('@Model.Discussion.PublicId')" class="text-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                                        </svg>
-                                        <span id="mute-text">Mute discussion</span>
-                                    </button>
-                                </li>
-                                <li>
-                                    <button onclick="openReportModal('discussion', '@Model.Discussion.PublicId', '@Model.EscapeForJs(Model.Discussion.Title)')" class="text-sm text-error">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        Report
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                }
-            </div>
-        </header>
     </div>
 
     <!-- Jump to Unread Button -->
@@ -258,10 +177,79 @@
         </button>
     </div>
 
+    <!-- Two Column Layout -->
+    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex flex-col lg:flex-row gap-6">
+    <!-- Left Column: Posts + Reply -->
+    <div class="flex-1 min-w-0">
+
+    <!-- Thread Header -->
+    <header class="discussion-header">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="title">@Model.Discussion.Title</h1>
+                <div class="meta flex items-center gap-2">
+                    <time datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
+                        @Model.Discussion.CreatedAt.ToDateTime().ToString("MMMM d, yyyy")
+                    </time>
+                    @if (Model.Discussion.IsPinned)
+                    {
+                        <span class="badge badge-primary badge-sm">Pinned</span>
+                    }
+                    @if (Model.Discussion.IsLocked)
+                    {
+                        <span class="badge badge-warning badge-sm">Locked</span>
+                    }
+                </div>
+            </div>
+            @if (Model.IsAuthenticated)
+            {
+                <div class="flex items-center gap-2">
+                    <button id="follow-btn"
+                            onclick="toggleFollowDiscussion('@Model.Discussion.PublicId')"
+                            class="btn btn-ghost btn-sm follow-btn"
+                            aria-label="Follow this discussion">
+                        <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span id="follow-text">Follow</span>
+                    </button>
+                    <!-- Discussion actions dropdown -->
+                    <div class="dropdown dropdown-end">
+                        <button tabindex="0" class="btn btn-ghost btn-sm btn-square" aria-label="Discussion options">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                        </button>
+                        <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
+                            <li>
+                                <button id="mute-discussion-btn" onclick="toggleMuteDiscussion('@Model.Discussion.PublicId')" class="text-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                    </svg>
+                                    <span id="mute-text">Mute discussion</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button onclick="openReportModal('discussion', '@Model.Discussion.PublicId', '@Model.EscapeForJs(Model.Discussion.Title)')" class="text-sm text-error">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Report
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </header>
+
     <!-- Locked Thread Banner -->
     @if (Model.Discussion.IsLocked)
     {
-        <div class="max-w-6xl mx-auto mb-4">
+        <div class="mb-4">
             <div class="bg-warning/10 border-l-4 border-warning px-4 py-3 rounded">
                 <div class="flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -274,12 +262,6 @@
             </div>
         </div>
     }
-
-    <!-- Two Column Layout -->
-    <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col lg:flex-row gap-6">
-    <!-- Left Column: Posts + Reply -->
-    <div class="flex-1 min-w-0">
 
     <!-- Posts Container -->
                 <div id="posts-container" class="flex flex-col gap-6">
@@ -351,8 +333,8 @@
                                     }
                                 </div>
                                 <div class="text-xs text-muted">
-                                    @Model.FormatRelativeTime(post.CreatedAt)
-                                    @if (post.EditedAt.HasValue)
+                                    @Model.FormatRelativeTime(post.CreatedAt.ToDateTime())
+                                    @if (post.EditedAt != null)
                                     {
                                         <span class="ml-1">(edited)</span>
                                     }
@@ -473,8 +455,8 @@
                     {
                         <div class="flex items-center gap-2 pl-11">
                             <span class="text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                                @Model.FormatRelativeTime(post.CreatedAt)
-                                @if (post.EditedAt.HasValue)
+                                @Model.FormatRelativeTime(post.CreatedAt.ToDateTime())
+                                @if (post.EditedAt != null)
                                 {
                                     <span>(edited)</span>
                                 }
@@ -595,12 +577,10 @@
                             <!-- Reply-to Quote Block -->
                             @if (hasReplyTo)
                             {
-                                <a href="#post-@post.ReplyTo!.PostId"
-                                   class="editorial-quote block mb-4 text-sm"
-                                   onclick="highlightPost('@post.ReplyTo!.PostId')">
+                                <div class="editorial-quote block mb-4 text-sm">
                                     <span class="quote-author">@post.ReplyTo!.AuthorName wrote:</span>
                                     <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
-                                </a>
+                                </div>
                             }
 
                             <!-- Post Content -->
@@ -830,66 +810,21 @@
         }
 
         <!-- Rules -->
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Rules</h3>
-
-            @{
-                var spaceRules = new[]
-                {
-                    new { Title = "Be respectful", Content = "Treat all community members with respect. No harassment, hate speech, or personal attacks." },
-                    new { Title = "Stay on topic", Content = "Keep discussions relevant to this space. Off-topic posts may be moved or removed." },
-                    new { Title = "No spam", Content = "Do not post spam, excessive self-promotion, or unsolicited advertising." }
-                };
-            }
-
-            @foreach (var (rule, index) in spaceRules.Select((r, i) => (r, i)))
-            {
-                <details class="group">
-                    <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
-                        <span>@(index + 1). @rule.Title</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                             class="flex-shrink-0 transition-transform group-open:rotate-180">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </summary>
-                    <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Content</p>
-                </details>
-            }
-
-            <div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
-                @if (Model.Hub != null)
-                {
-                    <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)/rules"
-                       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-                        <span>Hub Rules</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-                }
-                @if (!string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                {
-                    <a href="/c/@Model.Community.CommunitySlug/rules"
-                       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-                        <span>Community Rules</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-                }
-                <a href="/rules"
-                   class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-                    <span>Site Rules</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                </a>
+        @if (Model.Space?.HasRules == true)
+        {
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Rules</h3>
+                <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
+                                 model="Model.InlineSpaceRules"
+                                 htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentHubHasRules=@(Model.Space.ParentHubHasRules)&parentCommunityHasRules=@(Model.Space.ParentCommunityHasRules)&rev=@Model.Space.RulesRevision">
+                    <div class="flex flex-col gap-2">
+                        <div class="skeleton h-4 w-full"></div>
+                        <div class="skeleton h-4 w-5/6"></div>
+                        <div class="skeleton h-4 w-4/6"></div>
+                    </div>
+                </inline-or-htmx>
             </div>
-        </div>
+        }
     </aside>
     </div> <!-- End flex row -->
     </div> <!-- End max-w wrapper -->
@@ -1040,7 +975,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     communitySlug: '@Model.Community.CommunitySlug',
                     communityName: '@(Model.Community.CommunityName?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.Community.CommunitySlug)',
                     isDefaultCommunity: @(Model.Community.IsDefaultCommunity ? "true" : "false"),
-                    lastActivityAt: '@(Model.Discussion.LastActivityAt?.ToString("O") ?? Model.Discussion.CreatedAt.ToString("O"))'
+                    lastActivityAt: '@(Model.Discussion.LastActivityAt?.ToDateTime().ToString("O") ?? Model.Discussion.CreatedAt.ToDateTime().ToString("O"))'
                 });
             }
             </text>

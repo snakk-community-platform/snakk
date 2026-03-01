@@ -27,6 +27,10 @@ public class CommunityDatabaseEntity
     // Avatar revision number (incremented when avatar changes)
     public int AvatarRevision { get; set; } = 0;
 
+    // Rules denormalization
+    public bool HasRules { get; set; }
+    public string? RulesRevision { get; set; }
+
     // Denormalized counts for performance
     public int HubCount { get; set; }
     public int SpaceCount { get; set; }
@@ -36,4 +40,5 @@ public class CommunityDatabaseEntity
     // One-to-many relationships
     public virtual ICollection<HubDatabaseEntity> Hubs { get; set; } = [];
     public virtual ICollection<CommunityDomainDatabaseEntity> Domains { get; set; } = [];
+    public virtual ICollection<CommunityRuleDatabaseEntity> Rules { get; set; } = [];
 }

@@ -76,6 +76,20 @@ Acknowledgments: https://snakk.local/security-thanks";
 
 // Map gRPC services
 app.MapGrpcService<Snakk.Api.GrpcServices.AuthGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.CommunityGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.HubGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.SpaceGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.DiscussionGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.PostGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.FollowGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.ReactionGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.NotificationGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.ModerationGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.SearchGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.StatisticsGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.UserGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.ReadStateGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.MarkupGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();
@@ -84,6 +98,7 @@ app.MapSpaceEndpoints();
 app.MapDiscussionEndpoints();
 app.MapPostEndpoints();
 app.MapAuthEndpoints();
+app.MapMeEndpoints();
 app.MapTwoFactorAuthEndpoints();
 app.MapSessionManagementEndpoints();
 app.MapAdminModerationEndpoints();
@@ -99,13 +114,13 @@ app.MapAvatarEndpoints();
 app.MapReactionEndpoints();
 app.MapNotificationEndpoints();
 app.MapFollowEndpoints();
-app.MapStatsEndpoints();
+app.MapPlatformEndpoints();
 app.MapUserEndpoints();
 app.MapMarkupEndpoints();
 app.MapReadStateEndpoints();
 app.MapSearchEndpoints();
 app.MapModerationEndpoints();
 app.MapManageContextEndpoints();
-app.MapSitemapEndpoints();
+// Sitemap moved to Snakk.Web (public-facing app)
 
 app.Run();

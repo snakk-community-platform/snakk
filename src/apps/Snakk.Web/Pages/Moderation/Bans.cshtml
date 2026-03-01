@@ -5,15 +5,12 @@
     ViewData["Title"] = "Ban Management";
 }
 
-<div class="max-w-4xl mx-auto">
-    <!-- Breadcrumb -->
-    <div class="text-sm breadcrumbs mb-4">
-        <ul>
-            <li><a href="/moderation">Moderation</a></li>
-            <li>Bans</li>
-        </ul>
-    </div>
-
+<div class="breadcrumb-bar">
+    <nav class="breadcrumb">
+        <a href="/moderation">Moderation</a>
+    </nav>
+</div>
+<div class="max-w-4xl mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="page-header">
         <h1>Ban Management</h1>
@@ -47,7 +44,7 @@
                     <div class="flex-1">
                         <h2 class="text-xl font-bold">@Model.UserProfile.DisplayName</h2>
                         <p class="text-muted text-sm">User ID: @Model.UserProfile.PublicId</p>
-                        <p class="text-muted text-sm">Joined @Model.GetRelativeTime(Model.UserProfile.JoinedAt)</p>
+                        <p class="text-muted text-sm">Joined @Model.GetRelativeTime(Model.UserProfile.JoinedAt?.ToDateTime())</p>
                     </div>
                     @if (Model.CanModerate)
                     {

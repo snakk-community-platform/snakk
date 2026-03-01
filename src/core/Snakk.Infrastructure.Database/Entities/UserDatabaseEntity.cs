@@ -36,6 +36,15 @@ public class UserDatabaseEntity
     public bool PreferEndlessScroll { get; set; } = true;
     public bool AutoFollowOnReply { get; set; } = true;
 
+    // Denormalized counters (maintained by CounterService)
+    public int DiscussionCount { get; set; }
+    public int ReplyCount { get; set; }
+    public int FollowerCount { get; set; }
+    public int UnreadNotificationCount { get; set; }
+
+    // Profile setup flag (true for new OAuth users until they choose a display name)
+    public bool NeedsProfileSetup { get; set; } = false;
+
     // 2FA (Two-Factor Authentication)
     public bool TwoFactorEnabled { get; set; } = false;
     public string? TwoFactorSecret { get; set; } // Base32-encoded TOTP secret

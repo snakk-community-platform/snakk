@@ -3,6 +3,7 @@
 @inject Snakk.Web.Services.ICommunityContext CommunityContext
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,7 +82,7 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
     <!-- Auth (CSRF interceptor) -->
-    <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
 
     <!-- Realtime Service Configuration -->
     <script>
@@ -93,43 +94,22 @@
 </head>
 <body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true">
     <div id="loading-bar" class="loading-bar"></div>
-    @if (Configuration.GetValue<bool>("Debug:ShowCommunityDebugPane", true))
+    @if (HostEnvironment.IsDevelopment())
     {
         var host = HttpContextAccessor.HttpContext?.Request.Host.ToString() ?? "unknown";
-        <div class="bg-gray-800 text-white text-xs px-4 py-1.5 flex items-center gap-6 font-mono flex-wrap">
-            <span class="text-gray-400">DEBUG</span>
-            <span>
-                <span class="text-gray-400">Host:</span>
-                <span class="text-yellow-300">@host</span>
-            </span>
-            <span>
-                <span class="text-gray-400">Community:</span>
-                <span class="text-green-300">@(CommunityContext.CommunitySlug ?? "null")</span>
-                @if (CommunityContext.CommunityName != null)
-                {
-                    <span class="text-gray-500">(@CommunityContext.CommunityName)</span>
-                }
-            </span>
-            <span>
-                <span class="text-gray-400">IsDefault:</span>
-                <span class="@(CommunityContext.IsDefaultCommunity ? "text-green-300" : "text-orange-300")">@CommunityContext.IsDefaultCommunity</span>
-            </span>
-            <span>
-                <span class="text-gray-400">IsCustomDomain:</span>
-                <span class="@(CommunityContext.IsCustomDomain ? "text-cyan-300" : "text-gray-500")">@CommunityContext.IsCustomDomain</span>
-            </span>
-            <span>
-                <span class="text-gray-400">Path:</span>
-                <span class="text-purple-300">@HttpContextAccessor.HttpContext?.Request.Path</span>
-            </span>
-            <span id="debug-auth-info">
-                <span class="text-gray-400">Auth:</span>
-                <span class="text-gray-500">loading...</span>
-            </span>
-        </div>
+        var communitySlug = CommunityContext.CommunitySlug ?? "null";
+        var communityName = CommunityContext.CommunityName;
+        var requestPath = HttpContextAccessor.HttpContext?.Request.Path.ToString() ?? "/";
+        <div id="snakk-debug-context" class="hidden"
+             data-host="@host"
+             data-community-slug="@communitySlug"
+             data-community-name="@communityName"
+             data-is-default="@CommunityContext.IsDefaultCommunity"
+             data-is-custom-domain="@CommunityContext.IsCustomDomain"
+             data-path="@requestPath"></div>
     }
     <nav class="navbar minimal-nav sticky top-0 z-50">
-        <div class="container mx-auto px-4 lg:px-8 flex items-center gap-4">
+        <div class="w-full max-w-6xl mx-auto px-4 flex items-center gap-4">
             <!-- Brand -->
             <a class="brand-text" href="/" hx-boost="false">@(CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null ? CommunityContext.CommunityName : "Snakk")</a>
 
@@ -194,11 +174,11 @@
         </div>
     </nav>
 
-    <script src="@SnakkUrlHelper.Js("enums/user-role-type")" asp-append-version="true"></script>
-    <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true"></script>
-    <script src="@SnakkUrlHelper.Js("components/search-focus")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("enums/user-role-type")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/search-focus")" asp-append-version="true" defer></script>
 
-    <main id="main-content" class="container mx-auto px-4 py-8">
+    <main id="main-content">
         <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
         @RenderBody()
     </main>
@@ -207,16 +187,24 @@
     </footer>
 
     <!-- SignalR Client (local copy) -->
-    <script src="@SnakkUrlHelper.Js("signalr.min", isVendor: true)" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("signalr.min", isVendor: true)" asp-append-version="true" defer></script>
 
     <!-- Site JavaScript (hover popups, etc.) -->
-    <script src="@SnakkUrlHelper.Js("components/site")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("components/site")" asp-append-version="true" defer></script>
+
+    @if (HostEnvironment.IsDevelopment())
+    {
+        <script src="@SnakkUrlHelper.Js("components/debug")" asp-append-version="true" defer></script>
+    }
 
     <!-- Realtime Updates -->
-    <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
 
     <!-- Sidebar Scrollbar Detection -->
-    <script src="@SnakkUrlHelper.Js("components/sidebar-scrollbar")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("components/sidebar-scrollbar")" asp-append-version="true" defer></script>
+
+    <!-- Breadcrumb Page Title (scroll-triggered) -->
+    <script src="@SnakkUrlHelper.Js("components/breadcrumb-title")" asp-append-version="true" defer></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

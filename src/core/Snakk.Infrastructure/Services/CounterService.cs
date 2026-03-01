@@ -178,4 +178,87 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
                 .ExecuteUpdateAsync(d => d.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1));
         }
     }
+
+    // --- User-level counters ---
+
+    public async Task IncrementUserDiscussionCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount + 1));
+    }
+
+    public async Task DecrementUserDiscussionCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount - 1));
+    }
+
+    public async Task IncrementUserReplyCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.ReplyCount, x => x.ReplyCount + 1));
+    }
+
+    public async Task DecrementUserReplyCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.ReplyCount, x => x.ReplyCount - 1));
+    }
+
+    public async Task IncrementUserFollowerCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.FollowerCount, x => x.FollowerCount + 1));
+    }
+
+    public async Task DecrementUserFollowerCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.FollowerCount, x => x.FollowerCount - 1));
+    }
+
+    // --- Discussion-level counters ---
+
+    public async Task IncrementDiscussionFollowerCountAsync(DiscussionId discussionId)
+    {
+        await dbContext.Discussions
+            .Where(d => d.PublicId == discussionId.Value)
+            .ExecuteUpdateAsync(d => d.SetProperty(x => x.FollowerCount, x => x.FollowerCount + 1));
+    }
+
+    public async Task DecrementDiscussionFollowerCountAsync(DiscussionId discussionId)
+    {
+        await dbContext.Discussions
+            .Where(d => d.PublicId == discussionId.Value)
+            .ExecuteUpdateAsync(d => d.SetProperty(x => x.FollowerCount, x => x.FollowerCount - 1));
+    }
+
+    // --- Notification counters ---
+
+    public async Task IncrementUnreadNotificationCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.UnreadNotificationCount, x => x.UnreadNotificationCount + 1));
+    }
+
+    public async Task DecrementUnreadNotificationCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.UnreadNotificationCount, x => x.UnreadNotificationCount - 1));
+    }
+
+    public async Task ResetUnreadNotificationCountAsync(UserId userId)
+    {
+        await dbContext.Users
+            .Where(u => u.PublicId == userId.Value)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.UnreadNotificationCount, 0));
+    }
 }

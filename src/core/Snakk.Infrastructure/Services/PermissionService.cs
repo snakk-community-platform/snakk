@@ -30,7 +30,7 @@ public class PermissionService : IPermissionService
         _securityService = securityService;
     }
 
-    public async Task<bool> UserHasPermissionAsync(string userId, string permissionName, string? scope = null, int? scopeId = null)
+    public async Task<bool> UserHasPermissionAsync(string userId, string permissionName, string? scope = null, string? scopePublicId = null)
     {
         // Get user's database ID from PublicId
         var user = await _context.Users
@@ -52,12 +52,12 @@ public class PermissionService : IPermissionService
         }
 
         // If scope is specified, check hierarchical access
-        if (!string.IsNullOrEmpty(scope) && scopeId.HasValue)
+        if (!string.IsNullOrEmpty(scope) && !string.IsNullOrEmpty(scopePublicId))
         {
-            var hasHierarchicalAccess = await CheckHierarchicalAccessAsync(userRoles, scope, scopeId.Value);
+            var hasHierarchicalAccess = await CheckHierarchicalAccessAsync(userRoles, scope, scopePublicId);
             if (hasHierarchicalAccess)
             {
-                _logger.LogDebug("User {UserId} has hierarchical access to {Scope}:{ScopeId}", userId, scope, scopeId);
+                _logger.LogDebug("User {UserId} has hierarchical access to {Scope}:{ScopePublicId}", userId, scope, scopePublicId);
                 return true;
             }
         }
@@ -106,57 +106,68 @@ public class PermissionService : IPermissionService
         return roles;
     }
 
-    private async Task<bool> CheckHierarchicalAccessAsync(List<UserRoleScope> userRoles, string scope, int scopeId)
+    private async Task<bool> CheckHierarchicalAccessAsync(List<UserRoleScope> userRoles, string scope, string scopePublicId)
     {
         switch (scope.ToLower())
         {
             case "community":
+                // Resolve community publicId to internal ID
+                var community = await _context.Communities
+                    .Where(c => c.PublicId == scopePublicId)
+                    .Select(c => new { c.Id })
+                    .FirstOrDefaultAsync();
+
+                if (community == null)
+                    return false;
+
                 // Check if user is CommunityAdmin or CommunityMod for this community
                 return userRoles.Any(r =>
                     (r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") &&
-                    r.CommunityId == scopeId);
+                    r.CommunityId == community.Id);
 
             case "hub":
-                // Check if user is:
-                // 1. HubMod for this hub, OR
-                // 2. CommunityAdmin/CommunityMod for the parent community
+                // Resolve hub publicId to internal ID + parent community
                 var hub = await _context.Hubs
-                    .Where(h => h.Id == scopeId)
-                    .Select(h => new { h.CommunityId })
+                    .Where(h => h.PublicId == scopePublicId)
+                    .Select(h => new { h.Id, h.CommunityId })
                     .FirstOrDefaultAsync();
 
                 if (hub == null)
                     return false;
 
+                // Check if user is:
+                // 1. HubMod for this hub, OR
+                // 2. CommunityAdmin/CommunityMod for the parent community
                 return userRoles.Any(r =>
-                    (r.RoleType == "HubMod" && r.HubId == scopeId) ||
+                    (r.RoleType == "HubMod" && r.HubId == hub.Id) ||
                     ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == hub.CommunityId));
 
             case "space":
-                // Check if user is:
-                // 1. SpaceMod for this space, OR
-                // 2. HubMod for the parent hub, OR
-                // 3. CommunityAdmin/CommunityMod for the parent community
+                // Resolve space publicId to internal ID + parent hub/community
                 var space = await _context.Spaces
                     .Include(s => s.Hub)
-                    .Where(s => s.Id == scopeId)
-                    .Select(s => new { s.HubId, s.Hub.CommunityId })
+                    .Where(s => s.PublicId == scopePublicId)
+                    .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
                     .FirstOrDefaultAsync();
 
                 if (space == null)
                     return false;
 
+                // Check if user is:
+                // 1. SpaceMod for this space, OR
+                // 2. HubMod for the parent hub, OR
+                // 3. CommunityAdmin/CommunityMod for the parent community
                 return userRoles.Any(r =>
-                    (r.RoleType == "SpaceMod" && r.SpaceId == scopeId) ||
+                    (r.RoleType == "SpaceMod" && r.SpaceId == space.Id) ||
                     (r.RoleType == "HubMod" && r.HubId == space.HubId) ||
                     ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == space.CommunityId));
 
             case "discussion":
-                // Discussion scope - check parent space/hub/community hierarchy
+                // Resolve discussion publicId to internal IDs for parent space/hub/community
                 var discussion = await _context.Discussions
                     .Include(d => d.Space)
                     .ThenInclude(s => s.Hub)
-                    .Where(d => d.Id == scopeId)
+                    .Where(d => d.PublicId == scopePublicId)
                     .Select(d => new { d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
                     .FirstOrDefaultAsync();
 
@@ -169,12 +180,12 @@ public class PermissionService : IPermissionService
                     ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == discussion.CommunityId));
 
             case "post":
-                // Post scope - check parent discussion/space/hub/community hierarchy
+                // Resolve post publicId to internal IDs for parent discussion/space/hub/community
                 var post = await _context.Posts
                     .Include(p => p.Discussion)
                     .ThenInclude(d => d.Space)
                     .ThenInclude(s => s.Hub)
-                    .Where(p => p.Id == scopeId)
+                    .Where(p => p.PublicId == scopePublicId)
                     .Select(p => new {
                         p.Discussion.SpaceId,
                         p.Discussion.Space.HubId,

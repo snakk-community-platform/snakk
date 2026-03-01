@@ -71,6 +71,9 @@ builder.Services.AddScoped<ICommunityContext, CommunityContext>();
 // Community domain cache service (singleton - uses IMemoryCache)
 builder.Services.AddSingleton<ICommunityDomainCacheService, CommunityDomainCacheService>();
 
+// Prefetch cache service for sidebar data (singleton - uses IMemoryCache)
+builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
+
 // Markup Parser (for rendering post content)
 builder.Services.AddSingleton<IMarkupParser, MarkupParser>();
 
@@ -80,15 +83,6 @@ builder.Services.AddWebOptimizer(pipeline =>
     // Minify all CSS files on-the-fly
     pipeline.MinifyCssFiles();
 });
-
-// Configure HttpClient for API with cookie forwarding (REST — used during gRPC migration)
-builder.Services.AddTransient<CookieForwardingHandler>();
-builder.Services.AddHttpClient<SnakkApiClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242");
-    client.Timeout = TimeSpan.FromSeconds(30);
-})
-.AddHttpMessageHandler<CookieForwardingHandler>();
 
 // Configure HttpClient for Internal API (for avatar proxy and other BFF endpoints)
 builder.Services.AddHttpClient("InternalApi", client =>
@@ -109,14 +103,38 @@ builder.Services.AddSingleton(sp =>
         }
     });
 });
-builder.Services.AddScoped<GrpcAuthInterceptor>();
-builder.Services.AddScoped(sp =>
+builder.Services.AddSingleton<GrpcAuthInterceptor>();
+
+// Helper to register typed gRPC clients (all share channel + auth interceptor)
+void AddGrpcClient<T>(IServiceCollection services) where T : class
 {
-    var channel = sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>();
-    var interceptor = sp.GetRequiredService<GrpcAuthInterceptor>();
-    var invoker = channel.CreateCallInvoker().Intercept(interceptor);
-    return new Snakk.Protos.Auth.AuthService.AuthServiceClient(invoker);
-});
+    services.AddSingleton(sp =>
+    {
+        var channel = sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>();
+        var interceptor = sp.GetRequiredService<GrpcAuthInterceptor>();
+        var invoker = channel.CreateCallInvoker().Intercept(interceptor);
+        return (T)Activator.CreateInstance(typeof(T), invoker)!;
+    });
+}
+
+AddGrpcClient<Snakk.Protos.Auth.AuthService.AuthServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Community.CommunityService.CommunityServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Hub.HubService.HubServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Space.SpaceService.SpaceServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Discussion.DiscussionService.DiscussionServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Post.PostService.PostServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Follow.FollowService.FollowServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Reaction.ReactionService.ReactionServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Notification.NotificationService.NotificationServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Moderation.ModerationService.ModerationServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Search.SearchService.SearchServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Statistics.StatisticsService.StatisticsServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.User.UserService.UserServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(builder.Services);
+
+// Register SnakkApiClient (DI resolves all gRPC clients automatically)
+builder.Services.AddSingleton<SnakkApiClient>();
 
 // Setup wizard service (scoped — uses IConfiguration)
 builder.Services.AddScoped<SetupService>();
@@ -179,11 +197,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Enable response compression
-app.UseResponseCompression();
-
-// WebOptimizer middleware (must be before UseStaticFiles)
-app.UseWebOptimizer();
+// Enable response compression and WebOptimizer (skip for partials — small HTML fragments)
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/partials"),
+    appBuilder =>
+    {
+        appBuilder.UseResponseCompression();
+        appBuilder.UseWebOptimizer();
+    }
+);
 
 // Serve wwwroot from root (default behavior) - allows /robots.txt, /favicon.ico, etc.
 app.UseStaticFiles(new StaticFileOptions
@@ -228,8 +250,17 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
-// Session (required by setup wizard for state management)
-app.UseSession();
+// Server-Timing headers for debug panel (dev only, after static files to skip those)
+if (app.Environment.IsDevelopment())
+{
+    app.UseMiddleware<Snakk.Web.Middleware.ServerTimingMiddleware>();
+}
+
+// Session (required by setup wizard for state management — skip for partials)
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/partials"),
+    appBuilder => appBuilder.UseSession()
+);
 
 // First-run setup wizard — redirects to /setup if not configured
 app.UseMiddleware<SetupMiddleware>();
@@ -249,5 +280,8 @@ app.MapRazorPages();
 
 // BFF API endpoints
 app.MapBffApiEndpoints();
+
+// Public endpoints
+app.MapSitemapEndpoints();
 
 app.Run();

@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Statistics";
+
+package snakk.statistics;
+
+import "Protos/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service StatisticsService {
+  // Platform-level stats
+  rpc GetPlatformStats (GetPlatformStatsRequest) returns (PlatformStats);
+
+  // Top active / trending
+  rpc GetTopActiveDiscussionsToday (GetTopActiveDiscussionsTodayRequest) returns (TopActiveDiscussionsList);
+  rpc GetTopActiveSpacesToday (GetTopActiveSpacesTodayRequest) returns (TopActiveSpacesList);
+  rpc GetTopContributorsToday (GetTopContributorsTodayRequest) returns (TopContributorsList);
+
+  // User activity
+  rpc GetUserActivityHistory (GetUserActivityHistoryRequest) returns (UserActivityHistory);
+  rpc GetUserStats (GetUserStatsRequest) returns (UserStats);
+}
+
+// --- Requests ---
+
+message GetPlatformStatsRequest {}
+
+message GetTopActiveDiscussionsTodayRequest {
+  optional string hub_id = 1;
+  optional string space_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message GetTopActiveSpacesTodayRequest {
+  optional string hub_id = 1;
+  optional string community_id = 2;
+  int32 limit = 3;
+}
+
+message GetTopContributorsTodayRequest {
+  optional string hub_id = 1;
+  optional string space_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message GetUserActivityHistoryRequest {
+  string public_id = 1;
+  int32 days = 2;
+}
+
+message GetUserStatsRequest {
+  string public_id = 1;
+}
+
+// --- Responses ---
+
+message PlatformStats {
+  int32 hub_count = 1;
+  int32 space_count = 2;
+  int32 discussion_count = 3;
+  int32 reply_count = 4;
+}
+
+message TopActiveDiscussionInfo {
+  string public_id = 1;
+  string title = 2;
+  string slug = 3;
+  int32 post_count_today = 4;
+  snakk.EntityRef space = 5;
+  snakk.EntityRef hub = 6;
+  snakk.AuthorRef author = 7;
+}
+
+message TopActiveDiscussionsList {
+  repeated TopActiveDiscussionInfo items = 1;
+}
+
+message TopActiveSpaceInfo {
+  string public_id = 1;
+  string name = 2;
+  string slug = 3;
+  int32 post_count_today = 4;
+  snakk.EntityRef hub = 5;
+}
+
+message TopActiveSpacesList {
+  repeated TopActiveSpaceInfo items = 1;
+}
+
+message TopContributorInfo {
+  string public_id = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+  int32 post_count_today = 4;
+}
+
+message TopContributorsList {
+  repeated TopContributorInfo items = 1;
+}
+
+message ActivityDay {
+  string date = 1;
+  int32 discussions = 2;
+  int32 posts = 3;
+  int32 total = 4;
+}
+
+message UserActivityHistory {
+  int32 days = 1;
+  repeated ActivityDay data = 2;
+}
+
+message UserStats {
+  string public_id = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+  int32 discussion_count = 4;
+  int32 reply_count = 5;
+  int32 follower_count = 6;
+  int32 following_count = 7;
+}

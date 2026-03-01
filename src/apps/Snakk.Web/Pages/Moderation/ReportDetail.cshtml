@@ -6,16 +6,14 @@
 }
 
 
-<div class="max-w-4xl mx-auto">
-    <!-- Breadcrumb -->
-    <div class="text-sm breadcrumbs mb-4">
-        <ul>
-            <li><a href="/moderation">Moderation</a></li>
-            <li><a href="/moderation/reports">Reports</a></li>
-            <li>Report Details</li>
-        </ul>
-    </div>
-
+<div class="breadcrumb-bar">
+    <nav class="breadcrumb">
+        <a href="/moderation">Moderation</a>
+        <span class="breadcrumb-separator">/</span>
+        <a href="/moderation/reports">Reports</a>
+    </nav>
+</div>
+<div class="max-w-4xl mx-auto px-4 py-8">
     @if (Model.Report == null)
     {
         <div class="clean-card">

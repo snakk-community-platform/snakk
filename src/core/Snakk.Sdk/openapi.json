@@ -6,23 +6,10 @@
   },
   "servers": [
     {
-      "url": "http://localhost:17100/"
+      "url": "https://localhost:17100/"
     }
   ],
   "paths": {
-    "/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "operationId": "HealthCheck",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/sitemap.xml": {
       "get": {
         "tags": [
@@ -60,8 +47,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -100,7 +94,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfCommunityResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -123,7 +124,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -146,7 +154,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -169,7 +184,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -218,7 +240,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfHubResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{publicId}/stats": {
+      "get": {
+        "tags": [
+          "Communities"
+        ],
+        "operationId": "GetCommunityStats",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityStatsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -240,8 +299,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HubResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -280,7 +346,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfHubResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -303,7 +376,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HubResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -326,7 +406,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HubResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -375,7 +462,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfSpaceByHubResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hubs/{publicId}/stats": {
+      "get": {
+        "tags": [
+          "Hubs"
+        ],
+        "operationId": "GetHubStats",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HubStatsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -397,8 +521,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -421,7 +552,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -444,7 +582,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -493,7 +638,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfDiscussionBySpaceResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -522,7 +674,74 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopActiveSpacesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spaces/{spaceId}/rules": {
+      "get": {
+        "tags": [
+          "Spaces"
+        ],
+        "operationId": "GetSpaceRules",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceRulesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spaces/{publicId}/stats": {
+      "get": {
+        "tags": [
+          "Spaces"
+        ],
+        "operationId": "GetSpaceStats",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStatsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -544,8 +763,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionCreatedResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -568,7 +794,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -623,7 +856,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfRecentDiscussionResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -659,7 +899,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopActiveDiscussionsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -708,7 +955,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfEnrichedPostResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -739,7 +993,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostNumberResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -762,7 +1023,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionPreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/discussions/{publicId}/stats": {
+      "get": {
+        "tags": [
+          "Discussions"
+        ],
+        "operationId": "GetDiscussionStats",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionStatsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -784,16 +1082,23 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostCreatedResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/posts/{publicId}/edit": {
+    "/posts/{publicId}/edit": {
       "post": {
         "tags": [
-          "Posts API"
+          "Posts"
         ],
         "operationId": "EditPostHtmx",
         "parameters": [
@@ -821,10 +1126,10 @@
         }
       }
     },
-    "/api/posts/{publicId}": {
+    "/posts/{publicId}": {
       "delete": {
         "tags": [
-          "Posts API"
+          "Posts"
         ],
         "operationId": "DeletePostHtmx",
         "parameters": [
@@ -844,10 +1149,10 @@
         }
       }
     },
-    "/api/posts/{publicId}/history": {
+    "/posts/{publicId}/history": {
       "get": {
         "tags": [
-          "Posts API"
+          "Posts"
         ],
         "operationId": "GetPostHistoryHtmx",
         "parameters": [
@@ -885,7 +1190,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -928,7 +1240,14 @@
         "operationId": "Logout",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -981,7 +1300,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1014,7 +1340,14 @@
         "operationId": "GetCurrentUser",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1037,7 +1370,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateProfileResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1060,7 +1400,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1132,7 +1479,7 @@
         }
       }
     },
-    "/api/auth/2fa/setup": {
+    "/auth/2fa/setup": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1140,12 +1487,19 @@
         "operationId": "Setup2FA",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/enable": {
+    "/auth/2fa/enable": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1163,12 +1517,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorEnableResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/disable": {
+    "/auth/2fa/disable": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1186,12 +1547,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/verify": {
+    "/auth/2fa/verify": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1209,12 +1577,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorVerifyResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/backup-codes": {
+    "/auth/2fa/backup-codes": {
       "get": {
         "tags": [
           "Two-Factor Authentication"
@@ -1222,12 +1597,19 @@
         "operationId": "GetBackupCodes",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupCodesStatusResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/backup-codes/regenerate": {
+    "/auth/2fa/backup-codes/regenerate": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1245,12 +1627,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegenerateBackupCodesResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/trust-device": {
+    "/auth/2fa/trust-device": {
       "post": {
         "tags": [
           "Two-Factor Authentication"
@@ -1268,12 +1657,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrustDeviceResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/2fa/trusted-devices": {
+    "/auth/2fa/trusted-devices": {
       "get": {
         "tags": [
           "Two-Factor Authentication"
@@ -1286,7 +1682,7 @@
         }
       }
     },
-    "/api/auth/2fa/trusted-devices/{deviceId}": {
+    "/auth/2fa/trusted-devices/{deviceId}": {
       "delete": {
         "tags": [
           "Two-Factor Authentication"
@@ -1304,12 +1700,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/sessions": {
+    "/sessions": {
       "get": {
         "tags": [
           "Session Management"
@@ -1317,12 +1720,19 @@
         "operationId": "GetActiveSessions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveSessionsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/sessions/{sessionId}": {
+    "/sessions/{sessionId}": {
       "delete": {
         "tags": [
           "Session Management"
@@ -1340,12 +1750,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/sessions/revoke-all": {
+    "/sessions/revoke-all": {
       "post": {
         "tags": [
           "Session Management"
@@ -1353,12 +1770,19 @@
         "operationId": "RevokeAllSessions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/sessions/refresh": {
+    "/sessions/refresh": {
       "post": {
         "tags": [
           "Session Management"
@@ -1406,7 +1830,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBanResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1460,7 +1891,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoleResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1495,7 +1933,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1518,7 +1963,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportDetailResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1619,7 +2071,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminModerationLogResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1647,7 +2106,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminActiveBansResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1660,7 +2126,14 @@
         "operationId": "AdminGetContentOverview",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentOverviewResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1708,7 +2181,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCommunityListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1731,7 +2211,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCommunityDetailResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1786,7 +2273,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminHubListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1841,7 +2335,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSpaceListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1910,7 +2411,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDiscussionListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1933,7 +2441,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDiscussionDetailResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2105,7 +2620,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2128,7 +2650,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2169,7 +2698,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedLoginsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2182,7 +2718,14 @@
         "operationId": "AdminGetActiveSessions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveAdminSessionsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2210,7 +2753,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuspiciousActivitiesResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2233,7 +2783,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDataExportDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2256,7 +2813,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDataExportStatusResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2269,7 +2833,14 @@
         "operationId": "AdminGetGeneralSettings",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteInfoDto"
+                }
+              }
+            }
           }
         }
       },
@@ -2290,7 +2861,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteInfoDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2303,7 +2881,17 @@
         "operationId": "AdminGetOAuthProviders",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OAuthProviderDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2336,7 +2924,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2349,7 +2944,14 @@
         "operationId": "AdminGetEmailConfig",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailConfigDto"
+                }
+              }
+            }
           }
         }
       },
@@ -2370,7 +2972,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailConfigDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2393,7 +3002,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2406,7 +3022,14 @@
         "operationId": "AdminGetAvatarSettings",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarSettingsDto"
+                }
+              }
+            }
           }
         }
       },
@@ -2427,7 +3050,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarSettingsDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2440,7 +3070,14 @@
         "operationId": "AdminGetContentSettings",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentSettingsDto"
+                }
+              }
+            }
           }
         }
       },
@@ -2461,7 +3098,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentSettingsDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2474,7 +3118,14 @@
         "operationId": "AdminGetRateLimitingSettings",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitingSettingsDto"
+                }
+              }
+            }
           }
         }
       },
@@ -2495,7 +3146,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitingSettingsDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2508,7 +3166,14 @@
         "operationId": "GetAllPermissions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPermissionsListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2533,7 +3198,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRolePermissionsResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2566,7 +3238,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPermissionActionResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2601,7 +3280,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPermissionActionResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2614,7 +3300,14 @@
         "operationId": "GetActiveTemporaryRoles",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTemporaryRolesResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2635,7 +3328,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTemporaryRoleGrantResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2668,12 +3368,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTemporaryRoleRevokeResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/admin/webhooks": {
+    "/admin/webhooks": {
       "get": {
         "tags": [
           "Admin - Webhooks"
@@ -2729,7 +3436,7 @@
         }
       }
     },
-    "/api/admin/webhooks/{webhookId}": {
+    "/admin/webhooks/{webhookId}": {
       "get": {
         "tags": [
           "Admin - Webhooks"
@@ -2836,7 +3543,7 @@
         }
       }
     },
-    "/api/admin/webhooks/{webhookId}/test": {
+    "/admin/webhooks/{webhookId}/test": {
       "post": {
         "tags": [
           "Admin - Webhooks"
@@ -2884,7 +3591,7 @@
         }
       }
     },
-    "/api/admin/webhooks/{webhookId}/logs": {
+    "/admin/webhooks/{webhookId}/logs": {
       "get": {
         "tags": [
           "Admin - Webhooks"
@@ -2948,7 +3655,7 @@
         }
       }
     },
-    "/api/admin/webhooks/events/available": {
+    "/admin/webhooks/events/available": {
       "get": {
         "tags": [
           "Admin - Webhooks"
@@ -2972,7 +3679,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/overview": {
+    "/c/{slug}/manage/overview": {
       "get": {
         "tags": [
           "Community Management"
@@ -2995,7 +3702,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/settings": {
+    "/c/{slug}/manage/settings": {
       "get": {
         "tags": [
           "Community Management"
@@ -3049,7 +3756,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/moderation": {
+    "/c/{slug}/manage/moderation": {
       "get": {
         "tags": [
           "Community Management"
@@ -3072,7 +3779,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/members": {
+    "/c/{slug}/manage/members": {
       "get": {
         "tags": [
           "Community Management"
@@ -3121,7 +3828,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/members/{userId}/role": {
+    "/c/{slug}/manage/members/{userId}/role": {
       "post": {
         "tags": [
           "Community Management"
@@ -3162,7 +3869,7 @@
         }
       }
     },
-    "/api/c/{slug}/manage/spaces": {
+    "/c/{slug}/manage/spaces": {
       "get": {
         "tags": [
           "Community Management"
@@ -3185,7 +3892,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/h/{hubSlug}/manage/overview": {
+    "/c/{communitySlug}/h/{hubSlug}/manage/overview": {
       "get": {
         "tags": [
           "Hub Management"
@@ -3216,7 +3923,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/h/{hubSlug}/manage/settings": {
+    "/c/{communitySlug}/h/{hubSlug}/manage/settings": {
       "get": {
         "tags": [
           "Hub Management"
@@ -3286,7 +3993,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/h/{hubSlug}/manage/moderation": {
+    "/c/{communitySlug}/h/{hubSlug}/manage/moderation": {
       "get": {
         "tags": [
           "Hub Management"
@@ -3317,7 +4024,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/h/{hubSlug}/manage/spaces": {
+    "/c/{communitySlug}/h/{hubSlug}/manage/spaces": {
       "get": {
         "tags": [
           "Hub Management"
@@ -3348,7 +4055,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/s/{spaceSlug}/manage/overview": {
+    "/c/{communitySlug}/s/{spaceSlug}/manage/overview": {
       "get": {
         "tags": [
           "Space Management"
@@ -3379,7 +4086,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/s/{spaceSlug}/manage/settings": {
+    "/c/{communitySlug}/s/{spaceSlug}/manage/settings": {
       "get": {
         "tags": [
           "Space Management"
@@ -3449,7 +4156,7 @@
         }
       }
     },
-    "/api/c/{communitySlug}/s/{spaceSlug}/manage/moderation": {
+    "/c/{communitySlug}/s/{spaceSlug}/manage/moderation": {
       "get": {
         "tags": [
           "Space Management"
@@ -3480,12 +4187,12 @@
         }
       }
     },
-    "/api/c/{communitySlug}/s/{spaceSlug}/manage/rules": {
+    "/c/{communitySlug}/s/{spaceSlug}/manage/rules": {
       "get": {
         "tags": [
           "Space Management"
         ],
-        "operationId": "GetSpaceRules",
+        "operationId": "GetSpaceRulesManagement",
         "parameters": [
           {
             "name": "communitySlug",
@@ -3738,7 +4445,14 @@
         "operationId": "UploadAvatar",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarUploadResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3751,12 +4465,19 @@
         "operationId": "DeleteAvatar",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/posts/{postId}/reactions": {
+    "/posts/{postId}/reactions": {
       "post": {
         "tags": [
           "Reactions"
@@ -3784,7 +4505,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleReactionResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -3805,12 +4533,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetReactionCountsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/posts/{postId}/reactions/me": {
+    "/posts/{postId}/reactions/me": {
       "get": {
         "tags": [
           "Reactions"
@@ -3828,12 +4563,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserReactionResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/notifications": {
+    "/notifications": {
       "get": {
         "tags": [
           "Notifications"
@@ -3874,7 +4616,7 @@
         }
       }
     },
-    "/api/notifications/unread-count": {
+    "/notifications/unread-count": {
       "get": {
         "tags": [
           "Notifications"
@@ -3882,12 +4624,19 @@
         "operationId": "GetUnreadNotificationCount",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/notifications/{notificationId}/read": {
+    "/notifications/{notificationId}/read": {
       "post": {
         "tags": [
           "Notifications"
@@ -3905,12 +4654,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/notifications/read-all": {
+    "/notifications/read-all": {
       "post": {
         "tags": [
           "Notifications"
@@ -3918,12 +4674,19 @@
         "operationId": "MarkAllNotificationsAsRead",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/discussions/{discussionId}/follow": {
+    "/discussions/{discussionId}/follow": {
       "post": {
         "tags": [
           "Follow"
@@ -3941,12 +4704,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowToggleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/discussions/{discussionId}/follow-status": {
+    "/discussions/{discussionId}/follow-status": {
       "get": {
         "tags": [
           "Follow"
@@ -3964,12 +4734,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowToggleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/spaces/{spaceId}/follow": {
+    "/spaces/{spaceId}/follow": {
       "post": {
         "tags": [
           "Follow"
@@ -3994,12 +4771,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceFollowToggleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/spaces/{spaceId}/follow-level": {
+    "/spaces/{spaceId}/follow-level": {
       "put": {
         "tags": [
           "Follow"
@@ -4025,12 +4809,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowLevelResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/spaces/{spaceId}/follow-status": {
+    "/spaces/{spaceId}/follow-status": {
       "get": {
         "tags": [
           "Follow"
@@ -4048,12 +4839,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceFollowStatusResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/users/{userId}/follow": {
+    "/users/{userId}/follow": {
       "post": {
         "tags": [
           "Follow"
@@ -4071,12 +4869,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowToggleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/users/{userId}/follow-status": {
+    "/users/{userId}/follow-status": {
       "get": {
         "tags": [
           "Follow"
@@ -4094,12 +4899,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowToggleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/follows/spaces": {
+    "/follows/spaces": {
       "get": {
         "tags": [
           "Follow"
@@ -4107,12 +4919,19 @@
         "operationId": "GetFollowedSpaces",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowedIdsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/follows/discussions": {
+    "/follows/discussions": {
       "get": {
         "tags": [
           "Follow"
@@ -4120,12 +4939,19 @@
         "operationId": "GetFollowedDiscussions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowedIdsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/follows/users": {
+    "/follows/users": {
       "get": {
         "tags": [
           "Follow"
@@ -4133,47 +4959,31 @@
         "operationId": "GetFollowedUsers",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowedIdsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/platform/stats": {
+    "/platform/stats": {
       "get": {
         "tags": [
-          "Stats"
+          "Platform"
         ],
         "operationId": "GetPlatformStats",
         "responses": {
           "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/hubs/{publicId}/stats": {
-      "get": {
-        "tags": [
-          "Stats"
-        ],
-        "operationId": "GetHubStats",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HubStatsResponse"
+                  "$ref": "#/components/schemas/PlatformStatsResponse"
                 }
               }
             }
@@ -4181,120 +4991,7 @@
         }
       }
     },
-    "/api/spaces/{publicId}/stats": {
-      "get": {
-        "tags": [
-          "Stats"
-        ],
-        "operationId": "GetSpaceStats",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SpaceStatsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/communities/{publicId}/stats": {
-      "get": {
-        "tags": [
-          "Stats"
-        ],
-        "operationId": "GetCommunityStats",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommunityStatsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/{publicId}/stats": {
-      "get": {
-        "tags": [
-          "Stats"
-        ],
-        "operationId": "GetUserStats",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserStatsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/discussions/{publicId}/stats": {
-      "get": {
-        "tags": [
-          "Stats"
-        ],
-        "operationId": "GetDiscussionStats",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/users/search": {
+    "/users/search": {
       "get": {
         "tags": [
           "Users"
@@ -4324,12 +5021,22 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSearchResult"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/users/top-contributors-today": {
+    "/users/top-contributors-today": {
       "get": {
         "tags": [
           "Users"
@@ -4360,12 +5067,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopContributorsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/users/{publicId}/profile": {
+    "/users/{publicId}/profile": {
       "get": {
         "tags": [
           "Users"
@@ -4383,12 +5097,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/users/{publicId}/activity-history": {
+    "/users/{publicId}/activity-history": {
       "get": {
         "tags": [
           "Users"
@@ -4419,12 +5140,49 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityHistoryResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/markup/preview": {
+    "/users/{publicId}/stats": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "GetUserStats",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/markup/preview": {
       "post": {
         "tags": [
           "Markup"
@@ -4437,7 +5195,7 @@
         }
       }
     },
-    "/api/discussions/{discussionId}/read-state": {
+    "/discussions/{discussionId}/read-state": {
       "get": {
         "tags": [
           "Read State"
@@ -4455,12 +5213,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadStateResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/discussions/{discussionId}/mark-read": {
+    "/discussions/{discussionId}/mark-read": {
       "post": {
         "tags": [
           "Read State"
@@ -4486,12 +5251,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/read-states/batch": {
+    "/read-states/batch": {
       "post": {
         "tags": [
           "Read State"
@@ -4509,12 +5281,19 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/search/discussions": {
+    "/search/discussions": {
       "get": {
         "tags": [
           "Search"
@@ -4578,12 +5357,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfDiscussionSearchResultDto"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/search/posts": {
+    "/search/posts": {
       "get": {
         "tags": [
           "Search"
@@ -4647,12 +5433,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPostSearchResultDto"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/roles": {
+    "/moderation/roles": {
       "post": {
         "tags": [
           "Moderation"
@@ -4669,13 +5462,20 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleAssignedResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/roles/{roleId}": {
+    "/moderation/roles/{roleId}": {
       "delete": {
         "tags": [
           "Moderation"
@@ -4698,7 +5498,7 @@
         }
       }
     },
-    "/api/moderation/users/{userId}/roles": {
+    "/moderation/users/{userId}/roles": {
       "get": {
         "tags": [
           "Moderation"
@@ -4716,12 +5516,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRolesResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/bans": {
+    "/moderation/bans": {
       "post": {
         "tags": [
           "Moderation"
@@ -4738,13 +5545,20 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BanCreatedResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/bans/{banId}": {
+    "/moderation/bans/{banId}": {
       "delete": {
         "tags": [
           "Moderation"
@@ -4767,7 +5581,7 @@
         }
       }
     },
-    "/api/moderation/users/{userId}/banned": {
+    "/moderation/users/{userId}/banned": {
       "get": {
         "tags": [
           "Moderation"
@@ -4792,12 +5606,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BanStatusResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/reports": {
+    "/moderation/reports": {
       "post": {
         "tags": [
           "Moderation"
@@ -4814,8 +5635,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCreatedResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -4861,12 +5689,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfObject"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/reports/{reportId}": {
+    "/moderation/reports/{reportId}": {
       "get": {
         "tags": [
           "Moderation"
@@ -4889,7 +5724,7 @@
         }
       }
     },
-    "/api/moderation/reports/{reportId}/resolve": {
+    "/moderation/reports/{reportId}/resolve": {
       "post": {
         "tags": [
           "Moderation"
@@ -4922,7 +5757,7 @@
         }
       }
     },
-    "/api/moderation/reports/{reportId}/dismiss": {
+    "/moderation/reports/{reportId}/dismiss": {
       "post": {
         "tags": [
           "Moderation"
@@ -4955,7 +5790,7 @@
         }
       }
     },
-    "/api/moderation/reports/{reportId}/comments": {
+    "/moderation/reports/{reportId}/comments": {
       "post": {
         "tags": [
           "Moderation"
@@ -4982,13 +5817,20 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCommentCreatedResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/reports/reasons": {
+    "/moderation/reports/reasons": {
       "get": {
         "tags": [
           "Moderation"
@@ -5005,12 +5847,19 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportReasonsResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/moderation/posts/{postId}/delete": {
+    "/moderation/posts/{postId}/delete": {
       "post": {
         "tags": [
           "Moderation"
@@ -5043,7 +5892,7 @@
         }
       }
     },
-    "/api/moderation/discussions/{discussionId}/delete": {
+    "/moderation/discussions/{discussionId}/delete": {
       "post": {
         "tags": [
           "Moderation"
@@ -5076,7 +5925,7 @@
         }
       }
     },
-    "/api/moderation/discussions/{discussionId}/lock": {
+    "/moderation/discussions/{discussionId}/lock": {
       "post": {
         "tags": [
           "Moderation"
@@ -5109,7 +5958,7 @@
         }
       }
     },
-    "/api/moderation/discussions/{discussionId}/unlock": {
+    "/moderation/discussions/{discussionId}/unlock": {
       "post": {
         "tags": [
           "Moderation"
@@ -5132,7 +5981,7 @@
         }
       }
     },
-    "/api/moderation/log": {
+    "/moderation/log": {
       "get": {
         "tags": [
           "Moderation"
@@ -5189,7 +6038,58 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/manage/resolve": {
+      "get": {
+        "tags": [
+          "Management"
+        ],
+        "operationId": "ResolveManageScope",
+        "parameters": [
+          {
+            "name": "communitySlug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hubSlug",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "spaceSlug",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManageScopeDto"
+                }
+              }
+            }
           }
         }
       }
@@ -5197,6 +6097,107 @@
   },
   "components": {
     "schemas": {
+      "ActiveAdminSessionsResponse": {
+        "required": [
+          "sessions",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ActiveSessionsResponse": {
+        "required": [
+          "totalSessions",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "totalSessions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "array"
+          }
+        }
+      },
+      "ActivityDayResponse": {
+        "required": [
+          "date",
+          "discussions",
+          "posts",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "discussions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "posts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ActivityHistoryResponse": {
+        "required": [
+          "days",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityDayResponse"
+            }
+          }
+        }
+      },
       "AddReportCommentRequest": {
         "required": [
           "content"
@@ -5205,6 +6206,1182 @@
         "properties": {
           "content": {
             "type": "string"
+          }
+        }
+      },
+      "AdminActiveBanItemResponse": {
+        "required": [
+          "userId",
+          "username",
+          "reason",
+          "bannedAt",
+          "expiresAt",
+          "bannedByUsername"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "bannedByUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminActiveBansResponse": {
+        "required": [
+          "bans",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "bans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminActiveBanItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminBanResponse": {
+        "required": [
+          "publicId",
+          "banType",
+          "bannedAt",
+          "expiresAt",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "banType": {
+            "type": "string"
+          },
+          "bannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminCommunityDetailResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "visibility",
+          "createdAt",
+          "hubCount",
+          "memberCount",
+          "hubs"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hubCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hubs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminHubSummaryResponse"
+            }
+          }
+        }
+      },
+      "AdminCommunityItemResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "visibility",
+          "createdAt",
+          "hubCount",
+          "memberCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hubCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "memberCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminCommunityListResponse": {
+        "required": [
+          "communities",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "communities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCommunityItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminDiscussionDetailResponse": {
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "spaceId",
+          "spaceName",
+          "hubId",
+          "hubName",
+          "communityId",
+          "communityName",
+          "authorId",
+          "authorName",
+          "postCount",
+          "reactionCount",
+          "isPinned",
+          "isLocked",
+          "tags",
+          "createdAt",
+          "lastActivityAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "spaceId": {
+            "type": "string"
+          },
+          "spaceName": {
+            "type": "string"
+          },
+          "hubId": {
+            "type": "string"
+          },
+          "hubName": {
+            "type": "string"
+          },
+          "communityId": {
+            "type": "string"
+          },
+          "communityName": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reactionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isPinned": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminDiscussionItemResponse": {
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "spaceId",
+          "spaceName",
+          "hubId",
+          "hubName",
+          "communityId",
+          "communityName",
+          "authorId",
+          "authorName",
+          "postCount",
+          "isPinned",
+          "isLocked",
+          "createdAt",
+          "lastActivityAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "spaceId": {
+            "type": "string"
+          },
+          "spaceName": {
+            "type": "string"
+          },
+          "hubId": {
+            "type": "string"
+          },
+          "hubName": {
+            "type": "string"
+          },
+          "communityId": {
+            "type": "string"
+          },
+          "communityName": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isPinned": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminDiscussionListResponse": {
+        "required": [
+          "discussions",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "discussions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDiscussionItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminHubItemResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "communityId",
+          "communityName",
+          "createdAt",
+          "spaceCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "communityId": {
+            "type": "string"
+          },
+          "communityName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "spaceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminHubListResponse": {
+        "required": [
+          "hubs",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "hubs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminHubItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminHubSummaryResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "spaceCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "spaceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminModerationLogItemResponse": {
+        "required": [
+          "id",
+          "actionType",
+          "moderatorUsername",
+          "targetType",
+          "targetId",
+          "reason",
+          "details",
+          "createdAt",
+          "communityName",
+          "hubName",
+          "spaceName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actionType": {
+            "type": "string"
+          },
+          "moderatorUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "communityName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hubName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spaceName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminModerationLogResponse": {
+        "required": [
+          "actions",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminModerationLogItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminPermissionActionResponse": {
+        "required": [
+          "message",
+          "roleId",
+          "permissionId"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "roleId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "permissionId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminPermissionsListResponse": {
+        "required": [
+          "permissions",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminReportDetailResponse": {
+        "required": [
+          "id",
+          "reporterId",
+          "reporterUsername",
+          "reportedUserId",
+          "reportedUsername",
+          "postId",
+          "discussionId",
+          "reason",
+          "reasonDescription",
+          "details",
+          "status",
+          "createdAt",
+          "resolvedAt",
+          "resolverId",
+          "resolverUsername",
+          "resolutionNote"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reporterId": {
+            "type": "string"
+          },
+          "reporterUsername": {
+            "type": "string"
+          },
+          "reportedUserId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reportedUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "postId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "discussionId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resolverId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resolverUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resolutionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminReportItemResponse": {
+        "required": [
+          "id",
+          "reporterUsername",
+          "reportedUsername",
+          "contentType",
+          "reason",
+          "status",
+          "createdAt",
+          "resolvedAt",
+          "resolverUsername",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reporterUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reportedUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resolverUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminReportListResponse": {
+        "required": [
+          "reports",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReportItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminRolePermissionsResponse": {
+        "required": [
+          "roleId",
+          "permissions",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "permissions": {
+            "type": "array"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminRoleResponse": {
+        "required": [
+          "publicId",
+          "role",
+          "assignedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminSpaceItemResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "hubId",
+          "hubName",
+          "communityId",
+          "communityName",
+          "createdAt",
+          "discussionCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hubId": {
+            "type": "string"
+          },
+          "hubName": {
+            "type": "string"
+          },
+          "communityId": {
+            "type": "string"
+          },
+          "communityName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminSpaceListResponse": {
+        "required": [
+          "spaces",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "spaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSpaceItemResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AdminTemporaryRoleGrantResponse": {
+        "required": [
+          "message",
+          "elevation"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "elevation": { }
+        }
+      },
+      "AdminTemporaryRoleRevokeResponse": {
+        "required": [
+          "message",
+          "elevationId"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "elevationId": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminTemporaryRolesResponse": {
+        "required": [
+          "elevations",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "elevations": {
+            "type": "array"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -5257,6 +7434,139 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "AuditLogDto": {
+        "required": [
+          "id",
+          "action",
+          "category",
+          "severity",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actorUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ipAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuditLogsResponse": {
+        "required": [
+          "logs",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogDto"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AuthorRef": {
+        "required": [
+          "publicId",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -5324,6 +7634,89 @@
             "type": "boolean"
           },
           "generateOnStartup": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvatarUploadResponse": {
+        "required": [
+          "message",
+          "avatarUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "BackupCodesStatusResponse": {
+        "required": [
+          "totalCodes",
+          "unusedCodes",
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "totalCodes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unusedCodes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "codes": {
+            "type": "array"
+          }
+        }
+      },
+      "BanCreatedResponse": {
+        "required": [
+          "publicId",
+          "banType",
+          "bannedAt",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "banType": {
+            "type": "string"
+          },
+          "bannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BanStatusResponse": {
+        "required": [
+          "isBanned"
+        ],
+        "type": "object",
+        "properties": {
+          "isBanned": {
             "type": "boolean"
           }
         }
@@ -5420,6 +7813,52 @@
           }
         }
       },
+      "CommunityResponse": {
+        "required": [
+          "publicId",
+          "name",
+          "slug",
+          "description",
+          "visibility",
+          "exposeToPlatformFeed",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "exposeToPlatformFeed": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "CommunityStatsResponse": {
         "required": [
           "publicId",
@@ -5483,6 +7922,76 @@
       },
       "CommunityVisibility": {
         "type": "integer"
+      },
+      "ContentOverviewResponse": {
+        "required": [
+          "totalCommunities",
+          "totalHubs",
+          "totalSpaces",
+          "totalDiscussions",
+          "totalPosts",
+          "pinnedDiscussions",
+          "lockedDiscussions"
+        ],
+        "type": "object",
+        "properties": {
+          "totalCommunities": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalHubs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalSpaces": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalDiscussions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPosts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pinnedDiscussions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lockedDiscussions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "ContentSettingsDto": {
         "type": "object",
@@ -5764,6 +8273,40 @@
           }
         }
       },
+      "CurrentUserResponse": {
+        "required": [
+          "publicId",
+          "displayName",
+          "email",
+          "emailVerified",
+          "oAuthProvider",
+          "preferEndlessScroll"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "oAuthProvider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "preferEndlessScroll": {
+            "type": "boolean"
+          }
+        }
+      },
       "DisableTwoFactorRequest": {
         "required": [
           "password"
@@ -5772,6 +8315,275 @@
         "properties": {
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "DiscussionBySpaceResponse": {
+        "required": [
+          "publicId",
+          "spaceId",
+          "title",
+          "slug",
+          "createdAt",
+          "lastActivityAt",
+          "isPinned",
+          "isLocked",
+          "postCount",
+          "reactionCount",
+          "author",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "spaceId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isPinned": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reactionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorRef"
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DiscussionCreatedResponse": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DiscussionPreviewResponse": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "DiscussionResponse": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "spaceId",
+          "createdAt",
+          "lastActivityAt",
+          "isPinned",
+          "isLocked"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "spaceId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isPinned": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DiscussionSearchResultDto": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "authorPublicId",
+          "authorDisplayName",
+          "authorAvatarFileName",
+          "spacePublicId",
+          "spaceName",
+          "spaceSlug",
+          "hubSlug",
+          "createdAt",
+          "lastActivityAt",
+          "postCount",
+          "viewCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "authorPublicId": {
+            "type": "string"
+          },
+          "authorDisplayName": {
+            "type": "string"
+          },
+          "authorAvatarFileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spacePublicId": {
+            "type": "string"
+          },
+          "spaceName": {
+            "type": "string"
+          },
+          "spaceSlug": {
+            "type": "string"
+          },
+          "hubSlug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "viewCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DiscussionStatsResponse": {
+        "required": [
+          "publicId",
+          "title",
+          "replyCount",
+          "followerCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "replyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "followerCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -5820,6 +8632,223 @@
           }
         }
       },
+      "EnrichedPostResponse": {
+        "required": [
+          "postNumber",
+          "publicId",
+          "content",
+          "createdAt",
+          "editedAt",
+          "isFirstPost",
+          "isDeleted",
+          "createdByUserId",
+          "author",
+          "replyTo",
+          "reactions"
+        ],
+        "type": "object",
+        "properties": {
+          "postNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isFirstPost": {
+            "type": "boolean"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "createdByUserId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorRef"
+          },
+          "replyTo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReplyToRef"
+              }
+            ]
+          },
+          "reactions": {
+            "$ref": "#/components/schemas/PostReactionsResponse"
+          }
+        }
+      },
+      "EntityRef": {
+        "required": [
+          "publicId",
+          "slug",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FailedLoginsResponse": {
+        "required": [
+          "failures",
+          "suspiciousIps",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "failures": {
+            "type": "array"
+          },
+          "suspiciousIps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuspiciousIpResponse"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "FollowedIdsResponse": {
+        "required": [
+          "publicIds"
+        ],
+        "type": "object",
+        "properties": {
+          "publicIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FollowLevelResponse": {
+        "required": [
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          }
+        }
+      },
+      "FollowToggleResponse": {
+        "required": [
+          "isFollowing"
+        ],
+        "type": "object",
+        "properties": {
+          "isFollowing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GetReactionCountsResponse": {
+        "required": [
+          "thumbsUp",
+          "heart",
+          "eyes",
+          "crazy"
+        ],
+        "type": "object",
+        "properties": {
+          "thumbsUp": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "heart": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "eyes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "crazy": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "GrantTemporaryRoleRequest": {
         "required": [
           "userId",
@@ -5854,6 +8883,75 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "HubResponse": {
+        "required": [
+          "publicId",
+          "communityId",
+          "name",
+          "slug",
+          "description",
+          "createdAt",
+          "spaceCount",
+          "discussionCount",
+          "replyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "communityId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "spaceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "replyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastModifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -5909,6 +9007,54 @@
           }
         }
       },
+      "LatestDiscussionRef": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "lastActivityAt",
+          "authorPublicId",
+          "authorDisplayName",
+          "authorAvatarFileName",
+          "postCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorPublicId": {
+            "type": "string"
+          },
+          "authorDisplayName": {
+            "type": "string"
+          },
+          "authorAvatarFileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -5943,6 +9089,121 @@
           }
         }
       },
+      "ManagePermissionEnum": {
+        "enum": [
+          "ViewDashboard",
+          "ManageContent",
+          "ManageReports",
+          "ManageBans",
+          "ManageSettings",
+          "ManageTeam",
+          "ManageWebhooks"
+        ]
+      },
+      "ManageScopeDto": {
+        "required": [
+          "scopeType",
+          "scopeName",
+          "communitySlug",
+          "communityName"
+        ],
+        "type": "object",
+        "properties": {
+          "scopeType": {
+            "type": "string"
+          },
+          "scopeId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "scopeName": {
+            "type": "string"
+          },
+          "scopeAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "communitySlug": {
+            "type": "string"
+          },
+          "hubSlug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spaceSlug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "communityName": {
+            "type": "string"
+          },
+          "communityId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hubName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hubId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "spaceName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spaceId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagePermissionEnum"
+            }
+          }
+        }
+      },
+      "MessageResponse": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "ModerationActionRequest": {
         "required": [
           "reason"
@@ -5954,6 +9215,542 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "OAuthProviderDto": {
+        "required": [
+          "provider"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PagedResponseOfCommunityResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfDiscussionBySpaceResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscussionBySpaceResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfEnrichedPostResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnrichedPostResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfHubResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HubResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfObject": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfRecentDiscussionResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentDiscussionResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResponseOfSpaceByHubResponse": {
+        "required": [
+          "items",
+          "offset",
+          "pageSize",
+          "hasMoreItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpaceByHubResponse"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResultOfDiscussionSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscussionSearchResultDto"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PagedResultOfPostSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostSearchResultDto"
+            }
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasMoreItems": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlatformStatsResponse": {
+        "required": [
+          "hubCount",
+          "spaceCount",
+          "discussionCount",
+          "replyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "hubCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "spaceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "replyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PostCreatedResponse": {
+        "required": [
+          "publicId",
+          "content",
+          "createdAt",
+          "discussionId"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "discussionId": {
+            "type": "string"
+          }
+        }
+      },
+      "PostNumberResponse": {
+        "required": [
+          "postNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "postNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PostReactionsResponse": {
+        "required": [
+          "counts",
+          "userReaction"
+        ],
+        "type": "object",
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/ReactionCountsResponse"
+          },
+          "userReaction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PostSearchResultDto": {
+        "required": [
+          "publicId",
+          "content",
+          "authorPublicId",
+          "authorDisplayName",
+          "authorAvatarFileName",
+          "discussionPublicId",
+          "discussionTitle",
+          "discussionSlug",
+          "spaceSlug",
+          "hubSlug",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "authorPublicId": {
+            "type": "string"
+          },
+          "authorDisplayName": {
+            "type": "string"
+          },
+          "authorAvatarFileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "discussionPublicId": {
+            "type": "string"
+          },
+          "discussionTitle": {
+            "type": "string"
+          },
+          "discussionSlug": {
+            "type": "string"
+          },
+          "spaceSlug": {
+            "type": "string"
+          },
+          "hubSlug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6010,12 +9807,78 @@
           }
         }
       },
+      "ReactionCountsResponse": {
+        "required": [
+          "thumbsUp",
+          "heart",
+          "eyes",
+          "crazy"
+        ],
+        "type": "object",
+        "properties": {
+          "thumbsUp": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "heart": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "eyes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "crazy": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "ReactionTypeEnum": {
         "enum": [
           "ThumbsUp",
           "Heart",
-          "Eyes"
+          "Eyes",
+          "Crazy"
         ]
+      },
+      "ReadStateResponse": {
+        "required": [
+          "lastReadPostId",
+          "lastReadAt"
+        ],
+        "type": "object",
+        "properties": {
+          "lastReadPostId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastReadAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "ReadStateUpdateDto": {
         "required": [
@@ -6038,6 +9901,90 @@
               "string"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "RecentDiscussionResponse": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "createdAt",
+          "lastActivityAt",
+          "isPinned",
+          "isLocked",
+          "space",
+          "hub",
+          "community",
+          "author",
+          "postCount",
+          "reactionCount",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isPinned": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "space": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "hub": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "community": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorRef"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reactionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -6078,6 +10025,28 @@
           }
         }
       },
+      "RegenerateBackupCodesResponse": {
+        "required": [
+          "message",
+          "backupCodes",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "backupCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warning": {
+            "type": "string"
+          }
+        }
+      },
       "RegisterRequest": {
         "required": [
           "email",
@@ -6094,6 +10063,143 @@
           },
           "displayName": {
             "type": "string"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "required": [
+          "message",
+          "accessToken",
+          "refreshToken",
+          "user"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/RegisterUserInfo"
+          }
+        }
+      },
+      "RegisterUserInfo": {
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "emailVerified"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReplyToRef": {
+        "required": [
+          "authorName",
+          "contentSnippet"
+        ],
+        "type": "object",
+        "properties": {
+          "authorName": {
+            "type": "string"
+          },
+          "contentSnippet": {
+            "type": "string"
+          }
+        }
+      },
+      "ReportCommentCreatedResponse": {
+        "required": [
+          "publicId",
+          "content",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportCreatedResponse": {
+        "required": [
+          "publicId",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportReasonResponse": {
+        "required": [
+          "publicId",
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReportReasonsResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportReasonResponse"
+            }
           }
         }
       },
@@ -6136,6 +10242,26 @@
           }
         }
       },
+      "RoleAssignedResponse": {
+        "required": [
+          "publicId",
+          "role",
+          "assignedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SessionRefreshResponse": {
         "required": [
           "accessToken"
@@ -6167,6 +10293,172 @@
           },
           "language": {
             "type": "string"
+          }
+        }
+      },
+      "SpaceByHubResponse": {
+        "required": [
+          "publicId",
+          "hubPublicId",
+          "name",
+          "slug",
+          "description",
+          "createdAt",
+          "discussionCount",
+          "replyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "hubPublicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "replyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "latestDiscussion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LatestDiscussionRef"
+              }
+            ]
+          }
+        }
+      },
+      "SpaceFollowStatusResponse": {
+        "required": [
+          "isFollowing",
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "isFollowing": {
+            "type": "boolean"
+          },
+          "level": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SpaceFollowToggleResponse": {
+        "required": [
+          "isFollowing",
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "isFollowing": {
+            "type": "boolean"
+          },
+          "level": {
+            "type": "string"
+          }
+        }
+      },
+      "SpaceResponse": {
+        "required": [
+          "publicId",
+          "hubId",
+          "name",
+          "slug",
+          "description",
+          "createdAt",
+          "discussionCount",
+          "replyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "hubId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "replyCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastModifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "latestDiscussion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LatestDiscussionRef"
+              }
+            ]
           }
         }
       },
@@ -6202,6 +10494,17 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "SpaceRulesDto": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpaceRuleDto"
+            }
           }
         }
       },
@@ -6257,6 +10560,71 @@
           }
         }
       },
+      "SuccessResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "processed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SuspiciousActivitiesResponse": {
+        "required": [
+          "activities",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "activities": {
+            "type": "array"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SuspiciousIpResponse": {
+        "required": [
+          "ipAddress",
+          "failureCount",
+          "lastAttempt"
+        ],
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string"
+          },
+          "failureCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastAttempt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "TestEmailRequest": {
         "required": [
           "recipientEmail"
@@ -6279,6 +10647,159 @@
           }
         }
       },
+      "ToggleReactionResponse": {
+        "required": [
+          "added"
+        ],
+        "type": "object",
+        "properties": {
+          "added": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TopActiveDiscussionResponse": {
+        "required": [
+          "publicId",
+          "title",
+          "slug",
+          "postCountToday",
+          "space",
+          "hub",
+          "author"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "postCountToday": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "space": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "hub": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorRef"
+          }
+        }
+      },
+      "TopActiveDiscussionsResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopActiveDiscussionResponse"
+            }
+          }
+        }
+      },
+      "TopActiveSpaceResponse": {
+        "required": [
+          "publicId",
+          "name",
+          "slug",
+          "postCountToday",
+          "hub"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "postCountToday": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hub": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        }
+      },
+      "TopActiveSpacesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopActiveSpaceResponse"
+            }
+          }
+        }
+      },
+      "TopContributorResponse": {
+        "required": [
+          "publicId",
+          "displayName",
+          "avatarUrl",
+          "postCountToday"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "postCountToday": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "TopContributorsResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopContributorResponse"
+            }
+          }
+        }
+      },
       "TrustDeviceRequest": {
         "required": [
           "expirationDays"
@@ -6289,6 +10810,105 @@
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "TrustDeviceResponse": {
+        "required": [
+          "message",
+          "expiresIn"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorEnableResponse": {
+        "required": [
+          "message",
+          "backupCodes",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "backupCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warning": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorSetupResponse": {
+        "required": [
+          "secret",
+          "qrCodeUri",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "secret": {
+            "type": "string"
+          },
+          "qrCodeUri": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorVerifyResponse": {
+        "required": [
+          "message",
+          "accessToken",
+          "requiresTrustPrompt",
+          "deviceFingerprint",
+          "deviceName"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "requiresTrustPrompt": {
+            "type": "boolean"
+          },
+          "deviceFingerprint": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          }
+        }
+      },
+      "UnreadCountResponse": {
+        "required": [
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
               "integer",
               "string"
             ],
@@ -6380,11 +11000,18 @@
       },
       "UpdatePreferencesRequest": {
         "required": [
-          "preferEndlessScroll"
+          "preferEndlessScroll",
+          "autoFollowOnReply"
         ],
         "type": "object",
         "properties": {
           "preferEndlessScroll": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "autoFollowOnReply": {
             "type": [
               "null",
               "boolean"
@@ -6400,6 +11027,23 @@
         "properties": {
           "displayName": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateProfileResponse": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6537,6 +11181,40 @@
           }
         }
       },
+      "UserDataExportDto": {
+        "required": [
+          "exportId",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "exportId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "UserDataExportStatusResponse": {
+        "required": [
+          "exportId",
+          "status",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "exportId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "UserInfo": {
         "required": [
           "id",
@@ -6566,6 +11244,149 @@
           }
         }
       },
+      "UserProfileDto": {
+        "required": [
+          "publicId",
+          "displayName",
+          "avatarFileName",
+          "joinedAt",
+          "lastSeenAt",
+          "discussionCount",
+          "postCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarFileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "discussionCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "postCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "UserReactionResponse": {
+        "required": [
+          "reaction"
+        ],
+        "type": "object",
+        "properties": {
+          "reaction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UserRoleItemResponse": {
+        "required": [
+          "publicId",
+          "role",
+          "communityId",
+          "communityName",
+          "hubId",
+          "hubName",
+          "spaceId",
+          "spaceName",
+          "assignedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "communityId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "communityName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hubId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hubName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spaceId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spaceName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserRolesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRoleItemResponse"
+            }
+          }
+        }
+      },
       "UserRoleTypeEnum": {
         "enum": [
           "GlobalAdmin",
@@ -6574,6 +11395,25 @@
           "HubMod",
           "SpaceMod"
         ]
+      },
+      "UserSearchResult": {
+        "required": [
+          "publicId",
+          "displayName",
+          "avatarUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
       },
       "UserStatsResponse": {
         "required": [
@@ -6851,9 +11691,6 @@
   },
   "tags": [
     {
-      "name": "Health"
-    },
-    {
       "name": "SitemapEndpoints"
     },
     {
@@ -6870,9 +11707,6 @@
     },
     {
       "name": "Posts"
-    },
-    {
-      "name": "Posts API"
     },
     {
       "name": "Authentication"
@@ -6929,7 +11763,7 @@
       "name": "Follow"
     },
     {
-      "name": "Stats"
+      "name": "Platform"
     },
     {
       "name": "Users"
@@ -6945,6 +11779,9 @@
     },
     {
       "name": "Moderation"
+    },
+    {
+      "name": "Management"
     }
   ]
 }

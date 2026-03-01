@@ -22,8 +22,7 @@
 }
 else
 {
-    <div class="max-w-6xl mx-auto">
-        <!-- Breadcrumb -->
+    <div class="breadcrumb-bar">
         <nav class="breadcrumb">
             <a href="/">Home</a>
             @if (Model.ShowCommunityInBreadcrumb)
@@ -33,76 +32,38 @@ else
                 <span class="breadcrumb-separator">/</span>
                 <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
             }
-            <span class="breadcrumb-separator">/</span>
-            <a href="/hubs">Hubs</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-current"
-                  data-popup-type="hub"
-                  data-popup-id="@Model.Hub.PublicId"
-                  data-popup-name="@Model.Hub.Name">@Model.Hub.Name</span>
         </nav>
-
-        <!-- Hub Header -->
-        <div class="page-header">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                <div class="flex items-start gap-4">
-                    <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h1>@Model.Hub.Name</h1>
-                            @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                            {
-                                <a href="@SnakkUrlHelper.ManageHub(Model.Community.CommunitySlug, Model.Hub.Slug)"
-                                   class="btn btn-ghost btn-sm ml-2" title="Manage hub">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </a>
-                            }
-                        </div>
-                        @if (!string.IsNullOrEmpty(Model.Hub.Description))
-                        {
-                            <p>@Model.Hub.Description</p>
-                        }
-                    </div>
-                </div>
-                @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                {
-                    <div class="flex-shrink-0">
-                        <a href="@SnakkUrlHelper.ManageHub(Model.Community.CommunitySlug, Model.Hub.Slug)" class="btn btn-primary">Manage Hub</a>
-                    </div>
-                }
-                @*
-                @if (Model.HubStats != null)
-                {
-                    <div class="w-full lg:w-80 flex-shrink-0">
-                        <div class="stats-panel">
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <span class="stat-value">@Model.HubStats.SpaceCount</span>
-                                    <span class="stat-label">Spaces</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-value">@Model.HubStats.DiscussionCount</span>
-                                    <span class="stat-label">Discussions</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-value">@Model.HubStats.ReplyCount</span>
-                                    <span class="stat-label">Replies</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-                *@
-            </div>
-        </div>
-
+    </div>
+    <div class="max-w-6xl mx-auto px-4 py-8">
         <!-- Two Column Layout -->
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Left Column: Spaces -->
             <div class="flex-1 min-w-0">
+                <!-- Hub Header -->
+                <div class="page-header">
+                    <div class="flex items-start gap-4">
+                        <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h1>@Model.Hub.Name</h1>
+                                @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                                {
+                                    <a href="@SnakkUrlHelper.ManageHub(Model.Community.CommunitySlug, Model.Hub.Slug)"
+                                       class="btn btn-ghost btn-sm" title="Manage hub">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </a>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.Hub.Description))
+                            {
+                                <p>@Model.Hub.Description</p>
+                            }
+                        </div>
+                    </div>
+                </div>
                 <div class="section-header">
                     <span class="section-title">Spaces</span>
                 </div>
@@ -162,7 +123,7 @@ else
                                             <div class="space-latest-meta">
                                                 <span>@space.LatestDiscussion.AuthorDisplayName</span>
                                                 <span>·</span>
-                                                <span>@((DateTime.UtcNow - space.LatestDiscussion.LastActivityAt).TotalMinutes < 1 ? "just now" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt).TotalHours < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt).TotalMinutes}m ago" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt).TotalDays < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt).TotalHours}h ago" : space.LatestDiscussion.LastActivityAt.ToString("MMM d"))</span>
+                                                <span>@((DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalMinutes < 1 ? "just now" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalHours < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalMinutes}m ago" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalDays < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalHours}h ago" : space.LatestDiscussion.LastActivityAt.ToDateTime().ToString("MMM d"))</span>
                                             </div>
                                         </div>
                                         <a href="@unreadUrl" class="space-latest-goto" title="Jump to first unread post">
@@ -198,45 +159,37 @@ else
                 }
             </div>
 
-            <!-- Right Column: Trending Discussions & Contributors -->
-            <aside class="w-full lg:w-80 flex-shrink-0">
+            <!-- Right Column: Sidebar -->
+            <aside id="sticky-sidebar" class="w-full lg:w-80 flex-shrink-0" hx-push-url="false">
+                @if (Model.Hub.HasRules)
+                {
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">Rules</h3>
+                        <inline-or-htmx partial="Shared/Sidebar/_HubRules"
+                                         model="Model.InlineHubRules"
+                                         htmx-url="/partials/hub-rules?hubId=@Model.Hub.PublicId&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentCommunityHasRules=@Model.Hub.ParentCommunityHasRules&rev=@Model.Hub.RulesRevision">
+                            <div class="flex flex-col gap-2">
+                                <div class="skeleton h-4 w-full"></div>
+                                <div class="skeleton h-4 w-5/6"></div>
+                                <div class="skeleton h-4 w-4/6"></div>
+                            </div>
+                        </inline-or-htmx>
+                    </div>
+                }
+
                 @if (Model.ShowTrendingDiscussions)
                 {
                     <div class="sidebar-section">
                         <h3 class="sidebar-title">Trending Discussions</h3>
-                        @if (Model.TrendingDiscussions?.Items == null || Model.TrendingDiscussions.Items.Length == 0)
-                        {
-                            <p class="sidebar-empty">No activity today yet</p>
-                        }
-                        else
-                        {
-                            <ul class="sidebar-list">
-                                @foreach (var discussion in Model.TrendingDiscussions.Items)
-                                {
-                                    var discussionUrl = SnakkUrlHelper.Discussion(
-                                        Model.Community,
-                                        discussion.Hub.Slug,
-                                        discussion.Space.Slug,
-                                        $"{discussion.Slug}~{discussion.PublicId}");
-
-                                    <li>
-                                        <a href="@discussionUrl" class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
-                                                 alt="@discussion.Author.DisplayName" loading="lazy" class="sidebar-avatar" />
-                                            <span class="sidebar-link-content">
-                                                <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
-                                                <span class="sidebar-link-meta">
-                                                    <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
-                                                    <span data-popup-type="space"
-                                                          data-popup-id="@discussion.Space.PublicId"
-                                                          data-popup-name="@discussion.Space.Name">@discussion.Space.Name</span>
-                                                </span>
-                                            </span>
-                                        </a>
-                                    </li>
-                                }
-                            </ul>
-                        }
+                        <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
+                                         model="Model.InlineTrendingDiscussions"
+                                         htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            </div>
+                        </inline-or-htmx>
                     </div>
                 }
 
@@ -244,33 +197,15 @@ else
                 {
                     <div class="sidebar-section">
                         <h3 class="sidebar-title">Trending Contributors</h3>
-                        @if (Model.TrendingContributors?.Items == null || Model.TrendingContributors.Items.Length == 0)
-                        {
-                            <p class="sidebar-empty">No contributors today yet</p>
-                        }
-                        else
-                        {
-                            <ul class="sidebar-list">
-                                @foreach (var contributor in Model.TrendingContributors.Items)
-                                {
-                                    <li>
-                                        <span class="sidebar-link">
-                                            <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
-                                                 alt="@contributor.DisplayName" loading="lazy" class="sidebar-avatar" />
-                                            <span class="sidebar-link-content">
-                                                <span class="sidebar-link-title"
-                                                      data-popup-type="user"
-                                                      data-popup-id="@contributor.PublicId"
-                                                      data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
-                                                <span class="sidebar-link-meta">
-                                                    <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
-                                                </span>
-                                            </span>
-                                        </span>
-                                    </li>
-                                }
-                            </ul>
-                        }
+                        <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
+                                         model="Model.InlineTrendingContributors"
+                                         htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            </div>
+                        </inline-or-htmx>
                     </div>
                 }
             </aside>

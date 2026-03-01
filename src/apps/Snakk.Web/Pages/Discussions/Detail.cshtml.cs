@@ -1,21 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Snakk.Web.Models;
 using Snakk.Web.Services;
+using Snakk.Web.Pages.ViewModels;
 using Snakk.Application.Services;
+using Snakk.Protos.Community;
+using Snakk.Protos.Hub;
+using Snakk.Protos.Space;
+using Snakk.Protos.Discussion;
+using Snakk.Protos.Post;
 
 namespace Snakk.Web.Pages.Discussions;
 
-public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
     private readonly IMarkupParser _markupParser = markupParser;
 
-    public DiscussionDto? Discussion { get; set; }
-    public PagedResult<PostDto>? Posts { get; set; }
-    public HubDetailDto? Hub { get; set; }
-    public SpaceDetailDto? Space { get; set; }
-    public CommunityDetailDto? CommunityDetail { get; set; }
+    public DiscussionInfo? Discussion { get; set; }
+    public PagedEnrichedPostList? Posts { get; set; }
+    public HubInfo? Hub { get; set; }
+    public SpaceInfo? Space { get; set; }
+    public CommunityInfo? CommunityDetail { get; set; }
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
     public string SlugWithId { get; set; } = string.Empty;
@@ -26,6 +31,9 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
     public string? CurrentUserId { get; set; }
     public string? CurrentUserDisplayName { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
+
+    // Inline sidebar data (populated from cache, null = HTMX fallback)
+    public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -74,12 +82,14 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
 
         try
         {
-            // Load user info first
+            // Read scroll preference from cookie (always available, no API call)
+            PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
+
+            // Load user info for auth-dependent features
             var user = await _apiClient.GetCurrentUserAsync();
             IsAuthenticated = user != null;
             CurrentUserId = user?.PublicId;
             CurrentUserDisplayName = user?.DisplayName;
-            PreferEndlessScroll = user?.PreferEndlessScroll ?? true;
 
             // Handle gotoUnread redirect
             if (gotoUnread && IsAuthenticated && !string.IsNullOrEmpty(CurrentUserId))
@@ -105,12 +115,21 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
             var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug);
             var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
                 ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
-                : Task.FromResult<CommunityDetailDto?>(null);
+                : Task.FromResult<CommunityInfo?>(null);
             await Task.WhenAll(hubTask, spaceTask, communityTask);
 
             Hub = hubTask.Result;
             Space = spaceTask.Result;
             CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
+
+            // Prefetch space rules for sidebar (inline if cache warm, HTMX fallback if cold)
+            if (Space?.HasRules == true)
+            {
+                InlineSpaceRules = prefetchCache.ResolveOrPrefetch($"space-rules:{Space.PublicId}",
+                    () => _apiClient.GetSpaceRulesAsync(Space.PublicId),
+                    d => new SidebarSpaceRulesVM(d, CommunityContext, HubSlug, CommunityContext.CommunitySlug ?? "",
+                        Space.ParentHubHasRules, Space.ParentCommunityHasRules, "cache"));
+            }
 
             Discussion = await _apiClient.GetDiscussionAsync(PublicId);
             if (Discussion == null)
@@ -164,13 +183,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
 
         try
         {
-            var request = new CreatePostRequest(
-                DiscussionId: PublicId,
-                UserId: CurrentUserId,
-                Content: PostContent,
-                ReplyToPostId: string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
-
-            await _apiClient.CreatePostAsync(request);
+            await _apiClient.CreatePostAsync(PublicId, PostContent, string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
 
             return RedirectToPage("/Discussions/Detail", new { hubSlug, spaceSlug, slugWithId });
         }

@@ -1,24 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
+using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
-using Snakk.Web.Models;
+using Snakk.Protos.Hub;
+using Snakk.Protos.Space;
 
 namespace Snakk.Web.Pages.Hubs;
 
 [OutputCache(PolicyName = "Space")]
-public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : PageModel
+public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : PageModel
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
-    public HubDetailDto? Hub { get; set; }
-    public PagedResult<SpaceDto>? Spaces { get; set; }
-    public TopActiveDiscussionsResult? TrendingDiscussions { get; set; }
-    public TopContributorsResult? TrendingContributors { get; set; }
-    public HubStatsDto? HubStats { get; set; }
+    public HubInfo? Hub { get; set; }
+    public PagedSpaceByHubList? Spaces { get; set; }
+    public HubStats? HubStats { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:7291";
     public ICommunityContext Community => communityContext;
+
+    // Sidebar scope for HTMX partials
+    public string SidebarScopeType { get; set; } = "hub";
+    public string SidebarScopeId { get; set; } = string.Empty;
 
     // Trending settings
     public bool ShowTrendingDiscussions => configuration.GetValue("Trending:SpaceList:ShowDiscussions", true);
@@ -30,6 +34,11 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
         communityContext.IsDefaultCommunity &&
         !communityContext.IsCustomDomain;
 
+    // Inline sidebar data (populated from cache, null = HTMX fallback)
+    public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
+    public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
+    public SidebarHubRulesVM? InlineHubRules { get; set; }
+
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
         Slug = slug;
@@ -38,32 +47,34 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
         if (Hub == null)
             return NotFound();
 
+        SidebarScopeId = Hub.PublicId;
+
+        // Check cache for sidebar data — inline if warm, prefetch if cold
+        ResolveSidebarData();
+
         var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, offset, 20);
         var statsTask = _apiClient.GetHubStatsAsync(Hub.PublicId);
 
-        Task<TopActiveDiscussionsResult?>? trendingTask = null;
-        Task<TopContributorsResult?>? contributorsTask = null;
-
-        var tasks = new List<Task> { spacesTask, statsTask };
-
-        if (ShowTrendingDiscussions)
-        {
-            trendingTask = _apiClient.GetTopActiveDiscussionsTodayAsync(Hub.PublicId);
-            tasks.Add(trendingTask);
-        }
-        if (ShowTrendingContributors)
-        {
-            contributorsTask = _apiClient.GetTopContributorsTodayAsync(Hub.PublicId);
-            tasks.Add(contributorsTask);
-        }
-
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(spacesTask, statsTask);
 
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
         HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
-        TrendingDiscussions = trendingTask?.IsCompletedSuccessfully == true ? trendingTask.Result : null;
-        TrendingContributors = contributorsTask?.IsCompletedSuccessfully == true ? contributorsTask.Result : null;
 
         return Page();
+    }
+
+    private void ResolveSidebarData()
+    {
+        if (ShowTrendingDiscussions)
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch($"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId), d => new SidebarTrendingDiscussionsVM(d, communityContext, "cache"));
+
+        if (ShowTrendingContributors)
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch($"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(Hub!.PublicId), d => new SidebarTrendingContributorsVM(d, communityContext, "cache"));
+
+        if (Hub!.HasRules)
+            InlineHubRules = prefetchCache.ResolveOrPrefetch($"hub-rules:{SidebarScopeId}",
+                () => _apiClient.GetHubRulesAsync(SidebarScopeId), d => new SidebarHubRulesVM(d, communityContext, communityContext.CommunitySlug ?? "", Hub.ParentCommunityHasRules, "cache"));
     }
 }

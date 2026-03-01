@@ -5,43 +5,52 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Services;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
+using Snakk.Application.DTOs.Responses;
 using System.Security.Claims;
 
 public static class TwoFactorAuthEndpoints
 {
     public static void MapTwoFactorAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth/2fa")
+        var group = app.MapGroup("/auth/2fa")
             .WithTags("Two-Factor Authentication")
             .RequireAuthorization();
 
         group.MapPost("/setup", SetupTwoFactorAsync)
-            .WithName("Setup2FA");
+            .WithName("Setup2FA")
+            .Produces<TwoFactorSetupResponse>();
 
         group.MapPost("/enable", EnableTwoFactorAsync)
-            .WithName("Enable2FA");
+            .WithName("Enable2FA")
+            .Produces<TwoFactorEnableResponse>();
 
         group.MapPost("/disable", DisableTwoFactorAsync)
-            .WithName("Disable2FA");
+            .WithName("Disable2FA")
+            .Produces<MessageResponse>();
 
         group.MapPost("/verify", VerifyTwoFactorAsync)
             .WithName("Verify2FA")
+            .Produces<TwoFactorVerifyResponse>()
             .AllowAnonymous(); // Needed during login flow
 
         group.MapGet("/backup-codes", GetBackupCodesAsync)
-            .WithName("GetBackupCodes");
+            .WithName("GetBackupCodes")
+            .Produces<BackupCodesStatusResponse>();
 
         group.MapPost("/backup-codes/regenerate", RegenerateBackupCodesAsync)
-            .WithName("RegenerateBackupCodes");
+            .WithName("RegenerateBackupCodes")
+            .Produces<RegenerateBackupCodesResponse>();
 
         group.MapPost("/trust-device", TrustDeviceAsync)
-            .WithName("TrustDevice");
+            .WithName("TrustDevice")
+            .Produces<TrustDeviceResponse>();
 
         group.MapGet("/trusted-devices", GetTrustedDevicesAsync)
             .WithName("GetTrustedDevices");
 
         group.MapDelete("/trusted-devices/{deviceId}", RevokeTrustedDeviceAsync)
-            .WithName("RevokeTrustedDevice");
+            .WithName("RevokeTrustedDevice")
+            .Produces<MessageResponse>();
     }
 
     private static async Task<IResult> SetupTwoFactorAsync(
@@ -56,12 +65,7 @@ public static class TwoFactorAuthEndpoints
         {
             var setup = await twoFactorService.SetupTwoFactorAsync(userIdClaim.Value);
 
-            return Results.Ok(new
-            {
-                secret = setup.Secret,
-                qrCodeUri = setup.QrCodeUrl,
-                message = "Scan the QR code with your authenticator app, then verify with a code to enable 2FA"
-            });
+            return TypedResults.Ok(new TwoFactorSetupResponse(setup.Secret, setup.QrCodeUrl, "Scan the QR code with your authenticator app, then verify with a code to enable 2FA"));
         }
         catch (InvalidOperationException ex)
         {
@@ -83,12 +87,7 @@ public static class TwoFactorAuthEndpoints
         if (!success)
             return Results.BadRequest(new { error });
 
-        return Results.Ok(new
-        {
-            message = "2FA enabled successfully",
-            backupCodes,
-            warning = "Save these backup codes in a secure place. They can only be used once and will not be shown again."
-        });
+        return TypedResults.Ok(new TwoFactorEnableResponse("2FA enabled successfully", backupCodes, "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
     }
 
     private static async Task<IResult> DisableTwoFactorAsync(
@@ -105,7 +104,7 @@ public static class TwoFactorAuthEndpoints
         if (!success)
             return Results.BadRequest(new { error = "Invalid password or 2FA not enabled" });
 
-        return Results.Ok(new { message = "2FA disabled successfully" });
+        return TypedResults.Ok(new MessageResponse("2FA disabled successfully"));
     }
 
     private static async Task<IResult> VerifyTwoFactorAsync(
@@ -204,14 +203,7 @@ public static class TwoFactorAuthEndpoints
 
         var isDeviceTrusted = await trustedDeviceService.IsDeviceTrustedAsync(UserId.From(user.PublicId), deviceFingerprint);
 
-        return Results.Ok(new
-        {
-            message = "2FA verified successfully",
-            accessToken,
-            requiresTrustPrompt = !isDeviceTrusted,
-            deviceFingerprint,
-            deviceName
-        });
+        return TypedResults.Ok(new TwoFactorVerifyResponse("2FA verified successfully", accessToken, !isDeviceTrusted, deviceFingerprint, deviceName));
     }
 
     private static async Task<IResult> GetBackupCodesAsync(
@@ -226,12 +218,7 @@ public static class TwoFactorAuthEndpoints
         {
             var status = await twoFactorService.GetBackupCodesStatusAsync(userIdClaim.Value);
 
-            return Results.Ok(new
-            {
-                totalCodes = status.TotalCount,
-                unusedCodes = status.TotalCount - status.UsedCount,
-                codes = status.Codes
-            });
+            return TypedResults.Ok(new BackupCodesStatusResponse(status.TotalCount, status.TotalCount - status.UsedCount, status.Codes));
         }
         catch (InvalidOperationException ex)
         {
@@ -252,12 +239,7 @@ public static class TwoFactorAuthEndpoints
         {
             var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, request.Password);
 
-            return Results.Ok(new
-            {
-                message = "Backup codes regenerated successfully",
-                backupCodes,
-                warning = "Save these backup codes in a secure place. They can only be used once and will not be shown again."
-            });
+            return TypedResults.Ok(new RegenerateBackupCodesResponse("Backup codes regenerated successfully", backupCodes, "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
         }
         catch (InvalidOperationException ex)
         {
@@ -291,11 +273,7 @@ public static class TwoFactorAuthEndpoints
 
         await trustedDeviceService.TrustDeviceAsync(userId, deviceFingerprint, deviceName, ipAddress, expirationDays);
 
-        return Results.Ok(new
-        {
-            message = "Device trusted successfully",
-            expiresIn = expirationDays.HasValue ? $"{expirationDays} days" : "never"
-        });
+        return TypedResults.Ok(new TrustDeviceResponse("Device trusted successfully", expirationDays.HasValue ? $"{expirationDays} days" : "never"));
     }
 
     private static async Task<IResult> GetTrustedDevicesAsync(
@@ -309,7 +287,7 @@ public static class TwoFactorAuthEndpoints
         var userId = UserId.From(userIdClaim.Value);
         var devices = await trustedDeviceService.GetTrustedDevicesAsync(userId);
 
-        return Results.Ok(new { devices });
+        return TypedResults.Ok(devices);
     }
 
     private static async Task<IResult> RevokeTrustedDeviceAsync(
@@ -323,7 +301,7 @@ public static class TwoFactorAuthEndpoints
 
         await trustedDeviceService.RevokeDeviceAsync(deviceId, "User requested revocation");
 
-        return Results.Ok(new { message = "Device trust revoked successfully" });
+        return TypedResults.Ok(new MessageResponse("Device trust revoked successfully"));
     }
 }
 

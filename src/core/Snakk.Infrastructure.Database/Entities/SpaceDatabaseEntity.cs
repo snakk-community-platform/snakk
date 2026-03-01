@@ -27,6 +27,12 @@ public class SpaceDatabaseEntity
     // Avatar revision number (incremented when avatar changes)
     public int AvatarRevision { get; set; } = 0;
 
+    // Rules denormalization
+    public bool HasRules { get; set; }
+    public string? RulesRevision { get; set; }
+    public bool ParentHubHasRules { get; set; }
+    public bool ParentCommunityHasRules { get; set; }
+
     // Denormalized counts for performance
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
@@ -37,4 +43,5 @@ public class SpaceDatabaseEntity
 
     // One-to-many relationships
     public virtual ICollection<DiscussionDatabaseEntity> Discussions { get; set; } = [];
+    public virtual ICollection<SpaceRuleDatabaseEntity> Rules { get; set; } = [];
 }

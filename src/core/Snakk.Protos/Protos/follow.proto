@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Follow";
+
+package snakk.follow;
+
+service FollowService {
+  // Space follows
+  rpc ToggleSpaceFollow (ToggleSpaceFollowRequest) returns (SpaceFollowToggleResponse);
+  rpc GetSpaceFollowStatus (GetSpaceFollowStatusRequest) returns (SpaceFollowStatusResponse);
+  rpc SetSpaceFollowLevel (SetSpaceFollowLevelRequest) returns (FollowLevelResponse);
+  rpc GetFollowedSpaces (GetFollowedSpacesRequest) returns (FollowedIdsResponse);
+
+  // Discussion follows
+  rpc ToggleDiscussionFollow (ToggleDiscussionFollowRequest) returns (FollowToggleResponse);
+  rpc GetDiscussionFollowStatus (GetDiscussionFollowStatusRequest) returns (FollowToggleResponse);
+  rpc GetFollowedDiscussions (GetFollowedDiscussionsRequest) returns (FollowedIdsResponse);
+
+  // User follows
+  rpc ToggleUserFollow (ToggleUserFollowRequest) returns (FollowToggleResponse);
+  rpc GetUserFollowStatus (GetUserFollowStatusRequest) returns (FollowToggleResponse);
+  rpc GetFollowedUsers (GetFollowedUsersRequest) returns (FollowedIdsResponse);
+}
+
+// --- Requests ---
+
+message ToggleSpaceFollowRequest {
+  string space_id = 1;
+  optional string level = 2;
+}
+
+message GetSpaceFollowStatusRequest {
+  string space_id = 1;
+}
+
+message SetSpaceFollowLevelRequest {
+  string space_id = 1;
+  string level = 2;
+}
+
+message GetFollowedSpacesRequest {}
+
+message ToggleDiscussionFollowRequest {
+  string discussion_id = 1;
+}
+
+message GetDiscussionFollowStatusRequest {
+  string discussion_id = 1;
+}
+
+message GetFollowedDiscussionsRequest {}
+
+message ToggleUserFollowRequest {
+  string user_id = 1;
+}
+
+message GetUserFollowStatusRequest {
+  string user_id = 1;
+}
+
+message GetFollowedUsersRequest {}
+
+// --- Responses ---
+
+message FollowToggleResponse {
+  bool is_following = 1;
+}
+
+message SpaceFollowToggleResponse {
+  bool is_following = 1;
+  string level = 2;
+}
+
+message SpaceFollowStatusResponse {
+  bool is_following = 1;
+  optional string level = 2;
+}
+
+message FollowLevelResponse {
+  string level = 1;
+}
+
+message FollowedIdsResponse {
+  repeated string public_ids = 1;
+}

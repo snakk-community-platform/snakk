@@ -138,7 +138,7 @@ public class PermissionServiceTests : IDisposable
         var admin = await CreateUser("admin");
         await AssignRole(admin.Id, UserRoleTypeEnum.GlobalAdmin, admin.Id);
 
-        var result = await _service.UserHasPermissionAsync("admin", "AnyPermission", "community", 1);
+        var result = await _service.UserHasPermissionAsync("admin", "AnyPermission", "community", "1");
 
         await Assert.That(result).IsTrue();
     }
@@ -177,7 +177,7 @@ public class PermissionServiceTests : IDisposable
         var community = await CreateCommunity("test_comm");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.UserHasPermissionAsync("comm_admin", "ManageCommunity", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync("comm_admin", "ManageCommunity", "community", community.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -190,7 +190,7 @@ public class PermissionServiceTests : IDisposable
         var community2 = await CreateCommunity("comm2_scope");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community1.Id);
 
-        var result = await _service.UserHasPermissionAsync("comm_admin2", "ManageCommunity", "community", community2.Id);
+        var result = await _service.UserHasPermissionAsync("comm_admin2", "ManageCommunity", "community", community2.PublicId);
 
         await Assert.That(result).IsFalse();
     }
@@ -207,7 +207,7 @@ public class PermissionServiceTests : IDisposable
         var hub = await CreateHub(community.Id, "test_hub");
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
-        var result = await _service.UserHasPermissionAsync("hub_mod", "ManageHub", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("hub_mod", "ManageHub", "hub", hub.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -220,7 +220,7 @@ public class PermissionServiceTests : IDisposable
         var hub = await CreateHub(community.Id, "child_hub");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.UserHasPermissionAsync("comm_admin_hub", "ManageHub", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("comm_admin_hub", "ManageHub", "hub", hub.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -234,7 +234,7 @@ public class PermissionServiceTests : IDisposable
         var hub2 = await CreateHub(community.Id, "hub_b");
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub1.Id);
 
-        var result = await _service.UserHasPermissionAsync("hub_mod2", "ManageHub", "hub", hub2.Id);
+        var result = await _service.UserHasPermissionAsync("hub_mod2", "ManageHub", "hub", hub2.PublicId);
 
         await Assert.That(result).IsFalse();
     }
@@ -252,7 +252,7 @@ public class PermissionServiceTests : IDisposable
         var space = await CreateSpace(hub.Id, "test_space");
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
-        var result = await _service.UserHasPermissionAsync("space_mod", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("space_mod", "ManageSpace", "space", space.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -266,7 +266,7 @@ public class PermissionServiceTests : IDisposable
         var space = await CreateSpace(hub.Id, "hms_space");
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
-        var result = await _service.UserHasPermissionAsync("hub_mod_space", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("hub_mod_space", "ManageSpace", "space", space.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -280,7 +280,7 @@ public class PermissionServiceTests : IDisposable
         var space = await CreateSpace(hub.Id, "cas_space");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.UserHasPermissionAsync("comm_admin_space", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("comm_admin_space", "ManageSpace", "space", space.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -295,7 +295,7 @@ public class PermissionServiceTests : IDisposable
         var space2 = await CreateSpace(hub.Id, "space_b");
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space1.Id);
 
-        var result = await _service.UserHasPermissionAsync("space_mod2", "ManageSpace", "space", space2.Id);
+        var result = await _service.UserHasPermissionAsync("space_mod2", "ManageSpace", "space", space2.PublicId);
 
         await Assert.That(result).IsFalse();
     }
@@ -314,7 +314,7 @@ public class PermissionServiceTests : IDisposable
         var discussion = await CreateDiscussion(space.Id, user.Id, "smd_disc");
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
-        var result = await _service.UserHasPermissionAsync("space_mod_disc", "ManageDiscussion", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync("space_mod_disc", "ManageDiscussion", "discussion", discussion.PublicId);
 
         await Assert.That(result).IsTrue();
     }
@@ -328,7 +328,7 @@ public class PermissionServiceTests : IDisposable
         // GlobalAdmin check happens before discussion lookup, so GlobalAdmin still passes.
         // Test with a non-admin user instead.
         var normalUser = await CreateUser("normal_disc");
-        var result = await _service.UserHasPermissionAsync("normal_disc", "ManageDiscussion", "discussion", 99999);
+        var result = await _service.UserHasPermissionAsync("normal_disc", "ManageDiscussion", "discussion", "99999");
 
         await Assert.That(result).IsFalse();
     }
@@ -516,7 +516,7 @@ public class PermissionServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var result = await _service.UserHasPermissionAsync("revoked_role_user", "ManageCommunity", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync("revoked_role_user", "ManageCommunity", "community", community.PublicId);
 
         await Assert.That(result).IsFalse();
     }
@@ -531,7 +531,7 @@ public class PermissionServiceTests : IDisposable
         var user = await CreateUser("unknown_scope_user");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityMod, user.Id, communityId: 1);
 
-        var result = await _service.UserHasPermissionAsync("unknown_scope_user", "SomePerm", "unknownscope", 1);
+        var result = await _service.UserHasPermissionAsync("unknown_scope_user", "SomePerm", "unknownscope", "1");
 
         await Assert.That(result).IsFalse();
     }

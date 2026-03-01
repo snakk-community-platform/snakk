@@ -1,8 +1,13 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Management;
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.DTOs.Stats;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Helpers;
 
 public static class SpaceEndpoints
 {
@@ -12,19 +17,32 @@ public static class SpaceEndpoints
             .WithTags("Spaces");
 
         group.MapPost("/", CreateSpaceAsync)
-            .WithName("CreateSpace");
+            .WithName("CreateSpace")
+            .Produces<SpaceResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/{publicId}", GetSpaceAsync)
-            .WithName("GetSpace");
+            .WithName("GetSpace")
+            .Produces<SpaceResponse>();
 
         group.MapGet("/by-slug/{slug}", GetSpaceBySlugAsync)
-            .WithName("GetSpaceBySlug");
+            .WithName("GetSpaceBySlug")
+            .Produces<SpaceResponse>();
 
         group.MapGet("/{spaceId}/discussions", GetDiscussionsBySpaceAsync)
-            .WithName("GetDiscussionsBySpace");
+            .WithName("GetDiscussionsBySpace")
+            .Produces<PagedResponse<DiscussionBySpaceResponse>>();
 
         group.MapGet("/top-active-today", GetTopActiveSpacesTodayAsync)
-            .WithName("GetTopActiveSpacesToday");
+            .WithName("GetTopActiveSpacesToday")
+            .Produces<TopActiveSpacesResponse>();
+
+        group.MapGet("/{spaceId}/rules", GetSpaceRulesAsync)
+            .WithName("GetSpaceRules")
+            .Produces<SpaceRulesDto>();
+
+        group.MapGet("/{publicId}/stats", GetSpaceStatsAsync)
+            .WithName("GetSpaceStats")
+            .Produces<SpaceStatsResponse>();
     }
 
     private static async Task<IResult> CreateSpaceAsync(
@@ -40,15 +58,15 @@ public static class SpaceEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/spaces/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId.Value,
-            hubId = result.Value.HubId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt
-        });
+        return TypedResults.Created($"/spaces/{result.Value!.PublicId}", new SpaceResponse(
+            PublicId: result.Value.PublicId.Value,
+            HubId: result.Value.HubId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            DiscussionCount: 0,
+            ReplyCount: 0));
     }
 
     private static async Task<IResult> GetSpaceAsync(
@@ -60,16 +78,16 @@ public static class SpaceEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            hubId = result.Value.HubId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        return TypedResults.Ok(new SpaceResponse(
+            PublicId: result.Value!.PublicId.Value,
+            HubId: result.Value.HubId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            DiscussionCount: 0,
+            ReplyCount: 0,
+            LastModifiedAt: result.Value.LastModifiedAt));
     }
 
     private static async Task<IResult> GetSpaceBySlugAsync(
@@ -81,16 +99,16 @@ public static class SpaceEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            hubId = result.Value.HubId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        return TypedResults.Ok(new SpaceResponse(
+            PublicId: result.Value!.PublicId.Value,
+            HubId: result.Value.HubId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            DiscussionCount: 0,
+            ReplyCount: 0,
+            LastModifiedAt: result.Value.LastModifiedAt));
     }
 
     private static async Task<IResult> GetDiscussionsBySpaceAsync(
@@ -101,34 +119,28 @@ public static class SpaceEndpoints
     {
         var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
 
-        var items = result.Items.Select(d => new
-        {
-            publicId = d.PublicId,
-            spaceId = d.SpacePublicId,
-            title = d.Title,
-            slug = d.Slug,
-            createdAt = d.CreatedAt,
-            lastActivityAt = d.LastActivityAt,
-            isPinned = d.IsPinned,
-            isLocked = d.IsLocked,
-            postCount = d.PostCount,
-            reactionCount = d.ReactionCount,
-            author = new
-            {
-                publicId = d.AuthorPublicId,
-                displayName = d.AuthorDisplayName,
-                avatarFileName = d.AuthorAvatarFileName
-            },
-            tags = d.Tags
-        });
+        var items = result.Items.Select(d => new DiscussionBySpaceResponse(
+            PublicId: d.PublicId,
+            SpaceId: d.SpacePublicId,
+            Title: d.Title,
+            Slug: d.Slug,
+            CreatedAt: d.CreatedAt,
+            LastActivityAt: d.LastActivityAt ?? d.CreatedAt,
+            IsPinned: d.IsPinned,
+            IsLocked: d.IsLocked,
+            PostCount: d.PostCount,
+            ReactionCount: d.ReactionCount,
+            Author: new AuthorRef(
+                PublicId: d.AuthorPublicId,
+                DisplayName: d.AuthorDisplayName,
+                AvatarUrl: d.AuthorAvatarFileName),
+            Tags: d.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 
-        return Results.Ok(new
-        {
-            items,
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<DiscussionBySpaceResponse>(
+            Items: items,
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems));
     }
 
     private static async Task<IResult> GetTopActiveSpacesTodayAsync(
@@ -138,20 +150,45 @@ public static class SpaceEndpoints
     {
         var topSpaces = await useCase.GetTopActiveSpacesTodayAsync(hubId, communityId);
 
-        var items = topSpaces.Select(s => new
-        {
-            publicId = s.PublicId,
-            name = s.Name,
-            slug = s.Slug,
-            postCountToday = s.PostCountToday,
-            hub = new
-            {
-                publicId = s.HubPublicId,
-                slug = s.HubSlug,
-                name = s.HubName
-            }
-        });
+        var items = topSpaces.Select(s => new TopActiveSpaceResponse(
+            PublicId: s.PublicId,
+            Name: s.Name,
+            Slug: s.Slug,
+            PostCountToday: s.PostCountToday,
+            Hub: new EntityRef(
+                PublicId: s.HubPublicId,
+                Slug: s.HubSlug,
+                Name: s.HubName)));
 
-        return Results.Ok(new { items });
+        return TypedResults.Ok(new TopActiveSpacesResponse(items));
+    }
+
+    private static async Task<IResult> GetSpaceRulesAsync(
+        string spaceId,
+        ISpaceManagementService service,
+        CancellationToken cancellationToken)
+    {
+        var rules = await service.GetRulesAsync(spaceId, cancellationToken);
+        return Results.Ok(rules);
+    }
+
+    private static async Task<IResult> GetSpaceStatsAsync(string publicId, StatisticsUseCase useCase)
+    {
+        var result = await useCase.GetSpaceStatsAsync(publicId);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var stats = result.Value!;
+        return TypedResults.Ok(new SpaceStatsResponse
+        {
+            PublicId = stats.PublicId,
+            Name = stats.Name,
+            Description = stats.Description,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Space, 0),
+            DiscussionCount = stats.DiscussionCount,
+            ReplyCount = stats.ReplyCount,
+            FollowerCount = stats.FollowerCount
+        });
     }
 }

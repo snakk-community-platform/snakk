@@ -111,6 +111,7 @@ message CurrentUserResponse {
   bool email_verified = 4;
   optional string oauth_provider = 5;
   bool prefer_endless_scroll = 6;
+  bool auto_follow_on_reply = 7;
 }
 
 message UpdateProfileResponse {

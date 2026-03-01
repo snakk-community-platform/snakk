@@ -1,0 +1,9 @@
+@page "/partials/hub-rules"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.HubRulesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_HubRules"
+         model="new SidebarHubRulesVM(Model.Rules, Model.Community, Model.CommunitySlug, Model.ParentCommunityHasRules, Model.CacheSource)" />

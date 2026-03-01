@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Reaction";
+
+package snakk.reaction;
+
+import "Protos/common.proto";
+
+service ReactionService {
+  rpc ToggleReaction (ToggleReactionRequest) returns (ToggleReactionResponse);
+  rpc GetReactionCounts (GetReactionCountsRequest) returns (snakk.ReactionCounts);
+  rpc GetMyReaction (GetMyReactionRequest) returns (UserReactionResponse);
+}
+
+// --- Requests ---
+
+message ToggleReactionRequest {
+  string post_id = 1;
+  string reaction_type = 2;
+}
+
+message GetReactionCountsRequest {
+  string post_id = 1;
+}
+
+message GetMyReactionRequest {
+  string post_id = 1;
+}
+
+// --- Responses ---
+
+message ToggleReactionResponse {
+  bool added = 1;
+}
+
+message UserReactionResponse {
+  optional string reaction = 1;
+}

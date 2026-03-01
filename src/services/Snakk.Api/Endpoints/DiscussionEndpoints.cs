@@ -3,6 +3,7 @@ namespace Snakk.Api.Endpoints;
 using Snakk.Api.Models;
 using Snakk.Api.Extensions;
 using Snakk.Application.UseCases;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Api.Filters;
@@ -17,27 +18,38 @@ public static class DiscussionEndpoints
 
         group.MapPost("/", CreateDiscussionAsync)
             .WithName("CreateDiscussion")
+            .Produces<DiscussionCreatedResponse>(StatusCodes.Status201Created)
             .RequireAuthorization()
             .RequireRateLimiting("api")
             .AddEndpointFilter<ValidationFilter<CreateDiscussionRequest>>();
 
         group.MapGet("/{publicId}", GetDiscussionAsync)
-            .WithName("GetDiscussion");
+            .WithName("GetDiscussion")
+            .Produces<DiscussionResponse>();
 
         group.MapGet("/recent", GetRecentDiscussionsAsync)
-            .WithName("GetRecentDiscussions");
+            .WithName("GetRecentDiscussions")
+            .Produces<PagedResponse<RecentDiscussionResponse>>();
 
         group.MapGet("/top-active-today", GetTopActiveDiscussionsTodayAsync)
-            .WithName("GetTopActiveDiscussionsToday");
+            .WithName("GetTopActiveDiscussionsToday")
+            .Produces<TopActiveDiscussionsResponse>();
 
         group.MapGet("/{discussionId}/posts", GetDiscussionPostsAsync)
-            .WithName("GetDiscussionPosts");
+            .WithName("GetDiscussionPosts")
+            .Produces<PagedResponse<EnrichedPostResponse>>();
 
         group.MapGet("/{discussionId}/posts/{postId}/number", GetPostNumberAsync)
-            .WithName("GetPostNumber");
+            .WithName("GetPostNumber")
+            .Produces<PostNumberResponse>();
 
         group.MapGet("/{discussionId}/preview", GetDiscussionPreviewAsync)
-            .WithName("GetDiscussionPreview");
+            .WithName("GetDiscussionPreview")
+            .Produces<DiscussionPreviewResponse>();
+
+        group.MapGet("/{publicId}/stats", GetDiscussionStatsAsync)
+            .WithName("GetDiscussionStats")
+            .Produces<DiscussionStatsResponse>();
     }
 
     private static async Task<IResult> CreateDiscussionAsync(
@@ -60,13 +72,11 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/discussions/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId.Value,
-            title = result.Value.Title,
-            slug = result.Value.Slug,
-            createdAt = result.Value.CreatedAt
-        });
+        return TypedResults.Created($"/discussions/{result.Value!.PublicId}", new DiscussionCreatedResponse(
+            PublicId: result.Value.PublicId.Value,
+            Title: result.Value.Title,
+            Slug: result.Value.Slug,
+            CreatedAt: result.Value.CreatedAt));
     }
 
     private static async Task<IResult> GetDiscussionAsync(
@@ -78,17 +88,15 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            title = result.Value.Title,
-            slug = result.Value.Slug,
-            spaceId = result.Value.SpaceId.Value,
-            createdAt = result.Value.CreatedAt,
-            lastActivityAt = result.Value.LastActivityAt,
-            isPinned = result.Value.IsPinned,
-            isLocked = result.Value.IsLocked
-        });
+        return TypedResults.Ok(new DiscussionResponse(
+            PublicId: result.Value!.PublicId.Value,
+            Title: result.Value.Title,
+            Slug: result.Value.Slug,
+            SpaceId: result.Value.SpaceId.Value,
+            CreatedAt: result.Value.CreatedAt,
+            LastActivityAt: result.Value.LastActivityAt,
+            IsPinned: result.Value.IsPinned,
+            IsLocked: result.Value.IsLocked));
     }
 
     private static async Task<IResult> GetPostNumberAsync(
@@ -103,7 +111,8 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.NotFound();
 
-        return Results.Ok(new { postNumber = result.Value });
+        return TypedResults.Ok(new PostNumberResponse(
+            PostNumber: result.Value));
     }
 
     private static async Task<IResult> GetDiscussionPreviewAsync(
@@ -115,7 +124,8 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new { content = result.Value });
+        return TypedResults.Ok(new DiscussionPreviewResponse(
+            Content: result.Value!));
     }
 
     private static async Task<IResult> GetRecentDiscussionsAsync(
@@ -128,53 +138,41 @@ public static class DiscussionEndpoints
     {
         var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, cursor);
 
-        return Results.Ok(new
-        {
-            items = result.Items.Select(d => new
-            {
-                publicId = d.PublicId,
-                title = d.Title,
-                slug = d.Slug,
-                createdAt = d.CreatedAt,
-                lastActivityAt = d.LastActivityAt,
-                isPinned = d.IsPinned,
-                isLocked = d.IsLocked,
-                space = new
-                {
-                    publicId = d.SpacePublicId,
-                    slug = d.SpaceSlug,
-                    name = d.SpaceName,
-                    avatarUrl = AvatarHelper.GetAvatarUrl(d.SpacePublicId, AvatarEntityType.Space, 0)
-                },
-                hub = new
-                {
-                    publicId = d.HubPublicId,
-                    slug = d.HubSlug,
-                    name = d.HubName,
-                    avatarUrl = AvatarHelper.GetAvatarUrl(d.HubPublicId, AvatarEntityType.Hub, 0)
-                },
-                community = new
-                {
-                    publicId = d.CommunityPublicId,
-                    slug = d.CommunitySlug,
-                    name = d.CommunityName,
-                    avatarUrl = AvatarHelper.GetAvatarUrl(d.CommunityPublicId, AvatarEntityType.Community, 0)
-                },
-                author = new
-                {
-                    publicId = d.CreatedByUserPublicId,
-                    displayName = d.CreatedByUserDisplayName,
-                    avatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0)
-                },
-                postCount = d.PostCount,
-                reactionCount = d.ReactionCount,
-                tags = d.Tags
-            }),
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems,
-            nextCursor = result.NextCursor
-        });
+        return TypedResults.Ok(new PagedResponse<RecentDiscussionResponse>(
+            Items: result.Items.Select(d => new RecentDiscussionResponse(
+                PublicId: d.PublicId,
+                Title: d.Title,
+                Slug: d.Slug,
+                CreatedAt: d.CreatedAt,
+                LastActivityAt: d.LastActivityAt,
+                IsPinned: d.IsPinned,
+                IsLocked: d.IsLocked,
+                Space: new EntityRef(
+                    PublicId: d.SpacePublicId,
+                    Slug: d.SpaceSlug,
+                    Name: d.SpaceName,
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.SpacePublicId, AvatarEntityType.Space, 0)),
+                Hub: new EntityRef(
+                    PublicId: d.HubPublicId,
+                    Slug: d.HubSlug,
+                    Name: d.HubName,
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.HubPublicId, AvatarEntityType.Hub, 0)),
+                Community: new EntityRef(
+                    PublicId: d.CommunityPublicId,
+                    Slug: d.CommunitySlug,
+                    Name: d.CommunityName,
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.CommunityPublicId, AvatarEntityType.Community, 0)),
+                Author: new AuthorRef(
+                    PublicId: d.CreatedByUserPublicId,
+                    DisplayName: d.CreatedByUserDisplayName,
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0)),
+                PostCount: d.PostCount,
+                ReactionCount: d.ReactionCount,
+                Tags: d.Tags)),
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems,
+            NextCursor: result.NextCursor));
     }
 
     private static async Task<IResult> GetTopActiveDiscussionsTodayAsync(
@@ -192,33 +190,23 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.Problem(result.Error);
 
-        return Results.Ok(new
-        {
-            items = result.Value!.Items.Select(d => new
-            {
-                publicId = d.DiscussionId,
-                title = d.Title,
-                slug = d.Slug,
-                postCountToday = d.PostCountToday,
-                space = new
-                {
-                    publicId = d.SpacePublicId,
-                    slug = d.SpaceSlug,
-                    name = d.SpaceName
-                },
-                hub = new
-                {
-                    publicId = d.HubPublicId,
-                    slug = d.HubSlug,
-                    name = d.HubName
-                },
-                author = new
-                {
-                    publicId = d.AuthorPublicId,
-                    displayName = d.AuthorDisplayName
-                }
-            })
-        });
+        return TypedResults.Ok(new TopActiveDiscussionsResponse(
+            Items: result.Value!.Items.Select(d => new TopActiveDiscussionResponse(
+                PublicId: d.DiscussionId,
+                Title: d.Title,
+                Slug: d.Slug,
+                PostCountToday: d.PostCountToday,
+                Space: new EntityRef(
+                    PublicId: d.SpacePublicId,
+                    Slug: d.SpaceSlug,
+                    Name: d.SpaceName),
+                Hub: new EntityRef(
+                    PublicId: d.HubPublicId,
+                    Slug: d.HubSlug,
+                    Name: d.HubName),
+                Author: new AuthorRef(
+                    PublicId: d.AuthorPublicId,
+                    DisplayName: d.AuthorDisplayName)))));
     }
 
     private static async Task<IResult> GetDiscussionPostsAsync(
@@ -242,48 +230,51 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.NotFound();
 
-        // Map to DTO (endpoint's responsibility)
+        // Map to typed DTOs
         var data = result.Value!;
-        return Results.Ok(new
-        {
-            items = data.Posts.Select(p => new
-            {
-                postNumber = p.PostNumber,
-                publicId = p.Post.PublicId.Value,
-                content = p.Post.Content,
-                createdAt = p.Post.CreatedAt,
-                editedAt = p.Post.EditedAt,
-                isFirstPost = p.Post.IsFirstPost,
-                isDeleted = p.Post.IsDeleted,
-                createdByUserId = p.Post.CreatedByUserId.Value,
-                author = new
-                {
-                    publicId = p.Post.CreatedByUserId.Value,
-                    displayName = p.Author.DisplayName,
-                    avatarUrl = AvatarHelper.GetAvatarUrl(p.Post.CreatedByUserId.Value, AvatarEntityType.User, p.Author.AvatarRevision),
-                    role = p.Author.Role,
-                    isDeleted = p.Author.IsDeleted
-                },
-                replyTo = p.ReplyTo != null ? new
-                {
-                    authorName = p.ReplyTo.AuthorName,
-                    contentSnippet = p.ReplyTo.ContentSnippet
-                } : null,
-                reactions = new
-                {
-                    counts = new
-                    {
-                        thumbsUp = p.ReactionCounts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-                        heart = p.ReactionCounts.GetValueOrDefault(ReactionType.Heart, 0),
-                        eyes = p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0),
-                        crazy = p.ReactionCounts.GetValueOrDefault(ReactionType.Crazy, 0)
-                    },
-                    userReaction = p.UserReaction?.ToString()
-                }
-            }),
-            offset = data.Offset,
-            pageSize = data.PageSize,
-            hasMoreItems = data.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<EnrichedPostResponse>(
+            Items: data.Posts.Select(p => new EnrichedPostResponse(
+                PostNumber: p.PostNumber,
+                PublicId: p.Post.PublicId.Value,
+                Content: p.Post.Content,
+                CreatedAt: p.Post.CreatedAt,
+                EditedAt: p.Post.EditedAt,
+                IsFirstPost: p.Post.IsFirstPost,
+                IsDeleted: p.Post.IsDeleted,
+                CreatedByUserId: p.Post.CreatedByUserId.Value,
+                Author: new AuthorRef(
+                    PublicId: p.Post.CreatedByUserId.Value,
+                    DisplayName: p.Author.DisplayName,
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(p.Post.CreatedByUserId.Value, AvatarEntityType.User, p.Author.AvatarRevision),
+                    Role: p.Author.Role,
+                    IsDeleted: p.Author.IsDeleted),
+                ReplyTo: p.ReplyTo != null ? new ReplyToRef(
+                    AuthorName: p.ReplyTo.AuthorName,
+                    ContentSnippet: p.ReplyTo.ContentSnippet) : null,
+                Reactions: new PostReactionsResponse(
+                    Counts: new ReactionCountsResponse(
+                        ThumbsUp: p.ReactionCounts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
+                        Heart: p.ReactionCounts.GetValueOrDefault(ReactionType.Heart, 0),
+                        Eyes: p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0),
+                        Crazy: p.ReactionCounts.GetValueOrDefault(ReactionType.Crazy, 0)),
+                    UserReaction: p.UserReaction?.ToString()))),
+            Offset: data.Offset,
+            PageSize: data.PageSize,
+            HasMoreItems: data.HasMoreItems));
+    }
+
+    private static async Task<IResult> GetDiscussionStatsAsync(string publicId, StatisticsUseCase useCase)
+    {
+        var result = await useCase.GetDiscussionStatsAsync(publicId);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var stats = result.Value!;
+        return TypedResults.Ok(new DiscussionStatsResponse(
+            PublicId: stats.PublicId,
+            Title: stats.Title,
+            ReplyCount: stats.ReplyCount,
+            FollowerCount: stats.FollowerCount));
     }
 }

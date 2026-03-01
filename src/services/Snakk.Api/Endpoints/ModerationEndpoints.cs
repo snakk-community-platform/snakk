@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
@@ -11,37 +12,43 @@ public static class ModerationEndpoints
 {
     public static void MapModerationEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/moderation")
+        var group = app.MapGroup("/moderation")
             .WithTags("Moderation")
             .RequireAuthorization();
 
         // Role management
         group.MapPost("/roles", AssignRoleAsync)
-            .WithName("AssignRole");
+            .WithName("AssignRole")
+            .Produces<RoleAssignedResponse>(201);
 
         group.MapDelete("/roles/{roleId}", RevokeRoleAsync)
             .WithName("RevokeRole");
 
         group.MapGet("/users/{userId}/roles", GetUserRolesAsync)
-            .WithName("GetUserRoles");
+            .WithName("GetUserRoles")
+            .Produces<UserRolesResponse>();
 
         // Ban management
         group.MapPost("/bans", BanUserAsync)
-            .WithName("BanUser");
+            .WithName("BanUser")
+            .Produces<BanCreatedResponse>(201);
 
         group.MapDelete("/bans/{banId}", UnbanUserAsync)
             .WithName("UnbanUser");
 
         group.MapGet("/users/{userId}/banned", CheckUserBannedAsync)
             .WithName("CheckUserBanned")
+            .Produces<BanStatusResponse>()
             .AllowAnonymous();
 
         // Reports
         group.MapPost("/reports", CreateReportAsync)
-            .WithName("CreateReport");
+            .WithName("CreateReport")
+            .Produces<ReportCreatedResponse>(201);
 
         group.MapGet("/reports", GetReportsAsync)
-            .WithName("GetReports");
+            .WithName("GetReports")
+            .Produces<PagedResponse<object>>();
 
         group.MapGet("/reports/{reportId}", GetReportAsync)
             .WithName("GetReport");
@@ -53,10 +60,12 @@ public static class ModerationEndpoints
             .WithName("DismissReport");
 
         group.MapPost("/reports/{reportId}/comments", AddReportCommentAsync)
-            .WithName("AddReportComment");
+            .WithName("AddReportComment")
+            .Produces<ReportCommentCreatedResponse>(201);
 
         group.MapGet("/reports/reasons", GetReportReasonsAsync)
             .WithName("GetReportReasons")
+            .Produces<ReportReasonsResponse>()
             .AllowAnonymous();
 
         // Content moderation
@@ -74,7 +83,8 @@ public static class ModerationEndpoints
 
         // Moderation log
         group.MapGet("/log", GetModerationLogAsync)
-            .WithName("GetModerationLog");
+            .WithName("GetModerationLog")
+            .Produces<PagedResponse<object>>();
     }
 
     // ==================== Role Management ====================
@@ -99,12 +109,7 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/api/moderation/roles/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId,
-            role = result.Value.Role,
-            assignedAt = result.Value.AssignedAt
-        });
+        return TypedResults.Created($"/moderation/roles/{result.Value!.PublicId}", new RoleAssignedResponse(result.Value.PublicId, result.Value.Role, result.Value.AssignedAt));
     }
 
     private static async Task<IResult> RevokeRoleAsync(
@@ -130,21 +135,7 @@ public static class ModerationEndpoints
     {
         var roles = await moderationUseCase.GetUserRolesAsync(userId);
 
-        return Results.Ok(new
-        {
-            items = roles.Select(r => new
-            {
-                publicId = r.PublicId,
-                role = r.Role,
-                communityId = r.CommunityPublicId,
-                communityName = r.CommunityName,
-                hubId = r.HubPublicId,
-                hubName = r.HubName,
-                spaceId = r.SpacePublicId,
-                spaceName = r.SpaceName,
-                assignedAt = r.AssignedAt
-            })
-        });
+        return TypedResults.Ok(new UserRolesResponse(roles.Select(r => new UserRoleItemResponse(r.PublicId, r.Role, r.CommunityPublicId, r.CommunityName, r.HubPublicId, r.HubName, r.SpacePublicId, r.SpaceName, r.AssignedAt))));
     }
 
     // ==================== Ban Management ====================
@@ -171,13 +162,7 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/api/moderation/bans/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId,
-            banType = result.Value.BanType,
-            bannedAt = result.Value.BannedAt,
-            expiresAt = result.Value.ExpiresAt
-        });
+        return TypedResults.Created($"/moderation/bans/{result.Value!.PublicId}", new BanCreatedResponse(result.Value.PublicId, result.Value.BanType, result.Value.BannedAt, result.Value.ExpiresAt));
     }
 
     private static async Task<IResult> UnbanUserAsync(
@@ -203,7 +188,7 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var isBanned = await moderationUseCase.IsUserBannedAsync(userId, spaceId);
-        return Results.Ok(new { isBanned });
+        return TypedResults.Ok(new BanStatusResponse(isBanned));
     }
 
     // ==================== Report Management ====================
@@ -228,12 +213,7 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/api/moderation/reports/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId,
-            status = result.Value.Status,
-            createdAt = result.Value.CreatedAt
-        });
+        return TypedResults.Created($"/moderation/reports/{result.Value!.PublicId}", new ReportCreatedResponse(result.Value.PublicId, result.Value.Status, result.Value.CreatedAt));
     }
 
     private static async Task<IResult> GetReportsAsync(
@@ -252,13 +232,7 @@ public static class ModerationEndpoints
         var result = await moderationUseCase.GetReportsForModeratorAsync(
             moderatorUserId, statusId, offset, pageSize);
 
-        return Results.Ok(new
-        {
-            items = result.Items,
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<object>(result.Items, result.Offset, result.PageSize, result.HasMoreItems));
     }
 
     private static async Task<IResult> GetReportAsync(
@@ -324,12 +298,7 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/api/moderation/reports/{reportId}/comments/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId,
-            content = result.Value.Content,
-            createdAt = result.Value.CreatedAt
-        });
+        return TypedResults.Created($"/moderation/reports/{reportId}/comments/{result.Value!.PublicId}", new ReportCommentCreatedResponse(result.Value.PublicId, result.Value.Content, result.Value.CreatedAt));
     }
 
     private static async Task<IResult> GetReportReasonsAsync(
@@ -338,15 +307,7 @@ public static class ModerationEndpoints
     {
         var reasons = await moderationUseCase.GetReportReasonsAsync(spaceId);
 
-        return Results.Ok(new
-        {
-            items = reasons.Select(r => new
-            {
-                publicId = r.PublicId,
-                name = r.Name,
-                description = r.Description
-            })
-        });
+        return TypedResults.Ok(new ReportReasonsResponse(reasons.Select(r => new ReportReasonResponse(r.PublicId, r.Name, r.Description))));
     }
 
     // ==================== Content Moderation ====================
@@ -445,13 +406,7 @@ public static class ModerationEndpoints
         var result = await moderationUseCase.GetModerationLogAsync(
             communityId, hubId, spaceId, offset, pageSize);
 
-        return Results.Ok(new
-        {
-            items = result.Items,
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<object>(result.Items, result.Offset, result.PageSize, result.HasMoreItems));
     }
 
     // ==================== Helpers ====================

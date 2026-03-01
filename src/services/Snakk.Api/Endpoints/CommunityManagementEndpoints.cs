@@ -9,97 +9,122 @@ public static class CommunityManagementEndpoints
 {
     public static void MapCommunityManagementEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/c/{slug}/manage")
+        var group = app.MapGroup("/communities/{communityId}/manage")
             .WithTags("Community Management")
             .RequireAuthorization();
 
         // Overview
         group.MapGet("/overview", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var overview = await service.GetOverviewAsync(slug, cancellationToken);
+            var overview = await service.GetOverviewAsync(communityId, cancellationToken);
             return overview != null ? Results.Ok(overview) : Results.NotFound();
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("GetCommunityOverview");
 
         // Settings - Get
         group.MapGet("/settings", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.GetSettingsAsync(slug, cancellationToken);
+            var settings = await service.GetSettingsAsync(communityId, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("GetCommunitySettings");
 
         // Settings - Update
         group.MapPut("/settings", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromBody] UpdateCommunitySettingsRequest request,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.UpdateSettingsAsync(slug, request, cancellationToken);
+            var settings = await service.UpdateSettingsAsync(communityId, request, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("UpdateCommunitySettings");
 
         // Moderation
         group.MapGet("/moderation", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var moderation = await service.GetModerationDataAsync(slug, cancellationToken);
+            var moderation = await service.GetModerationDataAsync(communityId, cancellationToken);
             return Results.Ok(moderation);
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("GetCommunityModeration");
 
         // Members - List
         group.MapGet("/members", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromQuery] int page,
             [FromQuery] int pageSize,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var members = await service.GetMembersAsync(slug, page, pageSize, cancellationToken);
+            var members = await service.GetMembersAsync(communityId, page, pageSize, cancellationToken);
             return Results.Ok(members);
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("GetCommunityMembers");
 
         // Members - Update Role
         group.MapPost("/members/{userId}/role", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromRoute] string userId,
             [FromBody] UpdateMemberRoleRequest request,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var success = await service.UpdateMemberRoleAsync(slug, userId, request, cancellationToken);
+            var success = await service.UpdateMemberRoleAsync(communityId, userId, request, cancellationToken);
             return success ? Results.Ok() : Results.NotFound();
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("UpdateCommunityMemberRole");
 
         // Spaces
         group.MapGet("/spaces", async (
-            [FromRoute] string slug,
+            [FromRoute] string communityId,
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var spaces = await service.GetCommunitySpacesAsync(slug, cancellationToken);
+            var spaces = await service.GetCommunitySpacesAsync(communityId, cancellationToken);
             return Results.Ok(spaces);
         })
-        .RequireCommunityAdmin("slug")
+        .RequireCommunityAdmin("communityId")
         .WithName("GetCommunitySpaces");
+
+        // Rules - Get
+        group.MapGet("/rules", async (
+            [FromRoute] string communityId,
+            [FromServices] ICommunityManagementService service,
+            CancellationToken cancellationToken) =>
+        {
+            var rules = await service.GetRulesAsync(communityId, cancellationToken);
+            return Results.Ok(rules);
+        })
+        .RequireCommunityAdmin("communityId")
+        .WithName("GetCommunityRulesManagement");
+
+        // Rules - Update
+        group.MapPut("/rules", async (
+            [FromRoute] string communityId,
+            [FromBody] UpdateCommunityRulesRequest request,
+            [FromServices] ICommunityManagementService service,
+            CancellationToken cancellationToken) =>
+        {
+            var rules = await service.UpdateRulesAsync(communityId, request, cancellationToken);
+            return Results.Ok(rules);
+        })
+        .RequireCommunityAdmin("communityId")
+        .WithName("UpdateCommunityRules");
     }
 }

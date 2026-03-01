@@ -1,5 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.DTOs.Stats;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
 using Snakk.Shared.Helpers;
@@ -8,20 +10,28 @@ public static class UserEndpoints
 {
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/users")
+        var group = app.MapGroup("/users")
             .WithTags("Users");
 
         group.MapGet("/search", SearchUsersAsync)
-            .WithName("SearchUsers");
+            .WithName("SearchUsers")
+            .Produces<List<UserSearchResult>>();
 
         group.MapGet("/top-contributors-today", GetTopContributorsTodayAsync)
-            .WithName("GetTopContributorsToday");
+            .WithName("GetTopContributorsToday")
+            .Produces<TopContributorsResponse>();
 
         group.MapGet("/{publicId}/profile", GetUserProfileAsync)
-            .WithName("GetUserProfile");
+            .WithName("GetUserProfile")
+            .Produces<UserProfileDto>();
 
         group.MapGet("/{publicId}/activity-history", GetUserActivityHistoryAsync)
-            .WithName("GetUserActivityHistory");
+            .WithName("GetUserActivityHistory")
+            .Produces<ActivityHistoryResponse>();
+
+        group.MapGet("/{publicId}/stats", GetUserStatsAsync)
+            .WithName("GetUserStats")
+            .Produces<UserStatsResponse>();
     }
 
     private static async Task<IResult> GetUserProfileAsync(
@@ -42,12 +52,13 @@ public static class UserEndpoints
     {
         var users = await userRepository.SearchByDisplayNameAsync(query, limit ?? 5);
 
-        return Results.Ok(users.Select(u => new
-        {
-            publicId = u.PublicId.Value,
-            displayName = u.DisplayName,
-            avatarUrl = AvatarHelper.GetAvatarUrl(u.PublicId.Value, AvatarEntityType.User, u.AvatarRevision)
-        }));
+        var items = users.Select(u => new UserSearchResult(
+            PublicId: u.PublicId.Value,
+            DisplayName: u.DisplayName,
+            AvatarUrl: AvatarHelper.GetAvatarUrl(u.PublicId.Value, AvatarEntityType.User, u.AvatarRevision)
+        )).ToList();
+
+        return TypedResults.Ok(items);
     }
 
     private static async Task<IResult> GetTopContributorsTodayAsync(
@@ -65,16 +76,14 @@ public static class UserEndpoints
         if (!result.IsSuccess)
             return Results.Problem(result.Error);
 
-        return Results.Ok(new
-        {
-            items = result.Value!.Items.Select(c => new
-            {
-                publicId = c.UserId,
-                displayName = c.DisplayName,
-                avatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0),
-                postCountToday = c.PostCountToday
-            })
-        });
+        var items = result.Value!.Items.Select(c => new TopContributorResponse(
+            PublicId: c.UserId,
+            DisplayName: c.DisplayName,
+            AvatarUrl: AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0),
+            PostCountToday: c.PostCountToday
+        ));
+
+        return TypedResults.Ok(new TopContributorsResponse(Items: items));
     }
 
     private static async Task<IResult> GetUserActivityHistoryAsync(
@@ -87,18 +96,36 @@ public static class UserEndpoints
         if (!result.IsSuccess)
             return Results.NotFound();
 
-        var response = new
-        {
-            days = result.Value!.Days,
-            data = result.Value.Data.Select(d => new
-            {
-                date = d.Date.ToString("yyyy-MM-dd"),
-                discussions = d.Discussions,
-                posts = d.Posts,
-                total = d.Total
-            })
-        };
+        var data = result.Value!.Data.Select(d => new ActivityDayResponse(
+            Date: d.Date.ToString("yyyy-MM-dd"),
+            Discussions: d.Discussions,
+            Posts: d.Posts,
+            Total: d.Total
+        ));
 
-        return Results.Ok(response);
+        return TypedResults.Ok(new ActivityHistoryResponse(
+            Days: result.Value.Days,
+            Data: data));
+    }
+
+    private static async Task<IResult> GetUserStatsAsync(string publicId, StatisticsUseCase useCase)
+    {
+        var result = await useCase.GetUserStatsAsync(publicId);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var stats = result.Value!;
+
+        return TypedResults.Ok(new UserStatsResponse
+        {
+            PublicId = stats.PublicId,
+            DisplayName = stats.DisplayName,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0),
+            DiscussionCount = stats.DiscussionCount,
+            ReplyCount = stats.ReplyCount,
+            FollowerCount = stats.FollowerCount,
+            FollowingCount = 0 // TODO: Add to domain stats
+        });
     }
 }

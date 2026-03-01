@@ -27,3 +27,42 @@ message Empty {}
 message MessageResponse {
   string message = 1;
 }
+
+// Generic success response
+message SuccessResponse {
+  bool success = 1;
+  optional int32 processed = 2;
+}
+
+// --- Shared reference types (used across multiple services) ---
+
+// Lightweight reference to an entity (hub, space, community)
+message EntityRef {
+  string public_id = 1;
+  string slug = 2;
+  string name = 3;
+  optional string avatar_url = 4;
+}
+
+// Lightweight reference to a user (author of a post, discussion, etc.)
+message AuthorRef {
+  string public_id = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+  optional string role = 4;
+  bool is_deleted = 5;
+}
+
+// Reference to a post being replied to
+message ReplyToRef {
+  string author_name = 1;
+  string content_snippet = 2;
+}
+
+// Reaction counts (thumbs up, heart, eyes, crazy)
+message ReactionCounts {
+  int32 thumbs_up = 1;
+  int32 heart = 2;
+  int32 eyes = 3;
+  int32 crazy = 4;
+}

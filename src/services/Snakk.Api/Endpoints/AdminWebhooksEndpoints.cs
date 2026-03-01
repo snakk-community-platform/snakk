@@ -10,7 +10,7 @@ public static class AdminWebhooksEndpoints
 {
     public static void MapAdminWebhooksEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/admin/webhooks")
+        var group = app.MapGroup("/admin/webhooks")
             .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = "Bearer" })
             .WithTags("Admin - Webhooks");
 
@@ -104,7 +104,7 @@ public static class AdminWebhooksEndpoints
 
         var webhook = await webhookService.CreateWebhookAsync(request, currentUser, cancellationToken);
         
-        return Results.Created($"/api/admin/webhooks/{webhook.Id}", webhook);
+        return Results.Created($"/admin/webhooks/{webhook.Id}", webhook);
     }
 
     private static async Task<IResult> UpdateWebhook(

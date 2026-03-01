@@ -101,12 +101,15 @@ public static class BffApiEndpoints
             .WithName("BffRefreshToken")
             .AllowAnonymous(); // Refresh can happen before auth expires
 
-        group.MapPost("/auth/set-tokens", SetTokensAsync)
-            .WithName("BffSetTokens")
-            .AllowAnonymous(); // Used by OAuthComplete and SetupProfile pages
+        // Current user (me) operations
+        group.MapGet("/me", GetCurrentUserMeAsync)
+            .WithName("BffGetCurrentUser");
 
-        group.MapPut("/auth/update-profile", UpdateProfileAsync)
-            .WithName("BffUpdateProfile");
+        group.MapPut("/me/profile", UpdateProfileMeAsync)
+            .WithName("BffUpdateProfileMe");
+
+        group.MapPut("/me/preferences", UpdatePreferencesMeAsync)
+            .WithName("BffUpdatePreferences");
 
         // User operations
         group.MapGet("/users/{userId}/stats", GetUserStatsAsync)
@@ -205,11 +208,11 @@ public static class BffApiEndpoints
             {
                 PublicId = n.PublicId,
                 Type = n.Type,
-                Title = n.Title,
-                Body = n.Body,
+                Title = n.Message,
+                Body = string.Empty,
                 IsRead = n.IsRead,
-                CreatedAt = n.CreatedAt.ToString("O"), // ISO 8601 format
-                SourceDiscussionId = n.SourceDiscussionId
+                CreatedAt = n.CreatedAt.ToDateTime().ToString("O"), // ISO 8601 format
+                SourceDiscussionId = n.TargetPublicId
             }).ToList()
         };
 
@@ -286,7 +289,7 @@ public static class BffApiEndpoints
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
-            IsFollowing = apiResult.IsFollowing,
+            IsFollowing = true, // Setting level implies following
             Level = apiResult.Level
         };
 
@@ -303,7 +306,7 @@ public static class BffApiEndpoints
         var bffResponse = new Models.Bff.BffFollowStatusResponse
         {
             IsFollowing = apiResult.IsFollowing,
-            Level = apiResult.Level
+            Level = null // Discussion follows don't have levels
         };
 
         return Results.Ok(bffResponse);
@@ -319,7 +322,7 @@ public static class BffApiEndpoints
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
             IsFollowing = apiResult.IsFollowing,
-            Level = apiResult.Level
+            Level = null // Discussion follows don't have levels
         };
 
         return Results.Ok(bffResponse);
@@ -340,14 +343,13 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetPostReactionsAsync(postId);
-        var reactions = apiResult ?? new Dictionary<string, int>();
 
         var bffResponse = new Models.Bff.BffReactionsResponse
         {
-            ThumbsUp = reactions.GetValueOrDefault("thumbsUp"),
-            Heart = reactions.GetValueOrDefault("heart"),
-            Eyes = reactions.GetValueOrDefault("eyes"),
-            Crazy = reactions.GetValueOrDefault("crazy")
+            ThumbsUp = apiResult?.ThumbsUp ?? 0,
+            Heart = apiResult?.Heart ?? 0,
+            Eyes = apiResult?.Eyes ?? 0,
+            Crazy = apiResult?.Crazy ?? 0
         };
 
         return Results.Ok(bffResponse);
@@ -408,10 +410,9 @@ public static class BffApiEndpoints
         [FromQuery] int offset,
         [FromQuery] int pageSize,
         [FromQuery] string? communityId,
-        [FromQuery] string? cursor,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, cursor);
+        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId);
         return Results.Ok(result);
     }
 
@@ -465,7 +466,7 @@ public static class BffApiEndpoints
         [FromBody] BatchUpdateReadStatesRequest request,
         SnakkApiClient apiClient)
     {
-        await apiClient.BatchUpdateReadStatesAsync(request.Updates);
+        await apiClient.BatchUpdateReadStatesAsync(request.Updates.Select(u => (u.DiscussionId, u.PostId)).ToList());
         return Results.Ok();
     }
 
@@ -503,8 +504,7 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> RefreshTokenAsync(
         HttpContext httpContext,
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration)
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient)
     {
         try
         {
@@ -513,41 +513,14 @@ public static class BffApiEndpoints
             if (string.IsNullOrEmpty(currentRefreshToken))
                 return Results.Unauthorized();
 
-            var httpClient = httpClientFactory.CreateClient();
-            var apiBaseUrl = configuration["ApiBaseUrl"] ?? "http://localhost:5000";
+            var response = await authClient.RefreshTokenAsync(
+                new Snakk.Protos.Auth.RefreshTokenRequest { RefreshToken = currentRefreshToken });
 
-            var requestBody = new
-            {
-                refreshToken = currentRefreshToken
-            };
-
-            var content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(requestBody),
-                System.Text.Encoding.UTF8,
-                "application/json");
-
-            var response = await httpClient.PostAsync($"{apiBaseUrl}/auth/refresh", content);
-
-            if (!response.IsSuccessStatusCode)
-                return Results.Unauthorized();
-
-            var responseBody = await response.Content.ReadAsStringAsync();
-            var result = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(responseBody);
-
-            if (!result.TryGetProperty("accessToken", out var accessToken) ||
-                !result.TryGetProperty("refreshToken", out var refreshToken))
-            {
-                return Results.Unauthorized();
-            }
-
-            var newAccessToken = accessToken.GetString();
-            var newRefreshToken = refreshToken.GetString();
-
-            if (string.IsNullOrEmpty(newAccessToken) || string.IsNullOrEmpty(newRefreshToken))
+            if (string.IsNullOrEmpty(response.AccessToken) || string.IsNullOrEmpty(response.RefreshToken))
                 return Results.Unauthorized();
 
             // Set updated cookies (no tokens in response body)
-            AuthCookieHelper.SetAuthCookies(httpContext, newAccessToken, newRefreshToken);
+            AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
             return Results.Ok();
         }
         catch
@@ -556,23 +529,48 @@ public static class BffApiEndpoints
         }
     }
 
-    private static Task<IResult> SetTokensAsync(
-        [FromBody] SetTokensRequestDto request,
-        HttpContext httpContext)
+    // Current user (me) endpoints
+    private static async Task<IResult> GetCurrentUserMeAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
-        if (string.IsNullOrEmpty(request.AccessToken) || string.IsNullOrEmpty(request.RefreshToken))
-            return Task.FromResult(Results.BadRequest("Both accessToken and refreshToken are required."));
+        var apiResult = await apiClient.GetCurrentUserAsync();
+        if (apiResult == null) return Results.Unauthorized();
 
-        AuthCookieHelper.SetAuthCookies(httpContext, request.AccessToken, request.RefreshToken);
-        return Task.FromResult(Results.Ok());
+        // Sync preference cookie so server-side pages can read it without an API call
+        AuthCookieHelper.SetPreferenceCookies(httpContext, apiResult.PreferEndlessScroll);
+
+        return Results.Ok(new
+        {
+            publicId = apiResult.PublicId,
+            displayName = apiResult.DisplayName,
+            email = apiResult.Email,
+            emailVerified = apiResult.EmailVerified,
+            oAuthProvider = apiResult.OauthProvider,
+            preferEndlessScroll = apiResult.PreferEndlessScroll,
+            autoFollowOnReply = apiResult.AutoFollowOnReply
+        });
     }
 
-    private static async Task<IResult> UpdateProfileAsync(
+    private static async Task<IResult> UpdateProfileMeAsync(
         [FromBody] UpdateProfileRequestDto request,
         SnakkApiClient apiClient)
     {
         var success = await apiClient.UpdateProfileAsync(request.DisplayName);
         return success ? Results.Ok() : Results.BadRequest(new { error = "Failed to update profile" });
+    }
+
+    private static async Task<IResult> UpdatePreferencesMeAsync(
+        [FromBody] UpdatePreferencesRequestDto request,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        var success = await apiClient.UpdatePreferencesAsync(request.PreferEndlessScroll, request.AutoFollowOnReply);
+        if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
+
+        // Update preference cookie
+        if (request.PreferEndlessScroll.HasValue)
+            AuthCookieHelper.SetPreferenceCookies(httpContext, request.PreferEndlessScroll.Value);
+
+        return Results.Ok();
     }
 
     // User endpoints
@@ -607,11 +605,11 @@ public static class BffApiEndpoints
 
         var bffResponse = new Models.Bff.BffUserActivityResponse
         {
-            Activities = apiResult.Activities.Select(a => new Models.Bff.BffDailyActivityResponse
+            Activities = apiResult.Data.Select(a => new Models.Bff.BffDailyActivityResponse
             {
                 Date = a.Date,
-                PostCount = a.PostCount,
-                DiscussionCount = a.DiscussionCount
+                PostCount = a.Posts,
+                DiscussionCount = a.Discussions
             }).ToList()
         };
 
@@ -644,7 +642,7 @@ public static class BffApiEndpoints
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
             IsFollowing = apiResult.IsFollowing,
-            Level = apiResult.Level
+            Level = null // User follows don't have levels
         };
 
         return Results.Ok(bffResponse);
@@ -831,6 +829,7 @@ public static class BffApiEndpoints
 public record ToggleReactionRequest(int Type);
 public record PreviewMarkupRequest(string Content);
 public record BffCreateReportRequest(string EntityType, string EntityId, string Reason, string? Description);
-public record BatchUpdateReadStatesRequest(List<Services.ReadStateUpdateDto> Updates);
-public record SetTokensRequestDto(string AccessToken, string RefreshToken);
+public record ReadStateUpdate(string DiscussionId, string PostId);
+public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName);
+public record UpdatePreferencesRequestDto(bool? PreferEndlessScroll, bool? AutoFollowOnReply);

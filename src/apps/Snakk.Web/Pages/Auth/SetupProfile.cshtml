@@ -17,37 +17,6 @@
                 </div>
             }
 
-            <script>
-                @* INLINE REASON: OAuth token capture for new user flow.
-                   Must execute immediately to process URL fragments before any navigation.
-                   Page-specific, not reused elsewhere. *@
-
-                // Handle OAuth tokens in URL fragment for new users — POST to BFF to set HttpOnly cookies
-                (function() {
-                    var fragment = window.location.hash.substring(1);
-                    if (fragment) {
-                        var params = new URLSearchParams(fragment);
-                        var accessToken = params.get('access_token');
-                        var refreshToken = params.get('refresh_token');
-
-                        if (accessToken && refreshToken) {
-                            fetch('/bff/auth/set-tokens', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    accessToken: decodeURIComponent(accessToken),
-                                    refreshToken: decodeURIComponent(refreshToken)
-                                }),
-                                credentials: 'include'
-                            });
-
-                            // Clear fragment from URL
-                            history.replaceState(null, '', window.location.pathname);
-                        }
-                    }
-                })();
-            </script>
-
             <form id="setupProfileForm" class="space-y-4">
                 <div id="errorAlert" class="alert alert-error mb-4 hidden">
                     <span id="errorMessage"></span>

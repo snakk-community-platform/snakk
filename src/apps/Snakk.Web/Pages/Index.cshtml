@@ -6,57 +6,7 @@
     ViewData["Title"] = "Home";
 }
 
-<div class="max-w-6xl mx-auto">
-    <!-- Page Header (full width) -->
-    <div class="page-header">
-        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div>
-                <h1>Latest Discussions</h1>
-                <p>Recent activity across all spaces</p>
-            </div>
-            @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-            {
-                <div class="flex-shrink-0">
-                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community.CommunitySlug)" class="btn btn-primary">Manage Community</a>
-                </div>
-            }
-            @*
-            @if (Model.PlatformStats != null || Model.CommunityStats != null)
-            {
-                <div class="w-full lg:w-80 flex-shrink-0">
-                    <div class="stats-panel">
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <span class="stat-value">@Model.SpaceCount</span>
-                                <svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="18" cy="5" r="3"></circle>
-                                    <circle cx="6" cy="12" r="3"></circle>
-                                    <circle cx="18" cy="19" r="3"></circle>
-                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                                </svg>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value">@Model.DiscussionCount</span>
-                                <svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 9a2 2 0 0 1-2 2H6l-3 3V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2z"></path>
-                                    <path d="M21 14a2 2 0 0 1-2 2h-4l-3 3v-3H9a2 2 0 0 1-2-2v-1"></path>
-                                </svg>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value">@Model.ReplyCount</span>
-                                <svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            *@
-        </div>
-    </div>
-
+<div class="max-w-6xl mx-auto px-4 py-8">
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
@@ -107,18 +57,18 @@
                                         {
                                             <span class="badge badge-warning badge-xs ml-2">Locked</span>
                                         }
-                                        @if (discussion.Tags != null && discussion.Tags.Length > 0)
+                                        @if (discussion.Tags != null && discussion.Tags.Count > 0)
                                         {
                                             @foreach (var tag in discussion.Tags.Take(3))
                                             {
                                                 <span class="badge badge-ghost badge-xs ml-2">@tag</span>
                                             }
-                                            @if (discussion.Tags.Length > 3)
+                                            @if (discussion.Tags.Count > 3)
                                             {
                                                 <span class="text-muted ml-1">...</span>
                                             }
                                         }
-                                        <span class="text-xs text-muted ml-2">@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
+                                        <span class="text-xs text-muted ml-2">@Model.GetRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
                                     </div>
                                     <div class="topic-meta">
                                         @if (Model.ShowCommunityInDiscussionList)
@@ -245,121 +195,66 @@
         </div>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-full lg:w-80 flex-shrink-0">
+        <aside id="sticky-sidebar" class="w-full lg:w-80 flex-shrink-0" hx-push-url="false">
+            <div class="sidebar-section">
+                <div class="stats-panel">
+                    <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
+                                     model="Model.InlinePlatformStats"
+                                     htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="stats-grid">
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            </div>
+
             @if (Model.ShowTrendingDiscussions)
             {
-                <!-- Top Active Discussions Today -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Discussions</h3>
-                    @if (Model.TopActiveDiscussions?.Items == null || Model.TopActiveDiscussions.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No activity today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var discussion in Model.TopActiveDiscussions.Items)
-                            {
-                                var discussionUrl = SnakkUrlHelper.Discussion(
-                                    Model.Community,
-                                    discussion.Hub.Slug,
-                                    discussion.Space.Slug,
-                                    $"{discussion.Slug}~{discussion.PublicId}");
-
-                                <li>
-                                    <a href="@discussionUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
-                                             alt="@discussion.Author.DisplayName"
-                                             loading="lazy"
-                                             class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
-                                                <span data-popup-type="space"
-                                                      data-popup-id="@discussion.Space.PublicId"
-                                                      data-popup-name="@discussion.Space.Name">@discussion.Space.Name</span>
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
+                                     model="Model.InlineTrendingDiscussions"
+                                     htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
 
             @if (Model.ShowTrendingSpaces)
             {
-                <!-- Top Trending Spaces Today -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Spaces</h3>
-                    @if (Model.TopActiveSpaces?.Items == null || Model.TopActiveSpaces.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No activity today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var space in Model.TopActiveSpaces.Items)
-                            {
-                                var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
-
-                                <li>
-                                    <a href="@spaceUrl" class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
-                                             alt=""
-                                             loading="lazy"
-                                             class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title">@space.Name</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@space.PostCountToday posts today</span>
-                                                <span>@space.Hub.Name</span>
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
+                                     model="Model.InlineTrendingSpaces"
+                                     htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
 
             @if (Model.ShowTrendingContributors)
             {
-                <!-- Top Trending Contributors Today -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Trending Contributors</h3>
-                    @if (Model.TopContributors?.Items == null || Model.TopContributors.Items.Length == 0)
-                    {
-                        <p class="sidebar-empty">No contributors today yet</p>
-                    }
-                    else
-                    {
-                        <ul class="sidebar-list">
-                            @foreach (var contributor in Model.TopContributors.Items)
-                            {
-                                <li>
-                                    <span class="sidebar-link">
-                                        <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
-                                             alt="@contributor.DisplayName"
-                                             loading="lazy"
-                                             class="sidebar-avatar" />
-                                        <span class="sidebar-link-content">
-                                            <span class="sidebar-link-title"
-                                                  data-popup-type="user"
-                                                  data-popup-id="@contributor.PublicId"
-                                                  data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
-                                            <span class="sidebar-link-meta">
-                                                <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
-                                            </span>
-                                        </span>
-                                    </span>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
+                                     model="Model.InlineTrendingContributors"
+                                     htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
             }
         </aside>
@@ -394,8 +289,8 @@
         showCommunityInDiscussionList: @(Model.ShowCommunityInDiscussionList ? "true" : "false"),
         discussions: {
             pageSize: @(Model.RecentDiscussions?.PageSize ?? 0),
-            communityId: '@(Model.CommunityStats?.PublicId ?? "")',
-            nextCursor: '@(Model.RecentDiscussions?.NextCursor ?? "")',
+            communityId: '@(Model.SidebarScopeType == "community" ? Model.SidebarScopeId : "")',
+            nextOffset: @((Model.RecentDiscussions?.Offset ?? 0) + (Model.RecentDiscussions?.PageSize ?? 0)),
             hasMoreItems: @((Model.RecentDiscussions?.HasMoreItems ?? false) ? "true" : "false")
         }
     };

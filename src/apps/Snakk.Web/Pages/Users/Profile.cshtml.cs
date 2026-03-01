@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Snakk.Web.Models;
 using Snakk.Web.Services;
+using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Users;
 
@@ -9,21 +9,21 @@ public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
-    public UserProfileDto? Profile { get; set; }
+    public UserProfileInfo? Profile { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string Tab { get; set; } = "overview";
 
-    public string FormatDate(DateTime? dateTime)
+    public string FormatDate(DateTimeOffset? dateTime)
     {
         if (!dateTime.HasValue) return "Unknown";
         return dateTime.Value.ToString("MMMM d, yyyy");
     }
 
-    public new string GetRelativeTime(DateTime? dateTime)
+    public new string GetRelativeTime(DateTimeOffset? dateTime)
     {
         if (!dateTime.HasValue) return "Never";
-        var diff = DateTime.UtcNow - dateTime.Value;
+        var diff = DateTimeOffset.UtcNow - dateTime.Value;
         if (diff.TotalMinutes < 1) return "just now";
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} minutes ago";
         if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} hours ago";

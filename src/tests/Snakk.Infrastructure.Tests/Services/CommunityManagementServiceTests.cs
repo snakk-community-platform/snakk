@@ -105,7 +105,7 @@ public class CommunityManagementServiceTests : IDisposable
         await CreatePostAsync(disc1.Id, user.Id, "Post 2");
         await CreatePostAsync(disc2.Id, user.Id, "Post 3");
 
-        var result = await _service.GetOverviewAsync("test-community");
+        var result = await _service.GetOverviewAsync("comm-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.TotalHubs).IsEqualTo(2);
@@ -134,7 +134,7 @@ public class CommunityManagementServiceTests : IDisposable
         // Post created now (should count for today and this week)
         await CreatePostAsync(disc.Id, user.Id, "Recent post");
 
-        var result = await _service.GetOverviewAsync("test-community");
+        var result = await _service.GetOverviewAsync("comm-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.PostsToday).IsEqualTo(1);
@@ -160,7 +160,7 @@ public class CommunityManagementServiceTests : IDisposable
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetSettingsAsync("settings-community");
+        var result = await _service.GetSettingsAsync("comm-settings");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Settings Community");
@@ -198,7 +198,7 @@ public class CommunityManagementServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetSettingsAsync("test-community");
+        var result = await _service.GetSettingsAsync("comm-001");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.AdminUserIds).Contains("admin-001");
@@ -238,7 +238,7 @@ public class CommunityManagementServiceTests : IDisposable
             Description = "Updated description"
         };
 
-        var result = await _service.UpdateSettingsAsync("update-community", request);
+        var result = await _service.UpdateSettingsAsync("comm-update", request);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Updated Name");
@@ -279,7 +279,7 @@ public class CommunityManagementServiceTests : IDisposable
         await CreatePostAsync(disc1.Id, user.Id, "Post B");
         await CreatePostAsync(disc2.Id, user.Id, "Post C");
 
-        var result = await _service.GetCommunitySpacesAsync("test-community");
+        var result = await _service.GetCommunitySpacesAsync("comm-001");
 
         await Assert.That(result.Count).IsEqualTo(1);
         await Assert.That(result[0].Name).IsEqualTo("Test Space");

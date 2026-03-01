@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Services;
-using Snakk.Web.Models;
+using Snakk.Protos.Community;
 
 namespace Snakk.Web.Pages.Communities;
 
@@ -12,7 +12,7 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration) 
     private readonly SnakkApiClient _apiClient = apiClient;
     private readonly IConfiguration _configuration = configuration;
 
-    public PagedResult<CommunityDto>? Communities { get; set; }
+    public PagedCommunityList? Communities { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0)
     {

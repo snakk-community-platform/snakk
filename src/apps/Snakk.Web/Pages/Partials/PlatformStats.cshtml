@@ -1,0 +1,9 @@
+@page "/partials/platform-stats"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.PlatformStatsModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_PlatformStats"
+         model="new SidebarPlatformStatsVM(Model.SpaceCount, Model.DiscussionCount, Model.ReplyCount, Model.CacheSource)" />

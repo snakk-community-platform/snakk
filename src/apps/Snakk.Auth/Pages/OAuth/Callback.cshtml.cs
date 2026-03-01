@@ -2,19 +2,19 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
+using Grpc.Core;
+using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages.OAuth;
 
 public class CallbackModel : PageModel
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly AuthService.AuthServiceClient _authClient;
     private readonly ILogger<CallbackModel> _logger;
 
-    public CallbackModel(IHttpClientFactory httpClientFactory, ILogger<CallbackModel> logger)
+    public CallbackModel(AuthService.AuthServiceClient authClient, ILogger<CallbackModel> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _authClient = authClient;
         _logger = logger;
     }
 
@@ -46,39 +46,18 @@ public class CallbackModel : PageModel
                 return RedirectToPage("/Login", new { error = "oauth_claims_missing" });
             }
 
-            // Call API to login or create account with OAuth
-            var httpClient = _httpClientFactory.CreateClient("SnakkApi");
-
-            var oauthLoginRequest = new
+            // Call API via gRPC to login or create account with OAuth
+            var response = await _authClient.OAuthCallbackAsync(new OAuthCallbackRequest
             {
-                provider = Provider.ToLower(),
-                providerUserId = nameIdentifier,
-                email = email,
-                displayName = name ?? email.Split('@')[0]
-            };
-
-            var content = new StringContent(
-                JsonSerializer.Serialize(oauthLoginRequest),
-                Encoding.UTF8,
-                "application/json"
-            );
-
-            var response = await httpClient.PostAsync("/api/auth/oauth/callback", content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("OAuth callback failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
-                return RedirectToPage("/Login", new { error = "oauth_server_error" });
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var loginResponse = JsonSerializer.Deserialize<OAuthResponse>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
+                Provider = Provider.ToLower(),
+                ProviderUserId = nameIdentifier,
+                Email = email,
+                DisplayName = name ?? email.Split('@')[0],
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
             });
 
-            if (loginResponse?.AccessToken == null)
+            if (string.IsNullOrEmpty(response.AccessToken))
             {
                 return RedirectToPage("/Login", new { error = "oauth_token_missing" });
             }
@@ -93,10 +72,16 @@ public class CallbackModel : PageModel
                 Path = "/"
             };
 
-            Response.Cookies.Append(".Snakk.Auth", loginResponse.AccessToken, cookieOptions);
-            if (!string.IsNullOrEmpty(loginResponse.RefreshToken))
+            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, cookieOptions);
+            if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                Response.Cookies.Append(".Snakk.Auth.Refresh", loginResponse.RefreshToken, cookieOptions);
+                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, cookieOptions);
+            }
+
+            // New users go to profile setup page to choose their display name
+            if (response.IsNewUser)
+            {
+                return Redirect("/auth/setup-profile");
             }
 
             // Get return URL from session
@@ -111,17 +96,15 @@ public class CallbackModel : PageModel
 
             return Redirect(returnUrl);
         }
+        catch (RpcException ex)
+        {
+            _logger.LogError(ex, "OAuth gRPC callback error: {Status}", ex.Status.Detail);
+            return RedirectToPage("/Login", new { error = "oauth_server_error" });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OAuth callback error");
             return RedirectToPage("/Login", new { error = "oauth_error" });
         }
-    }
-
-    private class OAuthResponse
-    {
-        public string? AccessToken { get; set; }
-        public string? RefreshToken { get; set; }
-        public DateTime ExpiresAt { get; set; }
     }
 }

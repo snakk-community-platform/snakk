@@ -90,7 +90,7 @@
 
 // Sticky sidebar
 @media (min-width: 1024px) {
-    #sidebar {
+    #sticky-sidebar {
         overflow-y: auto;
         max-height: calc(100vh - 5rem);
         scrollbar-width: thin;

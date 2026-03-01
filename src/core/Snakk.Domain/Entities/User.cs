@@ -18,6 +18,7 @@ public class User
     public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
     public bool PreferEndlessScroll { get; private set; } = true; // User preference for endless scroll vs pagination
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
+    public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
@@ -49,7 +50,8 @@ public class User
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
-        DateTime? lastLoginAt = null)
+        DateTime? lastLoginAt = null,
+        bool needsProfileSetup = false)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -64,6 +66,7 @@ public class User
         AvatarRevision = avatarRevision;
         PreferEndlessScroll = preferEndlessScroll;
         AutoFollowOnReply = autoFollowOnReply;
+        NeedsProfileSetup = needsProfileSetup;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -131,7 +134,8 @@ public class User
             preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow,
-            lastSeenAt: DateTime.UtcNow);
+            lastSeenAt: DateTime.UtcNow,
+            needsProfileSetup: true); // New OAuth users should choose their display name
 
         user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
 
@@ -181,7 +185,8 @@ public class User
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
-        DateTime? lastLoginAt = null)
+        DateTime? lastLoginAt = null,
+        bool needsProfileSetup = false)
     {
         return new User(
             publicId,
@@ -200,7 +205,8 @@ public class User
             createdAt,
             lastModifiedAt,
             lastSeenAt,
-            lastLoginAt);
+            lastLoginAt,
+            needsProfileSetup);
     }
 
     public void UpdateDisplayName(string displayName)
@@ -209,6 +215,7 @@ public class User
             throw new ArgumentException("Display name cannot be empty", nameof(displayName));
 
         DisplayName = displayName;
+        NeedsProfileSetup = false; // Profile setup complete once user chooses a display name
         LastModifiedAt = DateTime.UtcNow;
     }
 

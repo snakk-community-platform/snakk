@@ -7,7 +7,7 @@ public interface IPermissionService
     /// <summary>
     /// Check if a user has a specific permission
     /// </summary>
-    Task<bool> UserHasPermissionAsync(string userId, string permissionName, string? scope = null, int? scopeId = null);
+    Task<bool> UserHasPermissionAsync(string userId, string permissionName, string? scope = null, string? scopePublicId = null);
 
     /// <summary>
     /// Get all permissions for a specific user (based on their roles)

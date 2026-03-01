@@ -9,74 +9,94 @@ public static class HubManagementEndpoints
 {
     public static void MapHubManagementEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/c/{communitySlug}/h/{hubSlug}/manage")
+        var group = app.MapGroup("/hubs/{hubId}/manage")
             .WithTags("Hub Management")
             .RequireAuthorization();
 
         // Overview
         group.MapGet("/overview", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string hubSlug,
+            [FromRoute] string hubId,
             [FromServices] IHubManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var overview = await service.GetOverviewAsync(communitySlug, hubSlug, cancellationToken);
+            var overview = await service.GetOverviewAsync(hubId, cancellationToken);
             return overview != null ? Results.Ok(overview) : Results.NotFound();
         })
-        .RequireHubModerator("hubSlug")
+        .RequireHubModerator("hubId")
         .WithName("GetHubOverview");
 
         // Settings - Get
         group.MapGet("/settings", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string hubSlug,
+            [FromRoute] string hubId,
             [FromServices] IHubManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.GetSettingsAsync(communitySlug, hubSlug, cancellationToken);
+            var settings = await service.GetSettingsAsync(hubId, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireHubModerator("hubSlug")
+        .RequireHubModerator("hubId")
         .WithName("GetHubSettings");
 
         // Settings - Update
         group.MapPut("/settings", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string hubSlug,
+            [FromRoute] string hubId,
             [FromBody] UpdateHubSettingsRequest request,
             [FromServices] IHubManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var settings = await service.UpdateSettingsAsync(communitySlug, hubSlug, request, cancellationToken);
+            var settings = await service.UpdateSettingsAsync(hubId, request, cancellationToken);
             return settings != null ? Results.Ok(settings) : Results.NotFound();
         })
-        .RequireHubModerator("hubSlug")
+        .RequireHubModerator("hubId")
         .WithName("UpdateHubSettings");
 
         // Moderation
         group.MapGet("/moderation", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string hubSlug,
+            [FromRoute] string hubId,
             [FromServices] IHubManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var moderation = await service.GetModerationDataAsync(communitySlug, hubSlug, cancellationToken);
+            var moderation = await service.GetModerationDataAsync(hubId, cancellationToken);
             return Results.Ok(moderation);
         })
-        .RequireHubModerator("hubSlug")
+        .RequireHubModerator("hubId")
         .WithName("GetHubModeration");
 
         // Spaces
         group.MapGet("/spaces", async (
-            [FromRoute] string communitySlug,
-            [FromRoute] string hubSlug,
+            [FromRoute] string hubId,
             [FromServices] IHubManagementService service,
             CancellationToken cancellationToken) =>
         {
-            var spaces = await service.GetSpacesAsync(communitySlug, hubSlug, cancellationToken);
+            var spaces = await service.GetSpacesAsync(hubId, cancellationToken);
             return Results.Ok(spaces);
         })
-        .RequireHubModerator("hubSlug")
+        .RequireHubModerator("hubId")
         .WithName("GetHubSpaces");
+
+        // Rules - Get
+        group.MapGet("/rules", async (
+            [FromRoute] string hubId,
+            [FromServices] IHubManagementService service,
+            CancellationToken cancellationToken) =>
+        {
+            var rules = await service.GetRulesAsync(hubId, cancellationToken);
+            return Results.Ok(rules);
+        })
+        .RequireHubModerator("hubId")
+        .WithName("GetHubRulesManagement");
+
+        // Rules - Update
+        group.MapPut("/rules", async (
+            [FromRoute] string hubId,
+            [FromBody] UpdateHubRulesRequest request,
+            [FromServices] IHubManagementService service,
+            CancellationToken cancellationToken) =>
+        {
+            var rules = await service.UpdateRulesAsync(hubId, request, cancellationToken);
+            return Results.Ok(rules);
+        })
+        .RequireHubModerator("hubId")
+        .WithName("UpdateHubRules");
     }
 }

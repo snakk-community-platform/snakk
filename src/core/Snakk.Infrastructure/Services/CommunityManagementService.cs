@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Services;
@@ -20,16 +21,21 @@ public class CommunityManagementService : ICommunityManagementService
         _logger = logger;
     }
 
-    public async Task<CommunityOverviewDto?> GetOverviewAsync(string slug, CancellationToken cancellationToken = default)
+    public async Task<CommunityOverviewDto?> GetOverviewAsync(string communityId, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
-            .Where(c => c.Slug == slug)
+            .Where(c => c.PublicId == communityId)
             .Select(c => new
             {
+                c.Id,
                 c.Slug,
                 c.Name,
                 c.Description,
-                c.CreatedAt
+                c.CreatedAt,
+                c.HubCount,
+                c.SpaceCount,
+                c.DiscussionCount,
+                c.PostCount
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -40,40 +46,22 @@ public class CommunityManagementService : ICommunityManagementService
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
 
-        // Get stats
-        var totalHubs = await _context.Hubs
-            .Where(h => h.Community.Slug == slug)
-            .CountAsync(cancellationToken);
-
-        var totalSpaces = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == slug)
-            .CountAsync(cancellationToken);
-
-        var totalDiscussions = await _context.Discussions
-            .Where(d => d.Space.Hub.Community.Slug == slug)
-            .CountAsync(cancellationToken);
-
-        var totalPosts = await _context.Posts
-            .Where(p => p.Discussion.Space.Hub.Community.Slug == slug)
-            .CountAsync(cancellationToken);
-
         // Get activity stats - posts
         var postsToday = await _context.Posts
-            .Where(p => p.Discussion.Space.Hub.Community.Slug == slug && p.CreatedAt >= today)
+            .Where(p => p.Discussion.Space.Hub.CommunityId == community.Id && p.CreatedAt >= today)
             .CountAsync(cancellationToken);
 
         var postsThisWeek = await _context.Posts
-            .Where(p => p.Discussion.Space.Hub.Community.Slug == slug && p.CreatedAt >= weekAgo)
+            .Where(p => p.Discussion.Space.Hub.CommunityId == community.Id && p.CreatedAt >= weekAgo)
             .CountAsync(cancellationToken);
 
         // Get moderation stats
         var pendingReports = await _context.Reports
-            .Where(r => r.Community.Slug == slug && r.StatusId == (int)ReportStatusEnum.Pending)
+            .Where(r => r.CommunityId == community.Id && r.StatusId == (int)ReportStatusEnum.Pending)
             .CountAsync(cancellationToken);
 
         var activeBans = await _context.UserBans
-            .Where(ub => ub.CommunityId != null &&
-                         ub.Community!.Slug == slug &&
+            .Where(ub => ub.CommunityId == community.Id &&
                          ub.UnbannedAt == null &&
                          (ub.ExpiresAt == null || ub.ExpiresAt > now))
             .CountAsync(cancellationToken);
@@ -81,8 +69,7 @@ public class CommunityManagementService : ICommunityManagementService
         // Get team members
         var admins = await _context.UserRoles
             .Where(ur => (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod) &&
-                         ur.CommunityId != null &&
-                         ur.Community!.Slug == slug &&
+                         ur.CommunityId == community.Id &&
                          ur.RevokedAt == null)
             .Include(ur => ur.User)
             .Select(ur => new CommunityMemberDto
@@ -96,7 +83,7 @@ public class CommunityManagementService : ICommunityManagementService
 
         // Get recent activity
         var recentActivity = await _context.Posts
-            .Where(p => p.Discussion.Space.Hub.Community.Slug == slug)
+            .Where(p => p.Discussion.Space.Hub.CommunityId == community.Id)
             .OrderByDescending(p => p.CreatedAt)
             .Take(10)
             .Select(p => new RecentActivityItemDto
@@ -105,7 +92,7 @@ public class CommunityManagementService : ICommunityManagementService
                 Description = p.Discussion.Title,
                 UserDisplayName = p.CreatedByUser.DisplayName,
                 Timestamp = p.CreatedAt,
-                LinkUrl = $"/c/{slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
+                LinkUrl = $"/c/{community.Slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
             })
             .ToListAsync(cancellationToken);
 
@@ -119,10 +106,10 @@ public class CommunityManagementService : ICommunityManagementService
             Description = community.Description,
             CreatedAt = community.CreatedAt,
             TotalMembers = 0, // TODO: Implement member tracking
-            TotalHubs = totalHubs,
-            TotalSpaces = totalSpaces,
-            TotalDiscussions = totalDiscussions,
-            TotalPosts = totalPosts,
+            TotalHubs = community.HubCount,
+            TotalSpaces = community.SpaceCount,
+            TotalDiscussions = community.DiscussionCount,
+            TotalPosts = community.PostCount,
             NewMembersToday = 0, // TODO: Implement member tracking
             NewMembersThisWeek = 0, // TODO: Implement member tracking
             PostsToday = postsToday,
@@ -135,10 +122,10 @@ public class CommunityManagementService : ICommunityManagementService
         };
     }
 
-    public async Task<CommunitySettingsDto?> GetSettingsAsync(string slug, CancellationToken cancellationToken = default)
+    public async Task<CommunitySettingsDto?> GetSettingsAsync(string communityId, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
-            .Where(c => c.Slug == slug)
+            .Where(c => c.PublicId == communityId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (community == null)
@@ -169,10 +156,10 @@ public class CommunityManagementService : ICommunityManagementService
         };
     }
 
-    public async Task<CommunitySettingsDto?> UpdateSettingsAsync(string slug, UpdateCommunitySettingsRequest request, CancellationToken cancellationToken = default)
+    public async Task<CommunitySettingsDto?> UpdateSettingsAsync(string communityId, UpdateCommunitySettingsRequest request, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
-            .Where(c => c.Slug == slug)
+            .Where(c => c.PublicId == communityId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (community == null)
@@ -183,17 +170,17 @@ public class CommunityManagementService : ICommunityManagementService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return await GetSettingsAsync(slug, cancellationToken);
+        return await GetSettingsAsync(communityId, cancellationToken);
     }
 
-    public async Task<CommunityModerationDto> GetModerationDataAsync(string slug, CancellationToken cancellationToken = default)
+    public async Task<CommunityModerationDto> GetModerationDataAsync(string communityId, CancellationToken cancellationToken = default)
     {
-        var communityId = await _context.Communities
-            .Where(c => c.Slug == slug)
+        var communityDbId = await _context.Communities
+            .Where(c => c.PublicId == communityId)
             .Select(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (communityId == 0)
+        if (communityDbId == 0)
             return new CommunityModerationDto();
 
         var now = DateTime.UtcNow;
@@ -201,7 +188,7 @@ public class CommunityManagementService : ICommunityManagementService
 
         // Get pending reports
         var pendingReports = await _context.Reports
-            .Where(r => r.CommunityId == communityId && r.StatusId == (int)ReportStatusEnum.Pending)
+            .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Pending)
             .Include(r => r.ReporterUser)
             .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
@@ -239,7 +226,7 @@ public class CommunityManagementService : ICommunityManagementService
 
         // Get banned users
         var bannedUsers = await _context.UserBans
-            .Where(ub => ub.CommunityId == communityId &&
+            .Where(ub => ub.CommunityId == communityDbId &&
                          ub.UnbannedAt == null &&
                          (ub.ExpiresAt == null || ub.ExpiresAt > now))
             .Include(ub => ub.User)
@@ -254,17 +241,17 @@ public class CommunityManagementService : ICommunityManagementService
 
         // Get stats
         var totalReports = await _context.Reports
-            .Where(r => r.CommunityId == communityId)
+            .Where(r => r.CommunityId == communityDbId)
             .CountAsync(cancellationToken);
 
         var pendingCount = pendingReports.Count;
 
         var resolvedCount = await _context.Reports
-            .Where(r => r.CommunityId == communityId && r.StatusId == (int)ReportStatusEnum.Resolved)
+            .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Resolved)
             .CountAsync(cancellationToken);
 
         var dismissedCount = await _context.Reports
-            .Where(r => r.CommunityId == communityId && r.StatusId == (int)ReportStatusEnum.Dismissed)
+            .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Dismissed)
             .CountAsync(cancellationToken);
 
         var actionsThisWeek = recentActions.Count(a => a.Timestamp >= weekAgo);
@@ -287,7 +274,7 @@ public class CommunityManagementService : ICommunityManagementService
         };
     }
 
-    public async Task<CommunityMembersListDto> GetMembersAsync(string slug, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<CommunityMembersListDto> GetMembersAsync(string communityId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         // TODO: Implement community members tracking
         // For now, return empty list
@@ -300,10 +287,10 @@ public class CommunityManagementService : ICommunityManagementService
         };
     }
 
-    public async Task<bool> UpdateMemberRoleAsync(string slug, string userId, UpdateMemberRoleRequest request, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateMemberRoleAsync(string communityId, string userId, UpdateMemberRoleRequest request, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
-            .Where(c => c.Slug == slug)
+            .Where(c => c.PublicId == communityId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (community == null)
@@ -362,21 +349,91 @@ public class CommunityManagementService : ICommunityManagementService
         return true;
     }
 
-    public async Task<List<HubSpaceItemDto>> GetCommunitySpacesAsync(string slug, CancellationToken cancellationToken = default)
+    public async Task<List<HubSpaceItemDto>> GetCommunitySpacesAsync(string communityId, CancellationToken cancellationToken = default)
     {
         return await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == slug)
+            .Where(s => s.Hub.Community.PublicId == communityId)
             .Select(s => new HubSpaceItemDto
             {
                 Id = s.Id,
                 Slug = s.Slug,
                 Name = s.Name,
                 Description = s.Description,
-                DiscussionCount = s.Discussions.Count,
-                PostCount = s.Discussions.SelectMany(d => d.Posts).Count(),
+                DiscussionCount = s.DiscussionCount,
+                PostCount = s.PostCount,
                 CreatedAt = s.CreatedAt,
                 IsActive = true
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CommunityRulesDto> GetRulesAsync(string communityId, CancellationToken cancellationToken = default)
+    {
+        var rules = await _context.CommunityRules
+            .Where(r => r.Community.PublicId == communityId)
+            .OrderBy(r => r.SortOrder)
+            .Select(r => new CommunityRuleDto
+            {
+                Id = r.Id,
+                Title = r.Title,
+                Description = r.Description,
+                Order = r.SortOrder
+            })
+            .ToListAsync(cancellationToken);
+
+        return new CommunityRulesDto { Rules = rules };
+    }
+
+    public async Task<CommunityRulesDto> UpdateRulesAsync(string communityId, UpdateCommunityRulesRequest request, CancellationToken cancellationToken = default)
+    {
+        var community = await _context.Communities
+            .Where(c => c.PublicId == communityId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (community == null)
+            return new CommunityRulesDto { Rules = new List<CommunityRuleDto>() };
+
+        var existingRules = await _context.CommunityRules
+            .Where(r => r.CommunityId == community.Id)
+            .ToListAsync(cancellationToken);
+
+        _context.CommunityRules.RemoveRange(existingRules);
+
+        var now = DateTime.UtcNow;
+        var newRules = request.Rules.Select((r, index) => new CommunityRuleDatabaseEntity
+        {
+            CommunityId = community.Id,
+            Title = r.Title,
+            Description = r.Description,
+            SortOrder = index,
+            CreatedAt = now
+        }).ToList();
+
+        _context.CommunityRules.AddRange(newRules);
+
+        // Update denormalized fields
+        community.HasRules = newRules.Count > 0;
+        community.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+
+        var hasRules = newRules.Count > 0;
+
+        // Cascade: update ParentCommunityHasRules on all child hubs
+        var hubIds = await _context.Hubs
+            .Where(h => h.CommunityId == community.Id)
+            .Select(h => h.Id)
+            .ToListAsync(cancellationToken);
+
+        await _context.Hubs
+            .Where(h => h.CommunityId == community.Id)
+            .ExecuteUpdateAsync(h => h.SetProperty(x => x.ParentCommunityHasRules, hasRules), cancellationToken);
+
+        // Cascade: update ParentCommunityHasRules on all child spaces (through hubs)
+        await _context.Spaces
+            .Where(s => hubIds.Contains(s.HubId))
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ParentCommunityHasRules, hasRules), cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return await GetRulesAsync(communityId, cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Services;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
@@ -8,18 +9,21 @@ public static class SessionManagementEndpoints
 {
     public static void MapSessionManagementEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/sessions")
+        var group = app.MapGroup("/sessions")
             .WithTags("Session Management")
             .RequireAuthorization();
 
         group.MapGet("/", GetActiveSessionsAsync)
-            .WithName("GetActiveSessions");
+            .WithName("GetActiveSessions")
+            .Produces<ActiveSessionsResponse>();
 
         group.MapDelete("/{sessionId}", RevokeSessionAsync)
-            .WithName("RevokeSession");
+            .WithName("RevokeSession")
+            .Produces<MessageResponse>();
 
         group.MapPost("/revoke-all", RevokeAllSessionsAsync)
-            .WithName("RevokeAllSessions");
+            .WithName("RevokeAllSessions")
+            .Produces<MessageResponse>();
 
         group.MapPost("/refresh", RefreshTokenAsync)
             .WithName("SessionRefreshToken")
@@ -38,11 +42,7 @@ public static class SessionManagementEndpoints
         var currentToken = httpContext.Request.Cookies["refresh_token"];
         var result = await sessionService.GetActiveSessionsAsync(userIdClaim.Value, currentToken);
 
-        return Results.Ok(new
-        {
-            totalSessions = result.ActiveCount,
-            sessions = result.Sessions
-        });
+        return TypedResults.Ok(new ActiveSessionsResponse(result.ActiveCount, result.Sessions));
     }
 
     private static async Task<IResult> RevokeSessionAsync(
@@ -59,7 +59,7 @@ public static class SessionManagementEndpoints
         if (!success)
             return Results.NotFound(new { error = "Session not found" });
 
-        return Results.Ok(new { message = "Session revoked successfully" });
+        return TypedResults.Ok(new MessageResponse("Session revoked successfully"));
     }
 
     private static async Task<IResult> RevokeAllSessionsAsync(
@@ -77,7 +77,7 @@ public static class SessionManagementEndpoints
         httpContext.Response.Cookies.Delete("access_token");
         httpContext.Response.Cookies.Delete("refresh_token");
 
-        return Results.Ok(new { message = "All sessions revoked successfully. You have been logged out." });
+        return TypedResults.Ok(new MessageResponse("All sessions revoked successfully. You have been logged out."));
     }
 
     private static async Task<IResult> RefreshTokenAsync(
@@ -108,7 +108,7 @@ public static class SessionManagementEndpoints
             Expires = DateTimeOffset.UtcNow.AddMinutes(30)
         });
 
-        return Results.Ok(new Application.DTOs.Auth.SessionRefreshResponse
+        return TypedResults.Ok(new Application.DTOs.Auth.SessionRefreshResponse
         {
             AccessToken = newAccessToken,
             Message = "Token refreshed successfully"

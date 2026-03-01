@@ -1,5 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
+using Snakk.Application.DTOs.Responses;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
@@ -11,23 +12,26 @@ public static class ReadStateEndpoints
     public static void MapReadStateEndpoints(this IEndpointRouteBuilder app)
     {
         // All read state endpoints require authentication
-        var group = app.MapGroup("/api/discussions/{discussionId}")
+        var group = app.MapGroup("/discussions/{discussionId}")
             .WithTags("Read State")
             .RequireAuthorization();
 
         group.MapGet("/read-state", GetReadStateAsync)
-            .WithName("GetReadState");
+            .WithName("GetReadState")
+            .Produces<ReadStateResponse>();
 
         group.MapPost("/mark-read", MarkAsReadAsync)
-            .WithName("MarkAsRead");
+            .WithName("MarkAsRead")
+            .Produces<SuccessResponse>();
 
         // Batch endpoint
-        var batchGroup = app.MapGroup("/api/read-states")
+        var batchGroup = app.MapGroup("/read-states")
             .WithTags("Read State")
             .RequireAuthorization();
 
         batchGroup.MapPost("/batch", BatchMarkAsReadAsync)
-            .WithName("BatchMarkAsRead");
+            .WithName("BatchMarkAsRead")
+            .Produces<SuccessResponse>();
     }
 
     private static async Task<IResult> GetReadStateAsync(
@@ -45,13 +49,9 @@ public static class ReadStateEndpoints
             DiscussionId.From(discussionId));
 
         if (readState == null)
-            return Results.Ok(new { lastReadPostId = (string?)null, lastReadAt = (DateTime?)null });
+            return TypedResults.Ok(new ReadStateResponse(null, null));
 
-        return Results.Ok(new
-        {
-            lastReadPostId = readState.LastReadPostId?.Value,
-            lastReadAt = readState.LastReadAt
-        });
+        return TypedResults.Ok(new ReadStateResponse(readState.LastReadPostId?.Value, readState.LastReadAt));
     }
 
     private static async Task<IResult> MarkAsReadAsync(
@@ -81,7 +81,7 @@ public static class ReadStateEndpoints
 
         await readStateRepository.SaveAsync(readState);
 
-        return Results.Ok(new { success = true });
+        return TypedResults.Ok(new SuccessResponse(true));
     }
 
     private static async Task<IResult> BatchMarkAsReadAsync(
@@ -90,7 +90,7 @@ public static class ReadStateEndpoints
         IDiscussionReadStateRepository readStateRepository)
     {
         if (request?.Updates == null || request.Updates.Count == 0)
-            return Results.Ok(new { success = true, processed = 0 });
+            return TypedResults.Ok(new SuccessResponse(true, 0));
 
         // SECURITY: Extract userId from JWT
         var userId = httpContext.User.GetUserId();
@@ -126,7 +126,7 @@ public static class ReadStateEndpoints
             }
         }
 
-        return Results.Ok(new { success = true, processed });
+        return TypedResults.Ok(new SuccessResponse(true, processed));
     }
 }
 

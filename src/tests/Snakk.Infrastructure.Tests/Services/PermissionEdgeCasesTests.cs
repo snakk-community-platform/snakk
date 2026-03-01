@@ -145,7 +145,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(admin.Id, UserRoleTypeEnum.GlobalAdmin, admin.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("global-admin-1", "AnyPermission", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync("global-admin-1", "AnyPermission", "community", community.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -161,7 +161,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(admin.Id, UserRoleTypeEnum.GlobalAdmin, admin.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("global-admin-hub", "AnyPermission", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("global-admin-hub", "AnyPermission", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -178,7 +178,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(admin.Id, UserRoleTypeEnum.GlobalAdmin, admin.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("global-admin-space", "AnyPermission", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("global-admin-space", "AnyPermission", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -211,7 +211,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("comm-admin-edge", "ManageCommunity", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync("comm-admin-edge", "ManageCommunity", "community", community.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -227,7 +227,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("comm-admin-child-hub", "ManageHub", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("comm-admin-child-hub", "ManageHub", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -244,7 +244,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("comm-admin-gc-space", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("comm-admin-gc-space", "ManageSpace", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -262,7 +262,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("comm-admin-disc", "ManageDiscussion", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync("comm-admin-disc", "ManageDiscussion", "discussion", discussion.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -278,7 +278,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community1.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("comm-admin-other", "ManageCommunity", "community", community2.Id);
+        var result = await _service.UserHasPermissionAsync("comm-admin-other", "ManageCommunity", "community", community2.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -298,7 +298,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("hub-mod-edge", "ManageHub", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("hub-mod-edge", "ManageHub", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -315,7 +315,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("hub-mod-child-space", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("hub-mod-child-space", "ManageSpace", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -332,7 +332,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub1.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("hub-mod-other", "ManageHub", "hub", hub2.Id);
+        var result = await _service.UserHasPermissionAsync("hub-mod-other", "ManageHub", "hub", hub2.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -350,7 +350,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub1.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("hub-mod-other-space", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("hub-mod-other-space", "ManageSpace", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -371,7 +371,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("space-mod-own", "ManageSpace", "space", space.Id);
+        var result = await _service.UserHasPermissionAsync("space-mod-own", "ManageSpace", "space", space.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -389,7 +389,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space1.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("space-mod-other", "ManageSpace", "space", space2.Id);
+        var result = await _service.UserHasPermissionAsync("space-mod-other", "ManageSpace", "space", space2.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -406,7 +406,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("space-mod-no-hub", "ManageHub", "hub", hub.Id);
+        var result = await _service.UserHasPermissionAsync("space-mod-no-hub", "ManageHub", "hub", hub.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -424,7 +424,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("space-mod-disc-own", "ManageDiscussion", "discussion", discussion.Id);
+        var result = await _service.UserHasPermissionAsync("space-mod-disc-own", "ManageDiscussion", "discussion", discussion.PublicId);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -594,7 +594,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.UserHasPermissionAsync("revoked-hier-user", "ManageCommunity", "community", community.Id);
+        var result = await _service.UserHasPermissionAsync("revoked-hier-user", "ManageCommunity", "community", community.PublicId);
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -612,7 +612,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: 99999);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("nonexist-hub-user", "ManageHub", "hub", 88888);
+        var result = await _service.UserHasPermissionAsync("nonexist-hub-user", "ManageHub", "hub", "88888");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -626,7 +626,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: 99999);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("nonexist-space-user", "ManageSpace", "space", 88888);
+        var result = await _service.UserHasPermissionAsync("nonexist-space-user", "ManageSpace", "space", "88888");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -639,7 +639,7 @@ public class PermissionEdgeCasesTests : IDisposable
         var user = await CreateUser("nonexist-disc-user");
 
         // Act
-        var result = await _service.UserHasPermissionAsync("nonexist-disc-user", "ManageDiscussion", "discussion", 99999);
+        var result = await _service.UserHasPermissionAsync("nonexist-disc-user", "ManageDiscussion", "discussion", "99999");
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -658,7 +658,7 @@ public class PermissionEdgeCasesTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
         // Act
-        var result = await _service.UserHasPermissionAsync("unknown-scope-edge", "SomePerm", "nonexistentscope", 1);
+        var result = await _service.UserHasPermissionAsync("unknown-scope-edge", "SomePerm", "nonexistentscope", "1");
 
         // Assert
         await Assert.That(result).IsFalse();

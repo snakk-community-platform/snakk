@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.DTOs.Settings;
 using Snakk.Application.Services;
 using Snakk.Shared.Enums;
@@ -16,48 +17,61 @@ public static class AdminSettingsEndpoints
 
         // General Settings
         group.MapGet("/general", GetGeneralSettingsAsync)
-            .WithName("AdminGetGeneralSettings");
+            .WithName("AdminGetGeneralSettings")
+            .Produces<SiteInfoDto>();
 
         group.MapPut("/general", UpdateGeneralSettingsAsync)
-            .WithName("AdminUpdateGeneralSettings");
+            .WithName("AdminUpdateGeneralSettings")
+            .Produces<SiteInfoDto>();
 
         // OAuth Provider Settings
         group.MapGet("/oauth", GetOAuthProvidersAsync)
-            .WithName("AdminGetOAuthProviders");
+            .WithName("AdminGetOAuthProviders")
+            .Produces<List<OAuthProviderDto>>();
 
         group.MapPut("/oauth/{provider}", UpdateOAuthProviderAsync)
-            .WithName("AdminUpdateOAuthProvider");
+            .WithName("AdminUpdateOAuthProvider")
+            .Produces<MessageResponse>();
 
         // Email Settings
         group.MapGet("/email", GetEmailConfigAsync)
-            .WithName("AdminGetEmailConfig");
+            .WithName("AdminGetEmailConfig")
+            .Produces<EmailConfigDto>();
 
         group.MapPut("/email", UpdateEmailConfigAsync)
-            .WithName("AdminUpdateEmailConfig");
+            .WithName("AdminUpdateEmailConfig")
+            .Produces<EmailConfigDto>();
 
         group.MapPost("/email/test", TestEmailConfigAsync)
-            .WithName("AdminTestEmailConfig");
+            .WithName("AdminTestEmailConfig")
+            .Produces<MessageResponse>();
 
         // Avatar Settings
         group.MapGet("/avatar", GetAvatarSettingsAsync)
-            .WithName("AdminGetAvatarSettings");
+            .WithName("AdminGetAvatarSettings")
+            .Produces<AvatarSettingsDto>();
 
         group.MapPut("/avatar", UpdateAvatarSettingsAsync)
-            .WithName("AdminUpdateAvatarSettings");
+            .WithName("AdminUpdateAvatarSettings")
+            .Produces<AvatarSettingsDto>();
 
         // Content Settings
         group.MapGet("/content", GetContentSettingsAsync)
-            .WithName("AdminGetContentSettings");
+            .WithName("AdminGetContentSettings")
+            .Produces<ContentSettingsDto>();
 
         group.MapPut("/content", UpdateContentSettingsAsync)
-            .WithName("AdminUpdateContentSettings");
+            .WithName("AdminUpdateContentSettings")
+            .Produces<ContentSettingsDto>();
 
         // Rate Limiting Settings
         group.MapGet("/rate-limiting", GetRateLimitingSettingsAsync)
-            .WithName("AdminGetRateLimitingSettings");
+            .WithName("AdminGetRateLimitingSettings")
+            .Produces<RateLimitingSettingsDto>();
 
         group.MapPut("/rate-limiting", UpdateRateLimitingSettingsAsync)
-            .WithName("AdminUpdateRateLimitingSettings");
+            .WithName("AdminUpdateRateLimitingSettings")
+            .Produces<RateLimitingSettingsDto>();
     }
 
     // ==================== General Settings ====================
@@ -106,7 +120,7 @@ public static class AdminSettingsEndpoints
         ISettingsService settingsService)
     {
         var providers = await settingsService.GetOAuthProvidersAsync();
-        return Results.Ok(new { providers });
+        return TypedResults.Ok(providers);
     }
 
     private static async Task<IResult> UpdateOAuthProviderAsync(
@@ -137,7 +151,7 @@ public static class AdminSettingsEndpoints
                 details: $"{provider} OAuth provider {(request.Enabled ? "enabled" : "disabled")}",
                 severity: AuditLogSeverityEnum.Info);
 
-            return Results.Ok(new { provider, enabled = request.Enabled });
+            return TypedResults.Ok(new MessageResponse($"{provider} OAuth provider {(request.Enabled ? "enabled" : "disabled")}"));
         }
         catch (Exception ex)
         {
@@ -196,7 +210,7 @@ public static class AdminSettingsEndpoints
                 "Snakk Email Configuration Test",
                 "This is a test email from your Snakk installation. If you received this, your email configuration is working correctly.");
 
-            return Results.Ok(new { message = "Test email sent successfully" });
+            return TypedResults.Ok(new MessageResponse("Test email sent successfully"));
         }
         catch (Exception ex)
         {

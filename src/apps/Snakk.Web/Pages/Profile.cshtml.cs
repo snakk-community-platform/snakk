@@ -1,65 +1,44 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
+using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages;
 
 public class ProfileModel : PageModel
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly SnakkApiClient _apiClient;
 
     public new UserInfo? User { get; set; }
 
-    public ProfileModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public ProfileModel(SnakkApiClient apiClient)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _apiClient = apiClient;
     }
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "https://localhost:7291";
-        var httpClient = _httpClientFactory.CreateClient();
+        var currentUser = await _apiClient.GetCurrentUserAsync();
 
-        // Copy cookies from request to API call
-        var cookies = Request.Cookies;
-        if (cookies.Any())
-        {
-            var cookieHeader = string.Join("; ", cookies.Select(c => $"{c.Key}={c.Value}"));
-            httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
-        }
-
-        var response = await httpClient.GetAsync($"{apiBaseUrl}/auth/me");
-
-        if (!response.IsSuccessStatusCode)
+        if (currentUser == null)
         {
             return Page();
         }
 
-        var content = await response.Content.ReadAsStringAsync();
-        User = JsonSerializer.Deserialize<UserInfo>(content, new JsonSerializerOptions
+        User = new UserInfo
         {
-            PropertyNameCaseInsensitive = true
-        });
+            PublicId = currentUser.PublicId,
+            DisplayName = currentUser.DisplayName,
+            Email = currentUser.Email,
+            EmailVerified = currentUser.EmailVerified,
+            OAuthProvider = currentUser.OauthProvider
+        };
 
         return Page();
     }
 
     public async Task<IActionResult> OnPostLogoutAsync()
     {
-        var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "https://localhost:7291";
-        var httpClient = _httpClientFactory.CreateClient();
-
-        // Copy cookies from request to API call
-        var cookies = Request.Cookies;
-        if (cookies.Any())
-        {
-            var cookieHeader = string.Join("; ", cookies.Select(c => $"{c.Key}={c.Value}"));
-            httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
-        }
-
-        await httpClient.PostAsync($"{apiBaseUrl}/auth/logout", null);
+        await _apiClient.LogoutAsync();
 
         // Clear cookies
         foreach (var cookie in Request.Cookies.Keys)

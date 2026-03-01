@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.EntityFrameworkCore;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
@@ -18,13 +19,15 @@ public static class AdminModerationEndpoints
 
         // Simplified admin endpoints that work with userId instead of banId/roleId
         userGroup.MapPost("/{userId}/ban", BanUserAsync)
-            .WithName("AdminBanUser");
+            .WithName("AdminBanUser")
+            .Produces<AdminBanResponse>();
 
         userGroup.MapDelete("/{userId}/ban", UnbanUserAsync)
             .WithName("AdminUnbanUser");
 
         userGroup.MapPut("/{userId}/role", UpdateUserRoleAsync)
-            .WithName("AdminUpdateUserRole");
+            .WithName("AdminUpdateUserRole")
+            .Produces<AdminRoleResponse>();
 
         var modGroup = app.MapGroup("/admin/moderation")
             .WithTags("Admin - Moderation Tools")
@@ -32,10 +35,12 @@ public static class AdminModerationEndpoints
 
         // Reports
         modGroup.MapGet("/reports", GetReportsAsync)
-            .WithName("AdminGetReports");
+            .WithName("AdminGetReports")
+            .Produces<AdminReportListResponse>();
 
         modGroup.MapGet("/reports/{id}", GetReportAsync)
-            .WithName("AdminGetReport");
+            .WithName("AdminGetReport")
+            .Produces<AdminReportDetailResponse>();
 
         modGroup.MapPost("/reports/{id}/resolve", ResolveReportAsync)
             .WithName("AdminResolveReport");
@@ -45,11 +50,13 @@ public static class AdminModerationEndpoints
 
         // Moderation log
         modGroup.MapGet("/log", GetModerationLogAsync)
-            .WithName("AdminGetModerationLog");
+            .WithName("AdminGetModerationLog")
+            .Produces<AdminModerationLogResponse>();
 
         // Active bans
         modGroup.MapGet("/bans", GetActiveBansAsync)
-            .WithName("AdminGetActiveBans");
+            .WithName("AdminGetActiveBans")
+            .Produces<AdminActiveBansResponse>();
     }
 
     private static async Task<IResult> BanUserAsync(
@@ -88,14 +95,12 @@ public static class AdminModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId,
-            banType = result.Value.BanType.ToString(),
-            bannedAt = result.Value.BannedAt,
-            expiresAt = result.Value.ExpiresAt,
-            reason = request.Reason
-        });
+        return TypedResults.Ok(new AdminBanResponse(
+            result.Value!.PublicId,
+            result.Value.BanType.ToString(),
+            result.Value.BannedAt,
+            result.Value.ExpiresAt,
+            request.Reason));
     }
 
     private static async Task<IResult> UnbanUserAsync(
@@ -207,7 +212,7 @@ public static class AdminModerationEndpoints
 
             if (currentRoleType == (int)roleType.Value)
             {
-                return Results.Ok(new { message = "User already has this role" });
+                return TypedResults.Ok(new MessageResponse("User already has this role"));
             }
 
             // Revoke existing role
@@ -228,12 +233,10 @@ public static class AdminModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId,
-            role = result.Value.Role.ToString(),
-            assignedAt = result.Value.AssignedAt
-        });
+        return TypedResults.Ok(new AdminRoleResponse(
+            result.Value!.PublicId,
+            result.Value.Role.ToString(),
+            result.Value.AssignedAt));
     }
 
     // ==================== Reports Management ====================
@@ -259,27 +262,23 @@ public static class AdminModerationEndpoints
             offset,
             pageSize);
 
-        return Results.Ok(new
-        {
-            reports = result.Items.Select(r => new
-            {
-                id = r.PublicId,
-                reporterUsername = r.ReporterUserDisplayName,
-                reportedUsername = r.ReportedUserDisplayName,
-                contentType = r.ReportedPostPublicId != null ? "Post" :
+        return TypedResults.Ok(new AdminReportListResponse(
+            Reports: result.Items.Select(r => new AdminReportItemResponse(
+                Id: r.PublicId,
+                ReporterUsername: r.ReporterUserDisplayName,
+                ReportedUsername: r.ReportedUserDisplayName,
+                ContentType: r.ReportedPostPublicId != null ? "Post" :
                              r.ReportedDiscussionPublicId != null ? "Discussion" :
                              r.ReportedUserPublicId != null ? "User" : "Unknown",
-                reason = r.ReasonName,
-                status = r.Status,
-                createdAt = r.CreatedAt,
-                resolvedAt = r.ResolvedAt,
-                resolverUsername = r.ResolvedByUserDisplayName,
-                details = r.Details
-            }).ToList(),
-            total = result.Items.Count(), // TODO: Get actual total count from use case
-            page,
-            pageSize
-        });
+                Reason: r.ReasonName,
+                Status: r.Status,
+                CreatedAt: r.CreatedAt,
+                ResolvedAt: r.ResolvedAt,
+                ResolverUsername: r.ResolvedByUserDisplayName,
+                Details: r.Details)).ToList(),
+            Total: result.Items.Count(),
+            Page: page,
+            PageSize: pageSize));
     }
 
     private static async Task<IResult> GetReportAsync(
@@ -299,25 +298,23 @@ public static class AdminModerationEndpoints
         if (report == null)
             return Results.NotFound(new { error = "Report not found" });
 
-        return Results.Ok(new
-        {
-            id = report.PublicId,
-            reporterId = report.ReporterUser.PublicId,
-            reporterUsername = report.ReporterUser.DisplayName,
-            reportedUserId = report.ReportedUser?.PublicId,
-            reportedUsername = report.ReportedUser?.DisplayName,
-            postId = report.ReportedPost?.PublicId,
-            discussionId = report.ReportedDiscussion?.PublicId,
-            reason = report.Reason?.Name,
-            reasonDescription = report.Reason?.Description,
-            details = report.Details,
-            status = ((Snakk.Shared.Enums.ReportStatusEnum)report.StatusId).ToString(),
-            createdAt = report.CreatedAt,
-            resolvedAt = report.ResolvedAt,
-            resolverId = report.ResolvedByUser?.PublicId,
-            resolverUsername = report.ResolvedByUser?.DisplayName,
-            resolutionNote = report.ResolutionNote
-        });
+        return TypedResults.Ok(new AdminReportDetailResponse(
+            Id: report.PublicId,
+            ReporterId: report.ReporterUser.PublicId,
+            ReporterUsername: report.ReporterUser.DisplayName,
+            ReportedUserId: report.ReportedUser?.PublicId,
+            ReportedUsername: report.ReportedUser?.DisplayName,
+            PostId: report.ReportedPost?.PublicId,
+            DiscussionId: report.ReportedDiscussion?.PublicId,
+            Reason: report.Reason?.Name,
+            ReasonDescription: report.Reason?.Description,
+            Details: report.Details,
+            Status: ((Snakk.Shared.Enums.ReportStatusEnum)report.StatusId).ToString(),
+            CreatedAt: report.CreatedAt,
+            ResolvedAt: report.ResolvedAt,
+            ResolverId: report.ResolvedByUser?.PublicId,
+            ResolverUsername: report.ResolvedByUser?.DisplayName,
+            ResolutionNote: report.ResolutionNote));
     }
 
     private static async Task<IResult> ResolveReportAsync(
@@ -382,28 +379,24 @@ public static class AdminModerationEndpoints
             offset,
             pageSize);
 
-        return Results.Ok(new
-        {
-            actions = result.Items.Select(a => new
-            {
-                id = a.PublicId,
-                actionType = a.Action,
-                moderatorUsername = a.ActorUserDisplayName,
-                targetType = a.TargetPostPublicId != null ? "Post" :
+        return TypedResults.Ok(new AdminModerationLogResponse(
+            Actions: result.Items.Select(a => new AdminModerationLogItemResponse(
+                Id: a.PublicId,
+                ActionType: a.Action,
+                ModeratorUsername: a.ActorUserDisplayName,
+                TargetType: a.TargetPostPublicId != null ? "Post" :
                             a.TargetDiscussionPublicId != null ? "Discussion" :
                             a.TargetUserPublicId != null ? "User" : "Unknown",
-                targetId = a.TargetPostPublicId ?? a.TargetDiscussionPublicId ?? a.TargetUserPublicId ?? "",
-                reason = a.Reason,
-                details = a.Details,
-                createdAt = a.CreatedAt,
-                communityName = a.CommunityName,
-                hubName = a.HubName,
-                spaceName = a.SpaceName
-            }).ToList(),
-            total = result.Items.Count(), // TODO: Get actual total count
-            page,
-            pageSize
-        });
+                TargetId: a.TargetPostPublicId ?? a.TargetDiscussionPublicId ?? a.TargetUserPublicId ?? "",
+                Reason: a.Reason,
+                Details: a.Details,
+                CreatedAt: a.CreatedAt,
+                CommunityName: a.CommunityName,
+                HubName: a.HubName,
+                SpaceName: a.SpaceName)).ToList(),
+            Total: result.Items.Count(),
+            Page: page,
+            PageSize: pageSize));
     }
 
     // ==================== Active Bans ====================
@@ -416,21 +409,17 @@ public static class AdminModerationEndpoints
 
         var result = await adminUserService.GetActiveBansAsync(page, pageSize);
 
-        return Results.Ok(new
-        {
-            bans = result.Items.Select(b => new
-            {
-                userId = b.UserId,
-                username = b.UserDisplayName,
-                reason = b.Reason,
-                bannedAt = b.BannedAt,
-                expiresAt = b.ExpiresAt,
-                bannedByUsername = b.BannedBy
-            }).ToList(),
-            total = result.Total,
-            page = result.Page,
-            pageSize = result.PageSize
-        });
+        return TypedResults.Ok(new AdminActiveBansResponse(
+            Bans: result.Items.Select(b => new AdminActiveBanItemResponse(
+                UserId: b.UserId,
+                Username: b.UserDisplayName,
+                Reason: b.Reason,
+                BannedAt: b.BannedAt,
+                ExpiresAt: b.ExpiresAt,
+                BannedByUsername: b.BannedBy)).ToList(),
+            Total: result.Total,
+            Page: result.Page,
+            PageSize: result.PageSize));
     }
 
     private static string? GetUserId(HttpContext httpContext)

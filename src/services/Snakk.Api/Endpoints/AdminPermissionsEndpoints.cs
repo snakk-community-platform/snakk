@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Services;
 
 public static class AdminPermissionsEndpoints
@@ -13,16 +14,20 @@ public static class AdminPermissionsEndpoints
 
         // Permission endpoints
         permissionsGroup.MapGet("", GetAllPermissionsAsync)
-            .WithName("GetAllPermissions");
+            .WithName("GetAllPermissions")
+            .Produces<AdminPermissionsListResponse>();
 
         permissionsGroup.MapGet("/roles/{roleId:int}", GetRolePermissionsAsync)
-            .WithName("GetRolePermissions");
+            .WithName("GetRolePermissions")
+            .Produces<AdminRolePermissionsResponse>();
 
         permissionsGroup.MapPost("/roles/{roleId:int}", AssignPermissionToRoleAsync)
-            .WithName("AssignPermissionToRole");
+            .WithName("AssignPermissionToRole")
+            .Produces<AdminPermissionActionResponse>();
 
         permissionsGroup.MapDelete("/roles/{roleId:int}/{permissionId:int}", RevokePermissionFromRoleAsync)
-            .WithName("RevokePermissionFromRole");
+            .WithName("RevokePermissionFromRole")
+            .Produces<AdminPermissionActionResponse>();
 
         // Temporary role endpoints
         var tempRolesGroup = app.MapGroup("/admin/temporary-roles")
@@ -30,13 +35,16 @@ public static class AdminPermissionsEndpoints
             .RequireAuthorization();
 
         tempRolesGroup.MapGet("", GetActiveTemporaryRolesAsync)
-            .WithName("GetActiveTemporaryRoles");
+            .WithName("GetActiveTemporaryRoles")
+            .Produces<AdminTemporaryRolesResponse>();
 
         tempRolesGroup.MapPost("", GrantTemporaryRoleAsync)
-            .WithName("GrantTemporaryRole");
+            .WithName("GrantTemporaryRole")
+            .Produces<AdminTemporaryRoleGrantResponse>();
 
         tempRolesGroup.MapDelete("/{elevationId}", RevokeTemporaryRoleAsync)
-            .WithName("RevokeTemporaryRole");
+            .WithName("RevokeTemporaryRole")
+            .Produces<AdminTemporaryRoleRevokeResponse>();
     }
 
     private static async Task<IResult> GetAllPermissionsAsync(
@@ -44,11 +52,7 @@ public static class AdminPermissionsEndpoints
     {
         var permissions = await permissionService.GetAllPermissionsAsync();
 
-        return Results.Ok(new
-        {
-            permissions,
-            total = permissions.Count
-        });
+        return TypedResults.Ok(new AdminPermissionsListResponse(permissions, permissions.Count));
     }
 
     private static async Task<IResult> GetRolePermissionsAsync(
@@ -57,12 +61,7 @@ public static class AdminPermissionsEndpoints
     {
         var permissions = await permissionService.GetRolePermissionsAsync(roleId);
 
-        return Results.Ok(new
-        {
-            roleId,
-            permissions,
-            total = permissions.Count
-        });
+        return TypedResults.Ok(new AdminRolePermissionsResponse(roleId, permissions, permissions.Count));
     }
 
     private static async Task<IResult> AssignPermissionToRoleAsync(
@@ -84,12 +83,8 @@ public static class AdminPermissionsEndpoints
             logger.LogInformation("Admin {AdminUserId} assigned permission {PermissionId} to role {RoleId}",
                 adminUserId, request.PermissionId, roleId);
 
-            return Results.Ok(new
-            {
-                message = "Permission assigned successfully",
-                roleId,
-                permissionId = request.PermissionId
-            });
+            return TypedResults.Ok(new AdminPermissionActionResponse(
+                "Permission assigned successfully", roleId, request.PermissionId));
         }
         catch (Exception ex)
         {
@@ -118,12 +113,8 @@ public static class AdminPermissionsEndpoints
             logger.LogInformation("Admin {AdminUserId} revoked permission {PermissionId} from role {RoleId}",
                 adminUserId, permissionId, roleId);
 
-            return Results.Ok(new
-            {
-                message = "Permission revoked successfully",
-                roleId,
-                permissionId
-            });
+            return TypedResults.Ok(new AdminPermissionActionResponse(
+                "Permission revoked successfully", roleId, permissionId));
         }
         catch (Exception ex)
         {
@@ -138,11 +129,7 @@ public static class AdminPermissionsEndpoints
     {
         var elevations = await permissionService.GetActiveTemporaryRolesAsync();
 
-        return Results.Ok(new
-        {
-            elevations,
-            total = elevations.Count
-        });
+        return TypedResults.Ok(new AdminTemporaryRolesResponse(elevations, elevations.Count));
     }
 
     private static async Task<IResult> GrantTemporaryRoleAsync(
@@ -171,11 +158,8 @@ public static class AdminPermissionsEndpoints
                 "Admin {AdminUserId} granted temporary {RoleType} role to user {UserId} in {Scope}:{ScopeId}, expires at {ExpiresAt}",
                 adminUserId, request.RoleType, request.UserId, request.Scope, request.ScopeId, request.ExpiresAt);
 
-            return Results.Ok(new
-            {
-                message = "Temporary role granted successfully",
-                elevation
-            });
+            return TypedResults.Ok(new AdminTemporaryRoleGrantResponse(
+                "Temporary role granted successfully", elevation));
         }
         catch (Exception ex)
         {
@@ -203,11 +187,8 @@ public static class AdminPermissionsEndpoints
             logger.LogInformation("Admin {AdminUserId} revoked temporary role elevation {ElevationId}",
                 adminUserId, elevationId);
 
-            return Results.Ok(new
-            {
-                message = "Temporary role revoked successfully",
-                elevationId
-            });
+            return TypedResults.Ok(new AdminTemporaryRoleRevokeResponse(
+                "Temporary role revoked successfully", elevationId));
         }
         catch (Exception ex)
         {

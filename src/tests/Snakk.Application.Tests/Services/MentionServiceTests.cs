@@ -14,6 +14,7 @@ public class MentionServiceTests
     private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
     private readonly Mock<INotificationRepository> _mockNotificationRepository = new();
     private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
     private MentionService _service = null!;
     private NotificationUseCase _notificationUseCase = null!;
 
@@ -22,7 +23,8 @@ public class MentionServiceTests
     {
         _notificationUseCase = new NotificationUseCase(
             _mockNotificationRepository.Object,
-            _mockRealtimeNotifier.Object);
+            _mockRealtimeNotifier.Object,
+            _mockCounterService.Object);
 
         _service = new MentionService(
             _mockMentionRepository.Object,

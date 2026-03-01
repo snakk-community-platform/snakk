@@ -134,7 +134,7 @@ public class ManagePermissionServiceTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.GlobalAdmin, user.Id);
         var (community, _, _) = await CreateHierarchy();
 
-        var result = await _service.GetPermissionsForScopeAsync("global-admin", "community", community.Id);
+        var result = await _service.GetPermissionsForScopeAsync("global-admin", "community", community.PublicId);
 
         await Assert.That(result.ViewDashboard).IsTrue();
         await Assert.That(result.ManageContent).IsTrue();
@@ -152,7 +152,7 @@ public class ManagePermissionServiceTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.GlobalAdmin, user.Id);
         var (community, _, _) = await CreateHierarchy("comm-ga-settings", "hub-ga-settings", "space-ga-settings");
 
-        var result = await _service.HasPermissionAsync("global-admin-settings", "community", community.Id, ManagePermissionEnum.ManageSettings);
+        var result = await _service.HasPermissionAsync("global-admin-settings", "community", community.PublicId, ManagePermissionEnum.ManageSettings);
 
         await Assert.That(result).IsTrue();
     }
@@ -168,7 +168,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (community, _, _) = await CreateHierarchy("comm-ca", "hub-ca", "space-ca");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("comm-admin", "community", community.Id);
+        var result = await _service.GetPermissionsForScopeAsync("comm-admin", "community", community.PublicId);
 
         await Assert.That(result.ViewDashboard).IsTrue();
         await Assert.That(result.ManageContent).IsTrue();
@@ -186,7 +186,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (community, _, _) = await CreateHierarchy("comm-cm", "hub-cm", "space-cm");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityMod, user.Id, communityId: community.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("comm-mod", "community", community.Id);
+        var result = await _service.GetPermissionsForScopeAsync("comm-mod", "community", community.PublicId);
 
         // Moderator permissions are granted
         await Assert.That(result.ViewDashboard).IsTrue();
@@ -211,7 +211,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (community, hub, _) = await CreateHierarchy("comm-cah", "hub-cah", "space-cah");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("comm-admin-hub", "hub", hub.Id);
+        var result = await _service.GetPermissionsForScopeAsync("comm-admin-hub", "hub", hub.PublicId);
 
         await Assert.That(result.ViewDashboard).IsTrue();
         await Assert.That(result.ManageContent).IsTrue();
@@ -229,7 +229,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (community, hub, _) = await CreateHierarchy("comm-hm", "hub-hm", "space-hm");
         await AssignRole(user.Id, UserRoleTypeEnum.HubMod, user.Id, hubId: hub.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("hub-mod", "hub", hub.Id);
+        var result = await _service.GetPermissionsForScopeAsync("hub-mod", "hub", hub.PublicId);
 
         // Moderator permissions are granted
         await Assert.That(result.ViewDashboard).IsTrue();
@@ -254,7 +254,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (community, _, space) = await CreateHierarchy("comm-cas", "hub-cas", "space-cas");
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: community.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("comm-admin-space", "space", space.Id);
+        var result = await _service.GetPermissionsForScopeAsync("comm-admin-space", "space", space.PublicId);
 
         await Assert.That(result.ViewDashboard).IsTrue();
         await Assert.That(result.ManageContent).IsTrue();
@@ -272,7 +272,7 @@ public class ManagePermissionServiceTests : IDisposable
         var (_, _, space) = await CreateHierarchy("comm-sm", "hub-sm", "space-sm");
         await AssignRole(user.Id, UserRoleTypeEnum.SpaceMod, user.Id, spaceId: space.Id);
 
-        var result = await _service.GetPermissionsForScopeAsync("space-mod", "space", space.Id);
+        var result = await _service.GetPermissionsForScopeAsync("space-mod", "space", space.PublicId);
 
         // Moderator permissions are granted
         await Assert.That(result.ViewDashboard).IsTrue();
@@ -301,7 +301,7 @@ public class ManagePermissionServiceTests : IDisposable
         await AssignRole(user.Id, UserRoleTypeEnum.CommunityAdmin, user.Id, communityId: communityA.Id);
 
         // Check permissions for community B (should have none)
-        var result = await _service.GetPermissionsForScopeAsync("cross-admin", "community", communityB.Id);
+        var result = await _service.GetPermissionsForScopeAsync("cross-admin", "community", communityB.PublicId);
 
         await Assert.That(result.ViewDashboard).IsFalse();
         await Assert.That(result.ManageContent).IsFalse();
@@ -322,7 +322,7 @@ public class ManagePermissionServiceTests : IDisposable
     {
         var (community, _, _) = await CreateHierarchy("comm-ne", "hub-ne", "space-ne");
 
-        var result = await _service.GetPermissionsForScopeAsync("nonexistent-user", "community", community.Id);
+        var result = await _service.GetPermissionsForScopeAsync("nonexistent-user", "community", community.PublicId);
 
         await Assert.That(result.ViewDashboard).IsFalse();
         await Assert.That(result.ManageContent).IsFalse();
@@ -356,7 +356,7 @@ public class ManagePermissionServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetPermissionsForScopeAsync("temp-elevated", "community", community.Id);
+        var result = await _service.GetPermissionsForScopeAsync("temp-elevated", "community", community.PublicId);
 
         // Should get moderator permissions from the temporary elevation
         await Assert.That(result.ViewDashboard).IsTrue();

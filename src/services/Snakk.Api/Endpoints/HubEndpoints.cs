@@ -1,8 +1,11 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.DTOs.Stats;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Helpers;
 
 public static class HubEndpoints
 {
@@ -12,19 +15,28 @@ public static class HubEndpoints
             .WithTags("Hubs");
 
         group.MapPost("/", CreateHubAsync)
-            .WithName("CreateHub");
+            .WithName("CreateHub")
+            .Produces<HubResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/", GetHubsAsync)
-            .WithName("GetHubs");
+            .WithName("GetHubs")
+            .Produces<PagedResponse<HubResponse>>();
 
         group.MapGet("/{publicId}", GetHubAsync)
-            .WithName("GetHub");
+            .WithName("GetHub")
+            .Produces<HubResponse>();
 
         group.MapGet("/by-slug/{slug}", GetHubBySlugAsync)
-            .WithName("GetHubBySlug");
+            .WithName("GetHubBySlug")
+            .Produces<HubResponse>();
 
         group.MapGet("/{hubId}/spaces", GetSpacesByHubAsync)
-            .WithName("GetSpacesByHub");
+            .WithName("GetSpacesByHub")
+            .Produces<PagedResponse<SpaceByHubResponse>>();
+
+        group.MapGet("/{publicId}/stats", GetHubStatsAsync)
+            .WithName("GetHubStats")
+            .Produces<HubStatsResponse>();
     }
 
     private static async Task<IResult> CreateHubAsync(
@@ -40,15 +52,16 @@ public static class HubEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/hubs/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId.Value,
-            communityId = result.Value.CommunityId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt
-        });
+        return TypedResults.Created($"/hubs/{result.Value!.PublicId}", new HubResponse(
+            PublicId: result.Value.PublicId.Value,
+            CommunityId: result.Value.CommunityId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            SpaceCount: 0,
+            DiscussionCount: 0,
+            ReplyCount: 0));
     }
 
     private static async Task<IResult> GetHubsAsync(
@@ -58,26 +71,22 @@ public static class HubEndpoints
     {
         var result = await searchRepo.GetHubsAsync(offset, pageSize);
 
-        var items = result.Items.Select(h => new
-        {
-            publicId = h.PublicId,
-            communityId = h.CommunityPublicId,
-            name = h.Name,
-            slug = h.Slug,
-            description = h.Description,
-            createdAt = h.CreatedAt,
-            spaceCount = h.SpaceCount,
-            discussionCount = h.DiscussionCount,
-            replyCount = h.ReplyCount
-        });
+        var items = result.Items.Select(h => new HubResponse(
+            PublicId: h.PublicId,
+            CommunityId: h.CommunityPublicId,
+            Name: h.Name,
+            Slug: h.Slug,
+            Description: h.Description,
+            CreatedAt: h.CreatedAt,
+            SpaceCount: h.SpaceCount,
+            DiscussionCount: h.DiscussionCount,
+            ReplyCount: h.ReplyCount));
 
-        return Results.Ok(new
-        {
-            items,
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<HubResponse>(
+            Items: items,
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems));
     }
 
     private static async Task<IResult> GetHubAsync(
@@ -89,16 +98,17 @@ public static class HubEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            communityId = result.Value.CommunityId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        return TypedResults.Ok(new HubResponse(
+            PublicId: result.Value!.PublicId.Value,
+            CommunityId: result.Value.CommunityId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            SpaceCount: 0,
+            DiscussionCount: 0,
+            ReplyCount: 0,
+            LastModifiedAt: result.Value.LastModifiedAt));
     }
 
     private static async Task<IResult> GetHubBySlugAsync(
@@ -110,16 +120,17 @@ public static class HubEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            communityId = result.Value.CommunityId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        return TypedResults.Ok(new HubResponse(
+            PublicId: result.Value!.PublicId.Value,
+            CommunityId: result.Value.CommunityId.Value,
+            Name: result.Value.Name,
+            Slug: result.Value.Slug,
+            Description: result.Value.Description,
+            CreatedAt: result.Value.CreatedAt,
+            SpaceCount: 0,
+            DiscussionCount: 0,
+            ReplyCount: 0,
+            LastModifiedAt: result.Value.LastModifiedAt));
     }
 
     private static async Task<IResult> GetSpacesByHubAsync(
@@ -132,42 +143,56 @@ public static class HubEndpoints
 
         var items = result.Items.Select(s =>
         {
-            object? latestDiscussion = null;
+            LatestDiscussionRef? latestDiscussion = null;
             if (s.LatestDiscussion != null)
             {
-                latestDiscussion = new
-                {
-                    publicId = s.LatestDiscussion.PublicId,
-                    title = s.LatestDiscussion.Title,
-                    slug = s.LatestDiscussion.Slug,
-                    lastActivityAt = s.LatestDiscussion.LastActivityAt,
-                    authorPublicId = s.LatestDiscussion.AuthorPublicId,
-                    authorDisplayName = s.LatestDiscussion.AuthorDisplayName,
-                    authorAvatarFileName = s.LatestDiscussion.AuthorAvatarFileName,
-                    postCount = s.LatestDiscussion.PostCount
-                };
+                latestDiscussion = new LatestDiscussionRef(
+                    PublicId: s.LatestDiscussion.PublicId,
+                    Title: s.LatestDiscussion.Title,
+                    Slug: s.LatestDiscussion.Slug,
+                    LastActivityAt: s.LatestDiscussion.LastActivityAt,
+                    AuthorPublicId: s.LatestDiscussion.AuthorPublicId,
+                    AuthorDisplayName: s.LatestDiscussion.AuthorDisplayName,
+                    AuthorAvatarFileName: s.LatestDiscussion.AuthorAvatarFileName,
+                    PostCount: s.LatestDiscussion.PostCount);
             }
 
-            return new
-            {
-                publicId = s.PublicId,
-                hubPublicId = s.HubPublicId,
-                name = s.Name,
-                slug = s.Slug,
-                description = s.Description,
-                createdAt = s.CreatedAt,
-                discussionCount = s.DiscussionCount,
-                replyCount = s.ReplyCount,
-                latestDiscussion
-            };
+            return new SpaceByHubResponse(
+                PublicId: s.PublicId,
+                HubPublicId: s.HubPublicId,
+                Name: s.Name,
+                Slug: s.Slug,
+                Description: s.Description,
+                CreatedAt: s.CreatedAt,
+                DiscussionCount: s.DiscussionCount,
+                ReplyCount: s.ReplyCount,
+                LatestDiscussion: latestDiscussion);
         });
 
-        return Results.Ok(new
+        return TypedResults.Ok(new PagedResponse<SpaceByHubResponse>(
+            Items: items,
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems));
+    }
+
+    private static async Task<IResult> GetHubStatsAsync(string publicId, StatisticsUseCase useCase)
+    {
+        var result = await useCase.GetHubStatsAsync(publicId);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var stats = result.Value!;
+        return TypedResults.Ok(new HubStatsResponse
         {
-            items,
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
+            PublicId = stats.PublicId,
+            Name = stats.Name,
+            Description = stats.Description,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Hub, 0),
+            SpaceCount = stats.SpaceCount,
+            DiscussionCount = stats.DiscussionCount,
+            ReplyCount = stats.ReplyCount
         });
     }
 }

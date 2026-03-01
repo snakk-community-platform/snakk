@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Discussion";
+
+package snakk.discussion;
+
+import "Protos/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service DiscussionService {
+  rpc GetDiscussion (GetDiscussionRequest) returns (DiscussionInfo);
+  rpc CreateDiscussion (CreateDiscussionRequest) returns (DiscussionCreatedInfo);
+  rpc GetRecentDiscussions (GetRecentDiscussionsRequest) returns (PagedRecentDiscussionList);
+  rpc GetDiscussionsBySpace (GetDiscussionsBySpaceRequest) returns (PagedDiscussionBySpaceList);
+  rpc GetDiscussionPreview (GetDiscussionPreviewRequest) returns (DiscussionPreviewInfo);
+  rpc GetDiscussionStats (GetDiscussionStatsRequest) returns (DiscussionStats);
+}
+
+// --- Requests ---
+
+message GetDiscussionRequest {
+  string public_id = 1;
+}
+
+message CreateDiscussionRequest {
+  string space_id = 1;
+  string title = 2;
+  string content = 3;
+  repeated string tags = 4;
+}
+
+message GetRecentDiscussionsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+  optional string community_id = 3;
+}
+
+message GetDiscussionsBySpaceRequest {
+  string space_id = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+}
+
+message GetDiscussionPreviewRequest {
+  string discussion_id = 1;
+}
+
+message GetDiscussionStatsRequest {
+  string public_id = 1;
+}
+
+// --- Responses ---
+
+message DiscussionInfo {
+  string public_id = 1;
+  string title = 2;
+  string slug = 3;
+  string space_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp last_activity_at = 6;
+  bool is_pinned = 7;
+  bool is_locked = 8;
+}
+
+message DiscussionCreatedInfo {
+  string public_id = 1;
+  string title = 2;
+  string slug = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message RecentDiscussionInfo {
+  string public_id = 1;
+  string title = 2;
+  string slug = 3;
+  google.protobuf.Timestamp created_at = 4;
+  optional google.protobuf.Timestamp last_activity_at = 5;
+  bool is_pinned = 6;
+  bool is_locked = 7;
+  snakk.EntityRef space = 8;
+  snakk.EntityRef hub = 9;
+  snakk.EntityRef community = 10;
+  snakk.AuthorRef author = 11;
+  int32 post_count = 12;
+  int32 reaction_count = 13;
+  repeated string tags = 14;
+}
+
+message PagedRecentDiscussionList {
+  repeated RecentDiscussionInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message DiscussionBySpaceInfo {
+  string public_id = 1;
+  string space_id = 2;
+  string title = 3;
+  string slug = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp last_activity_at = 6;
+  bool is_pinned = 7;
+  bool is_locked = 8;
+  int32 post_count = 9;
+  int32 reaction_count = 10;
+  snakk.AuthorRef author = 11;
+  repeated string tags = 12;
+}
+
+message PagedDiscussionBySpaceList {
+  repeated DiscussionBySpaceInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message DiscussionPreviewInfo {
+  string content = 1;
+}
+
+message DiscussionStats {
+  string public_id = 1;
+  string title = 2;
+  int32 reply_count = 3;
+  int32 follower_count = 4;
+}

@@ -48,34 +48,35 @@ public class TestWebApp : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the named HttpClient for SnakkApiClient with our mock handler.
-            // Remove the existing SnakkApiClient registration and add our own.
+            // Replace gRPC channel with a dummy (prevents connection attempts to real API)
+            var dummyChannel = Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:19999");
+
+            services.RemoveAll<Grpc.Net.Client.GrpcChannel>();
+            services.AddSingleton(_ => dummyChannel);
+
+            // Replace SnakkApiClient with one backed by dummy gRPC clients
             services.RemoveAll<SnakkApiClient>();
-            services.AddTransient(_ =>
-            {
-                var httpClient = new HttpClient(MockApiHandler)
-                {
-                    BaseAddress = new Uri("http://localhost:19999")
-                };
-                return new SnakkApiClient(httpClient);
-            });
+            services.AddTransient(_ => new SnakkApiClient(
+                new Snakk.Protos.Community.CommunityService.CommunityServiceClient(dummyChannel),
+                new Snakk.Protos.Hub.HubService.HubServiceClient(dummyChannel),
+                new Snakk.Protos.Space.SpaceService.SpaceServiceClient(dummyChannel),
+                new Snakk.Protos.Discussion.DiscussionService.DiscussionServiceClient(dummyChannel),
+                new Snakk.Protos.Post.PostService.PostServiceClient(dummyChannel),
+                new Snakk.Protos.Follow.FollowService.FollowServiceClient(dummyChannel),
+                new Snakk.Protos.Reaction.ReactionService.ReactionServiceClient(dummyChannel),
+                new Snakk.Protos.Notification.NotificationService.NotificationServiceClient(dummyChannel),
+                new Snakk.Protos.Moderation.ModerationService.ModerationServiceClient(dummyChannel),
+                new Snakk.Protos.Search.SearchService.SearchServiceClient(dummyChannel),
+                new Snakk.Protos.Statistics.StatisticsService.StatisticsServiceClient(dummyChannel),
+                new Snakk.Protos.User.UserService.UserServiceClient(dummyChannel),
+                new Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient(dummyChannel),
+                new Snakk.Protos.Markup.MarkupService.MarkupServiceClient(dummyChannel),
+                new Snakk.Protos.Auth.AuthService.AuthServiceClient(dummyChannel)));
 
             // Replace the "InternalApi" named HttpClient factory with one that uses MockApiHandler
             services.RemoveAll<IHttpClientFactory>();
             services.AddSingleton<IHttpClientFactory>(sp =>
                 new MockHttpClientFactory(MockApiHandler));
-
-            // Replace gRPC channel with a dummy (prevents connection attempts to real API)
-            services.RemoveAll<Grpc.Net.Client.GrpcChannel>();
-            services.AddSingleton(_ =>
-                Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:19999"));
-
-            // Replace gRPC AuthServiceClient with a mock that won't be called
-            // (BFF auth endpoints use HTTP, not gRPC, for most operations)
-            services.RemoveAll<Snakk.Protos.Auth.AuthService.AuthServiceClient>();
-            services.AddScoped(_ =>
-                new Snakk.Protos.Auth.AuthService.AuthServiceClient(
-                    Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:19999")));
 
             // Replace the domain cache service with a simple stub that always returns "not found"
             services.RemoveAll<ICommunityDomainCacheService>();

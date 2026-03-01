@@ -33,32 +33,28 @@
                 // from the API to generate correct /c/{slug}/h/... URLs. Currently uses page context.
                 var discussionUrl = SnakkUrlHelper.Discussion(
                     Model.Community,
-                    discussion.HubSlug,
-                    discussion.SpaceSlug,
+                    discussion.Hub.Slug,
+                    discussion.Space.Slug,
                     $"{discussion.Slug}~{discussion.PublicId}");
 
                 <a href="@discussionUrl" class="topic-item">
                     <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
-                        <img src="@SnakkUrlHelper.UserAvatar(discussion.AuthorPublicId)"
-                             alt="@discussion.AuthorDisplayName" />
+                        <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
+                             alt="@discussion.Author.DisplayName" />
                     </div>
                     <div class="topic-content">
                         <div class="topic-title">@discussion.Title</div>
                         <div class="topic-meta">
-                            <a href="/u/@discussion.AuthorPublicId"
+                            <a href="/u/@discussion.Author.PublicId"
                                class="hover:underline"
-                               onclick="event.stopPropagation()">@discussion.AuthorDisplayName</a>
+                               onclick="event.stopPropagation()">@discussion.Author.DisplayName</a>
                             <span class="topic-meta-separator">in</span>
-                            <span class="font-medium">@discussion.SpaceName</span>
+                            <span class="font-medium">@discussion.Space.Name</span>
                             <span class="topic-meta-separator">·</span>
-                            <span>@Model.GetRelativeTime(discussion.LastActivityAt ?? discussion.CreatedAt)</span>
+                            <span>@Model.GetRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
                         </div>
                     </div>
                     <div class="topic-stats hidden sm:flex">
-                        <div class="topic-stat">
-                            <div class="topic-stat-value">@DisplayHelper.FormatCount(discussion.ReactionCount)</div>
-                            <div class="topic-stat-label">Views</div>
-                        </div>
                         <div class="topic-stat">
                             <div class="topic-stat-value">@discussion.PostCount</div>
                             <div class="topic-stat-label">Replies</div>
@@ -117,26 +113,26 @@ else if (Model.SearchType == "post")
                 // TODO: Same as above — needs CommunitySlug from API for cross-community search
                 var discussionUrl = SnakkUrlHelper.Discussion(
                     Model.Community,
-                    post.HubSlug,
-                    post.SpaceSlug,
+                    post.Hub.Slug,
+                    post.Space.Slug,
                     $"{post.DiscussionSlug}~{post.DiscussionPublicId}");
 
                 <div class="clean-card">
                     <div class="flex items-start gap-3">
                         <div class="avatar avatar-sm flex-shrink-0">
-                            <img src="@SnakkUrlHelper.UserAvatar(post.AuthorPublicId)"
-                                 alt="@post.AuthorDisplayName" />
+                            <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
+                                 alt="@post.Author.DisplayName" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 text-sm text-muted mb-2">
-                                <a href="/u/@post.AuthorPublicId" class="font-medium hover:underline">@post.AuthorDisplayName</a>
+                                <a href="/u/@post.Author.PublicId" class="font-medium hover:underline">@post.Author.DisplayName</a>
                                 <span>·</span>
-                                <span>@Model.GetRelativeTime(post.CreatedAt)</span>
+                                <span>@Model.GetRelativeTime(post.CreatedAt?.ToDateTime())</span>
                                 <span>·</span>
                                 <a href="@discussionUrl" class="hover:underline truncate">@post.DiscussionTitle</a>
                             </div>
                             <div class="prose prose-sm max-w-none">
-                                @post.Content
+                                @post.ContentHighlight
                             </div>
                             <div class="mt-2">
                                 <a href="@discussionUrl" class="text-sm text-primary hover:underline">

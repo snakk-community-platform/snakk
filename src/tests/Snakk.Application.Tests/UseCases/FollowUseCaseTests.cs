@@ -1,4 +1,5 @@
 using Moq;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -12,6 +13,7 @@ public class FollowUseCaseTests
     private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
     private readonly Mock<ISpaceRepository> _mockSpaceRepository = new();
     private readonly Mock<IUserRepository> _mockUserRepository = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
     private FollowUseCase _useCase = null!;
 
     [Before(Test)]
@@ -21,7 +23,8 @@ public class FollowUseCaseTests
             _mockFollowRepository.Object,
             _mockDiscussionRepository.Object,
             _mockSpaceRepository.Object,
-            _mockUserRepository.Object);
+            _mockUserRepository.Object,
+            _mockCounterService.Object);
     }
 
     #region ToggleFollowDiscussionAsync Tests

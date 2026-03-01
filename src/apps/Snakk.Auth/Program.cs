@@ -12,12 +12,15 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 // Add Razor Pages
 builder.Services.AddRazorPages();
 
-// HTTP Client for calling Snakk.API
-builder.Services.AddHttpClient("SnakkApi", client =>
-{
-    var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
-    client.BaseAddress = new Uri(apiBaseUrl);
-});
+// gRPC client for calling Snakk.Api
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242";
+builder.Services.AddSingleton(_ =>
+    Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
+    {
+        HttpHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+    }));
+builder.Services.AddScoped(sp =>
+    new Snakk.Protos.Auth.AuthService.AuthServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 
 // Cookie-based session for auth flow (before JWT is issued)
 builder.Services.AddSession(options =>

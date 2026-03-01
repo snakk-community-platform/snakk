@@ -2,7 +2,7 @@ namespace Snakk.Web.Services;
 
 /// <summary>
 /// Shared helper for managing authentication cookies.
-/// Used by BFF endpoints and CookieForwardingHandler for consistent cookie handling.
+/// Used by BFF endpoints and GrpcAuthInterceptor for consistent cookie handling.
 /// </summary>
 public static class AuthCookieHelper
 {
@@ -34,5 +34,28 @@ public static class AuthCookieHelper
     {
         ctx.Response.Cookies.Delete(AccessCookieName, new CookieOptions { Path = "/" });
         ctx.Response.Cookies.Delete(RefreshCookieName, new CookieOptions { Path = "/" });
+        ctx.Response.Cookies.Delete(PreferEndlessScrollCookieName, new CookieOptions { Path = "/" });
+    }
+
+    // User preference cookies (non-httponly, long-lived)
+    public const string PreferEndlessScrollCookieName = ".Snakk.Pref.EndlessScroll";
+
+    public static void SetPreferenceCookies(HttpContext ctx, bool preferEndlessScroll)
+    {
+        var options = new CookieOptions
+        {
+            HttpOnly = false, // Not sensitive — readable by JS if needed
+            Secure = ctx.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(365)
+        };
+        ctx.Response.Cookies.Append(PreferEndlessScrollCookieName, preferEndlessScroll ? "1" : "0", options);
+    }
+
+    public static bool GetPreferEndlessScroll(HttpContext ctx)
+    {
+        var value = ctx.Request.Cookies[PreferEndlessScrollCookieName];
+        return value != "0"; // Default to true
     }
 }

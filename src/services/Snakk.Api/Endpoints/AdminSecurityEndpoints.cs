@@ -1,6 +1,8 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.DTOs.Security;
 using Snakk.Application.Services;
 using System.Security.Claims;
 
@@ -14,27 +16,34 @@ public static class AdminSecurityEndpoints
 
         // Audit Logs
         group.MapGet("/audit-logs", GetAuditLogsAsync)
-            .WithName("AdminGetAuditLogs");
+            .WithName("AdminGetAuditLogs")
+            .Produces<AuditLogsResponse>();
 
         group.MapGet("/audit-logs/{id}", GetAuditLogAsync)
-            .WithName("AdminGetAuditLog");
+            .WithName("AdminGetAuditLog")
+            .Produces<AuditLogDto>();
 
         // Security Monitoring
         group.MapGet("/failed-logins", GetFailedLoginsAsync)
-            .WithName("AdminGetFailedLogins");
+            .WithName("AdminGetFailedLogins")
+            .Produces<FailedLoginsResponse>();
 
         group.MapGet("/active-sessions", GetActiveSessionsAsync)
-            .WithName("AdminGetActiveSessions");
+            .WithName("AdminGetActiveSessions")
+            .Produces<ActiveAdminSessionsResponse>();
 
         group.MapGet("/suspicious-activities", GetSuspiciousActivitiesAsync)
-            .WithName("AdminGetSuspiciousActivities");
+            .WithName("AdminGetSuspiciousActivities")
+            .Produces<SuspiciousActivitiesResponse>();
 
         // Compliance Tools
         group.MapPost("/user-data-export/{userId}", ExportUserDataAsync)
-            .WithName("AdminExportUserData");
+            .WithName("AdminExportUserData")
+            .Produces<UserDataExportDto>();
 
         group.MapGet("/user-data-export/{exportId}", GetUserDataExportAsync)
-            .WithName("AdminGetUserDataExport");
+            .WithName("AdminGetUserDataExport")
+            .Produces<UserDataExportStatusResponse>();
     }
 
     // ==================== Audit Logs ====================
@@ -100,14 +109,12 @@ public static class AdminSecurityEndpoints
             })
             .ToList();
 
-        return Results.Ok(new
-        {
-            failures = failedLogins,
-            suspiciousIps,
-            total = failedLogins.Count,
+        return TypedResults.Ok(new FailedLoginsResponse(
+            failedLogins,
+            suspiciousIps.Select(s => new SuspiciousIpResponse(s.ipAddress, s.failureCount, s.lastAttempt)),
+            failedLogins.Count,
             page,
-            pageSize = 50
-        });
+            50));
     }
 
     private static async Task<IResult> GetActiveSessionsAsync(
@@ -115,11 +122,7 @@ public static class AdminSecurityEndpoints
     {
         var activeSessions = await securityService.GetActiveSessionsAsync();
 
-        return Results.Ok(new
-        {
-            sessions = activeSessions,
-            total = activeSessions.Count
-        });
+        return TypedResults.Ok(new ActiveAdminSessionsResponse(activeSessions, activeSessions.Count));
     }
 
     private static async Task<IResult> GetSuspiciousActivitiesAsync(
@@ -131,11 +134,7 @@ public static class AdminSecurityEndpoints
 
         var activities = await securityService.GetSuspiciousActivitiesAsync(page);
 
-        return Results.Ok(new
-        {
-            activities,
-            total = activities.Count
-        });
+        return TypedResults.Ok(new SuspiciousActivitiesResponse(activities, activities.Count));
     }
 
     // ==================== Compliance Tools ====================
@@ -171,11 +170,9 @@ public static class AdminSecurityEndpoints
     {
         // This would retrieve the export status from a job queue
         // For now, return a placeholder
-        return Task.FromResult(Results.Ok(new
-        {
+        return Task.FromResult<IResult>(TypedResults.Ok(new UserDataExportStatusResponse(
             exportId,
-            status = "pending",
-            message = "Export is being processed"
-        }));
+            "pending",
+            "Export is being processed")));
     }
 }

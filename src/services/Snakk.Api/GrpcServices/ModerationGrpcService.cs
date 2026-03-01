@@ -1,0 +1,576 @@
+using Grpc.Core;
+using Snakk.Api.Services;
+using Snakk.Application.UseCases;
+using Snakk.Domain.Extensions;
+using Snakk.Domain.ValueObjects;
+using Snakk.Protos.Moderation;
+using Snakk.Shared.Enums;
+
+namespace Snakk.Api.GrpcServices;
+
+public class ModerationGrpcService(
+    ModerationUseCase moderationUseCase,
+    ICurrentUserService currentUser) : ModerationService.ModerationServiceBase
+{
+    // ==================== Permission Checks ====================
+
+    public override async Task<CanModerateResponse> CanModerate(CanModerateRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+        var canMod = await moderationUseCase.CanModerateAsync(
+            userId,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null);
+
+        return new CanModerateResponse { CanModerate = canMod };
+    }
+
+    public override async Task<CanAdministerResponse> CanAdminister(CanAdministerRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+        var canAdmin = await moderationUseCase.CanAdministerAsync(
+            userId,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null);
+
+        return new CanAdministerResponse { CanAdminister = canAdmin };
+    }
+
+    // ==================== Role Management ====================
+
+    public override async Task<RoleListResponse> GetMyRoles(GetMyRolesRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+        return await GetUserRolesInternal(userId);
+    }
+
+    public override async Task<RoleListResponse> GetUserRoles(GetUserRolesRequest request, ServerCallContext context)
+    {
+        return await GetUserRolesInternal(request.UserId);
+    }
+
+    public override async Task<RoleListResponse> GetRolesForCommunity(GetRolesForScopeRequest request, ServerCallContext context)
+    {
+        // Get roles filtered by community scope - delegate to use case
+        var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+        return MapRolesToResponse(roles);
+    }
+
+    public override async Task<RoleListResponse> GetRolesForHub(GetRolesForScopeRequest request, ServerCallContext context)
+    {
+        var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+        return MapRolesToResponse(roles);
+    }
+
+    public override async Task<RoleListResponse> GetRolesForSpace(GetRolesForScopeRequest request, ServerCallContext context)
+    {
+        var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+        return MapRolesToResponse(roles);
+    }
+
+    public override async Task<RoleInfo> AssignRole(AssignRoleRequest request, ServerCallContext context)
+    {
+        var assignerUserId = RequireAuthString();
+
+        if (!System.Enum.TryParse<UserRoleTypeEnum>(request.Role, true, out var roleTypeEnum))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid role type"));
+
+        var roleType = roleTypeEnum.ToDomain();
+
+        var result = await moderationUseCase.AssignRoleAsync(
+            request.UserId,
+            roleType,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            assignerUserId);
+
+        if (!result.IsSuccess || result.Value == null)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to assign role"));
+
+        return MapRoleToInfo(result.Value);
+    }
+
+    public override async Task<RevokeRoleResponse> RevokeRole(RevokeRoleRequest request, ServerCallContext context)
+    {
+        var revokerUserId = RequireAuthString();
+        var result = await moderationUseCase.RevokeRoleAsync(request.RoleId, revokerUserId);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to revoke role"));
+
+        return new RevokeRoleResponse { Success = true };
+    }
+
+    // ==================== Ban Management ====================
+
+    public override async Task<BanListResponse> GetUserBans(GetUserBansRequest request, ServerCallContext context)
+    {
+        // ModerationUseCase doesn't have a GetUserBans method directly
+        // Check if user is banned as a simpler check
+        var isBanned = await moderationUseCase.IsUserBannedAsync(request.UserId);
+        var response = new BanListResponse();
+        // Return empty list for now - full ban history would require a new use case method
+        return response;
+    }
+
+    public override async Task<BanStatusResponse> CheckUserBan(CheckUserBanRequest request, ServerCallContext context)
+    {
+        // TODO: ModerationUseCase.IsUserBannedAsync currently only supports spacePublicId scope.
+        // community_id and hub_id from the request are available but not yet forwarded.
+        var isBanned = await moderationUseCase.IsUserBannedAsync(
+            request.UserId,
+            request.HasSpaceId ? request.SpaceId : null);
+
+        return new BanStatusResponse { IsBanned = isBanned };
+    }
+
+    public override async Task<BanInfo> BanUser(BanUserRequest request, ServerCallContext context)
+    {
+        var bannerUserId = RequireAuthString();
+
+        if (!System.Enum.TryParse<BanTypeEnum>(request.BanType, true, out var banTypeEnum))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid ban type"));
+
+        var banType = banTypeEnum.ToDomain();
+
+        DateTime? expiresAt = request.ExpiresAt != null ? request.ExpiresAt.ToDateTime() : null;
+
+        var result = await moderationUseCase.BanUserAsync(
+            request.UserId,
+            banType,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            request.HasReason ? request.Reason : null,
+            expiresAt,
+            bannerUserId);
+
+        if (!result.IsSuccess || result.Value == null)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to ban user"));
+
+        return MapBanToInfo(result.Value);
+    }
+
+    public override async Task<UnbanResponse> UnbanUser(UnbanUserRequest request, ServerCallContext context)
+    {
+        var unbannerUserId = RequireAuthString();
+        var result = await moderationUseCase.UnbanUserAsync(request.BanId, unbannerUserId);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to unban user"));
+
+        return new UnbanResponse { Success = true };
+    }
+
+    // ==================== Report Management ====================
+
+    public override async Task<PendingReportCountResponse> GetPendingReportCount(GetPendingReportCountRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+        var count = await moderationUseCase.GetPendingReportCountAsync(userId);
+        return new PendingReportCountResponse { Count = count };
+    }
+
+    public override async Task<PagedReportList> GetReports(GetReportsRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+        var statusId = request.HasStatusId ? (int?)request.StatusId : null;
+
+        var result = await moderationUseCase.GetReportsForModeratorAsync(
+            userId, statusId, request.Offset, request.PageSize);
+
+        var response = new PagedReportList
+        {
+            Total = result.Items.Count(),
+            Offset = result.Offset,
+            PageSize = result.PageSize
+        };
+
+        foreach (var r in result.Items)
+        {
+            var item = new ReportListItem
+            {
+                PublicId = r.PublicId,
+                Status = r.Status,
+                ReporterUserPublicId = r.ReporterUserPublicId,
+                ReporterUserDisplayName = r.ReporterUserDisplayName,
+                CreatedAt = ToTimestamp(r.CreatedAt),
+                CommentCount = r.CommentCount
+            };
+
+            if (r.ReportedPostPublicId != null) item.ReportedPostPublicId = r.ReportedPostPublicId;
+            if (r.ReportedPostContentSnippet != null) item.ReportedPostContentSnippet = r.ReportedPostContentSnippet;
+            if (r.ReportedDiscussionPublicId != null) item.ReportedDiscussionPublicId = r.ReportedDiscussionPublicId;
+            if (r.ReportedDiscussionTitle != null) item.ReportedDiscussionTitle = r.ReportedDiscussionTitle;
+            if (r.ReportedUserPublicId != null) item.ReportedUserPublicId = r.ReportedUserPublicId;
+            if (r.ReportedUserDisplayName != null) item.ReportedUserDisplayName = r.ReportedUserDisplayName;
+            if (r.ReasonName != null) item.ReasonName = r.ReasonName;
+            if (r.Details != null) item.Details = r.Details;
+            if (r.ResolvedAt.HasValue) item.ResolvedAt = ToTimestamp(r.ResolvedAt.Value);
+            if (r.ResolvedByUserPublicId != null) item.ResolvedByUserPublicId = r.ResolvedByUserPublicId;
+            if (r.ResolvedByUserDisplayName != null) item.ResolvedByUserDisplayName = r.ResolvedByUserDisplayName;
+            if (r.ResolutionNote != null) item.ResolutionNote = r.ResolutionNote;
+            if (r.SpacePublicId != null) item.SpacePublicId = r.SpacePublicId;
+            if (r.SpaceName != null) item.SpaceName = r.SpaceName;
+            if (r.HubPublicId != null) item.HubPublicId = r.HubPublicId;
+            if (r.HubName != null) item.HubName = r.HubName;
+            if (r.CommunityPublicId != null) item.CommunityPublicId = r.CommunityPublicId;
+            if (r.CommunityName != null) item.CommunityName = r.CommunityName;
+
+            response.Items.Add(item);
+        }
+
+        return response;
+    }
+
+    public override async Task<ReportDetailInfo> GetReportDetail(GetReportDetailRequest request, ServerCallContext context)
+    {
+        var detail = await moderationUseCase.GetReportDetailAsync(request.ReportId);
+        if (detail == null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Report not found"));
+
+        var response = new ReportDetailInfo
+        {
+            PublicId = detail.PublicId,
+            Status = detail.Status,
+            ReporterUserPublicId = detail.ReporterUserPublicId,
+            ReporterUserDisplayName = detail.ReporterUserDisplayName,
+            CreatedAt = ToTimestamp(detail.CreatedAt)
+        };
+
+        if (detail.ReportedPostPublicId != null) response.ReportedPostPublicId = detail.ReportedPostPublicId;
+        if (detail.ReportedPostContent != null) response.ReportedPostContent = detail.ReportedPostContent;
+        if (detail.ReportedDiscussionPublicId != null) response.ReportedDiscussionPublicId = detail.ReportedDiscussionPublicId;
+        if (detail.ReportedDiscussionTitle != null) response.ReportedDiscussionTitle = detail.ReportedDiscussionTitle;
+        if (detail.ReportedUserPublicId != null) response.ReportedUserPublicId = detail.ReportedUserPublicId;
+        if (detail.ReportedUserDisplayName != null) response.ReportedUserDisplayName = detail.ReportedUserDisplayName;
+        if (detail.ReasonName != null) response.ReasonName = detail.ReasonName;
+        if (detail.ReasonDescription != null) response.ReasonDescription = detail.ReasonDescription;
+        if (detail.Details != null) response.Details = detail.Details;
+        if (detail.ResolvedAt.HasValue) response.ResolvedAt = ToTimestamp(detail.ResolvedAt.Value);
+        if (detail.ResolvedByUserPublicId != null) response.ResolvedByUserPublicId = detail.ResolvedByUserPublicId;
+        if (detail.ResolvedByUserDisplayName != null) response.ResolvedByUserDisplayName = detail.ResolvedByUserDisplayName;
+        if (detail.ResolutionNote != null) response.ResolutionNote = detail.ResolutionNote;
+        if (detail.SpacePublicId != null) response.SpacePublicId = detail.SpacePublicId;
+        if (detail.SpaceName != null) response.SpaceName = detail.SpaceName;
+        if (detail.HubPublicId != null) response.HubPublicId = detail.HubPublicId;
+        if (detail.HubName != null) response.HubName = detail.HubName;
+        if (detail.CommunityPublicId != null) response.CommunityPublicId = detail.CommunityPublicId;
+        if (detail.CommunityName != null) response.CommunityName = detail.CommunityName;
+
+        if (detail.Comments != null)
+        {
+            foreach (var c in detail.Comments)
+            {
+                var comment = new ReportCommentInfo
+                {
+                    PublicId = c.PublicId,
+                    AuthorUserPublicId = c.AuthorUserPublicId,
+                    AuthorUserDisplayName = c.AuthorUserDisplayName,
+                    Content = c.Content,
+                    CreatedAt = ToTimestamp(c.CreatedAt)
+                };
+
+                if (c.EditedAt.HasValue) comment.EditedAt = ToTimestamp(c.EditedAt.Value);
+
+                response.Comments.Add(comment);
+            }
+        }
+
+        return response;
+    }
+
+    public override async Task<ReportCreatedResponse> CreateReport(CreateReportRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.CreateReportAsync(
+            userId,
+            request.HasPostId ? request.PostId : null,
+            request.HasDiscussionId ? request.DiscussionId : null,
+            request.HasUserId ? request.UserId : null,
+            request.HasReasonId ? request.ReasonId : null,
+            request.HasDetails ? request.Details : null);
+
+        if (!result.IsSuccess || result.Value == null)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to create report"));
+
+        return new ReportCreatedResponse
+        {
+            PublicId = result.Value.PublicId,
+            Status = result.Value.Status,
+            CreatedAt = ToTimestamp(result.Value.CreatedAt)
+        };
+    }
+
+    public override async Task<ResolveReportResponse> ResolveReport(ResolveReportRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.ResolveReportAsync(
+            request.ReportId,
+            userId,
+            request.HasResolutionNote ? request.ResolutionNote : null,
+            request.Dismiss);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to resolve report"));
+
+        return new ResolveReportResponse { Success = true };
+    }
+
+    public override async Task<ReportCommentInfo> AddReportComment(AddReportCommentRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.AddReportCommentAsync(
+            request.ReportId, userId, request.Content);
+
+        if (!result.IsSuccess || result.Value == null)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to add comment"));
+
+        var comment = new ReportCommentInfo
+        {
+            PublicId = result.Value.PublicId,
+            AuthorUserPublicId = result.Value.AuthorUserPublicId,
+            AuthorUserDisplayName = result.Value.AuthorUserDisplayName,
+            Content = result.Value.Content,
+            CreatedAt = ToTimestamp(result.Value.CreatedAt)
+        };
+
+        if (result.Value.EditedAt.HasValue) comment.EditedAt = ToTimestamp(result.Value.EditedAt.Value);
+
+        return comment;
+    }
+
+    public override async Task<ReportReasonsResponse> GetReportReasons(GetReportReasonsRequest request, ServerCallContext context)
+    {
+        var reasons = await moderationUseCase.GetReportReasonsAsync(
+            request.HasSpaceId ? request.SpaceId : null);
+
+        var response = new ReportReasonsResponse();
+        foreach (var r in reasons)
+        {
+            var item = new ReportReasonInfo
+            {
+                PublicId = r.PublicId,
+                Name = r.Name,
+                DisplayOrder = r.DisplayOrder
+            };
+
+            if (r.Description != null) item.Description = r.Description;
+            if (r.CommunityPublicId != null) item.CommunityPublicId = r.CommunityPublicId;
+            if (r.HubPublicId != null) item.HubPublicId = r.HubPublicId;
+            if (r.SpacePublicId != null) item.SpacePublicId = r.SpacePublicId;
+
+            response.Items.Add(item);
+        }
+
+        return response;
+    }
+
+    // ==================== Content Moderation ====================
+
+    public override async Task<ContentModResponse> DeletePost(DeletePostRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.ModeratorDeletePostAsync(
+            request.PostId, userId, request.HasReason ? request.Reason : null);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to delete post"));
+
+        return new ContentModResponse { Success = true };
+    }
+
+    public override async Task<ContentModResponse> DeleteDiscussion(DeleteDiscussionRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.ModeratorDeleteDiscussionAsync(
+            request.DiscussionId, userId, request.HasReason ? request.Reason : null);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to delete discussion"));
+
+        return new ContentModResponse { Success = true };
+    }
+
+    public override async Task<ContentModResponse> LockDiscussion(LockDiscussionRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.LockDiscussionAsync(
+            request.DiscussionId, userId, request.HasReason ? request.Reason : null);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to lock discussion"));
+
+        return new ContentModResponse { Success = true };
+    }
+
+    public override async Task<ContentModResponse> UnlockDiscussion(UnlockDiscussionRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuthString();
+
+        var result = await moderationUseCase.UnlockDiscussionAsync(
+            request.DiscussionId, userId);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Failed to unlock discussion"));
+
+        return new ContentModResponse { Success = true };
+    }
+
+    // ==================== Moderation Log ====================
+
+    public override async Task<PagedModerationLogList> GetModerationLogs(GetModerationLogsRequest request, ServerCallContext context)
+    {
+        RequireAuthString();
+
+        var result = await moderationUseCase.GetModerationLogAsync(
+            request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            request.Offset,
+            request.PageSize);
+
+        var response = new PagedModerationLogList
+        {
+            Total = result.Items.Count(),
+            Offset = result.Offset,
+            PageSize = result.PageSize
+        };
+
+        foreach (var log in result.Items)
+        {
+            var item = new ModerationLogItem
+            {
+                PublicId = log.PublicId,
+                ActorUserPublicId = log.ActorUserPublicId,
+                ActorUserDisplayName = log.ActorUserDisplayName,
+                Action = log.Action,
+                CreatedAt = ToTimestamp(log.CreatedAt)
+            };
+
+            if (log.TargetPostPublicId != null) item.TargetPostPublicId = log.TargetPostPublicId;
+            if (log.TargetDiscussionPublicId != null) item.TargetDiscussionPublicId = log.TargetDiscussionPublicId;
+            if (log.TargetDiscussionTitle != null) item.TargetDiscussionTitle = log.TargetDiscussionTitle;
+            if (log.TargetUserPublicId != null) item.TargetUserPublicId = log.TargetUserPublicId;
+            if (log.TargetUserDisplayName != null) item.TargetUserDisplayName = log.TargetUserDisplayName;
+            if (log.CommunityPublicId != null) item.CommunityPublicId = log.CommunityPublicId;
+            if (log.CommunityName != null) item.CommunityName = log.CommunityName;
+            if (log.HubPublicId != null) item.HubPublicId = log.HubPublicId;
+            if (log.HubName != null) item.HubName = log.HubName;
+            if (log.SpacePublicId != null) item.SpacePublicId = log.SpacePublicId;
+            if (log.SpaceName != null) item.SpaceName = log.SpaceName;
+            if (log.Details != null) item.Details = log.Details;
+            if (log.Reason != null) item.Reason = log.Reason;
+
+            response.Items.Add(item);
+        }
+
+        return response;
+    }
+
+    // ==================== Helpers ====================
+
+    private string RequireAuthString()
+    {
+        if (!currentUser.IsAuthenticated())
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var userId = currentUser.GetCurrentUserId();
+        if (userId == null)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        return userId;
+    }
+
+    private static Google.Protobuf.WellKnownTypes.Timestamp ToTimestamp(DateTime dt)
+        => Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+
+    private static RoleInfo MapRoleToInfo(Snakk.Application.Repositories.UserRoleDto r)
+    {
+        var item = new RoleInfo
+        {
+            PublicId = r.PublicId,
+            UserPublicId = r.UserPublicId,
+            UserDisplayName = r.UserDisplayName,
+            Role = r.Role,
+            AssignedByUserPublicId = r.AssignedByUserPublicId,
+            AssignedByUserDisplayName = r.AssignedByUserDisplayName,
+            AssignedAt = ToTimestamp(r.AssignedAt)
+        };
+
+        if (r.CommunityPublicId != null) item.CommunityId = r.CommunityPublicId;
+        if (r.CommunityName != null) item.CommunityName = r.CommunityName;
+        if (r.HubPublicId != null) item.HubId = r.HubPublicId;
+        if (r.HubName != null) item.HubName = r.HubName;
+        if (r.SpacePublicId != null) item.SpaceId = r.SpacePublicId;
+        if (r.SpaceName != null) item.SpaceName = r.SpaceName;
+        if (r.RevokedAt.HasValue) item.RevokedAt = ToTimestamp(r.RevokedAt.Value);
+
+        return item;
+    }
+
+    private static BanInfo MapBanToInfo(Snakk.Application.Repositories.UserBanDto ban)
+    {
+        var item = new BanInfo
+        {
+            PublicId = ban.PublicId,
+            UserPublicId = ban.UserPublicId,
+            UserDisplayName = ban.UserDisplayName,
+            BanType = ban.BanType,
+            BannedAt = ToTimestamp(ban.BannedAt),
+            BannedByUserPublicId = ban.BannedByUserPublicId,
+            BannedByUserDisplayName = ban.BannedByUserDisplayName
+        };
+
+        if (ban.CommunityPublicId != null) item.CommunityId = ban.CommunityPublicId;
+        if (ban.CommunityName != null) item.CommunityName = ban.CommunityName;
+        if (ban.HubPublicId != null) item.HubId = ban.HubPublicId;
+        if (ban.HubName != null) item.HubName = ban.HubName;
+        if (ban.SpacePublicId != null) item.SpaceId = ban.SpacePublicId;
+        if (ban.SpaceName != null) item.SpaceName = ban.SpaceName;
+        if (ban.Reason != null) item.Reason = ban.Reason;
+        if (ban.ExpiresAt.HasValue) item.ExpiresAt = ToTimestamp(ban.ExpiresAt.Value);
+        if (ban.UnbannedAt.HasValue) item.UnbannedAt = ToTimestamp(ban.UnbannedAt.Value);
+        if (ban.UnbannedByUserPublicId != null) item.UnbannedByUserPublicId = ban.UnbannedByUserPublicId;
+        if (ban.UnbannedByUserDisplayName != null) item.UnbannedByUserDisplayName = ban.UnbannedByUserDisplayName;
+
+        return item;
+    }
+
+    private async Task<RoleListResponse> GetUserRolesInternal(string userId)
+    {
+        var roles = await moderationUseCase.GetUserRolesAsync(userId);
+        return MapRolesToResponse(roles);
+    }
+
+    private static RoleListResponse MapRolesToResponse(IEnumerable<Snakk.Application.Repositories.UserRoleDto> roles)
+    {
+        var response = new RoleListResponse();
+        foreach (var r in roles)
+        {
+            response.Items.Add(MapRoleToInfo(r));
+        }
+
+        return response;
+    }
+}

@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
@@ -10,18 +11,21 @@ public static class ReactionEndpoints
 {
     public static void MapReactionEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/posts/{postId}/reactions")
+        var group = app.MapGroup("/posts/{postId}/reactions")
             .WithTags("Reactions");
 
         group.MapPost("/", ToggleReactionAsync)
             .WithName("ToggleReaction")
+            .Produces<ToggleReactionResponse>()
             .RequireAuthorization();
 
         group.MapGet("/", GetReactionCountsAsync)
-            .WithName("GetReactionCounts");
+            .WithName("GetReactionCounts")
+            .Produces<GetReactionCountsResponse>();
 
         group.MapGet("/me", GetMyReactionAsync)
-            .WithName("GetMyReaction");
+            .WithName("GetMyReaction")
+            .Produces<UserReactionResponse>();
     }
 
     private static async Task<IResult> ToggleReactionAsync(
@@ -45,7 +49,7 @@ public static class ReactionEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(new { added = result.Value });
+        return TypedResults.Ok(new ToggleReactionResponse(result.Value));
     }
 
     private static async Task<IResult> GetReactionCountsAsync(
@@ -54,13 +58,11 @@ public static class ReactionEndpoints
     {
         var counts = await reactionUseCase.GetReactionCountsAsync(PostId.From(postId));
 
-        return Results.Ok(new
-        {
-            thumbsUp = counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-            heart = counts.GetValueOrDefault(ReactionType.Heart, 0),
-            eyes = counts.GetValueOrDefault(ReactionType.Eyes, 0),
-            crazy = counts.GetValueOrDefault(ReactionType.Crazy, 0)
-        });
+        return TypedResults.Ok(new GetReactionCountsResponse(
+            counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
+            counts.GetValueOrDefault(ReactionType.Heart, 0),
+            counts.GetValueOrDefault(ReactionType.Eyes, 0),
+            counts.GetValueOrDefault(ReactionType.Crazy, 0)));
     }
 
     private static async Task<IResult> GetMyReactionAsync(
@@ -69,16 +71,16 @@ public static class ReactionEndpoints
         ReactionUseCase reactionUseCase)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
-            return Results.Ok(new { reaction = (string?)null });
+            return TypedResults.Ok(new UserReactionResponse(null));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null)
-            return Results.Ok(new { reaction = (string?)null });
+            return TypedResults.Ok(new UserReactionResponse(null));
 
         var reaction = await reactionUseCase.GetUserReactionAsync(
             PostId.From(postId),
             UserId.From(userIdClaim.Value));
 
-        return Results.Ok(new { reaction = reaction?.ToString() });
+        return TypedResults.Ok(new UserReactionResponse(reaction?.ToString()));
     }
 }

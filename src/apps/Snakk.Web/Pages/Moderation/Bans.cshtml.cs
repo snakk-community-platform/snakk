@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Web.Models;
 using Snakk.Web.Services;
+using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
@@ -11,7 +12,7 @@ public class BansModel(SnakkApiClient apiClient, IConfiguration configuration, I
     public string? UserId { get; set; }
 
     public IEnumerable<UserBanDto>? Bans { get; set; }
-    public UserProfileDto? UserProfile { get; set; }
+    public UserProfileInfo? UserProfile { get; set; }
     public bool CanModerate { get; set; }
 
     [BindProperty]

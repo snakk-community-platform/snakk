@@ -2,8 +2,11 @@ namespace Snakk.Api.Endpoints;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Responses;
+using Snakk.Application.DTOs.Stats;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Helpers;
 
 public static class CommunityEndpoints
 {
@@ -13,22 +16,32 @@ public static class CommunityEndpoints
             .WithTags("Communities");
 
         group.MapPost("/", CreateCommunityAsync)
-            .WithName("CreateCommunity");
+            .WithName("CreateCommunity")
+            .Produces<CommunityResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/", GetCommunitiesAsync)
-            .WithName("GetCommunities");
+            .WithName("GetCommunities")
+            .Produces<PagedResponse<CommunityResponse>>();
 
         group.MapGet("/{publicId}", GetCommunityAsync)
-            .WithName("GetCommunity");
+            .WithName("GetCommunity")
+            .Produces<CommunityResponse>();
 
         group.MapGet("/by-slug/{slug}", GetCommunityBySlugAsync)
-            .WithName("GetCommunityBySlug");
+            .WithName("GetCommunityBySlug")
+            .Produces<CommunityResponse>();
 
         group.MapGet("/by-domain/{domain}", GetCommunityByDomainAsync)
-            .WithName("GetCommunityByDomain");
+            .WithName("GetCommunityByDomain")
+            .Produces<CommunityResponse>();
 
         group.MapGet("/{communityId}/hubs", GetHubsByCommunityAsync)
-            .WithName("GetHubsByCommunity");
+            .WithName("GetHubsByCommunity")
+            .Produces<PagedResponse<HubResponse>>();
+
+        group.MapGet("/{publicId}/stats", GetCommunityStatsAsync)
+            .WithName("GetCommunityStats")
+            .Produces<CommunityStatsResponse>();
     }
 
     private static async Task<IResult> CreateCommunityAsync(
@@ -45,16 +58,15 @@ public static class CommunityEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/communities/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            visibility = result.Value.Visibility.ToString(),
-            exposeToPlatformFeed = result.Value.ExposeToPlatformFeed,
-            createdAt = result.Value.CreatedAt
-        });
+        var c = result.Value!;
+        return TypedResults.Created($"/communities/{c.PublicId}", new CommunityResponse(
+            PublicId: c.PublicId.Value,
+            Name: c.Name,
+            Slug: c.Slug,
+            Description: c.Description,
+            Visibility: c.Visibility.ToString(),
+            ExposeToPlatformFeed: c.ExposeToPlatformFeed,
+            CreatedAt: c.CreatedAt));
     }
 
     private static async Task<IResult> GetCommunitiesAsync(
@@ -64,22 +76,18 @@ public static class CommunityEndpoints
     {
         var result = await useCase.GetPublicCommunitiesAsync(offset, pageSize);
 
-        return Results.Ok(new
-        {
-            items = result.Items.Select(c => new
-            {
-                publicId = c.PublicId.Value,
-                name = c.Name,
-                slug = c.Slug,
-                description = c.Description,
-                visibility = c.Visibility.ToString(),
-                exposeToPlatformFeed = c.ExposeToPlatformFeed,
-                createdAt = c.CreatedAt
-            }),
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
-        });
+        return TypedResults.Ok(new PagedResponse<CommunityResponse>(
+            Items: result.Items.Select(c => new CommunityResponse(
+                PublicId: c.PublicId.Value,
+                Name: c.Name,
+                Slug: c.Slug,
+                Description: c.Description,
+                Visibility: c.Visibility.ToString(),
+                ExposeToPlatformFeed: c.ExposeToPlatformFeed,
+                CreatedAt: c.CreatedAt)),
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems));
     }
 
     private static async Task<IResult> GetCommunityAsync(
@@ -91,17 +99,16 @@ public static class CommunityEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            visibility = result.Value.Visibility.ToString(),
-            exposeToPlatformFeed = result.Value.ExposeToPlatformFeed,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        var c = result.Value!;
+        return TypedResults.Ok(new CommunityResponse(
+            PublicId: c.PublicId.Value,
+            Name: c.Name,
+            Slug: c.Slug,
+            Description: c.Description,
+            Visibility: c.Visibility.ToString(),
+            ExposeToPlatformFeed: c.ExposeToPlatformFeed,
+            CreatedAt: c.CreatedAt,
+            LastModifiedAt: c.LastModifiedAt));
     }
 
     private static async Task<IResult> GetCommunityBySlugAsync(
@@ -113,17 +120,16 @@ public static class CommunityEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            visibility = result.Value.Visibility.ToString(),
-            exposeToPlatformFeed = result.Value.ExposeToPlatformFeed,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        var c = result.Value!;
+        return TypedResults.Ok(new CommunityResponse(
+            PublicId: c.PublicId.Value,
+            Name: c.Name,
+            Slug: c.Slug,
+            Description: c.Description,
+            Visibility: c.Visibility.ToString(),
+            ExposeToPlatformFeed: c.ExposeToPlatformFeed,
+            CreatedAt: c.CreatedAt,
+            LastModifiedAt: c.LastModifiedAt));
     }
 
     private static async Task<IResult> GetCommunityByDomainAsync(
@@ -135,17 +141,16 @@ public static class CommunityEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
-        return Results.Ok(new
-        {
-            publicId = result.Value!.PublicId.Value,
-            name = result.Value.Name,
-            slug = result.Value.Slug,
-            description = result.Value.Description,
-            visibility = result.Value.Visibility.ToString(),
-            exposeToPlatformFeed = result.Value.ExposeToPlatformFeed,
-            createdAt = result.Value.CreatedAt,
-            lastModifiedAt = result.Value.LastModifiedAt
-        });
+        var c = result.Value!;
+        return TypedResults.Ok(new CommunityResponse(
+            PublicId: c.PublicId.Value,
+            Name: c.Name,
+            Slug: c.Slug,
+            Description: c.Description,
+            Visibility: c.Visibility.ToString(),
+            ExposeToPlatformFeed: c.ExposeToPlatformFeed,
+            CreatedAt: c.CreatedAt,
+            LastModifiedAt: c.LastModifiedAt));
     }
 
     private static async Task<IResult> GetHubsByCommunityAsync(
@@ -156,20 +161,40 @@ public static class CommunityEndpoints
     {
         var result = await useCase.GetHubsByCommunityAsync(CommunityId.From(communityId), offset, pageSize);
 
-        return Results.Ok(new
+        return TypedResults.Ok(new PagedResponse<HubResponse>(
+            Items: result.Items.Select(h => new HubResponse(
+                PublicId: h.PublicId.Value,
+                CommunityId: h.CommunityId.Value,
+                Name: h.Name,
+                Slug: h.Slug,
+                Description: h.Description,
+                CreatedAt: h.CreatedAt,
+                SpaceCount: 0,
+                DiscussionCount: 0,
+                ReplyCount: 0)),
+            Offset: result.Offset,
+            PageSize: result.PageSize,
+            HasMoreItems: result.HasMoreItems));
+    }
+
+    private static async Task<IResult> GetCommunityStatsAsync(string publicId, StatisticsUseCase useCase)
+    {
+        var result = await useCase.GetCommunityStatsAsync(publicId);
+
+        if (!result.IsSuccess)
+            return Results.NotFound();
+
+        var stats = result.Value!;
+        return TypedResults.Ok(new CommunityStatsResponse
         {
-            items = result.Items.Select(h => new
-            {
-                publicId = h.PublicId.Value,
-                communityId = h.CommunityId.Value,
-                name = h.Name,
-                slug = h.Slug,
-                description = h.Description,
-                createdAt = h.CreatedAt
-            }),
-            offset = result.Offset,
-            pageSize = result.PageSize,
-            hasMoreItems = result.HasMoreItems
+            PublicId = stats.PublicId,
+            Name = stats.Name,
+            Description = stats.Description,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Community, 0),
+            HubCount = stats.HubCount,
+            SpaceCount = stats.SpaceCount,
+            DiscussionCount = stats.DiscussionCount,
+            ReplyCount = stats.ReplyCount
         });
     }
 }

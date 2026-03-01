@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Services;
@@ -20,10 +21,10 @@ public class HubManagementService : IHubManagementService
         _logger = logger;
     }
 
-    public async Task<HubOverviewDto?> GetOverviewAsync(string communitySlug, string hubSlug, CancellationToken cancellationToken = default)
+    public async Task<HubOverviewDto?> GetOverviewAsync(string hubId, CancellationToken cancellationToken = default)
     {
         var hub = await _context.Hubs
-            .Where(h => h.Community.Slug == communitySlug && h.Slug == hubSlug)
+            .Where(h => h.PublicId == hubId)
             .Include(h => h.Community)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -33,19 +34,6 @@ public class HubManagementService : IHubManagementService
         var now = DateTime.UtcNow;
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
-
-        // Get stats
-        var totalSpaces = await _context.Spaces
-            .Where(s => s.HubId == hub.Id)
-            .CountAsync(cancellationToken);
-
-        var totalDiscussions = await _context.Discussions
-            .Where(d => d.Space.HubId == hub.Id)
-            .CountAsync(cancellationToken);
-
-        var totalPosts = await _context.Posts
-            .Where(p => p.Discussion.Space.HubId == hub.Id)
-            .CountAsync(cancellationToken);
 
         // Get activity stats
         var postsToday = await _context.Posts
@@ -94,7 +82,7 @@ public class HubManagementService : IHubManagementService
                 Description = p.Discussion.Title,
                 UserDisplayName = p.CreatedByUser.DisplayName,
                 Timestamp = p.CreatedAt,
-                LinkUrl = $"/c/{communitySlug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
+                LinkUrl = $"/c/{hub.Community.Slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
             })
             .ToListAsync(cancellationToken);
 
@@ -107,9 +95,9 @@ public class HubManagementService : IHubManagementService
             CommunitySlug = hub.Community.Slug,
             CommunityName = hub.Community.Name,
             CreatedAt = hub.CreatedAt,
-            TotalSpaces = totalSpaces,
-            TotalDiscussions = totalDiscussions,
-            TotalPosts = totalPosts,
+            TotalSpaces = hub.SpaceCount,
+            TotalDiscussions = hub.DiscussionCount,
+            TotalPosts = hub.PostCount,
             PostsToday = postsToday,
             PostsThisWeek = postsThisWeek,
             NewDiscussionsToday = newDiscussionsToday,
@@ -120,10 +108,10 @@ public class HubManagementService : IHubManagementService
         };
     }
 
-    public async Task<HubSettingsDto?> GetSettingsAsync(string communitySlug, string hubSlug, CancellationToken cancellationToken = default)
+    public async Task<HubSettingsDto?> GetSettingsAsync(string hubId, CancellationToken cancellationToken = default)
     {
         var hub = await _context.Hubs
-            .Where(h => h.Community.Slug == communitySlug && h.Slug == hubSlug)
+            .Where(h => h.PublicId == hubId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (hub == null)
@@ -146,10 +134,10 @@ public class HubManagementService : IHubManagementService
         };
     }
 
-    public async Task<HubSettingsDto?> UpdateSettingsAsync(string communitySlug, string hubSlug, UpdateHubSettingsRequest request, CancellationToken cancellationToken = default)
+    public async Task<HubSettingsDto?> UpdateSettingsAsync(string hubId, UpdateHubSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var hub = await _context.Hubs
-            .Where(h => h.Community.Slug == communitySlug && h.Slug == hubSlug)
+            .Where(h => h.PublicId == hubId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (hub == null)
@@ -160,17 +148,17 @@ public class HubManagementService : IHubManagementService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return await GetSettingsAsync(communitySlug, hubSlug, cancellationToken);
+        return await GetSettingsAsync(hubId, cancellationToken);
     }
 
-    public async Task<HubModerationDto> GetModerationDataAsync(string communitySlug, string hubSlug, CancellationToken cancellationToken = default)
+    public async Task<HubModerationDto> GetModerationDataAsync(string hubId, CancellationToken cancellationToken = default)
     {
-        var hubId = await _context.Hubs
-            .Where(h => h.Community.Slug == communitySlug && h.Slug == hubSlug)
+        var hubDbId = await _context.Hubs
+            .Where(h => h.PublicId == hubId)
             .Select(h => h.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (hubId == 0)
+        if (hubDbId == 0)
             return new HubModerationDto();
 
         var now = DateTime.UtcNow;
@@ -178,7 +166,7 @@ public class HubManagementService : IHubManagementService
 
         // Get pending reports
         var pendingReports = await _context.Reports
-            .Where(r => r.HubId == hubId && r.StatusId == (int)ReportStatusEnum.Pending)
+            .Where(r => r.HubId == hubDbId && r.StatusId == (int)ReportStatusEnum.Pending)
             .Include(r => r.ReporterUser)
             .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
@@ -216,17 +204,17 @@ public class HubManagementService : IHubManagementService
 
         // Get stats
         var totalReports = await _context.Reports
-            .Where(r => r.HubId == hubId)
+            .Where(r => r.HubId == hubDbId)
             .CountAsync(cancellationToken);
 
         var pendingCount = pendingReports.Count;
 
         var resolvedCount = await _context.Reports
-            .Where(r => r.HubId == hubId && r.StatusId == (int)ReportStatusEnum.Resolved)
+            .Where(r => r.HubId == hubDbId && r.StatusId == (int)ReportStatusEnum.Resolved)
             .CountAsync(cancellationToken);
 
         var dismissedCount = await _context.Reports
-            .Where(r => r.HubId == hubId && r.StatusId == (int)ReportStatusEnum.Dismissed)
+            .Where(r => r.HubId == hubDbId && r.StatusId == (int)ReportStatusEnum.Dismissed)
             .CountAsync(cancellationToken);
 
         var actionsThisWeek = recentActions.Count(a => a.Timestamp >= weekAgo);
@@ -246,18 +234,23 @@ public class HubManagementService : IHubManagementService
         };
     }
 
-    public async Task<HubSpacesDto> GetSpacesAsync(string communitySlug, string hubSlug, CancellationToken cancellationToken = default)
+    public async Task<HubSpacesDto> GetSpacesAsync(string hubId, CancellationToken cancellationToken = default)
     {
+        var hubDbId = await _context.Hubs
+            .Where(h => h.PublicId == hubId)
+            .Select(h => h.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var spaces = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == communitySlug && s.Hub.Slug == hubSlug)
+            .Where(s => s.HubId == hubDbId)
             .Select(s => new HubSpaceItemDto
             {
                 Id = s.Id,
                 Slug = s.Slug,
                 Name = s.Name,
                 Description = s.Description,
-                DiscussionCount = s.Discussions.Count,
-                PostCount = s.Discussions.SelectMany(d => d.Posts).Count(),
+                DiscussionCount = s.DiscussionCount,
+                PostCount = s.PostCount,
                 CreatedAt = s.CreatedAt,
                 IsActive = true
             })
@@ -268,5 +261,63 @@ public class HubManagementService : IHubManagementService
             Spaces = spaces,
             Total = spaces.Count
         };
+    }
+
+    public async Task<HubRulesDto> GetRulesAsync(string hubId, CancellationToken cancellationToken = default)
+    {
+        var rules = await _context.HubRules
+            .Where(r => r.Hub.PublicId == hubId)
+            .OrderBy(r => r.SortOrder)
+            .Select(r => new HubRuleDto
+            {
+                Id = r.Id,
+                Title = r.Title,
+                Description = r.Description,
+                Order = r.SortOrder
+            })
+            .ToListAsync(cancellationToken);
+
+        return new HubRulesDto { Rules = rules };
+    }
+
+    public async Task<HubRulesDto> UpdateRulesAsync(string hubId, UpdateHubRulesRequest request, CancellationToken cancellationToken = default)
+    {
+        var hub = await _context.Hubs
+            .Where(h => h.PublicId == hubId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (hub == null)
+            return new HubRulesDto { Rules = new List<HubRuleDto>() };
+
+        var existingRules = await _context.HubRules
+            .Where(r => r.HubId == hub.Id)
+            .ToListAsync(cancellationToken);
+
+        _context.HubRules.RemoveRange(existingRules);
+
+        var now = DateTime.UtcNow;
+        var newRules = request.Rules.Select((r, index) => new HubRuleDatabaseEntity
+        {
+            HubId = hub.Id,
+            Title = r.Title,
+            Description = r.Description,
+            SortOrder = index,
+            CreatedAt = now
+        }).ToList();
+
+        _context.HubRules.AddRange(newRules);
+
+        // Update denormalized fields
+        hub.HasRules = newRules.Count > 0;
+        hub.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+
+        // Cascade: update ParentHubHasRules on all child spaces
+        await _context.Spaces
+            .Where(s => s.HubId == hub.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ParentHubHasRules, newRules.Count > 0), cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return await GetRulesAsync(hubId, cancellationToken);
     }
 }

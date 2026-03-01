@@ -1,0 +1,41 @@
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.ViewModels.SidebarTrendingDiscussionsVM
+
+<div data-cache-source="@Model.CacheSource">
+@if (Model.Discussions?.Items == null || Model.Discussions.Items.Count == 0)
+{
+    <p class="sidebar-empty">No activity today yet</p>
+}
+else
+{
+    <ul class="sidebar-list">
+        @foreach (var discussion in Model.Discussions.Items)
+        {
+            var discussionUrl = SnakkUrlHelper.Discussion(
+                Model.Community,
+                discussion.Hub.Slug,
+                discussion.Space.Slug,
+                $"{discussion.Slug}~{discussion.PublicId}");
+
+            <li>
+                <a href="@discussionUrl" class="sidebar-link">
+                    <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
+                         alt="@discussion.Author.DisplayName"
+                         loading="lazy"
+                         class="sidebar-avatar" />
+                    <span class="sidebar-link-content">
+                        <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
+                        <span class="sidebar-link-meta">
+                            <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
+                            <span data-popup-type="space"
+                                  data-popup-id="@discussion.Space.PublicId"
+                                  data-popup-name="@discussion.Space.Name">@discussion.Space.Name</span>
+                        </span>
+                    </span>
+                </a>
+            </li>
+        }
+    </ul>
+}
+</div>

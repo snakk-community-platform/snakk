@@ -8,7 +8,7 @@ Disallow: /u/*/settings
 Disallow: /notifications
 
 # Sitemap
-Sitemap: https://localhost:7001/sitemap.xml
+Sitemap: /sitemap.xml
 
 # Crawl-delay for specific bots (if needed)
 # User-agent: Googlebot

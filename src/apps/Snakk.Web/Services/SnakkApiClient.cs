@@ -1,531 +1,680 @@
 namespace Snakk.Web.Services;
 
-using System.Net.Http.Json;
+using Grpc.Core;
 using Snakk.Web.Models;
+using Google.Protobuf.WellKnownTypes;
+using Snakk.Protos.Community;
+using Snakk.Protos.Hub;
+using Snakk.Protos.Space;
+using Snakk.Protos.Discussion;
+using Snakk.Protos.Post;
+using Snakk.Protos.Follow;
+using Snakk.Protos.Reaction;
+using Snakk.Protos.Moderation;
+using Snakk.Protos.Search;
+using Snakk.Protos.Statistics;
+using Snakk.Protos.User;
+using Snakk.Protos.Markup;
+using Snakk.Protos.Auth;
 
-public class SnakkApiClient(HttpClient httpClient)
+// Aliases for colliding types between Notification and ReadState namespaces
+using NotifClient = Snakk.Protos.Notification.NotificationService.NotificationServiceClient;
+using NotifGetRequest = Snakk.Protos.Notification.GetNotificationsRequest;
+using NotifMarkReadRequest = Snakk.Protos.Notification.MarkAsReadRequest;
+using NotifMarkAllReadRequest = Snakk.Protos.Notification.MarkAllAsReadRequest;
+using NotifUnreadRequest = Snakk.Protos.Notification.GetUnreadCountRequest;
+using PagedNotificationList = Snakk.Protos.Notification.PagedNotificationList;
+using UnreadCountResponse = Snakk.Protos.Notification.UnreadCountResponse;
+using ReadStateClient = Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient;
+using ReadStateGetRequest = Snakk.Protos.ReadState.GetReadStateRequest;
+using ReadStateMarkRequest = Snakk.Protos.ReadState.MarkAsReadRequest;
+using ReadStateBatchRequest = Snakk.Protos.ReadState.BatchMarkAsReadRequest;
+using ReadStateBatchItem = Snakk.Protos.ReadState.BatchReadStateItem;
+using ReadStateInfo = Snakk.Protos.ReadState.ReadStateInfo;
+
+public class SnakkApiClient(
+    CommunityService.CommunityServiceClient communityClient,
+    HubService.HubServiceClient hubClient,
+    SpaceService.SpaceServiceClient spaceClient,
+    DiscussionService.DiscussionServiceClient discussionClient,
+    PostService.PostServiceClient postClient,
+    FollowService.FollowServiceClient followClient,
+    ReactionService.ReactionServiceClient reactionClient,
+    NotifClient notificationClient,
+    ModerationService.ModerationServiceClient moderationClient,
+    SearchService.SearchServiceClient searchClient,
+    StatisticsService.StatisticsServiceClient statisticsClient,
+    UserService.UserServiceClient userClient,
+    ReadStateClient readStateClient,
+    MarkupService.MarkupServiceClient markupClient,
+    AuthService.AuthServiceClient authClient)
 {
-    private readonly HttpClient _httpClient = httpClient;
+    // ==================== Community ====================
 
-    // Community operations
-    public async Task<PagedResult<CommunityDto>?> GetCommunitiesAsync(int offset = 0, int pageSize = 20)
+    public async Task<PagedCommunityList?> GetCommunitiesAsync(int offset = 0, int pageSize = 20)
     {
-        return await _httpClient.GetFromJsonAsync<PagedResult<CommunityDto>>($"/communities?offset={offset}&pageSize={pageSize}");
+        try { return await communityClient.ListCommunitiesAsync(new ListCommunitiesRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<CommunityDetailDto?> GetCommunityBySlugAsync(string slug)
+    public async Task<CommunityInfo?> GetCommunityBySlugAsync(string slug)
     {
-        return await _httpClient.GetFromJsonAsync<CommunityDetailDto>($"/communities/by-slug/{slug}");
+        try { return await communityClient.GetCommunityBySlugAsync(new GetCommunityBySlugRequest { Slug = slug }); }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<CommunityDetailDto?> GetCommunityByDomainAsync(string domain)
+    public async Task<CommunityInfo?> GetCommunityByDomainAsync(string domain)
+    {
+        try { return await communityClient.GetCommunityByDomainAsync(new GetCommunityByDomainRequest { Domain = domain }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<PagedHubList?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
+    {
+        try { return await hubClient.ListHubsByCommunityAsync(new ListHubsByCommunityRequest { CommunityId = communityId, Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    // ==================== Hub ====================
+
+    public async Task<PagedHubList?> GetHubsAsync(int offset = 0, int pageSize = 20)
+    {
+        try { return await hubClient.ListHubsAsync(new ListHubsRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<HubInfo?> GetHubBySlugAsync(string slug)
+    {
+        try { return await hubClient.GetHubBySlugAsync(new GetHubBySlugRequest { Slug = slug }); }
+        catch (RpcException) { return null; }
+    }
+
+    // ==================== Space ====================
+
+    public async Task<PagedSpaceByHubList?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
+    {
+        try { return await spaceClient.ListSpacesByHubAsync(new ListSpacesByHubRequest { HubId = hubId, Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug)
+    {
+        try { return await spaceClient.GetSpaceBySlugAsync(new GetSpaceBySlugRequest { Slug = slug }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
+    {
+        try { return await discussionClient.GetDiscussionsBySpaceAsync(new GetDiscussionsBySpaceRequest { SpaceId = spaceId, Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<SpaceRulesResponse?> GetSpaceRulesAsync(string spaceId)
+    {
+        try { return await spaceClient.GetSpaceRulesAsync(new GetSpaceRulesRequest { SpaceId = spaceId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<HubRulesResponse?> GetHubRulesAsync(string hubId)
+    {
+        try { return await hubClient.GetHubRulesAsync(new GetHubRulesRequest { HubId = hubId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<CommunityRulesResponse?> GetCommunityRulesAsync(string communityId)
+    {
+        try { return await communityClient.GetCommunityRulesAsync(new GetCommunityRulesRequest { CommunityId = communityId }); }
+        catch (RpcException) { return null; }
+    }
+
+    // ==================== Discussion ====================
+
+    public async Task<DiscussionInfo?> GetDiscussionAsync(string publicId)
+    {
+        try { return await discussionClient.GetDiscussionAsync(new GetDiscussionRequest { PublicId = publicId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<string?> CreateDiscussionAsync(string spaceId, string title, string content, IEnumerable<string>? tags = null)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<CommunityDetailDto>($"/communities/by-domain/{Uri.EscapeDataString(domain)}");
+            var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content };
+            if (tags != null) request.Tags.AddRange(tags);
+            var result = await discussionClient.CreateDiscussionAsync(request);
+            return result?.PublicId;
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<PagedResult<HubDto>?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
-    {
-        return await _httpClient.GetFromJsonAsync<PagedResult<HubDto>>($"/communities/{communityId}/hubs?offset={offset}&pageSize={pageSize}");
-    }
-
-    // Hub operations
-    public async Task<PagedResult<HubDto>?> GetHubsAsync(int offset = 0, int pageSize = 20)
-    {
-        return await _httpClient.GetFromJsonAsync<PagedResult<HubDto>>($"/hubs?offset={offset}&pageSize={pageSize}");
-    }
-
-    public async Task<HubDetailDto?> GetHubBySlugAsync(string slug)
-    {
-        return await _httpClient.GetFromJsonAsync<HubDetailDto>($"/hubs/by-slug/{slug}");
-    }
-
-    // Space operations
-    public async Task<PagedResult<SpaceDto>?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
-    {
-        return await _httpClient.GetFromJsonAsync<PagedResult<SpaceDto>>($"/hubs/{hubId}/spaces?offset={offset}&pageSize={pageSize}");
-    }
-
-    public async Task<SpaceDetailDto?> GetSpaceBySlugAsync(string slug)
-    {
-        return await _httpClient.GetFromJsonAsync<SpaceDetailDto>($"/spaces/by-slug/{slug}");
-    }
-
-    public async Task<PagedResult<DiscussionDto>?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
-    {
-        return await _httpClient.GetFromJsonAsync<PagedResult<DiscussionDto>>($"/spaces/{spaceId}/discussions?offset={offset}&pageSize={pageSize}");
-    }
-
-    // Discussion operations
-    public async Task<DiscussionDto?> GetDiscussionAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<DiscussionDto>($"/discussions/{publicId}");
-    }
-
-    public async Task<string?> CreateDiscussionAsync(CreateDiscussionRequest request)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/discussions", request);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<DiscussionDto>();
-        return result?.PublicId;
-    }
-
-    // Post operations
-    public async Task<PagedResult<PostDto>?> GetDiscussionPostsAsync(string discussionId, int offset = 0, int pageSize = 20)
-    {
-        return await _httpClient.GetFromJsonAsync<PagedResult<PostDto>>($"/discussions/{discussionId}/posts?offset={offset}&pageSize={pageSize}");
-    }
-
-    public async Task<string?> CreatePostAsync(CreatePostRequest request)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/posts", request);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<PostDto>();
-        return result?.PublicId;
-    }
-
-    // Read state operations
-    public async Task<ReadStateDto?> GetReadStateAsync(string userId, string discussionId)
+    public async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(int offset = 0, int pageSize = 50, string? communityId = null)
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/read-states/user/{userId}/discussion/{discussionId}");
-            if (!response.IsSuccessStatusCode)
-                return null;
-            return await response.Content.ReadFromJsonAsync<ReadStateDto>();
+            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            if (communityId != null) request.CommunityId = communityId;
+            return await discussionClient.GetRecentDiscussionsAsync(request);
         }
-        catch
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    {
+        try
         {
-            return null;
+            var request = new GetTopActiveDiscussionsTodayRequest { Limit = 5 };
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId != null) request.CommunityId = communityId;
+            return await statisticsClient.GetTopActiveDiscussionsTodayAsync(request);
         }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<DiscussionPreviewInfo?> GetDiscussionPreviewAsync(string discussionId)
+    {
+        try { return await discussionClient.GetDiscussionPreviewAsync(new GetDiscussionPreviewRequest { DiscussionId = discussionId }); }
+        catch (RpcException) { return null; }
+    }
+
+    // ==================== Post ====================
+
+    public async Task<PagedEnrichedPostList?> GetDiscussionPostsAsync(string discussionId, int offset = 0, int pageSize = 20)
+    {
+        try { return await postClient.GetPostsByDiscussionAsync(new GetPostsByDiscussionRequest { DiscussionId = discussionId, Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<string?> CreatePostAsync(string discussionId, string content, string? replyToPostId = null)
+    {
+        try
+        {
+            var request = new CreatePostRequest { DiscussionId = discussionId, Content = content };
+            if (replyToPostId != null) request.ReplyToPostId = replyToPostId;
+            var result = await postClient.CreatePostAsync(request);
+            return result?.PublicId;
+        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<int> GetPostNumberAsync(string discussionId, string postId)
     {
-        var response = await _httpClient.GetAsync($"/discussions/{discussionId}/posts/{postId}/number");
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<PostNumberResult>();
-        return result?.PostNumber ?? 1;
+        try
+        {
+            var result = await postClient.GetPostNumberAsync(new GetPostNumberRequest { DiscussionId = discussionId, PostId = postId });
+            return result?.PostNumber ?? 1;
+        }
+        catch (RpcException) { return 1; }
     }
 
-    // Recent discussions (for front page)
-    public async Task<PagedResult<RecentDiscussionDto>?> GetRecentDiscussionsAsync(int offset = 0, int pageSize = 50, string? communityId = null, string? cursor = null)
-    {
-        var url = $"/discussions/recent?offset={offset}&pageSize={pageSize}";
-        if (!string.IsNullOrEmpty(communityId))
-            url += $"&communityId={communityId}";
-        if (!string.IsNullOrEmpty(cursor))
-            url += $"&cursor={Uri.EscapeDataString(cursor)}";
-        return await _httpClient.GetFromJsonAsync<PagedResult<RecentDiscussionDto>>(url);
-    }
-
-    // Top active today (for sidebar)
-    public async Task<TopActiveDiscussionsResult?> GetTopActiveDiscussionsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    public async Task<bool> EditPostAsync(string postId, string userId, string content)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId))
-                queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(spaceId))
-                queryParams.Add($"spaceId={spaceId}");
-            else if (!string.IsNullOrEmpty(hubId))
-                queryParams.Add($"hubId={hubId}");
-
-            var url = queryParams.Count > 0
-                ? $"/discussions/top-active-today?{string.Join("&", queryParams)}"
-                : "/discussions/top-active-today";
-            return await _httpClient.GetFromJsonAsync<TopActiveDiscussionsResult>(url);
+            await postClient.EditPostAsync(new EditPostRequest { PostId = postId, Content = content });
+            return true;
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return false; }
     }
 
-    public async Task<TopActiveSpacesResult?> GetTopActiveSpacesTodayAsync(string? hubId = null, string? communityId = null)
+    // ==================== Read State ====================
+
+    public async Task<ReadStateInfo?> GetReadStateAsync(string userId, string discussionId)
+    {
+        try { return await readStateClient.GetReadStateAsync(new ReadStateGetRequest { DiscussionId = discussionId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task MarkDiscussionAsReadAsync(string discussionId, string userId, string postId)
+    {
+        try { await readStateClient.MarkAsReadAsync(new ReadStateMarkRequest { DiscussionId = discussionId, LastReadPostId = postId }); }
+        catch (RpcException) { }
+    }
+
+    public async Task BatchUpdateReadStatesAsync(List<(string DiscussionId, string PostId)> updates)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId))
-                queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId))
-                queryParams.Add($"hubId={hubId}");
-
-            var url = queryParams.Count > 0
-                ? $"/spaces/top-active-today?{string.Join("&", queryParams)}"
-                : "/spaces/top-active-today";
-            return await _httpClient.GetFromJsonAsync<TopActiveSpacesResult>(url);
+            var request = new ReadStateBatchRequest();
+            foreach (var (discussionId, postId) in updates)
+                request.Items.Add(new ReadStateBatchItem { DiscussionId = discussionId, LastReadPostId = postId });
+            await readStateClient.BatchMarkAsReadAsync(request);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { }
     }
 
-    public async Task<TopContributorsResult?> GetTopContributorsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    // ==================== Top Active / Trending ====================
+
+    public async Task<TopActiveSpacesList?> GetTopActiveSpacesTodayAsync(string? hubId = null, string? communityId = null)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId))
-                queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(spaceId))
-                queryParams.Add($"spaceId={spaceId}");
-            else if (!string.IsNullOrEmpty(hubId))
-                queryParams.Add($"hubId={hubId}");
-
-            var url = queryParams.Count > 0
-                ? $"/api/users/top-contributors-today?{string.Join("&", queryParams)}"
-                : "/api/users/top-contributors-today";
-            return await _httpClient.GetFromJsonAsync<TopContributorsResult>(url);
+            var request = new GetTopActiveSpacesTodayRequest { Limit = 5 };
+            if (hubId != null) request.HubId = hubId;
+            if (communityId != null) request.CommunityId = communityId;
+            return await statisticsClient.GetTopActiveSpacesTodayAsync(request);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    // Stats operations
-    public async Task<PlatformStatsDto?> GetPlatformStatsAsync()
+    public async Task<TopContributorsList?> GetTopContributorsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<PlatformStatsDto>("/api/platform/stats");
+            var request = new GetTopContributorsTodayRequest { Limit = 5 };
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId != null) request.CommunityId = communityId;
+            return await statisticsClient.GetTopContributorsTodayAsync(request);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<HubStatsDto?> GetHubStatsAsync(string hubId)
+    // Backward compatibility aliases
+    public Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsAsync(string? communityId = null)
+        => GetTopActiveDiscussionsTodayAsync(communityId: communityId);
+
+    public Task<TopActiveSpacesList?> GetTopActiveSpacesAsync(string? communityId = null)
+        => GetTopActiveSpacesTodayAsync(communityId: communityId);
+
+    public Task<TopContributorsList?> GetTopContributorsAsync(string? communityId = null)
+        => GetTopContributorsTodayAsync(communityId: communityId);
+
+    // ==================== Stats ====================
+
+    public async Task<PlatformStats?> GetPlatformStatsAsync()
+    {
+        try { return await statisticsClient.GetPlatformStatsAsync(new GetPlatformStatsRequest()); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<HubStats?> GetHubStatsAsync(string hubId)
+    {
+        try { return await hubClient.GetHubStatsAsync(new GetHubStatsRequest { PublicId = hubId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<SpaceStats?> GetSpaceStatsAsync(string spaceId)
+    {
+        try { return await spaceClient.GetSpaceStatsAsync(new GetSpaceStatsRequest { PublicId = spaceId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<CommunityStats?> GetCommunityStatsAsync(string communityId)
+    {
+        try { return await communityClient.GetCommunityStatsAsync(new GetCommunityStatsRequest { PublicId = communityId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<DiscussionStats?> GetDiscussionStatsForPopupAsync(string publicId)
+    {
+        try { return await discussionClient.GetDiscussionStatsAsync(new GetDiscussionStatsRequest { PublicId = publicId }); }
+        catch (RpcException) { return null; }
+    }
+
+    // Entity stats aliases
+    public Task<HubStats?> GetHubStatsForPopupAsync(string publicId) => GetHubStatsAsync(publicId);
+    public Task<SpaceStats?> GetSpaceStatsForPopupAsync(string publicId) => GetSpaceStatsAsync(publicId);
+    public Task<CommunityStats?> GetCommunityStatsForPopupAsync(string publicId) => GetCommunityStatsAsync(publicId);
+    public Task<UserStats?> GetUserStatsForPopupAsync(string publicId) => GetUserStatsAsync(publicId);
+
+    // ==================== Search ====================
+
+    public async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
+        string? query = null, string? authorPublicId = null, string? spacePublicId = null,
+        string? hubPublicId = null, int offset = 0, int pageSize = 20)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<HubStatsDto>($"/api/hubs/{hubId}/stats");
+            var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
+            if (authorPublicId != null) request.AuthorId = authorPublicId;
+            if (spacePublicId != null) request.SpaceId = spacePublicId;
+            if (hubPublicId != null) request.HubId = hubPublicId;
+            return await searchClient.SearchDiscussionsAsync(request);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string spaceId)
+    public async Task<PagedPostSearchResults?> SearchPostsAsync(
+        string? query = null, string? authorPublicId = null, string? discussionPublicId = null,
+        string? spacePublicId = null, int offset = 0, int pageSize = 20)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<SpaceStatsDto>($"/api/spaces/{spaceId}/stats");
+            var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
+            if (authorPublicId != null) request.AuthorId = authorPublicId;
+            if (discussionPublicId != null) request.DiscussionId = discussionPublicId;
+            if (spacePublicId != null) request.SpaceId = spacePublicId;
+            return await searchClient.SearchPostsAsync(request);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<CommunityStatsDto?> GetCommunityStatsAsync(string communityId)
+    public async Task<UserProfileInfo?> GetUserProfileAsync(string publicId)
     {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<CommunityStatsDto>($"/api/communities/{communityId}/stats");
-        }
-        catch
-        {
-            return null;
-        }
+        try { return await userClient.GetUserProfileAsync(new GetUserProfileRequest { PublicId = publicId }); }
+        catch (RpcException) { return null; }
     }
 
-    // Search operations
-    public async Task<PagedResult<DiscussionSearchResultDto>?> SearchDiscussionsAsync(
-        string? query = null,
-        string? authorPublicId = null,
-        string? spacePublicId = null,
-        string? hubPublicId = null,
-        int offset = 0,
-        int pageSize = 20)
+    // ==================== Auth ====================
+
+    public async Task<AuthStatusResponse?> GetAuthStatusAsync()
     {
-        try
-        {
-            var queryParams = new List<string>
-            {
-                $"offset={offset}",
-                $"pageSize={pageSize}"
-            };
-
-            if (!string.IsNullOrEmpty(query))
-                queryParams.Add($"q={Uri.EscapeDataString(query)}");
-            if (!string.IsNullOrEmpty(authorPublicId))
-                queryParams.Add($"authorPublicId={authorPublicId}");
-            if (!string.IsNullOrEmpty(spacePublicId))
-                queryParams.Add($"spacePublicId={spacePublicId}");
-            if (!string.IsNullOrEmpty(hubPublicId))
-                queryParams.Add($"hubPublicId={hubPublicId}");
-
-            var url = $"/api/search/discussions?{string.Join("&", queryParams)}";
-            return await _httpClient.GetFromJsonAsync<PagedResult<DiscussionSearchResultDto>>(url);
-        }
-        catch
-        {
-            return null;
-        }
+        try { return await authClient.GetAuthStatusAsync(new GetAuthStatusRequest()); }
+        catch (RpcException) { return new AuthStatusResponse { IsAuthenticated = false }; }
     }
 
-    public async Task<PagedResult<PostSearchResultDto>?> SearchPostsAsync(
-        string? query = null,
-        string? authorPublicId = null,
-        string? discussionPublicId = null,
-        string? spacePublicId = null,
-        int offset = 0,
-        int pageSize = 20)
+    public async Task<CurrentUserResponse?> GetCurrentUserAsync()
     {
-        try
-        {
-            var queryParams = new List<string>
-            {
-                $"offset={offset}",
-                $"pageSize={pageSize}"
-            };
-
-            if (!string.IsNullOrEmpty(query))
-                queryParams.Add($"q={Uri.EscapeDataString(query)}");
-            if (!string.IsNullOrEmpty(authorPublicId))
-                queryParams.Add($"authorPublicId={authorPublicId}");
-            if (!string.IsNullOrEmpty(discussionPublicId))
-                queryParams.Add($"discussionPublicId={discussionPublicId}");
-            if (!string.IsNullOrEmpty(spacePublicId))
-                queryParams.Add($"spacePublicId={spacePublicId}");
-
-            var url = $"/api/search/posts?{string.Join("&", queryParams)}";
-            return await _httpClient.GetFromJsonAsync<PagedResult<PostSearchResultDto>>(url);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task<UserProfileDto?> GetUserProfileAsync(string publicId)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<UserProfileDto>($"/api/users/{publicId}/profile");
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Auth operations
-    public async Task<AuthStatusDto?> GetAuthStatusAsync()
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<AuthStatusDto>("/auth/status");
-        }
-        catch
-        {
-            return new AuthStatusDto(false, null, null, false, null, null);
-        }
-    }
-
-    public async Task<CurrentUserDto?> GetCurrentUserAsync()
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<CurrentUserDto>("/auth/me");
-        }
-        catch
-        {
-            return null;
-        }
+        try { return await authClient.GetCurrentUserAsync(new GetCurrentUserRequest()); }
+        catch (RpcException) { return null; }
     }
 
     public async Task<bool> UpdateProfileAsync(string displayName)
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync("/auth/update-profile", new { displayName });
-            return response.IsSuccessStatusCode;
+            await authClient.UpdateProfileAsync(new UpdateProfileRequest { DisplayName = displayName });
+            return true;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
-    public async Task<bool> UpdatePreferencesAsync(bool preferEndlessScroll)
+    public async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null)
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync("/auth/preferences", new { preferEndlessScroll });
-            return response.IsSuccessStatusCode;
+            var request = new UpdatePreferencesRequest();
+            if (preferEndlessScroll.HasValue) request.PreferEndlessScroll = preferEndlessScroll.Value;
+            if (autoFollowOnReply.HasValue) request.AutoFollowOnReply = autoFollowOnReply.Value;
+            await authClient.UpdatePreferencesAsync(request);
+            return true;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
-    // Health check
+    public async Task LogoutAsync()
+    {
+        try { await authClient.LogoutAsync(new LogoutRequest()); }
+        catch (RpcException) { }
+    }
+
     public async Task<bool> IsHealthyAsync()
     {
         try
         {
-            var response = await _httpClient.GetAsync("/health");
-            return response.IsSuccessStatusCode;
+            await statisticsClient.GetPlatformStatsAsync(new GetPlatformStatsRequest());
+            return true;
         }
-        catch
-        {
-            return false;
-        }
+        catch { return false; }
     }
+
+    // ==================== Follow ====================
+
+    // Space follow
+    public async Task<SpaceFollowStatusResponse?> GetSpaceFollowStatusAsync(string spaceId)
+    {
+        try { return await followClient.GetSpaceFollowStatusAsync(new GetSpaceFollowStatusRequest { SpaceId = spaceId }); }
+        catch (RpcException) { return new SpaceFollowStatusResponse { IsFollowing = false }; }
+    }
+
+    public async Task<SpaceFollowToggleResponse?> ToggleSpaceFollowAsync(string spaceId, string? level)
+    {
+        try
+        {
+            var request = new ToggleSpaceFollowRequest { SpaceId = spaceId };
+            if (level != null) request.Level = level;
+            return await followClient.ToggleSpaceFollowAsync(request);
+        }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<FollowLevelResponse?> SetSpaceFollowLevelAsync(string spaceId, string level)
+    {
+        try { return await followClient.SetSpaceFollowLevelAsync(new SetSpaceFollowLevelRequest { SpaceId = spaceId, Level = level }); }
+        catch (RpcException) { return null; }
+    }
+
+    // Discussion follow
+    public async Task<FollowToggleResponse?> GetDiscussionFollowStatusAsync(string discussionId)
+    {
+        try { return await followClient.GetDiscussionFollowStatusAsync(new GetDiscussionFollowStatusRequest { DiscussionId = discussionId }); }
+        catch (RpcException) { return new FollowToggleResponse { IsFollowing = false }; }
+    }
+
+    public async Task<FollowToggleResponse?> ToggleDiscussionFollowAsync(string discussionId)
+    {
+        try { return await followClient.ToggleDiscussionFollowAsync(new ToggleDiscussionFollowRequest { DiscussionId = discussionId }); }
+        catch (RpcException) { return null; }
+    }
+
+    // User follow
+    public async Task<FollowToggleResponse?> GetUserFollowStatusAsync(string userId, string currentUserId)
+    {
+        try { return await followClient.GetUserFollowStatusAsync(new GetUserFollowStatusRequest { UserId = userId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<FollowToggleResponse?> ToggleUserFollowAsync(string userId)
+    {
+        try { return await followClient.ToggleUserFollowAsync(new ToggleUserFollowRequest { UserId = userId }); }
+        catch (RpcException) { return null; }
+    }
+
+    // Follow lists
+    public async Task<List<string>> GetFollowedSpacesAsync()
+    {
+        try
+        {
+            var result = await followClient.GetFollowedSpacesAsync(new GetFollowedSpacesRequest());
+            return result?.PublicIds?.ToList() ?? [];
+        }
+        catch (RpcException) { return []; }
+    }
+
+    public async Task<List<string>> GetFollowedDiscussionsAsync()
+    {
+        try
+        {
+            var result = await followClient.GetFollowedDiscussionsAsync(new GetFollowedDiscussionsRequest());
+            return result?.PublicIds?.ToList() ?? [];
+        }
+        catch (RpcException) { return []; }
+    }
+
+    public async Task<List<string>> GetFollowedUsersAsync()
+    {
+        try
+        {
+            var result = await followClient.GetFollowedUsersAsync(new GetFollowedUsersRequest());
+            return result?.PublicIds?.ToList() ?? [];
+        }
+        catch (RpcException) { return []; }
+    }
+
+    // ==================== Reactions ====================
+
+    public async Task<Snakk.Protos.ReactionCounts?> GetPostReactionsAsync(string postId)
+    {
+        try { return await reactionClient.GetReactionCountsAsync(new GetReactionCountsRequest { PostId = postId }); }
+        catch (RpcException) { return new Snakk.Protos.ReactionCounts(); }
+    }
+
+    public async Task<UserReactionResponse?> GetMyPostReactionAsync(string postId)
+    {
+        try { return await reactionClient.GetMyReactionAsync(new GetMyReactionRequest { PostId = postId }); }
+        catch (RpcException) { return new UserReactionResponse(); }
+    }
+
+    public async Task TogglePostReactionAsync(string postId, int type)
+    {
+        try { await reactionClient.ToggleReactionAsync(new ToggleReactionRequest { PostId = postId, ReactionType = type.ToString() }); }
+        catch (RpcException) { }
+    }
+
+    // ==================== Notifications ====================
+
+    public async Task<PagedNotificationList?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
+    {
+        try { return await notificationClient.GetNotificationsAsync(new NotifGetRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<UnreadCountResponse?> GetUnreadNotificationCountAsync()
+    {
+        try { return await notificationClient.GetUnreadCountAsync(new NotifUnreadRequest()); }
+        catch (RpcException) { return new UnreadCountResponse { Count = 0 }; }
+    }
+
+    public async Task MarkNotificationAsReadAsync(string notificationId)
+    {
+        try { await notificationClient.MarkAsReadAsync(new NotifMarkReadRequest { NotificationId = notificationId }); }
+        catch (RpcException) { }
+    }
+
+    public async Task MarkAllNotificationsAsReadAsync()
+    {
+        try { await notificationClient.MarkAllAsReadAsync(new NotifMarkAllReadRequest()); }
+        catch (RpcException) { }
+    }
+
+    // ==================== Markup ====================
+
+    public async Task<string?> PreviewMarkupAsync(string content)
+    {
+        try
+        {
+            var result = await markupClient.PreviewAsync(new PreviewMarkupRequest { Content = content });
+            return result?.Html;
+        }
+        catch (RpcException) { return null; }
+    }
+
+    // ==================== User ====================
+
+    public async Task<UserStats?> GetUserStatsAsync(string userId)
+    {
+        try { return await statisticsClient.GetUserStatsAsync(new GetUserStatsRequest { PublicId = userId }); }
+        catch (RpcException) { return null; }
+    }
+
+    public async Task<UserActivityHistory?> GetUserActivityHistoryAsync(string userId, int days = 30)
+    {
+        try { return await statisticsClient.GetUserActivityHistoryAsync(new GetUserActivityHistoryRequest { PublicId = userId, Days = days }); }
+        catch (RpcException) { return null; }
+    }
+
+    // Endless scroll (alias for GetDiscussionsBySpaceAsync)
+    public Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize)
+        => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
 
     // ==================== Moderation ====================
 
-    // Permission checks
     public async Task<bool> CanModerateAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId)) queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId)) queryParams.Add($"hubId={hubId}");
-            if (!string.IsNullOrEmpty(spaceId)) queryParams.Add($"spaceId={spaceId}");
-
-            var url = queryParams.Count > 0
-                ? $"/api/moderation/can-moderate?{string.Join("&", queryParams)}"
-                : "/api/moderation/can-moderate";
-
-            var result = await _httpClient.GetFromJsonAsync<CanModerateResult>(url);
-            return result?.CanModerate ?? false;
+            var request = new CanModerateRequest();
+            if (communityId != null) request.CommunityId = communityId;
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            var result = await moderationClient.CanModerateAsync(request);
+            return result.CanModerate;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     public async Task<bool> CanAdministerAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId)) queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId)) queryParams.Add($"hubId={hubId}");
-            if (!string.IsNullOrEmpty(spaceId)) queryParams.Add($"spaceId={spaceId}");
-
-            var url = queryParams.Count > 0
-                ? $"/api/moderation/can-administer?{string.Join("&", queryParams)}"
-                : "/api/moderation/can-administer";
-
-            var result = await _httpClient.GetFromJsonAsync<CanAdministerResult>(url);
-            return result?.CanAdminister ?? false;
+            var request = new CanAdministerRequest();
+            if (communityId != null) request.CommunityId = communityId;
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            var result = await moderationClient.CanAdministerAsync(request);
+            return result.CanAdminister;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
-    // Role management
+    // Role management — returns local DTOs mapped from proto
     public async Task<IEnumerable<UserRoleDto>?> GetMyRolesAsync()
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserRolesResult>("/api/moderation/roles/me");
-            return result?.Items;
+            var result = await moderationClient.GetMyRolesAsync(new GetMyRolesRequest());
+            return result.Items.Select(MapRoleInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<IEnumerable<UserRoleDto>?> GetUserRolesAsync(string userId)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserRolesResult>($"/api/moderation/roles/user/{userId}");
-            return result?.Items;
+            var result = await moderationClient.GetUserRolesAsync(new GetUserRolesRequest { UserId = userId });
+            return result.Items.Select(MapRoleInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<IEnumerable<UserRoleDto>?> GetRolesForCommunityAsync(string communityId)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserRolesResult>($"/api/moderation/roles/community/{communityId}");
-            return result?.Items;
+            var result = await moderationClient.GetRolesForCommunityAsync(new GetRolesForScopeRequest { ScopeId = communityId });
+            return result.Items.Select(MapRoleInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<IEnumerable<UserRoleDto>?> GetRolesForHubAsync(string hubId)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserRolesResult>($"/api/moderation/roles/hub/{hubId}");
-            return result?.Items;
+            var result = await moderationClient.GetRolesForHubAsync(new GetRolesForScopeRequest { ScopeId = hubId });
+            return result.Items.Select(MapRoleInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<IEnumerable<UserRoleDto>?> GetRolesForSpaceAsync(string spaceId)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserRolesResult>($"/api/moderation/roles/space/{spaceId}");
-            return result?.Items;
+            var result = await moderationClient.GetRolesForSpaceAsync(new GetRolesForScopeRequest { ScopeId = spaceId });
+            return result.Items.Select(MapRoleInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<UserRoleDto?> AssignRoleAsync(AssignRoleRequest request)
+    public async Task<UserRoleDto?> AssignRoleAsync(Snakk.Web.Models.AssignRoleRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/moderation/roles", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserRoleDto>();
+            var grpcRequest = new Snakk.Protos.Moderation.AssignRoleRequest
+            {
+                UserId = request.TargetUserId,
+                Role = request.RoleType
+            };
+            if (request.CommunityId != null) grpcRequest.CommunityId = request.CommunityId;
+            if (request.HubId != null) grpcRequest.HubId = request.HubId;
+            if (request.SpaceId != null) grpcRequest.SpaceId = request.SpaceId;
+            var result = await moderationClient.AssignRoleAsync(grpcRequest);
+            return MapRoleInfo(result);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<bool> RevokeRoleAsync(string roleId)
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"/api/moderation/roles/{roleId}");
-            return response.IsSuccessStatusCode;
+            var result = await moderationClient.RevokeRoleAsync(new RevokeRoleRequest { RoleId = roleId });
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     // Ban management
@@ -533,61 +682,55 @@ public class SnakkApiClient(HttpClient httpClient)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<UserBansResult>($"/api/moderation/bans/user/{userId}");
-            return result?.Items;
+            var result = await moderationClient.GetUserBansAsync(new GetUserBansRequest { UserId = userId });
+            return result.Items.Select(MapBanInfo);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<BanCheckResult?> CheckUserBanAsync(string userId, string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId)) queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId)) queryParams.Add($"hubId={hubId}");
-            if (!string.IsNullOrEmpty(spaceId)) queryParams.Add($"spaceId={spaceId}");
-
-            var url = queryParams.Count > 0
-                ? $"/api/moderation/bans/check/{userId}?{string.Join("&", queryParams)}"
-                : $"/api/moderation/bans/check/{userId}";
-
-            return await _httpClient.GetFromJsonAsync<BanCheckResult>(url);
+            var request = new CheckUserBanRequest { UserId = userId };
+            if (communityId != null) request.CommunityId = communityId;
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            var result = await moderationClient.CheckUserBanAsync(request);
+            return new BanCheckResult(result.IsBanned, result.Ban != null ? MapBanInfo(result.Ban) : null);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<UserBanDto?> BanUserAsync(BanUserRequest request)
+    public async Task<UserBanDto?> BanUserAsync(Snakk.Web.Models.BanUserRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/moderation/bans", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserBanDto>();
+            var grpcRequest = new Snakk.Protos.Moderation.BanUserRequest
+            {
+                UserId = request.TargetUserId,
+                BanType = request.BanType
+            };
+            if (request.CommunityId != null) grpcRequest.CommunityId = request.CommunityId;
+            if (request.HubId != null) grpcRequest.HubId = request.HubId;
+            if (request.SpaceId != null) grpcRequest.SpaceId = request.SpaceId;
+            if (request.Reason != null) grpcRequest.Reason = request.Reason;
+            if (request.ExpiresAt.HasValue)
+                grpcRequest.ExpiresAt = Timestamp.FromDateTime(DateTime.SpecifyKind(request.ExpiresAt.Value, DateTimeKind.Utc));
+            var result = await moderationClient.BanUserAsync(grpcRequest);
+            return MapBanInfo(result);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<bool> UnbanUserAsync(string banId)
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"/api/moderation/bans/{banId}");
-            return response.IsSuccessStatusCode;
+            var result = await moderationClient.UnbanUserAsync(new UnbanUserRequest { BanId = banId });
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     // Report management
@@ -595,136 +738,133 @@ public class SnakkApiClient(HttpClient httpClient)
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<PendingReportCountResult>("/api/moderation/reports/pending-count");
-            return result?.Count ?? 0;
+            var result = await moderationClient.GetPendingReportCountAsync(new GetPendingReportCountRequest());
+            return result.Count;
         }
-        catch
-        {
-            return 0;
-        }
+        catch (RpcException) { return 0; }
     }
 
     public async Task<PagedResult<ReportListDto>?> GetReportsAsync(string? status = null, int offset = 0, int pageSize = 20)
     {
         try
         {
-            var queryParams = new List<string>
-            {
-                $"offset={offset}",
-                $"pageSize={pageSize}"
-            };
-            if (!string.IsNullOrEmpty(status)) queryParams.Add($"status={status}");
-
-            var url = $"/api/moderation/reports?{string.Join("&", queryParams)}";
-            return await _httpClient.GetFromJsonAsync<PagedResult<ReportListDto>>(url);
+            var request = new GetReportsRequest { Offset = offset, PageSize = pageSize };
+            if (status != null && int.TryParse(status, out var statusId)) request.StatusId = statusId;
+            var result = await moderationClient.GetReportsAsync(request);
+            return new PagedResult<ReportListDto>(
+                result.Items.Select(MapReportListItem),
+                result.Offset,
+                result.PageSize,
+                result.Total > result.Offset + result.PageSize);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<ReportDetailDto?> GetReportDetailAsync(string reportId)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<ReportDetailDto>($"/api/moderation/reports/{reportId}");
+            var r = await moderationClient.GetReportDetailAsync(new GetReportDetailRequest { ReportId = reportId });
+            return new ReportDetailDto(
+                r.PublicId, r.Status,
+                r.ReporterUserPublicId, r.ReporterUserDisplayName,
+                r.ReportedPostPublicId, r.ReportedPostContent,
+                r.ReportedDiscussionPublicId, r.ReportedDiscussionTitle,
+                r.ReportedUserPublicId, r.ReportedUserDisplayName,
+                r.ReasonName, r.ReasonDescription, r.Details,
+                r.CreatedAt.ToDateTime(),
+                r.ResolvedAt?.ToDateTime(),
+                r.ResolvedByUserPublicId, r.ResolvedByUserDisplayName,
+                r.ResolutionNote,
+                r.SpacePublicId, r.SpaceName,
+                r.HubPublicId, r.HubName,
+                r.CommunityPublicId, r.CommunityName,
+                r.Comments.Select(c => new ReportCommentDto(
+                    c.PublicId, c.AuthorUserPublicId, c.AuthorUserDisplayName,
+                    c.Content, c.CreatedAt.ToDateTime(), c.EditedAt?.ToDateTime())));
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<ReportDto?> CreateReportAsync(CreateReportRequest request)
+    public async Task<ReportDto?> CreateReportAsync(Snakk.Web.Models.CreateReportRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/moderation/reports", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ReportDto>();
+            var grpcRequest = new Snakk.Protos.Moderation.CreateReportRequest();
+            if (request.ReportedPostId != null) grpcRequest.PostId = request.ReportedPostId;
+            if (request.ReportedDiscussionId != null) grpcRequest.DiscussionId = request.ReportedDiscussionId;
+            if (request.ReportedUserId != null) grpcRequest.UserId = request.ReportedUserId;
+            if (request.ReasonId != null) grpcRequest.ReasonId = request.ReasonId;
+            if (request.Details != null) grpcRequest.Details = request.Details;
+            var result = await moderationClient.CreateReportAsync(grpcRequest);
+            return new ReportDto(result.PublicId, result.Status, "", null, null, null, null, null,
+                result.CreatedAt.ToDateTime(), null, null, null);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
-    public async Task<bool> ResolveReportAsync(string reportId, ResolveReportRequest request)
+    public async Task<bool> ResolveReportAsync(string reportId, Snakk.Web.Models.ResolveReportRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/reports/{reportId}/resolve", request);
-            return response.IsSuccessStatusCode;
+            var grpcRequest = new Snakk.Protos.Moderation.ResolveReportRequest
+            {
+                ReportId = reportId,
+                Dismiss = request.Dismiss
+            };
+            if (request.ResolutionNote != null) grpcRequest.ResolutionNote = request.ResolutionNote;
+            var result = await moderationClient.ResolveReportAsync(grpcRequest);
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
-    public async Task<ReportCommentDto?> AddReportCommentAsync(string reportId, AddReportCommentRequest request)
+    public async Task<ReportCommentDto?> AddReportCommentAsync(string reportId, Snakk.Web.Models.AddReportCommentRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/reports/{reportId}/comments", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ReportCommentDto>();
+            var result = await moderationClient.AddReportCommentAsync(
+                new Snakk.Protos.Moderation.AddReportCommentRequest { ReportId = reportId, Content = request.Content });
+            return new ReportCommentDto(
+                result.PublicId, result.AuthorUserPublicId, result.AuthorUserDisplayName,
+                result.Content, result.CreatedAt.ToDateTime(), result.EditedAt?.ToDateTime());
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     public async Task<IEnumerable<ReportReasonDto>?> GetReportReasonsAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(communityId)) queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId)) queryParams.Add($"hubId={hubId}");
-            if (!string.IsNullOrEmpty(spaceId)) queryParams.Add($"spaceId={spaceId}");
-
-            var url = queryParams.Count > 0
-                ? $"/api/moderation/report-reasons?{string.Join("&", queryParams)}"
-                : "/api/moderation/report-reasons";
-
-            var result = await _httpClient.GetFromJsonAsync<ReportReasonsResult>(url);
-            return result?.Items;
+            var request = new GetReportReasonsRequest();
+            if (spaceId != null) request.SpaceId = spaceId;
+            var result = await moderationClient.GetReportReasonsAsync(request);
+            return result.Items.Select(r => new ReportReasonDto(
+                r.PublicId, r.Name, r.Description,
+                r.CommunityPublicId, r.HubPublicId, r.SpacePublicId, r.DisplayOrder));
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     // Moderation log
     public async Task<PagedResult<ModerationLogDto>?> GetModerationLogsAsync(
-        string? communityId = null,
-        string? hubId = null,
-        string? spaceId = null,
-        int offset = 0,
-        int pageSize = 20)
+        string? communityId = null, string? hubId = null, string? spaceId = null,
+        int offset = 0, int pageSize = 20)
     {
         try
         {
-            var queryParams = new List<string>
-            {
-                $"offset={offset}",
-                $"pageSize={pageSize}"
-            };
-            if (!string.IsNullOrEmpty(communityId)) queryParams.Add($"communityId={communityId}");
-            if (!string.IsNullOrEmpty(hubId)) queryParams.Add($"hubId={hubId}");
-            if (!string.IsNullOrEmpty(spaceId)) queryParams.Add($"spaceId={spaceId}");
-
-            var url = $"/api/moderation/logs?{string.Join("&", queryParams)}";
-            return await _httpClient.GetFromJsonAsync<PagedResult<ModerationLogDto>>(url);
+            var request = new GetModerationLogsRequest { Offset = offset, PageSize = pageSize };
+            if (communityId != null) request.CommunityId = communityId;
+            if (hubId != null) request.HubId = hubId;
+            if (spaceId != null) request.SpaceId = spaceId;
+            var result = await moderationClient.GetModerationLogsAsync(request);
+            return new PagedResult<ModerationLogDto>(
+                result.Items.Select(MapModerationLogItem),
+                result.Offset,
+                result.PageSize,
+                result.Total > result.Offset + result.PageSize);
         }
-        catch
-        {
-            return null;
-        }
+        catch (RpcException) { return null; }
     }
 
     // Content moderation
@@ -732,553 +872,99 @@ public class SnakkApiClient(HttpClient httpClient)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/content/posts/{postId}/delete", new ModerateContentRequest(reason));
-            return response.IsSuccessStatusCode;
+            var request = new DeletePostRequest { PostId = postId };
+            if (reason != null) request.Reason = reason;
+            var result = await moderationClient.DeletePostAsync(request);
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     public async Task<bool> DeleteDiscussionAsync(string discussionId, string? reason = null)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/content/discussions/{discussionId}/delete", new ModerateContentRequest(reason));
-            return response.IsSuccessStatusCode;
+            var request = new DeleteDiscussionRequest { DiscussionId = discussionId };
+            if (reason != null) request.Reason = reason;
+            var result = await moderationClient.DeleteDiscussionAsync(request);
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     public async Task<bool> LockDiscussionAsync(string discussionId, string? reason = null)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/content/discussions/{discussionId}/lock", new ModerateContentRequest(reason));
-            return response.IsSuccessStatusCode;
+            var request = new LockDiscussionRequest { DiscussionId = discussionId };
+            if (reason != null) request.Reason = reason;
+            var result = await moderationClient.LockDiscussionAsync(request);
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
     public async Task<bool> UnlockDiscussionAsync(string discussionId)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/moderation/content/discussions/{discussionId}/unlock", new { });
-            return response.IsSuccessStatusCode;
+            var result = await moderationClient.UnlockDiscussionAsync(new UnlockDiscussionRequest { DiscussionId = discussionId });
+            return result.Success;
         }
-        catch
-        {
-            return false;
-        }
+        catch (RpcException) { return false; }
     }
 
-    // Notifications
-    public async Task<PagedResult<NotificationDto>?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<PagedResult<NotificationDto>>(
-                $"/api/notifications?offset={offset}&pageSize={pageSize}");
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    // ==================== Private mapping helpers ====================
 
-    public async Task<UnreadCountDto?> GetUnreadNotificationCountAsync()
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<UnreadCountDto>(
-                $"/api/notifications/unread-count");
-        }
-        catch
-        {
-            return new UnreadCountDto(0);
-        }
-    }
+    private static UserRoleDto MapRoleInfo(RoleInfo r) => new(
+        r.PublicId, r.UserPublicId, r.UserDisplayName, r.Role,
+        r.CommunityId, r.CommunityName,
+        r.HubId, r.HubName,
+        r.SpaceId, r.SpaceName,
+        r.AssignedByUserPublicId, r.AssignedByUserDisplayName,
+        r.AssignedAt.ToDateTime(),
+        r.RevokedAt?.ToDateTime());
 
-    public async Task MarkNotificationAsReadAsync(string notificationId)
-    {
-        try
-        {
-            await _httpClient.PostAsync(
-                $"/api/notifications/{notificationId}/read",
-                null);
-        }
-        catch { }
-    }
+    private static UserBanDto MapBanInfo(BanInfo b) => new(
+        b.PublicId, b.UserPublicId, b.UserDisplayName, b.BanType,
+        b.CommunityId, b.CommunityName,
+        b.HubId, b.HubName,
+        b.SpaceId, b.SpaceName,
+        b.Reason, b.BannedAt.ToDateTime(), b.ExpiresAt?.ToDateTime(),
+        b.BannedByUserPublicId, b.BannedByUserDisplayName,
+        b.UnbannedAt?.ToDateTime(),
+        b.UnbannedByUserPublicId, b.UnbannedByUserDisplayName);
 
-    public async Task MarkAllNotificationsAsReadAsync()
-    {
-        try
-        {
-            await _httpClient.PostAsync(
-                $"/api/notifications/read-all",
-                null);
-        }
-        catch { }
-    }
+    private static ReportListDto MapReportListItem(ReportListItem r) => new(
+        r.PublicId, r.Status,
+        r.ReporterUserPublicId, r.ReporterUserDisplayName,
+        r.ReportedPostPublicId, r.ReportedPostContentSnippet,
+        r.ReportedDiscussionPublicId, r.ReportedDiscussionTitle,
+        r.ReportedUserPublicId, r.ReportedUserDisplayName,
+        r.ReasonName, r.Details,
+        r.CreatedAt.ToDateTime(), r.ResolvedAt?.ToDateTime(),
+        r.ResolvedByUserPublicId, r.ResolvedByUserDisplayName,
+        r.ResolutionNote,
+        r.SpacePublicId, r.SpaceName,
+        r.HubPublicId, r.HubName,
+        r.CommunityPublicId, r.CommunityName,
+        r.CommentCount);
 
-    // Space follow
-    public async Task<FollowStatusDto?> GetSpaceFollowStatusAsync(string spaceId)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<FollowStatusDto>(
-                $"/api/spaces/{spaceId}/follow-status");
-        }
-        catch
-        {
-            return new FollowStatusDto(false, null);
-        }
-    }
-
-    public async Task<FollowResultDto?> ToggleSpaceFollowAsync(string spaceId, string? level)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsync(
-                $"/api/spaces/{spaceId}/follow?level={level ?? "DiscussionsOnly"}",
-                null);
-            return await response.Content.ReadFromJsonAsync<FollowResultDto>();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task<FollowResultDto?> SetSpaceFollowLevelAsync(string spaceId, string level)
-    {
-        try
-        {
-            var response = await _httpClient.PutAsync(
-                $"/api/spaces/{spaceId}/follow-level?level={level}",
-                null);
-            return await response.Content.ReadFromJsonAsync<FollowResultDto>();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Discussion follow
-    public async Task<FollowStatusDto?> GetDiscussionFollowStatusAsync(string discussionId)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<FollowStatusDto>(
-                $"/api/discussions/{discussionId}/follow-status");
-        }
-        catch
-        {
-            return new FollowStatusDto(false, null);
-        }
-    }
-
-    public async Task<FollowResultDto?> ToggleDiscussionFollowAsync(string discussionId)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsync(
-                $"/api/discussions/{discussionId}/follow",
-                null);
-            return await response.Content.ReadFromJsonAsync<FollowResultDto>();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Get all followed entities (for caching)
-    public async Task<List<string>> GetFollowedSpacesAsync()
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<FollowedEntitiesResult>(
-                $"/api/follows/spaces");
-            return response?.PublicIds ?? new List<string>();
-        }
-        catch
-        {
-            return new List<string>();
-        }
-    }
-
-    public async Task<List<string>> GetFollowedDiscussionsAsync()
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<FollowedEntitiesResult>(
-                $"/api/follows/discussions");
-            return response?.PublicIds ?? new List<string>();
-        }
-        catch
-        {
-            return new List<string>();
-        }
-    }
-
-    public async Task<List<string>> GetFollowedUsersAsync()
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<FollowedEntitiesResult>(
-                $"/api/follows/users");
-            return response?.PublicIds ?? new List<string>();
-        }
-        catch
-        {
-            return new List<string>();
-        }
-    }
-
-    // Batch update read states
-    public async Task BatchUpdateReadStatesAsync(List<ReadStateUpdateDto> updates)
-    {
-        try
-        {
-            await _httpClient.PostAsJsonAsync(
-                $"/api/read-states/batch",
-                new { updates });
-        }
-        catch { }
-    }
-
-    public async Task MarkDiscussionAsReadAsync(string discussionId, string userId, string postId)
-    {
-        try
-        {
-            await _httpClient.PostAsync(
-                $"/api/discussions/{discussionId}/mark-read?userId={userId}&postId={postId}",
-                null);
-        }
-        catch { }
-    }
-
-    // Post reactions
-    public async Task<Dictionary<string, int>?> GetPostReactionsAsync(string postId)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<Dictionary<string, int>>(
-                $"/api/posts/{postId}/reactions");
-        }
-        catch
-        {
-            return new Dictionary<string, int>();
-        }
-    }
-
-    public async Task<MyReactionDto?> GetMyPostReactionAsync(string postId)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<MyReactionDto>(
-                $"/api/posts/{postId}/reactions/me");
-        }
-        catch
-        {
-            return new MyReactionDto(null);
-        }
-    }
-
-    public async Task TogglePostReactionAsync(string postId, int type)
-    {
-        try
-        {
-            await _httpClient.PostAsJsonAsync(
-                $"/api/posts/{postId}/reactions",
-                new { type });
-        }
-        catch { }
-    }
-
-    // Markup
-    public async Task<string?> PreviewMarkupAsync(string content)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync(
-                $"/api/markup/preview",
-                new { content });
-            var result = await response.Content.ReadFromJsonAsync<MarkupPreviewResult>();
-            return result?.Html;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Endless scroll
-    public async Task<PagedResult<DiscussionDto>?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize)
-    {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<PagedResult<DiscussionDto>>(
-                $"/api/spaces/{spaceId}/discussions?offset={offset}&pageSize={pageSize}");
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Wrapper methods for backward compatibility
-    public async Task<TopActiveDiscussionsResult?> GetTopActiveDiscussionsAsync(string? communityId = null)
-    {
-        return await GetTopActiveDiscussionsTodayAsync(communityId: communityId);
-    }
-
-    public async Task<TopActiveSpacesResult?> GetTopActiveSpacesAsync(string? communityId = null)
-    {
-        return await GetTopActiveSpacesTodayAsync(communityId: communityId);
-    }
-
-    public async Task<TopContributorsResult?> GetTopContributorsAsync(string? communityId = null)
-    {
-        return await GetTopContributorsTodayAsync(communityId: communityId);
-    }
-
-    // Auth operations
-    public async Task LogoutAsync()
-    {
-        var response = await _httpClient.PostAsync("/auth/logout", null);
-        response.EnsureSuccessStatusCode();
-    }
-
-    // User operations
-    public async Task<UserStatsDto?> GetUserStatsAsync(string userId)
-    {
-        return await _httpClient.GetFromJsonAsync<UserStatsDto>($"/api/users/{userId}/stats");
-    }
-
-    public async Task<ActivityHistoryDto?> GetUserActivityHistoryAsync(string userId, int days = 30)
-    {
-        return await _httpClient.GetFromJsonAsync<ActivityHistoryDto>($"/api/users/{userId}/activity-history?days={days}");
-    }
-
-    public async Task<UserFollowStatusDto?> GetUserFollowStatusAsync(string userId, string currentUserId)
-    {
-        return await _httpClient.GetFromJsonAsync<UserFollowStatusDto>($"/api/users/{userId}/follow-status?currentUserId={currentUserId}");
-    }
-
-    public async Task<FollowResultDto?> ToggleUserFollowAsync(string userId)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsync($"/api/users/{userId}/follow", null);
-            return await response.Content.ReadFromJsonAsync<FollowResultDto>();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // Post edit operations
-    public async Task<bool> EditPostAsync(string postId, string userId, string content)
-    {
-        var response = await _httpClient.PostAsync($"/api/posts/{postId}/edit?userId={userId}&content={Uri.EscapeDataString(content)}", null);
-        return response.IsSuccessStatusCode;
-    }
-
-    // Discussion preview
-    public async Task<DiscussionPreviewDto?> GetDiscussionPreviewAsync(string discussionId)
-    {
-        return await _httpClient.GetFromJsonAsync<DiscussionPreviewDto>($"/discussions/{discussionId}/preview");
-    }
-
-    // Entity stats for popups
-    public async Task<HubStatsDto?> GetHubStatsForPopupAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<HubStatsDto>($"/api/hubs/{publicId}/stats");
-    }
-
-    public async Task<SpaceStatsDto?> GetSpaceStatsForPopupAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<SpaceStatsDto>($"/api/spaces/{publicId}/stats");
-    }
-
-    public async Task<CommunityStatsDto?> GetCommunityStatsForPopupAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<CommunityStatsDto>($"/api/communities/{publicId}/stats");
-    }
-
-    public async Task<UserStatsDto?> GetUserStatsForPopupAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<UserStatsDto>($"/api/users/{publicId}/stats");
-    }
-
-    public async Task<DiscussionStatsDto?> GetDiscussionStatsForPopupAsync(string publicId)
-    {
-        return await _httpClient.GetFromJsonAsync<DiscussionStatsDto>($"/api/discussions/{publicId}/stats");
-    }
+    private static ModerationLogDto MapModerationLogItem(ModerationLogItem l) => new(
+        l.PublicId, l.ActorUserPublicId, l.ActorUserDisplayName,
+        l.Action,
+        l.TargetPostPublicId, l.TargetDiscussionPublicId, l.TargetDiscussionTitle,
+        l.TargetUserPublicId, l.TargetUserDisplayName,
+        l.CommunityPublicId, l.CommunityName,
+        l.HubPublicId, l.HubName,
+        l.SpacePublicId, l.SpaceName,
+        l.Details, l.Reason,
+        l.CreatedAt.ToDateTime());
 }
 
-// Auth DTOs
-public record AuthStatusDto(
-    bool IsAuthenticated,
-    string? PublicId,
-    string? DisplayName,
-    bool EmailVerified,
-    string? Role,
-    string? AvatarUrl);
-
-public record CurrentUserDto(
-    string PublicId,
-    string DisplayName,
-    string? Email,
-    bool EmailVerified,
-    string? OAuthProvider,
-    bool PreferEndlessScroll = true);
-
-// Top active today DTOs
-public record TopActiveDiscussionsResult(TopActiveDiscussionDto[] Items);
-public record TopActiveDiscussionDto(
-    string PublicId,
-    string Title,
-    string Slug,
-    int PostCountToday,
-    TopActiveEntityRef Space,
-    TopActiveEntityRef Hub,
-    TopActiveAuthorRef Author);
-
-public record TopActiveAuthorRef(
-    string PublicId,
-    string DisplayName);
-
-public record TopActiveSpacesResult(TopActiveSpaceDto[] Items);
-public record TopActiveSpaceDto(
-    string PublicId,
-    string Name,
-    string Slug,
-    int PostCountToday,
-    TopActiveEntityRef Hub);
-
-public record TopActiveEntityRef(
-    string PublicId,
-    string Slug,
-    string Name);
-
-// Top contributors DTOs
-public record TopContributorsResult(TopContributorDto[] Items);
-public record TopContributorDto(
-    string PublicId,
-    string DisplayName,
-    int PostCountToday);
-
-// Stats DTOs
-public record PlatformStatsDto(
-    int HubCount,
-    int SpaceCount,
-    int DiscussionCount,
-    int ReplyCount);
-
-public record HubStatsDto(
-    string PublicId,
-    string Name,
-    string? Description,
-    string AvatarUrl,
-    int SpaceCount,
-    int DiscussionCount,
-    int ReplyCount);
-
-public record SpaceStatsDto(
-    string PublicId,
-    string Name,
-    string? Description,
-    string AvatarUrl,
-    int DiscussionCount,
-    int ReplyCount,
-    int FollowerCount);
-
-public record CommunityStatsDto(
-    string PublicId,
-    string Name,
-    string? Description,
-    string AvatarUrl,
-    int HubCount,
-    int SpaceCount,
-    int DiscussionCount,
-    int ReplyCount);
-
-// Read state DTOs
-public record ReadStateDto(
-    string UserId,
-    string DiscussionId,
-    string? LastReadPostId,
-    DateTime LastReadAt);
-
-public record PostNumberResult(int PostNumber);
-
-// Notification DTOs
-public record NotificationDto(
-    string PublicId,
-    string Type,
-    string Title,
-    string? Body,
-    string? SourcePostId,
-    string? SourceDiscussionId,
-    string? ActorUserId,
-    bool IsRead,
-    DateTime CreatedAt);
-
-public record UnreadCountDto(int Count);
-
-// Follow DTOs
-public record FollowStatusDto(bool IsFollowing, string? Level);
-public record FollowResultDto(bool IsFollowing, string? Level);
-public record FollowedEntitiesResult(List<string> PublicIds);
-
-// Read state update DTO
-public record ReadStateUpdateDto(string DiscussionId, string PostId, long Timestamp);
-
-// Reaction DTOs
-public record MyReactionDto(string? Reaction);
-
-// Markup DTOs
-public record MarkupPreviewResult(string Html);
-
-// User DTOs
-public record UserStatsDto(
-    string PublicId,
-    string DisplayName,
-    string AvatarUrl,
-    int DiscussionCount,
-    int ReplyCount,
-    int FollowerCount,
-    int FollowingCount);
-
-public record ActivityHistoryDto(
-    List<DailyActivityDto> Activities);
-
-public record DailyActivityDto(
-    string Date,
-    int PostCount,
-    int DiscussionCount);
-
-public record UserFollowStatusDto(
-    bool IsFollowing);
-
-// Discussion preview DTO
-public record DiscussionPreviewDto(
-    string Content);
-
-// Discussion stats DTO (for popups)
-public record DiscussionStatsDto(
-    int PostCount,
-    int Views);
+// Paged result for moderation responses
+public record PagedResult<T>(
+    IEnumerable<T> Items,
+    int Offset,
+    int PageSize,
+    bool HasMoreItems);

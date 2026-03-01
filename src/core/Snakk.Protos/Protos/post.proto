@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Post";
+
+package snakk.post;
+
+import "Protos/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service PostService {
+  rpc GetPostsByDiscussion (GetPostsByDiscussionRequest) returns (PagedEnrichedPostList);
+  rpc CreatePost (CreatePostRequest) returns (PostCreatedInfo);
+  rpc EditPost (EditPostRequest) returns (EditPostResponse);
+  rpc GetPostNumber (GetPostNumberRequest) returns (PostNumberResponse);
+  rpc GetPostHistory (GetPostHistoryRequest) returns (PostHistoryResponse);
+}
+
+// --- Requests ---
+
+message GetPostsByDiscussionRequest {
+  string discussion_id = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+}
+
+message CreatePostRequest {
+  string discussion_id = 1;
+  string content = 2;
+  optional string reply_to_post_id = 3;
+}
+
+message EditPostRequest {
+  string post_id = 1;
+  string content = 2;
+}
+
+message GetPostNumberRequest {
+  string discussion_id = 1;
+  string post_id = 2;
+}
+
+message GetPostHistoryRequest {
+  string post_id = 1;
+}
+
+// --- Responses ---
+
+message EnrichedPostInfo {
+  int32 post_number = 1;
+  string public_id = 2;
+  string content = 3;
+  google.protobuf.Timestamp created_at = 4;
+  optional google.protobuf.Timestamp edited_at = 5;
+  bool is_first_post = 6;
+  bool is_deleted = 7;
+  string created_by_user_id = 8;
+  snakk.AuthorRef author = 9;
+  optional snakk.ReplyToRef reply_to = 10;
+  PostReactions reactions = 11;
+}
+
+message PostReactions {
+  snakk.ReactionCounts counts = 1;
+  optional string user_reaction = 2;
+}
+
+message PagedEnrichedPostList {
+  repeated EnrichedPostInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message PostCreatedInfo {
+  string public_id = 1;
+  string content = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string discussion_id = 4;
+}
+
+message EditPostResponse {
+  string rendered_html = 1;
+}
+
+message PostNumberResponse {
+  int32 post_number = 1;
+}
+
+message PostHistoryResponse {
+  string rendered_html = 1;
+}

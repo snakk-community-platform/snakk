@@ -12,6 +12,7 @@ public class NotificationUseCaseTests
 {
     private readonly Mock<INotificationRepository> _mockNotificationRepository = new();
     private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<ICounterService> _mockCounterService = new();
     private NotificationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -19,7 +20,8 @@ public class NotificationUseCaseTests
     {
         _useCase = new NotificationUseCase(
             _mockNotificationRepository.Object,
-            _mockRealtimeNotifier.Object);
+            _mockRealtimeNotifier.Object,
+            _mockCounterService.Object);
     }
 
     #region GetNotificationsAsync Tests

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Services;
@@ -20,10 +21,10 @@ public class SpaceManagementService : ISpaceManagementService
         _logger = logger;
     }
 
-    public async Task<SpaceOverviewDto?> GetOverviewAsync(string communitySlug, string spaceSlug, CancellationToken cancellationToken = default)
+    public async Task<SpaceOverviewDto?> GetOverviewAsync(string spaceId, CancellationToken cancellationToken = default)
     {
         var space = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == communitySlug && s.Slug == spaceSlug)
+            .Where(s => s.PublicId == spaceId)
             .Include(s => s.Hub)
             .ThenInclude(h => h.Community)
             .FirstOrDefaultAsync(cancellationToken);
@@ -34,15 +35,6 @@ public class SpaceManagementService : ISpaceManagementService
         var now = DateTime.UtcNow;
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
-
-        // Get stats
-        var totalDiscussions = await _context.Discussions
-            .Where(d => d.SpaceId == space.Id)
-            .CountAsync(cancellationToken);
-
-        var totalPosts = await _context.Posts
-            .Where(p => p.Discussion.SpaceId == space.Id)
-            .CountAsync(cancellationToken);
 
         var followers = await _context.Follows
             .Where(f => f.SpaceId == space.Id)
@@ -95,7 +87,7 @@ public class SpaceManagementService : ISpaceManagementService
                 Description = p.Discussion.Title,
                 UserDisplayName = p.CreatedByUser.DisplayName,
                 Timestamp = p.CreatedAt,
-                LinkUrl = $"/c/{communitySlug}/s/{spaceSlug}/d/{p.Discussion.Id}"
+                LinkUrl = $"/c/{space.Hub.Community.Slug}/s/{space.Slug}/d/{p.Discussion.Id}"
             })
             .ToListAsync(cancellationToken);
 
@@ -110,8 +102,8 @@ public class SpaceManagementService : ISpaceManagementService
             HubSlug = space.Hub.Slug,
             HubName = space.Hub.Name,
             CreatedAt = space.CreatedAt,
-            TotalDiscussions = totalDiscussions,
-            TotalPosts = totalPosts,
+            TotalDiscussions = space.DiscussionCount,
+            TotalPosts = space.PostCount,
             Followers = followers,
             PostsToday = postsToday,
             PostsThisWeek = postsThisWeek,
@@ -123,10 +115,10 @@ public class SpaceManagementService : ISpaceManagementService
         };
     }
 
-    public async Task<SpaceSettingsDto?> GetSettingsAsync(string communitySlug, string spaceSlug, CancellationToken cancellationToken = default)
+    public async Task<SpaceSettingsDto?> GetSettingsAsync(string spaceId, CancellationToken cancellationToken = default)
     {
         var space = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == communitySlug && s.Slug == spaceSlug)
+            .Where(s => s.PublicId == spaceId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (space == null)
@@ -150,10 +142,10 @@ public class SpaceManagementService : ISpaceManagementService
         };
     }
 
-    public async Task<SpaceSettingsDto?> UpdateSettingsAsync(string communitySlug, string spaceSlug, UpdateSpaceSettingsRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceSettingsDto?> UpdateSettingsAsync(string spaceId, UpdateSpaceSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var space = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == communitySlug && s.Slug == spaceSlug)
+            .Where(s => s.PublicId == spaceId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (space == null)
@@ -165,17 +157,17 @@ public class SpaceManagementService : ISpaceManagementService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return await GetSettingsAsync(communitySlug, spaceSlug, cancellationToken);
+        return await GetSettingsAsync(spaceId, cancellationToken);
     }
 
-    public async Task<SpaceModerationDto> GetModerationDataAsync(string communitySlug, string spaceSlug, CancellationToken cancellationToken = default)
+    public async Task<SpaceModerationDto> GetModerationDataAsync(string spaceId, CancellationToken cancellationToken = default)
     {
-        var spaceId = await _context.Spaces
-            .Where(s => s.Hub.Community.Slug == communitySlug && s.Slug == spaceSlug)
+        var spaceDbId = await _context.Spaces
+            .Where(s => s.PublicId == spaceId)
             .Select(s => s.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (spaceId == 0)
+        if (spaceDbId == 0)
             return new SpaceModerationDto();
 
         var now = DateTime.UtcNow;
@@ -183,7 +175,7 @@ public class SpaceManagementService : ISpaceManagementService
 
         // Get pending reports
         var pendingReports = await _context.Reports
-            .Where(r => r.SpaceId == spaceId && r.StatusId == (int)ReportStatusEnum.Pending)
+            .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Pending)
             .Include(r => r.ReporterUser)
             .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
@@ -221,17 +213,17 @@ public class SpaceManagementService : ISpaceManagementService
 
         // Get stats
         var totalReports = await _context.Reports
-            .Where(r => r.SpaceId == spaceId)
+            .Where(r => r.SpaceId == spaceDbId)
             .CountAsync(cancellationToken);
 
         var pendingCount = pendingReports.Count;
 
         var resolvedCount = await _context.Reports
-            .Where(r => r.SpaceId == spaceId && r.StatusId == (int)ReportStatusEnum.Resolved)
+            .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Resolved)
             .CountAsync(cancellationToken);
 
         var dismissedCount = await _context.Reports
-            .Where(r => r.SpaceId == spaceId && r.StatusId == (int)ReportStatusEnum.Dismissed)
+            .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Dismissed)
             .CountAsync(cancellationToken);
 
         var actionsThisWeek = recentActions.Count(a => a.Timestamp >= weekAgo);
@@ -251,22 +243,56 @@ public class SpaceManagementService : ISpaceManagementService
         };
     }
 
-    public async Task<SpaceRulesDto> GetRulesAsync(string communitySlug, string spaceSlug, CancellationToken cancellationToken = default)
+    public async Task<SpaceRulesDto> GetRulesAsync(string spaceId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement space rules storage in database
-        // For now, return empty
-        return new SpaceRulesDto
-        {
-            Rules = new List<SpaceRuleDto>()
-        };
+        var rules = await _context.SpaceRules
+            .Where(r => r.Space.PublicId == spaceId)
+            .OrderBy(r => r.SortOrder)
+            .Select(r => new SpaceRuleDto
+            {
+                Id = r.Id,
+                Title = r.Title,
+                Description = r.Description,
+                Order = r.SortOrder
+            })
+            .ToListAsync(cancellationToken);
+
+        return new SpaceRulesDto { Rules = rules };
     }
 
-    public async Task<SpaceRulesDto> UpdateRulesAsync(string communitySlug, string spaceSlug, UpdateSpaceRulesRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceRulesDto> UpdateRulesAsync(string spaceId, UpdateSpaceRulesRequest request, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement space rules storage in database
-        return new SpaceRulesDto
+        var space = await _context.Spaces
+            .Where(s => s.PublicId == spaceId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (space == null)
+            return new SpaceRulesDto { Rules = new List<SpaceRuleDto>() };
+
+        var existingRules = await _context.SpaceRules
+            .Where(r => r.SpaceId == space.Id)
+            .ToListAsync(cancellationToken);
+
+        _context.SpaceRules.RemoveRange(existingRules);
+
+        var now = DateTime.UtcNow;
+        var newRules = request.Rules.Select((r, index) => new SpaceRuleDatabaseEntity
         {
-            Rules = request.Rules
-        };
+            SpaceId = space.Id,
+            Title = r.Title,
+            Description = r.Description,
+            SortOrder = index,
+            CreatedAt = now
+        }).ToList();
+
+        _context.SpaceRules.AddRange(newRules);
+
+        // Update denormalized fields
+        space.HasRules = newRules.Count > 0;
+        space.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return await GetRulesAsync(spaceId, cancellationToken);
     }
 }

@@ -1,0 +1,9 @@
+@page "/partials/space-rules"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.SpaceRulesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_SpaceRules"
+         model="new SidebarSpaceRulesVM(Model.Rules, Model.Community, Model.HubSlug, Model.CommunitySlug, Model.ParentHubHasRules, Model.ParentCommunityHasRules, Model.CacheSource)" />

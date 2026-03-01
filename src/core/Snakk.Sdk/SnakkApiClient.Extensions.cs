@@ -4,6 +4,16 @@ using System.Text.Json;
 namespace Snakk.Sdk;
 
 /// <summary>
+/// Extend CurrentUserResponse with fields added after the last SDK generation.
+/// These will be removed once the SDK is regenerated from the updated OpenAPI spec.
+/// </summary>
+public partial class CurrentUserResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("autoFollowOnReply")]
+    public bool AutoFollowOnReply { get; set; } = true;
+}
+
+/// <summary>
 /// Manual extensions to the auto-generated SnakkApiClient.
 /// This file provides properly-typed wrapper methods for endpoints that need them.
 /// </summary>

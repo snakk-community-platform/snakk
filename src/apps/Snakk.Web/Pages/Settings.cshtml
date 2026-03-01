@@ -5,14 +5,12 @@
     ViewData["Title"] = "Profile Settings";
 }
 
-<div class="max-w-2xl mx-auto">
-    <!-- Breadcrumb -->
+<div class="breadcrumb-bar">
     <nav class="breadcrumb">
         <a href="/">Home</a>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current">Profile Settings</span>
     </nav>
-
+</div>
+<div class="max-w-2xl mx-auto px-4 py-8">
     <div class="page-header">
         <h1>Profile Settings</h1>
         <p>Manage your account and preferences</p>
@@ -167,22 +165,14 @@
    profile data loading, avatar upload, and form submissions. Not reused elsewhere. *@
 
 (function() {
-    const apiBaseUrl = window.apiBaseUrl || 'https://localhost:7291';
     let userId = null;
     let userData = null;
 
     // Client-side authentication check and profile data loading
     async function initProfileSettings() {
-        // Check authentication
-        if (!window.snakkAuth || !window.snakkAuth.isAuthenticated()) {
-            console.log('[Profile Settings] Not authenticated, redirecting to login');
-            window.location.href = '/auth/login?returnUrl=/settings';
-            return;
-        }
-
-        // Load profile data from API
+        // Load profile data via BFF
         try {
-            const response = await fetch(`${apiBaseUrl}/auth/me`, {
+            const response = await fetch('/bff/me', {
                 credentials: 'include'
             });
 
@@ -205,7 +195,7 @@
         // Update avatar
         const avatarImg = document.getElementById('avatar-preview');
         if (avatarImg) {
-            avatarImg.src = `${apiBaseUrl}/avatars/${data.publicId}`;
+            avatarImg.src = `/avatars/${data.publicId}`;
         }
 
         // Update display name input
@@ -292,7 +282,7 @@
         if (!avatarPreview || !userId) return;
         // Add cache-busting query param
         const timestamp = new Date().getTime();
-        avatarPreview.src = `${apiBaseUrl}/avatars/${userId}?t=${timestamp}`;
+        avatarPreview.src = `/avatars/${userId}?t=${timestamp}`;
     }
 
     function handleFileChange(e) {
@@ -338,7 +328,7 @@
             const formData = new FormData();
             formData.append('avatar', file);
 
-            const response = await fetch(`${apiBaseUrl}/avatars/upload`, {
+            const response = await fetch(`/avatars/upload`, {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
@@ -375,7 +365,7 @@
         deleteBtn.textContent = 'Reverting...';
 
         try {
-            const response = await fetch(`${apiBaseUrl}/avatars`, {
+            const response = await fetch(`/avatars`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -414,7 +404,7 @@
         }
 
         try {
-            const response = await fetch(`${apiBaseUrl}/auth/update-profile`, {
+            const response = await fetch(`/bff/me/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -443,7 +433,7 @@
         const preferEndlessScroll = checkbox.checked;
 
         try {
-            const response = await fetch(`${apiBaseUrl}/auth/preferences`, {
+            const response = await fetch(`/bff/me/preferences`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -471,7 +461,7 @@
         const autoFollowOnReply = checkbox.checked;
 
         try {
-            const response = await fetch(`${apiBaseUrl}/auth/preferences`, {
+            const response = await fetch(`/bff/me/preferences`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

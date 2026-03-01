@@ -1,0 +1,9 @@
+@page "/partials/trending-discussions"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.TrendingDiscussionsModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_TrendingDiscussions"
+         model="new SidebarTrendingDiscussionsVM(Model.Discussions, Model.Community, Model.CacheSource)" />

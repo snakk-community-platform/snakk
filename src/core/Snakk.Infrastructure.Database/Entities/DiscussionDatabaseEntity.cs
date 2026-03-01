@@ -23,6 +23,7 @@ public class DiscussionDatabaseEntity
     public bool IsLocked { get; set; }
     public int PostCount { get; set; }
     public int ReactionCount { get; set; } // Unique users who reacted to any post in discussion
+    public int FollowerCount { get; set; }
 
     // Tags (comma-separated for simplicity, e.g. "feature,bug,help")
     public string? Tags { get; set; }

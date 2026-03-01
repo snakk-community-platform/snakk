@@ -1,0 +1,38 @@
+@model Snakk.Web.Pages.ViewModels.SidebarCommunityRulesVM
+
+<div data-cache-source="@Model.CacheSource">
+@if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
+{
+    <p class="text-sm text-base-content/50">No rules defined for this community yet.</p>
+}
+else
+{
+    @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
+    {
+        <details class="group">
+            <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
+                <span>@(index + 1). @rule.Title</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="flex-shrink-0 transition-transform group-open:rotate-180">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </summary>
+            <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Description</p>
+        </details>
+    }
+}
+
+<div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
+    <a href="/rules"
+       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+        <span>Site Rules</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+    </a>
+</div>
+</div>

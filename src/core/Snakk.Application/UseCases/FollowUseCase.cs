@@ -4,17 +4,20 @@ using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Models;
+using Snakk.Application.Services;
 
 public class FollowUseCase(
     IFollowRepository followRepository,
     IDiscussionRepository discussionRepository,
     ISpaceRepository spaceRepository,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    ICounterService counterService)
 {
     private readonly IFollowRepository _followRepository = followRepository;
     private readonly IDiscussionRepository _discussionRepository = discussionRepository;
     private readonly ISpaceRepository _spaceRepository = spaceRepository;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly ICounterService _counterService = counterService;
 
     /// <summary>
     /// Toggle follow state for a discussion.
@@ -33,12 +36,14 @@ public class FollowUseCase(
             // Unfollow
             existingFollow.MarkForRemoval();
             await _followRepository.DeleteAsync(existingFollow);
+            await _counterService.DecrementDiscussionFollowerCountAsync(discussionId);
             return Result<bool>.Success(false);
         }
 
         // Follow
         var follow = Follow.CreateForDiscussion(userId, discussionId);
         await _followRepository.AddAsync(follow);
+        await _counterService.IncrementDiscussionFollowerCountAsync(discussionId);
         return Result<bool>.Success(true);
     }
 
@@ -135,12 +140,14 @@ public class FollowUseCase(
             // Unfollow
             existingFollow.MarkForRemoval();
             await _followRepository.DeleteAsync(existingFollow);
+            await _counterService.DecrementUserFollowerCountAsync(followedUserId);
             return Result<bool>.Success(false);
         }
 
         // Follow
         var follow = Follow.CreateForUser(userId, followedUserId);
         await _followRepository.AddAsync(follow);
+        await _counterService.IncrementUserFollowerCountAsync(followedUserId);
         return Result<bool>.Success(true);
     }
 

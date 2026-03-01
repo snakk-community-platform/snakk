@@ -1,0 +1,9 @@
+@page "/partials/trending-spaces"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.TrendingSpacesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_TrendingSpaces"
+         model="new SidebarTrendingSpacesVM(Model.Spaces, Model.Community, Model.CacheSource)" />

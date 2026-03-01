@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Snakk.Web.Models;
 using Snakk.Web.Services;
+using Snakk.Protos.Search;
+using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages;
 
@@ -34,11 +35,11 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
     [BindProperty(SupportsGet = true)]
     public string? Tab { get; set; }
 
-    public PagedResult<DiscussionSearchResultDto>? Discussions { get; set; }
-    public PagedResult<PostSearchResultDto>? Posts { get; set; }
+    public PagedDiscussionSearchResults? Discussions { get; set; }
+    public PagedPostSearchResults? Posts { get; set; }
     public PagedResult<dynamic>? Spaces { get; set; } // TODO: Replace with SpaceSearchResultDto when available
-    public PagedResult<UserProfileDto>? Users { get; set; }
-    public UserProfileDto? FilteredUser { get; set; }
+    public PagedResult<UserProfileInfo>? Users { get; set; }
+    public UserProfileInfo? FilteredUser { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
 
     public string BuildSearchUrl(string? query = null, string? authorPublicId = null, string? searchType = null, int offset = 0, string? dateRange = null)
@@ -69,11 +70,11 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
         // Normalize search type
         SearchType = SearchType?.ToLowerInvariant() ?? "post";
 
-        // Fetch user preference if authenticated
-        var userTask = _apiClient.GetCurrentUserAsync();
+        // Read preference from cookie (no API call needed)
+        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // If filtering by author, get their profile
-        Task<UserProfileDto?>? filteredUserTask = null;
+        Task<UserProfileInfo?>? filteredUserTask = null;
         if (!string.IsNullOrEmpty(AuthorPublicId))
         {
             filteredUserTask = _apiClient.GetUserProfileAsync(AuthorPublicId);
@@ -113,7 +114,7 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
 
             case "user":
                 // TODO: Implement user search when API is available
-                Users = new PagedResult<UserProfileDto>(
+                Users = new PagedResult<UserProfileInfo>(
                     Items: [],
                     Offset: offset,
                     PageSize: 20,
@@ -132,20 +133,11 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
                 break;
         }
 
-        // Await remaining tasks
-        try
+        // Await filtered user task if active
+        if (filteredUserTask != null)
         {
-            await Task.WhenAll(
-                userTask,
-                filteredUserTask ?? Task.CompletedTask);
+            try { await filteredUserTask; } catch { }
         }
-        catch
-        {
-            // Continue with whatever succeeded
-        }
-
-        var user = userTask.IsCompletedSuccessfully ? userTask.Result : null;
-        PreferEndlessScroll = user?.PreferEndlessScroll ?? true;
 
         if (filteredUserTask?.IsCompletedSuccessfully == true)
         {

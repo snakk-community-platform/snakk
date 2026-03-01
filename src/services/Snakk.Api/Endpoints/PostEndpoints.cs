@@ -3,6 +3,7 @@ namespace Snakk.Api.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 using Snakk.Api.Extensions;
 using Snakk.Api.Models;
+using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Snakk.Domain.Repositories;
@@ -18,25 +19,24 @@ public static class PostEndpoints
         // All post endpoints require authentication
         group.MapPost("/", CreatePostAsync)
             .WithName("CreatePost")
+            .Produces<PostCreatedResponse>(StatusCodes.Status201Created)
             .RequireAuthorization()
             .RequireRateLimiting("api")
             .AddEndpointFilter<ValidationFilter<CreatePostRequest>>();
 
-        // API endpoints under /api/posts
-        var apiGroup = app.MapGroup("/api/posts")
-            .WithTags("Posts API")
-            .RequireAuthorization();
-
-        apiGroup.MapPost("/{publicId}/edit", EditPostHtmxAsync)
+        group.MapPost("/{publicId}/edit", EditPostHtmxAsync)
             .WithName("EditPostHtmx")
+            .RequireAuthorization()
             .RequireRateLimiting("api");
 
-        apiGroup.MapDelete("/{publicId}", DeletePostHtmxAsync)
+        group.MapDelete("/{publicId}", DeletePostHtmxAsync)
             .WithName("DeletePostHtmx")
+            .RequireAuthorization()
             .RequireRateLimiting("api");
 
-        apiGroup.MapGet("/{publicId}/history", GetPostHistoryHtmxAsync)
-            .WithName("GetPostHistoryHtmx");
+        group.MapGet("/{publicId}/history", GetPostHistoryHtmxAsync)
+            .WithName("GetPostHistoryHtmx")
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> CreatePostAsync(
@@ -58,13 +58,11 @@ public static class PostEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Created($"/posts/{result.Value!.PublicId}", new
-        {
-            publicId = result.Value.PublicId.Value,
-            content = result.Value.Content,
-            createdAt = result.Value.CreatedAt,
-            discussionId = result.Value.DiscussionId.Value
-        });
+        return TypedResults.Created($"/posts/{result.Value!.PublicId}", new PostCreatedResponse(
+            PublicId: result.Value.PublicId.Value,
+            Content: result.Value.Content,
+            CreatedAt: result.Value.CreatedAt,
+            DiscussionId: result.Value.DiscussionId.Value));
     }
 
     private static async Task<IResult> EditPostHtmxAsync(

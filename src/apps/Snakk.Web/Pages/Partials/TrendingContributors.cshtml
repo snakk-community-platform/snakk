@@ -1,0 +1,9 @@
+@page "/partials/trending-contributors"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.TrendingContributorsModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_TrendingContributors"
+         model="new SidebarTrendingContributorsVM(Model.Contributors, Model.Community, Model.CacheSource)" />

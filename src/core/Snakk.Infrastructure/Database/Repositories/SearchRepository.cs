@@ -132,18 +132,21 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
 
     public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId)
     {
-        return await _context.Discussions
+        return await _context.Users
             .AsNoTracking()
-            .Where(d => d.CreatedByUser.PublicId == authorPublicId)
-            .CountAsync();
+            .Where(u => u.PublicId == authorPublicId)
+            .Select(u => u.DiscussionCount)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<int> GetPostCountByAuthorAsync(string authorPublicId)
     {
-        return await _context.Posts
+        // ReplyCount = non-first posts. Add DiscussionCount to get total posts (each discussion has a first post).
+        return await _context.Users
             .AsNoTracking()
-            .Where(p => p.CreatedByUser.PublicId == authorPublicId)
-            .CountAsync();
+            .Where(u => u.PublicId == authorPublicId)
+            .Select(u => u.ReplyCount + u.DiscussionCount)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<PagedResult<DiscussionListItemDto>> GetDiscussionsBySpaceAsync(
@@ -169,7 +172,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.Posts.Count(p => !p.IsDeleted),
+                d.PostCount,
                 d.ReactionCount,
                 d.CreatedByUser.PublicId,
                 d.CreatedByUser.DisplayName,
@@ -194,15 +197,11 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        // Single query that gets hubs with their stats using navigation properties
-        var query = _context.Hubs.AsNoTracking()
-            .OrderBy(h => h.Name);
-
-        var totalCount = await query.CountAsync();
-
-        var items = await query
+        // Use denormalized counts + fetch one extra row to check HasMoreItems
+        var hubs = await _context.Hubs.AsNoTracking()
+            .OrderBy(h => h.Name)
             .Skip(offset)
-            .Take(pageSize)
+            .Take(pageSize + 1)
             .Select(h => new HubListItemDto(
                 h.PublicId,
                 h.Community.PublicId,
@@ -210,21 +209,20 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 h.Slug,
                 h.Description,
                 h.CreatedAt,
-                h.Spaces.Count(),
-                h.Spaces.SelectMany(s => s.Discussions).Count(d => !d.IsDeleted),
-                h.Spaces
-                    .SelectMany(s => s.Discussions.Where(d => !d.IsDeleted))
-                    .SelectMany(d => d.Posts)
-                    .Count(p => !p.IsFirstPost && !p.IsDeleted)
+                h.SpaceCount,
+                h.DiscussionCount,
+                h.PostCount - h.DiscussionCount // ReplyCount = posts minus first posts
             ))
             .ToListAsync();
 
+        var hasMore = hubs.Count > pageSize;
+
         return new PagedResult<HubListItemDto>
         {
-            Items = items,
+            Items = hasMore ? hubs.Take(pageSize).ToList() : hubs,
             Offset = offset,
             PageSize = pageSize,
-            HasMoreItems = offset + items.Count < totalCount
+            HasMoreItems = hasMore
         };
     }
 
@@ -233,16 +231,12 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        // Single query that gets spaces with their stats using navigation properties
-        var query = _context.Spaces.AsNoTracking()
+        // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
+        var spaces = await _context.Spaces.AsNoTracking()
             .Where(s => s.Hub.PublicId == hubPublicId)
-            .OrderBy(s => s.Name);
-
-        var totalCount = await query.CountAsync();
-
-        var spaces = await query
+            .OrderBy(s => s.Name)
             .Skip(offset)
-            .Take(pageSize)
+            .Take(pageSize + 1)
             .Select(s => new
             {
                 PublicId = s.PublicId,
@@ -251,11 +245,8 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 Slug = s.Slug,
                 Description = s.Description,
                 CreatedAt = s.CreatedAt,
-                DiscussionCount = s.Discussions.Count(d => !d.IsDeleted),
-                ReplyCount = s.Discussions
-                    .Where(d => !d.IsDeleted)
-                    .SelectMany(d => d.Posts)
-                    .Count(p => !p.IsFirstPost && !p.IsDeleted),
+                DiscussionCount = s.DiscussionCount,
+                ReplyCount = s.PostCount - s.DiscussionCount,
                 LatestDiscussion = s.Discussions
                     .Where(d => !d.IsDeleted)
                     .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
@@ -268,13 +259,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                         AuthorPublicId = d.CreatedByUser.PublicId,
                         AuthorDisplayName = d.CreatedByUser.DisplayName,
                         AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                        PostCount = d.Posts.Count(p => !d.IsDeleted)
+                        PostCount = d.PostCount
                     })
                     .FirstOrDefault()
             })
             .ToListAsync();
 
-        var items = spaces.Select(s => new SpaceListItemDto(
+        var hasMore = spaces.Count > pageSize;
+
+        var items = spaces.Take(pageSize).Select(s => new SpaceListItemDto(
             s.PublicId,
             s.HubPublicId,
             s.Name,
@@ -301,7 +294,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             Items = items,
             Offset = offset,
             PageSize = pageSize,
-            HasMoreItems = offset + items.Count < totalCount
+            HasMoreItems = hasMore
         };
     }
 

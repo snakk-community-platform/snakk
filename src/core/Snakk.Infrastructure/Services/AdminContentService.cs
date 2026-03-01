@@ -217,7 +217,7 @@ public class AdminContentService : IAdminContentService
                 SpaceName = d.Space.Name,
                 IsPinned = d.IsPinned,
                 IsLocked = d.IsLocked,
-                PostCount = d.Posts.Count,
+                PostCount = d.PostCount,
                 CreatedAt = d.CreatedAt
             })
             .ToListAsync();

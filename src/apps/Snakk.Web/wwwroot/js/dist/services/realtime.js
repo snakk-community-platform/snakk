@@ -11,6 +11,16 @@
 // ============================================================================
 (function () {
     'use strict';
+    // Use SNAKK debug logger if available, otherwise noop
+    const snakkDebug = window.SnakkDebug;
+    function debugLog(message) {
+        if (snakkDebug?.log) {
+            snakkDebug.log('SignalR', message);
+        }
+        else {
+            console.debug(message);
+        }
+    }
     // Initialize SignalR connection to dedicated Realtime service
     const realtimeUrl = window.realtimeServiceUrl || 'http://localhost:5300/realtime';
     // Exponential backoff: 0s, 2s, 10s, 30s (SignalR will repeat the last value)
@@ -79,7 +89,7 @@
     }
     // Handle incoming updates
     connection.on("ReceiveUpdate", function (message) {
-        console.log('Received realtime update:', message.eventType);
+        debugLog(`Update: ${message.eventType}`);
         // Handle reaction updates specially
         if (message.eventType === 'reaction-updated' && message.postId && message.counts) {
             handleReactionUpdate(message.postId, message.counts);
@@ -87,7 +97,7 @@
         }
         const target = document.getElementById(message.targetId);
         if (!target) {
-            console.warn('Target element not found:', message.targetId);
+            debugLog(`Target not found: ${message.targetId}`);
             return;
         }
         const wasNearBottom = isNearBottom();
@@ -139,25 +149,25 @@
     function subscribeToGroups() {
         // Always subscribe to global
         connection.invoke("SubscribeToGlobal")
-            .catch(err => console.error('Failed to subscribe to global:', err));
+            .catch(_err => debugLog('Failed to subscribe to global'));
         // Check current page and subscribe accordingly
         const discussionId = document.body.dataset.discussionId;
         const spaceSlug = document.body.dataset.spaceSlug;
         const hubSlug = document.body.dataset.hubSlug;
         if (discussionId) {
-            console.log('Subscribing to discussion:', discussionId);
+            debugLog(`Subscribe: discussion ${discussionId}`);
             connection.invoke("SubscribeToDiscussion", discussionId)
-                .catch(err => console.error('Failed to subscribe to discussion:', err));
+                .catch(_err => debugLog('Failed to subscribe to discussion'));
         }
         if (spaceSlug && hubSlug) {
-            console.log('Subscribing to space:', hubSlug, spaceSlug);
+            debugLog(`Subscribe: space ${hubSlug}/${spaceSlug}`);
             connection.invoke("SubscribeToSpace", hubSlug, spaceSlug)
-                .catch(err => console.error('Failed to subscribe to space:', err));
+                .catch(_err => debugLog('Failed to subscribe to space'));
         }
         if (hubSlug) {
-            console.log('Subscribing to hub:', hubSlug);
+            debugLog(`Subscribe: hub ${hubSlug}`);
             connection.invoke("SubscribeToHub", hubSlug)
-                .catch(err => console.error('Failed to subscribe to hub:', err));
+                .catch(_err => debugLog('Failed to subscribe to hub'));
         }
         subscribeToUserNotifications();
     }
@@ -174,73 +184,73 @@
         const hubSlug = document.body.dataset.hubSlug;
         // Unsubscribe from old discussion if changed
         if (currentSubscriptions.discussionId && currentSubscriptions.discussionId !== discussionId) {
-            console.log('Unsubscribing from old discussion:', currentSubscriptions.discussionId);
+            debugLog(`Unsubscribe: discussion ${currentSubscriptions.discussionId}`);
             connection.invoke("UnsubscribeFromDiscussion", currentSubscriptions.discussionId)
-                .catch(err => console.warn('Failed to unsubscribe from discussion:', err));
+                .catch(_err => debugLog('Failed to unsubscribe from discussion'));
         }
         // Subscribe to new discussion
         if (discussionId && discussionId !== currentSubscriptions.discussionId) {
-            console.log('Subscribing to discussion:', discussionId);
+            debugLog(`Subscribe: discussion ${discussionId}`);
             connection.invoke("SubscribeToDiscussion", discussionId)
-                .catch(err => console.error('Failed to subscribe to discussion:', err));
+                .catch(_err => debugLog('Failed to subscribe to discussion'));
         }
         currentSubscriptions.discussionId = discussionId || null;
         // Unsubscribe from old space if changed
         if (currentSubscriptions.spaceSlug && currentSubscriptions.hubSlug &&
             (currentSubscriptions.spaceSlug !== spaceSlug || currentSubscriptions.hubSlug !== hubSlug)) {
-            console.log('Unsubscribing from old space:', currentSubscriptions.hubSlug, currentSubscriptions.spaceSlug);
+            debugLog(`Unsubscribe: space ${currentSubscriptions.hubSlug}/${currentSubscriptions.spaceSlug}`);
             connection.invoke("UnsubscribeFromSpace", currentSubscriptions.hubSlug, currentSubscriptions.spaceSlug)
-                .catch(err => console.warn('Failed to unsubscribe from space:', err));
+                .catch(_err => debugLog('Failed to unsubscribe from space'));
         }
         // Subscribe to new space
         if (spaceSlug && hubSlug && (spaceSlug !== currentSubscriptions.spaceSlug || hubSlug !== currentSubscriptions.hubSlug)) {
-            console.log('Subscribing to space:', hubSlug, spaceSlug);
+            debugLog(`Subscribe: space ${hubSlug}/${spaceSlug}`);
             connection.invoke("SubscribeToSpace", hubSlug, spaceSlug)
-                .catch(err => console.error('Failed to subscribe to space:', err));
+                .catch(_err => debugLog('Failed to subscribe to space'));
         }
         currentSubscriptions.spaceSlug = spaceSlug || null;
         currentSubscriptions.hubSlug = hubSlug || null;
         // Unsubscribe from old hub if changed
         if (currentSubscriptions.hubSlug && currentSubscriptions.hubSlug !== hubSlug) {
-            console.log('Unsubscribing from old hub:', currentSubscriptions.hubSlug);
+            debugLog(`Unsubscribe: hub ${currentSubscriptions.hubSlug}`);
             connection.invoke("UnsubscribeFromHub", currentSubscriptions.hubSlug)
-                .catch(err => console.warn('Failed to unsubscribe from hub:', err));
+                .catch(_err => debugLog('Failed to unsubscribe from hub'));
         }
         // Subscribe to new hub
         if (hubSlug && hubSlug !== currentSubscriptions.hubSlug) {
-            console.log('Subscribing to hub:', hubSlug);
+            debugLog(`Subscribe: hub ${hubSlug}`);
             connection.invoke("SubscribeToHub", hubSlug)
-                .catch(err => console.error('Failed to subscribe to hub:', err));
+                .catch(_err => debugLog('Failed to subscribe to hub'));
         }
     }
     // Subscribe to user notifications if logged in
     function subscribeToUserNotifications() {
         const userId = window.currentUserId;
         if (userId) {
-            console.log('Subscribing to user notifications:', userId);
+            debugLog(`Subscribe: notifications ${userId}`);
             connection.invoke("SubscribeToUserNotifications", userId)
-                .catch(err => console.error('Failed to subscribe to user notifications:', err));
+                .catch(_err => debugLog('Failed to subscribe to notifications'));
         }
     }
     // Start connection
     connection.start()
         .then(() => {
-        console.log('✅ Realtime connection established');
+        debugLog('Connected');
         subscribeToGroups();
     })
-        .catch(err => {
-        console.error('❌ SignalR connection error:', err);
+        .catch(_err => {
+        debugLog('Connection error');
     });
     // Re-subscribe on reconnect (idempotent)
     connection.onreconnected(() => {
-        console.log('🔄 Reconnected to realtime server');
+        debugLog('Reconnected');
         subscribeToGroups();
     });
     connection.onreconnecting(() => {
-        console.log('⏳ Reconnecting to realtime server...');
+        debugLog('Reconnecting...');
     });
     connection.onclose(() => {
-        console.log('❌ Realtime connection closed');
+        debugLog('Disconnected');
     });
     // Update subscriptions when navigating via HTMX
     document.body.addEventListener('htmx:load', function () {
@@ -249,7 +259,7 @@
     });
     // Handle notification count updates
     connection.on("ReceiveNotificationCount", function (data) {
-        console.log('Notification count update:', data.unreadCount);
+        debugLog(`Notification count: ${data.unreadCount}`);
         // Dispatch custom event
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification-count', {
             detail: { unreadCount: data.unreadCount }
@@ -257,7 +267,7 @@
     });
     // Handle new notifications
     connection.on("ReceiveNotification", function (notification) {
-        console.log('New notification:', notification.type);
+        debugLog(`Notification: ${notification.type}`);
         // Dispatch custom event
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification', {
             detail: { notification }

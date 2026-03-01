@@ -26,7 +26,7 @@ public class ManageScopeService
             if (!string.IsNullOrEmpty(spaceSlug))
                 query += $"&spaceSlug={Uri.EscapeDataString(spaceSlug)}";
 
-            var response = await _httpClient.GetAsync($"/api/manage/resolve{query}");
+            var response = await _httpClient.GetAsync($"/manage/resolve{query}");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
