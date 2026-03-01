@@ -57,12 +57,13 @@
             <span>Setup complete! Your Snakk instance is ready.</span>
         </div>
         <p class="text-base-content/70">
-            Services need to restart to apply the new configuration.
-            You'll be redirected to the homepage in <span id="countdown">10</span> seconds.
+            <span class="loading loading-spinner loading-xs"></span>
+            Services are restarting with your new configuration.
+            You'll be redirected to the homepage in <span id="countdown">20</span> seconds.
         </p>
         <p class="text-sm text-base-content/50">
-            You've been automatically logged in as admin. If the page doesn't load after redirect,
-            services may still be restarting — just refresh after a few seconds.
+            You've been automatically logged in as admin. If the homepage appears empty,
+            the API may still be starting — just refresh after a few seconds.
         </p>
     </div>
 </div>
@@ -145,7 +146,7 @@
             document.getElementById('success-display').classList.remove('hidden');
 
             // Countdown and redirect
-            var count = 10;
+            var count = 20;
             var countdownEl = document.getElementById('countdown');
             var interval = setInterval(function () {
                 count--;

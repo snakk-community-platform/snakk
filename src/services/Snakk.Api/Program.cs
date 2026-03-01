@@ -12,12 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-// Configure Kestrel for HTTP/1.1 (REST) + HTTP/2 (gRPC) on the same port
+// HTTP/2 only — required for gRPC over plaintext (h2c) in Docker
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ConfigureEndpointDefaults(listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+        listenOptions.Protocols = HttpProtocols.Http2;
     });
 });
 

@@ -292,6 +292,10 @@ public class SetupService
                 return;
             }
 
+            // Brief pause so the polling client catches the final seeder step (e.g. "avatars")
+            // before we overwrite it. The poll interval is 1.5s, so 2.5s guarantees at least one cycle.
+            await Task.Delay(2500);
+
             // Step 3: Generate JWT for auto-login (before marking complete, so services don't restart yet)
             InstallProgress.Step = "finalizing";
             InstallProgress.Message = "Generating authentication token...";
