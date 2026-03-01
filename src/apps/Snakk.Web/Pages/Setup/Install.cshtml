@@ -93,6 +93,10 @@
                 icon.textContent = '\u2717';
             } else if (status === 'hidden') {
                 el.classList.add('hidden');
+            } else if (status === 'waiting') {
+                el.className = 'flex items-center gap-2 text-base-content/30';
+                icon.className = 'w-4 h-4 inline-block shrink-0';
+                icon.textContent = '';
             }
         }
 
@@ -107,6 +111,8 @@
                     markStep(s, 'active');
                 } else if (!reached) {
                     markStep(s, 'done');
+                } else {
+                    markStep(s, 'waiting');
                 }
             }
         }

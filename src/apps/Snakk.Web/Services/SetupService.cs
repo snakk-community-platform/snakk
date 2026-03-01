@@ -350,7 +350,17 @@ public class SetupService
             while (await process.StandardOutput.ReadLineAsync() is { } line)
             {
                 outputLines.Add(line);
-                InstallProgress.Message = line;
+
+                // Only show meaningful lines as progress messages (skip raw SQL, blank lines, etc.)
+                var trimmed = line.Trim();
+                if (trimmed.Length > 0 && !trimmed.StartsWith("RETURNING", StringComparison.Ordinal)
+                                       && !trimmed.StartsWith("SELECT", StringComparison.Ordinal)
+                                       && !trimmed.StartsWith("INSERT", StringComparison.Ordinal)
+                                       && !trimmed.StartsWith("UPDATE", StringComparison.Ordinal)
+                                       && !trimmed.StartsWith("DELETE", StringComparison.Ordinal))
+                {
+                    InstallProgress.Message = line;
+                }
 
                 // Parse progress markers from seeder output
                 if (line.Contains("Applying pending migrations", StringComparison.OrdinalIgnoreCase))
