@@ -29,9 +29,7 @@ builder.Services.AddRateLimiting();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
 
-
 var app = builder.Build();
-
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

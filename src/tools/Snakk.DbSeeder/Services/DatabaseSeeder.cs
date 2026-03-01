@@ -32,6 +32,7 @@ public class DatabaseSeeder(
     public async Task SetupOnlyAsync()
     {
         await EnsureDefaultAdminExistsAsync();
+        await GenerateAllAvatarsAsync();
     }
 
     /// <summary>
@@ -67,6 +68,9 @@ public class DatabaseSeeder(
         var test5Community = await CreateTest5CommunityAsync(users);
 
         Console.WriteLine("Database seeding completed successfully.");
+
+        // Separate avatar generation phase
+        await GenerateAllAvatarsAsync();
     }
 
     private async Task ClearExistingDataAsync()
@@ -94,6 +98,46 @@ public class DatabaseSeeder(
         Console.WriteLine("Existing data cleared.");
     }
 
+    /// <summary>
+    /// Dedicated avatar generation phase. Scans the DB for all entities and generates
+    /// avatars for any that don't already have one on disk.
+    /// </summary>
+    public async Task GenerateAllAvatarsAsync()
+    {
+        Console.WriteLine("Generating avatars for all entities...");
+
+        // Users
+        var userPublicIds = await _context.Users.Select(u => u.PublicId).ToListAsync();
+        Console.WriteLine($"Generating avatars for {userPublicIds.Count} users...");
+        for (int i = 0; i < userPublicIds.Count; i++)
+        {
+            await _avatarService.GenerateUserAvatarAsync(userPublicIds[i]);
+            if ((i + 1) % 25 == 0 || i + 1 == userPublicIds.Count)
+                Console.WriteLine($"  User avatars: {i + 1}/{userPublicIds.Count}");
+        }
+
+        // Communities
+        var communityPublicIds = await _context.Communities.Select(c => c.PublicId).ToListAsync();
+        Console.WriteLine($"Generating avatars for {communityPublicIds.Count} communities...");
+        foreach (var id in communityPublicIds)
+            await _avatarService.GenerateCommunityAvatarAsync(id);
+
+        // Hubs
+        var hubPublicIds = await _context.Hubs.Select(h => h.PublicId).ToListAsync();
+        Console.WriteLine($"Generating avatars for {hubPublicIds.Count} hubs...");
+        foreach (var id in hubPublicIds)
+            await _avatarService.GenerateHubAvatarAsync(id);
+
+        // Spaces
+        var spacePublicIds = await _context.Spaces.Select(s => s.PublicId).ToListAsync();
+        Console.WriteLine($"Generating avatars for {spacePublicIds.Count} spaces...");
+        foreach (var id in spacePublicIds)
+            await _avatarService.GenerateSpaceAvatarAsync(id);
+
+        var total = userPublicIds.Count + communityPublicIds.Count + hubPublicIds.Count + spacePublicIds.Count;
+        Console.WriteLine($"Avatar generation complete. {total} avatars generated.");
+    }
+
     private async Task EnsureTestUserExistsAsync()
     {
         const string testUserId = "01JJQP0000000000000000TEST";
@@ -112,8 +156,7 @@ public class DatabaseSeeder(
         };
         _context.Users.Add(testUser);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateUserAvatarAsync(testUserId);
-        Console.WriteLine("Test user created with avatar.");
+        Console.WriteLine("Test user created.");
     }
 
     private async Task EnsureDefaultAdminExistsAsync()
@@ -174,8 +217,6 @@ public class DatabaseSeeder(
             AssignedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
-
-        await _avatarService.GenerateUserAvatarAsync(adminPublicId);
         Console.WriteLine($"Admin user created: {adminEmail}");
     }
 
@@ -205,17 +246,7 @@ public class DatabaseSeeder(
         }
 
         await _context.SaveChangesAsync();
-
-        // Generate avatars for all seeded users
-        Console.WriteLine("Generating avatars for 150 users...");
-        for (int i = 0; i < generatedUsers.Count; i++)
-        {
-            await _avatarService.GenerateUserAvatarAsync(generatedUsers[i].PublicId);
-            if ((i + 1) % 25 == 0)
-                Console.WriteLine($"  Generated {i + 1}/{generatedUsers.Count} user avatars...");
-        }
-
-        Console.WriteLine($"Created {users.Count} users with avatars.");
+        Console.WriteLine($"Created {users.Count} users.");
         return users;
     }
 
@@ -235,7 +266,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         // Hub 1: Technology (large - 5 spaces, heavily used)
         var techHub = await CreateHubAsync(community, "Technology", "technology", "All things tech", communityCreatedAt);
@@ -285,7 +315,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         // Add custom domain
         _context.CommunityDomains.Add(new CommunityDomainDatabaseEntity
@@ -325,7 +354,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         // Add custom domain
         _context.CommunityDomains.Add(new CommunityDomainDatabaseEntity
@@ -371,7 +399,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         // Add custom domain
         _context.CommunityDomains.Add(new CommunityDomainDatabaseEntity
@@ -428,7 +455,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         _context.CommunityDomains.Add(new CommunityDomainDatabaseEntity
         {
@@ -472,7 +498,6 @@ public class DatabaseSeeder(
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateCommunityAvatarAsync(community.PublicId);
 
         _context.CommunityDomains.Add(new CommunityDomainDatabaseEntity
         {
@@ -516,7 +541,6 @@ public class DatabaseSeeder(
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateHubAvatarAsync(hub.PublicId);
         return hub;
     }
 
@@ -534,7 +558,6 @@ public class DatabaseSeeder(
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
-        await _avatarService.GenerateSpaceAvatarAsync(space.PublicId);
         return space;
     }
 

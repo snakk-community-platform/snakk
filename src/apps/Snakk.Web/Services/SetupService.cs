@@ -362,7 +362,7 @@ public class SetupService
                     InstallProgress.Message = line;
                 }
 
-                // Parse progress markers from seeder output
+                // Parse progress markers from seeder output (steps are sequential, never go backwards)
                 if (line.Contains("Applying pending migrations", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "migrations";
                 else if (line.Contains("admin", StringComparison.OrdinalIgnoreCase) &&
@@ -371,16 +371,12 @@ public class SetupService
                           line.Contains("assigned", StringComparison.OrdinalIgnoreCase)))
                     InstallProgress.Step = "admin";
                 else if (line.Contains("database seeding", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("Clearing existing", StringComparison.OrdinalIgnoreCase))
+                         line.Contains("Clearing existing", StringComparison.OrdinalIgnoreCase) ||
+                         line.Contains("discussions in", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "seeding";
                 else if (line.Contains("Generating avatars", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("user avatars", StringComparison.OrdinalIgnoreCase))
+                         line.Contains("Avatar generation complete", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "avatars";
-                else if (line.Contains("discussions in", StringComparison.OrdinalIgnoreCase))
-                    InstallProgress.Step = "seeding";
-                else if (line.Contains("Created", StringComparison.Ordinal) &&
-                         line.Contains("community", StringComparison.OrdinalIgnoreCase))
-                    InstallProgress.Step = "seeding";
             }
 
             var errors = await process.StandardError.ReadToEndAsync();
