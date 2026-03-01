@@ -11,6 +11,7 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 
 // Add Razor Pages
 builder.Services.AddRazorPages();
+builder.Services.AddHttpClient();
 
 // gRPC client for calling Snakk.Api
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242";
@@ -41,7 +42,7 @@ builder.Services.AddAuthentication(options =>
     options.LogoutPath = "/Auth/Logout";
     options.Cookie.Name = ".Snakk.Auth.Session";
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
 });
 

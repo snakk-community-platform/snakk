@@ -21,6 +21,18 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
+// Fail-fast: reject insecure default secrets in production
+if (!builder.Environment.IsDevelopment())
+{
+    var jwtKey = builder.Configuration["Jwt:SecretKey"];
+    if (string.IsNullOrEmpty(jwtKey) || jwtKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in appsettings.Production.json.");
+
+    var realtimeKey = builder.Configuration["Realtime:ApiKey"];
+    if (string.IsNullOrEmpty(realtimeKey) || realtimeKey.Contains("CHANGE_IN_PRODUCTION", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production. Set it in appsettings.Production.json.");
+}
+
 // Add services to the container
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();

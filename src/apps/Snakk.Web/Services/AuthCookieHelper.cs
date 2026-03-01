@@ -14,7 +14,7 @@ public static class AuthCookieHelper
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = isHttps,
+            Secure = true, // Always secure — browsers treat localhost as secure context
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = rememberMe
@@ -45,7 +45,7 @@ public static class AuthCookieHelper
         var options = new CookieOptions
         {
             HttpOnly = false, // Not sensitive — readable by JS if needed
-            Secure = ctx.Request.IsHttps,
+            Secure = true, // Always secure — browsers treat localhost as secure context
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(365)

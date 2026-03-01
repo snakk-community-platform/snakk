@@ -190,12 +190,64 @@ public class SetupService
     }
 
     /// <summary>
-    /// Create the .setup-complete marker file.
+    /// Create the .setup-complete marker file and scrub sensitive data from config.
     /// </summary>
     public void MarkSetupComplete(string storagePath)
     {
         var markerPath = Path.Combine(storagePath, ".setup-complete");
         File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+
+        // Remove plaintext admin password from production config (already hashed in DB)
+        RemoveAdminPasswordFromConfig(storagePath);
+    }
+
+    /// <summary>
+    /// Remove the Setup:AdminPassword field from appsettings.Production.json.
+    /// The password is only needed during initial DB seeding — once the admin account
+    /// exists (with a bcrypt hash), keeping the plaintext is a security risk.
+    /// </summary>
+    private static void RemoveAdminPasswordFromConfig(string storagePath)
+    {
+        try
+        {
+            var configPath = Path.Combine(storagePath, "appsettings.Production.json");
+            if (!File.Exists(configPath)) return;
+
+            var json = File.ReadAllText(configPath);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Rebuild config without Setup.AdminPassword
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            using var ms = new System.IO.MemoryStream();
+            using (var writer = new System.Text.Json.Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
+            {
+                writer.WriteStartObject();
+                foreach (var prop in root.EnumerateObject())
+                {
+                    if (prop.Name == "Setup" && prop.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        writer.WriteStartObject("Setup");
+                        foreach (var setupProp in prop.Value.EnumerateObject())
+                        {
+                            if (setupProp.Name != "AdminPassword")
+                                setupProp.WriteTo(writer);
+                        }
+                        writer.WriteEndObject();
+                    }
+                    else
+                    {
+                        prop.WriteTo(writer);
+                    }
+                }
+                writer.WriteEndObject();
+            }
+            File.WriteAllText(configPath, Encoding.UTF8.GetString(ms.ToArray()));
+        }
+        catch
+        {
+            // Non-fatal — don't break setup completion if config scrubbing fails
+        }
     }
 
     /// <summary>
@@ -404,13 +456,34 @@ public class SetupService
 /// </summary>
 public static class InstallProgress
 {
+    private static Timer? _jwtExpiryTimer;
+
     public static string Step { get; set; } = "idle";
     public static string? Message { get; set; }
     public static bool IsRunning { get; set; }
     public static bool HasError { get; set; }
     public static string? ErrorMessage { get; set; }
-    public static string? Jwt { get; set; }
     public static bool SeedEnabled { get; set; }
+
+    private static string? _jwt;
+    public static string? Jwt
+    {
+        get => _jwt;
+        set
+        {
+            _jwt = value;
+            _jwtExpiryTimer?.Dispose();
+            _jwtExpiryTimer = null;
+
+            if (value != null)
+            {
+                // Auto-clear JWT from memory after 5 minutes — if OnPostFinalize hasn't consumed it by then,
+                // the setup window has closed and keeping the token in static memory is a security risk.
+                _jwtExpiryTimer = new Timer(_ => { _jwt = null; _jwtExpiryTimer?.Dispose(); _jwtExpiryTimer = null; },
+                    null, TimeSpan.FromMinutes(5), Timeout.InfiniteTimeSpan);
+            }
+        }
+    }
 
     public static void Reset()
     {

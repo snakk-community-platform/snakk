@@ -102,7 +102,7 @@ public class LoginModel : PageModel
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = true, // Always secure — browsers treat localhost as secure context
                 SameSite = SameSiteMode.Lax,
                 Expires = Input.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(8),
                 Path = "/"

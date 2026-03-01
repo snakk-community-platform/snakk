@@ -93,10 +93,13 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/snakk.conf
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Create storage directories
-RUN mkdir -p /app/storage/avatars/generated /app/storage/avatars/uploaded
+# Create storage + runtime directories and non-root user
+RUN mkdir -p /app/storage/avatars/generated /app/storage/avatars/uploaded /app/run && \
+    groupadd -r snakk && useradd -r -g snakk -d /app snakk && \
+    chown -R snakk:snakk /app /etc/supervisor/conf.d
 
 EXPOSE 17000
 VOLUME ["/app/storage"]
 
+USER snakk
 ENTRYPOINT ["/app/entrypoint.sh"]

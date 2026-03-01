@@ -21,11 +21,13 @@ public static class AuthEndpoints
 
         group.MapPost("/register", RegisterAsync)
             .WithName("Register")
-            .Produces<RegisterResponse>();
+            .Produces<RegisterResponse>()
+            .RequireRateLimiting("auth");
 
         group.MapPost("/login", LoginAsync)
             .WithName("Login")
-            .Produces<Application.DTOs.Auth.LoginResponse>();
+            .Produces<Application.DTOs.Auth.LoginResponse>()
+            .RequireRateLimiting("auth");
 
         group.MapPost("/logout", LogoutAsync)
             .WithName("Logout")
@@ -130,23 +132,6 @@ public static class AuthEndpoints
 
         var user = result.Value!;
 
-        // DEBUG: Check raw UserRoles table for this user
-        var userDbId = await context.Users
-            .Where(u => u.PublicId == user.PublicId.Value)
-            .Select(u => u.Id)
-            .FirstOrDefaultAsync();
-
-        var allUserRoles = await context.UserRoles
-            .Where(ur => ur.UserId == userDbId)
-            .Select(ur => new { ur.RoleId, ur.RevokedAt })
-            .ToListAsync();
-
-        logger.LogInformation("DEBUG: User {UserId} (DbId: {DbId}) has {Count} UserRole records in database: [{Roles}]",
-            user.PublicId.Value,
-            userDbId,
-            allUserRoles.Count,
-            string.Join(", ", allUserRoles.Select(ur => $"RoleId={ur.RoleId} RevokedAt={ur.RevokedAt}")));
-
         // Fetch user roles from UserRoles table
         var userDbEntity = await context.Users
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
@@ -156,12 +141,6 @@ public static class AuthEndpoints
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
             .ToList() ?? new List<string>();
 
-        // DEBUG: Log roles information
-        logger.LogInformation("User {UserId} login - Found {RoleCount} roles: [{Roles}]",
-            user.PublicId.Value,
-            roles.Count,
-            string.Join(", ", roles));
-
         // Generate JWT with roles (using first role for backward compatibility with single-role JWT service)
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -170,13 +149,6 @@ public static class AuthEndpoints
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault());
-
-        // DEBUG: Decode and log JWT claims
-        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(jwt);
-        logger.LogInformation("JWT Claims for {UserId}: {Claims}",
-            user.PublicId.Value,
-            string.Join(" | ", jwtToken.Claims.Select(c => $"{c.Type}={c.Value}")));
 
         // Generate refresh token
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);

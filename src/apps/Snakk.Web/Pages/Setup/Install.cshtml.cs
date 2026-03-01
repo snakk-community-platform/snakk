@@ -3,7 +3,6 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Setup;
 
-[IgnoreAntiforgeryToken]
 public class InstallModel : SetupPageBase
 {
     private readonly SetupService _setupService;
@@ -60,7 +59,7 @@ public class InstallModel : SetupPageBase
         Response.Cookies.Append(".Snakk.Auth", InstallProgress.Jwt, new CookieOptions
         {
             HttpOnly = true,
-            Secure = !HttpContext.Request.Host.Host.Contains("localhost"),
+            Secure = true, // Always secure — browsers treat localhost as secure context
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddHours(1)
         });

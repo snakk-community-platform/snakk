@@ -150,8 +150,17 @@ builder.Services.AddSession(options =>
 // JWT-based authentication from SSO service
 // During first-run setup, Jwt:SecretKey is not configured yet — use a placeholder.
 // SetupMiddleware blocks all non-setup requests, so the placeholder key is never used for real auth.
-var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
-    ?? "SETUP_NOT_COMPLETE_PLACEHOLDER_KEY_MINIMUM_32_CHARS_LONG_FOR_HMAC256";
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+    jwtSecretKey = "SETUP_NOT_COMPLETE_PLACEHOLDER_KEY_MINIMUM_32_CHARS_LONG_FOR_HMAC256";
+    if (!builder.Environment.IsDevelopment())
+    {
+        var startupLogger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
+        startupLogger.LogWarning("SECURITY: Jwt:SecretKey not configured — using setup placeholder. " +
+            "This is expected during first-run setup only. Complete the setup wizard to generate a real key.");
+    }
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Snakk";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Snakk";
 

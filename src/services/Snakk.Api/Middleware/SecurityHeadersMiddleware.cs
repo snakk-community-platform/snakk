@@ -33,19 +33,13 @@ public class SecurityHeadersMiddleware
         context.Response.Headers.Append("Permissions-Policy",
             "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()");
 
-        // Content-Security-Policy - Comprehensive XSS protection
-        // Note: This is strict. Adjust based on your needs.
+        // Content-Security-Policy - Strict API policy (no HTML/scripts served)
         var csp = string.Join("; ", new[]
         {
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "connect-src 'self' https://localhost:7291",
+            "default-src 'none'",
             "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "form-action 'self'"
+            "base-uri 'none'",
+            "form-action 'none'"
         });
         context.Response.Headers.Append("Content-Security-Policy", csp);
 

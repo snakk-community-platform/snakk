@@ -66,7 +66,7 @@ public class CallbackModel : PageModel
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = true, // Always secure — browsers treat localhost as secure context
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(30),
                 Path = "/"

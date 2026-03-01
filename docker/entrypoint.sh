@@ -6,8 +6,8 @@ echo "=== Snakk All-in-One Container ==="
 STORAGE_PATH="/app/storage"
 MARKER_FILE="$STORAGE_PATH/.setup-complete"
 
-# Ensure storage directories exist
-mkdir -p "$STORAGE_PATH/avatars/generated" "$STORAGE_PATH/avatars/uploaded"
+# Ensure storage and runtime directories exist
+mkdir -p "$STORAGE_PATH/avatars/generated" "$STORAGE_PATH/avatars/uploaded" /app/run
 
 # If setup was previously completed, run DbSeeder for any pending migrations
 if [ -f "$MARKER_FILE" ]; then

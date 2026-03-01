@@ -1,6 +1,7 @@
 @page
 @model Snakk.Web.Pages.Setup.InstallModel
 
+@Html.AntiForgeryToken()
 <div id="installing" class="text-center space-y-6">
     <div class="text-5xl">
         <span id="status-icon" class="loading loading-spinner loading-lg text-primary"></span>
@@ -72,6 +73,7 @@
     (function () {
         'use strict';
 
+        var csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         var stepOrder = ['config', 'migrations', 'admin', 'seeding', 'avatars', 'finalizing'];
         var seedEnabled = false;
         var pollTimer = null;
@@ -170,7 +172,10 @@
 
         async function finalize() {
             try {
-                var res = await fetch('/setup/install?handler=Finalize', { method: 'POST' });
+                var res = await fetch('/setup/install?handler=Finalize', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': csrfToken }
+                });
                 if (!res.ok) return false;
                 var data = await res.json();
                 return data.success;
@@ -232,7 +237,10 @@
             markStep('config', 'active');
 
             try {
-                var res = await fetch('/setup/install', { method: 'POST' });
+                var res = await fetch('/setup/install', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': csrfToken }
+                });
                 if (!res.ok) {
                     showError('Failed to start installation: HTTP ' + res.status);
                     return;
