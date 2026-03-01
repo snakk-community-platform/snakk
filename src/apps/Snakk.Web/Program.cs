@@ -18,12 +18,12 @@ var builder = WebApplication.CreateBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-// HTTP/2 only — Gateway handles browser connection negotiation
+// HTTP/1.1 + HTTP/2 — supports both REST and gRPC clients
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ConfigureEndpointDefaults(listenOptions =>
     {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
     });
 });
 
