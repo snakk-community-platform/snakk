@@ -6,7 +6,7 @@ namespace Snakk.Web.Services;
 public class SetupState
 {
     // Step 2: Database
-    public string DbHost { get; set; } = "localhost";
+    public string DbHost { get; set; } = "postgres";
     public int DbPort { get; set; } = 5432;
     public string DbName { get; set; } = "snakk";
     public string DbUsername { get; set; } = "snakk";

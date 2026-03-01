@@ -253,4 +253,163 @@ public class SetupService
 
         return candidates.FirstOrDefault(File.Exists);
     }
+
+    /// <summary>
+    /// Start installation in a background thread. Returns immediately.
+    /// Progress is tracked via the static <see cref="InstallProgress"/> class.
+    /// </summary>
+    public void StartInstallInBackground(SetupState state)
+    {
+        if (InstallProgress.IsRunning)
+            return;
+
+        InstallProgress.Reset();
+        InstallProgress.IsRunning = true;
+        InstallProgress.SeedEnabled = state.SeedTestData;
+        InstallProgress.Step = "config";
+        InstallProgress.Message = "Writing production configuration...";
+
+        _ = Task.Run(async () => await RunInstallAsync(state));
+    }
+
+    private async Task RunInstallAsync(SetupState state)
+    {
+        try
+        {
+            // Step 1: Write config
+            WriteProductionConfig(state);
+
+            // Step 2: Run seeder (subprocess with real-time progress tracking)
+            InstallProgress.Step = "migrations";
+            InstallProgress.Message = "Starting database setup...";
+            var (success, output) = await RunDbSeederWithProgressAsync(state);
+            if (!success)
+            {
+                InstallProgress.HasError = true;
+                InstallProgress.ErrorMessage = output;
+                InstallProgress.Step = "error";
+                InstallProgress.IsRunning = false;
+                return;
+            }
+
+            // Step 3: Generate JWT for auto-login (before marking complete, so services don't restart yet)
+            InstallProgress.Step = "finalizing";
+            InstallProgress.Message = "Generating authentication token...";
+            var jwt = await GenerateAdminJwtAsync(state);
+            InstallProgress.Jwt = jwt;
+
+            // Done — marker file is written by OnPostFinalize after JWT cookie is set
+            InstallProgress.Step = "complete";
+            InstallProgress.Message = "Installation complete!";
+            InstallProgress.IsRunning = false;
+        }
+        catch (Exception ex)
+        {
+            InstallProgress.HasError = true;
+            InstallProgress.ErrorMessage = ex.Message;
+            InstallProgress.Step = "error";
+            InstallProgress.IsRunning = false;
+        }
+    }
+
+    private async Task<(bool Success, string Output)> RunDbSeederWithProgressAsync(SetupState state)
+    {
+        var seederPath = FindDbSeederPath();
+        if (seederPath == null)
+            return (false, "Could not find Snakk.DbSeeder.dll. Ensure it's published.");
+
+        var skipSeedFlag = state.SeedTestData ? "" : "--skip-seed";
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"\"{seederPath}\" {skipSeedFlag}".Trim(),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            Environment =
+            {
+                ["DOTNET_ENVIRONMENT"] = "Production",
+                ["ConnectionStrings__DbConnection"] = state.GetConnectionString(),
+                ["FileStorage__BasePath"] = state.AvatarStoragePath,
+                ["Setup__AdminEmail"] = state.AdminEmail,
+                ["Setup__AdminPassword"] = state.AdminPassword,
+                ["Setup__AdminDisplayName"] = state.AdminDisplayName
+            }
+        };
+
+        try
+        {
+            using var process = Process.Start(psi);
+            if (process == null) return (false, "Failed to start DbSeeder process.");
+
+            var outputLines = new List<string>();
+
+            // Read stdout line-by-line for real-time progress updates
+            while (await process.StandardOutput.ReadLineAsync() is { } line)
+            {
+                outputLines.Add(line);
+                InstallProgress.Message = line;
+
+                // Parse progress markers from seeder output
+                if (line.Contains("Applying pending migrations", StringComparison.OrdinalIgnoreCase))
+                    InstallProgress.Step = "migrations";
+                else if (line.Contains("admin", StringComparison.OrdinalIgnoreCase) &&
+                         (line.Contains("created", StringComparison.OrdinalIgnoreCase) ||
+                          line.Contains("creating", StringComparison.OrdinalIgnoreCase) ||
+                          line.Contains("assigned", StringComparison.OrdinalIgnoreCase)))
+                    InstallProgress.Step = "admin";
+                else if (line.Contains("database seeding", StringComparison.OrdinalIgnoreCase) ||
+                         line.Contains("Clearing existing", StringComparison.OrdinalIgnoreCase))
+                    InstallProgress.Step = "seeding";
+                else if (line.Contains("Generating avatars", StringComparison.OrdinalIgnoreCase) ||
+                         line.Contains("user avatars", StringComparison.OrdinalIgnoreCase))
+                    InstallProgress.Step = "avatars";
+                else if (line.Contains("discussions in", StringComparison.OrdinalIgnoreCase))
+                    InstallProgress.Step = "seeding";
+                else if (line.Contains("Created", StringComparison.Ordinal) &&
+                         line.Contains("community", StringComparison.OrdinalIgnoreCase))
+                    InstallProgress.Step = "seeding";
+            }
+
+            var errors = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            var output = string.Join("\n", outputLines);
+            if (!string.IsNullOrEmpty(errors))
+                output += "\n" + errors;
+
+            return (process.ExitCode == 0, output);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error running DbSeeder: {ex.Message}");
+        }
+    }
+}
+
+/// <summary>
+/// Static progress tracker for the background installation process.
+/// </summary>
+public static class InstallProgress
+{
+    public static string Step { get; set; } = "idle";
+    public static string? Message { get; set; }
+    public static bool IsRunning { get; set; }
+    public static bool HasError { get; set; }
+    public static string? ErrorMessage { get; set; }
+    public static string? Jwt { get; set; }
+    public static bool SeedEnabled { get; set; }
+
+    public static void Reset()
+    {
+        Step = "idle";
+        Message = null;
+        IsRunning = false;
+        HasError = false;
+        ErrorMessage = null;
+        Jwt = null;
+        SeedEnabled = false;
+    }
 }

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Setup;
@@ -13,41 +12,66 @@ public class InstallModel : SetupPageBase
 
     public void OnGet() => ViewData["SetupStep"] = 10;
 
-    public async Task<IActionResult> OnPostAsync()
+    /// <summary>
+    /// Start the installation in the background. Returns immediately.
+    /// </summary>
+    public IActionResult OnPost()
     {
+        if (InstallProgress.IsRunning)
+            return new JsonResult(new { started = true, alreadyRunning = true });
+
+        if (InstallProgress.Step == "complete")
+            return new JsonResult(new { started = true, alreadyComplete = true });
+
+        var state = GetState();
+        _setupService.StartInstallInBackground(state);
+        return new JsonResult(new { started = true });
+    }
+
+    /// <summary>
+    /// Poll for installation progress.
+    /// </summary>
+    public IActionResult OnGetStatus()
+    {
+        return new JsonResult(new
+        {
+            step = InstallProgress.Step,
+            message = InstallProgress.Message,
+            isComplete = InstallProgress.Step == "complete",
+            hasError = InstallProgress.HasError,
+            errorMessage = InstallProgress.ErrorMessage,
+            seedEnabled = InstallProgress.SeedEnabled
+        });
+    }
+
+    /// <summary>
+    /// Called after installation completes. Sets the JWT cookie for auto-login,
+    /// then writes the setup-complete marker (which triggers service restart).
+    /// </summary>
+    public IActionResult OnPostFinalize()
+    {
+        if (InstallProgress.Step != "complete" || string.IsNullOrEmpty(InstallProgress.Jwt))
+            return new JsonResult(new { success = false, error = "Installation not complete." });
+
+        // Read state before clearing session (need storage path for marker file)
         var state = GetState();
 
-        try
+        // Set auth cookie for auto-login as admin
+        Response.Cookies.Append(".Snakk.Auth", InstallProgress.Jwt, new CookieOptions
         {
-            // Step 1: Write appsettings.Production.json
-            _setupService.WriteProductionConfig(state);
+            HttpOnly = true,
+            Secure = !HttpContext.Request.Host.Host.Contains("localhost"),
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddHours(1)
+        });
 
-            // Step 2: Run DbSeeder (migrations + admin user + optional seed data)
-            var (success, output) = await _setupService.RunDbSeederAsync(state);
-            if (!success)
-                return new JsonResult(new { success = false, step = "database", error = output });
+        // Write .setup-complete marker — this triggers entrypoint.sh to restart services
+        _setupService.MarkSetupComplete(state.AvatarStoragePath);
 
-            // Step 3: Create .setup-complete marker file
-            _setupService.MarkSetupComplete(state.AvatarStoragePath);
+        // Clean up
+        HttpContext.Session.Clear();
+        InstallProgress.Reset();
 
-            // Step 4: Generate JWT for auto-login after restart
-            var jwt = await _setupService.GenerateAdminJwtAsync(state);
-            Response.Cookies.Append(".Snakk.Auth", jwt, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = !HttpContext.Request.Host.Host.Contains("localhost"),
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddHours(1)
-            });
-
-            // Clear session (contains sensitive data like admin password)
-            HttpContext.Session.Clear();
-
-            return new JsonResult(new { success = true });
-        }
-        catch (Exception ex)
-        {
-            return new JsonResult(new { success = false, step = "unknown", error = ex.Message });
-        }
+        return new JsonResult(new { success = true });
     }
 }

@@ -164,9 +164,6 @@ public class DatabaseSeeder(
         _context.Users.Add(newAdminUser);
         await _context.SaveChangesAsync();
 
-        // Generate avatar for admin user
-        await _avatarService.GenerateUserAvatarAsync(adminPublicId);
-
         // Assign GlobalAdmin role
         _context.UserRoles.Add(new UserRoleDatabaseEntity
         {
@@ -178,6 +175,7 @@ public class DatabaseSeeder(
         });
         await _context.SaveChangesAsync();
 
+        await _avatarService.GenerateUserAvatarAsync(adminPublicId);
         Console.WriteLine($"Admin user created: {adminEmail}");
     }
 
@@ -210,9 +208,11 @@ public class DatabaseSeeder(
 
         // Generate avatars for all seeded users
         Console.WriteLine("Generating avatars for 150 users...");
-        foreach (var user in generatedUsers)
+        for (int i = 0; i < generatedUsers.Count; i++)
         {
-            await _avatarService.GenerateUserAvatarAsync(user.PublicId);
+            await _avatarService.GenerateUserAvatarAsync(generatedUsers[i].PublicId);
+            if ((i + 1) % 25 == 0)
+                Console.WriteLine($"  Generated {i + 1}/{generatedUsers.Count} user avatars...");
         }
 
         Console.WriteLine($"Created {users.Count} users with avatars.");

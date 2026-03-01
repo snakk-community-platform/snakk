@@ -13,7 +13,7 @@ public class SiteConfigModel : SetupPageBase
     {
         ViewData["SetupStep"] = 3;
         var state = GetState();
-        Domain = state.Domain;
+        Domain = !string.IsNullOrEmpty(state.Domain) ? state.Domain : HttpContext.Request.Host.Host;
         SiteName = state.SiteName;
         DefaultCommunitySlug = state.DefaultCommunitySlug;
         MultiCommunityEnabled = state.MultiCommunityEnabled;

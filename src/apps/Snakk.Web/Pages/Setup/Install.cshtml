@@ -6,26 +6,37 @@
         <span id="status-icon" class="loading loading-spinner loading-lg text-primary"></span>
     </div>
     <h2 id="status-title" class="text-2xl font-bold">Installing Snakk...</h2>
-    <p id="status-message" class="text-base-content/70">Writing configuration and setting up the database. This may take a moment.</p>
+    <p id="status-message" class="text-base-content/70">Setting up your Snakk instance. This may take a moment.</p>
 
-    <div id="progress-steps" class="text-left max-w-sm mx-auto space-y-2 mt-6">
+    <div id="progress-steps" class="text-left max-w-md mx-auto space-y-2 mt-6">
         <div id="step-config" class="flex items-center gap-2 text-base-content/50">
-            <span class="loading loading-spinner loading-xs"></span>
+            <span class="w-4 h-4 inline-block shrink-0"></span>
             <span>Writing configuration...</span>
         </div>
-        <div id="step-database" class="flex items-center gap-2 text-base-content/30">
-            <span class="w-4 h-4 inline-block"></span>
+        <div id="step-migrations" class="flex items-center gap-2 text-base-content/30">
+            <span class="w-4 h-4 inline-block shrink-0"></span>
             <span>Running database migrations...</span>
         </div>
         <div id="step-admin" class="flex items-center gap-2 text-base-content/30">
-            <span class="w-4 h-4 inline-block"></span>
+            <span class="w-4 h-4 inline-block shrink-0"></span>
             <span>Creating admin account...</span>
         </div>
-        <div id="step-complete" class="flex items-center gap-2 text-base-content/30">
-            <span class="w-4 h-4 inline-block"></span>
+        <div id="step-seeding" class="flex items-center gap-2 text-base-content/30">
+            <span class="w-4 h-4 inline-block shrink-0"></span>
+            <span>Seeding test data...</span>
+        </div>
+        <div id="step-avatars" class="flex items-center gap-2 text-base-content/30">
+            <span class="w-4 h-4 inline-block shrink-0"></span>
+            <span>Generating avatars...</span>
+        </div>
+        <div id="step-finalizing" class="flex items-center gap-2 text-base-content/30">
+            <span class="w-4 h-4 inline-block shrink-0"></span>
             <span>Finalizing setup...</span>
         </div>
     </div>
+
+    <!-- Live detail from seeder output -->
+    <p id="status-detail" class="text-sm text-base-content/40 italic hidden"></p>
 
     <!-- Error display (hidden by default) -->
     <div id="error-display" class="hidden">
@@ -47,7 +58,7 @@
         </div>
         <p class="text-base-content/70">
             Services need to restart to apply the new configuration.
-            You'll be redirected to the homepage in <span id="countdown">5</span> seconds.
+            You'll be redirected to the homepage in <span id="countdown">10</span> seconds.
         </p>
         <p class="text-sm text-base-content/50">
             You've been automatically logged in as admin. If the page doesn't load after redirect,
@@ -60,112 +71,175 @@
     (function () {
         'use strict';
 
-        // Simulate progress steps visually
+        var stepOrder = ['config', 'migrations', 'admin', 'seeding', 'avatars', 'finalizing'];
+        var seedEnabled = false;
+        var pollTimer = null;
+
         function markStep(id, status) {
-            var el = document.getElementById(id);
+            var el = document.getElementById('step-' + id);
             if (!el) return;
             var icon = el.querySelector('span:first-child');
             if (status === 'active') {
                 el.className = 'flex items-center gap-2 text-base-content';
-                icon.className = 'loading loading-spinner loading-xs';
+                icon.className = 'loading loading-spinner loading-xs shrink-0';
                 icon.textContent = '';
             } else if (status === 'done') {
                 el.className = 'flex items-center gap-2 text-success';
-                icon.className = 'w-4 h-4 inline-block';
+                icon.className = 'w-4 h-4 inline-block shrink-0';
                 icon.textContent = '\u2713';
             } else if (status === 'error') {
                 el.className = 'flex items-center gap-2 text-error';
-                icon.className = 'w-4 h-4 inline-block';
+                icon.className = 'w-4 h-4 inline-block shrink-0';
                 icon.textContent = '\u2717';
+            } else if (status === 'hidden') {
+                el.classList.add('hidden');
             }
         }
 
-        async function runInstall() {
-            markStep('step-config', 'active');
+        function updateSteps(currentStep) {
+            var reached = false;
+            for (var i = 0; i < stepOrder.length; i++) {
+                var s = stepOrder[i];
+                // Skip hidden steps
+                if (!seedEnabled && (s === 'seeding' || s === 'avatars')) continue;
+                if (s === currentStep) {
+                    reached = true;
+                    markStep(s, 'active');
+                } else if (!reached) {
+                    markStep(s, 'done');
+                }
+            }
+        }
 
+        function showError(message) {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            document.getElementById('status-icon').className = 'text-5xl';
+            document.getElementById('status-icon').textContent = '\u274C';
+            document.getElementById('status-title').textContent = 'Installation Failed';
+            document.getElementById('status-message').classList.add('hidden');
+            document.getElementById('progress-steps').classList.add('hidden');
+            document.getElementById('status-detail').classList.add('hidden');
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-display').classList.remove('hidden');
+        }
+
+        async function showSuccess() {
+            // Mark all visible steps done
+            for (var i = 0; i < stepOrder.length; i++) {
+                if (!seedEnabled && stepOrder[i] === 'seeding') continue;
+                markStep(stepOrder[i], 'done');
+            }
+
+            document.getElementById('status-icon').className = 'text-5xl';
+            document.getElementById('status-icon').textContent = '\u2705';
+            document.getElementById('status-title').textContent = 'Setup Complete!';
+            document.getElementById('status-message').classList.add('hidden');
+            document.getElementById('progress-steps').classList.add('hidden');
+            document.getElementById('status-detail').classList.add('hidden');
+            document.getElementById('success-display').classList.remove('hidden');
+
+            // Countdown and redirect
+            var count = 10;
+            var countdownEl = document.getElementById('countdown');
+            var interval = setInterval(function () {
+                count--;
+                countdownEl.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = '/';
+                }
+            }, 1000);
+        }
+
+        async function pollStatus() {
             try {
-                var token = document.querySelector('input[name="__RequestVerificationToken"]');
-                var formData = new FormData();
-                if (token) formData.append('__RequestVerificationToken', token.value);
+                var res = await fetch('/setup/install?handler=Status');
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) {
+                return null;
+            }
+        }
 
-                // Simulate progress (the server does all steps in one call)
-                setTimeout(function () { markStep('step-config', 'done'); markStep('step-database', 'active'); }, 1000);
-                setTimeout(function () { markStep('step-database', 'done'); markStep('step-admin', 'active'); }, 3000);
+        async function finalize() {
+            try {
+                var res = await fetch('/setup/install?handler=Finalize', { method: 'POST' });
+                if (!res.ok) return false;
+                var data = await res.json();
+                return data.success;
+            } catch (e) {
+                return false;
+            }
+        }
 
-                var res = await fetch('/setup/install', {
-                    method: 'POST',
-                    body: formData
-                });
-                var text = await res.text();
-                if (!res.ok) {
-                    throw new Error('Server returned ' + res.status + ': ' + (text.substring(0, 500) || '(empty response)'));
+        function startPolling() {
+            pollTimer = setInterval(async function () {
+                var status = await pollStatus();
+                if (!status) return; // Network error, keep polling
+
+                seedEnabled = status.seedEnabled;
+
+                // Hide seeding step if not enabled
+                if (!seedEnabled) {
+                    markStep('seeding', 'hidden');
+                    markStep('avatars', 'hidden');
                 }
-                if (!text) {
-                    throw new Error('Server returned empty response (status ' + res.status + ')');
+
+                if (status.hasError) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                    showError(status.errorMessage || 'An unknown error occurred.');
+                    return;
                 }
-                var data;
-                try { data = JSON.parse(text); } catch (e) {
-                    throw new Error('Invalid JSON (status ' + res.status + '): ' + text.substring(0, 500));
-                }
 
-                if (data.success) {
-                    markStep('step-config', 'done');
-                    markStep('step-database', 'done');
-                    markStep('step-admin', 'done');
-                    markStep('step-complete', 'done');
+                if (status.isComplete) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
 
-                    document.getElementById('status-icon').className = 'text-5xl';
-                    document.getElementById('status-icon').textContent = '\u2705';
-                    document.getElementById('status-title').textContent = 'Setup Complete!';
-                    document.getElementById('status-message').classList.add('hidden');
-                    document.getElementById('progress-steps').classList.add('hidden');
-                    document.getElementById('success-display').classList.remove('hidden');
-
-                    // Countdown and redirect
-                    var count = 5;
-                    var countdownEl = document.getElementById('countdown');
-                    var interval = setInterval(function () {
-                        count--;
-                        countdownEl.textContent = count;
-                        if (count <= 0) {
-                            clearInterval(interval);
-                            window.location.href = '/';
-                        }
-                    }, 1000);
-                } else {
-                    // Mark failed step
-                    if (data.step === 'database') {
-                        markStep('step-config', 'done');
-                        markStep('step-database', 'error');
-                    } else {
-                        markStep('step-config', 'error');
+                    // Finalize: set JWT cookie + write marker file (triggers service restart)
+                    var ok = await finalize();
+                    if (!ok) {
+                        showError('Failed to finalize setup. Please refresh and try again.');
+                        return;
                     }
 
-                    document.getElementById('status-icon').className = 'text-5xl';
-                    document.getElementById('status-icon').textContent = '\u274C';
-                    document.getElementById('status-title').textContent = 'Installation Failed';
-                    document.getElementById('status-message').classList.add('hidden');
-                    document.getElementById('progress-steps').classList.add('hidden');
-                    document.getElementById('error-message').textContent = data.error || 'An unknown error occurred.';
-                    document.getElementById('error-display').classList.remove('hidden');
+                    showSuccess();
+                    return;
+                }
+
+                // Update step indicators
+                if (status.step && status.step !== 'idle') {
+                    updateSteps(status.step);
+                }
+
+                // Show live detail message from seeder output
+                if (status.message) {
+                    var detailEl = document.getElementById('status-detail');
+                    detailEl.textContent = status.message;
+                    detailEl.classList.remove('hidden');
+                }
+            }, 1500);
+        }
+
+        async function runInstall() {
+            markStep('config', 'active');
+
+            try {
+                var res = await fetch('/setup/install', { method: 'POST' });
+                if (!res.ok) {
+                    showError('Failed to start installation: HTTP ' + res.status);
+                    return;
                 }
             } catch (e) {
-                document.getElementById('status-icon').className = 'text-5xl';
-                document.getElementById('status-icon').textContent = '\u274C';
-                document.getElementById('status-title').textContent = 'Installation Failed';
-                document.getElementById('status-message').classList.add('hidden');
-                document.getElementById('progress-steps').classList.add('hidden');
-                document.getElementById('error-message').textContent = e.message;
-                document.getElementById('error-display').classList.remove('hidden');
+                showError('Failed to start installation: ' + e.message);
+                return;
             }
+
+            // Start polling for progress
+            startPolling();
         }
 
         // Start installation immediately on page load
         runInstall();
     })();
 </script>
-
-<!-- Hidden anti-forgery token for the AJAX POST -->
-<form id="install-form" style="display:none">
-    @Html.AntiForgeryToken()
-</form>
