@@ -71,7 +71,6 @@ public class CommunityManagementService : ICommunityManagementService
             .Where(ur => (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod) &&
                          ur.CommunityId == community.Id &&
                          ur.RevokedAt == null)
-            .Include(ur => ur.User)
             .Select(ur => new CommunityMemberDto
             {
                 UserId = ur.User.PublicId,
@@ -159,6 +158,7 @@ public class CommunityManagementService : ICommunityManagementService
     public async Task<CommunitySettingsDto?> UpdateSettingsAsync(string communityId, UpdateCommunitySettingsRequest request, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
+            .AsTracking()
             .Where(c => c.PublicId == communityId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -189,8 +189,6 @@ public class CommunityManagementService : ICommunityManagementService
         // Get pending reports
         var pendingReports = await _context.Reports
             .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Pending)
-            .Include(r => r.ReporterUser)
-            .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
             .Take(50)
             .Select(r => new ModerationReportDto
@@ -229,7 +227,6 @@ public class CommunityManagementService : ICommunityManagementService
             .Where(ub => ub.CommunityId == communityDbId &&
                          ub.UnbannedAt == null &&
                          (ub.ExpiresAt == null || ub.ExpiresAt > now))
-            .Include(ub => ub.User)
             .Select(ub => new BannedUserDto
             {
                 UserId = ub.User.PublicId,
@@ -332,6 +329,7 @@ public class CommunityManagementService : ICommunityManagementService
         else if (request.Action == "remove")
         {
             var existingRole = await _context.UserRoles
+                .AsTracking()
                 .Where(ur => ur.UserId == user.Id &&
                              ur.RoleId == roleId &&
                              ur.CommunityId == community.Id &&
@@ -387,6 +385,7 @@ public class CommunityManagementService : ICommunityManagementService
     public async Task<CommunityRulesDto> UpdateRulesAsync(string communityId, UpdateCommunityRulesRequest request, CancellationToken cancellationToken = default)
     {
         var community = await _context.Communities
+            .AsTracking()
             .Where(c => c.PublicId == communityId)
             .FirstOrDefaultAsync(cancellationToken);
 

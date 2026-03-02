@@ -5,6 +5,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 
 public class UserRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserRepository databaseRepository,
@@ -15,51 +16,77 @@ public class UserRepositoryAdapter(
 
     public async Task<User?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Users
+            .Where(u => u.Id == id)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<User?> GetByPublicIdAsync(UserId publicId)
     {
-        var entity = await _databaseRepository.GetForUpdateAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Users
+            .Where(u => u.PublicId == publicId.Value)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<User>> GetByPublicIdsAsync(IEnumerable<UserId> publicIds)
     {
         var publicIdStrings = publicIds.Select(id => id.Value).ToList();
-        var entities = await _databaseRepository.GetByPublicIdsAsync(publicIdStrings);
-        return entities.Select(e => e.FromPersistence());
+        if (!publicIdStrings.Any()) return [];
+
+        var projections = await _context.Users
+            .Where(u => publicIdStrings.Contains(u.PublicId))
+            .Select(u => new UserProjection(u))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        var entity = await _databaseRepository.GetByEmailAsync(email);
-        return entity?.FromPersistence();
+        var projection = await _context.Users
+            .Where(u => u.Email == email)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId)
     {
-        var entity = await _databaseRepository.GetByOAuthProviderIdAsync(oauthProviderId);
-        return entity?.FromPersistence();
+        var projection = await _context.Users
+            .Where(u => u.OAuthProviderId == oauthProviderId)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<User?> GetByDisplayNameAsync(string displayName)
     {
-        var entity = await _databaseRepository.GetByDisplayNameAsync(displayName);
-        return entity?.FromPersistence();
+        var projection = await _context.Users
+            .Where(u => u.DisplayName == displayName)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit)
     {
-        var entities = await _databaseRepository.SearchByDisplayNameAsync(query, limit);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Users
+            .Where(u => u.DisplayName.Contains(query))
+            .Take(limit)
+            .Select(u => new UserProjection(u))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {
-        var entities = await _databaseRepository.GetAllAsync();
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Users
+            .Select(u => new UserProjection(u))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(User user)
@@ -82,5 +109,60 @@ public class UserRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record UserProjection
+    {
+        public string PublicId { get; init; }
+        public string DisplayName { get; init; }
+        public string? Email { get; init; }
+        public string? PasswordHash { get; init; }
+        public bool EmailVerified { get; init; }
+        public string? EmailVerificationToken { get; init; }
+        public string? OAuthProvider { get; init; }
+        public string? OAuthProviderId { get; init; }
+        public bool HasGlobalAdminRole { get; init; }
+        public string? AvatarFileName { get; init; }
+        public int AvatarRevision { get; init; }
+        public bool PreferEndlessScroll { get; init; }
+        public bool AutoFollowOnReply { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime? LastModifiedAt { get; init; }
+        public DateTime? LastSeenAt { get; init; }
+        public DateTime? LastLoginAt { get; init; }
+        public bool NeedsProfileSetup { get; init; }
+
+        public UserProjection(Database.Entities.UserDatabaseEntity u)
+        {
+            PublicId = u.PublicId;
+            DisplayName = u.DisplayName;
+            Email = u.Email;
+            PasswordHash = u.PasswordHash;
+            EmailVerified = u.EmailVerified;
+            EmailVerificationToken = u.EmailVerificationToken;
+            OAuthProvider = u.OAuthProvider;
+            OAuthProviderId = u.OAuthProviderId;
+            HasGlobalAdminRole = u.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null);
+            AvatarFileName = u.AvatarFileName;
+            AvatarRevision = u.AvatarRevision;
+            PreferEndlessScroll = u.PreferEndlessScroll;
+            AutoFollowOnReply = u.AutoFollowOnReply;
+            CreatedAt = u.CreatedAt;
+            LastModifiedAt = u.LastModifiedAt;
+            LastSeenAt = u.LastSeenAt;
+            LastLoginAt = u.LastLoginAt;
+            NeedsProfileSetup = u.NeedsProfileSetup;
+        }
+
+        public User ToDomain() => User.Rehydrate(
+            UserId.From(PublicId),
+            DisplayName, Email, PasswordHash,
+            EmailVerified, EmailVerificationToken,
+            OAuthProvider, OAuthProviderId,
+            HasGlobalAdminRole ? "Admin" : null,
+            AvatarFileName, AvatarRevision,
+            PreferEndlessScroll, AutoFollowOnReply,
+            CreatedAt, LastModifiedAt, LastSeenAt, LastLoginAt,
+            NeedsProfileSetup);
     }
 }

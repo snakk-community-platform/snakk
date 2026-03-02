@@ -1,11 +1,26 @@
+using System.IO.Compression;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Enable HTTP/2 for multiplexed connections (avoids browser connection limits)
-builder.WebHost.ConfigureKestrel(options =>
+// Kestrel tuning
+builder.WebHost.ConfigureKestrel(kestrel =>
 {
-    options.ConfigureEndpointDefaults(listenOptions =>
+    kestrel.AddServerHeader = false;
+    kestrel.Limits.MaxConcurrentConnections = 10_000;
+    kestrel.Limits.MaxConcurrentUpgradedConnections = 5_000;
+    kestrel.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+    kestrel.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    kestrel.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+    kestrel.Limits.Http2.MaxStreamsPerConnection = 100;
+    kestrel.Limits.Http2.InitialConnectionWindowSize = 1024 * 1024;
+    kestrel.Limits.Http2.InitialStreamWindowSize = 768 * 1024;
+
+    kestrel.ConfigureEndpointDefaults(listenOptions =>
     {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
     });
 });
 
@@ -13,17 +28,94 @@ builder.WebHost.ConfigureKestrel(options =>
 var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-// Add YARP reverse proxy
+// Real client IP header (set by CDN/reverse proxy like Cloudflare)
+var clientIpHeader = builder.Configuration["Gateway:ClientIpHeader"] ?? "CF-Connecting-IP";
+
+// Response compression (Brotli + Gzip)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat([
+        "application/json",
+        "image/svg+xml"
+    ]);
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+
+    // Auth endpoints: strict per-IP (10 req/min) to prevent brute force
+    options.AddPolicy("auth-strict", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: GetClientIp(context, clientIpHeader),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 2
+            }));
+
+    // General routes: moderate per-IP (200 req/min)
+    options.AddPolicy("general", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: GetClientIp(context, clientIpHeader),
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 200,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+});
+
+// Request timeouts (configured per-route in appsettings.json)
+builder.Services.AddRequestTimeouts();
+
+// YARP reverse proxy with connection pooling
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .ConfigureHttpClient((context, handler) =>
+    {
+        handler.PooledConnectionLifetime = TimeSpan.FromMinutes(5);
+        handler.PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2);
+        handler.ConnectTimeout = TimeSpan.FromSeconds(5);
+
+        // Longer connection lifetime for realtime (WebSocket connections are persistent)
+        if (context.ClusterId == "realtime-cluster")
+        {
+            handler.PooledConnectionLifetime = TimeSpan.FromMinutes(15);
+            handler.PooledConnectionIdleTimeout = TimeSpan.FromMinutes(10);
+        }
+    });
 
 var app = builder.Build();
 
-// HTTPS redirection (skip in production — Caddy/reverse proxy handles TLS)
+// HTTPS redirection (skip in production — Caddy/Cloudflare handles TLS)
 if (!app.Environment.IsProduction())
     app.UseHttpsRedirection();
 
-// Map reverse proxy routes
+// Middleware pipeline (order matters)
+app.UseResponseCompression();
+app.UseRouting();
+app.UseRateLimiter();
+app.UseRequestTimeouts();
 app.MapReverseProxy();
 
 app.Run();
+
+// Resolve the real client IP behind a CDN/reverse proxy.
+// Uses the configured header (default: CF-Connecting-IP for Cloudflare),
+// falls back to X-Forwarded-For, then direct connection IP.
+static string GetClientIp(HttpContext context, string clientIpHeader) =>
+    context.Request.Headers[clientIpHeader].FirstOrDefault()
+    ?? context.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',', StringSplitOptions.TrimEntries)[0]
+    ?? context.Connection.RemoteIpAddress?.ToString()
+    ?? "unknown";

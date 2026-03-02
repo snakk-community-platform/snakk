@@ -7,36 +7,25 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReactionDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReactionDatabaseEntity>(context), IReactionDatabaseRepository
 {
-    public override async Task<ReactionDatabaseEntity?> GetByIdAsync(int id)
-    {
-        return await _dbSet
-            .Include(r => r.Post)
-            .Include(r => r.User)
-            .FirstOrDefaultAsync(r => r.Id == id);
-    }
+    private readonly SnakkDbContext _context = context;
 
-    public override async Task<IEnumerable<ReactionDatabaseEntity>> GetAllAsync()
-    {
-        return await _dbSet
-            .Include(r => r.Post)
-            .Include(r => r.User)
-            .ToListAsync();
-    }
+    private static readonly Func<SnakkDbContext, int, int, Task<int?>> _getUserReactionType
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, int userId, int postId) =>
+                ctx.Reactions
+                    .Where(r => r.UserId == userId && r.PostId == postId)
+                    .Select(r => (int?)r.TypeId)
+                    .FirstOrDefault());
 
     public async Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId)
     {
         return await _dbSet
-            .Include(r => r.Post)
-            .Include(r => r.User)
             .FirstOrDefaultAsync(r => r.UserId == userId && r.PostId == postId);
     }
 
     public async Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(r => r.Post)
-            .Include(r => r.User)
             .Where(r => r.PostId == postId)
             .ToListAsync();
     }
@@ -44,7 +33,6 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
     public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(r => r.PostId == postId)
             .GroupBy(r => r.TypeId)
             .Select(g => new { Type = g.Key, Count = g.Count() })
@@ -53,10 +41,6 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
 
     public async Task<int?> GetUserReactionTypeForPostAsync(int userId, int postId)
     {
-        return await _dbSet
-            .AsNoTracking()
-            .Where(r => r.UserId == userId && r.PostId == postId)
-            .Select(r => (int?)r.TypeId)
-            .FirstOrDefaultAsync();
+        return await _getUserReactionType(_context, userId, postId);
     }
 }

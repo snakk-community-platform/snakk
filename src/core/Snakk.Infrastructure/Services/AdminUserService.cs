@@ -61,8 +61,6 @@ public class AdminUserService : IAdminUserService
         var now = DateTime.UtcNow;
 
         var query = _context.UserBans
-            .Include(b => b.User)
-            .Include(b => b.BannedByUser)
             .Where(b => b.UnbannedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now))
             .OrderByDescending(b => b.BannedAt);
 

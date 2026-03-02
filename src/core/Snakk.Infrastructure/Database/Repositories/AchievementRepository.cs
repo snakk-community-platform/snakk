@@ -28,7 +28,6 @@ public class AchievementRepository(SnakkDbContext context)
     public async Task<IEnumerable<AchievementDatabaseEntity>> GetAllActiveAsync()
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(a => a.IsActive)
             .OrderBy(a => a.DisplayOrder)
             .ToListAsync();
@@ -37,7 +36,6 @@ public class AchievementRepository(SnakkDbContext context)
     public async Task<IEnumerable<AchievementDatabaseEntity>> GetByCategoryIdAsync(int categoryId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(a => a.CategoryId == categoryId && a.IsActive)
             .OrderBy(a => a.DisplayOrder)
             .ToListAsync();

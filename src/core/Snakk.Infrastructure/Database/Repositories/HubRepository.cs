@@ -21,13 +21,13 @@ public class HubRepository(SnakkDbContext context)
     public override async Task<HubDatabaseEntity?> GetByIdAsync(int id)
     {
         return await _dbSet
-            .Include(h => h.Community)
             .FirstOrDefaultAsync(h => h.Id == id);
     }
 
     public async Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId)
     {
         return await _dbSet
+            .AsTracking()
             .Include(h => h.Community)
             .Include(h => h.Spaces)
             .FirstOrDefaultAsync(h => h.PublicId == publicId);
@@ -35,16 +35,12 @@ public class HubRepository(SnakkDbContext context)
 
     public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync()
     {
-        return await _dbSet
-            .Include(h => h.Community)
-            .ToListAsync();
+        return await _dbSet.ToListAsync();
     }
 
     public async Task<HubDetailDto?> GetForDisplayAsync(string publicId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(h => h.Community)
             .Where(h => h.PublicId == publicId)
             .Select(h => new HubDetailDto(
                 h.PublicId,
@@ -61,14 +57,12 @@ public class HubRepository(SnakkDbContext context)
     public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId)
     {
         return await _dbSet
-            .Include(h => h.Community)
             .FirstOrDefaultAsync(h => h.PublicId == publicId);
     }
 
     public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug)
     {
         return await _dbSet
-            .Include(h => h.Community)
             .FirstOrDefaultAsync(h => h.Slug == slug);
     }
 
@@ -77,8 +71,6 @@ public class HubRepository(SnakkDbContext context)
         int pageSize)
     {
         var items = await _dbSet
-            .AsNoTracking()
-            .Include(h => h.Community)
             .OrderBy(h => h.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -111,8 +103,6 @@ public class HubRepository(SnakkDbContext context)
         int pageSize)
     {
         var items = await _dbSet
-            .AsNoTracking()
-            .Include(h => h.Community)
             .Where(h => h.CommunityId == communityId)
             .OrderBy(h => h.Name)
             .Skip(offset)

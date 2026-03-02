@@ -9,13 +9,12 @@ public class UserRepository(SnakkDbContext context)
 {
     public async Task<UserDatabaseEntity?> GetForUpdateAsync(string publicId)
     {
-        return await _dbSet.FirstOrDefaultAsync(u => u.PublicId == publicId);
+        return await _dbSet.AsTracking().FirstOrDefaultAsync(u => u.PublicId == publicId);
     }
 
     public async Task<UserDetailDto?> GetForDisplayAsync(string publicId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(u => u.PublicId == publicId)
             .Select(u => new UserDetailDto(
                 u.PublicId,
@@ -35,7 +34,6 @@ public class UserRepository(SnakkDbContext context)
     {
         var publicIdsList = publicIds.ToList();
         return await _dbSet
-            .AsNoTracking()
             .Where(u => publicIdsList.Contains(u.PublicId))
             .ToListAsync();
     }
@@ -58,7 +56,6 @@ public class UserRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(string query, int limit)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(u => u.DisplayName.ToLower().Contains(query.ToLower()))
             .Take(limit)
             .ToListAsync();

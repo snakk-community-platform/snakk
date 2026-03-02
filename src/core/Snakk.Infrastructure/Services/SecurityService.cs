@@ -28,7 +28,6 @@ public class SecurityService : ISecurityService
         var offset = (page - 1) * pageSize;
 
         var query = _context.AuditLogs
-            .Include(a => a.ActorUser)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(category))
@@ -80,7 +79,6 @@ public class SecurityService : ISecurityService
     public async Task<AuditLogDto?> GetAuditLogByIdAsync(string id)
     {
         var log = await _context.AuditLogs
-            .Include(a => a.ActorUser)
             .Where(a => a.PublicId == id)
             .Select(a => new AuditLogDto
             {
@@ -131,7 +129,6 @@ public class SecurityService : ISecurityService
     {
         var now = DateTime.UtcNow;
         var activeSessions = await _context.RefreshTokens
-            .Include(t => t.User)
             .Where(t => t.ExpiresAt > now && t.RevokedAt == null)
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new ActiveSessionDto
@@ -155,7 +152,6 @@ public class SecurityService : ISecurityService
         var since = DateTime.UtcNow.AddHours(-hours);
 
         var activities = await _context.AuditLogs
-            .Include(a => a.ActorUser)
             .Where(a => a.CreatedAt >= since && a.SeverityId == (int)AuditLogSeverityEnum.Warning)
             .OrderByDescending(a => a.CreatedAt)
             .Skip(offset)

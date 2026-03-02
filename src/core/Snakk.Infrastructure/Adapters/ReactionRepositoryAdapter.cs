@@ -19,28 +19,24 @@ public class ReactionRepositoryAdapter(
 
     public async Task<Reaction?> GetByUserAndPostAsync(UserId userId, PostId postId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
-
-        if (user == null || post == null) return null;
-
-        var entity = await _databaseRepository.GetByUserAndPostAsync(user.Id, post.Id);
-        if (entity == null) return null;
-
-        // Load navigation properties for mapping
-        entity.User = user;
-        entity.Post = post;
-
-        return entity.FromPersistence();
+        var projection = await _context.Reactions
+            .Where(r => r.User.PublicId == userId.Value && r.Post.PublicId == postId.Value)
+            .Select(r => new ReactionProjection(
+                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.TypeId, r.CreatedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<Reaction>> GetByPostIdAsync(PostId postId)
     {
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
-        if (post == null) return [];
-
-        var entities = await _databaseRepository.GetByPostIdAsync(post.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Reactions
+            .Where(r => r.Post.PublicId == postId.Value)
+            .Select(r => new ReactionProjection(
+                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.TypeId, r.CreatedAt))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<Dictionary<ReactionType, int>> GetCountsByPostIdAsync(PostId postId)
@@ -166,5 +162,20 @@ public class ReactionRepositoryAdapter(
         }
 
         return result;
+    }
+
+    private record ReactionProjection(
+        string PublicId,
+        string PostPublicId,
+        string UserPublicId,
+        int TypeId,
+        DateTime CreatedAt)
+    {
+        public Reaction ToDomain() => Reaction.Rehydrate(
+            ReactionId.From(PublicId),
+            PostId.From(PostPublicId),
+            UserId.From(UserPublicId),
+            ((ReactionTypeEnum)TypeId).ToDomain(),
+            CreatedAt);
     }
 }

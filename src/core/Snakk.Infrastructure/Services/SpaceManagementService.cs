@@ -67,7 +67,6 @@ public class SpaceManagementService : ISpaceManagementService
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.SpaceMod &&
                          ur.SpaceId == space.Id &&
                          ur.RevokedAt == null)
-            .Include(ur => ur.User)
             .Select(ur => new SpaceModeratorDto
             {
                 UserId = ur.User.PublicId,
@@ -145,6 +144,7 @@ public class SpaceManagementService : ISpaceManagementService
     public async Task<SpaceSettingsDto?> UpdateSettingsAsync(string spaceId, UpdateSpaceSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var space = await _context.Spaces
+            .AsTracking()
             .Where(s => s.PublicId == spaceId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -176,8 +176,6 @@ public class SpaceManagementService : ISpaceManagementService
         // Get pending reports
         var pendingReports = await _context.Reports
             .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Pending)
-            .Include(r => r.ReporterUser)
-            .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
             .Take(50)
             .Select(r => new ModerationReportDto
@@ -263,6 +261,7 @@ public class SpaceManagementService : ISpaceManagementService
     public async Task<SpaceRulesDto> UpdateRulesAsync(string spaceId, UpdateSpaceRulesRequest request, CancellationToken cancellationToken = default)
     {
         var space = await _context.Spaces
+            .AsTracking()
             .Where(s => s.PublicId == spaceId)
             .FirstOrDefaultAsync(cancellationToken);
 

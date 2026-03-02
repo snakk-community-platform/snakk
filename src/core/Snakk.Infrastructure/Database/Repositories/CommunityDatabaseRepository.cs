@@ -30,7 +30,6 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
     public async Task<PagedResult<CommunityListDto>> GetPublicListedAsync(int offset, int pageSize)
     {
         var items = await _dbSet
-            .AsNoTracking()
             .Where(c => c.VisibilityId == (int)CommunityVisibilityEnum.PublicListed)
             .OrderBy(c => c.Name)
             .Skip(offset)
@@ -60,7 +59,6 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
     public async Task<PagedResult<CommunityListDto>> GetForPlatformFeedAsync(int offset, int pageSize)
     {
         var items = await _dbSet
-            .AsNoTracking()
             .Where(c => c.ExposeToPlatformFeed)
             .OrderBy(c => c.Name)
             .Skip(offset)

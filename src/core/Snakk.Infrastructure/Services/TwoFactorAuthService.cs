@@ -31,7 +31,7 @@ public class TwoFactorAuthService : ITwoFactorAuthService
 
     public async Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId);
+        var user = await _context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId);
         if (user == null)
             throw new InvalidOperationException("User not found");
 
@@ -60,7 +60,7 @@ public class TwoFactorAuthService : ITwoFactorAuthService
 
     public async Task<(bool Success, List<string> BackupCodes, string? Error)> EnableTwoFactorAsync(string userId, string code)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId);
+        var user = await _context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId);
         if (user == null)
             return (false, new List<string>(), "User not found");
 
@@ -99,6 +99,7 @@ public class TwoFactorAuthService : ITwoFactorAuthService
     public async Task<bool> DisableTwoFactorAsync(string userId, string password)
     {
         var user = await _context.Users
+            .AsTracking()
             .Include(u => u.BackupCodes)
             .Include(u => u.TrustedDevices)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
@@ -147,25 +148,33 @@ public class TwoFactorAuthService : ITwoFactorAuthService
 
     public async Task<TwoFactorStatusDto?> GetTwoFactorStatusAsync(string userId)
     {
-        var user = await _context.Users
-            .Include(u => u.BackupCodes)
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+        var status = await _context.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new
+            {
+                u.TwoFactorEnabled,
+                HasBackupCodes = u.BackupCodes.Any(),
+                UsedBackupCodesCount = u.BackupCodes.Count(bc => bc.IsUsed),
+                TotalBackupCodes = u.BackupCodes.Count()
+            })
+            .FirstOrDefaultAsync();
 
-        if (user == null)
+        if (status == null)
             return null;
 
         return new TwoFactorStatusDto
         {
-            IsEnabled = user.TwoFactorEnabled,
-            HasBackupCodes = user.BackupCodes.Any(),
-            UsedBackupCodesCount = user.BackupCodes.Count(bc => bc.IsUsed),
-            TotalBackupCodes = user.BackupCodes.Count
+            IsEnabled = status.TwoFactorEnabled,
+            HasBackupCodes = status.HasBackupCodes,
+            UsedBackupCodesCount = status.UsedBackupCodesCount,
+            TotalBackupCodes = status.TotalBackupCodes
         };
     }
 
     public async Task<(bool IsValid, bool UsedBackupCode)> VerifyTwoFactorCodeAsync(string userId, string code, string? ipAddress = null)
     {
         var user = await _context.Users
+            .AsTracking()
             .Include(u => u.BackupCodes)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 
@@ -208,31 +217,34 @@ public class TwoFactorAuthService : ITwoFactorAuthService
 
     public async Task<BackupCodeStatusDto> GetBackupCodesStatusAsync(string userId)
     {
-        var user = await _context.Users
-            .Include(u => u.BackupCodes)
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+        var status = await _context.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new
+            {
+                u.TwoFactorEnabled,
+                Codes = u.BackupCodes
+                    .OrderBy(bc => bc.CreatedAt)
+                    .Select(bc => bc.PublicId)
+                    .ToList(),
+                UsedCount = u.BackupCodes.Count(bc => bc.IsUsed)
+            })
+            .FirstOrDefaultAsync();
 
-        if (user == null || !user.TwoFactorEnabled)
+        if (status == null || !status.TwoFactorEnabled)
             throw new InvalidOperationException("2FA is not enabled");
-
-        var codes = user.BackupCodes
-            .OrderBy(bc => bc.CreatedAt)
-            .Select(bc => bc.PublicId)
-            .ToList();
-
-        var usedCount = user.BackupCodes.Count(bc => bc.IsUsed);
 
         return new BackupCodeStatusDto
         {
-            Codes = codes,
-            UsedCount = usedCount,
-            TotalCount = codes.Count
+            Codes = status.Codes,
+            UsedCount = status.UsedCount,
+            TotalCount = status.Codes.Count
         };
     }
 
     public async Task<List<string>> RegenerateBackupCodesAsync(string userId, string password)
     {
         var user = await _context.Users
+            .AsTracking()
             .Include(u => u.BackupCodes)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 

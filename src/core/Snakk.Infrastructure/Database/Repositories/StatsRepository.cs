@@ -17,7 +17,7 @@ public class StatsRepository : IStatsRepository
     public async Task<PlatformStatsDto> GetPlatformStatsAsync()
     {
         // Use denormalized counters from Community entities (avoids full table scans on Posts)
-        var stats = await _context.Communities.AsNoTracking()
+        var stats = await _context.Communities
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -39,7 +39,7 @@ public class StatsRepository : IStatsRepository
     public async Task<HubStatsDto?> GetHubStatsAsync(string publicId)
     {
         // Use denormalized counters (avoids SelectMany chains across tables)
-        var stats = await _context.Hubs.AsNoTracking()
+        var stats = await _context.Hubs
             .Where(h => h.PublicId == publicId)
             .Select(h => new HubStatsDto(
                 h.PublicId,
@@ -57,7 +57,7 @@ public class StatsRepository : IStatsRepository
     public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId)
     {
         // Use denormalized counters for discussion/reply counts
-        var stats = await _context.Spaces.AsNoTracking()
+        var stats = await _context.Spaces
             .Where(s => s.PublicId == publicId)
             .Select(s => new SpaceStatsDto(
                 s.PublicId,
@@ -75,7 +75,7 @@ public class StatsRepository : IStatsRepository
     public async Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId)
     {
         // Use denormalized counters (avoids SelectMany chains across millions of posts)
-        var stats = await _context.Communities.AsNoTracking()
+        var stats = await _context.Communities
             .Where(c => c.PublicId == publicId)
             .Select(c => new CommunityStatsDto(
                 c.PublicId,
@@ -93,7 +93,7 @@ public class StatsRepository : IStatsRepository
 
     public async Task<UserStatsDto?> GetUserStatsAsync(string publicId)
     {
-        return await _context.Users.AsNoTracking()
+        return await _context.Users
             .Where(u => u.PublicId == publicId)
             .Select(u => new UserStatsDto(
                 u.PublicId,
@@ -106,7 +106,7 @@ public class StatsRepository : IStatsRepository
 
     public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId)
     {
-        var discussion = await _context.Discussions.AsNoTracking()
+        var discussion = await _context.Discussions
             .FirstOrDefaultAsync(d => d.PublicId == publicId);
 
         if (discussion == null)
@@ -127,7 +127,6 @@ public class StatsRepository : IStatsRepository
         var today = DateTime.UtcNow.Date;
 
         var postsQuery = _context.Posts
-            .AsNoTracking()
             .Where(p => !p.IsDeleted && p.CreatedAt >= today);
 
         // Filter by community if specified
@@ -150,7 +149,7 @@ public class StatsRepository : IStatsRepository
             .OrderByDescending(x => x.PostCountToday)
             .Take(limit)
             .Join(
-                _context.Spaces.AsNoTracking().Where(s => !s.IsDeleted),
+                _context.Spaces.Where(s => !s.IsDeleted),
                 x => x.SpaceId,
                 s => s.Id,
                 (x, s) => new TopActiveSpaceDto(

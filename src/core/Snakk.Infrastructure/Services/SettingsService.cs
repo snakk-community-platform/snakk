@@ -46,7 +46,6 @@ public class SettingsService : ISettingsService
         }
 
         var settings = await _context.SystemSettings
-            .Include(s => s.UpdatedBy)
             .Where(s => s.Category == category)
             .OrderBy(s => s.Key)
             .Select(s => new SettingDto

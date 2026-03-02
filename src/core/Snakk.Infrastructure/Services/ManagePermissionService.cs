@@ -166,7 +166,6 @@ public class ManagePermissionService : IManagePermissionService
             case "space":
                 // Resolve space publicId to internal ID + parent hub/community
                 var space = await _context.Spaces
-                    .Include(s => s.Hub)
                     .Where(s => s.PublicId == scopePublicId)
                     .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
                     .FirstOrDefaultAsync();

@@ -18,7 +18,6 @@ public class ReportCommentRepository(SnakkDbContext context)
     public async Task<IEnumerable<ReportCommentDatabaseEntity>> GetCommentsForReportAsync(int reportId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Include(rc => rc.AuthorUser)
             .Where(rc => rc.ReportId == reportId && !rc.IsDeleted)
             .OrderBy(rc => rc.CreatedAt)

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
-using Snakk.Infrastructure.Mappers;
 
 namespace Snakk.Infrastructure.Database.Repositories;
 
@@ -17,21 +16,22 @@ public class RefreshTokenRepository : IRefreshTokenRepository
 
     public async Task<RefreshToken?> GetByValueAsync(string tokenValue)
     {
-        var entity = await _context.RefreshTokens
-            .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
-
-        return entity?.FromPersistence();
+        var projection = await _context.RefreshTokens
+            .Where(t => t.TokenValue == tokenValue)
+            .Select(t => new RefreshTokenProjection(
+                t.TokenValue, t.User.PublicId, t.ExpiresAt, t.CreatedAt, t.RevokedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<RefreshToken>> GetByUserIdAsync(UserId userId)
     {
-        var entities = await _context.RefreshTokens
-            .Include(t => t.User)
+        var projections = await _context.RefreshTokens
             .Where(t => t.User.PublicId == userId.Value)
+            .Select(t => new RefreshTokenProjection(
+                t.TokenValue, t.User.PublicId, t.ExpiresAt, t.CreatedAt, t.RevokedAt))
             .ToListAsync();
-
-        return entities.Select(e => e.FromPersistence());
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(RefreshToken token)
@@ -89,5 +89,19 @@ public class RefreshTokenRepository : IRefreshTokenRepository
 
         _context.RefreshTokens.RemoveRange(expiredTokens);
         await _context.SaveChangesAsync();
+    }
+
+    private record RefreshTokenProjection(
+        string TokenValue,
+        string UserPublicId,
+        DateTime ExpiresAt,
+        DateTime CreatedAt,
+        DateTime? RevokedAt)
+    {
+        public RefreshToken ToDomain() => RefreshToken.Rehydrate(
+            TokenValue,
+            UserId.From(UserPublicId),
+            ExpiresAt, CreatedAt,
+            RevokedAt?.ToString("O"));
     }
 }

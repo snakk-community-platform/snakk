@@ -16,26 +16,49 @@ public class HubRepositoryAdapter(
 
     public async Task<Hub?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Hubs
+            .Where(h => h.Id == id)
+            .Select(h => new HubProjection(
+                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.AllowAnonymousReading, h.RequireEmailConfirmation,
+                h.CreatedAt, h.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Hub?> GetByPublicIdAsync(HubId publicId)
     {
-        var entity = await _databaseRepository.GetForUpdateAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Hubs
+            .Where(h => h.PublicId == publicId.Value)
+            .Select(h => new HubProjection(
+                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.AllowAnonymousReading, h.RequireEmailConfirmation,
+                h.CreatedAt, h.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Hub?> GetBySlugAsync(string slug)
     {
-        var entity = await _databaseRepository.GetBySlugAsync(slug);
-        return entity?.FromPersistence();
+        var projection = await _context.Hubs
+            .Where(h => h.Slug == slug)
+            .Select(h => new HubProjection(
+                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.AllowAnonymousReading, h.RequireEmailConfirmation,
+                h.CreatedAt, h.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<Hub>> GetAllAsync()
     {
-        var entities = await _databaseRepository.GetAllAsync();
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Hubs
+            .Select(h => new HubProjection(
+                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.AllowAnonymousReading, h.RequireEmailConfirmation,
+                h.CreatedAt, h.LastModifiedAt))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize)
@@ -106,7 +129,6 @@ public class HubRepositoryAdapter(
     public async Task UpdateAsync(Hub hub)
     {
         var entity = await _context.Hubs
-            .Include(h => h.Community)
             .FirstOrDefaultAsync(h => h.PublicId == hub.PublicId.Value);
         if (entity == null)
             throw new InvalidOperationException($"Hub with PublicId '{hub.PublicId}' not found");
@@ -120,5 +142,24 @@ public class HubRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record HubProjection(
+        string PublicId,
+        string CommunityPublicId,
+        string Name,
+        string Slug,
+        string? Description,
+        bool AllowAnonymousReading,
+        bool RequireEmailConfirmation,
+        DateTime CreatedAt,
+        DateTime? LastModifiedAt)
+    {
+        public Hub ToDomain() => Hub.Rehydrate(
+            HubId.From(PublicId),
+            CommunityId.From(CommunityPublicId),
+            Name, Slug, Description,
+            AllowAnonymousReading, RequireEmailConfirmation,
+            CreatedAt, LastModifiedAt, spaces: []);
     }
 }

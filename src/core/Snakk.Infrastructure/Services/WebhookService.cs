@@ -266,11 +266,14 @@ public class WebhookService : IWebhookService
 
         _logger.LogInformation("Triggering {Count} webhooks for event: {EventType}", matchingWebhooks.Count, eventType);
 
-        // Deliver webhooks in parallel
-        var deliveryTasks = matchingWebhooks.Select(webhook =>
-            DeliverWebhookAsync(webhook, eventType, payload, isTest: false, attemptNumber: 1, cancellationToken));
+        // Execute HTTP deliveries in parallel (DbContext is NOT thread-safe, so don't save inside parallel tasks)
+        var deliveryLogs = await Task.WhenAll(
+            matchingWebhooks.Select(webhook =>
+                ExecuteDeliveryAsync(webhook, eventType, payload, isTest: false, attemptNumber: 1, cancellationToken)));
 
-        await Task.WhenAll(deliveryTasks);
+        // Batch save all delivery logs in a single DbContext operation
+        _dbContext.WebhookDeliveryLogs.AddRange(deliveryLogs);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RetryFailedDeliveriesAsync(CancellationToken cancellationToken = default)
@@ -322,7 +325,31 @@ public class WebhookService : IWebhookService
         }
     }
 
+    /// <summary>
+    /// Delivers a webhook and persists the delivery log. Use for single-webhook operations
+    /// (test, retry). For parallel delivery, use ExecuteDeliveryAsync + batch save.
+    /// </summary>
     private async Task<WebhookDeliveryLogDatabaseEntity> DeliverWebhookAsync(
+        WebhookDatabaseEntity webhook,
+        string eventType,
+        object payload,
+        bool isTest,
+        int attemptNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var deliveryLog = await ExecuteDeliveryAsync(webhook, eventType, payload, isTest, attemptNumber, cancellationToken);
+
+        _dbContext.WebhookDeliveryLogs.Add(deliveryLog);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return deliveryLog;
+    }
+
+    /// <summary>
+    /// Executes the HTTP delivery and returns the log entity WITHOUT saving to the database.
+    /// Safe to call in parallel since it doesn't touch DbContext.
+    /// </summary>
+    private async Task<WebhookDeliveryLogDatabaseEntity> ExecuteDeliveryAsync(
         WebhookDatabaseEntity webhook,
         string eventType,
         object payload,
@@ -348,7 +375,7 @@ public class WebhookService : IWebhookService
             httpClient.Timeout = TimeSpan.FromSeconds(webhook.TimeoutSeconds);
 
             var request = new HttpRequestMessage(HttpMethod.Post, webhook.Url);
-            
+
             // Add custom headers
             if (!string.IsNullOrEmpty(webhook.CustomHeaders))
             {
@@ -373,14 +400,14 @@ public class WebhookService : IWebhookService
             request.Headers.Add("X-Webhook-Event", eventType);
             request.Headers.Add("X-Webhook-Delivery", deliveryLog.Id.ToString());
             request.Headers.Add("X-Webhook-Attempt", attemptNumber.ToString());
-            
+
             if (isTest)
                 request.Headers.Add("X-Webhook-Test", "true");
 
             request.Content = JsonContent.Create(payload);
 
             var response = await httpClient.SendAsync(request, cancellationToken);
-            
+
             stopwatch.Stop();
 
             deliveryLog.HttpStatusCode = (int)response.StatusCode;
@@ -391,7 +418,7 @@ public class WebhookService : IWebhookService
             {
                 deliveryLog.ResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
                 deliveryLog.ErrorMessage = $"HTTP {deliveryLog.HttpStatusCode}: {response.ReasonPhrase}";
-                
+
                 // Schedule retry if within retry limits
                 if (attemptNumber < webhook.MaxRetries)
                 {
@@ -409,7 +436,7 @@ public class WebhookService : IWebhookService
             else
             {
                 deliveryLog.ResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                
+
                 if (deliveryLog.ResponseBody.Length > 5000)
                     deliveryLog.ResponseBody = deliveryLog.ResponseBody.Substring(0, 5000);
 
@@ -442,9 +469,6 @@ public class WebhookService : IWebhookService
                 attemptNumber,
                 webhook.MaxRetries);
         }
-
-        _dbContext.WebhookDeliveryLogs.Add(deliveryLog);
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return deliveryLog;
     }

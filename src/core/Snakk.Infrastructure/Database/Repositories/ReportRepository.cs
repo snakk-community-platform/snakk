@@ -44,7 +44,7 @@ public class ReportRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(int communityId, int? statusId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(r => r.CommunityId == communityId);
 
         if (statusId.HasValue)
@@ -56,7 +56,7 @@ public class ReportRepository(SnakkDbContext context)
     public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(int hubId, int? statusId, int offset, int pageSize)
     {
         // Hub mods see reports for their hub AND all spaces within the hub
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(r => r.HubId == hubId || (r.SpaceId != null && r.Space!.HubId == hubId));
 
         if (statusId.HasValue)
@@ -67,7 +67,7 @@ public class ReportRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(int spaceId, int? statusId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(r => r.SpaceId == spaceId);
 
         if (statusId.HasValue)
@@ -80,7 +80,6 @@ public class ReportRepository(SnakkDbContext context)
     {
         // Get user's active roles to determine their scope
         var userRoles = await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.UserId == userId && ur.RevokedAt == null)
             .ToListAsync();
         
@@ -88,7 +87,7 @@ public class ReportRepository(SnakkDbContext context)
             return 0;
         
         // Build query based on roles
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(r => r.StatusId == (int)ReportStatusEnum.Pending);
         
         var reportIds = new HashSet<int>();
@@ -131,7 +130,7 @@ public class ReportRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ReportListDto>> GetReportsResolvedByUserAsync(int userId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(r => r.ResolvedByUserId == userId);
         
         return await GetPagedReportsAsync(query, offset, pageSize);

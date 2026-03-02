@@ -18,11 +18,12 @@ public class MentionRepositoryAdapter(
 
     public async Task<IEnumerable<Mention>> GetByPostIdAsync(PostId postId)
     {
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
-        if (post == null) return [];
-
-        var entities = await _databaseRepository.GetByPostIdAsync(post.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Mentions
+            .Where(m => m.Post.PublicId == postId.Value)
+            .Select(m => new MentionProjection(
+                m.PublicId, m.Post.PublicId, m.MentionedUser.PublicId, m.CreatedAt))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddRangeAsync(IEnumerable<Mention> mentions)
@@ -56,5 +57,18 @@ public class MentionRepositoryAdapter(
         if (post == null) return;
 
         await _databaseRepository.DeleteByPostIdAsync(post.Id);
+    }
+
+    private record MentionProjection(
+        string PublicId,
+        string PostPublicId,
+        string MentionedUserPublicId,
+        DateTime CreatedAt)
+    {
+        public Mention ToDomain() => Mention.Rehydrate(
+            MentionId.From(PublicId),
+            PostId.From(PostPublicId),
+            UserId.From(MentionedUserPublicId),
+            CreatedAt);
     }
 }

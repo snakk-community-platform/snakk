@@ -19,7 +19,7 @@ public class ReportReasonRepository(SnakkDbContext context)
     public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsForScopeAsync(int? communityId = null, int? hubId = null, int? spaceId = null)
     {
         // Get global reasons + reasons at the specified scope and parent scopes
-        var query = _dbSet.AsNoTracking();
+        var query = _dbSet.AsQueryable();
         
         // Build predicate: global OR matching community OR matching hub OR matching space
         query = query.Where(rr =>
@@ -41,7 +41,6 @@ public class ReportReasonRepository(SnakkDbContext context)
     public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetGlobalReasonsAsync()
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(rr => rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null)
             .OrderBy(rr => rr.DisplayOrder)
             .ThenBy(rr => rr.Name)
@@ -50,7 +49,7 @@ public class ReportReasonRepository(SnakkDbContext context)
 
     public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsByEntityAsync(int? communityId = null, int? hubId = null, int? spaceId = null)
     {
-        var query = _dbSet.AsNoTracking();
+        var query = _dbSet.AsQueryable();
         
         if (spaceId.HasValue)
             query = query.Where(rr => rr.SpaceId == spaceId);

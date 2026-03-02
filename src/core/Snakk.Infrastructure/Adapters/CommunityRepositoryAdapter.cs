@@ -18,20 +18,38 @@ public class CommunityRepositoryAdapter(
 
     public async Task<Community?> GetByPublicIdAsync(CommunityId publicId)
     {
-        var entity = await _databaseRepository.GetByPublicIdAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Communities
+            .Where(c => c.PublicId == publicId.Value)
+            .Select(c => new CommunityProjection(
+                c.PublicId, c.Name, c.Slug, c.Description,
+                c.VisibilityId, c.ExposeToPlatformFeed,
+                c.CreatedAt, c.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Community?> GetBySlugAsync(string slug)
     {
-        var entity = await _databaseRepository.GetBySlugAsync(slug);
-        return entity?.FromPersistence();
+        var projection = await _context.Communities
+            .Where(c => c.Slug == slug)
+            .Select(c => new CommunityProjection(
+                c.PublicId, c.Name, c.Slug, c.Description,
+                c.VisibilityId, c.ExposeToPlatformFeed,
+                c.CreatedAt, c.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Community?> GetByDomainAsync(string domain)
     {
-        var entity = await _databaseRepository.GetByDomainAsync(domain);
-        return entity?.FromPersistence();
+        var projection = await _context.Set<Database.Entities.CommunityDomainDatabaseEntity>()
+            .Where(d => d.Domain == domain && d.IsVerified)
+            .Select(d => new CommunityProjection(
+                d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
+                d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
+                d.Community.CreatedAt, d.Community.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize)
@@ -94,5 +112,23 @@ public class CommunityRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record CommunityProjection(
+        string PublicId,
+        string Name,
+        string Slug,
+        string? Description,
+        int VisibilityId,
+        bool ExposeToPlatformFeed,
+        DateTime CreatedAt,
+        DateTime? LastModifiedAt)
+    {
+        public Community ToDomain() => Community.Rehydrate(
+            CommunityId.From(PublicId),
+            Name, Slug, Description,
+            ((CommunityVisibilityEnum)VisibilityId).ToDomain(),
+            ExposeToPlatformFeed,
+            CreatedAt, LastModifiedAt, hubs: []);
     }
 }

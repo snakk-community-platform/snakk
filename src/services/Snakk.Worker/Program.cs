@@ -10,9 +10,13 @@ var builder = Host.CreateApplicationBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-// Database (PostgreSQL)
-builder.Services.AddDbContext<SnakkDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DbConnection")));
+// Database (PostgreSQL) with DbContext pooling for better performance
+builder.Services.AddDbContextPool<SnakkDbContext>(options =>
+    options
+        .UseNpgsql(builder.Configuration.GetConnectionString("DbConnection"),
+            o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+        .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
+    poolSize: 32);
 
 // Memory Cache for settings and permissions caching
 builder.Services.AddMemoryCache();

@@ -119,4 +119,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+// Health check for gateway probes
+app.MapGet("/health", () => Results.Ok());
+
 app.Run();

@@ -89,7 +89,6 @@ public class AdminContentService : IAdminContentService
         var offset = (page - 1) * pageSize;
 
         var query = _context.Hubs
-            .Include(h => h.Community)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(communityId))
@@ -133,8 +132,6 @@ public class AdminContentService : IAdminContentService
         var offset = (page - 1) * pageSize;
 
         var query = _context.Spaces
-            .Include(s => s.Hub)
-                .ThenInclude(h => h.Community)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(hubId))
@@ -179,8 +176,6 @@ public class AdminContentService : IAdminContentService
         var offset = (page - 1) * pageSize;
 
         var query = _context.Discussions
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(spaceId))

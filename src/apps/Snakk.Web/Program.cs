@@ -293,4 +293,7 @@ app.MapBffApiEndpoints();
 // Public endpoints
 app.MapSitemapEndpoints();
 
+// Health check for gateway probes
+app.MapGet("/health", () => Results.Ok());
+
 app.Run();

@@ -62,7 +62,6 @@ public class HubManagementService : IHubManagementService
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.HubMod &&
                          ur.HubId == hub.Id &&
                          ur.RevokedAt == null)
-            .Include(ur => ur.User)
             .Select(ur => new HubModeratorDto
             {
                 UserId = ur.User.PublicId,
@@ -137,6 +136,7 @@ public class HubManagementService : IHubManagementService
     public async Task<HubSettingsDto?> UpdateSettingsAsync(string hubId, UpdateHubSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var hub = await _context.Hubs
+            .AsTracking()
             .Where(h => h.PublicId == hubId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -167,8 +167,6 @@ public class HubManagementService : IHubManagementService
         // Get pending reports
         var pendingReports = await _context.Reports
             .Where(r => r.HubId == hubDbId && r.StatusId == (int)ReportStatusEnum.Pending)
-            .Include(r => r.ReporterUser)
-            .Include(r => r.ReportedUser)
             .OrderByDescending(r => r.CreatedAt)
             .Take(50)
             .Select(r => new ModerationReportDto
@@ -283,6 +281,7 @@ public class HubManagementService : IHubManagementService
     public async Task<HubRulesDto> UpdateRulesAsync(string hubId, UpdateHubRulesRequest request, CancellationToken cancellationToken = default)
     {
         var hub = await _context.Hubs
+            .AsTracking()
             .Where(h => h.PublicId == hubId)
             .FirstOrDefaultAsync(cancellationToken);
 

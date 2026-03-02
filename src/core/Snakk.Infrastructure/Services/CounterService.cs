@@ -14,7 +14,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     {
         // Get the space to find its hub and community
         var space = await dbContext.Spaces
-            .AsNoTracking()
             .Where(s => s.PublicId == spaceId.Value)
             .Select(s => new { s.Id, s.HubId, HubCommunityId = s.Hub.CommunityId })
             .FirstOrDefaultAsync();
@@ -40,7 +39,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     public async Task DecrementDiscussionCountAsync(SpaceId spaceId)
     {
         var space = await dbContext.Spaces
-            .AsNoTracking()
             .Where(s => s.PublicId == spaceId.Value)
             .Select(s => new { s.Id, s.HubId, HubCommunityId = s.Hub.CommunityId })
             .FirstOrDefaultAsync();
@@ -64,7 +62,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     {
         // Get discussion with its space, hub, and community ids
         var discussion = await dbContext.Discussions
-            .AsNoTracking()
             .Where(d => d.PublicId == discussionId.Value)
             .Select(d => new { 
                 d.Id, 
@@ -100,7 +97,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     public async Task DecrementPostCountAsync(DiscussionId discussionId)
     {
         var discussion = await dbContext.Discussions
-            .AsNoTracking()
             .Where(d => d.PublicId == discussionId.Value)
             .Select(d => new { 
                 d.Id, 
@@ -133,7 +129,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     {
         // Get discussion entity
         var discussion = await dbContext.Discussions
-            .AsNoTracking()
             .Where(d => d.PublicId == discussionId.Value)
             .Select(d => new { d.Id })
             .FirstOrDefaultAsync();
@@ -142,7 +137,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
 
         // Check if user has ANY existing reactions in this discussion
         var hasExistingReaction = await dbContext.Reactions
-            .AsNoTracking()
             .AnyAsync(r => r.Post.DiscussionId == discussion.Id && r.User.PublicId == userId.Value);
 
         // Only increment if this is their FIRST reaction in the discussion
@@ -158,7 +152,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
     {
         // Get discussion entity
         var discussion = await dbContext.Discussions
-            .AsNoTracking()
             .Where(d => d.PublicId == discussionId.Value)
             .Select(d => new { d.Id })
             .FirstOrDefaultAsync();
@@ -167,7 +160,6 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
 
         // Check if user has ANY remaining reactions in this discussion
         var hasRemainingReactions = await dbContext.Reactions
-            .AsNoTracking()
             .AnyAsync(r => r.Post.DiscussionId == discussion.Id && r.User.PublicId == userId.Value);
 
         // Only decrement if they have NO MORE reactions in the discussion

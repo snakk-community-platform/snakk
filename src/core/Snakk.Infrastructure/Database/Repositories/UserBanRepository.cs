@@ -23,7 +23,6 @@ public class UserBanRepository(SnakkDbContext context)
     {
         var now = DateTime.UtcNow;
         return await _dbSet
-            .AsNoTracking()
             .Include(ub => ub.Community)
             .Include(ub => ub.Hub)
             .Include(ub => ub.Space)
@@ -41,7 +40,6 @@ public class UserBanRepository(SnakkDbContext context)
         
         // Build query for active bans
         var query = _dbSet
-            .AsNoTracking()
             .Where(ub => 
                 ub.UserId == userId && 
                 ub.UnbannedAt == null &&
@@ -74,7 +72,7 @@ public class UserBanRepository(SnakkDbContext context)
             // Also check if hub's community has a ban
             if (!communityId.HasValue)
             {
-                var hub = await _context.Hubs.AsNoTracking()
+                var hub = await _context.Hubs
                     .FirstOrDefaultAsync(h => h.Id == hubId);
                 if (hub != null)
                 {
@@ -97,7 +95,7 @@ public class UserBanRepository(SnakkDbContext context)
             // Also check hub and community bans for the space
             if (!hubId.HasValue)
             {
-                var space = await _context.Spaces.AsNoTracking()
+                var space = await _context.Spaces
                     .Include(s => s.Hub)
                     .FirstOrDefaultAsync(s => s.Id == spaceId);
                 if (space != null)
@@ -129,7 +127,6 @@ public class UserBanRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForCommunityAsync(int communityId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.BannedByUser)
             .Include(ub => ub.UnbannedByUser)
@@ -141,7 +138,6 @@ public class UserBanRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForHubAsync(int hubId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.BannedByUser)
             .Include(ub => ub.UnbannedByUser)
@@ -153,7 +149,6 @@ public class UserBanRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForSpaceAsync(int spaceId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.BannedByUser)
             .Include(ub => ub.UnbannedByUser)

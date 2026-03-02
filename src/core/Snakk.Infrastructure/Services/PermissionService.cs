@@ -18,6 +18,49 @@ public class PermissionService : IPermissionService
     private readonly ISecurityService _securityService;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
+    // Compiled queries for hot-path permission lookups
+    private static readonly Func<SnakkDbContext, string, Task<int?>> _getUserIdByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Users
+                .Where(u => u.PublicId == publicId)
+                .Select(u => (int?)u.Id)
+                .FirstOrDefault());
+
+    private static readonly Func<SnakkDbContext, string, Task<int?>> _getCommunityIdByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Communities
+                .Where(c => c.PublicId == publicId)
+                .Select(c => (int?)c.Id)
+                .FirstOrDefault());
+
+    private static readonly Func<SnakkDbContext, string, Task<HubScope?>> _getHubScopeByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Hubs
+                .Where(h => h.PublicId == publicId)
+                .Select(h => new HubScope(h.Id, h.CommunityId))
+                .FirstOrDefault());
+
+    private static readonly Func<SnakkDbContext, string, Task<SpaceScope?>> _getSpaceScopeByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Spaces
+                .Where(s => s.PublicId == publicId)
+                .Select(s => new SpaceScope(s.Id, s.HubId, s.Hub.CommunityId))
+                .FirstOrDefault());
+
+    private static readonly Func<SnakkDbContext, string, Task<ScopeIds?>> _getDiscussionScopeByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Discussions
+                .Where(d => d.PublicId == publicId)
+                .Select(d => new ScopeIds(d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId))
+                .FirstOrDefault());
+
+    private static readonly Func<SnakkDbContext, string, Task<ScopeIds?>> _getPostScopeByPublicId
+        = EF.CompileAsyncQuery(
+            (SnakkDbContext ctx, string publicId) => ctx.Posts
+                .Where(p => p.PublicId == publicId)
+                .Select(p => new ScopeIds(p.Discussion.SpaceId, p.Discussion.Space.HubId, p.Discussion.Space.Hub.CommunityId))
+                .FirstOrDefault());
+
     public PermissionService(
         SnakkDbContext context,
         IMemoryCache cache,
@@ -33,16 +76,12 @@ public class PermissionService : IPermissionService
     public async Task<bool> UserHasPermissionAsync(string userId, string permissionName, string? scope = null, string? scopePublicId = null)
     {
         // Get user's database ID from PublicId
-        var user = await _context.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
-
-        if (user == null)
+        var userDbId = await _getUserIdByPublicId(_context, userId);
+        if (userDbId == null)
             return false;
 
         // Get all active roles for the user (including temporary elevations)
-        var userRoles = await GetUserRolesWithScopeAsync(user.Id);
+        var userRoles = await GetUserRolesWithScopeAsync(userDbId.Value);
 
         // HIERARCHY: GlobalAdmin has access to EVERYTHING
         if (userRoles.Any(r => r.RoleType == "GlobalAdmin"))
@@ -112,26 +151,18 @@ public class PermissionService : IPermissionService
         {
             case "community":
                 // Resolve community publicId to internal ID
-                var community = await _context.Communities
-                    .Where(c => c.PublicId == scopePublicId)
-                    .Select(c => new { c.Id })
-                    .FirstOrDefaultAsync();
-
-                if (community == null)
+                var communityId = await _getCommunityIdByPublicId(_context, scopePublicId);
+                if (communityId == null)
                     return false;
 
                 // Check if user is CommunityAdmin or CommunityMod for this community
                 return userRoles.Any(r =>
                     (r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") &&
-                    r.CommunityId == community.Id);
+                    r.CommunityId == communityId.Value);
 
             case "hub":
                 // Resolve hub publicId to internal ID + parent community
-                var hub = await _context.Hubs
-                    .Where(h => h.PublicId == scopePublicId)
-                    .Select(h => new { h.Id, h.CommunityId })
-                    .FirstOrDefaultAsync();
-
+                var hub = await _getHubScopeByPublicId(_context, scopePublicId);
                 if (hub == null)
                     return false;
 
@@ -144,12 +175,7 @@ public class PermissionService : IPermissionService
 
             case "space":
                 // Resolve space publicId to internal ID + parent hub/community
-                var space = await _context.Spaces
-                    .Include(s => s.Hub)
-                    .Where(s => s.PublicId == scopePublicId)
-                    .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
-                    .FirstOrDefaultAsync();
-
+                var space = await _getSpaceScopeByPublicId(_context, scopePublicId);
                 if (space == null)
                     return false;
 
@@ -164,13 +190,7 @@ public class PermissionService : IPermissionService
 
             case "discussion":
                 // Resolve discussion publicId to internal IDs for parent space/hub/community
-                var discussion = await _context.Discussions
-                    .Include(d => d.Space)
-                    .ThenInclude(s => s.Hub)
-                    .Where(d => d.PublicId == scopePublicId)
-                    .Select(d => new { d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
-                    .FirstOrDefaultAsync();
-
+                var discussion = await _getDiscussionScopeByPublicId(_context, scopePublicId);
                 if (discussion == null)
                     return false;
 
@@ -181,18 +201,7 @@ public class PermissionService : IPermissionService
 
             case "post":
                 // Resolve post publicId to internal IDs for parent discussion/space/hub/community
-                var post = await _context.Posts
-                    .Include(p => p.Discussion)
-                    .ThenInclude(d => d.Space)
-                    .ThenInclude(s => s.Hub)
-                    .Where(p => p.PublicId == scopePublicId)
-                    .Select(p => new {
-                        p.Discussion.SpaceId,
-                        p.Discussion.Space.HubId,
-                        p.Discussion.Space.Hub.CommunityId
-                    })
-                    .FirstOrDefaultAsync();
-
+                var post = await _getPostScopeByPublicId(_context, scopePublicId);
                 if (post == null)
                     return false;
 
@@ -214,6 +223,11 @@ public class PermissionService : IPermissionService
         public int? SpaceId { get; set; }
     }
 
+    // Projection records for compiled queries
+    private record HubScope(int Id, int CommunityId);
+    private record SpaceScope(int Id, int HubId, int CommunityId);
+    private record ScopeIds(int SpaceId, int HubId, int CommunityId);
+
     public async Task<List<PermissionDto>> GetUserPermissionsAsync(string userId)
     {
         var cacheKey = $"user_permissions_{userId}";
@@ -230,17 +244,13 @@ public class PermissionService : IPermissionService
     private async Task<List<PermissionDto>> GetUserPermissionsInternalAsync(string userId)
     {
         // Get user's database ID from PublicId
-        var user = await _context.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
-
-        if (user == null)
+        var userDbId = await _getUserIdByPublicId(_context, userId);
+        if (userDbId == null)
             return new List<PermissionDto>();
 
         // Get all active roles for the user
         var userRoleIds = await _context.UserRoles
-            .Where(ur => ur.UserId == user.Id && ur.RevokedAt == null)
+            .Where(ur => ur.UserId == userDbId.Value && ur.RevokedAt == null)
             .Select(ur => ur.Id)
             .ToListAsync();
 
@@ -250,7 +260,6 @@ public class PermissionService : IPermissionService
         // Get all permissions assigned to those roles
         var permissions = await _context.RolePermissions
             .Where(rp => userRoleIds.Contains(rp.RoleId))
-            .Include(rp => rp.Permission)
             .Select(rp => rp.Permission)
             .Distinct()
             .Select(p => new PermissionDto
@@ -271,7 +280,6 @@ public class PermissionService : IPermissionService
     {
         return await _context.RolePermissions
             .Where(rp => rp.RoleId == roleId)
-            .Include(rp => rp.Permission)
             .Select(rp => new PermissionDto
             {
                 PublicId = rp.Permission.PublicId,
@@ -323,17 +331,14 @@ public class PermissionService : IPermissionService
         }
 
         // Get admin user database ID
-        var adminUser = await _context.Users
-            .Where(a => a.PublicId == adminUserId)
-            .Select(a => new { a.Id })
-            .FirstOrDefaultAsync();
+        var adminDbId = await _getUserIdByPublicId(_context, adminUserId);
 
         var rolePermission = new RolePermissionDatabaseEntity
         {
             RoleId = roleId,
             PermissionId = permissionId,
             GrantedAt = DateTime.UtcNow,
-            GrantedById = adminUser?.Id
+            GrantedById = adminDbId
         };
 
         _context.RolePermissions.Add(rolePermission);
@@ -466,6 +471,7 @@ public class PermissionService : IPermissionService
     public async Task RevokeTemporaryRoleAsync(string elevationId, string reason, string adminUserId)
     {
         var elevation = await _context.TemporaryRoleElevations
+            .AsTracking()
             .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.PublicId == elevationId && e.RevokedAt == null);
 
@@ -476,13 +482,10 @@ public class PermissionService : IPermissionService
         }
 
         // Get admin user database ID
-        var adminUser = await _context.Users
-            .Where(a => a.PublicId == adminUserId)
-            .Select(a => new { a.Id })
-            .FirstOrDefaultAsync();
+        var adminDbId = await _getUserIdByPublicId(_context, adminUserId);
 
         elevation.RevokedAt = DateTime.UtcNow;
-        elevation.RevokedById = adminUser?.Id;
+        elevation.RevokedById = adminDbId;
         elevation.RevokedReason = reason;
 
         await _context.SaveChangesAsync();
@@ -508,8 +511,6 @@ public class PermissionService : IPermissionService
 
         return await _context.TemporaryRoleElevations
             .Where(e => e.RevokedAt == null && e.ExpiresAt > now)
-            .Include(e => e.User)
-            .Include(e => e.GrantedBy)
             .OrderByDescending(e => e.CreatedAt)
             .Select(e => new TemporaryRoleElevationDto
             {
@@ -534,19 +535,12 @@ public class PermissionService : IPermissionService
 
     public async Task<List<TemporaryRoleElevationDto>> GetUserTemporaryRolesAsync(string userId)
     {
-        var user = await _context.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
-
-        if (user == null)
+        var userDbId = await _getUserIdByPublicId(_context, userId);
+        if (userDbId == null)
             return new List<TemporaryRoleElevationDto>();
 
         return await _context.TemporaryRoleElevations
-            .Where(e => e.UserId == user.Id)
-            .Include(e => e.User)
-            .Include(e => e.GrantedBy)
-            .Include(e => e.RevokedBy)
+            .Where(e => e.UserId == userDbId.Value)
             .OrderByDescending(e => e.CreatedAt)
             .Select(e => new TemporaryRoleElevationDto
             {
@@ -574,7 +568,6 @@ public class PermissionService : IPermissionService
         // Get all user IDs that have this role
         var userIds = await _context.UserRoles
             .Where(ur => ur.Id == roleId && ur.RevokedAt == null)
-            .Include(ur => ur.User)
             .Select(ur => ur.User.PublicId)
             .ToListAsync();
 

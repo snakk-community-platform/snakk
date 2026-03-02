@@ -17,31 +17,58 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<Discussion?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Discussions
+            .Where(d => d.Id == id)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId)
     {
-        var entity = await _databaseRepository.GetForUpdateAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Discussions
+            .Where(d => d.PublicId == publicId.Value)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Discussion?> GetBySlugAsync(string slug)
     {
-        var entity = await _databaseRepository.GetBySlugAsync(slug);
-        return entity?.FromPersistence();
+        var projection = await _context.Discussions
+            .Where(d => d.Slug == slug)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId)
     {
-        // Get internal ID from PublicId
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
-        if (space == null)
-            return [];
+        var spaceDbId = await _context.Spaces
+            .Where(s => s.PublicId == spaceId.Value)
+            .Select(s => (int?)s.Id)
+            .FirstOrDefaultAsync();
+        if (spaceDbId == null) return [];
 
-        var entities = await _databaseRepository.GetBySpaceIdAsync(space.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Discussions
+            .Where(d => d.SpaceId == spaceDbId.Value)
+            .OrderByDescending(d => d.IsPinned)
+            .ThenByDescending(d => d.LastActivityAt)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize)
@@ -56,7 +83,6 @@ public class DiscussionRepositoryAdapter(
     {
         // Get internal ID from PublicId
         var space = await _context.Spaces
-            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
         if (space == null)
             return new PagedResult<Discussion>
@@ -90,8 +116,15 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10)
     {
-        var entities = await _databaseRepository.GetRecentAsync(count);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Discussions
+            .OrderByDescending(d => d.LastActivityAt)
+            .Take(count)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(Discussion discussion)
@@ -142,7 +175,6 @@ public class DiscussionRepositoryAdapter(
         int limit)
     {
         var postsQuery = _context.Posts
-            .AsNoTracking()
             .Where(p => !p.IsDeleted && p.CreatedAt >= since);
 
         // Apply filters based on hierarchy
@@ -236,12 +268,31 @@ public class DiscussionRepositoryAdapter(
             return [];
 
         var activity = await _context.Discussions
-            .AsNoTracking()
             .Where(d => d.CreatedByUserId == userDbId && d.CreatedAt >= startDate)
             .GroupBy(d => d.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
 
         return activity.Select(a => (a.Date, a.Count));
+    }
+
+    private record DiscussionProjection(
+        string PublicId,
+        string SpacePublicId,
+        string CreatedByUserPublicId,
+        string Title,
+        string Slug,
+        DateTime CreatedAt,
+        DateTime? LastModifiedAt,
+        DateTime? LastActivityAt,
+        bool IsPinned,
+        bool IsLocked)
+    {
+        public Discussion ToDomain() => Discussion.Rehydrate(
+            DiscussionId.From(PublicId),
+            SpaceId.From(SpacePublicId),
+            UserId.From(CreatedByUserPublicId),
+            Title, Slug, CreatedAt, LastModifiedAt, LastActivityAt,
+            IsPinned, IsLocked, posts: []);
     }
 }

@@ -15,53 +15,58 @@ public class UserAchievementRepositoryAdapter(
 
     public async Task<UserAchievement?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.UserAchievements
+            .Where(ua => ua.Id == id)
+            .Select(ua => new UserAchievementProjection(
+                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<UserAchievement?> GetByPublicIdAsync(UserAchievementId publicId)
     {
-        var entity = await _databaseRepository.GetByPublicIdAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.UserAchievements
+            .Where(ua => ua.PublicId == publicId.Value)
+            .Select(ua => new UserAchievementProjection(
+                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<UserAchievement>> GetByUserIdAsync(UserId userId)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-
-        if (user == null)
-            return [];
-
-        var entities = await _databaseRepository.GetByUserIdAsync(user.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.UserAchievements
+            .Where(ua => ua.User.PublicId == userId.Value)
+            .Select(ua => new UserAchievementProjection(
+                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<UserAchievement>> GetDisplayedByUserIdAsync(UserId userId)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-
-        if (user == null)
-            return [];
-
-        var entities = await _databaseRepository.GetDisplayedByUserIdAsync(user.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.UserAchievements
+            .Where(ua => ua.User.PublicId == userId.Value && ua.IsDisplayed)
+            .OrderBy(ua => ua.DisplayOrder)
+            .Select(ua => new UserAchievementProjection(
+                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId)
     {
         var user = await _context.Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
         if (user == null)
             return false;
 
         var achievement = await _context.Achievements
-            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.PublicId == achievementId.Value);
 
         if (achievement == null)
@@ -105,5 +110,21 @@ public class UserAchievementRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record UserAchievementProjection(
+        string PublicId,
+        string UserPublicId,
+        string AchievementPublicId,
+        DateTime EarnedAt,
+        bool IsDisplayed,
+        int DisplayOrder,
+        bool NotificationSent)
+    {
+        public UserAchievement ToDomain() => UserAchievement.Rehydrate(
+            UserAchievementId.From(PublicId),
+            UserId.From(UserPublicId),
+            AchievementId.From(AchievementPublicId),
+            EarnedAt, IsDisplayed, DisplayOrder, NotificationSent);
     }
 }

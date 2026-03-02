@@ -19,50 +19,44 @@ public class FollowRepositoryAdapter(
 
     public async Task<Follow?> GetByUserAndDiscussionAsync(UserId userId, DiscussionId discussionId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
-
-        if (user == null || discussion == null) return null;
-
-        var entity = await _databaseRepository.GetByUserAndDiscussionAsync(user.Id, discussion.Id);
-        if (entity == null) return null;
-
-        entity.User = user;
-        entity.Discussion = discussion;
-
-        return entity.FromPersistence();
+        var projection = await _context.Follows
+            .Where(f => f.User.PublicId == userId.Value && f.Discussion != null && f.Discussion.PublicId == discussionId.Value)
+            .Select(f => new FollowProjection(
+                f.PublicId, f.User.PublicId, f.TargetTypeId,
+                f.Discussion != null ? f.Discussion.PublicId : null,
+                f.Space != null ? f.Space.PublicId : null,
+                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.LevelId, f.CreatedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Follow?> GetByUserAndSpaceAsync(UserId userId, SpaceId spaceId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
-
-        if (user == null || space == null) return null;
-
-        var entity = await _databaseRepository.GetByUserAndSpaceAsync(user.Id, space.Id);
-        if (entity == null) return null;
-
-        entity.User = user;
-        entity.Space = space;
-
-        return entity.FromPersistence();
+        var projection = await _context.Follows
+            .Where(f => f.User.PublicId == userId.Value && f.Space != null && f.Space.PublicId == spaceId.Value)
+            .Select(f => new FollowProjection(
+                f.PublicId, f.User.PublicId, f.TargetTypeId,
+                f.Discussion != null ? f.Discussion.PublicId : null,
+                f.Space != null ? f.Space.PublicId : null,
+                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.LevelId, f.CreatedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Follow?> GetByUserAndFollowedUserAsync(UserId userId, UserId followedUserId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var followedUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == followedUserId.Value);
-
-        if (user == null || followedUser == null) return null;
-
-        var entity = await _databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
-        if (entity == null) return null;
-
-        entity.User = user;
-        entity.FollowedUser = followedUser;
-
-        return entity.FromPersistence();
+        var projection = await _context.Follows
+            .Where(f => f.User.PublicId == userId.Value && f.FollowedUser != null && f.FollowedUser.PublicId == followedUserId.Value)
+            .Select(f => new FollowProjection(
+                f.PublicId, f.User.PublicId, f.TargetTypeId,
+                f.Discussion != null ? f.Discussion.PublicId : null,
+                f.Space != null ? f.Space.PublicId : null,
+                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.LevelId, f.CreatedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<UserId>> GetFollowersOfDiscussionAsync(DiscussionId discussionId)
@@ -295,5 +289,26 @@ public class FollowRepositoryAdapter(
 
         await _databaseRepository.DeleteAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record FollowProjection(
+        string PublicId,
+        string UserPublicId,
+        int TargetTypeId,
+        string? DiscussionPublicId,
+        string? SpacePublicId,
+        string? FollowedUserPublicId,
+        int LevelId,
+        DateTime CreatedAt)
+    {
+        public Follow ToDomain() => Follow.Rehydrate(
+            FollowId.From(PublicId),
+            UserId.From(UserPublicId),
+            ((FollowTargetTypeEnum)TargetTypeId).ToDomain(),
+            DiscussionPublicId != null ? DiscussionId.From(DiscussionPublicId) : null,
+            SpacePublicId != null ? SpaceId.From(SpacePublicId) : null,
+            FollowedUserPublicId != null ? UserId.From(FollowedUserPublicId) : null,
+            ((FollowLevelEnum)LevelId).ToDomain(),
+            CreatedAt);
     }
 }

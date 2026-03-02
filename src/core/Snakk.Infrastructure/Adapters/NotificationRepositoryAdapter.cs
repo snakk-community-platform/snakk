@@ -6,7 +6,9 @@ using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
+using Snakk.Domain.Extensions;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class NotificationRepositoryAdapter(
@@ -18,24 +20,53 @@ public class NotificationRepositoryAdapter(
 
     public async Task<Notification?> GetByPublicIdAsync(NotificationId notificationId)
     {
-        var entity = await _databaseRepository.GetByPublicIdAsync(notificationId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Notifications
+            .Where(n => n.PublicId == notificationId.Value)
+            .Select(n => new NotificationProjection(
+                n.PublicId, n.RecipientUser.PublicId, n.TypeId,
+                n.Title, n.Body,
+                n.SourcePost != null ? n.SourcePost.PublicId : null,
+                n.SourceDiscussion != null ? n.SourceDiscussion.PublicId : null,
+                n.SourceSpace != null ? n.SourceSpace.PublicId : null,
+                n.ActorUser != null ? n.ActorUser.PublicId : null,
+                n.IsRead, n.CreatedAt, n.ReadAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<PagedResult<Notification>> GetByUserIdAsync(UserId userId, int offset, int pageSize)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null)
+        var userDbId = await _context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
+        if (userDbId == null)
             return new PagedResult<Notification> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
-        var result = await _databaseRepository.GetByUserIdAsync(user.Id, offset, pageSize);
+        var projections = await _context.Notifications
+            .Where(n => n.RecipientUserId == userDbId.Value)
+            .OrderByDescending(n => n.CreatedAt)
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .Select(n => new NotificationProjection(
+                n.PublicId, n.RecipientUser.PublicId, n.TypeId,
+                n.Title, n.Body,
+                n.SourcePost != null ? n.SourcePost.PublicId : null,
+                n.SourceDiscussion != null ? n.SourceDiscussion.PublicId : null,
+                n.SourceSpace != null ? n.SourceSpace.PublicId : null,
+                n.ActorUser != null ? n.ActorUser.PublicId : null,
+                n.IsRead, n.CreatedAt, n.ReadAt))
+            .ToListAsync();
+
+        var hasMoreItems = projections.Count > pageSize;
+        var items = hasMoreItems ? projections.Take(pageSize) : projections;
 
         return new PagedResult<Notification>
         {
-            Items = result.Items.Select(e => e.FromPersistence()),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
+            Items = items.Select(p => p.ToDomain()),
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems
         };
     }
 
@@ -104,5 +135,31 @@ public class NotificationRepositoryAdapter(
         if (user == null) return;
 
         await _databaseRepository.MarkAllAsReadAsync(user.Id);
+    }
+
+    private record NotificationProjection(
+        string PublicId,
+        string RecipientUserPublicId,
+        int TypeId,
+        string Title,
+        string? Body,
+        string? SourcePostPublicId,
+        string? SourceDiscussionPublicId,
+        string? SourceSpacePublicId,
+        string? ActorUserPublicId,
+        bool IsRead,
+        DateTime CreatedAt,
+        DateTime? ReadAt)
+    {
+        public Notification ToDomain() => Notification.Rehydrate(
+            NotificationId.From(PublicId),
+            UserId.From(RecipientUserPublicId),
+            ((NotificationTypeEnum)TypeId).ToDomain(),
+            Title, Body,
+            SourcePostPublicId != null ? PostId.From(SourcePostPublicId) : null,
+            SourceDiscussionPublicId != null ? DiscussionId.From(SourceDiscussionPublicId) : null,
+            SourceSpacePublicId != null ? SpaceId.From(SourceSpacePublicId) : null,
+            ActorUserPublicId != null ? UserId.From(ActorUserPublicId) : null,
+            IsRead, CreatedAt, ReadAt);
     }
 }

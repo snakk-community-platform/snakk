@@ -11,14 +11,13 @@ public class DiscussionRepository(SnakkDbContext context)
     public override async Task<DiscussionDatabaseEntity?> GetByIdAsync(int id)
     {
         return await _dbSet
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
     public async Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId)
     {
         return await _dbSet
+            .AsTracking()
             .Include(d => d.Space)
             .Include(d => d.CreatedByUser)
             .Include(d => d.Posts)
@@ -27,16 +26,12 @@ public class DiscussionRepository(SnakkDbContext context)
 
     public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync()
     {
-        return await _dbSet
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
-            .ToListAsync();
+        return await _dbSet.ToListAsync();
     }
 
     public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(d => d.PublicId == publicId)
             .Select(d => new DiscussionDetailDto(
                 d.PublicId,
@@ -56,25 +51,18 @@ public class DiscussionRepository(SnakkDbContext context)
     public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId)
     {
         return await _dbSet
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .FirstOrDefaultAsync(d => d.PublicId == publicId);
     }
 
     public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug)
     {
         return await _dbSet
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .FirstOrDefaultAsync(d => d.Slug == slug);
     }
 
     public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .Where(d => d.SpaceId == spaceId)
             .OrderByDescending(d => d.IsPinned)
             .ThenByDescending(d => d.LastActivityAt)
@@ -88,7 +76,6 @@ public class DiscussionRepository(SnakkDbContext context)
         string? cursor = null)
     {
         var query = _dbSet
-            .AsNoTracking()
             .Where(d => d.SpaceId == spaceId);
 
         // Apply keyset pagination if cursor provided
@@ -156,9 +143,6 @@ public class DiscussionRepository(SnakkDbContext context)
     public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
             .OrderByDescending(d => d.LastActivityAt)
             .Take(count)
             .ToListAsync();
@@ -170,7 +154,7 @@ public class DiscussionRepository(SnakkDbContext context)
         string? communityId = null, 
         string? cursor = null)
     {
-        var query = _dbSet.AsNoTracking();
+        var query = _dbSet.AsQueryable();
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))

@@ -11,21 +11,12 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<UserRoleDatabaseEntity?> GetByPublicIdAsync(string publicId)
     {
         return await _dbSet
-            .Include(ur => ur.User)
-            .Include(ur => ur.Community)
-            .Include(ur => ur.Hub)
-            .Include(ur => ur.Space)
-            .Include(ur => ur.AssignedByUser)
             .FirstOrDefaultAsync(ur => ur.PublicId == publicId);
     }
 
     public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForUserAsync(int userId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(ur => ur.Community)
-            .Include(ur => ur.Hub)
-            .Include(ur => ur.Space)
             .Where(ur => ur.UserId == userId && ur.RevokedAt == null)
             .ToListAsync();
     }
@@ -33,9 +24,6 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForCommunityAsync(int communityId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(ur => ur.User)
-            .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.CommunityId == communityId && ur.RevokedAt == null)
             .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
@@ -45,9 +33,6 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForHubAsync(int hubId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(ur => ur.User)
-            .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.HubId == hubId && ur.RevokedAt == null)
             .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
@@ -57,9 +42,6 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForSpaceAsync(int spaceId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(ur => ur.User)
-            .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.SpaceId == spaceId && ur.RevokedAt == null)
             .OrderBy(ur => ur.RoleId)
             .ThenBy(ur => ur.AssignedAt)
@@ -69,9 +51,6 @@ public class UserRoleRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserRoleDatabaseEntity>> GetGlobalAdminsAsync()
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(ur => ur.User)
-            .Include(ur => ur.AssignedByUser)
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && ur.RevokedAt == null)
             .OrderBy(ur => ur.AssignedAt)
             .ToListAsync();
@@ -85,7 +64,6 @@ public class UserRoleRepository(SnakkDbContext context)
 
         var roleId = (int)roleEnum;
         return await _dbSet
-            .AsNoTracking()
             .AnyAsync(ur =>
                 ur.UserId == userId &&
                 ur.RoleId == roleId &&
@@ -126,7 +104,7 @@ public class UserRoleRepository(SnakkDbContext context)
             // Hub mods can moderate spaces within their hub - need to check this via the hub
             if (spaceId.HasValue && role.HubId.HasValue && role.RoleId == (int)UserRoleTypeEnum.HubMod)
             {
-                var space = await _context.Spaces.AsNoTracking()
+                var space = await _context.Spaces
                     .FirstOrDefaultAsync(s => s.Id == spaceId && s.HubId == role.HubId);
                 if (space != null)
                     return true;
@@ -161,7 +139,7 @@ public class UserRoleRepository(SnakkDbContext context)
             // If checking a hub, need to find its community
             if (hubId.HasValue && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityId.HasValue)
             {
-                var hub = await _context.Hubs.AsNoTracking()
+                var hub = await _context.Hubs
                     .FirstOrDefaultAsync(h => h.Id == hubId && h.CommunityId == role.CommunityId);
                 if (hub != null)
                     return true;
@@ -170,10 +148,9 @@ public class UserRoleRepository(SnakkDbContext context)
             // If checking a space, need to find its community via hub
             if (spaceId.HasValue && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityId.HasValue)
             {
-                var space = await _context.Spaces.AsNoTracking()
-                    .Include(s => s.Hub)
-                    .FirstOrDefaultAsync(s => s.Id == spaceId && s.Hub.CommunityId == role.CommunityId);
-                if (space != null)
+                var belongsToCommunity = await _context.Spaces
+                    .AnyAsync(s => s.Id == spaceId && s.Hub.CommunityId == role.CommunityId);
+                if (belongsToCommunity)
                     return true;
             }
         }

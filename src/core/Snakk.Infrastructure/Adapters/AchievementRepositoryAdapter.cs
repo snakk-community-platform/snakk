@@ -16,32 +16,47 @@ public class AchievementRepositoryAdapter(
 
     public async Task<Achievement?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Achievements
+            .Where(a => a.Id == id)
+            .Select(a => new AchievementProjection(a))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Achievement?> GetByPublicIdAsync(AchievementId publicId)
     {
-        var entity = await _databaseRepository.GetByPublicIdAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Achievements
+            .Where(a => a.PublicId == publicId.Value)
+            .Select(a => new AchievementProjection(a))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Achievement?> GetBySlugAsync(string slug)
     {
-        var entity = await _databaseRepository.GetBySlugAsync(slug);
-        return entity?.FromPersistence();
+        var projection = await _context.Achievements
+            .Where(a => a.Slug == slug)
+            .Select(a => new AchievementProjection(a))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<Achievement>> GetAllActiveAsync()
     {
-        var entities = await _databaseRepository.GetAllActiveAsync();
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Achievements
+            .Where(a => a.IsActive)
+            .Select(a => new AchievementProjection(a))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<Achievement>> GetByCategoryAsync(AchievementCategoryEnum category)
     {
-        var entities = await _databaseRepository.GetByCategoryIdAsync((int)category);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Achievements
+            .Where(a => a.CategoryId == (int)category)
+            .Select(a => new AchievementProjection(a))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(Achievement achievement)
@@ -69,5 +84,53 @@ public class AchievementRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record AchievementProjection
+    {
+        public string PublicId { get; init; }
+        public string Slug { get; init; }
+        public string Name { get; init; }
+        public string Description { get; init; }
+        public string? IconUrl { get; init; }
+        public int CategoryId { get; init; }
+        public int TierLevel { get; init; }
+        public int Points { get; init; }
+        public bool IsSecret { get; init; }
+        public bool IsActive { get; init; }
+        public int RequirementTypeId { get; init; }
+        public string RequirementConfig { get; init; }
+        public int DisplayOrder { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime? UpdatedAt { get; init; }
+
+        public AchievementProjection(Database.Entities.AchievementDatabaseEntity a)
+        {
+            PublicId = a.PublicId;
+            Slug = a.Slug;
+            Name = a.Name;
+            Description = a.Description;
+            IconUrl = a.IconUrl;
+            CategoryId = a.CategoryId;
+            TierLevel = a.TierLevel;
+            Points = a.Points;
+            IsSecret = a.IsSecret;
+            IsActive = a.IsActive;
+            RequirementTypeId = a.RequirementTypeId;
+            RequirementConfig = a.RequirementConfig;
+            DisplayOrder = a.DisplayOrder;
+            CreatedAt = a.CreatedAt;
+            UpdatedAt = a.UpdatedAt;
+        }
+
+        public Achievement ToDomain() => Achievement.Rehydrate(
+            AchievementId.From(PublicId),
+            Slug, Name, Description, IconUrl,
+            (AchievementCategoryEnum)CategoryId,
+            (AchievementTierEnum)TierLevel,
+            Points, IsSecret, IsActive,
+            (AchievementRequirementTypeEnum)RequirementTypeId,
+            RequirementConfig, DisplayOrder,
+            CreatedAt, UpdatedAt);
     }
 }

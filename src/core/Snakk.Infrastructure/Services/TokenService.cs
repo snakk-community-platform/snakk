@@ -102,6 +102,7 @@ public class TokenService : ITokenService
     public async Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress)
     {
         var tokenEntity = await _context.RefreshTokens
+            .AsTracking()
             .Include(t => t.User)
                 .ThenInclude(u => u.Roles.Where(r => r.RevokedAt == null))
             .FirstOrDefaultAsync(t => t.TokenValue == refreshTokenValue);
@@ -133,7 +134,7 @@ public class TokenService : ITokenService
 
     public async Task RevokeRefreshTokenAsync(string tokenValue, string reason)
     {
-        var token = await _context.RefreshTokens.FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
+        var token = await _context.RefreshTokens.AsTracking().FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
         if (token != null && !token.IsRevoked)
         {
             token.RevokedAt = DateTime.UtcNow;
@@ -145,6 +146,7 @@ public class TokenService : ITokenService
     public async Task RevokeAllUserTokensAsync(UserId userId, string reason)
     {
         var tokens = await _context.RefreshTokens
+            .AsTracking()
             .Where(t => t.User.PublicId == userId.Value && t.RevokedAt == null)
             .ToListAsync();
 

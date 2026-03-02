@@ -25,7 +25,7 @@ public class ModerationLogRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ModerationLogDto>> GetLogsForCommunityAsync(int communityId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(ml => ml.CommunityId == communityId);
         
         return await GetPagedLogsAsync(query, offset, pageSize);
@@ -33,7 +33,7 @@ public class ModerationLogRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ModerationLogDto>> GetLogsForHubAsync(int hubId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(ml => ml.HubId == hubId);
         
         return await GetPagedLogsAsync(query, offset, pageSize);
@@ -41,7 +41,7 @@ public class ModerationLogRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ModerationLogDto>> GetLogsForSpaceAsync(int spaceId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(ml => ml.SpaceId == spaceId);
         
         return await GetPagedLogsAsync(query, offset, pageSize);
@@ -49,7 +49,7 @@ public class ModerationLogRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ModerationLogDto>> GetLogsByActorAsync(int actorUserId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(ml => ml.ActorUserId == actorUserId);
         
         return await GetPagedLogsAsync(query, offset, pageSize);
@@ -57,7 +57,7 @@ public class ModerationLogRepository(SnakkDbContext context)
 
     public async Task<PagedResult<ModerationLogDto>> GetLogsForTargetUserAsync(int targetUserId, int offset, int pageSize)
     {
-        var query = _dbSet.AsNoTracking()
+        var query = _dbSet
             .Where(ml => ml.TargetUserId == targetUserId);
         
         return await GetPagedLogsAsync(query, offset, pageSize);

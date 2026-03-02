@@ -7,26 +7,15 @@ using Snakk.Infrastructure.Database.Entities;
 public class UserAchievementProgressRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserAchievementProgressDatabaseEntity>(context), IUserAchievementProgressRepository
 {
-    public override async Task<UserAchievementProgressDatabaseEntity?> GetByIdAsync(int id)
-    {
-        return await _dbSet
-            .Include(p => p.Achievement)
-            .Include(p => p.User)
-            .FirstOrDefaultAsync(p => p.Id == id);
-    }
-
     public async Task<UserAchievementProgressDatabaseEntity?> GetByUserAndAchievementAsync(int userId, int achievementId)
     {
         return await _dbSet
-            .Include(p => p.Achievement)
             .FirstOrDefaultAsync(p => p.UserId == userId && p.AchievementId == achievementId);
     }
 
     public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetByUserIdAsync(int userId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(p => p.Achievement)
             .Where(p => p.UserId == userId)
             .ToListAsync();
     }
@@ -34,8 +23,6 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetIncompleteByUserIdAsync(int userId)
     {
         return await _dbSet
-            .AsNoTracking()
-            .Include(p => p.Achievement)
             .Where(p => p.UserId == userId && p.CurrentValue < p.TargetValue)
             .ToListAsync();
     }

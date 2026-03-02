@@ -17,7 +17,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        var baseQuery = _context.Discussions.AsNoTracking().AsQueryable();
+        var baseQuery = _context.Discussions.AsQueryable();
 
         // Apply case-insensitive ILIKE search on Title (PostgreSQL)
         if (!string.IsNullOrWhiteSpace(query))
@@ -79,7 +79,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        var baseQuery = _context.Posts.AsNoTracking().AsQueryable();
+        var baseQuery = _context.Posts.AsQueryable();
 
         // Apply case-insensitive ILIKE search on Content (PostgreSQL)
         if (!string.IsNullOrWhiteSpace(query))
@@ -133,7 +133,6 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
     public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId)
     {
         return await _context.Users
-            .AsNoTracking()
             .Where(u => u.PublicId == authorPublicId)
             .Select(u => u.DiscussionCount)
             .FirstOrDefaultAsync();
@@ -143,7 +142,6 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
     {
         // ReplyCount = non-first posts. Add DiscussionCount to get total posts (each discussion has a first post).
         return await _context.Users
-            .AsNoTracking()
             .Where(u => u.PublicId == authorPublicId)
             .Select(u => u.ReplyCount + u.DiscussionCount)
             .FirstOrDefaultAsync();
@@ -155,7 +153,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int pageSize = 20)
     {
         // Single query using navigation properties
-        var query = _context.Discussions.AsNoTracking()
+        var query = _context.Discussions
             .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted)
             .OrderByDescending(d => d.IsPinned)
             .ThenByDescending(d => d.LastActivityAt);
@@ -198,7 +196,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int pageSize = 20)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems
-        var hubs = await _context.Hubs.AsNoTracking()
+        var hubs = await _context.Hubs
             .OrderBy(h => h.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -232,7 +230,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int pageSize = 20)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
-        var spaces = await _context.Spaces.AsNoTracking()
+        var spaces = await _context.Spaces
             .Where(s => s.Hub.PublicId == hubPublicId)
             .OrderBy(s => s.Name)
             .Skip(offset)
@@ -301,7 +299,6 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
     public async Task<List<SitemapDiscussionDto>> GetSitemapDiscussionsAsync()
     {
         var discussions = await _context.Discussions
-            .AsNoTracking()
             .Where(d => !d.IsDeleted)
             .OrderByDescending(d => d.LastModifiedAt ?? d.CreatedAt)
             .Select(d => new SitemapDiscussionDto(
@@ -323,7 +320,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         string? communityId = null,
         string? cursor = null)
     {
-        var query = _context.Discussions.AsNoTracking();
+        var query = _context.Discussions.AsQueryable();
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))

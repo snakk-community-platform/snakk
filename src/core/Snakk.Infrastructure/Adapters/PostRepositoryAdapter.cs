@@ -16,14 +16,28 @@ public class PostRepositoryAdapter(
 
     public async Task<Post?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Posts
+            .Where(p => p.Id == id)
+            .Select(p => new PostProjection(
+                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted, p.RevisionCount))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Post?> GetByPublicIdAsync(PostId publicId)
     {
-        var entity = await _databaseRepository.GetForUpdateAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Posts
+            .Where(p => p.PublicId == publicId.Value)
+            .Select(p => new PostProjection(
+                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted, p.RevisionCount))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<IEnumerable<Post>> GetByPublicIdsAsync(IEnumerable<PostId> publicIds)
@@ -33,24 +47,37 @@ public class PostRepositoryAdapter(
         if (!publicIdStrings.Any())
             return [];
 
-        var entities = await _context.Posts
-            .Include(p => p.Discussion)
-            .Include(p => p.CreatedByUser)
-            .Include(p => p.ReplyToPost)
+        var projections = await _context.Posts
             .Where(p => publicIdStrings.Contains(p.PublicId))
+            .Select(p => new PostProjection(
+                p.PublicId,
+                p.Discussion.PublicId,
+                p.CreatedByUser.PublicId,
+                p.Content,
+                p.CreatedAt,
+                p.LastModifiedAt,
+                p.EditedAt,
+                p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted,
+                p.RevisionCount))
             .ToListAsync();
 
-        return entities.Select(e => e.FromPersistence());
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
-        if (discussion == null)
-            return [];
-
-        var entities = await _databaseRepository.GetByDiscussionIdAsync(discussion.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Posts
+            .Where(p => p.Discussion.PublicId == discussionId.Value)
+            .OrderBy(p => p.CreatedAt)
+            .Select(p => new PostProjection(
+                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted, p.RevisionCount))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task<PagedResult<Post>> GetPagedByDiscussionIdAsync(
@@ -68,18 +95,27 @@ public class PostRepositoryAdapter(
                 HasMoreItems = false
             };
 
-        var entities = await _context.Posts
-            .Include(p => p.Discussion)
-            .Include(p => p.CreatedByUser)
-            .Include(p => p.ReplyToPost)
+        var projections = await _context.Posts
             .Where(p => p.DiscussionId == discussion.Id)
             .OrderBy(p => p.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
+            .Select(p => new PostProjection(
+                p.PublicId,
+                p.Discussion.PublicId,
+                p.CreatedByUser.PublicId,
+                p.Content,
+                p.CreatedAt,
+                p.LastModifiedAt,
+                p.EditedAt,
+                p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted,
+                p.RevisionCount))
             .ToListAsync();
 
-        var hasMoreItems = entities.Count > pageSize;
-        var resultItems = hasMoreItems ? entities.Take(pageSize).Select(e => e.FromPersistence()) : entities.Select(e => e.FromPersistence());
+        var hasMoreItems = projections.Count > pageSize;
+        var resultItems = hasMoreItems ? projections.Take(pageSize).Select(p => p.ToDomain()) : projections.Select(p => p.ToDomain());
 
         return new PagedResult<Post>
         {
@@ -92,12 +128,16 @@ public class PostRepositoryAdapter(
 
     public async Task<IEnumerable<Post>> GetByUserIdAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null)
-            return [];
-
-        var entities = await _databaseRepository.GetByUserIdAsync(user.Id);
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Posts
+            .Where(p => p.CreatedByUser.PublicId == userId.Value)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new PostProjection(
+                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted, p.RevisionCount))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(Post post)
@@ -176,29 +216,29 @@ public class PostRepositoryAdapter(
 
     public async Task<IEnumerable<PostRevision>> GetRevisionsAsync(PostId postId)
     {
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
-        if (post == null)
-            return [];
-
         var revisions = await _context.PostRevisions
-            .Where(pr => pr.PostId == post.Id)
+            .Where(pr => pr.PostPublicId == postId.Value)
             .OrderByDescending(pr => pr.RevisionNumber)
+            .Select(pr => new { pr.PostPublicId, pr.Content, pr.EditedByUserPublicId, pr.RevisionNumber, pr.CreatedAt })
             .ToListAsync();
 
-        return revisions.Select(r => r.FromPersistence());
+        return revisions.Select(r => PostRevision.Rehydrate(
+            PostId.From(r.PostPublicId),
+            r.Content,
+            UserId.From(r.EditedByUserPublicId),
+            r.RevisionNumber,
+            r.CreatedAt));
     }
 
     public async Task<int> GetPostNumberInDiscussionAsync(DiscussionId discussionId, DateTime createdAt)
     {
         var discussionDbEntity = await _context.Discussions
-            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
 
         if (discussionDbEntity == null)
             return 0;
 
         return await _context.Posts
-            .AsNoTracking()
             .Where(p => p.DiscussionId == discussionDbEntity.Id &&
                        !p.IsDeleted &&
                        p.CreatedAt <= createdAt)
@@ -208,21 +248,29 @@ public class PostRepositoryAdapter(
     public async Task<Post?> GetFirstPostByDiscussionIdAsync(DiscussionId discussionId)
     {
         var discussionDbEntity = await _context.Discussions
-            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
 
         if (discussionDbEntity == null)
             return null;
 
-        var firstPostEntity = await _context.Posts
-            .Include(p => p.Discussion)
-            .Include(p => p.CreatedByUser)
-            .Include(p => p.ReplyToPost)
+        var projection = await _context.Posts
             .Where(p => p.DiscussionId == discussionDbEntity.Id && p.IsFirstPost)
             .OrderBy(p => p.CreatedAt)
+            .Select(p => new PostProjection(
+                p.PublicId,
+                p.Discussion.PublicId,
+                p.CreatedByUser.PublicId,
+                p.Content,
+                p.CreatedAt,
+                p.LastModifiedAt,
+                p.EditedAt,
+                p.IsFirstPost,
+                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
+                p.IsDeleted,
+                p.RevisionCount))
             .FirstOrDefaultAsync();
 
-        return firstPostEntity?.FromPersistence();
+        return projection?.ToDomain();
     }
 
     public async Task<List<(UserId UserId, int PostCount)>> GetTopContributorsSinceAsync(
@@ -233,7 +281,6 @@ public class PostRepositoryAdapter(
         int limit)
     {
         var postsQuery = _context.Posts
-            .AsNoTracking()
             .Where(p => !p.IsDeleted && p.CreatedAt >= since);
 
         // Apply filters based on hierarchy
@@ -292,12 +339,38 @@ public class PostRepositoryAdapter(
             return [];
 
         var activity = await _context.Posts
-            .AsNoTracking()
             .Where(p => p.CreatedByUserId == userDbId && !p.IsFirstPost && p.CreatedAt >= startDate)
             .GroupBy(p => p.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
 
         return activity.Select(a => (a.Date, a.Count));
+    }
+
+    private record PostProjection(
+        string PublicId,
+        string DiscussionPublicId,
+        string CreatedByUserPublicId,
+        string Content,
+        DateTime CreatedAt,
+        DateTime? LastModifiedAt,
+        DateTime? EditedAt,
+        bool IsFirstPost,
+        string? ReplyToPostPublicId,
+        bool IsDeleted,
+        int RevisionCount)
+    {
+        public Post ToDomain() => Post.Rehydrate(
+            PostId.From(PublicId),
+            DiscussionId.From(DiscussionPublicId),
+            UserId.From(CreatedByUserPublicId),
+            Content,
+            CreatedAt,
+            LastModifiedAt,
+            EditedAt,
+            IsFirstPost,
+            ReplyToPostPublicId != null ? PostId.From(ReplyToPostPublicId) : null,
+            IsDeleted,
+            RevisionCount);
     }
 }

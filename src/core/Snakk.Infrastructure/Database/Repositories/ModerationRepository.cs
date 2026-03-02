@@ -18,7 +18,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<UserRoleDto?> GetRoleByPublicIdAsync(string publicId)
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.PublicId == publicId)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -41,7 +40,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForUserAsync(string userPublicId)
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -64,7 +62,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForCommunityAsync(string communityPublicId)
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.Community != null && ur.Community.PublicId == communityPublicId && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -84,7 +81,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForHubAsync(string hubPublicId)
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.Hub != null && ur.Hub.PublicId == hubPublicId && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -105,7 +101,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForSpaceAsync(string spacePublicId)
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.Space != null && ur.Space.PublicId == spacePublicId && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -125,7 +120,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<UserRoleDto>> GetGlobalAdminsAsync()
     {
         return await _context.UserRoles
-            .AsNoTracking()
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && ur.RevokedAt == null)
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
@@ -217,6 +211,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task RevokeRoleAsync(string rolePublicId, string revokedByUserPublicId)
     {
         var role = await _context.UserRoles
+            .AsTracking()
             .Include(ur => ur.User)
             .Include(ur => ur.Community)
             .Include(ur => ur.Hub)
@@ -242,15 +237,16 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
     {
-        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.PublicId == userPublicId);
-        if (user == null) return false;
-
         var activeRoles = await _context.UserRoles
-            .AsNoTracking()
-            .Include(ur => ur.Community)
-            .Include(ur => ur.Hub)
-            .Include(ur => ur.Space)
-            .Where(ur => ur.UserId == user.Id && ur.RevokedAt == null)
+            .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
+            .Select(ur => new
+            {
+                ur.RoleId,
+                ur.HubId,
+                CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null,
+                HubPublicId = ur.Hub != null ? ur.Hub.PublicId : null,
+                SpacePublicId = ur.Space != null ? ur.Space.PublicId : null
+            })
             .ToListAsync();
 
         foreach (var role in activeRoles)
@@ -258,24 +254,22 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            if (!string.IsNullOrEmpty(communityPublicId) && role.Community?.PublicId == communityPublicId)
+            if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
                 if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
                     return true;
 
-            if (!string.IsNullOrEmpty(hubPublicId) && role.Hub?.PublicId == hubPublicId && role.RoleId == (int)UserRoleTypeEnum.HubMod)
+            if (!string.IsNullOrEmpty(hubPublicId) && role.HubPublicId == hubPublicId && role.RoleId == (int)UserRoleTypeEnum.HubMod)
                 return true;
 
             if (!string.IsNullOrEmpty(spacePublicId))
             {
-                if (role.Space?.PublicId == spacePublicId && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
+                if (role.SpacePublicId == spacePublicId && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
                     return true;
 
                 // Hub mod can moderate spaces in their hub
                 if (role.RoleId == (int)UserRoleTypeEnum.HubMod && role.HubId.HasValue)
                 {
-                    var space = await _context.Spaces.AsNoTracking()
-                        .FirstOrDefaultAsync(s => s.PublicId == spacePublicId && s.HubId == role.HubId);
-                    if (space != null)
+                    if (await _context.Spaces.AnyAsync(s => s.PublicId == spacePublicId && s.HubId == role.HubId))
                         return true;
                 }
             }
@@ -286,15 +280,14 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<bool> CanAdministerAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
     {
-        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.PublicId == userPublicId);
-        if (user == null) return false;
-
         var activeRoles = await _context.UserRoles
-            .AsNoTracking()
-            .Include(ur => ur.Community)
-            .Include(ur => ur.Hub)
-            .Include(ur => ur.Space)
-            .Where(ur => ur.UserId == user.Id && ur.RevokedAt == null)
+            .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
+            .Select(ur => new
+            {
+                ur.RoleId,
+                ur.CommunityId,
+                CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null
+            })
             .ToListAsync();
 
         foreach (var role in activeRoles)
@@ -302,25 +295,20 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.Community != null)
+            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityPublicId != null)
             {
-                if (!string.IsNullOrEmpty(communityPublicId) && role.Community.PublicId == communityPublicId)
+                if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
                     return true;
 
                 if (!string.IsNullOrEmpty(hubPublicId))
                 {
-                    var hub = await _context.Hubs.AsNoTracking()
-                        .FirstOrDefaultAsync(h => h.PublicId == hubPublicId && h.CommunityId == role.CommunityId);
-                    if (hub != null)
+                    if (await _context.Hubs.AnyAsync(h => h.PublicId == hubPublicId && h.CommunityId == role.CommunityId))
                         return true;
                 }
 
                 if (!string.IsNullOrEmpty(spacePublicId))
                 {
-                    var space = await _context.Spaces.AsNoTracking()
-                        .Include(s => s.Hub)
-                        .FirstOrDefaultAsync(s => s.PublicId == spacePublicId && s.Hub.CommunityId == role.CommunityId);
-                    if (space != null)
+                    if (await _context.Spaces.AnyAsync(s => s.PublicId == spacePublicId && s.Hub.CommunityId == role.CommunityId))
                         return true;
                 }
             }
@@ -334,7 +322,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<UserBanDto?> GetBanByPublicIdAsync(string publicId)
     {
         return await _context.UserBans
-            .AsNoTracking()
             .Where(ub => ub.PublicId == publicId)
             .Select(ub => new UserBanDto(
                 ub.PublicId,
@@ -362,7 +349,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     {
         var now = DateTime.UtcNow;
         return await _context.UserBans
-            .AsNoTracking()
             .Where(ub => ub.User.PublicId == userPublicId && ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
             .Select(ub => new UserBanDto(
                 ub.PublicId,
@@ -507,6 +493,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task UnbanUserAsync(string banPublicId, string unbannedByUserPublicId)
     {
         var ban = await _context.UserBans
+            .AsTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.Community)
             .Include(ub => ub.Hub)
@@ -535,7 +522,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<ReportDto?> GetReportByPublicIdAsync(string publicId)
     {
         return await _context.Reports
-            .AsNoTracking()
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDto(
                 r.PublicId,
@@ -556,7 +542,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<ReportDetailDto?> GetReportDetailByPublicIdAsync(string publicId)
     {
         return await _context.Reports
-            .AsNoTracking()
             .Where(r => r.PublicId == publicId)
             .Select(r => new ReportDetailDto(
                 r.PublicId,
@@ -595,7 +580,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, int? statusId, int offset, int pageSize)
     {
-        var query = _context.Reports.AsNoTracking()
+        var query = _context.Reports
             .Where(r => r.Community != null && r.Community.PublicId == communityPublicId);
 
         if (statusId.HasValue)
@@ -606,7 +591,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, int? statusId, int offset, int pageSize)
     {
-        var query = _context.Reports.AsNoTracking()
+        var query = _context.Reports
             .Where(r => (r.Hub != null && r.Hub.PublicId == hubPublicId) ||
                         (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
 
@@ -618,7 +603,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, int? statusId, int offset, int pageSize)
     {
-        var query = _context.Reports.AsNoTracking()
+        var query = _context.Reports
             .Where(r => r.Space != null && r.Space.PublicId == spacePublicId);
 
         if (statusId.HasValue)
@@ -794,6 +779,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task ResolveReportAsync(string reportPublicId, string resolvedByUserPublicId, string? resolutionNote, bool dismiss)
     {
         var report = await _context.Reports
+            .AsTracking()
             .Include(r => r.Community)
             .Include(r => r.Hub)
             .Include(r => r.Space)
@@ -850,7 +836,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsForScopeAsync(string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
     {
-        var query = _context.ReportReasons.AsNoTracking();
+        var query = _context.ReportReasons.AsQueryable();
 
         query = query.Where(rr =>
             (rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null) ||
@@ -875,7 +861,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task<IEnumerable<ReportReasonDto>> GetGlobalReportReasonsAsync()
     {
         return await _context.ReportReasons
-            .AsNoTracking()
             .Where(rr => rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null)
             .OrderBy(rr => rr.DisplayOrder)
             .ThenBy(rr => rr.Name)
@@ -892,28 +877,28 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<PagedResult<ModerationLogDto>> GetModerationLogForCommunityAsync(string communityPublicId, int offset, int pageSize)
     {
-        var query = _context.ModerationLogs.AsNoTracking()
+        var query = _context.ModerationLogs
             .Where(ml => ml.Community != null && ml.Community.PublicId == communityPublicId);
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
     public async Task<PagedResult<ModerationLogDto>> GetModerationLogForHubAsync(string hubPublicId, int offset, int pageSize)
     {
-        var query = _context.ModerationLogs.AsNoTracking()
+        var query = _context.ModerationLogs
             .Where(ml => ml.Hub != null && ml.Hub.PublicId == hubPublicId);
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
     public async Task<PagedResult<ModerationLogDto>> GetModerationLogForSpaceAsync(string spacePublicId, int offset, int pageSize)
     {
-        var query = _context.ModerationLogs.AsNoTracking()
+        var query = _context.ModerationLogs
             .Where(ml => ml.Space != null && ml.Space.PublicId == spacePublicId);
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
     public async Task<PagedResult<ModerationLogDto>> GetModerationLogByActorAsync(string actorUserPublicId, int offset, int pageSize)
     {
-        var query = _context.ModerationLogs.AsNoTracking()
+        var query = _context.ModerationLogs
             .Where(ml => ml.ActorUser.PublicId == actorUserPublicId);
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
@@ -1031,6 +1016,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task ModeratorDeletePostAsync(string postPublicId, string moderatorPublicId, string? reason)
     {
         var post = await _context.Posts
+            .AsTracking()
             .Include(p => p.Discussion)
                 .ThenInclude(d => d.Space)
                     .ThenInclude(s => s.Hub)
@@ -1061,6 +1047,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task ModeratorDeleteDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
     {
         var discussion = await _context.Discussions
+            .AsTracking()
             .Include(d => d.Space)
                 .ThenInclude(s => s.Hub)
                     .ThenInclude(h => h.Community)
@@ -1091,6 +1078,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task LockDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
     {
         var discussion = await _context.Discussions
+            .AsTracking()
             .Include(d => d.Space)
                 .ThenInclude(s => s.Hub)
                     .ThenInclude(h => h.Community)
@@ -1120,6 +1108,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
     public async Task UnlockDiscussionAsync(string discussionPublicId, string moderatorPublicId)
     {
         var discussion = await _context.Discussions
+            .AsTracking()
             .Include(d => d.Space)
                 .ThenInclude(s => s.Hub)
                     .ThenInclude(h => h.Community)

@@ -16,20 +16,38 @@ public class SpaceRepositoryAdapter(
 
     public async Task<Space?> GetByIdAsync(int id)
     {
-        var entity = await _databaseRepository.GetByIdAsync(id);
-        return entity?.FromPersistence();
+        var projection = await _context.Spaces
+            .Where(s => s.Id == id)
+            .Select(s => new SpaceProjection(
+                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.AllowAnonymousReading, s.RequireEmailConfirmation,
+                s.CreatedAt, s.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Space?> GetByPublicIdAsync(SpaceId publicId)
     {
-        var entity = await _databaseRepository.GetForUpdateAsync(publicId.Value);
-        return entity?.FromPersistence();
+        var projection = await _context.Spaces
+            .Where(s => s.PublicId == publicId.Value)
+            .Select(s => new SpaceProjection(
+                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.AllowAnonymousReading, s.RequireEmailConfirmation,
+                s.CreatedAt, s.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<Space?> GetBySlugAsync(string slug)
     {
-        var entity = await _databaseRepository.GetBySlugAsync(slug);
-        return entity?.FromPersistence();
+        var projection = await _context.Spaces
+            .Where(s => s.Slug == slug)
+            .Select(s => new SpaceProjection(
+                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.AllowAnonymousReading, s.RequireEmailConfirmation,
+                s.CreatedAt, s.LastModifiedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
     }
 
     public async Task<PagedResult<Space>> GetFilteredForDisplayAsync(HubId hubId, int offset, int pageSize)
@@ -54,8 +72,13 @@ public class SpaceRepositoryAdapter(
 
     public async Task<IEnumerable<Space>> GetAllAsync()
     {
-        var entities = await _databaseRepository.GetAllAsync();
-        return entities.Select(e => e.FromPersistence());
+        var projections = await _context.Spaces
+            .Select(s => new SpaceProjection(
+                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.AllowAnonymousReading, s.RequireEmailConfirmation,
+                s.CreatedAt, s.LastModifiedAt))
+            .ToListAsync();
+        return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(Space space)
@@ -87,5 +110,24 @@ public class SpaceRepositoryAdapter(
 
         await _databaseRepository.UpdateAsync(entity);
         await _databaseRepository.SaveChangesAsync();
+    }
+
+    private record SpaceProjection(
+        string PublicId,
+        string HubPublicId,
+        string Name,
+        string Slug,
+        string? Description,
+        bool AllowAnonymousReading,
+        bool RequireEmailConfirmation,
+        DateTime CreatedAt,
+        DateTime? LastModifiedAt)
+    {
+        public Space ToDomain() => Space.Rehydrate(
+            SpaceId.From(PublicId),
+            HubId.From(HubPublicId),
+            Name, Slug, Description,
+            AllowAnonymousReading, RequireEmailConfirmation,
+            CreatedAt, LastModifiedAt, discussions: []);
     }
 }

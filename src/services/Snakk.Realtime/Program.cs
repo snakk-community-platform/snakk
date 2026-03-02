@@ -50,4 +50,7 @@ app.MapHub<RealtimeHub>("/realtime");
 app.MapPost("/api/broadcast", BroadcastEndpoints.BroadcastEvent);
 app.MapPost("/api/broadcast/activity", BroadcastEndpoints.BroadcastActivity);
 
+// Health check for gateway probes
+app.MapGet("/health", () => Results.Ok());
+
 app.Run();

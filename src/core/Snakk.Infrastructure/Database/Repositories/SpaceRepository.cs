@@ -22,13 +22,13 @@ public class SpaceRepository(SnakkDbContext context)
     public override async Task<SpaceDatabaseEntity?> GetByIdAsync(int id)
     {
         return await _dbSet
-            .Include(s => s.Hub)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId)
     {
         return await _dbSet
+            .AsTracking()
             .Include(s => s.Hub)
             .Include(s => s.Discussions)
             .FirstOrDefaultAsync(s => s.PublicId == publicId);
@@ -36,15 +36,12 @@ public class SpaceRepository(SnakkDbContext context)
 
     public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync()
     {
-        return await _dbSet
-            .Include(s => s.Hub)
-            .ToListAsync();
+        return await _dbSet.ToListAsync();
     }
 
     public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId)
     {
         return await _dbSet
-            .AsNoTracking()
             .Where(s => s.PublicId == publicId)
             .Select(s => new SpaceDetailDto(
                 s.PublicId,
@@ -62,14 +59,12 @@ public class SpaceRepository(SnakkDbContext context)
     public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId)
     {
         return await _dbSet
-            .Include(s => s.Hub)
             .FirstOrDefaultAsync(s => s.PublicId == publicId);
     }
 
     public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug)
     {
         return await _dbSet
-            .Include(s => s.Hub)
             .FirstOrDefaultAsync(s => s.Slug == slug);
     }
 
@@ -79,7 +74,6 @@ public class SpaceRepository(SnakkDbContext context)
         int pageSize)
     {
         var items = await _dbSet
-            .AsNoTracking()
             .Where(s => s.Hub.PublicId == hubPublicId)
             .OrderBy(s => s.Name)
             .Skip(offset)

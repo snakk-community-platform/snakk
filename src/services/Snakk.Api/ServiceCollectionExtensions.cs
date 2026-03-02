@@ -28,8 +28,11 @@ public static class ServiceCollectionExtensions
 
         // Database (PostgreSQL) with DbContext pooling for better performance
         services.AddDbContextPool<SnakkDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DbConnection")),
-            poolSize: 128); // Default is 1024, using 128 for typical web app
+            options
+                .UseNpgsql(configuration.GetConnectionString("DbConnection"),
+                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
+            poolSize: 128);
 
         // Data Protection for encrypting sensitive settings
         services.AddDataProtection();
