@@ -20,7 +20,7 @@ public static class SpaceManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var overview = await service.GetOverviewAsync(spaceId, cancellationToken);
-            return overview != null ? Results.Ok(overview) : Results.NotFound();
+            return overview is not null ? Results.Ok(overview) : Results.NotFound();
         })
         .RequireSpaceModerator("spaceId")
         .WithName("GetSpaceOverview");
@@ -32,7 +32,7 @@ public static class SpaceManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.GetSettingsAsync(spaceId, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireSpaceModerator("spaceId")
         .WithName("GetSpaceSettings");
@@ -45,7 +45,7 @@ public static class SpaceManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.UpdateSettingsAsync(spaceId, request, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireSpaceModerator("spaceId")
         .WithName("UpdateSpaceSettings");

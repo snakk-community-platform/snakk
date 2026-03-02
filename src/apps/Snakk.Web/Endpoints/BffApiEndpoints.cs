@@ -193,11 +193,11 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetNotificationsAsync(offset, pageSize);
-        if (apiResult?.Items == null)
+        if (apiResult?.Items is null)
         {
             return Results.Ok(new Models.Bff.BffNotificationsResponse
             {
-                Items = new List<Models.Bff.BffNotificationResponse>()
+                Items = []
             });
         }
 
@@ -251,7 +251,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetSpaceFollowStatusAsync(spaceId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffFollowStatusResponse
         {
@@ -268,7 +268,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.ToggleSpaceFollowAsync(spaceId, level);
-        if (apiResult == null) return Results.BadRequest();
+        if (apiResult is null) return Results.BadRequest();
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -285,7 +285,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.SetSpaceFollowLevelAsync(spaceId, level);
-        if (apiResult == null) return Results.BadRequest();
+        if (apiResult is null) return Results.BadRequest();
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -301,7 +301,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetDiscussionFollowStatusAsync(discussionId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffFollowStatusResponse
         {
@@ -317,7 +317,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.ToggleDiscussionFollowAsync(discussionId);
-        if (apiResult == null) return Results.BadRequest();
+        if (apiResult is null) return Results.BadRequest();
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -403,6 +403,7 @@ public static class BffApiEndpoints
             request.Description,
             null); // Details
         await apiClient.CreateReportAsync(apiRequest);
+
         return Results.Ok();
     }
 
@@ -474,7 +475,7 @@ public static class BffApiEndpoints
     private static async Task<IResult> GetAuthStatusAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
         var apiResult = await apiClient.GetAuthStatusAsync();
-        if (apiResult == null) return Results.Unauthorized();
+        if (apiResult is null) return Results.Unauthorized();
 
         // Map API DTO → BFF DTO (decouples frontend from API structure)
         var bffResponse = new Models.Bff.BffAuthStatusResponse
@@ -499,6 +500,7 @@ public static class BffApiEndpoints
     {
         await apiClient.LogoutAsync();
         AuthCookieHelper.DeleteAuthCookies(httpContext);
+
         return Results.Ok();
     }
 
@@ -533,7 +535,7 @@ public static class BffApiEndpoints
     private static async Task<IResult> GetCurrentUserMeAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
         var apiResult = await apiClient.GetCurrentUserAsync();
-        if (apiResult == null) return Results.Unauthorized();
+        if (apiResult is null) return Results.Unauthorized();
 
         // Sync preference cookie so server-side pages can read it without an API call
         AuthCookieHelper.SetPreferenceCookies(httpContext, apiResult.PreferEndlessScroll);
@@ -579,7 +581,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetUserStatsAsync(userId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffUserStatsResponse
         {
@@ -601,7 +603,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetUserActivityHistoryAsync(userId, days);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffUserActivityResponse
         {
@@ -622,7 +624,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetUserFollowStatusAsync(userId, currentUserId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffUserFollowStatusResponse
         {
@@ -637,7 +639,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.ToggleUserFollowAsync(userId);
-        if (apiResult == null) return Results.BadRequest();
+        if (apiResult is null) return Results.BadRequest();
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -661,7 +663,7 @@ public static class BffApiEndpoints
             hubPublicId: null,
             offset: 0,
             pageSize: pageSize);
-        return result != null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
+        return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
     }
 
     private static async Task<IResult> SearchPostsAsync(
@@ -676,7 +678,7 @@ public static class BffApiEndpoints
             spacePublicId: null,
             offset: 0,
             pageSize: pageSize);
-        return result != null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
+        return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
     }
 
     // Post endpoints
@@ -687,7 +689,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, pageSize);
-        return result != null ? Results.Ok(result) : Results.NotFound();
+        return result is not null ? Results.Ok(result) : Results.NotFound();
     }
 
     private static async Task<IResult> EditPostAsync(
@@ -706,7 +708,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetDiscussionPreviewAsync(discussionId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffDiscussionPreviewResponse
         {
@@ -722,7 +724,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetHubStatsAsync(publicId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         // Map API DTO → BFF DTO
         var bffResponse = new Models.Bff.BffHubStatsResponse
@@ -744,7 +746,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetSpaceStatsAsync(publicId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         // Map API DTO → BFF DTO
         var bffResponse = new Models.Bff.BffSpaceStatsResponse
@@ -766,7 +768,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetCommunityStatsAsync(publicId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         // Map API DTO → BFF DTO
         var bffResponse = new Models.Bff.BffCommunityStatsResponse
@@ -789,7 +791,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var apiResult = await apiClient.GetUserStatsAsync(publicId);
-        if (apiResult == null) return Results.NotFound();
+        if (apiResult is null) return Results.NotFound();
 
         var bffResponse = new Models.Bff.BffUserStatsResponse
         {
@@ -810,7 +812,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var result = await apiClient.GetDiscussionStatsForPopupAsync(publicId);
-        return result != null ? Results.Ok(result) : Results.NotFound();
+        return result is not null ? Results.Ok(result) : Results.NotFound();
     }
 
     // Moderation report reasons
@@ -819,7 +821,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var result = await apiClient.GetReportReasonsAsync();
-        return result != null ? Results.Ok(result) : Results.Ok(Array.Empty<object>());
+        return result is not null ? Results.Ok(result) : Results.Ok(Array.Empty<object>());
     }
 
     // Avatar proxy endpoints

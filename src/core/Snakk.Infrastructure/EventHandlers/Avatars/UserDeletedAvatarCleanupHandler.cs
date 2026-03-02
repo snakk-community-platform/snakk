@@ -5,29 +5,20 @@ using Snakk.Application.Events;
 using Snakk.Application.Services;
 using Snakk.Domain.Events;
 
-public class UserDeletedAvatarCleanupHandler : IDomainEventHandler<UserDeletedEvent>
+public class UserDeletedAvatarCleanupHandler(
+    IAvatarGenerationService avatarService,
+    ILogger<UserDeletedAvatarCleanupHandler> logger) : IDomainEventHandler<UserDeletedEvent>
 {
-    private readonly IAvatarGenerationService _avatarService;
-    private readonly ILogger<UserDeletedAvatarCleanupHandler> _logger;
-
-    public UserDeletedAvatarCleanupHandler(
-        IAvatarGenerationService avatarService,
-        ILogger<UserDeletedAvatarCleanupHandler> logger)
-    {
-        _avatarService = avatarService;
-        _logger = logger;
-    }
-
     public async Task HandleAsync(UserDeletedEvent @event)
     {
         try
         {
-            await _avatarService.DeleteAvatarAsync("user", @event.UserId.Value);
-            _logger.LogInformation("Deleted avatar for user {UserId}", @event.UserId.Value);
+            await avatarService.DeleteAvatarAsync("user", @event.UserId.Value);
+            logger.LogInformation("Deleted avatar for user {UserId}", @event.UserId.Value);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete avatar for user {UserId}", @event.UserId.Value);
+            logger.LogError(ex, "Failed to delete avatar for user {UserId}", @event.UserId.Value);
         }
     }
 }

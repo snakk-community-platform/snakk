@@ -40,6 +40,8 @@ public class SearchGrpcService(
                 Slug = d.Slug,
                 Highlight = d.Title, // Use title as highlight for now
                 CreatedAt = ToTimestamp(d.CreatedAt),
+                PostCount = d.PostCount,
+
                 Space = new EntityRef
                 {
                     PublicId = d.SpacePublicId,
@@ -57,8 +59,7 @@ public class SearchGrpcService(
                     PublicId = d.AuthorPublicId,
                     DisplayName = d.AuthorDisplayName,
                     AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0)
-                },
-                PostCount = d.PostCount
+                }
             };
 
             if (d.LastActivityAt.HasValue)
@@ -96,15 +97,16 @@ public class SearchGrpcService(
                 PublicId = p.PublicId,
                 ContentHighlight = p.Content,
                 CreatedAt = ToTimestamp(p.CreatedAt),
+                DiscussionPublicId = p.DiscussionPublicId,
+                DiscussionTitle = p.DiscussionTitle,
+                DiscussionSlug = p.DiscussionSlug,
+
                 Author = new AuthorRef
                 {
                     PublicId = p.AuthorPublicId,
                     DisplayName = p.AuthorDisplayName,
                     AvatarUrl = AvatarHelper.GetAvatarUrl(p.AuthorPublicId, AvatarEntityType.User, 0)
                 },
-                DiscussionPublicId = p.DiscussionPublicId,
-                DiscussionTitle = p.DiscussionTitle,
-                DiscussionSlug = p.DiscussionSlug,
                 Space = new EntityRef
                 {
                     PublicId = p.SpaceSlug,
@@ -149,6 +151,6 @@ public class SearchGrpcService(
         return response;
     }
 
-    private static Timestamp ToTimestamp(DateTime dt)
-        => Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+    private static Timestamp ToTimestamp(DateTime dt) =>
+        Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
 }

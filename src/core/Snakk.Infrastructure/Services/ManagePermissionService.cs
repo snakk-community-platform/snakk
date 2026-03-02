@@ -7,28 +7,21 @@ using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Services;
 
-public class ManagePermissionService : IManagePermissionService
+public class ManagePermissionService(
+    SnakkDbContext context,
+    IMemoryCache cache,
+    ILogger<ManagePermissionService> logger) : IManagePermissionService
 {
-    private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<ManagePermissionService> _logger;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
-    public ManagePermissionService(
-        SnakkDbContext context,
-        IMemoryCache cache,
-        ILogger<ManagePermissionService> logger)
-    {
-        _context = context;
-        _cache = cache;
-        _logger = logger;
-    }
-
-    public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(string userId, string scopeType, string scopePublicId)
+    public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(
+        string userId,
+        string scopeType,
+        string scopePublicId)
     {
         var cacheKey = $"manage_perms_{userId}_{scopeType}_{scopePublicId}";
 
-        var cached = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        var cached = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = CacheDuration;
             return await ComputePermissionsAsync(userId, scopeType, scopePublicId);
@@ -37,25 +30,34 @@ public class ManagePermissionService : IManagePermissionService
         return cached ?? ManagePermissionSet.None;
     }
 
-    public async Task<bool> HasPermissionAsync(string userId, string scopeType, string scopePublicId, ManagePermissionEnum permission)
+    public async Task<bool> HasPermissionAsync(
+        string userId,
+        string scopeType,
+        string scopePublicId,
+        ManagePermissionEnum permission)
     {
         var permissionSet = await GetPermissionsForScopeAsync(userId, scopeType, scopePublicId);
         return permissionSet.HasPermission(permission);
     }
 
-    private async Task<ManagePermissionSet> ComputePermissionsAsync(string userId, string scopeType, string scopePublicId)
+    private async Task<ManagePermissionSet> ComputePermissionsAsync(
+        string userId,
+        string scopeType,
+        string scopePublicId)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
             .FirstOrDefaultAsync();
 
-        if (user == null)
+        if (user is null)
             return ManagePermissionSet.None;
 
         // Get all active roles for the user
-        var activeRoles = await _context.UserRoles
-            .Where(ur => ur.UserId == user.Id && ur.RevokedAt == null)
+        var activeRoles = await context.UserRoles
+            .Where(ur =>
+                ur.UserId == user.Id
+                && ur.RevokedAt == null)
             .Select(ur => new RoleWithScope
             {
                 RoleType = (UserRoleTypeEnum)ur.RoleId,
@@ -67,8 +69,12 @@ public class ManagePermissionService : IManagePermissionService
 
         // Also include active temporary role elevations
         var now = DateTime.UtcNow;
-        var tempElevations = await _context.TemporaryRoleElevations
-            .Where(e => e.UserId == user.Id && e.RevokedAt == null && e.ExpiresAt > now)
+
+        var tempElevations = await context.TemporaryRoleElevations
+            .Where(e =>
+                e.UserId == user.Id
+                && e.RevokedAt == null
+                && e.ExpiresAt > now)
             .ToListAsync();
 
         foreach (var e in tempElevations)
@@ -85,19 +91,19 @@ public class ManagePermissionService : IManagePermissionService
             }
         }
 
-        // GlobalAdmin → ALL permissions everywhere
-        if (activeRoles.Any(r => r.RoleType == UserRoleTypeEnum.GlobalAdmin))
+        // GlobalAdmin -> ALL permissions everywhere
+        if (activeRoles.Count > 0 && activeRoles.Any(r => r.RoleType == UserRoleTypeEnum.GlobalAdmin))
         {
-            _logger.LogDebug("User {UserId} is GlobalAdmin - granting all manage permissions", userId);
+            logger.LogDebug("User {UserId} is GlobalAdmin - granting all manage permissions", userId);
             return ManagePermissionSet.All;
         }
 
         // Determine the highest-level matching role for the requested scope
         var matchingRoleType = await GetHighestMatchingRoleAsync(activeRoles, scopeType, scopePublicId);
 
-        if (matchingRoleType == null)
+        if (matchingRoleType is null)
         {
-            _logger.LogDebug("User {UserId} has no matching role for {ScopeType}:{ScopePublicId}", userId, scopeType, scopePublicId);
+            logger.LogDebug("User {UserId} has no matching role for {ScopeType}:{ScopePublicId}", userId, scopeType, scopePublicId);
             return ManagePermissionSet.None;
         }
 
@@ -115,7 +121,7 @@ public class ManagePermissionService : IManagePermissionService
         {
             case "community":
                 // Resolve community publicId to internal ID
-                var communityId = await _context.Communities
+                var communityId = await context.Communities
                     .Where(c => c.PublicId == scopePublicId)
                     .Select(c => c.Id)
                     .FirstOrDefaultAsync();
@@ -128,6 +134,7 @@ public class ManagePermissionService : IManagePermissionService
                     {
                         if (role.RoleType == UserRoleTypeEnum.CommunityAdmin)
                             return UserRoleTypeEnum.CommunityAdmin;
+
                         if (role.RoleType == UserRoleTypeEnum.CommunityMod)
                             highest = UserRoleTypeEnum.CommunityMod;
                     }
@@ -136,12 +143,14 @@ public class ManagePermissionService : IManagePermissionService
 
             case "hub":
                 // Resolve hub publicId to internal ID + parent community
-                var hub = await _context.Hubs
+                var hub = await context.Hubs
                     .Where(h => h.PublicId == scopePublicId)
-                    .Select(h => new { h.Id, h.CommunityId })
+                    .Select(h => new {
+                        h.Id,
+                        h.CommunityId })
                     .FirstOrDefaultAsync();
 
-                if (hub == null) return null;
+                if (hub is null) return null;
 
                 foreach (var role in roles)
                 {
@@ -150,27 +159,31 @@ public class ManagePermissionService : IManagePermissionService
                     {
                         if (role.RoleType == UserRoleTypeEnum.CommunityAdmin)
                             return UserRoleTypeEnum.CommunityAdmin;
-                        if (role.RoleType == UserRoleTypeEnum.CommunityMod && (highest == null || highest == UserRoleTypeEnum.HubMod))
+
+                        if (role.RoleType == UserRoleTypeEnum.CommunityMod
+                            && (highest is null || highest == UserRoleTypeEnum.HubMod))
                             highest = UserRoleTypeEnum.CommunityMod;
                     }
 
                     // Direct hub role
                     if (role.HubId == hub.Id && role.RoleType == UserRoleTypeEnum.HubMod)
                     {
-                        if (highest == null)
-                            highest = UserRoleTypeEnum.HubMod;
+                        highest ??= UserRoleTypeEnum.HubMod;
                     }
                 }
                 break;
 
             case "space":
                 // Resolve space publicId to internal ID + parent hub/community
-                var space = await _context.Spaces
+                var space = await context.Spaces
                     .Where(s => s.PublicId == scopePublicId)
-                    .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
+                    .Select(s => new {
+                        s.Id,
+                        s.HubId,
+                        s.Hub.CommunityId })
                     .FirstOrDefaultAsync();
 
-                if (space == null) return null;
+                if (space is null) return null;
 
                 foreach (var role in roles)
                 {
@@ -179,23 +192,23 @@ public class ManagePermissionService : IManagePermissionService
                     {
                         if (role.RoleType == UserRoleTypeEnum.CommunityAdmin)
                             return UserRoleTypeEnum.CommunityAdmin;
-                        if (role.RoleType == UserRoleTypeEnum.CommunityMod &&
-                            (highest == null || highest == UserRoleTypeEnum.HubMod || highest == UserRoleTypeEnum.SpaceMod))
+
+                        if (role.RoleType == UserRoleTypeEnum.CommunityMod
+                            && (highest is null || highest == UserRoleTypeEnum.HubMod || highest == UserRoleTypeEnum.SpaceMod))
                             highest = UserRoleTypeEnum.CommunityMod;
                     }
 
                     // Hub-level roles bubble down to space
                     if (role.HubId == space.HubId && role.RoleType == UserRoleTypeEnum.HubMod)
                     {
-                        if (highest == null || highest == UserRoleTypeEnum.SpaceMod)
+                        if (highest is null || highest == UserRoleTypeEnum.SpaceMod)
                             highest = UserRoleTypeEnum.HubMod;
                     }
 
                     // Direct space role
                     if (role.SpaceId == space.Id && role.RoleType == UserRoleTypeEnum.SpaceMod)
                     {
-                        if (highest == null)
-                            highest = UserRoleTypeEnum.SpaceMod;
+                        highest ??= UserRoleTypeEnum.SpaceMod;
                     }
                 }
                 break;
@@ -209,15 +222,13 @@ public class ManagePermissionService : IManagePermissionService
     /// - CommunityAdmin: ALL permissions (admin of the scope)
     /// - CommunityMod, HubMod, SpaceMod: Moderator-level permissions only
     /// </summary>
-    private static ManagePermissionSet DerivePermissions(UserRoleTypeEnum roleType)
-    {
-        return roleType switch
+    private static ManagePermissionSet DerivePermissions(UserRoleTypeEnum roleType) =>
+        roleType switch
         {
             UserRoleTypeEnum.GlobalAdmin => ManagePermissionSet.All,
             UserRoleTypeEnum.CommunityAdmin => ManagePermissionSet.All,
             _ => ManagePermissionSet.Moderator
         };
-    }
 
     private class RoleWithScope
     {

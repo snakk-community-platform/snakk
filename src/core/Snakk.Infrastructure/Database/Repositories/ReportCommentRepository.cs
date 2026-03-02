@@ -7,20 +7,16 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReportCommentRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReportCommentDatabaseEntity>(context), IReportCommentRepository
 {
-    public async Task<ReportCommentDatabaseEntity?> GetByPublicIdAsync(string publicId)
-    {
-        return await _dbSet
-            .Include(rc => rc.AuthorUser)
-            .Include(rc => rc.Report)
-            .FirstOrDefaultAsync(rc => rc.PublicId == publicId && !rc.IsDeleted);
-    }
+    public async Task<ReportCommentDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+        .Include(rc => rc.AuthorUser)
+        .Include(rc => rc.Report)
+        .FirstOrDefaultAsync(rc =>
+            rc.PublicId == publicId
+            && !rc.IsDeleted);
 
-    public async Task<IEnumerable<ReportCommentDatabaseEntity>> GetCommentsForReportAsync(int reportId)
-    {
-        return await _dbSet
-            .Include(rc => rc.AuthorUser)
-            .Where(rc => rc.ReportId == reportId && !rc.IsDeleted)
-            .OrderBy(rc => rc.CreatedAt)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<ReportCommentDatabaseEntity>> GetCommentsForReportAsync(int reportId) => await _dbSet
+        .Include(rc => rc.AuthorUser)
+        .Where(rc => rc.ReportId == reportId && !rc.IsDeleted)
+        .OrderBy(rc => rc.CreatedAt)
+        .ToListAsync();
 }

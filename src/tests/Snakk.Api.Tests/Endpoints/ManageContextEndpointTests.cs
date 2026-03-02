@@ -376,7 +376,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
         foreach (var item in permissions.EnumerateArray())
         {
             var permStr = item.GetString();
-            if (permStr != null) permissionStrings.Add(permStr);
+            if (permStr is not null) permissionStrings.Add(permStr);
         }
 
         // GlobalAdmin should have all manage permissions

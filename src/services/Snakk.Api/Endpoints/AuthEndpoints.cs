@@ -45,7 +45,6 @@ public static class AuthEndpoints
         group.MapGet("/status", GetAuthStatus)
             .WithName("GetAuthStatus")
             .Produces<Application.DTOs.Auth.AuthStatusResponse>();
-
     }
 
     private static async Task<IResult> RegisterAsync(
@@ -82,7 +81,7 @@ public static class AuthEndpoints
 
         var roles = userDbEntity?.Roles
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? new List<string>();
+            .ToList() ?? [];
 
         // Generate JWT for immediate login
         var jwt = jwtService.GenerateToken(
@@ -95,6 +94,7 @@ public static class AuthEndpoints
 
         // Generate refresh token
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
         if (!refreshTokenResult.IsSuccess)
             return Results.Problem("Registration succeeded but failed to create refresh token");
 
@@ -139,7 +139,7 @@ public static class AuthEndpoints
 
         var roles = userDbEntity?.Roles
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? new List<string>();
+            .ToList() ?? [];
 
         // Generate JWT with roles (using first role for backward compatibility with single-role JWT service)
         var jwt = jwtService.GenerateToken(
@@ -152,6 +152,7 @@ public static class AuthEndpoints
 
         // Generate refresh token
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
         if (!refreshTokenResult.IsSuccess)
             return Results.Problem("Failed to create refresh token");
 
@@ -178,7 +179,8 @@ public static class AuthEndpoints
         ILogger<object> logger)
     {
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId != null)
+
+        if (userId is not null)
         {
             var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
             var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
@@ -200,6 +202,7 @@ public static class AuthEndpoints
         ILogger<object> logger)
     {
         var result = await authUseCase.RefreshTokenAsync(request.RefreshToken);
+
         if (!result.IsSuccess)
             return Results.Unauthorized();
 
@@ -212,7 +215,7 @@ public static class AuthEndpoints
 
         var roles = userDbEntity?.Roles
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? new List<string>();
+            .ToList() ?? [];
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -245,7 +248,9 @@ public static class AuthEndpoints
         return TypedResults.Ok(new MessageResponse("Email verified successfully. You can now log in."));
     }
 
-    private static IResult GetAuthStatus(Snakk.Api.Services.ICurrentUserService currentUser, HttpContext httpContext)
+    private static IResult GetAuthStatus(
+        Snakk.Api.Services.ICurrentUserService currentUser,
+        HttpContext httpContext)
     {
         // Prevent browser caching of auth status (critical for logout to work correctly)
         httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
@@ -272,5 +277,4 @@ public static class AuthEndpoints
             AvatarUrl = AvatarHelper.GetAvatarUrl(userId, AvatarEntityType.User, 0)
         });
     }
-
 }

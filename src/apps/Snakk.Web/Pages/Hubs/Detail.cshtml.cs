@@ -9,7 +9,11 @@ using Snakk.Protos.Space;
 namespace Snakk.Web.Pages.Hubs;
 
 [OutputCache(PolicyName = "Space")]
-public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : PageModel
+public class DetailModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext,
+    IPrefetchCacheService prefetchCache) : PageModel
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -30,9 +34,9 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
 
     // Whether to show community in breadcrumb (multi-community enabled, non-default community, not on custom domain)
     public bool ShowCommunityInBreadcrumb =>
-        configuration.GetValue<bool>("Features:MultiCommunityEnabled") &&
-        !communityContext.IsDefaultCommunity &&
-        !communityContext.IsCustomDomain;
+        configuration.GetValue<bool>("Features:MultiCommunityEnabled")
+        && !communityContext.IsDefaultCommunity
+        && !communityContext.IsCustomDomain;
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
@@ -44,7 +48,7 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
         Slug = slug;
 
         Hub = await _apiClient.GetHubBySlugAsync(slug);
-        if (Hub == null)
+        if (Hub is null)
             return NotFound();
 
         SidebarScopeId = Hub.PublicId;
@@ -66,15 +70,26 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
     private void ResolveSidebarData()
     {
         if (ShowTrendingDiscussions)
-            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch($"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId), d => new SidebarTrendingDiscussionsVM(d, communityContext, "cache"));
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId),
+                d => new SidebarTrendingDiscussionsVM(d, communityContext, "cache"));
 
         if (ShowTrendingContributors)
-            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch($"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopContributorsTodayAsync(Hub!.PublicId), d => new SidebarTrendingContributorsVM(d, communityContext, "cache"));
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
+                $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(Hub!.PublicId),
+                d => new SidebarTrendingContributorsVM(d, communityContext, "cache"));
 
         if (Hub!.HasRules)
-            InlineHubRules = prefetchCache.ResolveOrPrefetch($"hub-rules:{SidebarScopeId}",
-                () => _apiClient.GetHubRulesAsync(SidebarScopeId), d => new SidebarHubRulesVM(d, communityContext, communityContext.CommunitySlug ?? "", Hub.ParentCommunityHasRules, "cache"));
+            InlineHubRules = prefetchCache.ResolveOrPrefetch(
+                $"hub-rules:{SidebarScopeId}",
+                () => _apiClient.GetHubRulesAsync(SidebarScopeId),
+                d => new SidebarHubRulesVM(
+                    d,
+                    communityContext,
+                    communityContext.CommunitySlug ?? "",
+                    Hub.ParentCommunityHasRules,
+                    "cache"));
     }
 }

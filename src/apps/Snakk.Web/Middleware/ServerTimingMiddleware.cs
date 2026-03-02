@@ -2,26 +2,20 @@ using System.Diagnostics;
 
 namespace Snakk.Web.Middleware;
 
-public class ServerTimingCollector
+public class ServerTimingCollector(Stopwatch requestStopwatch)
 {
-    private readonly Stopwatch _requestStopwatch;
     private readonly List<string> _entries = new();
-
-    public ServerTimingCollector(Stopwatch requestStopwatch)
-    {
-        _requestStopwatch = requestStopwatch;
-    }
 
     /// <summary>
     /// Returns the elapsed milliseconds since the request started.
     /// Call this BEFORE the operation to record when it was initiated.
     /// </summary>
-    public long GetOffsetMs() => _requestStopwatch.ElapsedMilliseconds;
+    public long GetOffsetMs() => requestStopwatch.ElapsedMilliseconds;
 
     public void Add(string name, double durationMs, string? description = null, long? offsetMs = null)
     {
         var offsetTag = offsetMs.HasValue ? $" @{offsetMs.Value}" : "";
-        var entry = description != null
+        var entry = description is not null
             ? $"{name};dur={durationMs:F1};desc=\"{description}{offsetTag}\""
             : $"{name};dur={durationMs:F1}";
         _entries.Add(entry);
@@ -31,15 +25,8 @@ public class ServerTimingCollector
     public bool HasEntries => _entries.Count > 0;
 }
 
-public class ServerTimingMiddleware
+public class ServerTimingMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public ServerTimingMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var sw = Stopwatch.StartNew();
@@ -59,6 +46,6 @@ public class ServerTimingMiddleware
             return Task.CompletedTask;
         });
 
-        await _next(context);
+        await next(context);
     }
 }

@@ -2,54 +2,36 @@ using System.Security.Claims;
 
 namespace Snakk.Api.Services;
 
-public class CurrentUserService : ICurrentUserService
+public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
-    public string? GetCurrentUserId()
-    {
-        return _httpContextAccessor.HttpContext?.User
+    public string? GetCurrentUserId() =>
+        httpContextAccessor.HttpContext?.User
             .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    }
 
-    public string? GetCurrentUserDisplayName()
-    {
-        return _httpContextAccessor.HttpContext?.User
+    public string? GetCurrentUserDisplayName() =>
+        httpContextAccessor.HttpContext?.User
             .FindFirst(ClaimTypes.Name)?.Value;
-    }
 
-    public string? GetCurrentUserEmail()
-    {
-        return _httpContextAccessor.HttpContext?.User
+    public string? GetCurrentUserEmail() =>
+        httpContextAccessor.HttpContext?.User
             .FindFirst(ClaimTypes.Email)?.Value;
-    }
 
-    public bool IsAuthenticated()
-    {
-        return _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
-    }
+    public bool IsAuthenticated() =>
+        httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
-    public string? GetOAuthProvider()
-    {
-        return _httpContextAccessor.HttpContext?.User
+    public string? GetOAuthProvider() =>
+        httpContextAccessor.HttpContext?.User
             .FindFirst("OAuthProvider")?.Value;
-    }
 
     public bool IsEmailVerified()
     {
-        var claim = _httpContextAccessor.HttpContext?.User
+        var claim = httpContextAccessor.HttpContext?.User
             .FindFirst("EmailVerified")?.Value;
+
         return claim == "True";
     }
 
-    public string? GetCurrentUserRole()
-    {
-        return _httpContextAccessor.HttpContext?.User
+    public string? GetCurrentUserRole() =>
+        httpContextAccessor.HttpContext?.User
             .FindFirst(ClaimTypes.Role)?.Value;
-    }
 }

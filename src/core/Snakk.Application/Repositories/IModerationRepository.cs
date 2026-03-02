@@ -27,15 +27,33 @@ public interface IModerationRepository
     
     Task RevokeRoleAsync(string rolePublicId, string revokedByUserPublicId);
     
-    Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null);
-    Task<bool> CanAdministerAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null);
+    Task<bool> CanModerateAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null);
+
+    Task<bool> CanAdministerAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null);
     
     // ==================== Ban Management ====================
     
     Task<UserBanDto?> GetBanByPublicIdAsync(string publicId);
     Task<IEnumerable<UserBanDto>> GetActiveBansForUserAsync(string userPublicId);
-    Task<UserBanDto?> GetActiveBanForScopeAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null);
-    Task<bool> IsUserBannedAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null);
+    Task<UserBanDto?> GetActiveBanForScopeAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null);
+
+    Task<bool> IsUserBannedAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null);
     
     Task<UserBanDto> BanUserAsync(
         string targetUserPublicId,
@@ -73,7 +91,10 @@ public interface IModerationRepository
     
     // ==================== Report Reasons ====================
     
-    Task<IEnumerable<ReportReasonDto>> GetReportReasonsForScopeAsync(string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null);
+    Task<IEnumerable<ReportReasonDto>> GetReportReasonsForScopeAsync(
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null);
     Task<IEnumerable<ReportReasonDto>> GetGlobalReportReasonsAsync();
     
     // ==================== Moderation Log ====================

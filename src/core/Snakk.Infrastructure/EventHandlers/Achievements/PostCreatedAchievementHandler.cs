@@ -10,27 +10,22 @@ public class PostCreatedAchievementHandler(
     MetricsService metricsService,
     SnakkDbContext context) : IDomainEventHandler<PostCreatedEvent>
 {
-    private readonly MetricsService _metricsService = metricsService;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(PostCreatedEvent @event)
     {
         // Get Space/Hub/Community IDs by querying the discussion
-        var discussionContext = await _context.Discussions
+        var discussionContext = await context.Discussions
             .Where(d => d.PublicId == @event.DiscussionId.Value)
-            .Select(d => new
-            {
-                SpaceId = d.SpaceId,
-                HubId = d.Space.HubId,
-                CommunityId = d.Space.Hub.CommunityId
-            })
+            .Select(d => new {
+                d.SpaceId,
+                d.Space.HubId,
+                d.Space.Hub.CommunityId })
             .FirstOrDefaultAsync();
 
-        if (discussionContext == null)
+        if (discussionContext is null)
             return; // Discussion not found, skip metrics
 
         // Increment POST_COUNT across all scopes (Global, Community, Hub, Space)
-        await _metricsService.IncrementMetricAsync(
+        await metricsService.IncrementMetricAsync(
             @event.CreatedByUserId,
             "POST_COUNT",
             spaceId: discussionContext.SpaceId,

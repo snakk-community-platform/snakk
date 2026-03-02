@@ -6,7 +6,10 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
-public class RolesModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class RolesModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     [BindProperty(SupportsGet = true)]
     public string? UserId { get; set; }
@@ -66,32 +69,22 @@ public class RolesModel(SnakkApiClient apiClient, IConfiguration configuration, 
             Roles = await apiClient.GetUserRolesAsync(UserId);
         }
         else if (!string.IsNullOrEmpty(SpaceId))
-        {
             Roles = await apiClient.GetRolesForSpaceAsync(SpaceId);
-        }
         else if (!string.IsNullOrEmpty(HubId))
-        {
             Roles = await apiClient.GetRolesForHubAsync(HubId);
-        }
         else if (!string.IsNullOrEmpty(CommunityId))
-        {
             Roles = await apiClient.GetRolesForCommunityAsync(CommunityId);
-        }
         else
-        {
             // Show current user's roles
             Roles = await apiClient.GetMyRolesAsync();
-        }
 
         return Page();
     }
 
     public async Task<IActionResult> OnPostAssignAsync()
     {
-        if (AssignRequest == null || string.IsNullOrEmpty(AssignRequest.TargetUserId))
-        {
+        if (AssignRequest is null || string.IsNullOrEmpty(AssignRequest.TargetUserId))
             return RedirectToPage();
-        }
 
         await apiClient.AssignRoleAsync(AssignRequest);
         return RedirectToPage(new { UserId = AssignRequest.TargetUserId });

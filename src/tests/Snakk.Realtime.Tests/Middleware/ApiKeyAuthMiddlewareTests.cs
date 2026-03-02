@@ -15,9 +15,7 @@ public class ApiKeyAuthMiddlewareTests
     {
         var configData = new Dictionary<string, string?>();
         if (apiKey is not null)
-        {
             configData["ApiKey"] = apiKey;
-        }
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
@@ -34,9 +32,7 @@ public class ApiKeyAuthMiddlewareTests
         context.Response.Body = new MemoryStream();
 
         if (apiKeyHeader is not null)
-        {
             context.Request.Headers["X-Api-Key"] = apiKeyHeader;
-        }
 
         return context;
     }
@@ -45,6 +41,7 @@ public class ApiKeyAuthMiddlewareTests
     {
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(context.Response.Body);
+
         return await reader.ReadToEndAsync();
     }
 

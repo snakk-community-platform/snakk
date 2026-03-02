@@ -13,16 +13,14 @@ public class MentionRepositoryAdapter(
     IMentionDatabaseRepository databaseRepository,
     SnakkDbContext context) : IMentionRepository
 {
-    private readonly IMentionDatabaseRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<IEnumerable<Mention>> GetByPostIdAsync(PostId postId)
     {
-        var projections = await _context.Mentions
+        var projections = await context.Mentions
             .Where(m => m.Post.PublicId == postId.Value)
             .Select(m => new MentionProjection(
                 m.PublicId, m.Post.PublicId, m.MentionedUser.PublicId, m.CreatedAt))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
@@ -34,10 +32,10 @@ public class MentionRepositoryAdapter(
         {
             var entity = mention.ToPersistence();
 
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == mention.PostId.Value);
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == mention.MentionedUserId.Value);
+            var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == mention.PostId.Value);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == mention.MentionedUserId.Value);
 
-            if (post == null || user == null) continue;
+            if (post is null || user is null) continue;
 
             entity.PostId = post.Id;
             entity.MentionedUserId = user.Id;
@@ -46,17 +44,18 @@ public class MentionRepositoryAdapter(
 
         if (entities.Count > 0)
         {
-            await _databaseRepository.AddRangeAsync(entities);
-            await _databaseRepository.SaveChangesAsync();
+            await databaseRepository.AddRangeAsync(entities);
+            await databaseRepository.SaveChangesAsync();
         }
     }
 
     public async Task DeleteByPostIdAsync(PostId postId)
     {
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
-        if (post == null) return;
+        var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
 
-        await _databaseRepository.DeleteByPostIdAsync(post.Id);
+        if (post is null) return;
+
+        await databaseRepository.DeleteByPostIdAsync(post.Id);
     }
 
     private record MentionProjection(

@@ -20,7 +20,7 @@ public static class HubManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var overview = await service.GetOverviewAsync(hubId, cancellationToken);
-            return overview != null ? Results.Ok(overview) : Results.NotFound();
+            return overview is not null ? Results.Ok(overview) : Results.NotFound();
         })
         .RequireHubModerator("hubId")
         .WithName("GetHubOverview");
@@ -32,7 +32,7 @@ public static class HubManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.GetSettingsAsync(hubId, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireHubModerator("hubId")
         .WithName("GetHubSettings");
@@ -45,7 +45,7 @@ public static class HubManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.UpdateSettingsAsync(hubId, request, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireHubModerator("hubId")
         .WithName("UpdateHubSettings");

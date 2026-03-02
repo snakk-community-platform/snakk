@@ -7,8 +7,6 @@ using Snakk.Shared.Models;
 
 public class ModerationUseCase(IModerationRepository moderationRepository) : UseCaseBase
 {
-    private readonly IModerationRepository _moderationRepository = moderationRepository;
-
     // ==================== Role Management ====================
 
     public async Task<Result<UserRoleDto>> AssignRoleAsync(
@@ -22,13 +20,13 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         try
         {
             // Check if assigner has permission
-            var canAssign = await _moderationRepository.CanAdministerAsync(
+            var canAssign = await moderationRepository.CanAdministerAsync(
                 assignedByUserPublicId, communityPublicId, hubPublicId, spacePublicId);
-            
+
             if (!canAssign)
                 return Result<UserRoleDto>.Failure("You don't have permission to assign roles at this scope");
 
-            var role = await _moderationRepository.AssignRoleAsync(
+            var role = await moderationRepository.AssignRoleAsync(
                 targetUserPublicId, roleType, communityPublicId, hubPublicId, spacePublicId, assignedByUserPublicId);
 
             return Result<UserRoleDto>.Success(role);
@@ -43,21 +41,23 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            var role = await _moderationRepository.GetRoleByPublicIdAsync(rolePublicId);
-            if (role == null)
+            var role = await moderationRepository.GetRoleByPublicIdAsync(rolePublicId);
+
+            if (role is null)
                 return Result.Failure("Role assignment not found");
 
-            if (role.RevokedAt != null)
+            if (role.RevokedAt is not null)
                 return Result.Failure("Role already revoked");
 
             // Check if revoker has permission
-            var canRevoke = await _moderationRepository.CanAdministerAsync(
+            var canRevoke = await moderationRepository.CanAdministerAsync(
                 revokedByUserPublicId, role.CommunityPublicId, role.HubPublicId, role.SpacePublicId);
-            
+
             if (!canRevoke)
                 return Result.Failure("You don't have permission to revoke roles at this scope");
 
-            await _moderationRepository.RevokeRoleAsync(rolePublicId, revokedByUserPublicId);
+            await moderationRepository.RevokeRoleAsync(rolePublicId, revokedByUserPublicId);
+
             return Result.Success();
         }
         catch (Exception ex)
@@ -66,20 +66,22 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         }
     }
 
-    public async Task<IEnumerable<UserRoleDto>> GetUserRolesAsync(string userPublicId)
-    {
-        return await _moderationRepository.GetActiveRolesForUserAsync(userPublicId);
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetUserRolesAsync(string userPublicId) =>
+        await moderationRepository.GetActiveRolesForUserAsync(userPublicId);
 
-    public async Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
-    {
-        return await _moderationRepository.CanModerateAsync(userPublicId, communityPublicId, hubPublicId, spacePublicId);
-    }
+    public async Task<bool> CanModerateAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null) =>
+        await moderationRepository.CanModerateAsync(userPublicId, communityPublicId, hubPublicId, spacePublicId);
 
-    public async Task<bool> CanAdministerAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
-    {
-        return await _moderationRepository.CanAdministerAsync(userPublicId, communityPublicId, hubPublicId, spacePublicId);
-    }
+    public async Task<bool> CanAdministerAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null) =>
+        await moderationRepository.CanAdministerAsync(userPublicId, communityPublicId, hubPublicId, spacePublicId);
 
     // ==================== Ban Management ====================
 
@@ -96,20 +98,20 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         try
         {
             // Check if banner has permission
-            var canBan = await _moderationRepository.CanModerateAsync(
+            var canBan = await moderationRepository.CanModerateAsync(
                 bannedByUserPublicId, communityPublicId, hubPublicId, spacePublicId);
-            
+
             if (!canBan)
                 return Result<UserBanDto>.Failure("You don't have permission to ban users at this scope");
 
             // Check if target is a moderator at this scope
-            var targetCanModerate = await _moderationRepository.CanModerateAsync(
+            var targetCanModerate = await moderationRepository.CanModerateAsync(
                 targetUserPublicId, communityPublicId, hubPublicId, spacePublicId);
-            
+
             if (targetCanModerate)
                 return Result<UserBanDto>.Failure("Cannot ban a user with moderator privileges at this scope");
 
-            var ban = await _moderationRepository.BanUserAsync(
+            var ban = await moderationRepository.BanUserAsync(
                 targetUserPublicId, banType, communityPublicId, hubPublicId, spacePublicId, reason, expiresAt, bannedByUserPublicId);
 
             return Result<UserBanDto>.Success(ban);
@@ -124,21 +126,23 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            var ban = await _moderationRepository.GetBanByPublicIdAsync(banPublicId);
-            if (ban == null)
+            var ban = await moderationRepository.GetBanByPublicIdAsync(banPublicId);
+
+            if (ban is null)
                 return Result.Failure("Ban not found");
 
-            if (ban.UnbannedAt != null)
+            if (ban.UnbannedAt is not null)
                 return Result.Failure("User already unbanned");
 
             // Check if unbanner has permission
-            var canUnban = await _moderationRepository.CanModerateAsync(
+            var canUnban = await moderationRepository.CanModerateAsync(
                 unbannedByUserPublicId, ban.CommunityPublicId, ban.HubPublicId, ban.SpacePublicId);
-            
+
             if (!canUnban)
                 return Result.Failure("You don't have permission to unban users at this scope");
 
-            await _moderationRepository.UnbanUserAsync(banPublicId, unbannedByUserPublicId);
+            await moderationRepository.UnbanUserAsync(banPublicId, unbannedByUserPublicId);
+
             return Result.Success();
         }
         catch (Exception ex)
@@ -147,10 +151,8 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         }
     }
 
-    public async Task<bool> IsUserBannedAsync(string userPublicId, string? spacePublicId = null)
-    {
-        return await _moderationRepository.IsUserBannedAsync(userPublicId, spacePublicId: spacePublicId);
-    }
+    public async Task<bool> IsUserBannedAsync(string userPublicId, string? spacePublicId = null) =>
+        await moderationRepository.IsUserBannedAsync(userPublicId, spacePublicId: spacePublicId);
 
     // ==================== Report Management ====================
 
@@ -164,14 +166,14 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            if (string.IsNullOrEmpty(reportedPostPublicId) && 
-                string.IsNullOrEmpty(reportedDiscussionPublicId) && 
-                string.IsNullOrEmpty(reportedUserPublicId))
+            if (string.IsNullOrEmpty(reportedPostPublicId)
+                && string.IsNullOrEmpty(reportedDiscussionPublicId)
+                && string.IsNullOrEmpty(reportedUserPublicId))
             {
                 return Result<ReportDto>.Failure("Must specify content to report");
             }
 
-            var report = await _moderationRepository.CreateReportAsync(
+            var report = await moderationRepository.CreateReportAsync(
                 reporterUserPublicId, reportedPostPublicId, reportedDiscussionPublicId, reportedUserPublicId, reasonPublicId, details);
 
             return Result<ReportDto>.Success(report);
@@ -186,14 +188,20 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            var report = await _moderationRepository.GetReportByPublicIdAsync(reportPublicId);
-            if (report == null)
+            var report = await moderationRepository.GetReportByPublicIdAsync(reportPublicId);
+
+            if (report is null)
                 return Result.Failure("Report not found");
 
             if (report.Status != "Pending")
                 return Result.Failure("Report is not pending");
 
-            await _moderationRepository.ResolveReportAsync(reportPublicId, resolvedByUserPublicId, resolutionNote, dismiss);
+            await moderationRepository.ResolveReportAsync(
+                reportPublicId,
+                resolvedByUserPublicId,
+                resolutionNote,
+                dismiss);
+
             return Result.Success();
         }
         catch (Exception ex)
@@ -206,7 +214,7 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            var comment = await _moderationRepository.AddReportCommentAsync(reportPublicId, authorUserPublicId, content);
+            var comment = await moderationRepository.AddReportCommentAsync(reportPublicId, authorUserPublicId, content);
             return Result<ReportCommentDto>.Success(comment);
         }
         catch (Exception ex)
@@ -219,20 +227,14 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         string moderatorPublicId,
         int? statusId,
         int offset,
-        int pageSize)
-    {
-        return await _moderationRepository.GetReportsForModeratorAsync(moderatorPublicId, statusId, offset, pageSize);
-    }
+        int pageSize) =>
+        await moderationRepository.GetReportsForModeratorAsync(moderatorPublicId, statusId, offset, pageSize);
 
-    public async Task<ReportDetailDto?> GetReportDetailAsync(string reportPublicId)
-    {
-        return await _moderationRepository.GetReportDetailByPublicIdAsync(reportPublicId);
-    }
+    public async Task<ReportDetailDto?> GetReportDetailAsync(string reportPublicId) =>
+        await moderationRepository.GetReportDetailByPublicIdAsync(reportPublicId);
 
-    public async Task<int> GetPendingReportCountAsync(string moderatorPublicId)
-    {
-        return await _moderationRepository.GetPendingReportCountForModeratorAsync(moderatorPublicId);
-    }
+    public async Task<int> GetPendingReportCountAsync(string moderatorPublicId) =>
+        await moderationRepository.GetPendingReportCountForModeratorAsync(moderatorPublicId);
 
     // ==================== Content Moderation ====================
 
@@ -240,7 +242,7 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            await _moderationRepository.ModeratorDeletePostAsync(postPublicId, moderatorPublicId, reason);
+            await moderationRepository.ModeratorDeletePostAsync(postPublicId, moderatorPublicId, reason);
             return Result.Success();
         }
         catch (Exception ex)
@@ -253,7 +255,7 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            await _moderationRepository.ModeratorDeleteDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
+            await moderationRepository.ModeratorDeleteDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
             return Result.Success();
         }
         catch (Exception ex)
@@ -266,7 +268,7 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            await _moderationRepository.LockDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
+            await moderationRepository.LockDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
             return Result.Success();
         }
         catch (Exception ex)
@@ -279,7 +281,7 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
     {
         try
         {
-            await _moderationRepository.UnlockDiscussionAsync(discussionPublicId, moderatorPublicId);
+            await moderationRepository.UnlockDiscussionAsync(discussionPublicId, moderatorPublicId);
             return Result.Success();
         }
         catch (Exception ex)
@@ -290,10 +292,8 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
 
     // ==================== Report Reasons ====================
 
-    public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsAsync(string? spacePublicId = null)
-    {
-        return await _moderationRepository.GetReportReasonsForScopeAsync(spacePublicId: spacePublicId);
-    }
+    public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsAsync(string? spacePublicId = null) =>
+        await moderationRepository.GetReportReasonsForScopeAsync(spacePublicId: spacePublicId);
 
     // ==================== Moderation Log ====================
 
@@ -305,13 +305,13 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         int pageSize)
     {
         if (!string.IsNullOrEmpty(spacePublicId))
-            return await _moderationRepository.GetModerationLogForSpaceAsync(spacePublicId, offset, pageSize);
-        
+            return await moderationRepository.GetModerationLogForSpaceAsync(spacePublicId, offset, pageSize);
+
         if (!string.IsNullOrEmpty(hubPublicId))
-            return await _moderationRepository.GetModerationLogForHubAsync(hubPublicId, offset, pageSize);
-        
+            return await moderationRepository.GetModerationLogForHubAsync(hubPublicId, offset, pageSize);
+
         if (!string.IsNullOrEmpty(communityPublicId))
-            return await _moderationRepository.GetModerationLogForCommunityAsync(communityPublicId, offset, pageSize);
+            return await moderationRepository.GetModerationLogForCommunityAsync(communityPublicId, offset, pageSize);
 
         return new PagedResult<ModerationLogDto> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
     }

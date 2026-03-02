@@ -51,6 +51,7 @@ public class UserBanRepositoryIntegrationTests : IDisposable
         };
         _db.Context.UserBans.Add(ban);
         await _db.Context.SaveChangesAsync();
+
         return ban;
     }
 

@@ -3,16 +3,10 @@ namespace Snakk.Realtime.Middleware;
 /// <summary>
 /// Middleware to validate API key for internal service calls
 /// </summary>
-public class ApiKeyAuthMiddleware
+public class ApiKeyAuthMiddleware(RequestDelegate next, IConfiguration configuration)
 {
-    private readonly RequestDelegate _next;
-    private readonly string _apiKey;
-
-    public ApiKeyAuthMiddleware(RequestDelegate next, IConfiguration configuration)
-    {
-        _next = next;
-        _apiKey = configuration["ApiKey"] ?? throw new InvalidOperationException("ApiKey not configured");
-    }
+    private readonly string _apiKey = configuration["ApiKey"]
+        ?? throw new InvalidOperationException("ApiKey not configured");
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -35,14 +29,12 @@ public class ApiKeyAuthMiddleware
             }
         }
 
-        await _next(context);
+        await next(context);
     }
 }
 
 public static class ApiKeyAuthMiddlewareExtensions
 {
-    public static IApplicationBuilder UseApiKeyAuth(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<ApiKeyAuthMiddleware>();
-    }
+    public static IApplicationBuilder UseApiKeyAuth(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<ApiKeyAuthMiddleware>();
 }

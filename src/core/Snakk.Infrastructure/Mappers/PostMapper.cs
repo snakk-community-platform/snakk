@@ -6,10 +6,9 @@ using Snakk.Domain.ValueObjects;
 
 public static class PostMapper
 {
-    public static Post FromPersistence(this PostDatabaseEntity entity)
-    {
+    public static Post FromPersistence(this PostDatabaseEntity entity) =>
         // Note: Revisions are loaded on demand, so they may not be available here
-        return Post.Rehydrate(
+        Post.Rehydrate(
             PostId.From(entity.PublicId),
             DiscussionId.From(entity.Discussion.PublicId),
             UserId.From(entity.CreatedByUser.PublicId),
@@ -18,15 +17,13 @@ public static class PostMapper
             entity.LastModifiedAt,
             entity.EditedAt,
             entity.IsFirstPost,
-            entity.ReplyToPostId != null ? PostId.From(entity.ReplyToPost!.PublicId) : null,
+            entity.ReplyToPostId is not null ? PostId.From(entity.ReplyToPost!.PublicId) : null,
             entity.IsDeleted,
             entity.RevisionCount);
-    }
 
-    public static PostDatabaseEntity ToPersistence(this Post post)
-    {
+    public static PostDatabaseEntity ToPersistence(this Post post) =>
         // Note: Navigation properties must be set separately in repository adapter
-        return new PostDatabaseEntity
+        new()
         {
             PublicId = post.PublicId,
             Content = post.Content,
@@ -38,5 +35,4 @@ public static class PostMapper
             RevisionCount = post.RevisionCount
             // DiscussionId, CreatedByUserId, ReplyToPostId will be set by repository adapter
         };
-    }
 }

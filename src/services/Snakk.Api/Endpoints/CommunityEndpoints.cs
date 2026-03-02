@@ -59,6 +59,7 @@ public static class CommunityEndpoints
             return Results.BadRequest(new { error = result.Error });
 
         var c = result.Value!;
+
         return TypedResults.Created($"/communities/{c.PublicId}", new CommunityResponse(
             PublicId: c.PublicId.Value,
             Name: c.Name,
@@ -104,6 +105,7 @@ public static class CommunityEndpoints
             return Results.NotFound(new { error = result.Error });
 
         var c = result.Value!;
+
         return TypedResults.Ok(new CommunityResponse(
             PublicId: c.PublicId.Value,
             Name: c.Name,
@@ -125,6 +127,7 @@ public static class CommunityEndpoints
             return Results.NotFound(new { error = result.Error });
 
         var c = result.Value!;
+
         return TypedResults.Ok(new CommunityResponse(
             PublicId: c.PublicId.Value,
             Name: c.Name,
@@ -146,6 +149,7 @@ public static class CommunityEndpoints
             return Results.NotFound(new { error = result.Error });
 
         var c = result.Value!;
+
         return TypedResults.Ok(new CommunityResponse(
             PublicId: c.PublicId.Value,
             Name: c.Name,
@@ -185,7 +189,9 @@ public static class CommunityEndpoints
             HasMoreItems: result.HasMoreItems));
     }
 
-    private static async Task<IResult> GetCommunityStatsAsync(string publicId, StatisticsUseCase useCase)
+    private static async Task<IResult> GetCommunityStatsAsync(
+        string publicId,
+        StatisticsUseCase useCase)
     {
         var result = await useCase.GetCommunityStatsAsync(publicId);
 
@@ -193,6 +199,7 @@ public static class CommunityEndpoints
             return Results.NotFound();
 
         var stats = result.Value!;
+
         return TypedResults.Ok(new CommunityStatsResponse
         {
             PublicId = stats.PublicId,

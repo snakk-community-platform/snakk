@@ -2,20 +2,13 @@ using System.Diagnostics;
 
 namespace Snakk.Web.Middleware;
 
-public class ApiTimingHandler : DelegatingHandler
+public class ApiTimingHandler(IHttpContextAccessor httpContextAccessor) : DelegatingHandler
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public ApiTimingHandler(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var collector = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
+        var collector = httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
 
         var offsetMs = collector?.GetOffsetMs();
         var sw = Stopwatch.StartNew();

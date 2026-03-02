@@ -20,6 +20,7 @@ public class AuthRedirectMiddlewareTests
             called = true;
             return Task.CompletedTask;
         };
+
         return new AuthRedirectMiddleware(next);
     }
 

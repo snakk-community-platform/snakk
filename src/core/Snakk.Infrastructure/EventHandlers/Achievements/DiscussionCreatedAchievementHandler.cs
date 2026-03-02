@@ -10,30 +10,25 @@ public class DiscussionCreatedAchievementHandler(
     MetricsService metricsService,
     SnakkDbContext context) : IDomainEventHandler<DiscussionCreatedEvent>
 {
-    private readonly MetricsService _metricsService = metricsService;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(DiscussionCreatedEvent @event)
     {
         // Get Space/Hub/Community IDs
-        var spaceContext = await _context.Spaces
+        var spaceContext = await context.Spaces
             .Where(s => s.PublicId == @event.SpaceId.Value)
-            .Select(s => new
-            {
-                SpaceId = s.Id,
-                HubId = s.HubId,
-                CommunityId = s.Hub.CommunityId
-            })
+            .Select(s => new {
+                s.Id,
+                s.HubId,
+                s.Hub.CommunityId })
             .FirstOrDefaultAsync();
 
-        if (spaceContext == null)
+        if (spaceContext is null)
             return;
 
         // Increment DISCUSSION_COUNT across all scopes
-        await _metricsService.IncrementMetricAsync(
+        await metricsService.IncrementMetricAsync(
             @event.CreatedByUserId,
             "DISCUSSION_COUNT",
-            spaceId: spaceContext.SpaceId,
+            spaceId: spaceContext.Id,
             hubId: spaceContext.HubId,
             communityId: spaceContext.CommunityId);
     }

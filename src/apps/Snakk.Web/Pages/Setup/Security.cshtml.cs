@@ -38,6 +38,7 @@ public class SecurityModel : SetupPageBase
         state.JwtSecretKey = JwtSecretKey;
         state.RealtimeApiKey = RealtimeApiKey;
         SaveState(state);
+
         return RedirectToPage("OAuth");
     }
 
@@ -47,6 +48,7 @@ public class SecurityModel : SetupPageBase
         state.JwtSecretKey = SetupService.GenerateSecretKey(64);
         state.RealtimeApiKey = SetupService.GenerateSecretKey(32);
         SaveState(state);
+
         return RedirectToPage("Security");
     }
 }

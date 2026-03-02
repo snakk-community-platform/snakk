@@ -43,7 +43,8 @@ public static class NotificationEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var result = await notificationUseCase.GetNotificationsAsync(
@@ -62,7 +63,8 @@ public static class NotificationEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var count = await notificationUseCase.GetUnreadCountAsync(UserId.From(userIdClaim.Value));
@@ -79,7 +81,8 @@ public static class NotificationEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var result = await notificationUseCase.MarkAsReadAsync(
@@ -100,7 +103,8 @@ public static class NotificationEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         await notificationUseCase.MarkAllAsReadAsync(UserId.From(userIdClaim.Value));

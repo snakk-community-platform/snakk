@@ -7,17 +7,8 @@ using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages.OAuth;
 
-public class CallbackModel : PageModel
+public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<CallbackModel> logger) : PageModel
 {
-    private readonly AuthService.AuthServiceClient _authClient;
-    private readonly ILogger<CallbackModel> _logger;
-
-    public CallbackModel(AuthService.AuthServiceClient authClient, ILogger<CallbackModel> logger)
-    {
-        _authClient = authClient;
-        _logger = logger;
-    }
-
     [BindProperty(SupportsGet = true)]
     public string Provider { get; set; } = "";
 
@@ -30,7 +21,7 @@ public class CallbackModel : PageModel
 
             if (!authenticateResult.Succeeded)
             {
-                _logger.LogWarning("OAuth authentication failed for provider: {Provider}", Provider);
+                logger.LogWarning("OAuth authentication failed for provider: {Provider}", Provider);
                 return RedirectToPage("/Login", new { error = "oauth_failed" });
             }
 
@@ -42,12 +33,12 @@ public class CallbackModel : PageModel
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(nameIdentifier))
             {
-                _logger.LogWarning("Missing required OAuth claims");
+                logger.LogWarning("Missing required OAuth claims");
                 return RedirectToPage("/Login", new { error = "oauth_claims_missing" });
             }
 
             // Call API via gRPC to login or create account with OAuth
-            var response = await _authClient.OAuthCallbackAsync(new OAuthCallbackRequest
+            var response = await authClient.OAuthCallbackAsync(new OAuthCallbackRequest
             {
                 Provider = Provider.ToLower(),
                 ProviderUserId = nameIdentifier,
@@ -98,12 +89,12 @@ public class CallbackModel : PageModel
         }
         catch (RpcException ex)
         {
-            _logger.LogError(ex, "OAuth gRPC callback error: {Status}", ex.Status.Detail);
+            logger.LogError(ex, "OAuth gRPC callback error: {Status}", ex.Status.Detail);
             return RedirectToPage("/Login", new { error = "oauth_server_error" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "OAuth callback error");
+            logger.LogError(ex, "OAuth callback error");
             return RedirectToPage("/Login", new { error = "oauth_error" });
         }
     }

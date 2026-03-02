@@ -43,30 +43,32 @@ public class ModerationGrpcService(
     public override async Task<RoleListResponse> GetMyRoles(GetMyRolesRequest request, ServerCallContext context)
     {
         var userId = RequireAuthString();
+
         return await GetUserRolesInternal(userId);
     }
 
-    public override async Task<RoleListResponse> GetUserRoles(GetUserRolesRequest request, ServerCallContext context)
-    {
-        return await GetUserRolesInternal(request.UserId);
-    }
+    public override async Task<RoleListResponse> GetUserRoles(GetUserRolesRequest request, ServerCallContext context) =>
+        await GetUserRolesInternal(request.UserId);
 
     public override async Task<RoleListResponse> GetRolesForCommunity(GetRolesForScopeRequest request, ServerCallContext context)
     {
         // Get roles filtered by community scope - delegate to use case
         var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+
         return MapRolesToResponse(roles);
     }
 
     public override async Task<RoleListResponse> GetRolesForHub(GetRolesForScopeRequest request, ServerCallContext context)
     {
         var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+
         return MapRolesToResponse(roles);
     }
 
     public override async Task<RoleListResponse> GetRolesForSpace(GetRolesForScopeRequest request, ServerCallContext context)
     {
         var roles = await moderationUseCase.GetUserRolesAsync(request.ScopeId);
+
         return MapRolesToResponse(roles);
     }
 
@@ -87,8 +89,9 @@ public class ModerationGrpcService(
             request.HasSpaceId ? request.SpaceId : null,
             assignerUserId);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to assign role"));
 
         return MapRoleToInfo(result.Value);
@@ -100,7 +103,8 @@ public class ModerationGrpcService(
         var result = await moderationUseCase.RevokeRoleAsync(request.RoleId, revokerUserId);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to revoke role"));
 
         return new RevokeRoleResponse { Success = true };
@@ -114,6 +118,7 @@ public class ModerationGrpcService(
         // Check if user is banned as a simpler check
         var isBanned = await moderationUseCase.IsUserBannedAsync(request.UserId);
         var response = new BanListResponse();
+
         // Return empty list for now - full ban history would require a new use case method
         return response;
     }
@@ -138,7 +143,7 @@ public class ModerationGrpcService(
 
         var banType = banTypeEnum.ToDomain();
 
-        DateTime? expiresAt = request.ExpiresAt != null ? request.ExpiresAt.ToDateTime() : null;
+        DateTime? expiresAt = request.ExpiresAt is not null ? request.ExpiresAt.ToDateTime() : null;
 
         var result = await moderationUseCase.BanUserAsync(
             request.UserId,
@@ -150,8 +155,9 @@ public class ModerationGrpcService(
             expiresAt,
             bannerUserId);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to ban user"));
 
         return MapBanToInfo(result.Value);
@@ -163,7 +169,8 @@ public class ModerationGrpcService(
         var result = await moderationUseCase.UnbanUserAsync(request.BanId, unbannerUserId);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to unban user"));
 
         return new UnbanResponse { Success = true };
@@ -175,6 +182,7 @@ public class ModerationGrpcService(
     {
         var userId = RequireAuthString();
         var count = await moderationUseCase.GetPendingReportCountAsync(userId);
+
         return new PendingReportCountResponse { Count = count };
     }
 
@@ -205,24 +213,24 @@ public class ModerationGrpcService(
                 CommentCount = r.CommentCount
             };
 
-            if (r.ReportedPostPublicId != null) item.ReportedPostPublicId = r.ReportedPostPublicId;
-            if (r.ReportedPostContentSnippet != null) item.ReportedPostContentSnippet = r.ReportedPostContentSnippet;
-            if (r.ReportedDiscussionPublicId != null) item.ReportedDiscussionPublicId = r.ReportedDiscussionPublicId;
-            if (r.ReportedDiscussionTitle != null) item.ReportedDiscussionTitle = r.ReportedDiscussionTitle;
-            if (r.ReportedUserPublicId != null) item.ReportedUserPublicId = r.ReportedUserPublicId;
-            if (r.ReportedUserDisplayName != null) item.ReportedUserDisplayName = r.ReportedUserDisplayName;
-            if (r.ReasonName != null) item.ReasonName = r.ReasonName;
-            if (r.Details != null) item.Details = r.Details;
+            if (r.ReportedPostPublicId is not null) item.ReportedPostPublicId = r.ReportedPostPublicId;
+            if (r.ReportedPostContentSnippet is not null) item.ReportedPostContentSnippet = r.ReportedPostContentSnippet;
+            if (r.ReportedDiscussionPublicId is not null) item.ReportedDiscussionPublicId = r.ReportedDiscussionPublicId;
+            if (r.ReportedDiscussionTitle is not null) item.ReportedDiscussionTitle = r.ReportedDiscussionTitle;
+            if (r.ReportedUserPublicId is not null) item.ReportedUserPublicId = r.ReportedUserPublicId;
+            if (r.ReportedUserDisplayName is not null) item.ReportedUserDisplayName = r.ReportedUserDisplayName;
+            if (r.ReasonName is not null) item.ReasonName = r.ReasonName;
+            if (r.Details is not null) item.Details = r.Details;
             if (r.ResolvedAt.HasValue) item.ResolvedAt = ToTimestamp(r.ResolvedAt.Value);
-            if (r.ResolvedByUserPublicId != null) item.ResolvedByUserPublicId = r.ResolvedByUserPublicId;
-            if (r.ResolvedByUserDisplayName != null) item.ResolvedByUserDisplayName = r.ResolvedByUserDisplayName;
-            if (r.ResolutionNote != null) item.ResolutionNote = r.ResolutionNote;
-            if (r.SpacePublicId != null) item.SpacePublicId = r.SpacePublicId;
-            if (r.SpaceName != null) item.SpaceName = r.SpaceName;
-            if (r.HubPublicId != null) item.HubPublicId = r.HubPublicId;
-            if (r.HubName != null) item.HubName = r.HubName;
-            if (r.CommunityPublicId != null) item.CommunityPublicId = r.CommunityPublicId;
-            if (r.CommunityName != null) item.CommunityName = r.CommunityName;
+            if (r.ResolvedByUserPublicId is not null) item.ResolvedByUserPublicId = r.ResolvedByUserPublicId;
+            if (r.ResolvedByUserDisplayName is not null) item.ResolvedByUserDisplayName = r.ResolvedByUserDisplayName;
+            if (r.ResolutionNote is not null) item.ResolutionNote = r.ResolutionNote;
+            if (r.SpacePublicId is not null) item.SpacePublicId = r.SpacePublicId;
+            if (r.SpaceName is not null) item.SpaceName = r.SpaceName;
+            if (r.HubPublicId is not null) item.HubPublicId = r.HubPublicId;
+            if (r.HubName is not null) item.HubName = r.HubName;
+            if (r.CommunityPublicId is not null) item.CommunityPublicId = r.CommunityPublicId;
+            if (r.CommunityName is not null) item.CommunityName = r.CommunityName;
 
             response.Items.Add(item);
         }
@@ -233,7 +241,8 @@ public class ModerationGrpcService(
     public override async Task<ReportDetailInfo> GetReportDetail(GetReportDetailRequest request, ServerCallContext context)
     {
         var detail = await moderationUseCase.GetReportDetailAsync(request.ReportId);
-        if (detail == null)
+
+        if (detail is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Report not found"));
 
         var response = new ReportDetailInfo
@@ -245,27 +254,27 @@ public class ModerationGrpcService(
             CreatedAt = ToTimestamp(detail.CreatedAt)
         };
 
-        if (detail.ReportedPostPublicId != null) response.ReportedPostPublicId = detail.ReportedPostPublicId;
-        if (detail.ReportedPostContent != null) response.ReportedPostContent = detail.ReportedPostContent;
-        if (detail.ReportedDiscussionPublicId != null) response.ReportedDiscussionPublicId = detail.ReportedDiscussionPublicId;
-        if (detail.ReportedDiscussionTitle != null) response.ReportedDiscussionTitle = detail.ReportedDiscussionTitle;
-        if (detail.ReportedUserPublicId != null) response.ReportedUserPublicId = detail.ReportedUserPublicId;
-        if (detail.ReportedUserDisplayName != null) response.ReportedUserDisplayName = detail.ReportedUserDisplayName;
-        if (detail.ReasonName != null) response.ReasonName = detail.ReasonName;
-        if (detail.ReasonDescription != null) response.ReasonDescription = detail.ReasonDescription;
-        if (detail.Details != null) response.Details = detail.Details;
+        if (detail.ReportedPostPublicId is not null) response.ReportedPostPublicId = detail.ReportedPostPublicId;
+        if (detail.ReportedPostContent is not null) response.ReportedPostContent = detail.ReportedPostContent;
+        if (detail.ReportedDiscussionPublicId is not null) response.ReportedDiscussionPublicId = detail.ReportedDiscussionPublicId;
+        if (detail.ReportedDiscussionTitle is not null) response.ReportedDiscussionTitle = detail.ReportedDiscussionTitle;
+        if (detail.ReportedUserPublicId is not null) response.ReportedUserPublicId = detail.ReportedUserPublicId;
+        if (detail.ReportedUserDisplayName is not null) response.ReportedUserDisplayName = detail.ReportedUserDisplayName;
+        if (detail.ReasonName is not null) response.ReasonName = detail.ReasonName;
+        if (detail.ReasonDescription is not null) response.ReasonDescription = detail.ReasonDescription;
+        if (detail.Details is not null) response.Details = detail.Details;
         if (detail.ResolvedAt.HasValue) response.ResolvedAt = ToTimestamp(detail.ResolvedAt.Value);
-        if (detail.ResolvedByUserPublicId != null) response.ResolvedByUserPublicId = detail.ResolvedByUserPublicId;
-        if (detail.ResolvedByUserDisplayName != null) response.ResolvedByUserDisplayName = detail.ResolvedByUserDisplayName;
-        if (detail.ResolutionNote != null) response.ResolutionNote = detail.ResolutionNote;
-        if (detail.SpacePublicId != null) response.SpacePublicId = detail.SpacePublicId;
-        if (detail.SpaceName != null) response.SpaceName = detail.SpaceName;
-        if (detail.HubPublicId != null) response.HubPublicId = detail.HubPublicId;
-        if (detail.HubName != null) response.HubName = detail.HubName;
-        if (detail.CommunityPublicId != null) response.CommunityPublicId = detail.CommunityPublicId;
-        if (detail.CommunityName != null) response.CommunityName = detail.CommunityName;
+        if (detail.ResolvedByUserPublicId is not null) response.ResolvedByUserPublicId = detail.ResolvedByUserPublicId;
+        if (detail.ResolvedByUserDisplayName is not null) response.ResolvedByUserDisplayName = detail.ResolvedByUserDisplayName;
+        if (detail.ResolutionNote is not null) response.ResolutionNote = detail.ResolutionNote;
+        if (detail.SpacePublicId is not null) response.SpacePublicId = detail.SpacePublicId;
+        if (detail.SpaceName is not null) response.SpaceName = detail.SpaceName;
+        if (detail.HubPublicId is not null) response.HubPublicId = detail.HubPublicId;
+        if (detail.HubName is not null) response.HubName = detail.HubName;
+        if (detail.CommunityPublicId is not null) response.CommunityPublicId = detail.CommunityPublicId;
+        if (detail.CommunityName is not null) response.CommunityName = detail.CommunityName;
 
-        if (detail.Comments != null)
+        if (detail.Comments is not null)
         {
             foreach (var c in detail.Comments)
             {
@@ -299,8 +308,9 @@ public class ModerationGrpcService(
             request.HasReasonId ? request.ReasonId : null,
             request.HasDetails ? request.Details : null);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to create report"));
 
         return new ReportCreatedResponse
@@ -322,7 +332,8 @@ public class ModerationGrpcService(
             request.Dismiss);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to resolve report"));
 
         return new ResolveReportResponse { Success = true };
@@ -335,8 +346,9 @@ public class ModerationGrpcService(
         var result = await moderationUseCase.AddReportCommentAsync(
             request.ReportId, userId, request.Content);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to add comment"));
 
         var comment = new ReportCommentInfo
@@ -359,6 +371,7 @@ public class ModerationGrpcService(
             request.HasSpaceId ? request.SpaceId : null);
 
         var response = new ReportReasonsResponse();
+
         foreach (var r in reasons)
         {
             var item = new ReportReasonInfo
@@ -368,10 +381,10 @@ public class ModerationGrpcService(
                 DisplayOrder = r.DisplayOrder
             };
 
-            if (r.Description != null) item.Description = r.Description;
-            if (r.CommunityPublicId != null) item.CommunityPublicId = r.CommunityPublicId;
-            if (r.HubPublicId != null) item.HubPublicId = r.HubPublicId;
-            if (r.SpacePublicId != null) item.SpacePublicId = r.SpacePublicId;
+            if (r.Description is not null) item.Description = r.Description;
+            if (r.CommunityPublicId is not null) item.CommunityPublicId = r.CommunityPublicId;
+            if (r.HubPublicId is not null) item.HubPublicId = r.HubPublicId;
+            if (r.SpacePublicId is not null) item.SpacePublicId = r.SpacePublicId;
 
             response.Items.Add(item);
         }
@@ -389,7 +402,8 @@ public class ModerationGrpcService(
             request.PostId, userId, request.HasReason ? request.Reason : null);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to delete post"));
 
         return new ContentModResponse { Success = true };
@@ -403,7 +417,8 @@ public class ModerationGrpcService(
             request.DiscussionId, userId, request.HasReason ? request.Reason : null);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to delete discussion"));
 
         return new ContentModResponse { Success = true };
@@ -417,7 +432,8 @@ public class ModerationGrpcService(
             request.DiscussionId, userId, request.HasReason ? request.Reason : null);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to lock discussion"));
 
         return new ContentModResponse { Success = true };
@@ -431,7 +447,8 @@ public class ModerationGrpcService(
             request.DiscussionId, userId);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to unlock discussion"));
 
         return new ContentModResponse { Success = true };
@@ -468,19 +485,19 @@ public class ModerationGrpcService(
                 CreatedAt = ToTimestamp(log.CreatedAt)
             };
 
-            if (log.TargetPostPublicId != null) item.TargetPostPublicId = log.TargetPostPublicId;
-            if (log.TargetDiscussionPublicId != null) item.TargetDiscussionPublicId = log.TargetDiscussionPublicId;
-            if (log.TargetDiscussionTitle != null) item.TargetDiscussionTitle = log.TargetDiscussionTitle;
-            if (log.TargetUserPublicId != null) item.TargetUserPublicId = log.TargetUserPublicId;
-            if (log.TargetUserDisplayName != null) item.TargetUserDisplayName = log.TargetUserDisplayName;
-            if (log.CommunityPublicId != null) item.CommunityPublicId = log.CommunityPublicId;
-            if (log.CommunityName != null) item.CommunityName = log.CommunityName;
-            if (log.HubPublicId != null) item.HubPublicId = log.HubPublicId;
-            if (log.HubName != null) item.HubName = log.HubName;
-            if (log.SpacePublicId != null) item.SpacePublicId = log.SpacePublicId;
-            if (log.SpaceName != null) item.SpaceName = log.SpaceName;
-            if (log.Details != null) item.Details = log.Details;
-            if (log.Reason != null) item.Reason = log.Reason;
+            if (log.TargetPostPublicId is not null) item.TargetPostPublicId = log.TargetPostPublicId;
+            if (log.TargetDiscussionPublicId is not null) item.TargetDiscussionPublicId = log.TargetDiscussionPublicId;
+            if (log.TargetDiscussionTitle is not null) item.TargetDiscussionTitle = log.TargetDiscussionTitle;
+            if (log.TargetUserPublicId is not null) item.TargetUserPublicId = log.TargetUserPublicId;
+            if (log.TargetUserDisplayName is not null) item.TargetUserDisplayName = log.TargetUserDisplayName;
+            if (log.CommunityPublicId is not null) item.CommunityPublicId = log.CommunityPublicId;
+            if (log.CommunityName is not null) item.CommunityName = log.CommunityName;
+            if (log.HubPublicId is not null) item.HubPublicId = log.HubPublicId;
+            if (log.HubName is not null) item.HubName = log.HubName;
+            if (log.SpacePublicId is not null) item.SpacePublicId = log.SpacePublicId;
+            if (log.SpaceName is not null) item.SpaceName = log.SpaceName;
+            if (log.Details is not null) item.Details = log.Details;
+            if (log.Reason is not null) item.Reason = log.Reason;
 
             response.Items.Add(item);
         }
@@ -496,14 +513,15 @@ public class ModerationGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return userId;
     }
 
-    private static Google.Protobuf.WellKnownTypes.Timestamp ToTimestamp(DateTime dt)
-        => Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+    private static Google.Protobuf.WellKnownTypes.Timestamp ToTimestamp(DateTime dt) =>
+        Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
 
     private static RoleInfo MapRoleToInfo(Snakk.Application.Repositories.UserRoleDto r)
     {
@@ -518,12 +536,12 @@ public class ModerationGrpcService(
             AssignedAt = ToTimestamp(r.AssignedAt)
         };
 
-        if (r.CommunityPublicId != null) item.CommunityId = r.CommunityPublicId;
-        if (r.CommunityName != null) item.CommunityName = r.CommunityName;
-        if (r.HubPublicId != null) item.HubId = r.HubPublicId;
-        if (r.HubName != null) item.HubName = r.HubName;
-        if (r.SpacePublicId != null) item.SpaceId = r.SpacePublicId;
-        if (r.SpaceName != null) item.SpaceName = r.SpaceName;
+        if (r.CommunityPublicId is not null) item.CommunityId = r.CommunityPublicId;
+        if (r.CommunityName is not null) item.CommunityName = r.CommunityName;
+        if (r.HubPublicId is not null) item.HubId = r.HubPublicId;
+        if (r.HubName is not null) item.HubName = r.HubName;
+        if (r.SpacePublicId is not null) item.SpaceId = r.SpacePublicId;
+        if (r.SpaceName is not null) item.SpaceName = r.SpaceName;
         if (r.RevokedAt.HasValue) item.RevokedAt = ToTimestamp(r.RevokedAt.Value);
 
         return item;
@@ -542,17 +560,17 @@ public class ModerationGrpcService(
             BannedByUserDisplayName = ban.BannedByUserDisplayName
         };
 
-        if (ban.CommunityPublicId != null) item.CommunityId = ban.CommunityPublicId;
-        if (ban.CommunityName != null) item.CommunityName = ban.CommunityName;
-        if (ban.HubPublicId != null) item.HubId = ban.HubPublicId;
-        if (ban.HubName != null) item.HubName = ban.HubName;
-        if (ban.SpacePublicId != null) item.SpaceId = ban.SpacePublicId;
-        if (ban.SpaceName != null) item.SpaceName = ban.SpaceName;
-        if (ban.Reason != null) item.Reason = ban.Reason;
+        if (ban.CommunityPublicId is not null) item.CommunityId = ban.CommunityPublicId;
+        if (ban.CommunityName is not null) item.CommunityName = ban.CommunityName;
+        if (ban.HubPublicId is not null) item.HubId = ban.HubPublicId;
+        if (ban.HubName is not null) item.HubName = ban.HubName;
+        if (ban.SpacePublicId is not null) item.SpaceId = ban.SpacePublicId;
+        if (ban.SpaceName is not null) item.SpaceName = ban.SpaceName;
+        if (ban.Reason is not null) item.Reason = ban.Reason;
         if (ban.ExpiresAt.HasValue) item.ExpiresAt = ToTimestamp(ban.ExpiresAt.Value);
         if (ban.UnbannedAt.HasValue) item.UnbannedAt = ToTimestamp(ban.UnbannedAt.Value);
-        if (ban.UnbannedByUserPublicId != null) item.UnbannedByUserPublicId = ban.UnbannedByUserPublicId;
-        if (ban.UnbannedByUserDisplayName != null) item.UnbannedByUserDisplayName = ban.UnbannedByUserDisplayName;
+        if (ban.UnbannedByUserPublicId is not null) item.UnbannedByUserPublicId = ban.UnbannedByUserPublicId;
+        if (ban.UnbannedByUserDisplayName is not null) item.UnbannedByUserDisplayName = ban.UnbannedByUserDisplayName;
 
         return item;
     }
@@ -560,12 +578,14 @@ public class ModerationGrpcService(
     private async Task<RoleListResponse> GetUserRolesInternal(string userId)
     {
         var roles = await moderationUseCase.GetUserRolesAsync(userId);
+
         return MapRolesToResponse(roles);
     }
 
     private static RoleListResponse MapRolesToResponse(IEnumerable<Snakk.Application.Repositories.UserRoleDto> roles)
     {
         var response = new RoleListResponse();
+
         foreach (var r in roles)
         {
             response.Items.Add(MapRoleToInfo(r));

@@ -33,6 +33,7 @@ public class ReactionRepositoryIntegrationTests : IDisposable
         };
         _db.Context.Reactions.Add(reaction);
         await _db.Context.SaveChangesAsync();
+
         return reaction;
     }
 

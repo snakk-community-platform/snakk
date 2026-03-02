@@ -115,7 +115,9 @@ public class ReportReasonRepositoryTests : IDisposable
         var result = (await _repository.GetGlobalReasonsAsync()).ToList();
 
         await Assert.That(result.Count).IsEqualTo(2);
-        var names = result.Select(r => r.Name).ToList();
+        var names = result
+            .Select(r => r.Name)
+            .ToList();
         await Assert.That(names).Contains("Spam");
         await Assert.That(names).Contains("Harassment");
     }
@@ -190,7 +192,9 @@ public class ReportReasonRepositoryTests : IDisposable
         var result = (await _repository.GetReasonsByEntityAsync()).ToList();
 
         await Assert.That(result.Count).IsEqualTo(2);
-        var names = result.Select(r => r.Name).ToList();
+        var names = result
+            .Select(r => r.Name)
+            .ToList();
         await Assert.That(names).Contains("Spam");
         await Assert.That(names).Contains("Harassment");
     }

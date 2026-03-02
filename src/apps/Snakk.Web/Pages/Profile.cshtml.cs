@@ -4,22 +4,15 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages;
 
-public class ProfileModel : PageModel
+public class ProfileModel(SnakkApiClient apiClient) : PageModel
 {
-    private readonly SnakkApiClient _apiClient;
-
     public new UserInfo? User { get; set; }
-
-    public ProfileModel(SnakkApiClient apiClient)
-    {
-        _apiClient = apiClient;
-    }
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var currentUser = await _apiClient.GetCurrentUserAsync();
+        var currentUser = await apiClient.GetCurrentUserAsync();
 
-        if (currentUser == null)
+        if (currentUser is null)
         {
             return Page();
         }
@@ -38,7 +31,7 @@ public class ProfileModel : PageModel
 
     public async Task<IActionResult> OnPostLogoutAsync()
     {
-        await _apiClient.LogoutAsync();
+        await apiClient.LogoutAsync();
 
         // Clear cookies
         foreach (var cookie in Request.Cookies.Keys)

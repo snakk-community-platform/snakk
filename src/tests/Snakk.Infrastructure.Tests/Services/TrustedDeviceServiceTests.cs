@@ -37,6 +37,7 @@ public class TrustedDeviceServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -62,6 +63,7 @@ public class TrustedDeviceServiceTests : IDisposable
         };
         _context.TrustedDevices.Add(device);
         await _context.SaveChangesAsync();
+
         return device;
     }
 
@@ -191,7 +193,9 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.TrustDeviceAsync(UserId.From(user.PublicId), fingerprint, "Chrome on Windows", "10.0.0.2", expirationDays: 60);
 
-        var devices = await _context.TrustedDevices.Where(d => d.UserId == user.Id && d.DeviceFingerprint == fingerprint).ToListAsync();
+        var devices = await _context.TrustedDevices
+            .Where(d => d.UserId == user.Id && d.DeviceFingerprint == fingerprint)
+            .ToListAsync();
         await Assert.That(devices.Count).IsEqualTo(1);
         await Assert.That(devices[0].LastUsedIp).IsEqualTo("10.0.0.2");
         await Assert.That(devices[0].LastUsedAt).IsNotEqualTo(originalLastUsedAt);
@@ -266,7 +270,9 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.RevokeAllDevicesAsync(UserId.From(user.PublicId), "Password changed");
 
-        var devices = await _context.TrustedDevices.Where(d => d.UserId == user.Id).ToListAsync();
+        var devices = await _context.TrustedDevices
+            .Where(d => d.UserId == user.Id)
+            .ToListAsync();
         await Assert.That(devices.Count).IsEqualTo(3);
 
         foreach (var device in devices)

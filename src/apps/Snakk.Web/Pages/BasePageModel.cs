@@ -70,26 +70,22 @@ public abstract class BasePageModel : PageModel
         return "author-avatar-simple";
     }
 
-    public string EscapeForJs(string content)
-    {
-        return content
+    public string EscapeForJs(string content) =>
+        content
             .Replace("\\", "\\\\")
             .Replace("'", "\\'")
             .Replace("\"", "\\\"")
             .Replace("\n", "\\n")
             .Replace("\r", "");
-    }
 
-    public string EscapeForHtmlAttribute(string content)
-    {
-        return System.Net.WebUtility.HtmlEncode(content);
-    }
+    public string EscapeForHtmlAttribute(string content) =>
+        System.Net.WebUtility.HtmlEncode(content);
 
     // Common properties
     public string ApiBaseUrl => Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
     public ICommunityContext Community => CommunityContext;
     public bool ShowCommunityInBreadcrumb =>
-        Configuration.GetValue<bool>("Features:MultiCommunityEnabled") &&
-        !CommunityContext.IsDefaultCommunity &&
-        !CommunityContext.IsCustomDomain;
+        Configuration.GetValue<bool>("Features:MultiCommunityEnabled")
+        && !CommunityContext.IsDefaultCommunity
+        && !CommunityContext.IsCustomDomain;
 }

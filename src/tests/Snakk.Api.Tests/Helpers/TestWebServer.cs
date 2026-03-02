@@ -82,6 +82,7 @@ public class TestWebServer : WebApplicationFactory<Program>
         var token = AuthHelper.GenerateTestToken(userId, displayName, email, emailVerified, role);
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
         return client;
     }
 }

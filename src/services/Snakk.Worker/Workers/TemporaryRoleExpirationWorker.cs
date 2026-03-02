@@ -53,7 +53,7 @@ public class TemporaryRoleExpirationWorker(
             .Include(e => e.User)
             .ToListAsync(ct);
 
-        if (!expiredElevations.Any())
+        if (expiredElevations.Count == 0)
         {
             _logger.LogDebug("No expired temporary role elevations found");
             return;

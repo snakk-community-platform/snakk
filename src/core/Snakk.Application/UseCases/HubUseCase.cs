@@ -9,9 +9,6 @@ public class HubUseCase(
     IHubRepository hubRepository,
     ICommunityRepository communityRepository) : UseCaseBase
 {
-    private readonly IHubRepository _hubRepository = hubRepository;
-    private readonly ICommunityRepository _communityRepository = communityRepository;
-
     public async Task<Result<Hub>> CreateHubAsync(
         CommunityId communityId,
         string name,
@@ -19,23 +16,25 @@ public class HubUseCase(
         string? description = null)
     {
         // Verify community exists
-        var community = await _communityRepository.GetByPublicIdAsync(communityId);
-        if (community == null)
+        var community = await communityRepository.GetByPublicIdAsync(communityId);
+
+        if (community is null)
             return Result<Hub>.Failure($"Community '{communityId}' not found");
 
         // Create hub
         var hub = Hub.Create(communityId, name, slug, description);
 
         // Persist
-        await _hubRepository.AddAsync(hub);
+        await hubRepository.AddAsync(hub);
 
         return Result<Hub>.Success(hub);
     }
 
     public async Task<Result<Hub>> GetHubAsync(HubId hubId)
     {
-        var hub = await _hubRepository.GetByPublicIdAsync(hubId);
-        if (hub == null)
+        var hub = await hubRepository.GetByPublicIdAsync(hubId);
+
+        if (hub is null)
             return Result<Hub>.Failure($"Hub '{hubId}' not found");
 
         return Result<Hub>.Success(hub);
@@ -43,33 +42,31 @@ public class HubUseCase(
 
     public async Task<Result<Hub>> GetHubBySlugAsync(string slug)
     {
-        var hub = await _hubRepository.GetBySlugAsync(slug);
-        if (hub == null)
+        var hub = await hubRepository.GetBySlugAsync(slug);
+
+        if (hub is null)
             return Result<Hub>.Failure($"Hub with slug '{slug}' not found");
 
         return Result<Hub>.Success(hub);
     }
 
-    public async Task<PagedResult<Hub>> GetAllHubsAsync(int offset = 0, int pageSize = 20)
-    {
-        return await _hubRepository.GetFilteredForDisplayAsync(offset, pageSize);
-    }
+    public async Task<PagedResult<Hub>> GetAllHubsAsync(int offset = 0, int pageSize = 20) =>
+        await hubRepository.GetFilteredForDisplayAsync(offset, pageSize);
 
-    public async Task<PagedResult<Hub>> GetHubsByCommunityAsync(CommunityId communityId, int offset = 0, int pageSize = 20)
-    {
-        return await _hubRepository.GetByCommunityAsync(communityId, offset, pageSize);
-    }
+    public async Task<PagedResult<Hub>> GetHubsByCommunityAsync(CommunityId communityId, int offset = 0, int pageSize = 20) =>
+        await hubRepository.GetByCommunityAsync(communityId, offset, pageSize);
 
     public async Task<Result<Hub>> UpdateHubNameAsync(
         HubId hubId,
         string newName)
     {
-        var hub = await _hubRepository.GetByPublicIdAsync(hubId);
-        if (hub == null)
+        var hub = await hubRepository.GetByPublicIdAsync(hubId);
+
+        if (hub is null)
             return Result<Hub>.Failure($"Hub '{hubId}' not found");
 
         hub.UpdateName(newName);
-        await _hubRepository.UpdateAsync(hub);
+        await hubRepository.UpdateAsync(hub);
 
         return Result<Hub>.Success(hub);
     }
@@ -78,12 +75,13 @@ public class HubUseCase(
         HubId hubId,
         string? newDescription)
     {
-        var hub = await _hubRepository.GetByPublicIdAsync(hubId);
-        if (hub == null)
+        var hub = await hubRepository.GetByPublicIdAsync(hubId);
+
+        if (hub is null)
             return Result<Hub>.Failure($"Hub '{hubId}' not found");
 
         hub.UpdateDescription(newDescription);
-        await _hubRepository.UpdateAsync(hub);
+        await hubRepository.UpdateAsync(hub);
 
         return Result<Hub>.Success(hub);
     }
@@ -92,12 +90,13 @@ public class HubUseCase(
         HubId hubId,
         string newSlug)
     {
-        var hub = await _hubRepository.GetByPublicIdAsync(hubId);
-        if (hub == null)
+        var hub = await hubRepository.GetByPublicIdAsync(hubId);
+
+        if (hub is null)
             return Result<Hub>.Failure($"Hub '{hubId}' not found");
 
         hub.UpdateSlug(newSlug);
-        await _hubRepository.UpdateAsync(hub);
+        await hubRepository.UpdateAsync(hub);
 
         return Result<Hub>.Success(hub);
     }

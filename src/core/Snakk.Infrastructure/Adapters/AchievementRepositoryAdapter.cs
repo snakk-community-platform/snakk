@@ -11,12 +11,9 @@ public class AchievementRepositoryAdapter(
     Infrastructure.Database.Repositories.IAchievementRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IAchievementRepository
 {
-    private readonly Infrastructure.Database.Repositories.IAchievementRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Achievement?> GetByIdAsync(int id)
     {
-        var projection = await _context.Achievements
+        var projection = await context.Achievements
             .Where(a => a.Id == id)
             .Select(a => new AchievementProjection(a))
             .FirstOrDefaultAsync();
@@ -25,7 +22,7 @@ public class AchievementRepositoryAdapter(
 
     public async Task<Achievement?> GetByPublicIdAsync(AchievementId publicId)
     {
-        var projection = await _context.Achievements
+        var projection = await context.Achievements
             .Where(a => a.PublicId == publicId.Value)
             .Select(a => new AchievementProjection(a))
             .FirstOrDefaultAsync();
@@ -34,7 +31,7 @@ public class AchievementRepositoryAdapter(
 
     public async Task<Achievement?> GetBySlugAsync(string slug)
     {
-        var projection = await _context.Achievements
+        var projection = await context.Achievements
             .Where(a => a.Slug == slug)
             .Select(a => new AchievementProjection(a))
             .FirstOrDefaultAsync();
@@ -43,35 +40,37 @@ public class AchievementRepositoryAdapter(
 
     public async Task<IEnumerable<Achievement>> GetAllActiveAsync()
     {
-        var projections = await _context.Achievements
+        var projections = await context.Achievements
             .Where(a => a.IsActive)
             .Select(a => new AchievementProjection(a))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<Achievement>> GetByCategoryAsync(AchievementCategoryEnum category)
     {
-        var projections = await _context.Achievements
+        var projections = await context.Achievements
             .Where(a => a.CategoryId == (int)category)
             .Select(a => new AchievementProjection(a))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(Achievement achievement)
     {
         var entity = achievement.ToPersistence();
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Achievement achievement)
     {
-        var entity = await _context.Achievements
+        var entity = await context.Achievements
             .FirstOrDefaultAsync(a => a.PublicId == achievement.PublicId.Value);
 
-        if (entity == null)
+        if (entity is null)
             throw new InvalidOperationException($"Achievement with PublicId '{achievement.PublicId}' not found");
 
         // Update properties
@@ -82,8 +81,8 @@ public class AchievementRepositoryAdapter(
         entity.DisplayOrder = achievement.DisplayOrder;
         entity.UpdatedAt = achievement.UpdatedAt;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record AchievementProjection

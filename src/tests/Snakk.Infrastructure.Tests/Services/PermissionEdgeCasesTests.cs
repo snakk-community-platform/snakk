@@ -53,6 +53,7 @@ public class PermissionEdgeCasesTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -85,6 +86,7 @@ public class PermissionEdgeCasesTests : IDisposable
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
+
         return community;
     }
 
@@ -100,6 +102,7 @@ public class PermissionEdgeCasesTests : IDisposable
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
+
         return hub;
     }
 
@@ -115,6 +118,7 @@ public class PermissionEdgeCasesTests : IDisposable
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
+
         return space;
     }
 
@@ -131,6 +135,7 @@ public class PermissionEdgeCasesTests : IDisposable
         };
         _context.Discussions.Add(discussion);
         await _context.SaveChangesAsync();
+
         return discussion;
     }
 

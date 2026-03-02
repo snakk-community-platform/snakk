@@ -7,25 +7,17 @@ using IAuthorizationService = Snakk.Application.Services.IAuthorizationService;
 /// <summary>
 /// Authorization handler that enforces 2FA for admin users
 /// </summary>
-public class Require2FAAuthorizationHandler : AuthorizationHandler<Require2FARequirement>
+public class Require2FAAuthorizationHandler(
+    IAuthorizationService authService,
+    IHttpContextAccessor httpContextAccessor) : AuthorizationHandler<Require2FARequirement>
 {
-    private readonly IAuthorizationService _authService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public Require2FAAuthorizationHandler(
-        IAuthorizationService authService,
-        IHttpContextAccessor httpContextAccessor)
-    {
-        _authService = authService;
-        _httpContextAccessor = httpContextAccessor;
-    }
-
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         Require2FARequirement requirement)
     {
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
+        var httpContext = httpContextAccessor.HttpContext;
+
+        if (httpContext is null)
         {
             context.Fail();
             return;
@@ -33,7 +25,8 @@ public class Require2FAAuthorizationHandler : AuthorizationHandler<Require2FAReq
 
         // Get user ID from claims
         var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
         {
             context.Fail();
             return;
@@ -41,6 +34,7 @@ public class Require2FAAuthorizationHandler : AuthorizationHandler<Require2FAReq
 
         // Check if user has admin roles
         var hasAdminRole = context.User.IsInRole("GlobalAdmin") || context.User.IsInRole("CommunityAdmin");
+
         if (!hasAdminRole)
         {
             // Not an admin, no 2FA required
@@ -49,7 +43,7 @@ public class Require2FAAuthorizationHandler : AuthorizationHandler<Require2FAReq
         }
 
         // Admin user - check if 2FA is enabled
-        var has2FA = await _authService.UserHas2FAEnabledAsync(userIdClaim.Value);
+        var has2FA = await authService.UserHas2FAEnabledAsync(userIdClaim.Value);
 
         if (!has2FA)
         {
@@ -67,6 +61,7 @@ public class Require2FAAuthorizationHandler : AuthorizationHandler<Require2FAReq
 
         // Check if 2FA was verified in this session (claim added during login)
         var twoFactorVerified = context.User.FindFirst("2fa_verified")?.Value == "true";
+
         if (!twoFactorVerified)
         {
             // 2FA enabled but not verified in this session

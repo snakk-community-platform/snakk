@@ -32,11 +32,16 @@ public class CommunityResolutionMiddleware
 
         // Step 1: Check for custom domain
         var domainLookup = await domainCache.GetCommunitySlugForDomainAsync(host);
-        if (domainLookup.Found && domainLookup.CommunitySlug != null)
+        if (domainLookup.Found && domainLookup.CommunitySlug is not null)
         {
             // Custom domain resolved - set community context with name
             var isDefault = domainLookup.CommunitySlug.Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase);
-            communityContext.SetCommunity(domainLookup.CommunitySlug, isDefault, isCustomDomain: true, name: domainLookup.CommunityName, isMultiCommunity: _isMultiCommunity);
+            communityContext.SetCommunity(
+                domainLookup.CommunitySlug,
+                isDefault,
+                isCustomDomain: true,
+                name: domainLookup.CommunityName,
+                isMultiCommunity: _isMultiCommunity);
 
             // No path rewriting needed for custom domains
             await _next(context);
@@ -83,8 +88,6 @@ public class CommunityResolutionMiddleware
 
 public static class CommunityResolutionMiddlewareExtensions
 {
-    public static IApplicationBuilder UseCommunityResolution(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<CommunityResolutionMiddleware>();
-    }
+    public static IApplicationBuilder UseCommunityResolution(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<CommunityResolutionMiddleware>();
 }

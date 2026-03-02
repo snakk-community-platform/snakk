@@ -125,7 +125,7 @@ public class UserRepositoryIntegrationTests : IDisposable
     public async Task GetByPublicIdsAsync_EmptyList_ReturnsEmpty()
     {
         var result = (await _repository.GetByPublicIdsAsync(
-            Enumerable.Empty<string>())).ToList();
+            [])).ToList();
 
         await Assert.That(result.Count).IsEqualTo(0);
     }

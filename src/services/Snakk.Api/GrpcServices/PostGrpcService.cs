@@ -20,10 +20,12 @@ public class PostGrpcService(
     public override async Task<PagedEnrichedPostList> GetPostsByDiscussion(GetPostsByDiscussionRequest request, ServerCallContext context)
     {
         UserId? currentUserId = null;
+
         if (currentUser.IsAuthenticated())
         {
             var uid = currentUser.GetCurrentUserId();
-            if (uid != null) currentUserId = UserId.From(uid);
+
+            if (uid is not null) currentUserId = UserId.From(uid);
         }
 
         var result = await postUseCase.GetEnrichedPostsByDiscussionAsync(
@@ -32,7 +34,7 @@ public class PostGrpcService(
             request.Offset,
             request.PageSize);
 
-        if (!result.IsSuccess || result.Value == null)
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var data = result.Value;
@@ -55,11 +57,15 @@ public class PostGrpcService(
                 IsFirstPost = post.IsFirstPost,
                 IsDeleted = post.IsDeleted,
                 CreatedByUserId = post.CreatedByUserId.Value,
+
                 Author = new AuthorRef
                 {
                     PublicId = post.CreatedByUserId.Value,
                     DisplayName = ep.Author.DisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(post.CreatedByUserId.Value, AvatarEntityType.User, ep.Author.AvatarRevision),
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(
+                        post.CreatedByUserId.Value,
+                        AvatarEntityType.User,
+                        ep.Author.AvatarRevision),
                     Role = ep.Author.Role ?? "",
                     IsDeleted = ep.Author.IsDeleted
                 },
@@ -79,7 +85,7 @@ public class PostGrpcService(
             if (post.EditedAt.HasValue)
                 item.EditedAt = ToTimestamp(post.EditedAt.Value);
 
-            if (ep.ReplyTo != null)
+            if (ep.ReplyTo is not null)
             {
                 item.ReplyTo = new ReplyToRef
                 {
@@ -108,11 +114,13 @@ public class PostGrpcService(
             request.Content,
             replyToPostId);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to create post"));
 
         var post = result.Value;
+
         return new PostCreatedInfo
         {
             PublicId = post.PublicId.Value,
@@ -131,8 +139,9 @@ public class PostGrpcService(
             userId,
             request.Content);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to edit post"));
 
         var post = result.Value;
@@ -164,10 +173,12 @@ public class PostGrpcService(
 
         var response = new PostHistoryResponse();
         var htmlParts = new List<string>();
+
         foreach (var revision in revisions)
         {
             htmlParts.Add(markupParser.ToHtml(revision.Content));
         }
+
         response.RenderedHtml = string.Join("\n---\n", htmlParts);
 
         return response;
@@ -179,12 +190,13 @@ public class PostGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);
     }
 
-    private static Timestamp ToTimestamp(DateTime dt)
-        => Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+    private static Timestamp ToTimestamp(DateTime dt) =>
+        Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
 }

@@ -13,12 +13,9 @@ public class CommunityRepositoryAdapter(
     Infrastructure.Database.Repositories.ICommunityDatabaseRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.ICommunityRepository
 {
-    private readonly Infrastructure.Database.Repositories.ICommunityDatabaseRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Community?> GetByPublicIdAsync(CommunityId publicId)
     {
-        var projection = await _context.Communities
+        var projection = await context.Communities
             .Where(c => c.PublicId == publicId.Value)
             .Select(c => new CommunityProjection(
                 c.PublicId, c.Name, c.Slug, c.Description,
@@ -30,7 +27,7 @@ public class CommunityRepositoryAdapter(
 
     public async Task<Community?> GetBySlugAsync(string slug)
     {
-        var projection = await _context.Communities
+        var projection = await context.Communities
             .Where(c => c.Slug == slug)
             .Select(c => new CommunityProjection(
                 c.PublicId, c.Name, c.Slug, c.Description,
@@ -42,8 +39,10 @@ public class CommunityRepositoryAdapter(
 
     public async Task<Community?> GetByDomainAsync(string domain)
     {
-        var projection = await _context.Set<Database.Entities.CommunityDomainDatabaseEntity>()
-            .Where(d => d.Domain == domain && d.IsVerified)
+        var projection = await context.Set<Database.Entities.CommunityDomainDatabaseEntity>()
+            .Where(d =>
+                d.Domain == domain
+                && d.IsVerified)
             .Select(d => new CommunityProjection(
                 d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
@@ -54,17 +53,20 @@ public class CommunityRepositoryAdapter(
 
     public async Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize)
     {
-        var result = await _databaseRepository.GetPublicListedAsync(offset, pageSize);
+        var result = await databaseRepository.GetPublicListedAsync(offset, pageSize);
+
         return new PagedResult<Community>
         {
-            Items = result.Items.Select(dto => Community.RehydrateForList(
-                CommunityId.From(dto.PublicId),
-                dto.Name,
-                dto.Slug,
-                dto.Description,
-                ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
-                dto.ExposeToPlatformFeed,
-                dto.CreatedAt)).ToList(),
+            Items = result.Items
+                .Select(dto => Community.RehydrateForList(
+                    CommunityId.From(dto.PublicId),
+                    dto.Name,
+                    dto.Slug,
+                    dto.Description,
+                    ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
+                    dto.ExposeToPlatformFeed,
+                    dto.CreatedAt))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
@@ -73,17 +75,20 @@ public class CommunityRepositoryAdapter(
 
     public async Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize)
     {
-        var result = await _databaseRepository.GetForPlatformFeedAsync(offset, pageSize);
+        var result = await databaseRepository.GetForPlatformFeedAsync(offset, pageSize);
+
         return new PagedResult<Community>
         {
-            Items = result.Items.Select(dto => Community.RehydrateForList(
-                CommunityId.From(dto.PublicId),
-                dto.Name,
-                dto.Slug,
-                dto.Description,
-                ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
-                dto.ExposeToPlatformFeed,
-                dto.CreatedAt)).ToList(),
+            Items = result.Items
+                .Select(dto => Community.RehydrateForList(
+                    CommunityId.From(dto.PublicId),
+                    dto.Name,
+                    dto.Slug,
+                    dto.Description,
+                    ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
+                    dto.ExposeToPlatformFeed,
+                    dto.CreatedAt))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
@@ -93,14 +98,15 @@ public class CommunityRepositoryAdapter(
     public async Task AddAsync(Community community)
     {
         var entity = community.ToPersistence();
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Community community)
     {
-        var entity = await _context.Communities.FirstOrDefaultAsync(c => c.PublicId == community.PublicId.Value);
-        if (entity == null)
+        var entity = await context.Communities.FirstOrDefaultAsync(c => c.PublicId == community.PublicId.Value);
+
+        if (entity is null)
             throw new InvalidOperationException($"Community with PublicId '{community.PublicId}' not found");
 
         entity.Name = community.Name;
@@ -110,8 +116,8 @@ public class CommunityRepositoryAdapter(
         entity.ExposeToPlatformFeed = community.ExposeToPlatformFeed;
         entity.LastModifiedAt = community.LastModifiedAt;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record CommunityProjection(

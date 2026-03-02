@@ -10,9 +10,8 @@ namespace Snakk.Domain.Extensions;
 public static class EnumConversionExtensions
 {
     // ReactionType conversions
-    public static ReactionTypeEnum ToShared(this ReactionType domainEnum)
-    {
-        return domainEnum switch
+    public static ReactionTypeEnum ToShared(this ReactionType domainEnum) =>
+        domainEnum switch
         {
             ReactionType.ThumbsUp => ReactionTypeEnum.ThumbsUp,
             ReactionType.Heart => ReactionTypeEnum.Heart,
@@ -20,11 +19,9 @@ public static class EnumConversionExtensions
             ReactionType.Crazy => ReactionTypeEnum.Crazy,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown ReactionType")
         };
-    }
 
-    public static ReactionType ToDomain(this ReactionTypeEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static ReactionType ToDomain(this ReactionTypeEnum sharedEnum) =>
+        sharedEnum switch
         {
             ReactionTypeEnum.ThumbsUp => ReactionType.ThumbsUp,
             ReactionTypeEnum.Heart => ReactionType.Heart,
@@ -32,12 +29,10 @@ public static class EnumConversionExtensions
             ReactionTypeEnum.Crazy => ReactionType.Crazy,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown ReactionTypeEnum")
         };
-    }
 
     // NotificationType conversions
-    public static NotificationTypeEnum ToShared(this NotificationType domainEnum)
-    {
-        return domainEnum switch
+    public static NotificationTypeEnum ToShared(this NotificationType domainEnum) =>
+        domainEnum switch
         {
             NotificationType.Mention => NotificationTypeEnum.Mention,
             NotificationType.Reply => NotificationTypeEnum.Reply,
@@ -45,11 +40,9 @@ public static class EnumConversionExtensions
             NotificationType.NewDiscussionInFollowedSpace => NotificationTypeEnum.NewDiscussionInFollowedSpace,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown NotificationType")
         };
-    }
 
-    public static NotificationType ToDomain(this NotificationTypeEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static NotificationType ToDomain(this NotificationTypeEnum sharedEnum) =>
+        sharedEnum switch
         {
             NotificationTypeEnum.Mention => NotificationType.Mention,
             NotificationTypeEnum.Reply => NotificationType.Reply,
@@ -57,121 +50,99 @@ public static class EnumConversionExtensions
             NotificationTypeEnum.NewDiscussionInFollowedSpace => NotificationType.NewDiscussionInFollowedSpace,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown NotificationTypeEnum")
         };
-    }
 
     // CommunityVisibility conversions
-    public static CommunityVisibilityEnum ToShared(this CommunityVisibility domainEnum)
-    {
-        return domainEnum switch
+    public static CommunityVisibilityEnum ToShared(this CommunityVisibility domainEnum) =>
+        domainEnum switch
         {
             CommunityVisibility.PublicListed => CommunityVisibilityEnum.PublicListed,
             CommunityVisibility.PublicUnlisted => CommunityVisibilityEnum.PublicUnlisted,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown CommunityVisibility")
         };
-    }
 
-    public static CommunityVisibility ToDomain(this CommunityVisibilityEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static CommunityVisibility ToDomain(this CommunityVisibilityEnum sharedEnum) =>
+        sharedEnum switch
         {
             CommunityVisibilityEnum.PublicListed => CommunityVisibility.PublicListed,
             CommunityVisibilityEnum.PublicUnlisted => CommunityVisibility.PublicUnlisted,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown CommunityVisibilityEnum")
         };
-    }
 
     // FollowLevel conversions
-    public static FollowLevelEnum ToShared(this FollowLevel domainEnum)
-    {
-        return domainEnum switch
+    public static FollowLevelEnum ToShared(this FollowLevel domainEnum) =>
+        domainEnum switch
         {
             FollowLevel.DiscussionsOnly => FollowLevelEnum.DiscussionsOnly,
             FollowLevel.DiscussionsAndPosts => FollowLevelEnum.DiscussionsAndPosts,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown FollowLevel")
         };
-    }
 
-    public static FollowLevel ToDomain(this FollowLevelEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static FollowLevel ToDomain(this FollowLevelEnum sharedEnum) =>
+        sharedEnum switch
         {
             FollowLevelEnum.DiscussionsOnly => FollowLevel.DiscussionsOnly,
             FollowLevelEnum.DiscussionsAndPosts => FollowLevel.DiscussionsAndPosts,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown FollowLevelEnum")
         };
-    }
 
     // FollowTargetType conversions
-    public static FollowTargetTypeEnum ToShared(this FollowTargetType domainEnum)
-    {
-        return domainEnum switch
+    public static FollowTargetTypeEnum ToShared(this FollowTargetType domainEnum) =>
+        domainEnum switch
         {
             FollowTargetType.Discussion => FollowTargetTypeEnum.Discussion,
             FollowTargetType.Space => FollowTargetTypeEnum.Space,
             FollowTargetType.User => FollowTargetTypeEnum.User,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown FollowTargetType")
         };
-    }
 
-    public static FollowTargetType ToDomain(this FollowTargetTypeEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static FollowTargetType ToDomain(this FollowTargetTypeEnum sharedEnum) =>
+        sharedEnum switch
         {
             FollowTargetTypeEnum.Discussion => FollowTargetType.Discussion,
             FollowTargetTypeEnum.Space => FollowTargetType.Space,
             FollowTargetTypeEnum.User => FollowTargetType.User,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown FollowTargetTypeEnum")
         };
-    }
 
     // BanType conversions
-    public static BanTypeEnum ToShared(this BanType domainEnum)
-    {
-        return domainEnum switch
+    public static BanTypeEnum ToShared(this BanType domainEnum) =>
+        domainEnum switch
         {
             BanType.WriteOnly => BanTypeEnum.WriteOnly,
             BanType.ReadWrite => BanTypeEnum.ReadWrite,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown BanType")
         };
-    }
 
-    public static BanType ToDomain(this BanTypeEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static BanType ToDomain(this BanTypeEnum sharedEnum) =>
+        sharedEnum switch
         {
             BanTypeEnum.WriteOnly => BanType.WriteOnly,
             BanTypeEnum.ReadWrite => BanType.ReadWrite,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown BanTypeEnum")
         };
-    }
 
     // ReportStatus conversions
-    public static ReportStatusEnum ToShared(this ReportStatus domainEnum)
-    {
-        return domainEnum switch
+    public static ReportStatusEnum ToShared(this ReportStatus domainEnum) =>
+        domainEnum switch
         {
             ReportStatus.Pending => ReportStatusEnum.Pending,
             ReportStatus.Resolved => ReportStatusEnum.Resolved,
             ReportStatus.Dismissed => ReportStatusEnum.Dismissed,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown ReportStatus")
         };
-    }
 
-    public static ReportStatus ToDomain(this ReportStatusEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static ReportStatus ToDomain(this ReportStatusEnum sharedEnum) =>
+        sharedEnum switch
         {
             ReportStatusEnum.Pending => ReportStatus.Pending,
             ReportStatusEnum.Resolved => ReportStatus.Resolved,
             ReportStatusEnum.Dismissed => ReportStatus.Dismissed,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown ReportStatusEnum")
         };
-    }
 
     // UserRoleType conversions
-    public static UserRoleTypeEnum ToShared(this UserRoleType domainEnum)
-    {
-        return domainEnum switch
+    public static UserRoleTypeEnum ToShared(this UserRoleType domainEnum) =>
+        domainEnum switch
         {
             UserRoleType.GlobalAdmin => UserRoleTypeEnum.GlobalAdmin,
             UserRoleType.CommunityAdmin => UserRoleTypeEnum.CommunityAdmin,
@@ -180,11 +151,9 @@ public static class EnumConversionExtensions
             UserRoleType.SpaceMod => UserRoleTypeEnum.SpaceMod,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown UserRoleType")
         };
-    }
 
-    public static UserRoleType ToDomain(this UserRoleTypeEnum sharedEnum)
-    {
-        return sharedEnum switch
+    public static UserRoleType ToDomain(this UserRoleTypeEnum sharedEnum) =>
+        sharedEnum switch
         {
             UserRoleTypeEnum.GlobalAdmin => UserRoleType.GlobalAdmin,
             UserRoleTypeEnum.CommunityAdmin => UserRoleType.CommunityAdmin,
@@ -193,5 +162,4 @@ public static class EnumConversionExtensions
             UserRoleTypeEnum.SpaceMod => UserRoleType.SpaceMod,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown UserRoleTypeEnum")
         };
-    }
 }

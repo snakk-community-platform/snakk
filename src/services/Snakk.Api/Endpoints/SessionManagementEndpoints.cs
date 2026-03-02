@@ -36,7 +36,8 @@ public static class SessionManagementEndpoints
         ISessionManagementService sessionService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var currentToken = httpContext.Request.Cookies["refresh_token"];
@@ -51,7 +52,8 @@ public static class SessionManagementEndpoints
         ISessionManagementService sessionService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var success = await sessionService.RevokeSessionAsync(sessionId, userIdClaim.Value);
@@ -67,7 +69,8 @@ public static class SessionManagementEndpoints
         ITokenService tokenService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
@@ -85,17 +88,19 @@ public static class SessionManagementEndpoints
         ITokenService tokenService)
     {
         var refreshToken = httpContext.Request.Cookies["refresh_token"];
+
         if (string.IsNullOrEmpty(refreshToken))
             return Results.Unauthorized();
 
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress);
 
-        if (newAccessToken == null)
+        if (newAccessToken is null)
         {
             // Refresh token invalid or expired
             httpContext.Response.Cookies.Delete("access_token");
             httpContext.Response.Cookies.Delete("refresh_token");
+
             return Results.Unauthorized();
         }
 

@@ -54,10 +54,8 @@ public class Reaction
         PostId postId,
         UserId userId,
         ReactionType type,
-        DateTime createdAt)
-    {
-        return new Reaction(publicId, postId, userId, type, createdAt);
-    }
+        DateTime createdAt) =>
+        new Reaction(publicId, postId, userId, type, createdAt);
 
     public void MarkForRemoval()
     {

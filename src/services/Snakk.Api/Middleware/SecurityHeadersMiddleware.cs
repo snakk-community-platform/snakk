@@ -3,15 +3,8 @@ namespace Snakk.Api.Middleware;
 /// <summary>
 /// Middleware that adds security headers to all HTTP responses
 /// </summary>
-public class SecurityHeadersMiddleware
+public class SecurityHeadersMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public SecurityHeadersMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         // HSTS - Force HTTPS for 1 year, include subdomains
@@ -30,7 +23,8 @@ public class SecurityHeadersMiddleware
         context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
 
         // Permissions-Policy - Disable unnecessary browser features
-        context.Response.Headers.Append("Permissions-Policy",
+        context.Response.Headers.Append(
+            "Permissions-Policy",
             "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()");
 
         // Content-Security-Policy - Strict API policy (no HTML/scripts served)
@@ -43,7 +37,7 @@ public class SecurityHeadersMiddleware
         });
         context.Response.Headers.Append("Content-Security-Policy", csp);
 
-        await _next(context);
+        await next(context);
     }
 }
 
@@ -52,8 +46,6 @@ public class SecurityHeadersMiddleware
 /// </summary>
 public static class SecurityHeadersMiddlewareExtensions
 {
-    public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<SecurityHeadersMiddleware>();
-    }
+    public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<SecurityHeadersMiddleware>();
 }

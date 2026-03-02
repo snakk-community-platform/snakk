@@ -311,10 +311,10 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            Roles = new List<UserRoleDatabaseEntity>
-            {
+            Roles =
+            [
                 new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
-            },
+            ],
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -344,10 +344,10 @@ public class UserMapperTests
             EmailVerificationToken = null,
             OAuthProvider = null,
             OAuthProviderId = null,
-            Roles = new List<UserRoleDatabaseEntity>
-            {
+            Roles =
+            [
                 new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.CommunityAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
-            },
+            ],
             AvatarFileName = null,
             PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
@@ -555,10 +555,10 @@ public class UserMapperTests
         // Act
         var entity = originalUser.ToPersistence();
         // Simulate the database loading the Roles collection
-        entity.Roles = new List<UserRoleDatabaseEntity>
-        {
+        entity.Roles =
+        [
             new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
-        };
+        ];
         var reconstructedUser = entity.FromPersistence();
 
         // Assert - With Roles collection loaded, GlobalAdmin maps to "Admin"

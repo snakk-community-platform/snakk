@@ -49,6 +49,7 @@ public class PermissionServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -81,6 +82,7 @@ public class PermissionServiceTests : IDisposable
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
+
         return community;
     }
 
@@ -96,6 +98,7 @@ public class PermissionServiceTests : IDisposable
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
+
         return hub;
     }
 
@@ -111,6 +114,7 @@ public class PermissionServiceTests : IDisposable
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
+
         return space;
     }
 
@@ -127,6 +131,7 @@ public class PermissionServiceTests : IDisposable
         };
         _context.Discussions.Add(discussion);
         await _context.SaveChangesAsync();
+
         return discussion;
     }
 

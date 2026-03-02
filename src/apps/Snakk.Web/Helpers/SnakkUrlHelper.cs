@@ -129,6 +129,7 @@ public static class SnakkUrlHelper
     {
         var extension = filename.EndsWith(".css") ? "" : ".css";
         var folder = isVendor ? "vendor" : "dist";
+
         return $"/css/{folder}/{filename}{extension}";
     }
 
@@ -141,6 +142,7 @@ public static class SnakkUrlHelper
     {
         var extension = filename.EndsWith(".js") ? "" : ".js";
         var folder = isVendor ? "vendor" : "dist";
+
         return $"/js/{folder}/{filename}{extension}";
     }
 }

@@ -60,5 +60,5 @@ public class WebhookDatabaseEntity
     public UserDatabaseEntity? CreatedByUser { get; set; }
 
     // Navigation properties
-    public ICollection<WebhookDeliveryLogDatabaseEntity> DeliveryLogs { get; set; } = new List<WebhookDeliveryLogDatabaseEntity>();
+    public ICollection<WebhookDeliveryLogDatabaseEntity> DeliveryLogs { get; set; } = [];
 }

@@ -111,8 +111,8 @@ public class PostRepositoryIntegrationTests : IDisposable
         var result = (await _repository.GetAllAsync()).ToList();
 
         await Assert.That(result.Count).IsEqualTo(3);
-        await Assert.That(result.All(p => p.Discussion != null)).IsTrue();
-        await Assert.That(result.All(p => p.CreatedByUser != null)).IsTrue();
+        await Assert.That(result.All(p => p.Discussion is not null)).IsTrue();
+        await Assert.That(result.All(p => p.CreatedByUser is not null)).IsTrue();
     }
 
     #endregion
@@ -269,7 +269,7 @@ public class PostRepositoryIntegrationTests : IDisposable
         var (user, _, _, _, discussion, _) = await _builder.CreateFullHierarchyAsync();
 
         // Create additional posts to exceed page size
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var extraPost = new PostDatabaseEntity
             {

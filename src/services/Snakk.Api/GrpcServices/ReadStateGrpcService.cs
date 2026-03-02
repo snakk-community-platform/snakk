@@ -20,12 +20,14 @@ public class ReadStateGrpcService(
             DiscussionId.From(request.DiscussionId));
 
         var response = new ReadStateInfo();
-        if (readState != null)
+
+        if (readState is not null)
         {
-            if (readState.LastReadPostId != null)
+            if (readState.LastReadPostId is not null)
                 response.LastReadPostId = readState.LastReadPostId.Value;
+
             response.LastReadAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
-                    DateTime.SpecifyKind(readState.LastReadAt, DateTimeKind.Utc));
+                DateTime.SpecifyKind(readState.LastReadAt, DateTimeKind.Utc));
         }
 
         return response;
@@ -40,14 +42,10 @@ public class ReadStateGrpcService(
 
         var readState = await readStateRepository.GetAsync(userId, discussionId);
 
-        if (readState == null)
-        {
+        if (readState is null)
             readState = DiscussionReadState.Create(userId, discussionId, postId);
-        }
         else
-        {
             readState.MarkAsRead(postId);
-        }
 
         await readStateRepository.SaveAsync(readState);
 
@@ -58,7 +56,8 @@ public class ReadStateGrpcService(
     {
         var userId = RequireAuth();
 
-        int processed = 0;
+        var processed = 0;
+
         foreach (var item in request.Items)
         {
             try
@@ -68,14 +67,10 @@ public class ReadStateGrpcService(
 
                 var readState = await readStateRepository.GetAsync(userId, discussionId);
 
-                if (readState == null)
-                {
+                if (readState is null)
                     readState = DiscussionReadState.Create(userId, discussionId, postId);
-                }
                 else
-                {
                     readState.MarkAsRead(postId);
-                }
 
                 await readStateRepository.SaveAsync(readState);
                 processed++;
@@ -95,7 +90,8 @@ public class ReadStateGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);

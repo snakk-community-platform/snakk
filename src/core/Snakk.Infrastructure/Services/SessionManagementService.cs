@@ -6,46 +6,38 @@ using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
-public class SessionManagementService : ISessionManagementService
+public class SessionManagementService(
+    SnakkDbContext context,
+    ITokenService tokenService,
+    ILogger<SessionManagementService> logger) : ISessionManagementService
 {
-    private readonly SnakkDbContext _context;
-    private readonly ITokenService _tokenService;
-    private readonly ILogger<SessionManagementService> _logger;
-
-    public SessionManagementService(
-        SnakkDbContext context,
-        ITokenService tokenService,
-        ILogger<SessionManagementService> logger)
-    {
-        _context = context;
-        _tokenService = tokenService;
-        _logger = logger;
-    }
-
-    public async Task<SessionListResponse> GetActiveSessionsAsync(string userId, string? currentRefreshToken = null)
+    public async Task<SessionListResponse> GetActiveSessionsAsync(
+        string userId,
+        string? currentRefreshToken = null)
     {
         // Get user's database ID
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
             .FirstOrDefaultAsync();
 
-        if (user == null)
+        if (user is null)
         {
-            _logger.LogWarning("User not found for session query: {UserId}", userId);
+            logger.LogWarning("User not found for session query: {UserId}", userId);
             return new SessionListResponse
             {
-                Sessions = new List<SessionDto>(),
+                Sessions = [],
                 ActiveCount = 0
             };
         }
 
         var now = DateTime.UtcNow;
-        var sessions = await _context.RefreshTokens
+
+        var sessions = await context.RefreshTokens
             .Where(t =>
-                t.UserId == user.Id &&
-                t.RevokedAt == null &&
-                t.ExpiresAt > now)
+                t.UserId == user.Id
+                && t.RevokedAt == null
+                && t.ExpiresAt > now)
             .OrderByDescending(t => t.LastUsedAt ?? t.CreatedAt)
             .Select(t => new SessionDto
             {
@@ -68,33 +60,36 @@ public class SessionManagementService : ISessionManagementService
     public async Task<bool> RevokeSessionAsync(string sessionId, string userId)
     {
         // Get user's database ID
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
             .FirstOrDefaultAsync();
 
-        if (user == null)
+        if (user is null)
         {
-            _logger.LogWarning("User not found for session revocation: {UserId}", userId);
+            logger.LogWarning("User not found for session revocation: {UserId}", userId);
             return false;
         }
 
         // Find session and verify ownership
-        var session = await _context.RefreshTokens
-            .Where(t => t.PublicId == sessionId && t.UserId == user.Id)
+        var session = await context.RefreshTokens
+            .Where(t =>
+                t.PublicId == sessionId
+                && t.UserId == user.Id)
             .Select(t => new { t.TokenValue })
             .FirstOrDefaultAsync();
 
-        if (session == null)
+        if (session is null)
         {
-            _logger.LogWarning("Session not found or not owned by user: {SessionId}, {UserId}", sessionId, userId);
+            logger.LogWarning("Session not found or not owned by user: {SessionId}, {UserId}", sessionId, userId);
             return false;
         }
 
         // Revoke via token service
-        await _tokenService.RevokeRefreshTokenAsync(session.TokenValue, "User requested revocation");
+        await tokenService.RevokeRefreshTokenAsync(session.TokenValue, "User requested revocation");
 
-        _logger.LogInformation("Session revoked: {SessionId} for user {UserId}", sessionId, userId);
+        logger.LogInformation("Session revoked: {SessionId} for user {UserId}", sessionId, userId);
+
         return true;
     }
 }

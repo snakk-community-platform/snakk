@@ -13,22 +13,13 @@ public interface IJwtTokenService
     ClaimsPrincipal? ValidateToken(string token);
 }
 
-public class JwtTokenService : IJwtTokenService
+public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
 {
-    private readonly IConfiguration _configuration;
-    private readonly string _secretKey;
-    private readonly string _issuer;
-    private readonly string _audience;
-    private readonly int _expirationMinutes;
-
-    public JwtTokenService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-        _secretKey = configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
-        _issuer = configuration["Jwt:Issuer"] ?? "Snakk";
-        _audience = configuration["Jwt:Audience"] ?? "Snakk";
-        _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 15); // 15 minutes default
-    }
+    private readonly string _secretKey = configuration["Jwt:SecretKey"]
+        ?? throw new InvalidOperationException("JWT SecretKey not configured");
+    private readonly string _issuer = configuration["Jwt:Issuer"] ?? "Snakk";
+    private readonly string _audience = configuration["Jwt:Audience"] ?? "Snakk";
+    private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 15); // 15 minutes default
 
     public string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null)
     {
@@ -40,19 +31,13 @@ public class JwtTokenService : IJwtTokenService
         };
 
         if (!string.IsNullOrEmpty(email))
-        {
             claims.Add(new(ClaimTypes.Email, email));
-        }
 
         if (!string.IsNullOrEmpty(oAuthProvider))
-        {
             claims.Add(new("OAuthProvider", oAuthProvider));
-        }
 
         if (!string.IsNullOrEmpty(role))
-        {
             claims.Add(new(ClaimTypes.Role, role));
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -62,22 +47,19 @@ public class JwtTokenService : IJwtTokenService
             audience: _audience,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(_expirationMinutes),
-            signingCredentials: credentials
-        );
+            signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string GenerateToken(User user)
-    {
-        return GenerateToken(
+    public string GenerateToken(User user) =>
+        GenerateToken(
             user.PublicId.Value,
             user.DisplayName,
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
             user.Role);
-    }
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -99,6 +81,7 @@ public class JwtTokenService : IJwtTokenService
             };
 
             var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+
             return principal;
         }
         catch

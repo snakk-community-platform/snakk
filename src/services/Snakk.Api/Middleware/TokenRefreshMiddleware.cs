@@ -3,15 +3,8 @@ namespace Snakk.Api.Middleware;
 using System.IdentityModel.Tokens.Jwt;
 using Snakk.Application.Services;
 
-public class TokenRefreshMiddleware
+public class TokenRefreshMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public TokenRefreshMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context, ITokenService tokenService)
     {
         // Check if access token exists and is expiring soon
@@ -37,7 +30,7 @@ public class TokenRefreshMiddleware
                             var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                             var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress);
 
-                            if (newAccessToken != null)
+                            if (newAccessToken is not null)
                             {
                                 // Update access token cookie
                                 context.Response.Cookies.Append("access_token", newAccessToken, new CookieOptions
@@ -58,6 +51,6 @@ public class TokenRefreshMiddleware
             }
         }
 
-        await _next(context);
+        await next(context);
     }
 }

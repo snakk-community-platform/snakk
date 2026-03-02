@@ -23,6 +23,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         if (!string.IsNullOrWhiteSpace(query))
         {
             var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
             foreach (var term in searchTerms)
             {
                 var likeTerm = term; // Capture for closure
@@ -33,8 +34,10 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         // Apply filters
         if (!string.IsNullOrEmpty(authorPublicId))
             baseQuery = baseQuery.Where(d => d.CreatedByUser.PublicId == authorPublicId);
+
         if (!string.IsNullOrEmpty(spacePublicId))
             baseQuery = baseQuery.Where(d => d.Space.PublicId == spacePublicId);
+
         if (!string.IsNullOrEmpty(hubPublicId))
             baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
 
@@ -85,6 +88,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         if (!string.IsNullOrWhiteSpace(query))
         {
             var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
             foreach (var term in searchTerms)
             {
                 var likeTerm = term; // Capture for closure
@@ -95,8 +99,10 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         // Apply filters
         if (!string.IsNullOrEmpty(authorPublicId))
             baseQuery = baseQuery.Where(p => p.CreatedByUser.PublicId == authorPublicId);
+
         if (!string.IsNullOrEmpty(discussionPublicId))
             baseQuery = baseQuery.Where(p => p.Discussion.PublicId == discussionPublicId);
+
         if (!string.IsNullOrEmpty(spacePublicId))
             baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
 
@@ -130,22 +136,17 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         };
     }
 
-    public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId)
-    {
-        return await _context.Users
-            .Where(u => u.PublicId == authorPublicId)
-            .Select(u => u.DiscussionCount)
-            .FirstOrDefaultAsync();
-    }
+    public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId) => await _context.Users
+        .Where(u => u.PublicId == authorPublicId)
+        .Select(u => u.DiscussionCount)
+        .FirstOrDefaultAsync();
 
-    public async Task<int> GetPostCountByAuthorAsync(string authorPublicId)
-    {
+    public async Task<int> GetPostCountByAuthorAsync(string authorPublicId) =>
         // ReplyCount = non-first posts. Add DiscussionCount to get total posts (each discussion has a first post).
-        return await _context.Users
+        await _context.Users
             .Where(u => u.PublicId == authorPublicId)
             .Select(u => u.ReplyCount + u.DiscussionCount)
             .FirstOrDefaultAsync();
-    }
 
     public async Task<PagedResult<DiscussionListItemDto>> GetDiscussionsBySpaceAsync(
         string spacePublicId,
@@ -175,12 +176,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.CreatedByUser.PublicId,
                 d.CreatedByUser.DisplayName,
                 d.CreatedByUser.AvatarFileName,
-                d.Tags
-            ))
+                d.Tags))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         return new PagedResult<DiscussionListItemDto>
         {
@@ -209,15 +213,18 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 h.CreatedAt,
                 h.SpaceCount,
                 h.DiscussionCount,
-                h.PostCount - h.DiscussionCount // ReplyCount = posts minus first posts
-            ))
+                h.PostCount - h.DiscussionCount))
             .ToListAsync();
 
         var hasMore = hubs.Count > pageSize;
 
         return new PagedResult<HubListItemDto>
         {
-            Items = hasMore ? hubs.Take(pageSize).ToList() : hubs,
+            Items = hasMore
+                ? hubs
+                    .Take(pageSize)
+                    .ToList()
+                : hubs,
             Offset = offset,
             PageSize = pageSize,
             HasMoreItems = hasMore
@@ -235,57 +242,56 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             .OrderBy(s => s.Name)
             .Skip(offset)
             .Take(pageSize + 1)
-            .Select(s => new
-            {
-                PublicId = s.PublicId,
+            .Select(s => new {
+                s.PublicId,
                 HubPublicId = s.Hub.PublicId,
-                Name = s.Name,
-                Slug = s.Slug,
-                Description = s.Description,
-                CreatedAt = s.CreatedAt,
-                DiscussionCount = s.DiscussionCount,
+                s.Name,
+                s.Slug,
+                s.Description,
+                s.CreatedAt,
+                s.DiscussionCount,
                 ReplyCount = s.PostCount - s.DiscussionCount,
                 LatestDiscussion = s.Discussions
                     .Where(d => !d.IsDeleted)
                     .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-                    .Select(d => new
-                    {
-                        PublicId = d.PublicId,
-                        Title = d.Title,
-                        Slug = d.Slug,
+                    .Select(d => new {
+                        d.PublicId,
+                        d.Title,
+                        d.Slug,
                         LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
                         AuthorPublicId = d.CreatedByUser.PublicId,
                         AuthorDisplayName = d.CreatedByUser.DisplayName,
                         AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                        PostCount = d.PostCount
-                    })
+                        d.PostCount })
                     .FirstOrDefault()
             })
             .ToListAsync();
 
         var hasMore = spaces.Count > pageSize;
 
-        var items = spaces.Take(pageSize).Select(s => new SpaceListItemDto(
-            s.PublicId,
-            s.HubPublicId,
-            s.Name,
-            s.Slug,
-            s.Description,
-            s.CreatedAt,
-            s.DiscussionCount,
-            s.ReplyCount,
-            s.LatestDiscussion != null
-                ? new LatestDiscussionDto(
-                    s.LatestDiscussion.PublicId,
-                    s.LatestDiscussion.Title,
-                    s.LatestDiscussion.Slug,
-                    s.LatestDiscussion.LastActivityAt,
-                    s.LatestDiscussion.AuthorPublicId,
-                    s.LatestDiscussion.AuthorDisplayName,
-                    s.LatestDiscussion.AuthorAvatarFileName,
-                    s.LatestDiscussion.PostCount)
-                : null
-        )).ToList();
+        var items = spaces
+            .Take(pageSize)
+            .Select(s => new SpaceListItemDto(
+                s.PublicId,
+                s.HubPublicId,
+                s.Name,
+                s.Slug,
+                s.Description,
+                s.CreatedAt,
+                s.DiscussionCount,
+                s.ReplyCount,
+                s.LatestDiscussion is not null
+                    ? new LatestDiscussionDto(
+                        s.LatestDiscussion.PublicId,
+                        s.LatestDiscussion.Title,
+                        s.LatestDiscussion.Slug,
+                        s.LatestDiscussion.LastActivityAt,
+                        s.LatestDiscussion.AuthorPublicId,
+                        s.LatestDiscussion.AuthorDisplayName,
+                        s.LatestDiscussion.AuthorAvatarFileName,
+                        s.LatestDiscussion.PostCount)
+                    : null))
+            .ToList();
 
         return new PagedResult<SpaceListItemDto>
         {
@@ -296,10 +302,11 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         };
     }
 
-    public async Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize)
+    public async Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(
+        int page,
+        int pageSize)
     {
-        var query = _context.Discussions
-            .Where(d => !d.IsDeleted);
+        var query = _context.Discussions.Where(d => !d.IsDeleted);
 
         var totalCount = await query.CountAsync();
 
@@ -336,14 +343,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
+
         if (cursorData.HasValue)
         {
             var (cursorDate, cursorId) = cursorData.Value;
             // ORDER BY LastActivityAt DESC, Id DESC
             // Keyset: WHERE (LastActivityAt < cursorDate) OR (LastActivityAt = cursorDate AND Id < cursorId)
             query = query.Where(d =>
-                d.LastActivityAt < cursorDate ||
-                (d.LastActivityAt == cursorDate && d.Id < cursorId));
+                d.LastActivityAt < cursorDate
+                || (d.LastActivityAt == cursorDate && d.Id < cursorId));
         }
         else if (offset > 0)
         {
@@ -384,10 +392,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         // Generate next cursor from last item
         string? nextCursor = null;
+
         if (hasMoreItems && resultItems.Count > 0)
         {
             var lastItem = resultItems[^1];
@@ -403,5 +416,4 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             NextCursor = nextCursor
         };
     }
-
 }

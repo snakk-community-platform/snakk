@@ -6,7 +6,10 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages;
 
-public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class SearchModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -42,7 +45,12 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
     public UserProfileInfo? FilteredUser { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
 
-    public string BuildSearchUrl(string? query = null, string? authorPublicId = null, string? searchType = null, int offset = 0, string? dateRange = null)
+    public string BuildSearchUrl(
+        string? query = null,
+        string? authorPublicId = null,
+        string? searchType = null,
+        int offset = 0,
+        string? dateRange = null)
     {
         var parameters = new List<string>();
         var q = query ?? Q;
@@ -134,7 +142,7 @@ public class SearchModel(SnakkApiClient apiClient, IConfiguration configuration,
         }
 
         // Await filtered user task if active
-        if (filteredUserTask != null)
+        if (filteredUserTask is not null)
         {
             try { await filteredUserTask; } catch { }
         }

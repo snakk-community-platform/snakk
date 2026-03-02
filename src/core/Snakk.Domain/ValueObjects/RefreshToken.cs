@@ -7,7 +7,7 @@ public record RefreshToken
     public DateTime ExpiresAt { get; init; }
     public DateTime CreatedAt { get; init; }
     public string? RevokedAt { get; init; }
-    public bool IsRevoked => RevokedAt != null;
+    public bool IsRevoked => RevokedAt is not null;
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsActive => !IsRevoked && !IsExpired;
 
@@ -29,17 +29,12 @@ public record RefreshToken
             token,
             userId,
             DateTime.UtcNow.AddDays(expirationDays),
-            DateTime.UtcNow
-        );
+            DateTime.UtcNow);
     }
 
-    public static RefreshToken Rehydrate(string value, UserId userId, DateTime expiresAt, DateTime createdAt, string? revokedAt = null)
-    {
-        return new RefreshToken(value, userId, expiresAt, createdAt, revokedAt);
-    }
+    public static RefreshToken Rehydrate(string value, UserId userId, DateTime expiresAt, DateTime createdAt, string? revokedAt = null) =>
+        new(value, userId, expiresAt, createdAt, revokedAt);
 
-    public RefreshToken Revoke()
-    {
-        return this with { RevokedAt = DateTime.UtcNow.ToString("O") };
-    }
+    public RefreshToken Revoke() =>
+        this with { RevokedAt = DateTime.UtcNow.ToString("O") };
 }

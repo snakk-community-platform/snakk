@@ -29,6 +29,7 @@ public class DomainEventDispatcherTests
         {
             WasCalled = true;
             ReceivedEvent = domainEvent;
+
             return Task.CompletedTask;
         }
     }
@@ -171,7 +172,7 @@ public class DomainEventDispatcherTests
         var dispatcher = new DomainEventDispatcher(provider);
 
         // Act & Assert
-        var act = async () => await dispatcher.DispatchAsync(Enumerable.Empty<IDomainEvent>());
+        var act = async () => await dispatcher.DispatchAsync([]);
         await Assert.That(act).ThrowsNothing();
     }
 

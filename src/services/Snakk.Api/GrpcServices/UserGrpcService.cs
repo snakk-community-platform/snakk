@@ -16,7 +16,7 @@ public class UserGrpcService(
     {
         var profile = await userProfileUseCase.GetUserProfileAsync(request.PublicId);
 
-        if (profile == null)
+        if (profile is null)
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
         var response = new UserProfileInfo
@@ -28,7 +28,7 @@ public class UserGrpcService(
             PostCount = profile.PostCount
         };
 
-        if (profile.AvatarFileName != null)
+        if (profile.AvatarFileName is not null)
             response.AvatarFileName = profile.AvatarFileName;
 
         if (profile.LastSeenAt.HasValue)
@@ -43,6 +43,7 @@ public class UserGrpcService(
         var users = await userRepository.SearchByDisplayNameAsync(request.Query, request.Limit);
 
         var response = new UserSearchResults();
+
         foreach (var u in users)
         {
             response.Items.Add(new UserSearchResultItem

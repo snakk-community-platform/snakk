@@ -176,7 +176,9 @@ public static class SpaceEndpoints
         return Results.Ok(rules);
     }
 
-    private static async Task<IResult> GetSpaceStatsAsync(string publicId, StatisticsUseCase useCase)
+    private static async Task<IResult> GetSpaceStatsAsync(
+        string publicId,
+        StatisticsUseCase useCase)
     {
         var result = await useCase.GetSpaceStatsAsync(publicId);
 
@@ -184,6 +186,7 @@ public static class SpaceEndpoints
             return Results.NotFound();
 
         var stats = result.Value!;
+
         return TypedResults.Ok(new SpaceStatsResponse
         {
             PublicId = stats.PublicId,

@@ -37,7 +37,12 @@ public interface ICommunityContext
     /// <summary>
     /// Sets the current community context.
     /// </summary>
-    void SetCommunity(string slug, bool isDefault, bool isCustomDomain = false, string? name = null, bool isMultiCommunity = false);
+    void SetCommunity(
+        string slug,
+        bool isDefault,
+        bool isCustomDomain = false,
+        string? name = null,
+        bool isMultiCommunity = false);
 }
 
 /// <summary>
@@ -51,7 +56,12 @@ public class CommunityContext : ICommunityContext
     public bool IsCustomDomain { get; private set; }
     public bool IsMultiCommunityEnabled { get; private set; }
 
-    public void SetCommunity(string slug, bool isDefault, bool isCustomDomain = false, string? name = null, bool isMultiCommunity = false)
+    public void SetCommunity(
+        string slug,
+        bool isDefault,
+        bool isCustomDomain = false,
+        string? name = null,
+        bool isMultiCommunity = false)
     {
         CommunitySlug = slug;
         CommunityName = name;

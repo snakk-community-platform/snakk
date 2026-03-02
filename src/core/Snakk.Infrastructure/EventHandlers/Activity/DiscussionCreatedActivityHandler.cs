@@ -10,27 +10,22 @@ public class DiscussionCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<DiscussionCreatedEvent>
 {
-    private readonly IActivityBroadcaster _activityBroadcaster = activityBroadcaster;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(DiscussionCreatedEvent @event)
     {
-        var data = await _context.Discussions
+        var data = await context.Discussions
             .Where(d => d.PublicId == @event.DiscussionId.Value)
-            .Select(d => new
-            {
+            .Select(d => new {
                 Username = d.CreatedByUser.DisplayName,
-                Title = d.Title,
+                d.Title,
                 CommunityName = d.Space.Hub.Community.Name,
                 HubName = d.Space.Hub.Name,
-                SpaceName = d.Space.Name
-            })
+                SpaceName = d.Space.Name })
             .FirstOrDefaultAsync();
 
-        if (data == null)
+        if (data is null)
             return;
 
-        await _activityBroadcaster.BroadcastDiscussionCreated(
+        await activityBroadcaster.BroadcastDiscussionCreated(
             @event.CreatedByUserId.Value,
             data.Username,
             @event.DiscussionId.Value,

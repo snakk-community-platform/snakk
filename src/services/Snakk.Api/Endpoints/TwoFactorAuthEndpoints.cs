@@ -58,14 +58,18 @@ public static class TwoFactorAuthEndpoints
         ITwoFactorAuthService twoFactorService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         try
         {
             var setup = await twoFactorService.SetupTwoFactorAsync(userIdClaim.Value);
 
-            return TypedResults.Ok(new TwoFactorSetupResponse(setup.Secret, setup.QrCodeUrl, "Scan the QR code with your authenticator app, then verify with a code to enable 2FA"));
+            return TypedResults.Ok(new TwoFactorSetupResponse(
+                setup.Secret,
+                setup.QrCodeUrl,
+                "Scan the QR code with your authenticator app, then verify with a code to enable 2FA"));
         }
         catch (InvalidOperationException ex)
         {
@@ -79,7 +83,8 @@ public static class TwoFactorAuthEndpoints
         ITwoFactorAuthService twoFactorService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var (success, backupCodes, error) = await twoFactorService.EnableTwoFactorAsync(userIdClaim.Value, request.Code);
@@ -87,7 +92,10 @@ public static class TwoFactorAuthEndpoints
         if (!success)
             return Results.BadRequest(new { error });
 
-        return TypedResults.Ok(new TwoFactorEnableResponse("2FA enabled successfully", backupCodes, "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
+        return TypedResults.Ok(new TwoFactorEnableResponse(
+            "2FA enabled successfully",
+            backupCodes,
+            "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
     }
 
     private static async Task<IResult> DisableTwoFactorAsync(
@@ -96,7 +104,8 @@ public static class TwoFactorAuthEndpoints
         ITwoFactorAuthService twoFactorService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, request.Password);
@@ -123,10 +132,10 @@ public static class TwoFactorAuthEndpoints
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-        if (user == null || !user.TwoFactorEnabled)
+        if (user is null || !user.TwoFactorEnabled)
             return Results.BadRequest(new { error = "Invalid request" });
 
-        bool isValid = false;
+        var isValid = false;
 
         // Try TOTP code first
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
@@ -137,7 +146,10 @@ public static class TwoFactorAuthEndpoints
         // If TOTP fails, try backup codes
         if (!isValid)
         {
-            var unusedBackupCodes = user.BackupCodes.Where(bc => !bc.IsUsed).ToList();
+            var unusedBackupCodes = user.BackupCodes
+                .Where(bc => !bc.IsUsed)
+                .ToList();
+
             foreach (var backupCode in unusedBackupCodes)
             {
                 if (totpService.VerifyBackupCode(request.Code, backupCode.CodeHash))
@@ -158,7 +170,10 @@ public static class TwoFactorAuthEndpoints
             return Results.BadRequest(new { error = "Invalid 2FA code" });
 
         // Generate tokens with 2FA verified claim
-        var roles = user.Roles.Select(r => ((Snakk.Shared.Enums.UserRoleTypeEnum)r.RoleId).ToString()).ToList();
+        var roles = user.Roles
+            .Select(r => ((Snakk.Shared.Enums.UserRoleTypeEnum)r.RoleId).ToString())
+            .ToList();
+
         var appUser = new Application.Services.TokenUser
         {
             PublicId = user.PublicId,
@@ -201,9 +216,12 @@ public static class TwoFactorAuthEndpoints
             Expires = DateTimeOffset.UtcNow.AddDays(90)
         });
 
-        var isDeviceTrusted = await trustedDeviceService.IsDeviceTrustedAsync(UserId.From(user.PublicId), deviceFingerprint);
+        var isDeviceTrusted = await trustedDeviceService.IsDeviceTrustedAsync(
+            UserId.From(user.PublicId),
+            deviceFingerprint);
 
-        return TypedResults.Ok(new TwoFactorVerifyResponse("2FA verified successfully", accessToken, !isDeviceTrusted, deviceFingerprint, deviceName));
+        return TypedResults.Ok(new TwoFactorVerifyResponse(
+            "2FA verified successfully", accessToken, !isDeviceTrusted, deviceFingerprint, deviceName));
     }
 
     private static async Task<IResult> GetBackupCodesAsync(
@@ -211,14 +229,16 @@ public static class TwoFactorAuthEndpoints
         ITwoFactorAuthService twoFactorService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         try
         {
             var status = await twoFactorService.GetBackupCodesStatusAsync(userIdClaim.Value);
 
-            return TypedResults.Ok(new BackupCodesStatusResponse(status.TotalCount, status.TotalCount - status.UsedCount, status.Codes));
+            return TypedResults.Ok(new BackupCodesStatusResponse(
+                status.TotalCount, status.TotalCount - status.UsedCount, status.Codes));
         }
         catch (InvalidOperationException ex)
         {
@@ -232,14 +252,18 @@ public static class TwoFactorAuthEndpoints
         ITwoFactorAuthService twoFactorService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         try
         {
             var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, request.Password);
 
-            return TypedResults.Ok(new RegenerateBackupCodesResponse("Backup codes regenerated successfully", backupCodes, "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
+            return TypedResults.Ok(new RegenerateBackupCodesResponse(
+                "Backup codes regenerated successfully",
+                backupCodes,
+                "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
         }
         catch (InvalidOperationException ex)
         {
@@ -253,7 +277,8 @@ public static class TwoFactorAuthEndpoints
         ITrustedDeviceService trustedDeviceService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
@@ -273,7 +298,9 @@ public static class TwoFactorAuthEndpoints
 
         await trustedDeviceService.TrustDeviceAsync(userId, deviceFingerprint, deviceName, ipAddress, expirationDays);
 
-        return TypedResults.Ok(new TrustDeviceResponse("Device trusted successfully", expirationDays.HasValue ? $"{expirationDays} days" : "never"));
+        return TypedResults.Ok(new TrustDeviceResponse(
+            "Device trusted successfully",
+            expirationDays.HasValue ? $"{expirationDays} days" : "never"));
     }
 
     private static async Task<IResult> GetTrustedDevicesAsync(
@@ -281,7 +308,8 @@ public static class TwoFactorAuthEndpoints
         ITrustedDeviceService trustedDeviceService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
@@ -296,7 +324,8 @@ public static class TwoFactorAuthEndpoints
         ITrustedDeviceService trustedDeviceService)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         await trustedDeviceService.RevokeDeviceAsync(deviceId, "User requested revocation");

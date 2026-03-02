@@ -24,10 +24,10 @@ public static class AvatarHelper
     public static string GetAvatarPath(string publicId, AvatarEntityType entityType, int revision = 0)
     {
         Span<byte> utf8 = stackalloc byte[64];
-        int len = Encoding.UTF8.GetBytes(publicId, utf8);
+        var len = Encoding.UTF8.GetBytes(publicId, utf8);
 
-        uint hash = XxHash32.HashToUInt32(utf8.Slice(0, len));
-        byte shard = (byte)hash;
+        var hash = XxHash32.HashToUInt32(utf8.Slice(0, len));
+        var shard = (byte)hash;
 
         var fileName = revision == 0
             ? $"{publicId}.svg"
@@ -44,6 +44,7 @@ public static class AvatarHelper
     {
         var avatarPath = GetAvatarPath(publicId, entityType, revision);
         var entityFolder = GetEntityFolder(entityType);
+
         return $"avatars/generated/{entityFolder}/{avatarPath}";
     }
 
@@ -55,6 +56,7 @@ public static class AvatarHelper
     {
         var avatarPath = GetAvatarPath(publicId, entityType, revision);
         var entityFolder = GetEntityFolder(entityType);
+
         return $"/avatars/generated/{entityFolder}/{avatarPath}";
     }
 
@@ -64,10 +66,10 @@ public static class AvatarHelper
     public static string GetShardFolder(string publicId)
     {
         Span<byte> utf8 = stackalloc byte[64];
-        int len = Encoding.UTF8.GetBytes(publicId, utf8);
+        var len = Encoding.UTF8.GetBytes(publicId, utf8);
 
-        uint hash = XxHash32.HashToUInt32(utf8.Slice(0, len));
-        byte shard = (byte)hash;
+        var hash = XxHash32.HashToUInt32(utf8.Slice(0, len));
+        var shard = (byte)hash;
 
         return $"{shard:x2}";
     }

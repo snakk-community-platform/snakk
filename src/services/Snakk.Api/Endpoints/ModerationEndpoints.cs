@@ -95,7 +95,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var assignerUserId = GetUserId(httpContext);
-        if (assignerUserId == null)
+
+        if (assignerUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.AssignRoleAsync(
@@ -109,7 +110,9 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return TypedResults.Created($"/moderation/roles/{result.Value!.PublicId}", new RoleAssignedResponse(result.Value.PublicId, result.Value.Role, result.Value.AssignedAt));
+        return TypedResults.Created(
+            $"/moderation/roles/{result.Value!.PublicId}",
+            new RoleAssignedResponse(result.Value.PublicId, result.Value.Role, result.Value.AssignedAt));
     }
 
     private static async Task<IResult> RevokeRoleAsync(
@@ -118,7 +121,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var revokerUserId = GetUserId(httpContext);
-        if (revokerUserId == null)
+
+        if (revokerUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.RevokeRoleAsync(roleId, revokerUserId);
@@ -135,7 +139,16 @@ public static class ModerationEndpoints
     {
         var roles = await moderationUseCase.GetUserRolesAsync(userId);
 
-        return TypedResults.Ok(new UserRolesResponse(roles.Select(r => new UserRoleItemResponse(r.PublicId, r.Role, r.CommunityPublicId, r.CommunityName, r.HubPublicId, r.HubName, r.SpacePublicId, r.SpaceName, r.AssignedAt))));
+        return TypedResults.Ok(new UserRolesResponse(roles.Select(r => new UserRoleItemResponse(
+            r.PublicId,
+            r.Role,
+            r.CommunityPublicId,
+            r.CommunityName,
+            r.HubPublicId,
+            r.HubName,
+            r.SpacePublicId,
+            r.SpaceName,
+            r.AssignedAt))));
     }
 
     // ==================== Ban Management ====================
@@ -146,7 +159,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var bannerUserId = GetUserId(httpContext);
-        if (bannerUserId == null)
+
+        if (bannerUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.BanUserAsync(
@@ -162,7 +176,9 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return TypedResults.Created($"/moderation/bans/{result.Value!.PublicId}", new BanCreatedResponse(result.Value.PublicId, result.Value.BanType, result.Value.BannedAt, result.Value.ExpiresAt));
+        return TypedResults.Created(
+            $"/moderation/bans/{result.Value!.PublicId}",
+            new BanCreatedResponse(result.Value.PublicId, result.Value.BanType, result.Value.BannedAt, result.Value.ExpiresAt));
     }
 
     private static async Task<IResult> UnbanUserAsync(
@@ -171,7 +187,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var unbannerUserId = GetUserId(httpContext);
-        if (unbannerUserId == null)
+
+        if (unbannerUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.UnbanUserAsync(banId, unbannerUserId);
@@ -199,7 +216,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var reporterUserId = GetUserId(httpContext);
-        if (reporterUserId == null)
+
+        if (reporterUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.CreateReportAsync(
@@ -213,7 +231,9 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return TypedResults.Created($"/moderation/reports/{result.Value!.PublicId}", new ReportCreatedResponse(result.Value.PublicId, result.Value.Status, result.Value.CreatedAt));
+        return TypedResults.Created(
+            $"/moderation/reports/{result.Value!.PublicId}",
+            new ReportCreatedResponse(result.Value.PublicId, result.Value.Status, result.Value.CreatedAt));
     }
 
     private static async Task<IResult> GetReportsAsync(
@@ -224,29 +244,31 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         // Clamp pagination parameters
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
-
         var statusId = ParseReportStatus(status);
 
         var result = await moderationUseCase.GetReportsForModeratorAsync(
             moderatorUserId, statusId, offset, pageSize);
 
-        return TypedResults.Ok(new PagedResponse<object>(result.Items, result.Offset, result.PageSize, result.HasMoreItems));
+        return TypedResults.Ok(new PagedResponse<object>(
+            result.Items,
+            result.Offset,
+            result.PageSize,
+            result.HasMoreItems));
     }
 
     private static async Task<IResult> GetReportAsync(
         string reportId,
         HttpContext httpContext,
-        ModerationUseCase moderationUseCase)
-    {
+        ModerationUseCase moderationUseCase) =>
         // TODO: Implement GetReportByIdAsync in use case
-        return Results.NotFound();
-    }
+        Results.NotFound();
 
     private static async Task<IResult> ResolveReportAsync(
         string reportId,
@@ -255,7 +277,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var resolverUserId = GetUserId(httpContext);
-        if (resolverUserId == null)
+
+        if (resolverUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ResolveReportAsync(
@@ -274,7 +297,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var resolverUserId = GetUserId(httpContext);
-        if (resolverUserId == null)
+
+        if (resolverUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ResolveReportAsync(
@@ -293,7 +317,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var authorUserId = GetUserId(httpContext);
-        if (authorUserId == null)
+
+        if (authorUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.AddReportCommentAsync(
@@ -302,7 +327,9 @@ public static class ModerationEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return TypedResults.Created($"/moderation/reports/{reportId}/comments/{result.Value!.PublicId}", new ReportCommentCreatedResponse(result.Value.PublicId, result.Value.Content, result.Value.CreatedAt));
+        return TypedResults.Created(
+            $"/moderation/reports/{reportId}/comments/{result.Value!.PublicId}",
+            new ReportCommentCreatedResponse(result.Value.PublicId, result.Value.Content, result.Value.CreatedAt));
     }
 
     private static async Task<IResult> GetReportReasonsAsync(
@@ -311,7 +338,8 @@ public static class ModerationEndpoints
     {
         var reasons = await moderationUseCase.GetReportReasonsAsync(spaceId);
 
-        return TypedResults.Ok(new ReportReasonsResponse(reasons.Select(r => new ReportReasonResponse(r.PublicId, r.Name, r.Description))));
+        return TypedResults.Ok(new ReportReasonsResponse(reasons.Select(r =>
+            new ReportReasonResponse(r.PublicId, r.Name, r.Description))));
     }
 
     // ==================== Content Moderation ====================
@@ -323,7 +351,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ModeratorDeletePostAsync(
@@ -342,7 +371,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ModeratorDeleteDiscussionAsync(
@@ -361,7 +391,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.LockDiscussionAsync(
@@ -379,7 +410,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.UnlockDiscussionAsync(
@@ -403,7 +435,8 @@ public static class ModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var moderatorUserId = GetUserId(httpContext);
-        if (moderatorUserId == null)
+
+        if (moderatorUserId is null)
             return Results.Unauthorized();
 
         // Clamp pagination parameters
@@ -414,7 +447,11 @@ public static class ModerationEndpoints
         var result = await moderationUseCase.GetModerationLogAsync(
             communityId, hubId, spaceId, offset, pageSize);
 
-        return TypedResults.Ok(new PagedResponse<object>(result.Items, result.Offset, result.PageSize, result.HasMoreItems));
+        return TypedResults.Ok(new PagedResponse<object>(
+            result.Items,
+            result.Offset,
+            result.PageSize,
+            result.HasMoreItems));
     }
 
     // ==================== Helpers ====================

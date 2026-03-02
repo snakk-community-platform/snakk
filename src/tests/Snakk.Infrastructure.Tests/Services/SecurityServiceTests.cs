@@ -120,7 +120,7 @@ public class SecurityServiceTests : IDisposable
     public async Task GetAuditLogsAsync_ReturnsPagedResults()
     {
         // Arrange - create 60 logs
-        for (int i = 0; i < 60; i++)
+        for (var i = 0; i < 60; i++)
         {
             _context.AuditLogs.Add(new AuditLogDatabaseEntity
             {
@@ -205,7 +205,7 @@ public class SecurityServiceTests : IDisposable
     [Test]
     public async Task GetAuditLogsAsync_OrdersByCreatedAtDescending()
     {
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             _context.AuditLogs.Add(new AuditLogDatabaseEntity
             {

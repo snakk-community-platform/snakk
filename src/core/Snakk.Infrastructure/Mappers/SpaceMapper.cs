@@ -6,9 +6,8 @@ using Snakk.Domain.ValueObjects;
 
 public static class SpaceMapper
 {
-    public static Space FromPersistence(this SpaceDatabaseEntity entity)
-    {
-        return Space.Rehydrate(
+    public static Space FromPersistence(this SpaceDatabaseEntity entity) =>
+        Space.Rehydrate(
             SpaceId.From(entity.PublicId),
             HubId.From(entity.Hub.PublicId),
             entity.Name,
@@ -19,11 +18,9 @@ public static class SpaceMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             discussions: []);
-    }
 
-    public static SpaceDatabaseEntity ToPersistence(this Space space)
-    {
-        return new SpaceDatabaseEntity
+    public static SpaceDatabaseEntity ToPersistence(this Space space) =>
+        new()
         {
             PublicId = space.PublicId,
             Name = space.Name,
@@ -35,5 +32,4 @@ public static class SpaceMapper
             LastModifiedAt = space.LastModifiedAt
             // HubId will be set by repository adapter
         };
-    }
 }

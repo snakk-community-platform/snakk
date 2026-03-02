@@ -40,7 +40,7 @@ public class GrpcAuthInterceptor : Interceptor
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
+        if (httpContext is null)
             return continuation(request, context);
 
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
@@ -57,16 +57,14 @@ public class GrpcAuthInterceptor : Interceptor
             // We need to refresh synchronously-ish here. Use blocking wait since gRPC
             // interceptors don't have a clean async pattern for modifying headers.
             var refreshResult = RefreshTokensAsync(refreshToken, httpContext).GetAwaiter().GetResult();
-            if (refreshResult != null)
+            if (refreshResult is not null)
             {
                 accessToken = refreshResult.AccessToken;
                 AuthCookieHelper.SetAuthCookies(httpContext, refreshResult.AccessToken, refreshResult.RefreshToken);
                 _logger.LogDebug("Access token auto-refreshed via gRPC interceptor");
             }
             else
-            {
                 _logger.LogWarning("Token auto-refresh failed in gRPC interceptor");
-            }
         }
 
         if (!string.IsNullOrEmpty(accessToken))
@@ -93,6 +91,7 @@ public class GrpcAuthInterceptor : Interceptor
         {
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.ReadJwtToken(token);
+
             return jwt.ValidTo <= DateTime.UtcNow.AddSeconds(30);
         }
         catch

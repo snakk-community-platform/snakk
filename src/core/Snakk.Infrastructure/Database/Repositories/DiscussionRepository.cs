@@ -8,65 +8,45 @@ using Snakk.Shared.Models;
 public class DiscussionRepository(SnakkDbContext context)
     : GenericDatabaseRepository<DiscussionDatabaseEntity>(context), IDiscussionRepository
 {
-    public override async Task<DiscussionDatabaseEntity?> GetByIdAsync(int id)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(d => d.Id == id);
-    }
+    public override async Task<DiscussionDatabaseEntity?> GetByIdAsync(int id) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.Id == id);
 
-    public async Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId)
-    {
-        return await _dbSet
-            .AsTracking()
-            .Include(d => d.Space)
-            .Include(d => d.CreatedByUser)
-            .FirstOrDefaultAsync(d => d.PublicId == publicId);
-    }
+    public async Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+        .AsTracking()
+        .Include(d => d.Space)
+        .Include(d => d.CreatedByUser)
+        .FirstOrDefaultAsync(d => d.PublicId == publicId);
 
-    public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
+    public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync() =>
+        await _dbSet.ToListAsync();
 
-    public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId)
-    {
-        return await _dbSet
-            .Where(d => d.PublicId == publicId)
-            .Select(d => new DiscussionDetailDto(
-                d.PublicId,
-                d.Title,
-                d.Slug,
-                d.CreatedAt,
-                d.LastActivityAt,
-                d.IsPinned,
-                d.IsLocked,
-                d.Space.PublicId,
-                d.Space.Name,
-                d.CreatedByUser.PublicId,
-                d.CreatedByUser.DisplayName))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+        .Where(d => d.PublicId == publicId)
+        .Select(d => new DiscussionDetailDto(
+            d.PublicId,
+            d.Title,
+            d.Slug,
+            d.CreatedAt,
+            d.LastActivityAt,
+            d.IsPinned,
+            d.IsLocked,
+            d.Space.PublicId,
+            d.Space.Name,
+            d.CreatedByUser.PublicId,
+            d.CreatedByUser.DisplayName))
+        .FirstOrDefaultAsync();
 
-    public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(d => d.PublicId == publicId);
-    }
+    public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.PublicId == publicId);
 
-    public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(d => d.Slug == slug);
-    }
+    public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.Slug == slug);
 
-    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId)
-    {
-        return await _dbSet
-            .Where(d => d.SpaceId == spaceId)
-            .OrderByDescending(d => d.IsPinned)
-            .ThenByDescending(d => d.LastActivityAt)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId) => await _dbSet
+        .Where(d => d.SpaceId == spaceId)
+        .OrderByDescending(d => d.IsPinned)
+        .ThenByDescending(d => d.LastActivityAt)
+        .ToListAsync();
 
     public async Task<PagedResult<DiscussionListDto>> GetPagedBySpaceIdAsync(
         int spaceId,
@@ -74,20 +54,20 @@ public class DiscussionRepository(SnakkDbContext context)
         int pageSize,
         string? cursor = null)
     {
-        var query = _dbSet
-            .Where(d => d.SpaceId == spaceId);
+        var query = _dbSet.Where(d => d.SpaceId == spaceId);
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
+
         if (cursorData.HasValue)
         {
             var (cursorDate, cursorId) = cursorData.Value;
             // For space feed: ORDER BY IsPinned DESC, LastActivityAt DESC, Id DESC
             // Keyset: WHERE (LastActivityAt < cursorDate) OR (LastActivityAt = cursorDate AND Id < cursorId)
             // Note: Pinned items are tricky - we assume cursor is within non-pinned for simplicity
-            query = query.Where(d => 
-                d.LastActivityAt < cursorDate || 
-                (d.LastActivityAt == cursorDate && d.Id < cursorId));
+            query = query.Where(d =>
+                d.LastActivityAt < cursorDate
+                || (d.LastActivityAt == cursorDate && d.Id < cursorId));
         }
         else if (offset > 0)
         {
@@ -100,7 +80,7 @@ public class DiscussionRepository(SnakkDbContext context)
             .ThenByDescending(d => d.LastActivityAt)
             .ThenByDescending(d => d.Id)
             .Take(pageSize + 1)
-            .Select(d => new { 
+            .Select(d => new {
                 d.Id,
                 Dto = new DiscussionListDto(
                     d.PublicId,
@@ -119,10 +99,15 @@ public class DiscussionRepository(SnakkDbContext context)
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         // Generate next cursor from last item
         string? nextCursor = null;
+
         if (hasMoreItems && resultItems.Count > 0)
         {
             var lastItem = resultItems[^1];
@@ -139,38 +124,34 @@ public class DiscussionRepository(SnakkDbContext context)
         };
     }
 
-    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count)
-    {
-        return await _dbSet
-            .OrderByDescending(d => d.LastActivityAt)
-            .Take(count)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count) => await _dbSet
+        .OrderByDescending(d => d.LastActivityAt)
+        .Take(count)
+        .ToListAsync();
 
     public async Task<PagedResult<RecentDiscussionDto>> GetRecentWithDetailsAsync(
-        int offset, 
-        int pageSize, 
-        string? communityId = null, 
+        int offset,
+        int pageSize,
+        string? communityId = null,
         string? cursor = null)
     {
         var query = _dbSet.AsQueryable();
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))
-        {
             query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
-        }
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
+
         if (cursorData.HasValue)
         {
             var (cursorDate, cursorId) = cursorData.Value;
             // ORDER BY LastActivityAt DESC, Id DESC
             // Keyset: WHERE (LastActivityAt < cursorDate) OR (LastActivityAt = cursorDate AND Id < cursorId)
-            query = query.Where(d => 
-                d.LastActivityAt < cursorDate || 
-                (d.LastActivityAt == cursorDate && d.Id < cursorId));
+            query = query.Where(d =>
+                d.LastActivityAt < cursorDate
+                || (d.LastActivityAt == cursorDate && d.Id < cursorId));
         }
         else if (offset > 0)
         {
@@ -211,10 +192,15 @@ public class DiscussionRepository(SnakkDbContext context)
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         // Generate next cursor from last item
         string? nextCursor = null;
+
         if (hasMoreItems && resultItems.Count > 0)
         {
             var lastItem = resultItems[^1];

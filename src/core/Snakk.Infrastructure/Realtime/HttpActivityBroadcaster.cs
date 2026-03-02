@@ -8,21 +8,21 @@ namespace Snakk.Infrastructure.Realtime;
 /// HTTP-based implementation of IActivityBroadcaster for admin panel activity feed
 /// Posts events to dedicated Snakk.Realtime microservice
 /// </summary>
-public class HttpActivityBroadcaster : IActivityBroadcaster
+public class HttpActivityBroadcaster(
+    IHttpClientFactory httpClientFactory,
+    ILogger<HttpActivityBroadcaster> logger) : IActivityBroadcaster
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<HttpActivityBroadcaster> _logger;
+    private readonly HttpClient _httpClient = httpClientFactory.CreateClient("ActivityBroadcaster");
 
-    public HttpActivityBroadcaster(
-        IHttpClientFactory httpClientFactory,
-        ILogger<HttpActivityBroadcaster> logger)
-    {
-        _httpClient = httpClientFactory.CreateClient("ActivityBroadcaster");
-        _logger = logger;
-    }
-
-    public async Task BroadcastPostCreated(string userId, string username, string postId, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName)
-    {
+    public async Task BroadcastPostCreated(
+        string userId,
+        string username,
+        string postId,
+        string discussionId,
+        string discussionTitle,
+        string? communityName,
+        string? hubName,
+        string? spaceName) =>
         await BroadcastActivityAsync("post-created", new
         {
             userId,
@@ -35,10 +35,15 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             spaceName,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastDiscussionCreated(string userId, string username, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName)
-    {
+    public async Task BroadcastDiscussionCreated(
+        string userId,
+        string username,
+        string discussionId,
+        string discussionTitle,
+        string? communityName,
+        string? hubName,
+        string? spaceName) =>
         await BroadcastActivityAsync("discussion-created", new
         {
             userId,
@@ -50,10 +55,14 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             spaceName,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastReactionAdded(string userId, string username, string reactionType, string targetType, string targetId, string? targetTitle)
-    {
+    public async Task BroadcastReactionAdded(
+        string userId,
+        string username,
+        string reactionType,
+        string targetType,
+        string targetId,
+        string? targetTitle) =>
         await BroadcastActivityAsync("reaction-added", new
         {
             userId,
@@ -64,10 +73,13 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             targetTitle,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastFollowAdded(string userId, string username, string targetType, string targetId, string? targetName)
-    {
+    public async Task BroadcastFollowAdded(
+        string userId,
+        string username,
+        string targetType,
+        string targetId,
+        string? targetName) =>
         await BroadcastActivityAsync("follow-added", new
         {
             userId,
@@ -77,10 +89,8 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             targetName,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserRegistered(string userId, string username, string email)
-    {
+    public async Task BroadcastUserRegistered(string userId, string username, string email) =>
         await BroadcastActivityAsync("user-registered", new
         {
             userId,
@@ -88,10 +98,15 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             email,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastModerationAction(string moderatorId, string moderatorName, string action, string targetType, string? targetId, string? targetName, string? reason)
-    {
+    public async Task BroadcastModerationAction(
+        string moderatorId,
+        string moderatorName,
+        string action,
+        string targetType,
+        string? targetId,
+        string? targetName,
+        string? reason) =>
         await BroadcastActivityAsync("moderation-action", new
         {
             moderatorId,
@@ -103,10 +118,13 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             reason,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserBanned(string moderatorId, string moderatorName, string userId, string username, string reason)
-    {
+    public async Task BroadcastUserBanned(
+        string moderatorId,
+        string moderatorName,
+        string userId,
+        string username,
+        string reason) =>
         await BroadcastActivityAsync("user-banned", new
         {
             moderatorId,
@@ -116,10 +134,12 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             reason,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserUnbanned(string moderatorId, string moderatorName, string userId, string username)
-    {
+    public async Task BroadcastUserUnbanned(
+        string moderatorId,
+        string moderatorName,
+        string userId,
+        string username) =>
         await BroadcastActivityAsync("user-unbanned", new
         {
             moderatorId,
@@ -128,10 +148,13 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             username,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastContentDeleted(string moderatorId, string moderatorName, string contentType, string contentId, string? reason)
-    {
+    public async Task BroadcastContentDeleted(
+        string moderatorId,
+        string moderatorName,
+        string contentType,
+        string contentId,
+        string? reason) =>
         await BroadcastActivityAsync("content-deleted", new
         {
             moderatorId,
@@ -141,7 +164,6 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
             reason,
             timestamp = DateTime.UtcNow
         });
-    }
 
     private async Task BroadcastActivityAsync(string activityType, object data)
     {
@@ -156,7 +178,7 @@ public class HttpActivityBroadcaster : IActivityBroadcaster
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast activity: {ActivityType}", activityType);
+            logger.LogWarning(ex, "Failed to broadcast activity: {ActivityType}", activityType);
         }
     }
 }

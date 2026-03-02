@@ -5,15 +5,8 @@ using Snakk.Application.Services;
 using System.Security.Cryptography;
 using System.Text;
 
-public class TotpService : ITotpService
+public class TotpService(IPasswordHasher passwordHasher) : ITotpService
 {
-    private readonly IPasswordHasher _passwordHasher;
-
-    public TotpService(IPasswordHasher passwordHasher)
-    {
-        _passwordHasher = passwordHasher;
-    }
-
     public string GenerateSecret()
     {
         // Generate 20-byte (160-bit) secret for TOTP
@@ -38,10 +31,12 @@ public class TotpService : ITotpService
 
             // Try current time + window
             var now = DateTime.UtcNow;
-            for (int i = -window; i <= window; i++)
+
+            for (var i = -window; i <= window; i++)
             {
                 var testTime = now.AddSeconds(i * 30);
                 var expectedCode = totp.ComputeTotp(testTime);
+
                 if (expectedCode == code)
                     return true;
             }
@@ -57,24 +52,22 @@ public class TotpService : ITotpService
     public List<string> GenerateBackupCodes(int count = 10)
     {
         var codes = new List<string>();
-        for (int i = 0; i < count; i++)
+
+        for (var i = 0; i < count; i++)
         {
             // Generate 8-character alphanumeric code
             var code = GenerateRandomCode(8);
             codes.Add(code);
         }
+
         return codes;
     }
 
-    public string HashBackupCode(string code)
-    {
-        return _passwordHasher.HashPassword(code);
-    }
+    public string HashBackupCode(string code) =>
+        passwordHasher.HashPassword(code);
 
-    public bool VerifyBackupCode(string code, string hash)
-    {
-        return _passwordHasher.VerifyPassword(code, hash);
-    }
+    public bool VerifyBackupCode(string code, string hash) =>
+        passwordHasher.VerifyPassword(code, hash);
 
     private string GenerateRandomCode(int length)
     {
@@ -85,7 +78,7 @@ public class TotpService : ITotpService
         var buffer = new byte[length];
         rng.GetBytes(buffer);
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             result.Append(chars[buffer[i] % chars.Length]);
         }

@@ -86,7 +86,7 @@ public class SpaceRepositoryIntegrationTests : IDisposable
         var result = (await _repository.GetAllAsync()).ToList();
 
         await Assert.That(result.Count).IsEqualTo(3);
-        await Assert.That(result.All(s => s.Hub != null)).IsTrue();
+        await Assert.That(result.All(s => s.Hub is not null)).IsTrue();
         await Assert.That(result.All(s => s.Hub.Id == hub.Id)).IsTrue();
     }
 

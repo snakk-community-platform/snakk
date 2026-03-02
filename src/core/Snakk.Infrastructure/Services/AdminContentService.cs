@@ -7,59 +7,52 @@ using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
-public class AdminContentService : IAdminContentService
+public class AdminContentService(
+    SnakkDbContext context,
+    IMemoryCache cache,
+    ISecurityService securityService,
+    ILogger<AdminContentService> logger) : IAdminContentService
 {
-    private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
-    private readonly ISecurityService _securityService;
-    private readonly ILogger<AdminContentService> _logger;
-
-    public AdminContentService(
-        SnakkDbContext context,
-        IMemoryCache cache,
-        ISecurityService securityService,
-        ILogger<AdminContentService> logger)
-    {
-        _context = context;
-        _cache = cache;
-        _securityService = securityService;
-        _logger = logger;
-    }
-
     public async Task<ContentOverviewDto> GetContentOverviewAsync()
     {
         // Try cache first
         var cacheKey = "admin_content_overview";
-        if (_cache.TryGetValue<ContentOverviewDto>(cacheKey, out var cachedOverview))
+
+        if (cache.TryGetValue<ContentOverviewDto>(cacheKey, out var cachedOverview))
             return cachedOverview!;
 
         var overview = new ContentOverviewDto
         {
-            TotalCommunities = await _context.Communities.CountAsync(),
-            TotalHubs = await _context.Hubs.CountAsync(),
-            TotalSpaces = await _context.Spaces.CountAsync(),
-            TotalDiscussions = await _context.Discussions.CountAsync(),
-            TotalPosts = await _context.Posts.CountAsync()
+            TotalCommunities = await context.Communities.CountAsync(),
+            TotalHubs = await context.Hubs.CountAsync(),
+            TotalSpaces = await context.Spaces.CountAsync(),
+            TotalDiscussions = await context.Discussions.CountAsync(),
+            TotalPosts = await context.Posts.CountAsync()
         };
 
         // Cache for 5 minutes
-        _cache.Set(cacheKey, overview, TimeSpan.FromMinutes(5));
+        cache.Set(cacheKey, overview, TimeSpan.FromMinutes(5));
 
         return overview;
     }
 
-    public async Task<PaginatedResponse<AdminCommunityDto>> GetCommunitiesAsync(int page, int pageSize, string? search)
+    public async Task<PaginatedResponse<AdminCommunityDto>> GetCommunitiesAsync(
+        int page,
+        int pageSize,
+        string? search)
     {
         var offset = (page - 1) * pageSize;
-
-        var query = _context.Communities.AsQueryable();
+        var query = context.Communities.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(c => c.Name.Contains(search) || c.Slug.Contains(search));
+            query = query.Where(c =>
+                c.Name.Contains(search)
+                || c.Slug.Contains(search));
         }
 
         var total = await query.CountAsync();
+
         var communities = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip(offset)
@@ -84,12 +77,14 @@ public class AdminContentService : IAdminContentService
         };
     }
 
-    public async Task<PaginatedResponse<AdminHubDto>> GetHubsAsync(int page, int pageSize, string? search, string? communityId)
+    public async Task<PaginatedResponse<AdminHubDto>> GetHubsAsync(
+        int page,
+        int pageSize,
+        string? search,
+        string? communityId)
     {
         var offset = (page - 1) * pageSize;
-
-        var query = _context.Hubs
-            .AsQueryable();
+        var query = context.Hubs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(communityId))
         {
@@ -98,10 +93,13 @@ public class AdminContentService : IAdminContentService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(h => h.Name.Contains(search) || h.Slug.Contains(search));
+            query = query.Where(h =>
+                h.Name.Contains(search)
+                || h.Slug.Contains(search));
         }
 
         var total = await query.CountAsync();
+
         var hubs = await query
             .OrderByDescending(h => h.CreatedAt)
             .Skip(offset)
@@ -127,12 +125,14 @@ public class AdminContentService : IAdminContentService
         };
     }
 
-    public async Task<PaginatedResponse<AdminSpaceDto>> GetSpacesAsync(int page, int pageSize, string? search, string? hubId)
+    public async Task<PaginatedResponse<AdminSpaceDto>> GetSpacesAsync(
+        int page,
+        int pageSize,
+        string? search,
+        string? hubId)
     {
         var offset = (page - 1) * pageSize;
-
-        var query = _context.Spaces
-            .AsQueryable();
+        var query = context.Spaces.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(hubId))
         {
@@ -141,10 +141,13 @@ public class AdminContentService : IAdminContentService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
+            query = query.Where(s =>
+                s.Name.Contains(search)
+                || s.Slug.Contains(search));
         }
 
         var total = await query.CountAsync();
+
         var spaces = await query
             .OrderByDescending(s => s.CreatedAt)
             .Skip(offset)
@@ -171,12 +174,16 @@ public class AdminContentService : IAdminContentService
         };
     }
 
-    public async Task<PaginatedResponse<AdminDiscussionDto>> GetDiscussionsAsync(int page, int pageSize, string? search, string? spaceId, bool? isPinned, bool? isLocked)
+    public async Task<PaginatedResponse<AdminDiscussionDto>> GetDiscussionsAsync(
+        int page,
+        int pageSize,
+        string? search,
+        string? spaceId,
+        bool? isPinned,
+        bool? isLocked)
     {
         var offset = (page - 1) * pageSize;
-
-        var query = _context.Discussions
-            .AsQueryable();
+        var query = context.Discussions.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(spaceId))
         {
@@ -199,6 +206,7 @@ public class AdminContentService : IAdminContentService
         }
 
         var total = await query.CountAsync();
+
         var discussions = await query
             .OrderByDescending(d => d.CreatedAt)
             .Skip(offset)
@@ -228,14 +236,15 @@ public class AdminContentService : IAdminContentService
 
     public async Task<bool> PinDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
-        if (discussion == null)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+
+        if (discussion is null)
             return false;
 
         discussion.IsPinned = true;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
-        await _securityService.LogAuditAsync(
+        await securityService.LogAuditAsync(
             adminUserId,
             "DiscussionPin",
             "Discussion",
@@ -243,21 +252,22 @@ public class AdminContentService : IAdminContentService
             $"Pinned discussion: {discussion.Title}",
             "High");
 
-        _logger.LogInformation("Discussion {DiscussionId} pinned by admin {AdminUserId}", id, adminUserId);
+        logger.LogInformation("Discussion {DiscussionId} pinned by admin {AdminUserId}", id, adminUserId);
 
         return true;
     }
 
     public async Task<bool> UnpinDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
-        if (discussion == null)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+
+        if (discussion is null)
             return false;
 
         discussion.IsPinned = false;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
-        await _securityService.LogAuditAsync(
+        await securityService.LogAuditAsync(
             adminUserId,
             "DiscussionUnpin",
             "Discussion",
@@ -265,21 +275,22 @@ public class AdminContentService : IAdminContentService
             $"Unpinned discussion: {discussion.Title}",
             "Low");
 
-        _logger.LogInformation("Discussion {DiscussionId} unpinned by admin {AdminUserId}", id, adminUserId);
+        logger.LogInformation("Discussion {DiscussionId} unpinned by admin {AdminUserId}", id, adminUserId);
 
         return true;
     }
 
     public async Task<bool> LockDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
-        if (discussion == null)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+
+        if (discussion is null)
             return false;
 
         discussion.IsLocked = true;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
-        await _securityService.LogAuditAsync(
+        await securityService.LogAuditAsync(
             adminUserId,
             "DiscussionLock",
             "Discussion",
@@ -287,21 +298,22 @@ public class AdminContentService : IAdminContentService
             $"Locked discussion: {discussion.Title}",
             "High");
 
-        _logger.LogInformation("Discussion {DiscussionId} locked by admin {AdminUserId}", id, adminUserId);
+        logger.LogInformation("Discussion {DiscussionId} locked by admin {AdminUserId}", id, adminUserId);
 
         return true;
     }
 
     public async Task<bool> UnlockDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
-        if (discussion == null)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+
+        if (discussion is null)
             return false;
 
         discussion.IsLocked = false;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
-        await _securityService.LogAuditAsync(
+        await securityService.LogAuditAsync(
             adminUserId,
             "DiscussionUnlock",
             "Discussion",
@@ -309,22 +321,23 @@ public class AdminContentService : IAdminContentService
             $"Unlocked discussion: {discussion.Title}",
             "Low");
 
-        _logger.LogInformation("Discussion {DiscussionId} unlocked by admin {AdminUserId}", id, adminUserId);
+        logger.LogInformation("Discussion {DiscussionId} unlocked by admin {AdminUserId}", id, adminUserId);
 
         return true;
     }
 
     public async Task<bool> DeleteDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
-        if (discussion == null)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+
+        if (discussion is null)
             return false;
 
         var title = discussion.Title; // Store for audit log
-        _context.Discussions.Remove(discussion);
-        await _context.SaveChangesAsync();
+        context.Discussions.Remove(discussion);
+        await context.SaveChangesAsync();
 
-        await _securityService.LogAuditAsync(
+        await securityService.LogAuditAsync(
             adminUserId,
             "DiscussionDelete",
             "Discussion",
@@ -332,7 +345,7 @@ public class AdminContentService : IAdminContentService
             $"Deleted discussion: {title}",
             "Critical");
 
-        _logger.LogWarning("Discussion {DiscussionId} deleted by admin {AdminUserId}", id, adminUserId);
+        logger.LogWarning("Discussion {DiscussionId} deleted by admin {AdminUserId}", id, adminUserId);
 
         return true;
     }

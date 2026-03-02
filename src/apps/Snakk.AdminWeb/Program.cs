@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Load shared production config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
-builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(
+    Path.Combine(sharedConfigDir, "appsettings.Production.json"),
+    optional: true,
+    reloadOnChange: true);
 
 // Add services to the container
 builder.Services.AddRazorPages();
@@ -34,6 +37,7 @@ builder.Services.AddScoped(sp =>
     var httpClient = CreateAuthenticatedClient(sp);
     var apiClient = new SnakkApiClient(httpClient);
     apiClient.BaseUrl = snakkApiBaseUrl;
+
     return apiClient;
 });
 
@@ -43,6 +47,7 @@ builder.Services.AddScoped(sp =>
 {
     var httpClient = CreateAuthenticatedClient(sp);
     var logger = sp.GetRequiredService<ILogger<ManageScopeService>>();
+
     return new ManageScopeService(httpClient, logger);
 });
 

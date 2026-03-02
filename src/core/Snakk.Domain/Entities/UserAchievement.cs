@@ -36,9 +36,8 @@ public class UserAchievement
 
     public static UserAchievement Create(
         UserId userId,
-        AchievementId achievementId)
-    {
-        return new UserAchievement(
+        AchievementId achievementId) =>
+        new UserAchievement(
             UserAchievementId.New(),
             userId,
             achievementId,
@@ -46,7 +45,6 @@ public class UserAchievement
             isDisplayed: false,
             displayOrder: 0,
             notificationSent: false);
-    }
 
     public static UserAchievement Rehydrate(
         UserAchievementId publicId,
@@ -55,9 +53,8 @@ public class UserAchievement
         DateTime earnedAt,
         bool isDisplayed,
         int displayOrder,
-        bool notificationSent)
-    {
-        return new UserAchievement(
+        bool notificationSent) =>
+        new UserAchievement(
             publicId,
             userId,
             achievementId,
@@ -65,7 +62,6 @@ public class UserAchievement
             isDisplayed,
             displayOrder,
             notificationSent);
-    }
 
     public void UpdateDisplay(bool isDisplayed, int displayOrder)
     {

@@ -11,12 +11,9 @@ public class UserRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IUserRepository
 {
-    private readonly Infrastructure.Database.Repositories.IUserRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<User?> GetByIdAsync(int id)
     {
-        var projection = await _context.Users
+        var projection = await context.Users
             .Where(u => u.Id == id)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync();
@@ -25,7 +22,7 @@ public class UserRepositoryAdapter(
 
     public async Task<User?> GetByPublicIdAsync(UserId publicId)
     {
-        var projection = await _context.Users
+        var projection = await context.Users
             .Where(u => u.PublicId == publicId.Value)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync();
@@ -34,19 +31,23 @@ public class UserRepositoryAdapter(
 
     public async Task<IEnumerable<User>> GetByPublicIdsAsync(IEnumerable<UserId> publicIds)
     {
-        var publicIdStrings = publicIds.Select(id => id.Value).ToList();
-        if (!publicIdStrings.Any()) return [];
+        var publicIdStrings = publicIds
+            .Select(id => id.Value)
+            .ToList();
 
-        var projections = await _context.Users
+        if (publicIdStrings.Count == 0) return [];
+
+        var projections = await context.Users
             .Where(u => publicIdStrings.Contains(u.PublicId))
             .Select(u => new UserProjection(u))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        var projection = await _context.Users
+        var projection = await context.Users
             .Where(u => u.Email == email)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync();
@@ -55,7 +56,7 @@ public class UserRepositoryAdapter(
 
     public async Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId)
     {
-        var projection = await _context.Users
+        var projection = await context.Users
             .Where(u => u.OAuthProviderId == oauthProviderId)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync();
@@ -64,7 +65,7 @@ public class UserRepositoryAdapter(
 
     public async Task<User?> GetByDisplayNameAsync(string displayName)
     {
-        var projection = await _context.Users
+        var projection = await context.Users
             .Where(u => u.DisplayName == displayName)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync();
@@ -73,33 +74,36 @@ public class UserRepositoryAdapter(
 
     public async Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit)
     {
-        var projections = await _context.Users
+        var projections = await context.Users
             .Where(u => u.DisplayName.Contains(query))
             .Take(limit)
             .Select(u => new UserProjection(u))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {
-        var projections = await _context.Users
+        var projections = await context.Users
             .Select(u => new UserProjection(u))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(User user)
     {
         var entity = user.ToPersistence();
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(User user)
     {
-        var entity = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
-        if (entity == null)
+        var entity = await context.Users.FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
+
+        if (entity is null)
             throw new InvalidOperationException($"User with PublicId '{user.PublicId}' not found");
 
         entity.DisplayName = user.DisplayName;
@@ -107,8 +111,8 @@ public class UserRepositoryAdapter(
         entity.LastModifiedAt = user.LastModifiedAt;
         entity.LastSeenAt = user.LastSeenAt;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record UserProjection
@@ -142,7 +146,9 @@ public class UserRepositoryAdapter(
             EmailVerificationToken = u.EmailVerificationToken;
             OAuthProvider = u.OAuthProvider;
             OAuthProviderId = u.OAuthProviderId;
-            HasGlobalAdminRole = u.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null);
+            HasGlobalAdminRole = u.Roles.Any(r =>
+                r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
+                && r.RevokedAt is null);
             AvatarFileName = u.AvatarFileName;
             AvatarRevision = u.AvatarRevision;
             PreferEndlessScroll = u.PreferEndlessScroll;

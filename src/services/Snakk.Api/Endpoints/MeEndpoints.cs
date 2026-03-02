@@ -35,7 +35,8 @@ public static class MeEndpoints
         AuthenticationUseCase authUseCase)
     {
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdValue);
@@ -62,7 +63,8 @@ public static class MeEndpoints
         SnakkDbContext context)
     {
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdValue);
@@ -73,6 +75,7 @@ public static class MeEndpoints
 
         // Generate new JWT token with updated display name
         var userResult = await authUseCase.GetUserByIdAsync(userId);
+
         if (userResult.IsSuccess)
         {
             var user = userResult.Value!;
@@ -83,7 +86,7 @@ public static class MeEndpoints
 
             var roles = userDbEntity?.Roles
                 .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-                .ToList() ?? new List<string>();
+                .ToList() ?? [];
 
             var newToken = jwtService.GenerateToken(
                 user.PublicId.Value,
@@ -105,11 +108,15 @@ public static class MeEndpoints
         AuthenticationUseCase authUseCase)
     {
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdValue);
-        var result = await authUseCase.UpdatePreferencesAsync(userId, request.PreferEndlessScroll, request.AutoFollowOnReply);
+        var result = await authUseCase.UpdatePreferencesAsync(
+            userId,
+            request.PreferEndlessScroll,
+            request.AutoFollowOnReply);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });

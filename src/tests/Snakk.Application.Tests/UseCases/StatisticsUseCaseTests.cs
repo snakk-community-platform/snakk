@@ -48,7 +48,7 @@ public class StatisticsUseCaseTests
                 It.IsAny<DateTime>(), null, null, null, 5))
             .ReturnsAsync(topContributors);
         _mockUserRepo.Setup(r => r.GetByPublicIdsAsync(It.IsAny<IEnumerable<UserId>>()))
-            .ReturnsAsync(new List<User> { user1, user2 });
+            .ReturnsAsync([user1, user2]);
 
         // Act
         var result = await _useCase.GetTopContributorsTodayAsync();
@@ -81,7 +81,7 @@ public class StatisticsUseCaseTests
                 It.IsAny<DateTime>(), null, null, null, 5))
             .ReturnsAsync(topContributors);
         _mockUserRepo.Setup(r => r.GetByPublicIdsAsync(It.IsAny<IEnumerable<UserId>>()))
-            .ReturnsAsync(new List<User>()); // No users found (deleted)
+            .ReturnsAsync([]); // No users found (deleted)
 
         // Act
         var result = await _useCase.GetTopContributorsTodayAsync();
@@ -100,9 +100,9 @@ public class StatisticsUseCaseTests
 
         _mockPostRepo.Setup(r => r.GetTopContributorsSinceAsync(
                 It.IsAny<DateTime>(), HubId.From(hubId), null, null, 5))
-            .ReturnsAsync(new List<(UserId UserId, int PostCount)>());
+            .ReturnsAsync([]);
         _mockUserRepo.Setup(r => r.GetByPublicIdsAsync(It.IsAny<IEnumerable<UserId>>()))
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
 
         // Act
         await _useCase.GetTopContributorsTodayAsync(hubId: hubId);
@@ -118,9 +118,9 @@ public class StatisticsUseCaseTests
         // Arrange
         _mockPostRepo.Setup(r => r.GetTopContributorsSinceAsync(
                 It.IsAny<DateTime>(), null, null, null, 10))
-            .ReturnsAsync(new List<(UserId UserId, int PostCount)>());
+            .ReturnsAsync([]);
         _mockUserRepo.Setup(r => r.GetByPublicIdsAsync(It.IsAny<IEnumerable<UserId>>()))
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
 
         // Act
         await _useCase.GetTopContributorsTodayAsync(limit: 10);
@@ -175,7 +175,7 @@ public class StatisticsUseCaseTests
 
         _mockDiscussionRepo.Setup(r => r.GetTopActiveDiscussionsSinceAsync(
                 It.IsAny<DateTime>(), null, SpaceId.From(spaceId), null, 5))
-            .ReturnsAsync(new List<TopActiveDiscussion>());
+            .ReturnsAsync([]);
 
         // Act
         await _useCase.GetTopActiveDiscussionsTodayAsync(spaceId: spaceId);
@@ -259,9 +259,9 @@ public class StatisticsUseCaseTests
         _mockUserRepo.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
         _mockDiscussionRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
         _mockPostRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
 
         // Act - days = 0 should default to 30
         var result = await _useCase.GetUserActivityHistoryAsync(user.PublicId.Value, 0);
@@ -280,9 +280,9 @@ public class StatisticsUseCaseTests
         _mockUserRepo.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
         _mockDiscussionRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
         _mockPostRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
 
         // Act - days = 100 should default to 30
         var result = await _useCase.GetUserActivityHistoryAsync(user.PublicId.Value, 100);
@@ -301,9 +301,9 @@ public class StatisticsUseCaseTests
         _mockUserRepo.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
         _mockDiscussionRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
         _mockPostRepo.Setup(r => r.GetActivityByDateAsync(user.PublicId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<(DateTime Date, int Count)>());
+            .ReturnsAsync([]);
 
         // Act
         var result = await _useCase.GetUserActivityHistoryAsync(user.PublicId.Value, 7);
@@ -311,7 +311,7 @@ public class StatisticsUseCaseTests
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         var data = result.Value!.Data.ToList();
-        for (int i = 1; i < data.Count; i++)
+        for (var i = 1; i < data.Count; i++)
         {
             await Assert.That(data[i].Date).IsGreaterThanOrEqualTo(data[i - 1].Date);
         }
@@ -559,7 +559,7 @@ public class StatisticsUseCaseTests
     {
         // Arrange
         _mockStatsRepo.Setup(r => r.GetTopActiveSpacesTodayAsync("hub-1", null, 5))
-            .ReturnsAsync(new List<TopActiveSpaceDto>());
+            .ReturnsAsync([]);
 
         // Act
         await _useCase.GetTopActiveSpacesTodayAsync(hubId: "hub-1");
@@ -573,7 +573,7 @@ public class StatisticsUseCaseTests
     {
         // Arrange
         _mockStatsRepo.Setup(r => r.GetTopActiveSpacesTodayAsync(null, "community-1", 5))
-            .ReturnsAsync(new List<TopActiveSpaceDto>());
+            .ReturnsAsync([]);
 
         // Act
         await _useCase.GetTopActiveSpacesTodayAsync(communityId: "community-1");

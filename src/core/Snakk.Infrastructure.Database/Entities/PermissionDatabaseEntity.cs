@@ -29,5 +29,5 @@ public class PermissionDatabaseEntity
     public required DateTime CreatedAt { get; set; }
 
     // Navigation properties
-    public ICollection<RolePermissionDatabaseEntity> RolePermissions { get; set; } = new List<RolePermissionDatabaseEntity>();
+    public ICollection<RolePermissionDatabaseEntity> RolePermissions { get; set; } = [];
 }

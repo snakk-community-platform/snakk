@@ -91,7 +91,7 @@ public class CommunityDomainCacheService : ICommunityDomainCacheService
         {
             var community = await _apiClient.GetCommunityByDomainAsync(domain);
 
-            if (community != null)
+            if (community is not null)
             {
                 var result = new CommunityDomainLookupResult(true, community.Slug, community.Name);
 

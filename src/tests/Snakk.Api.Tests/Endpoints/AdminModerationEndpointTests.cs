@@ -586,6 +586,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
 
         db.Users.Add(user);
         await db.SaveChangesAsync();
+
         return user.Id;
     }
 

@@ -77,9 +77,8 @@ public class Community
         bool exposeToPlatformFeed,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Hub>? hubs = null)
-    {
-        return new Community(
+        List<Hub>? hubs = null) =>
+        new Community(
             publicId,
             name,
             slug,
@@ -89,7 +88,6 @@ public class Community
             createdAt,
             lastModifiedAt,
             hubs);
-    }
 
     public static Community RehydrateForList(
         CommunityId publicId,
@@ -98,9 +96,8 @@ public class Community
         string? description,
         CommunityVisibility visibility,
         bool exposeToPlatformFeed,
-        DateTime createdAt)
-    {
-        return new Community(
+        DateTime createdAt) =>
+        new Community(
             publicId,
             name,
             slug,
@@ -110,7 +107,6 @@ public class Community
             createdAt,
             lastModifiedAt: null,
             hubs: []);
-    }
 
     public void UpdateName(string name)
     {

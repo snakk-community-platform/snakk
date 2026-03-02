@@ -32,27 +32,23 @@ public class DiscussionReadState
     public static DiscussionReadState Create(
         UserId userId,
         DiscussionId discussionId,
-        PostId? lastReadPostId = null)
-    {
-        return new DiscussionReadState(
+        PostId? lastReadPostId = null) =>
+        new DiscussionReadState(
             userId,
             discussionId,
             lastReadPostId,
             DateTime.UtcNow);
-    }
 
     public static DiscussionReadState Rehydrate(
         UserId userId,
         DiscussionId discussionId,
         PostId? lastReadPostId,
-        DateTime lastReadAt)
-    {
-        return new DiscussionReadState(
+        DateTime lastReadAt) =>
+        new DiscussionReadState(
             userId,
             discussionId,
             lastReadPostId,
             lastReadAt);
-    }
 
     public void MarkAsRead(PostId postId)
     {

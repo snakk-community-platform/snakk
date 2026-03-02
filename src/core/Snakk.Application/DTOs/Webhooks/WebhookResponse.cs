@@ -6,7 +6,7 @@ public class WebhookResponse
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string[] EventTypes { get; set; } = Array.Empty<string>();
+    public string[] EventTypes { get; set; } = [];
     public bool IsActive { get; set; }
     public int MaxRetries { get; set; }
     public int TimeoutSeconds { get; set; }

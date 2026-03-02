@@ -10,6 +10,7 @@ public class SecurityHeadersMiddlewareTests
         var context = new DefaultHttpContext();
         var middleware = new SecurityHeadersMiddleware(ctx => Task.CompletedTask);
         await middleware.InvokeAsync(context);
+
         return context;
     }
 

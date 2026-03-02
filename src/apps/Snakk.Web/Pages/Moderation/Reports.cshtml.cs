@@ -5,7 +5,10 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Moderation;
 
-public class ReportsModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class ReportsModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     [BindProperty(SupportsGet = true)]
     public string? Status { get; set; }

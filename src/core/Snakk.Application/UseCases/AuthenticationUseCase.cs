@@ -14,12 +14,6 @@ public class AuthenticationUseCase(
     IRefreshTokenRepository refreshTokenRepository,
     IDomainEventDispatcher eventDispatcher) : UseCaseBase
 {
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly IPasswordHasher _passwordHasher = passwordHasher;
-    private readonly IEmailSender _emailSender = emailSender;
-    private readonly IRefreshTokenRepository _refreshTokenRepository = refreshTokenRepository;
-    private readonly IDomainEventDispatcher _eventDispatcher = eventDispatcher;
-
     public async Task<Result<User>> RegisterWithEmailAsync(
         string email,
         string password,
@@ -40,15 +34,16 @@ public class AuthenticationUseCase(
             return Result<User>.Failure("Display name is required");
 
         // Check if email already exists
-        var existingUser = await _userRepository.GetByEmailAsync(email);
-        if (existingUser != null)
+        var existingUser = await userRepository.GetByEmailAsync(email);
+
+        if (existingUser is not null)
             return Result<User>.Failure("Email is already registered");
 
         // Check if display name is available
         var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName);
 
         // Hash password
-        var passwordHash = _passwordHasher.HashPassword(password);
+        var passwordHash = passwordHasher.HashPassword(password);
 
         // Generate verification token
         var verificationToken = Guid.NewGuid().ToString("N");
@@ -60,14 +55,14 @@ public class AuthenticationUseCase(
             passwordHash,
             verificationToken);
 
-        await _userRepository.AddAsync(user);
+        await userRepository.AddAsync(user);
 
         // Dispatch domain events
-        await _eventDispatcher.DispatchAsync(user.DomainEvents);
+        await eventDispatcher.DispatchAsync(user.DomainEvents);
         user.ClearDomainEvents();
 
         // Send verification email
-        await _emailSender.SendEmailVerificationAsync(email, suggestedDisplayName, verificationToken, baseUrl);
+        await emailSender.SendEmailVerificationAsync(email, suggestedDisplayName, verificationToken, baseUrl);
 
         return Result<User>.Success(user);
     }
@@ -81,17 +76,18 @@ public class AuthenticationUseCase(
             return Result<User>.Failure("Password is required");
 
         // Get user by email
-        var user = await _userRepository.GetByEmailAsync(email);
-        if (user == null)
+        var user = await userRepository.GetByEmailAsync(email);
+
+        if (user is null)
             return Result<User>.Failure("Invalid email or password");
 
         // Verify password
-        if (!user.HasPassword() || !_passwordHasher.VerifyPassword(password, user.PasswordHash!))
+        if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
             return Result<User>.Failure("Invalid email or password");
 
         // Update last login
         user.UpdateLastLogin();
-        await _userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user);
 
         return Result<User>.Success(user);
     }
@@ -103,20 +99,21 @@ public class AuthenticationUseCase(
         string displayName)
     {
         // Try to find existing user by OAuth provider ID
-        var user = await _userRepository.GetByOAuthProviderIdAsync(oauthProviderId);
+        var user = await userRepository.GetByOAuthProviderIdAsync(oauthProviderId);
 
-        if (user != null)
+        if (user is not null)
         {
             // Existing OAuth user - update last login
             user.UpdateLastLogin();
-            await _userRepository.UpdateAsync(user);
+            await userRepository.UpdateAsync(user);
+
             return Result<User>.Success(user);
         }
 
         // Check if email is already registered (link accounts)
-        user = await _userRepository.GetByEmailAsync(email);
+        user = await userRepository.GetByEmailAsync(email);
 
-        if (user != null)
+        if (user is not null)
         {
             // Email exists - this could be a security issue
             // For now, don't auto-link - require user to login with password first
@@ -132,14 +129,14 @@ public class AuthenticationUseCase(
             oauthProvider,
             oauthProviderId);
 
-        await _userRepository.AddAsync(user);
+        await userRepository.AddAsync(user);
 
         // Dispatch domain events
-        await _eventDispatcher.DispatchAsync(user.DomainEvents);
+        await eventDispatcher.DispatchAsync(user.DomainEvents);
         user.ClearDomainEvents();
 
         // Send welcome email
-        await _emailSender.SendWelcomeEmailAsync(email, suggestedDisplayName);
+        await emailSender.SendWelcomeEmailAsync(email, suggestedDisplayName);
 
         return Result<User>.Success(user);
     }
@@ -150,25 +147,26 @@ public class AuthenticationUseCase(
             return Result.Failure("Verification token is required");
 
         // Find user by token (need to add method to repository)
-        var users = await _userRepository.GetAllAsync();
+        var users = await userRepository.GetAllAsync();
         var user = users.FirstOrDefault(u => u.EmailVerificationToken == token);
 
-        if (user == null)
+        if (user is null)
             return Result.Failure("Invalid or expired verification token");
 
         if (user.EmailVerified)
             return Result.Failure("Email is already verified");
 
         user.VerifyEmail();
-        await _userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user);
 
         return Result.Success();
     }
 
     public async Task<Result<User>> GetUserByIdAsync(UserId userId)
     {
-        var user = await _userRepository.GetByPublicIdAsync(userId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(userId);
+
+        if (user is null)
             return Result<User>.Failure("User not found");
 
         return Result<User>.Success(user);
@@ -179,8 +177,9 @@ public class AuthenticationUseCase(
         if (string.IsNullOrWhiteSpace(newDisplayName))
             return Result.Failure("Display name cannot be empty");
 
-        var user = await _userRepository.GetByPublicIdAsync(userId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(userId);
+
+        if (user is null)
             return Result.Failure("User not found");
 
         // Check if display name is available
@@ -190,15 +189,16 @@ public class AuthenticationUseCase(
             return Result.Failure($"Display name '{newDisplayName}' is taken. Try '{suggestedDisplayName}' instead.");
 
         user.UpdateDisplayName(newDisplayName);
-        await _userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user);
 
         return Result.Success();
     }
 
     public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll, bool? autoFollowOnReply)
     {
-        var user = await _userRepository.GetByPublicIdAsync(userId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(userId);
+
+        if (user is null)
             return Result.Failure("User not found");
 
         if (preferEndlessScroll.HasValue)
@@ -207,7 +207,7 @@ public class AuthenticationUseCase(
         if (autoFollowOnReply.HasValue)
             user.SetAutoFollowOnReply(autoFollowOnReply.Value);
 
-        await _userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user);
 
         return Result.Success();
     }
@@ -215,11 +215,11 @@ public class AuthenticationUseCase(
     private async Task<string> EnsureUniqueDisplayNameAsync(string displayName)
     {
         // Check if display name is available (case-insensitive)
-        var users = await _userRepository.GetAllAsync();
+        var users = await userRepository.GetAllAsync();
         var existingUser = users.FirstOrDefault(u =>
             u.DisplayName.Equals(displayName, StringComparison.OrdinalIgnoreCase));
 
-        if (existingUser == null)
+        if (existingUser is null)
             return displayName;
 
         // Generate unique display name with random number
@@ -234,7 +234,7 @@ public class AuthenticationUseCase(
             existingUser = users.FirstOrDefault(u =>
                 u.DisplayName.Equals(suggestedName, StringComparison.OrdinalIgnoreCase));
 
-            if (existingUser == null)
+            if (existingUser is null)
                 return suggestedName;
 
             attempt++;
@@ -247,38 +247,40 @@ public class AuthenticationUseCase(
     public async Task<Result<RefreshToken>> CreateRefreshTokenAsync(UserId userId)
     {
         var refreshToken = RefreshToken.Create(userId, expirationDays: 30);
-        await _refreshTokenRepository.AddAsync(refreshToken);
+        await refreshTokenRepository.AddAsync(refreshToken);
+
         return Result<RefreshToken>.Success(refreshToken);
     }
 
     public async Task<Result<(User user, RefreshToken newRefreshToken)>> RefreshTokenAsync(string refreshTokenValue)
     {
-        var refreshToken = await _refreshTokenRepository.GetByValueAsync(refreshTokenValue);
+        var refreshToken = await refreshTokenRepository.GetByValueAsync(refreshTokenValue);
 
-        if (refreshToken == null)
+        if (refreshToken is null)
             return Result<(User, RefreshToken)>.Failure("Invalid refresh token");
 
         if (!refreshToken.IsActive)
             return Result<(User, RefreshToken)>.Failure("Refresh token is expired or revoked");
 
-        var user = await _userRepository.GetByPublicIdAsync(refreshToken.UserId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(refreshToken.UserId);
+
+        if (user is null)
             return Result<(User, RefreshToken)>.Failure("User not found");
 
         // Revoke old token
         var revokedToken = refreshToken.Revoke();
-        await _refreshTokenRepository.UpdateAsync(revokedToken);
+        await refreshTokenRepository.UpdateAsync(revokedToken);
 
         // Create new refresh token
         var newRefreshToken = RefreshToken.Create(refreshToken.UserId, expirationDays: 30);
-        await _refreshTokenRepository.AddAsync(newRefreshToken);
+        await refreshTokenRepository.AddAsync(newRefreshToken);
 
         return Result<(User, RefreshToken)>.Success((user, newRefreshToken));
     }
 
     public async Task<Result> RevokeRefreshTokensAsync(UserId userId)
     {
-        await _refreshTokenRepository.RevokeAllForUserAsync(userId);
+        await refreshTokenRepository.RevokeAllForUserAsync(userId);
         return Result.Success();
     }
 }

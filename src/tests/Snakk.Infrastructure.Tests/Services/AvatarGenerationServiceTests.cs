@@ -282,8 +282,8 @@ public class AvatarGenerationServiceTests
             CreateUser("user3")
         };
         _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
+        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
@@ -324,8 +324,8 @@ public class AvatarGenerationServiceTests
             CreateUser("user2")
         };
         _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
+        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // First user's avatar already exists (both in GenerateAllMissing check AND in GenerateUserAvatar check)
         var user1Path = Snakk.Shared.Helpers.AvatarHelper.GetFullRelativePath(users[0].PublicId.Value, Snakk.Shared.Helpers.AvatarEntityType.User, 0);
@@ -343,9 +343,9 @@ public class AvatarGenerationServiceTests
     public async Task GenerateAllMissingAvatarsAsync_HandlesEmptyRepositories()
     {
         // Arrange
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<User>());
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
+        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
@@ -365,8 +365,8 @@ public class AvatarGenerationServiceTests
             CreateUser("u_user2")
         };
         _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Hub>());
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(Array.Empty<Space>());
+        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // Make SaveAsync throw for the first user's path
         var callCount = 0;

@@ -7,8 +7,6 @@ using Snakk.Application.Events;
 
 public class DomainEventDispatcher(IServiceProvider serviceProvider) : IDomainEventDispatcher
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-
     public async Task DispatchAsync(IEnumerable<IDomainEvent> events)
     {
         foreach (var domainEvent in events)
@@ -21,19 +19,18 @@ public class DomainEventDispatcher(IServiceProvider serviceProvider) : IDomainEv
     {
         var eventType = domainEvent.GetType();
         var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
-
-        var handlers = _serviceProvider.GetServices(handlerType);
+        var handlers = serviceProvider.GetServices(handlerType);
 
         foreach (var handler in handlers)
         {
             var handleMethod = handlerType.GetMethod("HandleAsync");
-            if (handleMethod != null)
+
+            if (handleMethod is not null)
             {
                 var task = (Task?)handleMethod.Invoke(handler, [domainEvent]);
-                if (task != null)
-                {
+
+                if (task is not null)
                     await task;
-                }
             }
         }
     }

@@ -43,14 +43,14 @@ public partial class SnakkApiClient
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var result = JsonSerializer.Deserialize<LoginResponseDto>(json, options);
 
-            if (result?.User == null || string.IsNullOrEmpty(result.AccessToken))
+            if (result?.User is null || string.IsNullOrEmpty(result.AccessToken))
                 return null;
 
             return new AdminLoginResult(
                 Token: result.AccessToken,
                 Username: result.User.DisplayName ?? result.User.Email ?? "Unknown",
                 Email: result.User.Email ?? "",
-                Roles: new List<string>() // TODO: Get roles from JWT or API response
+                Roles: [] // TODO: Get roles from JWT or API response
             );
         }
         catch

@@ -11,15 +11,8 @@ namespace Snakk.Web.Services;
 /// <summary>
 /// Handles setup wizard operations: DB testing, config writing, DbSeeder invocation.
 /// </summary>
-public class SetupService
+public class SetupService(IConfiguration configuration)
 {
-    private readonly IConfiguration _configuration;
-
-    public SetupService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
     /// <summary>
     /// Test a PostgreSQL connection by opening and closing it.
     /// Returns null on success, error message on failure.
@@ -123,9 +116,7 @@ public class SetupService
             };
         }
         if (auth.Count > 0)
-        {
             config["Authentication"] = auth;
-        }
 
         var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
         {
@@ -145,7 +136,7 @@ public class SetupService
     {
         // Find DbSeeder — in Docker it's at /app/dbseeder/, locally it's relative
         var seederPath = FindDbSeederPath();
-        if (seederPath == null)
+        if (seederPath is null)
         {
             return (false, "Could not find Snakk.DbSeeder.dll. Ensure it's published.");
         }
@@ -174,7 +165,7 @@ public class SetupService
         try
         {
             using var process = Process.Start(psi);
-            if (process == null) return (false, "Failed to start DbSeeder process.");
+            if (process is null) return (false, "Failed to start DbSeeder process.");
 
             var output = await process.StandardOutput.ReadToEndAsync();
             var errors = await process.StandardError.ReadToEndAsync();
@@ -236,9 +227,7 @@ public class SetupService
                         writer.WriteEndObject();
                     }
                     else
-                    {
                         prop.WriteTo(writer);
-                    }
                 }
                 writer.WriteEndObject();
             }
@@ -371,7 +360,7 @@ public class SetupService
     private async Task<(bool Success, string Output)> RunDbSeederWithProgressAsync(SetupState state)
     {
         var seederPath = FindDbSeederPath();
-        if (seederPath == null)
+        if (seederPath is null)
             return (false, "Could not find Snakk.DbSeeder.dll. Ensure it's published.");
 
         var skipSeedFlag = state.SeedTestData ? "" : "--skip-seed";
@@ -398,7 +387,7 @@ public class SetupService
         try
         {
             using var process = Process.Start(psi);
-            if (process == null) return (false, "Failed to start DbSeeder process.");
+            if (process is null) return (false, "Failed to start DbSeeder process.");
 
             var outputLines = new List<string>();
 
@@ -421,17 +410,17 @@ public class SetupService
                 // Parse progress markers from seeder output (steps are sequential, never go backwards)
                 if (line.Contains("Applying pending migrations", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "migrations";
-                else if (line.Contains("admin", StringComparison.OrdinalIgnoreCase) &&
-                         (line.Contains("created", StringComparison.OrdinalIgnoreCase) ||
-                          line.Contains("creating", StringComparison.OrdinalIgnoreCase) ||
-                          line.Contains("assigned", StringComparison.OrdinalIgnoreCase)))
+                else if (line.Contains("admin", StringComparison.OrdinalIgnoreCase)
+                         && (line.Contains("created", StringComparison.OrdinalIgnoreCase)
+                             || line.Contains("creating", StringComparison.OrdinalIgnoreCase)
+                             || line.Contains("assigned", StringComparison.OrdinalIgnoreCase)))
                     InstallProgress.Step = "admin";
-                else if (line.Contains("database seeding", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("Clearing existing", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("discussions in", StringComparison.OrdinalIgnoreCase))
+                else if (line.Contains("database seeding", StringComparison.OrdinalIgnoreCase)
+                         || line.Contains("Clearing existing", StringComparison.OrdinalIgnoreCase)
+                         || line.Contains("discussions in", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "seeding";
-                else if (line.Contains("Generating avatars", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("Avatar generation complete", StringComparison.OrdinalIgnoreCase))
+                else if (line.Contains("Generating avatars", StringComparison.OrdinalIgnoreCase)
+                         || line.Contains("Avatar generation complete", StringComparison.OrdinalIgnoreCase))
                     InstallProgress.Step = "avatars";
             }
 
@@ -475,7 +464,7 @@ public static class InstallProgress
             _jwtExpiryTimer?.Dispose();
             _jwtExpiryTimer = null;
 
-            if (value != null)
+            if (value is not null)
             {
                 // Auto-clear JWT from memory after 5 minutes — if OnPostFinalize hasn't consumed it by then,
                 // the setup window has closed and keeping the token in static memory is a security risk.

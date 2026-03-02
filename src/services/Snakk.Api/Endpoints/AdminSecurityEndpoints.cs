@@ -77,7 +77,7 @@ public static class AdminSecurityEndpoints
     {
         var log = await securityService.GetAuditLogByIdAsync(id);
 
-        if (log == null)
+        if (log is null)
             return Results.NotFound(new { error = "Audit log not found" });
 
         return Results.Ok(log);
@@ -101,17 +101,15 @@ public static class AdminSecurityEndpoints
         // Filter for suspicious IPs (5+ failures)
         var suspiciousIps = failedLogins
             .Where(f => f.AttemptCount >= 5)
-            .Select(f => new
-            {
-                ipAddress = f.IpAddress,
+            .Select(f => new {
+                f.IpAddress,
                 failureCount = f.AttemptCount,
-                lastAttempt = f.LastAttempt
-            })
+                lastAttempt = f.LastAttempt })
             .ToList();
 
         return TypedResults.Ok(new FailedLoginsResponse(
             failedLogins,
-            suspiciousIps.Select(s => new SuspiciousIpResponse(s.ipAddress, s.failureCount, s.lastAttempt)),
+            suspiciousIps.Select(s => new SuspiciousIpResponse(s.IpAddress, s.failureCount, s.lastAttempt)),
             failedLogins.Count,
             page,
             50));
@@ -146,6 +144,7 @@ public static class AdminSecurityEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         if (string.IsNullOrEmpty(adminUserId))
             return Results.Unauthorized();
 
@@ -166,13 +165,11 @@ public static class AdminSecurityEndpoints
     }
 
     private static Task<IResult> GetUserDataExportAsync(
-        string exportId)
-    {
+        string exportId) =>
         // This would retrieve the export status from a job queue
         // For now, return a placeholder
-        return Task.FromResult<IResult>(TypedResults.Ok(new UserDataExportStatusResponse(
+        Task.FromResult<IResult>(TypedResults.Ok(new UserDataExportStatusResponse(
             exportId,
             "pending",
             "Export is being processed")));
-    }
 }

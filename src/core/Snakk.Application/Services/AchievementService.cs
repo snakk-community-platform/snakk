@@ -10,87 +10,65 @@ public class AchievementService(
     IUserAchievementRepository userAchievementRepository,
     IUserAchievementProgressRepository userAchievementProgressRepository)
 {
-    private readonly IAchievementRepository _achievementRepository = achievementRepository;
-    private readonly IUserAchievementRepository _userAchievementRepository = userAchievementRepository;
-    private readonly IUserAchievementProgressRepository _userAchievementProgressRepository = userAchievementProgressRepository;
-
     // ==================== Achievement Queries ====================
 
     /// <summary>
     /// Get all active achievements
     /// </summary>
-    public async Task<IEnumerable<Achievement>> GetAllActiveAchievementsAsync()
-    {
-        return await _achievementRepository.GetAllActiveAsync();
-    }
+    public async Task<IEnumerable<Achievement>> GetAllActiveAchievementsAsync() =>
+        await achievementRepository.GetAllActiveAsync();
 
     /// <summary>
     /// Get achievement by slug
     /// </summary>
-    public async Task<Achievement?> GetAchievementBySlugAsync(string slug)
-    {
-        return await _achievementRepository.GetBySlugAsync(slug);
-    }
+    public async Task<Achievement?> GetAchievementBySlugAsync(string slug) =>
+        await achievementRepository.GetBySlugAsync(slug);
 
     /// <summary>
     /// Get achievements by category
     /// </summary>
-    public async Task<IEnumerable<Achievement>> GetAchievementsByCategoryAsync(AchievementCategoryEnum category)
-    {
-        return await _achievementRepository.GetByCategoryAsync(category);
-    }
+    public async Task<IEnumerable<Achievement>> GetAchievementsByCategoryAsync(AchievementCategoryEnum category) =>
+        await achievementRepository.GetByCategoryAsync(category);
 
     // ==================== User Achievement Queries ====================
 
     /// <summary>
     /// Get all achievements earned by a user
     /// </summary>
-    public async Task<IEnumerable<UserAchievement>> GetUserAchievementsAsync(UserId userId)
-    {
-        return await _userAchievementRepository.GetByUserIdAsync(userId);
-    }
+    public async Task<IEnumerable<UserAchievement>> GetUserAchievementsAsync(UserId userId) =>
+        await userAchievementRepository.GetByUserIdAsync(userId);
 
     /// <summary>
     /// Get displayed achievements for a user (for profile showcase)
     /// </summary>
-    public async Task<IEnumerable<UserAchievement>> GetDisplayedUserAchievementsAsync(UserId userId)
-    {
-        return await _userAchievementRepository.GetDisplayedByUserIdAsync(userId);
-    }
+    public async Task<IEnumerable<UserAchievement>> GetDisplayedUserAchievementsAsync(UserId userId) =>
+        await userAchievementRepository.GetDisplayedByUserIdAsync(userId);
 
     /// <summary>
     /// Check if user has earned a specific achievement
     /// </summary>
-    public async Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId)
-    {
-        return await _userAchievementRepository.HasAchievementAsync(userId, achievementId);
-    }
+    public async Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId) =>
+        await userAchievementRepository.HasAchievementAsync(userId, achievementId);
 
     // ==================== User Progress Queries ====================
 
     /// <summary>
     /// Get all achievement progress for a user
     /// </summary>
-    public async Task<IEnumerable<UserAchievementProgress>> GetUserProgressAsync(UserId userId)
-    {
-        return await _userAchievementProgressRepository.GetByUserIdAsync(userId);
-    }
+    public async Task<IEnumerable<UserAchievementProgress>> GetUserProgressAsync(UserId userId) =>
+        await userAchievementProgressRepository.GetByUserIdAsync(userId);
 
     /// <summary>
     /// Get incomplete achievement progress for a user
     /// </summary>
-    public async Task<IEnumerable<UserAchievementProgress>> GetIncompleteUserProgressAsync(UserId userId)
-    {
-        return await _userAchievementProgressRepository.GetIncompleteByUserIdAsync(userId);
-    }
+    public async Task<IEnumerable<UserAchievementProgress>> GetIncompleteUserProgressAsync(UserId userId) =>
+        await userAchievementProgressRepository.GetIncompleteByUserIdAsync(userId);
 
     /// <summary>
     /// Get progress for a specific achievement
     /// </summary>
-    public async Task<UserAchievementProgress?> GetProgressAsync(UserId userId, AchievementId achievementId)
-    {
-        return await _userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
-    }
+    public async Task<UserAchievementProgress?> GetProgressAsync(UserId userId, AchievementId achievementId) =>
+        await userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
 
     // ==================== Manual Award (Phase 1) ====================
 
@@ -100,29 +78,26 @@ public class AchievementService(
     public async Task AwardAchievementAsync(UserId userId, AchievementId achievementId)
     {
         // Check if user already has this achievement
-        var alreadyHas = await _userAchievementRepository.HasAchievementAsync(userId, achievementId);
+        var alreadyHas = await userAchievementRepository.HasAchievementAsync(userId, achievementId);
+
         if (alreadyHas)
-        {
             throw new InvalidOperationException($"User '{userId}' already has achievement '{achievementId}'");
-        }
 
         // Verify achievement exists
-        var achievement = await _achievementRepository.GetByPublicIdAsync(achievementId);
-        if (achievement == null)
-        {
+        var achievement = await achievementRepository.GetByPublicIdAsync(achievementId);
+
+        if (achievement is null)
             throw new InvalidOperationException($"Achievement '{achievementId}' not found");
-        }
 
         // Create user achievement
         var userAchievement = UserAchievement.Create(userId, achievementId);
-        await _userAchievementRepository.AddAsync(userAchievement);
+        await userAchievementRepository.AddAsync(userAchievement);
 
         // Clean up progress tracking if it exists
-        var progress = await _userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
-        if (progress != null)
-        {
-            await _userAchievementProgressRepository.DeleteAsync(progress);
-        }
+        var progress = await userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
+
+        if (progress is not null)
+            await userAchievementProgressRepository.DeleteAsync(progress);
     }
 
     // ==================== Progress Tracking (Manual in Phase 1) ====================
@@ -133,22 +108,24 @@ public class AchievementService(
     public async Task InitializeProgressAsync(UserId userId, AchievementId achievementId, int targetValue)
     {
         // Check if progress already exists
-        var existing = await _userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
-        if (existing != null)
+        var existing = await userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
+
+        if (existing is not null)
         {
             throw new InvalidOperationException($"Progress already exists for user '{userId}' and achievement '{achievementId}'");
         }
 
         // Verify achievement exists
-        var achievement = await _achievementRepository.GetByPublicIdAsync(achievementId);
-        if (achievement == null)
+        var achievement = await achievementRepository.GetByPublicIdAsync(achievementId);
+
+        if (achievement is null)
         {
             throw new InvalidOperationException($"Achievement '{achievementId}' not found");
         }
 
         // Create progress
         var progress = UserAchievementProgress.Create(userId, achievementId, targetValue);
-        await _userAchievementProgressRepository.AddAsync(progress);
+        await userAchievementProgressRepository.AddAsync(progress);
     }
 
     /// <summary>
@@ -157,8 +134,9 @@ public class AchievementService(
     /// </summary>
     public async Task UpdateProgressAsync(UserId userId, AchievementId achievementId, int currentValue, string? progressData = null)
     {
-        var progress = await _userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
-        if (progress == null)
+        var progress = await userAchievementProgressRepository.GetByUserAndAchievementAsync(userId, achievementId);
+
+        if (progress is null)
         {
             throw new InvalidOperationException($"Progress not found for user '{userId}' and achievement '{achievementId}'");
         }
@@ -170,20 +148,21 @@ public class AchievementService(
         if (progress.IsComplete())
         {
             // Auto-award the achievement
-            var alreadyHas = await _userAchievementRepository.HasAchievementAsync(userId, achievementId);
+            var alreadyHas = await userAchievementRepository.HasAchievementAsync(userId, achievementId);
+
             if (!alreadyHas)
             {
                 var userAchievement = UserAchievement.Create(userId, achievementId);
-                await _userAchievementRepository.AddAsync(userAchievement);
+                await userAchievementRepository.AddAsync(userAchievement);
             }
 
             // Delete progress since achievement is earned
-            await _userAchievementProgressRepository.DeleteAsync(progress);
+            await userAchievementProgressRepository.DeleteAsync(progress);
         }
         else
         {
             // Save progress
-            await _userAchievementProgressRepository.UpdateAsync(progress);
+            await userAchievementProgressRepository.UpdateAsync(progress);
         }
     }
 
@@ -194,13 +173,14 @@ public class AchievementService(
     /// </summary>
     public async Task UpdateAchievementDisplayAsync(UserAchievementId userAchievementId, bool isDisplayed, int displayOrder)
     {
-        var userAchievement = await _userAchievementRepository.GetByPublicIdAsync(userAchievementId);
-        if (userAchievement == null)
+        var userAchievement = await userAchievementRepository.GetByPublicIdAsync(userAchievementId);
+
+        if (userAchievement is null)
         {
             throw new InvalidOperationException($"UserAchievement '{userAchievementId}' not found");
         }
 
         userAchievement.UpdateDisplay(isDisplayed, displayOrder);
-        await _userAchievementRepository.UpdateAsync(userAchievement);
+        await userAchievementRepository.UpdateAsync(userAchievement);
     }
 }

@@ -17,6 +17,7 @@ public class SnakkUrlHelperTests
     {
         var context = new CommunityContext();
         context.SetCommunity(slug, isDefault, isCustomDomain, "Test Community", isMultiCommunity);
+
         return context;
     }
 

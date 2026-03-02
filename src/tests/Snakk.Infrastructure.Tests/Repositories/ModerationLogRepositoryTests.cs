@@ -92,7 +92,7 @@ public class ModerationLogRepositoryTests : IDisposable
         var actor = await _builder.CreateUserAsync("Moderator");
         var community = await _builder.CreateCommunityAsync();
 
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             await _builder.CreateModerationLogAsync(actor.Id, 1, communityId: community.Id);
         }

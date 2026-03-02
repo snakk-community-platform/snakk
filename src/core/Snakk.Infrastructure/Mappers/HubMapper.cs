@@ -6,9 +6,8 @@ using Snakk.Domain.ValueObjects;
 
 public static class HubMapper
 {
-    public static Hub FromPersistence(this HubDatabaseEntity entity)
-    {
-        return Hub.Rehydrate(
+    public static Hub FromPersistence(this HubDatabaseEntity entity) =>
+        Hub.Rehydrate(
             HubId.From(entity.PublicId),
             CommunityId.From(entity.Community.PublicId),
             entity.Name,
@@ -19,11 +18,11 @@ public static class HubMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             spaces: []);
-    }
 
-    public static Hub FromPersistenceWithCommunityId(this HubDatabaseEntity entity, string communityPublicId)
-    {
-        return Hub.Rehydrate(
+    public static Hub FromPersistenceWithCommunityId(
+        this HubDatabaseEntity entity,
+        string communityPublicId) =>
+        Hub.Rehydrate(
             HubId.From(entity.PublicId),
             CommunityId.From(communityPublicId),
             entity.Name,
@@ -34,11 +33,9 @@ public static class HubMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             spaces: []);
-    }
 
-    public static HubDatabaseEntity ToPersistence(this Hub hub, int communityDbId)
-    {
-        return new HubDatabaseEntity
+    public static HubDatabaseEntity ToPersistence(this Hub hub, int communityDbId) =>
+        new()
         {
             PublicId = hub.PublicId,
             CommunityId = communityDbId,
@@ -50,5 +47,4 @@ public static class HubMapper
             CreatedAt = hub.CreatedAt,
             LastModifiedAt = hub.LastModifiedAt
         };
-    }
 }

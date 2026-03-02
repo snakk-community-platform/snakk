@@ -70,8 +70,12 @@ public static class AdminContentEndpoints
         var totalDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted);
         var totalPosts = await context.Posts.CountAsync(p => !p.IsDeleted);
 
-        var pinnedDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted && d.IsPinned);
-        var lockedDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted && d.IsLocked);
+        var pinnedDiscussions = await context.Discussions.CountAsync(d =>
+            !d.IsDeleted
+            && d.IsPinned);
+        var lockedDiscussions = await context.Discussions.CountAsync(d =>
+            !d.IsDeleted
+            && d.IsLocked);
 
         return TypedResults.Ok(new ContentOverviewResponse(
             totalCommunities,
@@ -100,8 +104,8 @@ public static class AdminContentEndpoints
         {
             var searchLower = search.ToLower();
             query = query.Where(c =>
-                c.Name.ToLower().Contains(searchLower) ||
-                c.Slug.ToLower().Contains(searchLower));
+                c.Name.ToLower().Contains(searchLower)
+                || c.Slug.ToLower().Contains(searchLower));
         }
 
         var total = await query.CountAsync();
@@ -133,7 +137,9 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var community = await context.Communities
-            .Where(c => c.PublicId == id && !c.IsDeleted)
+            .Where(c =>
+                c.PublicId == id
+                && !c.IsDeleted)
             .Select(c => new AdminCommunityDetailResponse(
                 Id: c.PublicId,
                 Name: c.Name,
@@ -144,7 +150,9 @@ public static class AdminContentEndpoints
                 HubCount: c.HubCount,
                 MemberCount: 0,
                 Hubs: context.Hubs
-                    .Where(h => h.CommunityId == c.Id && !h.IsDeleted)
+                    .Where(h =>
+                        h.CommunityId == c.Id
+                        && !h.IsDeleted)
                     .Select(h => new AdminHubSummaryResponse(
                         h.PublicId,
                         h.Name,
@@ -153,7 +161,7 @@ public static class AdminContentEndpoints
                     .ToList()))
             .FirstOrDefaultAsync();
 
-        if (community == null)
+        if (community is null)
             return Results.NotFound();
 
         return TypedResults.Ok(community);
@@ -177,14 +185,12 @@ public static class AdminContentEndpoints
         {
             var searchLower = search.ToLower();
             query = query.Where(h =>
-                h.Name.ToLower().Contains(searchLower) ||
-                h.Slug.ToLower().Contains(searchLower));
+                h.Name.ToLower().Contains(searchLower)
+                || h.Slug.ToLower().Contains(searchLower));
         }
 
         if (!string.IsNullOrWhiteSpace(communityId))
-        {
             query = query.Where(h => h.Community.PublicId == communityId);
-        }
 
         var total = await query.CountAsync();
 
@@ -228,14 +234,12 @@ public static class AdminContentEndpoints
         {
             var searchLower = search.ToLower();
             query = query.Where(s =>
-                s.Name.ToLower().Contains(searchLower) ||
-                s.Slug.ToLower().Contains(searchLower));
+                s.Name.ToLower().Contains(searchLower)
+                || s.Slug.ToLower().Contains(searchLower));
         }
 
         if (!string.IsNullOrWhiteSpace(hubId))
-        {
             query = query.Where(s => s.Hub.PublicId == hubId);
-        }
 
         var total = await query.CountAsync();
 
@@ -286,19 +290,13 @@ public static class AdminContentEndpoints
         }
 
         if (!string.IsNullOrWhiteSpace(spaceId))
-        {
             query = query.Where(d => d.Space.PublicId == spaceId);
-        }
 
         if (isPinned.HasValue)
-        {
             query = query.Where(d => d.IsPinned == isPinned.Value);
-        }
 
         if (isLocked.HasValue)
-        {
             query = query.Where(d => d.IsLocked == isLocked.Value);
-        }
 
         var total = await query.CountAsync();
 
@@ -337,7 +335,9 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .Where(d => d.PublicId == id && !d.IsDeleted)
+            .Where(d =>
+                d.PublicId == id
+                && !d.IsDeleted)
             .Select(d => new AdminDiscussionDetailResponse(
                 Id: d.PublicId,
                 Title: d.Title,
@@ -359,7 +359,7 @@ public static class AdminContentEndpoints
                 LastActivityAt: d.LastActivityAt))
             .FirstOrDefaultAsync();
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound();
 
         return TypedResults.Ok(discussion);
@@ -370,9 +370,11 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == id && !d.IsDeleted);
+            .FirstOrDefaultAsync(d =>
+                d.PublicId == id
+                && !d.IsDeleted);
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound(new { error = "Discussion not found" });
 
         if (discussion.IsPinned)
@@ -389,9 +391,11 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == id && !d.IsDeleted);
+            .FirstOrDefaultAsync(d =>
+                d.PublicId == id
+                && !d.IsDeleted);
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound(new { error = "Discussion not found" });
 
         if (!discussion.IsPinned)
@@ -408,9 +412,11 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == id && !d.IsDeleted);
+            .FirstOrDefaultAsync(d =>
+                d.PublicId == id
+                && !d.IsDeleted);
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound(new { error = "Discussion not found" });
 
         if (discussion.IsLocked)
@@ -427,9 +433,11 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == id && !d.IsDeleted);
+            .FirstOrDefaultAsync(d =>
+                d.PublicId == id
+                && !d.IsDeleted);
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound(new { error = "Discussion not found" });
 
         if (!discussion.IsLocked)
@@ -446,9 +454,11 @@ public static class AdminContentEndpoints
         SnakkDbContext context)
     {
         var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == id && !d.IsDeleted);
+            .FirstOrDefaultAsync(d =>
+                d.PublicId == id
+                && !d.IsDeleted);
 
-        if (discussion == null)
+        if (discussion is null)
             return Results.NotFound(new { error = "Discussion not found" });
 
         discussion.IsDeleted = true;

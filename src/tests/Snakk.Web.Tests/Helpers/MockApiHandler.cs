@@ -27,7 +27,7 @@ public class MockApiHandler : HttpMessageHandler
         _responses[pathPrefix.ToLowerInvariant()] = _ =>
         {
             var response = new HttpResponseMessage(statusCode);
-            if (body != null)
+            if (body is not null)
             {
                 var json = JsonSerializer.Serialize(body, new JsonSerializerOptions
                 {
@@ -35,6 +35,7 @@ public class MockApiHandler : HttpMessageHandler
                 });
                 response.Content = new StringContent(json, Encoding.UTF8, "application/json");
             }
+
             return response;
         };
     }
@@ -79,10 +80,8 @@ public class MockApiHandler : HttpMessageHandler
             .OrderByDescending(kvp => kvp.Key.Length)
             .FirstOrDefault();
 
-        if (bestMatch.Value != null)
-        {
+        if (bestMatch.Value is not null)
             return Task.FromResult(bestMatch.Value(request));
-        }
 
         // Default: return 404 for unmatched paths
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)

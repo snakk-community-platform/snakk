@@ -11,7 +11,13 @@ public interface IPostHtmlRenderer
     /// <summary>
     /// Renders a complete post card (for new posts added to discussion)
     /// </summary>
-    string RenderPostCard(Post post, User author, string hubSlug, string spaceSlug, string discussionSlug, string tempUserId);
+    string RenderPostCard(
+        Post post,
+        User author,
+        string hubSlug,
+        string spaceSlug,
+        string discussionSlug,
+        string tempUserId);
 
     /// <summary>
     /// Renders just the post content area (for edit updates)

@@ -94,9 +94,8 @@ public class Discussion
         DateTime? lastActivityAt = null,
         bool isPinned = false,
         bool isLocked = false,
-        List<Post>? posts = null)
-    {
-        return new Discussion(
+        List<Post>? posts = null) =>
+        new Discussion(
             publicId,
             spaceId,
             createdByUserId,
@@ -108,7 +107,6 @@ public class Discussion
             isPinned,
             isLocked,
             posts);
-    }
 
     public static Discussion RehydrateForList(
         DiscussionId publicId,
@@ -119,9 +117,8 @@ public class Discussion
         DateTime createdAt,
         DateTime? lastActivityAt,
         bool isPinned,
-        bool isLocked)
-    {
-        return new Discussion(
+        bool isLocked) =>
+        new Discussion(
             publicId,
             spaceId,
             createdByUserId,
@@ -133,7 +130,6 @@ public class Discussion
             isPinned,
             isLocked,
             posts: []);
-    }
 
     public void UpdateTitle(string title)
     {

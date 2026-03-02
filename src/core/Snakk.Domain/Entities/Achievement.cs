@@ -119,9 +119,8 @@ public class Achievement
         string requirementConfig,
         int displayOrder,
         DateTime createdAt,
-        DateTime? updatedAt = null)
-    {
-        return new Achievement(
+        DateTime? updatedAt = null) =>
+        new Achievement(
             publicId,
             slug,
             name,
@@ -137,7 +136,6 @@ public class Achievement
             displayOrder,
             createdAt,
             updatedAt);
-    }
 
     public void UpdateDetails(string name, string description, string? iconUrl)
     {

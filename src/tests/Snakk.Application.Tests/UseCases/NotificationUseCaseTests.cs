@@ -40,7 +40,7 @@ public class NotificationUseCaseTests
 
         var pagedResult = new PagedResult<Notification>
         {
-            Items = new List<Notification> { notification },
+            Items = [notification],
             Offset = 0,
             PageSize = 20,
             HasMoreItems = false
@@ -106,7 +106,7 @@ public class NotificationUseCaseTests
 
         var pagedResult = new PagedResult<Notification>
         {
-            Items = new List<Notification> { mentionNotification, replyNotification },
+            Items = [mentionNotification, replyNotification],
             Offset = 0,
             PageSize = 20,
             HasMoreItems = false

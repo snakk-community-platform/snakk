@@ -11,44 +11,34 @@ using System.Diagnostics;
 /// Background service that generates all missing avatars on application startup.
 /// This ensures all existing entities have pre-generated avatar files.
 /// </summary>
-public class AvatarGenerationHostedService : IHostedService
+public class AvatarGenerationHostedService(
+    IServiceProvider serviceProvider,
+    ILogger<AvatarGenerationHostedService> logger,
+    IConfiguration configuration) : IHostedService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<AvatarGenerationHostedService> _logger;
-    private readonly IConfiguration _configuration;
-
-    public AvatarGenerationHostedService(
-        IServiceProvider serviceProvider,
-        ILogger<AvatarGenerationHostedService> logger,
-        IConfiguration configuration)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-        _configuration = configuration;
-    }
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         // Check if generation on startup is enabled
-        var enabled = _configuration.GetValue<bool>("AvatarSettings:GenerateOnStartup", true);
+        var enabled = configuration.GetValue<bool>("AvatarSettings:GenerateOnStartup", true);
+
         if (!enabled)
         {
-            _logger.LogInformation("Avatar generation on startup is disabled");
+            logger.LogInformation("Avatar generation on startup is disabled");
             return;
         }
 
-        _logger.LogInformation("Starting avatar generation for existing entities...");
+        logger.LogInformation("Starting avatar generation for existing entities...");
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<IAvatarGenerationService>();
 
             var count = await service.GenerateAllMissingAvatarsAsync();
 
             stopwatch.Stop();
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Successfully generated {Count} avatars in {Duration}ms",
                 count,
                 stopwatch.ElapsedMilliseconds);
@@ -56,7 +46,7 @@ public class AvatarGenerationHostedService : IHostedService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to generate avatars on startup after {Duration}ms",
                 stopwatch.ElapsedMilliseconds);

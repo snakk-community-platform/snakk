@@ -11,7 +11,12 @@ using Snakk.Protos.Post;
 
 namespace Snakk.Web.Pages.Discussions;
 
-public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
+public class DetailModel(
+    SnakkApiClient apiClient,
+    IMarkupParser markupParser,
+    IConfiguration configuration,
+    ICommunityContext communityContext,
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
     private readonly IMarkupParser _markupParser = markupParser;
@@ -52,7 +57,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
         {
             // Get read state from API
             var readState = await _apiClient.GetReadStateAsync(CurrentUserId, discussionPublicId);
-            if (readState?.LastReadPostId == null)
+            if (readState?.LastReadPostId is null)
                 return null;
 
             // Calculate post number of last read post
@@ -65,7 +70,12 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
         }
     }
 
-    public async Task<IActionResult> OnGetAsync(string hubSlug, string spaceSlug, string slugWithId, int offset = 0, bool gotoUnread = false)
+    public async Task<IActionResult> OnGetAsync(
+        string hubSlug,
+        string spaceSlug,
+        string slugWithId,
+        int offset = 0,
+        bool gotoUnread = false)
     {
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
@@ -87,7 +97,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
 
             // Load user info for auth-dependent features
             var user = await _apiClient.GetCurrentUserAsync();
-            IsAuthenticated = user != null;
+            IsAuthenticated = user is not null;
             CurrentUserId = user?.PublicId;
             CurrentUserDisplayName = user?.DisplayName;
 
@@ -132,7 +142,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
             }
 
             Discussion = await _apiClient.GetDiscussionAsync(PublicId);
-            if (Discussion == null)
+            if (Discussion is null)
             {
                 return NotFound();
             }
@@ -178,12 +188,16 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
             // Reload page data for re-render
             Discussion = await _apiClient.GetDiscussionAsync(PublicId);
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, 0, 20);
+
             return Page();
         }
 
         try
         {
-            await _apiClient.CreatePostAsync(PublicId, PostContent, string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
+            await _apiClient.CreatePostAsync(
+                PublicId,
+                PostContent,
+                string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
 
             return RedirectToPage("/Discussions/Detail", new { hubSlug, spaceSlug, slugWithId });
         }
@@ -193,6 +207,7 @@ public class DetailModel(SnakkApiClient apiClient, IMarkupParser markupParser, I
             // Reload page data for re-render
             Discussion = await _apiClient.GetDiscussionAsync(PublicId);
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, 0, 20);
+
             return Page();
         }
     }

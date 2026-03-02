@@ -42,7 +42,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
             .ReturnsAsync((User?)null);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
         _mockPasswordHasher.Setup(h => h.HashPassword(password))
             .Returns(passwordHash);
 
@@ -125,7 +125,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync((User?)null);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
         _mockPasswordHasher.Setup(h => h.HashPassword(It.IsAny<string>()))
             .Returns("hashed");
 
@@ -177,7 +177,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
             .ReturnsAsync((User?)null);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User> { existingUser });
+            .ReturnsAsync([existingUser]);
         _mockPasswordHasher.Setup(h => h.HashPassword(It.IsAny<string>()))
             .Returns("hashed");
 
@@ -333,7 +333,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
             .ReturnsAsync((User?)null);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
 
         // Act
         var result = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, email, displayName);
@@ -381,7 +381,7 @@ public class AuthenticationUseCaseTests
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", token);
 
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User> { user });
+            .ReturnsAsync([user]);
 
         // Act
         var result = await _useCase.VerifyEmailAsync(token);
@@ -408,7 +408,7 @@ public class AuthenticationUseCaseTests
     {
         // Arrange
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User>());
+            .ReturnsAsync([]);
 
         // Act
         var result = await _useCase.VerifyEmailAsync("invalid_token");
@@ -427,7 +427,7 @@ public class AuthenticationUseCaseTests
         user.VerifyEmail(); // Already verified - this sets the token to null
 
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User> { user });
+            .ReturnsAsync([user]);
 
         // Act
         var result = await _useCase.VerifyEmailAsync(token);
@@ -454,7 +454,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
             .ReturnsAsync(user);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User> { user });
+            .ReturnsAsync([user]);
 
         // Act
         var result = await _useCase.UpdateDisplayNameAsync(userId, newDisplayName);
@@ -476,7 +476,7 @@ public class AuthenticationUseCaseTests
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
             .ReturnsAsync(user);
         _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<User> { user, otherUser });
+            .ReturnsAsync([user, otherUser]);
 
         // Act
         var result = await _useCase.UpdateDisplayNameAsync(userId, "TakenName");

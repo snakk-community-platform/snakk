@@ -78,6 +78,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
         var response = await client.PostAsync(BaseUrl, CreateJsonContent(payload));
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
+
         return json.RootElement.GetProperty("id").GetGuid();
     }
 

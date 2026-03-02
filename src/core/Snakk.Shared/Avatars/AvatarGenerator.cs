@@ -73,16 +73,12 @@ public static class AvatarGenerator
         };
     }
 
-    private static byte[] GetHash(string input)
-    {
-        return MD5.HashData(Encoding.UTF8.GetBytes(input));
-    }
+    private static byte[] GetHash(string input) =>
+        MD5.HashData(Encoding.UTF8.GetBytes(input));
 
-    private static AvatarType GetAvatarType(byte[] hash)
-    {
+    private static AvatarType GetAvatarType(byte[] hash) =>
         // Use a specific byte from hash to determine type
-        return (AvatarType)(hash[0] % TypeCount);
-    }
+        (AvatarType)(hash[0] % TypeCount);
 
     /// <summary>
     /// Generates a set of complementary colors based on the hash.
@@ -209,7 +205,7 @@ public static class AvatarGenerator
         svg.Append($@"<rect width=""{size}"" height=""{size}"" fill=""{colors[0]}""/>");
 
         // Generate flowing blob shapes
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var cx = (hash[(5 + i) % hash.Length] % 100) / 100.0 * size;
             var cy = (hash[(8 + i) % hash.Length] % 100) / 100.0 * size;
@@ -223,7 +219,7 @@ public static class AvatarGenerator
         }
 
         // Add some smaller accent blobs
-        for (int i = 0; i < 2; i++)
+        for (var i = 0; i < 2; i++)
         {
             var cx = (hash[3 + i * 2] % 100) / 100.0 * size;
             var cy = (hash[4 + i * 2] % 100) / 100.0 * size;
@@ -306,6 +302,7 @@ public static class AvatarGenerator
 
         // Mouth
         var mouthWidth = 10 + (hash[8] % 6);
+
         if (isHappy)
         {
             // Happy smile arc
@@ -345,13 +342,13 @@ public static class AvatarGenerator
         // Generate symmetric pixel pattern (mirror horizontally for face-like appearance)
         var halfGrid = gridSize / 2;
 
-        for (int y = 0; y < gridSize; y++)
+        for (var y = 0; y < gridSize; y++)
         {
-            for (int x = 0; x < halfGrid; x++)
+            for (var x = 0; x < halfGrid; x++)
             {
                 // Use hash to determine if pixel is filled
                 var hashIndex = (y * halfGrid + x) % hash.Length;
-                var isActive = hash[hashIndex] % 3 != 0; // ~66% chance of pixel being active
+                var isActive = hash[hashIndex] % 3 != 0;
 
                 if (isActive)
                 {
@@ -394,7 +391,7 @@ public static class AvatarGenerator
         // Generate shapes based on hash values
         var shapeCount = 3 + (hash[0] % 3); // 3-5 shapes
 
-        for (int i = 0; i < shapeCount; i++)
+        for (var i = 0; i < shapeCount; i++)
         {
             var shapeType = hash[i + 1] % 4; // 0=circle, 1=rect, 2=triangle, 3=line
             var colorIndex = (hash[i + 2] % (colors.Length - 1)) + 1;

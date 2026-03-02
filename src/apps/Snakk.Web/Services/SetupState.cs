@@ -41,8 +41,6 @@ public class SetupState
     public string DiscordClientId { get; set; } = "";
     public string DiscordClientSecret { get; set; } = "";
 
-    public string GetConnectionString()
-    {
-        return $"Host={DbHost};Port={DbPort};Database={DbName};Username={DbUsername};Password={DbPassword}";
-    }
+    public string GetConnectionString() =>
+        $"Host={DbHost};Port={DbPort};Database={DbName};Username={DbUsername};Password={DbPassword}";
 }

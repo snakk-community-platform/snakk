@@ -5,22 +5,13 @@ using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
-public class AuthorizationService : IAuthorizationService
+public class AuthorizationService(
+    SnakkDbContext context,
+    ILogger<AuthorizationService> logger) : IAuthorizationService
 {
-    private readonly SnakkDbContext _context;
-    private readonly ILogger<AuthorizationService> _logger;
-
-    public AuthorizationService(
-        SnakkDbContext context,
-        ILogger<AuthorizationService> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
-
     public async Task<bool> UserHas2FAEnabledAsync(string userId)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.TwoFactorEnabled })
             .FirstOrDefaultAsync();

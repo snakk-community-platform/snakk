@@ -181,12 +181,10 @@ public class Notification
         UserId? actorUserId,
         bool isRead,
         DateTime createdAt,
-        DateTime? readAt)
-    {
-        return new Notification(publicId, recipientUserId, type, title, body,
+        DateTime? readAt) =>
+        new Notification(publicId, recipientUserId, type, title, body,
             sourcePostId, sourceDiscussionId, sourceSpaceId, actorUserId,
             isRead, createdAt, readAt);
-    }
 
     public void MarkAsRead()
     {

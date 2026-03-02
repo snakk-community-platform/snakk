@@ -9,19 +9,18 @@ using Snakk.Application.Services;
 /// Renders Post entities to HTML fragments for realtime updates.
 /// Matches the structure in Detail.cshtml to ensure consistency.
 /// </summary>
-public class PostHtmlRenderer : IPostHtmlRenderer
+public class PostHtmlRenderer(IMarkupParser markupParser) : IPostHtmlRenderer
 {
-    private readonly IMarkupParser _markupParser;
-
-    public PostHtmlRenderer(IMarkupParser markupParser)
-    {
-        _markupParser = markupParser;
-    }
-
-    public string RenderPostCard(Post post, User author, string hubSlug, string spaceSlug, string discussionSlug, string tempUserId)
+    public string RenderPostCard(
+        Post post,
+        User author,
+        string hubSlug,
+        string spaceSlug,
+        string discussionSlug,
+        string tempUserId)
     {
         var sb = new StringBuilder();
-        var renderedContent = _markupParser.ToHtml(post.Content);
+        var renderedContent = markupParser.ToHtml(post.Content);
         var editedIndicator = post.EditedAt.HasValue ? "<span class=\"ml-2\">(edited)</span>" : "";
         var firstPostBadge = post.IsFirstPost ? "<div class=\"badge badge-info mb-2\">Original Post</div>" : "";
         var slugWithId = $"{discussionSlug}~{post.PublicId.Value}";
@@ -41,7 +40,7 @@ public class PostHtmlRenderer : IPostHtmlRenderer
                 </div>
             </div>
             <div class=""dropdown dropdown-end"">
-                <button tabindex=""0"" class=""btn btn-ghost btn-sm"">⋮</button>
+                <button tabindex=""0"" class=""btn btn-ghost btn-sm"">&#x22EE;</button>
                 <ul tabindex=""0"" class=""dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52 z-10"">
                     <li><button hx-get=""/api/posts/{post.PublicId.Value}/history"" hx-target=""#history-modal-content"" hx-swap=""innerHTML"" onclick=""history_modal.showModal()"">View History</button></li>
                     <li><button onclick=""editPost('{post.PublicId.Value}', '{tempUserId}')"">Edit</button></li>
@@ -57,7 +56,7 @@ public class PostHtmlRenderer : IPostHtmlRenderer
 
     public string RenderPostContent(Post post)
     {
-        var renderedContent = _markupParser.ToHtml(post.Content);
+        var renderedContent = markupParser.ToHtml(post.Content);
         var editedIndicator = post.EditedAt.HasValue ? "<span class=\"ml-2\">(edited)</span>" : "";
 
         return $@"
@@ -68,13 +67,10 @@ public class PostHtmlRenderer : IPostHtmlRenderer
 </div>";
     }
 
-    public string RenderTombstone()
-    {
-        return @"
+    public string RenderTombstone() => @"
 <div class=""card bg-base-100 shadow-md mb-4"">
     <div class=""card-body"">
         <p class=""text-base-content/50 italic"">[This post has been deleted]</p>
     </div>
 </div>";
-    }
 }

@@ -90,7 +90,8 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         try
@@ -131,10 +132,12 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         var validProviders = new[] { "Google", "GitHub", "Discord", "Microsoft", "Facebook", "Apple" };
+
         if (!validProviders.Contains(provider, StringComparer.OrdinalIgnoreCase))
             return Results.BadRequest(new { error = "Invalid OAuth provider" });
 
@@ -175,7 +178,8 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         try
@@ -234,7 +238,8 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         try
@@ -274,7 +279,8 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         try
@@ -314,7 +320,8 @@ public static class AdminSettingsEndpoints
         ISecurityService securityService)
     {
         var adminUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         try

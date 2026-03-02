@@ -10,13 +10,14 @@ public class UserAchievementProgressRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserAchievementProgressRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IUserAchievementProgressRepository
 {
-    private readonly Infrastructure.Database.Repositories.IUserAchievementProgressRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
-    public async Task<UserAchievementProgress?> GetByUserAndAchievementAsync(UserId userId, AchievementId achievementId)
+    public async Task<UserAchievementProgress?> GetByUserAndAchievementAsync(
+        UserId userId,
+        AchievementId achievementId)
     {
-        var projection = await _context.UserAchievementProgress
-            .Where(p => p.User.PublicId == userId.Value && p.Achievement.PublicId == achievementId.Value)
+        var projection = await context.UserAchievementProgress
+            .Where(p =>
+                p.User.PublicId == userId.Value
+                && p.Achievement.PublicId == achievementId.Value)
             .Select(p => new UserAchievementProgressProjection(
                 p.User.PublicId, p.Achievement.PublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
@@ -26,23 +27,27 @@ public class UserAchievementProgressRepositoryAdapter(
 
     public async Task<IEnumerable<UserAchievementProgress>> GetByUserIdAsync(UserId userId)
     {
-        var projections = await _context.UserAchievementProgress
+        var projections = await context.UserAchievementProgress
             .Where(p => p.User.PublicId == userId.Value)
             .Select(p => new UserAchievementProgressProjection(
                 p.User.PublicId, p.Achievement.PublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<UserAchievementProgress>> GetIncompleteByUserIdAsync(UserId userId)
     {
-        var projections = await _context.UserAchievementProgress
-            .Where(p => p.User.PublicId == userId.Value && p.CurrentValue < p.TargetValue)
+        var projections = await context.UserAchievementProgress
+            .Where(p =>
+                p.User.PublicId == userId.Value
+                && p.CurrentValue < p.TargetValue)
             .Select(p => new UserAchievementProgressProjection(
                 p.User.PublicId, p.Achievement.PublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
@@ -51,39 +56,43 @@ public class UserAchievementProgressRepositoryAdapter(
         var entity = progress.ToPersistence();
 
         // Resolve foreign keys from PublicIds
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == progress.UserId.Value);
-        if (user == null)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == progress.UserId.Value);
+
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{progress.UserId}' not found");
 
-        var achievement = await _context.Achievements.FirstOrDefaultAsync(a => a.PublicId == progress.AchievementId.Value);
-        if (achievement == null)
+        var achievement = await context.Achievements.FirstOrDefaultAsync(a => a.PublicId == progress.AchievementId.Value);
+
+        if (achievement is null)
             throw new InvalidOperationException($"Achievement with PublicId '{progress.AchievementId}' not found");
 
         entity.UserId = user.Id;
         entity.AchievementId = achievement.Id;
 
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(UserAchievementProgress progress)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .FirstOrDefaultAsync(u => u.PublicId == progress.UserId.Value);
 
-        if (user == null)
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{progress.UserId}' not found");
 
-        var achievement = await _context.Achievements
+        var achievement = await context.Achievements
             .FirstOrDefaultAsync(a => a.PublicId == progress.AchievementId.Value);
 
-        if (achievement == null)
+        if (achievement is null)
             throw new InvalidOperationException($"Achievement with PublicId '{progress.AchievementId}' not found");
 
-        var entity = await _context.UserAchievementProgress
-            .FirstOrDefaultAsync(p => p.UserId == user.Id && p.AchievementId == achievement.Id);
+        var entity = await context.UserAchievementProgress
+            .FirstOrDefaultAsync(p =>
+                p.UserId == user.Id
+                && p.AchievementId == achievement.Id);
 
-        if (entity == null)
+        if (entity is null)
             throw new InvalidOperationException($"UserAchievementProgress for User '{progress.UserId}' and Achievement '{progress.AchievementId}' not found");
 
         // Update properties
@@ -92,32 +101,34 @@ public class UserAchievementProgressRepositoryAdapter(
         entity.ProgressData = progress.ProgressData;
         entity.LastUpdated = progress.LastUpdated;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(UserAchievementProgress progress)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .FirstOrDefaultAsync(u => u.PublicId == progress.UserId.Value);
 
-        if (user == null)
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{progress.UserId}' not found");
 
-        var achievement = await _context.Achievements
+        var achievement = await context.Achievements
             .FirstOrDefaultAsync(a => a.PublicId == progress.AchievementId.Value);
 
-        if (achievement == null)
+        if (achievement is null)
             throw new InvalidOperationException($"Achievement with PublicId '{progress.AchievementId}' not found");
 
-        var entity = await _context.UserAchievementProgress
-            .FirstOrDefaultAsync(p => p.UserId == user.Id && p.AchievementId == achievement.Id);
+        var entity = await context.UserAchievementProgress
+            .FirstOrDefaultAsync(p =>
+                p.UserId == user.Id
+                && p.AchievementId == achievement.Id);
 
-        if (entity == null)
+        if (entity is null)
             throw new InvalidOperationException($"UserAchievementProgress for User '{progress.UserId}' and Achievement '{progress.AchievementId}' not found");
 
-        await _databaseRepository.DeleteAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.DeleteAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record UserAchievementProgressProjection(

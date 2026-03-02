@@ -22,7 +22,7 @@ public class PlatformStatsModel(
                 $"platform-stats:community:{scopeId}",
                 () => apiClient.GetCommunityStatsAsync(scopeId));
             var stats = result.Value;
-            if (stats != null)
+            if (stats is not null)
             {
                 SpaceCount = stats.SpaceCount;
                 DiscussionCount = stats.DiscussionCount;
@@ -36,7 +36,7 @@ public class PlatformStatsModel(
                 "platform-stats:platform:global",
                 () => apiClient.GetPlatformStatsAsync());
             var stats = result.Value;
-            if (stats != null)
+            if (stats is not null)
             {
                 SpaceCount = stats.SpaceCount;
                 DiscussionCount = stats.DiscussionCount;

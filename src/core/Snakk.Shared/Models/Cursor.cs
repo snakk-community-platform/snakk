@@ -15,6 +15,7 @@ public static class Cursor
     {
         var ticks = dateTime?.Ticks ?? 0;
         var raw = $"{ticks}~{id}";
+
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
     }
 
@@ -30,12 +31,14 @@ public static class Cursor
         {
             var raw = Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
             var parts = raw.Split('~');
+
             if (parts.Length != 2)
                 return null;
 
             var ticks = long.Parse(parts[0]);
             var id = int.Parse(parts[1]);
             var dateTime = ticks > 0 ? new DateTime(ticks, DateTimeKind.Utc) : (DateTime?)null;
+
             return (dateTime, id);
         }
         catch

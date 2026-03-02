@@ -12,11 +12,6 @@ public partial class MentionService(
     IDiscussionRepository discussionRepository,
     NotificationUseCase notificationUseCase)
 {
-    private readonly IMentionRepository _mentionRepository = mentionRepository;
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly IDiscussionRepository _discussionRepository = discussionRepository;
-    private readonly NotificationUseCase _notificationUseCase = notificationUseCase;
-
     [GeneratedRegex(@"@(\w+)", RegexOptions.Compiled)]
     private static partial Regex MentionRegex();
 
@@ -26,7 +21,11 @@ public partial class MentionService(
     public static List<string> ExtractMentionsFromContent(string content)
     {
         var matches = MentionRegex().Matches(content);
-        return matches.Select(m => m.Groups[1].Value).Distinct().ToList();
+
+        return matches
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToList();
     }
 
     /// <summary>
@@ -39,21 +38,25 @@ public partial class MentionService(
         DiscussionId discussionId)
     {
         var usernames = ExtractMentionsFromContent(content);
+
         if (usernames.Count == 0) return;
 
-        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
-        if (discussion == null) return;
+        var discussion = await discussionRepository.GetByPublicIdAsync(discussionId);
 
-        var author = await _userRepository.GetByPublicIdAsync(authorUserId);
-        if (author == null) return;
+        if (discussion is null) return;
+
+        var author = await userRepository.GetByPublicIdAsync(authorUserId);
+
+        if (author is null) return;
 
         var mentions = new List<Mention>();
 
         foreach (var username in usernames)
         {
             // Find user by display name (case-insensitive)
-            var mentionedUser = await _userRepository.GetByDisplayNameAsync(username);
-            if (mentionedUser == null) continue;
+            var mentionedUser = await userRepository.GetByDisplayNameAsync(username);
+
+            if (mentionedUser is null) continue;
 
             // Don't notify yourself
             if (mentionedUser.PublicId.Value == authorUserId.Value) continue;
@@ -71,12 +74,12 @@ public partial class MentionService(
                 author.DisplayName,
                 discussion.Title);
 
-            await _notificationUseCase.CreateNotificationAsync(notification);
+            await notificationUseCase.CreateNotificationAsync(notification);
         }
 
         if (mentions.Count > 0)
         {
-            await _mentionRepository.AddRangeAsync(mentions);
+            await mentionRepository.AddRangeAsync(mentions);
         }
     }
 }

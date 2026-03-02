@@ -17,7 +17,13 @@ public class SpaceRulesModel(
     public bool ParentHubHasRules { get; set; }
     public bool ParentCommunityHasRules { get; set; }
 
-    public async Task OnGetAsync(string spaceId, string hubSlug = "", string communitySlug = "", bool parentHubHasRules = false, bool parentCommunityHasRules = false, string rev = "")
+    public async Task OnGetAsync(
+        string spaceId,
+        string hubSlug = "",
+        string communitySlug = "",
+        bool parentHubHasRules = false,
+        bool parentCommunityHasRules = false,
+        string rev = "")
     {
         Response.Headers.CacheControl = "public, max-age=86400";
 

@@ -35,19 +35,20 @@ public static class AvatarEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
         var user = await userRepository.GetByPublicIdAsync(userId);
 
-        if (user == null)
+        if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
         var form = await httpContext.Request.ReadFormAsync();
         var file = form.Files.GetFile("avatar");
 
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
             return Results.BadRequest(new { error = "No file uploaded" });
 
         // Validate file size (max 2MB)
@@ -56,12 +57,14 @@ public static class AvatarEndpoints
 
         // Validate content type
         var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+
         if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
             return Results.BadRequest(new { error = "Invalid file type. Allowed: JPEG, PNG, GIF, WebP" });
 
         // Validate file extension
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
         if (!allowedExtensions.Contains(extension))
             return Results.BadRequest(new { error = "Invalid file extension" });
 
@@ -77,6 +80,7 @@ public static class AvatarEndpoints
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
             var oldPath = Path.Combine(avatarsDir, user.AvatarFileName);
+
             if (File.Exists(oldPath))
                 File.Delete(oldPath);
         }
@@ -110,13 +114,14 @@ public static class AvatarEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
         var user = await userRepository.GetByPublicIdAsync(userId);
 
-        if (user == null)
+        if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
         // Delete file if exists
@@ -124,6 +129,7 @@ public static class AvatarEndpoints
         {
             var avatarsDir = Path.Combine(env.ContentRootPath, "avatars");
             var avatarPath = Path.Combine(avatarsDir, user.AvatarFileName);
+
             if (File.Exists(avatarPath))
                 File.Delete(avatarPath);
         }

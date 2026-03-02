@@ -7,22 +7,15 @@ namespace Snakk.Realtime.Hubs;
 /// Browsers connect here via WebSocket
 /// API posts events via HTTP to broadcast to connected clients
 /// </summary>
-public class RealtimeHub : Hub
+public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
 {
-    private readonly ILogger<RealtimeHub> _logger;
-
-    public RealtimeHub(ILogger<RealtimeHub> logger)
-    {
-        _logger = logger;
-    }
-
     /// <summary>
     /// Subscribe to global updates
     /// </summary>
     public async Task SubscribeToGlobal()
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, "global");
-        _logger.LogInformation("Client {ConnectionId} subscribed to global", Context.ConnectionId);
+        logger.LogInformation("Client {ConnectionId} subscribed to global", Context.ConnectionId);
     }
 
     /// <summary>
@@ -31,8 +24,10 @@ public class RealtimeHub : Hub
     public async Task SubscribeToDiscussion(string discussionId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
-        _logger.LogInformation("Client {ConnectionId} subscribed to discussion {DiscussionId}",
-            Context.ConnectionId, discussionId);
+        logger.LogInformation(
+            "Client {ConnectionId} subscribed to discussion {DiscussionId}",
+            Context.ConnectionId,
+            discussionId);
     }
 
     /// <summary>
@@ -41,8 +36,10 @@ public class RealtimeHub : Hub
     public async Task UnsubscribeFromDiscussion(string discussionId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
-        _logger.LogInformation("Client {ConnectionId} unsubscribed from discussion {DiscussionId}",
-            Context.ConnectionId, discussionId);
+        logger.LogInformation(
+            "Client {ConnectionId} unsubscribed from discussion {DiscussionId}",
+            Context.ConnectionId,
+            discussionId);
     }
 
     /// <summary>
@@ -51,8 +48,11 @@ public class RealtimeHub : Hub
     public async Task SubscribeToSpace(string hubSlug, string spaceSlug)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"space:{hubSlug}:{spaceSlug}");
-        _logger.LogInformation("Client {ConnectionId} subscribed to space {HubSlug}/{SpaceSlug}",
-            Context.ConnectionId, hubSlug, spaceSlug);
+        logger.LogInformation(
+            "Client {ConnectionId} subscribed to space {HubSlug}/{SpaceSlug}",
+            Context.ConnectionId,
+            hubSlug,
+            spaceSlug);
     }
 
     /// <summary>
@@ -61,8 +61,11 @@ public class RealtimeHub : Hub
     public async Task UnsubscribeFromSpace(string hubSlug, string spaceSlug)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"space:{hubSlug}:{spaceSlug}");
-        _logger.LogInformation("Client {ConnectionId} unsubscribed from space {HubSlug}/{SpaceSlug}",
-            Context.ConnectionId, hubSlug, spaceSlug);
+        logger.LogInformation(
+            "Client {ConnectionId} unsubscribed from space {HubSlug}/{SpaceSlug}",
+            Context.ConnectionId,
+            hubSlug,
+            spaceSlug);
     }
 
     /// <summary>
@@ -71,8 +74,10 @@ public class RealtimeHub : Hub
     public async Task SubscribeToHub(string hubSlug)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"hub:{hubSlug}");
-        _logger.LogInformation("Client {ConnectionId} subscribed to hub {HubSlug}",
-            Context.ConnectionId, hubSlug);
+        logger.LogInformation(
+            "Client {ConnectionId} subscribed to hub {HubSlug}",
+            Context.ConnectionId,
+            hubSlug);
     }
 
     /// <summary>
@@ -81,8 +86,10 @@ public class RealtimeHub : Hub
     public async Task UnsubscribeFromHub(string hubSlug)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"hub:{hubSlug}");
-        _logger.LogInformation("Client {ConnectionId} unsubscribed from hub {HubSlug}",
-            Context.ConnectionId, hubSlug);
+        logger.LogInformation(
+            "Client {ConnectionId} unsubscribed from hub {HubSlug}",
+            Context.ConnectionId,
+            hubSlug);
     }
 
     /// <summary>
@@ -91,26 +98,29 @@ public class RealtimeHub : Hub
     public async Task SubscribeToUserNotifications(string userId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
-        _logger.LogInformation("Client {ConnectionId} subscribed to user notifications for {UserId}",
-            Context.ConnectionId, userId);
+        logger.LogInformation(
+            "Client {ConnectionId} subscribed to user notifications for {UserId}",
+            Context.ConnectionId,
+            userId);
     }
 
     public override async Task OnConnectedAsync()
     {
-        _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
+        logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (exception != null)
+        if (exception is not null)
         {
-            _logger.LogWarning(exception, "Client disconnected with error: {ConnectionId}", Context.ConnectionId);
+            logger.LogWarning(exception, "Client disconnected with error: {ConnectionId}", Context.ConnectionId);
         }
         else
         {
-            _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
+            logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
         }
+
         await base.OnDisconnectedAsync(exception);
     }
 }

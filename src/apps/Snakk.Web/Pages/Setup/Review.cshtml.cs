@@ -13,8 +13,6 @@ public class ReviewModel : SetupPageBase
         State = GetState();
     }
 
-    public IActionResult OnPost()
-    {
-        return RedirectToPage("Install");
-    }
+    public IActionResult OnPost() =>
+        RedirectToPage("Install");
 }

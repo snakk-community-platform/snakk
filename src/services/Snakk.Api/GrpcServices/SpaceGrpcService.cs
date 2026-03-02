@@ -20,22 +20,26 @@ public class SpaceGrpcService(
     public override async Task<SpaceInfo> GetSpaceBySlug(GetSpaceBySlugRequest request, ServerCallContext context)
     {
         var result = await spaceUseCase.GetSpaceBySlugAsync(request.Slug);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
     public override async Task<SpaceInfo> GetSpace(GetSpaceRequest request, ServerCallContext context)
     {
         var result = await spaceUseCase.GetSpaceAsync(SpaceId.From(request.PublicId));
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
@@ -62,12 +66,13 @@ public class SpaceGrpcService(
                 Name = s.Name,
                 Slug = s.Slug,
                 Description = s.Description ?? "",
-                CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc)),
                 DiscussionCount = s.DiscussionCount,
-                ReplyCount = s.ReplyCount
+                ReplyCount = s.ReplyCount,
+
+                CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc))
             };
 
-            if (s.LatestDiscussion != null)
+            if (s.LatestDiscussion is not null)
             {
                 var ld = s.LatestDiscussion;
                 spaceInfo.LatestDiscussion = new LatestDiscussionRef
@@ -94,6 +99,7 @@ public class SpaceGrpcService(
         var rules = await spaceManagement.GetRulesAsync(request.SpaceId);
 
         var response = new SpaceRulesResponse();
+
         foreach (var r in rules.Rules)
         {
             response.Rules.Add(new SpaceRule
@@ -110,10 +116,12 @@ public class SpaceGrpcService(
     public override async Task<SpaceStats> GetSpaceStats(GetSpaceStatsRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetSpaceStatsAsync(request.PublicId);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var stats = result.Value;
+
         return new SpaceStats
         {
             PublicId = stats.PublicId,
@@ -129,10 +137,14 @@ public class SpaceGrpcService(
     {
         var data = await dbContext.Spaces
             .Where(s => s.PublicId == publicId)
-            .Select(s => new { s.HasRules, s.RulesRevision, s.ParentHubHasRules, s.ParentCommunityHasRules })
+            .Select(s => new {
+                s.HasRules,
+                s.RulesRevision,
+                s.ParentHubHasRules,
+                s.ParentCommunityHasRules })
             .FirstOrDefaultAsync();
 
-        if (data != null)
+        if (data is not null)
         {
             info.HasRules = data.HasRules;
             info.RulesRevision = data.RulesRevision ?? "";
@@ -152,7 +164,7 @@ public class SpaceGrpcService(
             CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc))
         };
 
-        if (s.Description != null)
+        if (s.Description is not null)
             info.Description = s.Description;
 
         return info;

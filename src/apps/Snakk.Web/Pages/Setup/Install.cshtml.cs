@@ -3,12 +3,8 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Setup;
 
-public class InstallModel : SetupPageBase
+public class InstallModel(SetupService setupService) : SetupPageBase
 {
-    private readonly SetupService _setupService;
-
-    public InstallModel(SetupService setupService) => _setupService = setupService;
-
     public void OnGet() => ViewData["SetupStep"] = 10;
 
     /// <summary>
@@ -23,16 +19,16 @@ public class InstallModel : SetupPageBase
             return new JsonResult(new { started = true, alreadyComplete = true });
 
         var state = GetState();
-        _setupService.StartInstallInBackground(state);
+        setupService.StartInstallInBackground(state);
+
         return new JsonResult(new { started = true });
     }
 
     /// <summary>
     /// Poll for installation progress.
     /// </summary>
-    public IActionResult OnGetStatus()
-    {
-        return new JsonResult(new
+    public IActionResult OnGetStatus() =>
+        new JsonResult(new
         {
             step = InstallProgress.Step,
             message = InstallProgress.Message,
@@ -41,7 +37,6 @@ public class InstallModel : SetupPageBase
             errorMessage = InstallProgress.ErrorMessage,
             seedEnabled = InstallProgress.SeedEnabled
         });
-    }
 
     /// <summary>
     /// Called after installation completes. Sets the JWT cookie for auto-login,
@@ -65,7 +60,7 @@ public class InstallModel : SetupPageBase
         });
 
         // Write .setup-complete marker — this triggers entrypoint.sh to restart services
-        _setupService.MarkSetupComplete(state.AvatarStoragePath);
+        setupService.MarkSetupComplete(state.AvatarStoragePath);
 
         // Clean up
         HttpContext.Session.Clear();

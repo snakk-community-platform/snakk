@@ -41,14 +41,15 @@ public static class ReadStateEndpoints
     {
         // SECURITY: Extract userId from JWT, NOT query parameter
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var readState = await readStateRepository.GetAsync(
             userId,
             DiscussionId.From(discussionId));
 
-        if (readState == null)
+        if (readState is null)
             return TypedResults.Ok(new ReadStateResponse(null, null));
 
         return TypedResults.Ok(new ReadStateResponse(readState.LastReadPostId?.Value, readState.LastReadAt));
@@ -62,22 +63,18 @@ public static class ReadStateEndpoints
     {
         // SECURITY: Extract userId from JWT, NOT from request
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var discussionIdValue = DiscussionId.From(discussionId);
         var postIdValue = PostId.From(postId);
-
         var readState = await readStateRepository.GetAsync(userId, discussionIdValue);
 
-        if (readState == null)
-        {
+        if (readState is null)
             readState = DiscussionReadState.Create(userId, discussionIdValue, postIdValue);
-        }
         else
-        {
             readState.MarkAsRead(postIdValue);
-        }
 
         await readStateRepository.SaveAsync(readState);
 
@@ -89,32 +86,29 @@ public static class ReadStateEndpoints
         HttpContext httpContext,
         IDiscussionReadStateRepository readStateRepository)
     {
-        if (request?.Updates == null || request.Updates.Count == 0)
+        if (request?.Updates is null || request.Updates.Count == 0)
             return TypedResults.Ok(new SuccessResponse(true, 0));
 
         // SECURITY: Extract userId from JWT
         var userId = httpContext.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
-        int processed = 0;
+        var processed = 0;
+
         foreach (var update in request.Updates)
         {
             try
             {
                 var discussionIdValue = DiscussionId.From(update.DiscussionId);
                 var postIdValue = PostId.From(update.PostId);
-
                 var readState = await readStateRepository.GetAsync(userId, discussionIdValue);
 
-                if (readState == null)
-                {
+                if (readState is null)
                     readState = DiscussionReadState.Create(userId, discussionIdValue, postIdValue);
-                }
                 else
-                {
                     readState.MarkAsRead(postIdValue);
-                }
 
                 await readStateRepository.SaveAsync(readState);
                 processed++;

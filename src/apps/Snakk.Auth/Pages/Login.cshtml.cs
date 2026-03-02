@@ -8,19 +8,11 @@ using System.Text.Json;
 
 namespace Snakk.Auth.Pages;
 
-public class LoginModel : PageModel
+public class LoginModel(
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
+    ILogger<LoginModel> logger) : PageModel
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<LoginModel> _logger;
-
-    public LoginModel(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<LoginModel> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
-        _logger = logger;
-    }
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -60,7 +52,7 @@ public class LoginModel : PageModel
 
         try
         {
-            var httpClient = _httpClientFactory.CreateClient("SnakkApi");
+            var httpClient = httpClientFactory.CreateClient("SnakkApi");
 
             // Call API login endpoint
             var loginRequest = new
@@ -80,7 +72,7 @@ public class LoginModel : PageModel
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Login failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                logger.LogWarning("Login failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
 
                 ErrorMessage = "Invalid email/username or password.";
                 return Page();
@@ -92,7 +84,7 @@ public class LoginModel : PageModel
                 PropertyNameCaseInsensitive = true
             });
 
-            if (loginResponse?.AccessToken == null)
+            if (loginResponse?.AccessToken is null)
             {
                 ErrorMessage = "Login failed. Please try again.";
                 return Page();
@@ -127,7 +119,7 @@ public class LoginModel : PageModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Login error");
+            logger.LogError(ex, "Login error");
             ErrorMessage = "An error occurred during login. Please try again.";
             return Page();
         }

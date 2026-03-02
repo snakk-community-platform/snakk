@@ -20,12 +20,13 @@ public class LocalFileStorage : IFileStorage
 
         // Ensure the base directory exists
         if (!Directory.Exists(_basePath))
-        {
             Directory.CreateDirectory(_basePath);
-        }
     }
 
-    public async Task SaveAsync(string relativePath, Stream content, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(
+        string relativePath,
+        Stream content,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
@@ -33,16 +34,16 @@ public class LocalFileStorage : IFileStorage
         var fullPath = Path.Combine(_basePath, relativePath);
         var directory = Path.GetDirectoryName(fullPath);
 
-        if (directory != null && !Directory.Exists(directory))
-        {
+        if (directory is not null && !Directory.Exists(directory))
             Directory.CreateDirectory(directory);
-        }
 
         using var fileStream = File.Create(fullPath);
         await content.CopyToAsync(fileStream, cancellationToken);
     }
 
-    public async Task<Stream?> ReadAsync(string relativePath, CancellationToken cancellationToken = default)
+    public async Task<Stream?> ReadAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
@@ -59,7 +60,9 @@ public class LocalFileStorage : IFileStorage
         return memoryStream;
     }
 
-    public Task<bool> ExistsAsync(string relativePath, CancellationToken cancellationToken = default)
+    public Task<bool> ExistsAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
@@ -68,7 +71,9 @@ public class LocalFileStorage : IFileStorage
         return Task.FromResult(File.Exists(fullPath));
     }
 
-    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
@@ -76,9 +81,7 @@ public class LocalFileStorage : IFileStorage
         var fullPath = Path.Combine(_basePath, relativePath);
 
         if (File.Exists(fullPath))
-        {
             File.Delete(fullPath);
-        }
 
         return Task.CompletedTask;
     }

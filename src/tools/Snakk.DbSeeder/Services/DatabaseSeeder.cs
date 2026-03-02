@@ -109,7 +109,7 @@ public class DatabaseSeeder(
         // Users
         var userPublicIds = await _context.Users.Select(u => u.PublicId).ToListAsync();
         Console.WriteLine($"Generating avatars for {userPublicIds.Count} users...");
-        for (int i = 0; i < userPublicIds.Count; i++)
+        for (var i = 0; i < userPublicIds.Count; i++)
         {
             await _avatarService.GenerateUserAvatarAsync(userPublicIds[i]);
             if ((i + 1) % 25 == 0 || i + 1 == userPublicIds.Count)
@@ -169,7 +169,7 @@ public class DatabaseSeeder(
 
         // Check if admin user already exists
         var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail || u.PublicId == adminPublicId);
-        if (adminUser != null)
+        if (adminUser is not null)
         {
             // Ensure they have GlobalAdmin role in UserRoles table (for permissions)
             var hasGlobalAdminRole = await _context.UserRoles
@@ -226,7 +226,7 @@ public class DatabaseSeeder(
 
         // Get the test user
         var testUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == "01JJQP0000000000000000TEST");
-        if (testUser != null)
+        if (testUser is not null)
             users.Add(testUser);
 
         // Generate 150 users with Bogus
@@ -247,6 +247,7 @@ public class DatabaseSeeder(
 
         await _context.SaveChangesAsync();
         Console.WriteLine($"Created {users.Count} users.");
+
         return users;
     }
 
@@ -541,6 +542,7 @@ public class DatabaseSeeder(
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
+
         return hub;
     }
 
@@ -558,6 +560,7 @@ public class DatabaseSeeder(
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
+
         return space;
     }
 
@@ -580,7 +583,7 @@ public class DatabaseSeeder(
         var discussions = new List<DiscussionDatabaseEntity>();
         var posts = new List<PostDatabaseEntity>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             // Spread discussions across the time window with slight clustering toward recent
             var minutesOffset = _faker.Random.Double(0, totalMinutes);
@@ -631,13 +634,13 @@ public class DatabaseSeeder(
             });
 
             // Variable number of replies
-            int replyCount = GetSkewedReplyCount();
+            var replyCount = GetSkewedReplyCount();
             var lastActivityAt = discussion.CreatedAt;
 
             // Time budget: from discussion creation to latest allowed
             var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
 
-            for (int j = 0; j < replyCount; j++)
+            for (var j = 0; j < replyCount; j++)
             {
                 var replyAuthor = _faker.PickRandom(users);
 

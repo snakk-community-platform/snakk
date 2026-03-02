@@ -10,24 +10,19 @@ public class UserCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<UserCreatedEvent>
 {
-    private readonly IActivityBroadcaster _activityBroadcaster = activityBroadcaster;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(UserCreatedEvent @event)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == @event.UserId.Value)
-            .Select(u => new
-            {
+            .Select(u => new {
                 u.DisplayName,
-                u.Email
-            })
+                u.Email })
             .FirstOrDefaultAsync();
 
-        if (user == null)
+        if (user is null)
             return;
 
-        await _activityBroadcaster.BroadcastUserRegistered(
+        await activityBroadcaster.BroadcastUserRegistered(
             @event.UserId.Value,
             user.DisplayName,
             user.Email ?? "");

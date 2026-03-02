@@ -15,34 +15,24 @@ public class ActivityHub : Hub
     {
         // Only allow admin users to connect
         if (Context.User?.IsInRole("Admin") == true)
-        {
             await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroup);
-        }
+
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         if (Context.User?.IsInRole("Admin") == true)
-        {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, AdminGroup);
-        }
+
         await base.OnDisconnectedAsync(exception);
     }
 }
 
-public class ActivityBroadcaster : IActivityBroadcaster
+public class ActivityBroadcaster(IHubContext<ActivityHub> hubContext) : IActivityBroadcaster
 {
-    private readonly IHubContext<ActivityHub> _hubContext;
-
-    public ActivityBroadcaster(IHubContext<ActivityHub> hubContext)
-    {
-        _hubContext = hubContext;
-    }
-
-    public async Task BroadcastPostCreated(string userId, string username, string postId, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastPostCreated(string userId, string username, string postId, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "post",
@@ -58,11 +48,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             action = $"Posted in {discussionTitle}",
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastDiscussionCreated(string userId, string username, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastDiscussionCreated(string userId, string username, string discussionId, string discussionTitle, string? communityName, string? hubName, string? spaceName) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "discussion",
@@ -78,11 +66,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             action = $"Created discussion: {discussionTitle}",
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastReactionAdded(string userId, string username, string reactionType, string targetType, string targetId, string? targetTitle)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastReactionAdded(string userId, string username, string reactionType, string targetType, string targetId, string? targetTitle) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "reaction",
@@ -96,11 +82,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             details = reactionType,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastFollowAdded(string userId, string username, string targetType, string targetId, string? targetName)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastFollowAdded(string userId, string username, string targetType, string targetId, string? targetName) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "follow",
@@ -113,11 +97,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             action = $"Followed {targetType}: {targetName ?? targetId}",
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserRegistered(string userId, string username, string email)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastUserRegistered(string userId, string username, string email) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "user",
@@ -128,11 +110,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             details = email,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastModerationAction(string moderatorId, string moderatorName, string action, string targetType, string? targetId, string? targetName, string? reason)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastModerationAction(string moderatorId, string moderatorName, string action, string targetType, string? targetId, string? targetName, string? reason) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "moderation",
@@ -146,11 +126,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             details = reason,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserBanned(string moderatorId, string moderatorName, string userId, string username, string reason)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastUserBanned(string moderatorId, string moderatorName, string userId, string username, string reason) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "moderation",
@@ -164,11 +142,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             details = reason,
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastUserUnbanned(string moderatorId, string moderatorName, string userId, string username)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastUserUnbanned(string moderatorId, string moderatorName, string userId, string username) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "moderation",
@@ -181,11 +157,9 @@ public class ActivityBroadcaster : IActivityBroadcaster
             action = $"Unbanned user: {username}",
             timestamp = DateTime.UtcNow
         });
-    }
 
-    public async Task BroadcastContentDeleted(string moderatorId, string moderatorName, string contentType, string contentId, string? reason)
-    {
-        await _hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
+    public async Task BroadcastContentDeleted(string moderatorId, string moderatorName, string contentType, string contentId, string? reason) =>
+        await hubContext.Clients.Group("Admins").SendAsync("ActivityEvent", new
         {
             id = Guid.NewGuid().ToString("N"),
             type = "moderation",
@@ -198,5 +172,4 @@ public class ActivityBroadcaster : IActivityBroadcaster
             details = reason,
             timestamp = DateTime.UtcNow
         });
-    }
 }

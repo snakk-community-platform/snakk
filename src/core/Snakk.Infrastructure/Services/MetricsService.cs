@@ -6,8 +6,6 @@ using Snakk.Infrastructure.Database;
 
 public class MetricsService(SnakkDbContext context)
 {
-    private readonly SnakkDbContext _context = context;
-
     /// <summary>
     /// Increment a metric across all relevant scopes (Global, Space, Hub, Community) in a single query
     /// </summary>
@@ -58,7 +56,7 @@ public class MetricsService(SnakkDbContext context)
                 ""Value"" = ""UserMetric"".""Value"" + {2},
                 ""LastUpdated"" = NOW()";
 
-        await _context.Database.ExecuteSqlRawAsync(sql, parameters.ToArray());
+        await context.Database.ExecuteSqlRawAsync(sql, parameters.ToArray());
     }
 
     /// <summary>
@@ -72,7 +70,7 @@ public class MetricsService(SnakkDbContext context)
     {
         var userIdInt = await GetUserIdAsync(userId);
 
-        return await _context.Database
+        return await context.Database
             .SqlQuery<int>($@"
                 SELECT COALESCE(""Value"", 0)
                 FROM ""UserMetric""
@@ -86,11 +84,14 @@ public class MetricsService(SnakkDbContext context)
     /// <summary>
     /// Get all metrics for a user
     /// </summary>
-    public async Task<Dictionary<string, int>> GetUserMetricsAsync(UserId userId, string scope = "Global", int? scopeId = null)
+    public async Task<Dictionary<string, int>> GetUserMetricsAsync(
+        UserId userId,
+        string scope = "Global",
+        int? scopeId = null)
     {
         var userIdInt = await GetUserIdAsync(userId);
 
-        var metrics = await _context.Database
+        var metrics = await context.Database
             .SqlQuery<MetricResult>($@"
                 SELECT ""MetricType"", ""Value""
                 FROM ""UserMetric""
@@ -114,7 +115,7 @@ public class MetricsService(SnakkDbContext context)
     {
         var userIdInt = await GetUserIdAsync(userId);
 
-        return await _context.Database
+        return await context.Database
             .SqlQuery<int>($@"
                 SELECT COUNT(*)
                 FROM ""UserMetric""
@@ -130,7 +131,7 @@ public class MetricsService(SnakkDbContext context)
     /// </summary>
     private async Task<int> GetUserIdAsync(UserId publicUserId)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.PublicId == publicUserId.Value)
             .Select(u => u.Id)
             .FirstOrDefaultAsync();

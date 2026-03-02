@@ -14,6 +14,7 @@ public class StatisticsGrpcService(
     public override async Task<PlatformStats> GetPlatformStats(GetPlatformStatsRequest request, ServerCallContext context)
     {
         var stats = await statisticsUseCase.GetPlatformStatsAsync();
+
         return new PlatformStats
         {
             HubCount = stats.HubCount,
@@ -31,10 +32,11 @@ public class StatisticsGrpcService(
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit);
 
-        if (!result.IsSuccess || result.Value == null)
+        if (!result.IsSuccess || result.Value is null)
             return new TopActiveDiscussionsList();
 
         var response = new TopActiveDiscussionsList();
+
         foreach (var d in result.Value.Items)
         {
             response.Items.Add(new TopActiveDiscussionInfo
@@ -43,6 +45,7 @@ public class StatisticsGrpcService(
                 Title = d.Title,
                 Slug = d.Slug,
                 PostCountToday = d.PostCountToday,
+
                 Space = new EntityRef
                 {
                     PublicId = d.SpacePublicId,
@@ -75,6 +78,7 @@ public class StatisticsGrpcService(
             request.Limit);
 
         var response = new TopActiveSpacesList();
+
         foreach (var s in spaces)
         {
             response.Items.Add(new TopActiveSpaceInfo
@@ -103,18 +107,20 @@ public class StatisticsGrpcService(
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit);
 
-        if (!result.IsSuccess || result.Value == null)
+        if (!result.IsSuccess || result.Value is null)
             return new TopContributorsList();
 
         var response = new TopContributorsList();
+
         foreach (var c in result.Value.Items)
         {
             response.Items.Add(new TopContributorInfo
             {
                 PublicId = c.UserId,
                 DisplayName = c.DisplayName,
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0),
-                PostCountToday = c.PostCountToday
+                PostCountToday = c.PostCountToday,
+
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0)
             });
         }
 
@@ -124,7 +130,8 @@ public class StatisticsGrpcService(
     public override async Task<UserActivityHistory> GetUserActivityHistory(GetUserActivityHistoryRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetUserActivityHistoryAsync(request.PublicId, request.Days);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
         var history = result.Value;
@@ -150,18 +157,21 @@ public class StatisticsGrpcService(
     public override async Task<UserStats> GetUserStats(GetUserStatsRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetUserStatsAsync(request.PublicId);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
         var stats = result.Value;
+
         return new UserStats
         {
             PublicId = stats.PublicId,
             DisplayName = stats.DisplayName,
-            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0),
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount,
-            FollowerCount = stats.FollowerCount
+            FollowerCount = stats.FollowerCount,
+
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0)
         };
     }
 }

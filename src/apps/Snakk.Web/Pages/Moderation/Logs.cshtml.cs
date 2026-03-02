@@ -5,7 +5,10 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Moderation;
 
-public class LogsModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class LogsModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     [BindProperty(SupportsGet = true)]
     public string? CommunityId { get; set; }

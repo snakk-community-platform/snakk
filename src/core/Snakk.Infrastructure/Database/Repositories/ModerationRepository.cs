@@ -15,124 +15,119 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     // ==================== Role Management ====================
 
-    public async Task<UserRoleDto?> GetRoleByPublicIdAsync(string publicId)
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.PublicId == publicId)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                ur.Community != null ? ur.Community.PublicId : null,
-                ur.Community != null ? ur.Community.Name : null,
-                ur.Hub != null ? ur.Hub.PublicId : null,
-                ur.Hub != null ? ur.Hub.Name : null,
-                ur.Space != null ? ur.Space.PublicId : null,
-                ur.Space != null ? ur.Space.Name : null,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<UserRoleDto?> GetRoleByPublicIdAsync(string publicId) => await _context.UserRoles
+        .Where(ur => ur.PublicId == publicId)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            ur.Community != null ? ur.Community.PublicId : null,
+            ur.Community != null ? ur.Community.Name : null,
+            ur.Hub != null ? ur.Hub.PublicId : null,
+            ur.Hub != null ? ur.Hub.Name : null,
+            ur.Space != null ? ur.Space.PublicId : null,
+            ur.Space != null ? ur.Space.Name : null,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .FirstOrDefaultAsync();
 
-    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForUserAsync(string userPublicId)
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                ur.Community != null ? ur.Community.PublicId : null,
-                ur.Community != null ? ur.Community.Name : null,
-                ur.Hub != null ? ur.Hub.PublicId : null,
-                ur.Hub != null ? ur.Hub.Name : null,
-                ur.Space != null ? ur.Space.PublicId : null,
-                ur.Space != null ? ur.Space.Name : null,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForUserAsync(string userPublicId) => await _context.UserRoles
+        .Where(ur =>
+            ur.User.PublicId == userPublicId
+            && ur.RevokedAt == null)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            ur.Community != null ? ur.Community.PublicId : null,
+            ur.Community != null ? ur.Community.Name : null,
+            ur.Hub != null ? ur.Hub.PublicId : null,
+            ur.Hub != null ? ur.Hub.Name : null,
+            ur.Space != null ? ur.Space.PublicId : null,
+            ur.Space != null ? ur.Space.Name : null,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .ToListAsync();
 
-    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForCommunityAsync(string communityPublicId)
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.Community != null && ur.Community.PublicId == communityPublicId && ur.RevokedAt == null)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                ur.Community!.PublicId,
-                ur.Community.Name,
-                null, null, null, null,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForCommunityAsync(string communityPublicId) => await _context.UserRoles
+        .Where(ur =>
+            ur.Community != null
+            && ur.Community.PublicId == communityPublicId
+            && ur.RevokedAt == null)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            ur.Community!.PublicId,
+            ur.Community.Name,
+            null, null, null, null,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .ToListAsync();
 
-    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForHubAsync(string hubPublicId)
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.Hub != null && ur.Hub.PublicId == hubPublicId && ur.RevokedAt == null)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                null, null,
-                ur.Hub!.PublicId,
-                ur.Hub.Name,
-                null, null,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForHubAsync(string hubPublicId) => await _context.UserRoles
+        .Where(ur =>
+            ur.Hub != null
+            && ur.Hub.PublicId == hubPublicId
+            && ur.RevokedAt == null)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            null, null,
+            ur.Hub!.PublicId,
+            ur.Hub.Name,
+            null, null,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .ToListAsync();
 
-    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForSpaceAsync(string spacePublicId)
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.Space != null && ur.Space.PublicId == spacePublicId && ur.RevokedAt == null)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                null, null, null, null,
-                ur.Space!.PublicId,
-                ur.Space.Name,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForSpaceAsync(string spacePublicId) => await _context.UserRoles
+        .Where(ur =>
+            ur.Space != null
+            && ur.Space.PublicId == spacePublicId
+            && ur.RevokedAt == null)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            null, null, null, null,
+            ur.Space!.PublicId,
+            ur.Space.Name,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .ToListAsync();
 
-    public async Task<IEnumerable<UserRoleDto>> GetGlobalAdminsAsync()
-    {
-        return await _context.UserRoles
-            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && ur.RevokedAt == null)
-            .Select(ur => new UserRoleDto(
-                ur.PublicId,
-                ur.User.PublicId,
-                ur.User.DisplayName,
-                ((UserRoleTypeEnum)ur.RoleId).ToString(),
-                null, null, null, null, null, null,
-                ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
-                ur.AssignedAt,
-                ur.RevokedAt))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<UserRoleDto>> GetGlobalAdminsAsync() => await _context.UserRoles
+        .Where(ur =>
+            ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
+            && ur.RevokedAt == null)
+        .Select(ur => new UserRoleDto(
+            ur.PublicId,
+            ur.User.PublicId,
+            ur.User.DisplayName,
+            ((UserRoleTypeEnum)ur.RoleId).ToString(),
+            null, null, null, null, null, null,
+            ur.AssignedByUser.PublicId,
+            ur.AssignedByUser.DisplayName,
+            ur.AssignedAt,
+            ur.RevokedAt))
+        .ToListAsync();
 
     public async Task<UserRoleDto> AssignRoleAsync(
         string targetUserPublicId,
@@ -177,21 +172,27 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = targetUser.Id,
+            AssignedByUserId = assigner.Id,
+            AssignedAt = DateTime.UtcNow,
+
             RoleId = (int)roleType.ToShared(),
+
             CommunityId = roleType == UserRoleType.CommunityAdmin || roleType == UserRoleType.CommunityMod ? communityId : null,
             HubId = roleType == UserRoleType.HubMod ? hubId : null,
             SpaceId = roleType == UserRoleType.SpaceMod ? spaceId : null,
-            AssignedByUserId = assigner.Id,
-            AssignedAt = DateTime.UtcNow
         };
 
         _context.UserRoles.Add(role);
         await _context.SaveChangesAsync();
 
         // Log the action
-        await LogModerationActionAsync(assignedByUserPublicId, "AssignRole",
+        await LogModerationActionAsync(
+            assignedByUserPublicId,
+            "AssignRole",
             targetUserPublicId: targetUserPublicId,
-            communityPublicId: communityPublicId, hubPublicId: hubPublicId, spacePublicId: spacePublicId,
+            communityPublicId: communityPublicId,
+            hubPublicId: hubPublicId,
+            spacePublicId: spacePublicId,
             details: $"Assigned role {roleType}");
 
         return new UserRoleDto(
@@ -208,7 +209,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             null);
     }
 
-    public async Task RevokeRoleAsync(string rolePublicId, string revokedByUserPublicId)
+    public async Task RevokeRoleAsync(
+        string rolePublicId,
+        string revokedByUserPublicId)
     {
         var role = await _context.UserRoles
             .AsTracking()
@@ -227,7 +230,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(revokedByUserPublicId, "RevokeRole",
+        await LogModerationActionAsync(
+            revokedByUserPublicId,
+            "RevokeRole",
             targetUserPublicId: role.User.PublicId,
             communityPublicId: role.Community?.PublicId,
             hubPublicId: role.Hub?.PublicId,
@@ -235,18 +240,22 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             details: $"Revoked role {((UserRoleTypeEnum)role.RoleId).ToString()}");
     }
 
-    public async Task<bool> CanModerateAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
+    public async Task<bool> CanModerateAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
     {
         var activeRoles = await _context.UserRoles
-            .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
-            .Select(ur => new
-            {
+            .Where(ur =>
+                ur.User.PublicId == userPublicId
+                && ur.RevokedAt == null)
+            .Select(ur => new {
                 ur.RoleId,
                 ur.HubId,
                 CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null,
                 HubPublicId = ur.Hub != null ? ur.Hub.PublicId : null,
-                SpacePublicId = ur.Space != null ? ur.Space.PublicId : null
-            })
+                SpacePublicId = ur.Space != null ? ur.Space.PublicId : null })
             .ToListAsync();
 
         foreach (var role in activeRoles)
@@ -255,10 +264,15 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 return true;
 
             if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
-                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
+            {
+                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
+                    || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
                     return true;
+            }
 
-            if (!string.IsNullOrEmpty(hubPublicId) && role.HubPublicId == hubPublicId && role.RoleId == (int)UserRoleTypeEnum.HubMod)
+            if (!string.IsNullOrEmpty(hubPublicId)
+                && role.HubPublicId == hubPublicId
+                && role.RoleId == (int)UserRoleTypeEnum.HubMod)
                 return true;
 
             if (!string.IsNullOrEmpty(spacePublicId))
@@ -269,7 +283,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 // Hub mod can moderate spaces in their hub
                 if (role.RoleId == (int)UserRoleTypeEnum.HubMod && role.HubId.HasValue)
                 {
-                    if (await _context.Spaces.AnyAsync(s => s.PublicId == spacePublicId && s.HubId == role.HubId))
+                    if (await _context.Spaces.AnyAsync(s =>
+                        s.PublicId == spacePublicId
+                        && s.HubId == role.HubId))
                         return true;
                 }
             }
@@ -278,16 +294,20 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return false;
     }
 
-    public async Task<bool> CanAdministerAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
+    public async Task<bool> CanAdministerAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
     {
         var activeRoles = await _context.UserRoles
-            .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
-            .Select(ur => new
-            {
+            .Where(ur =>
+                ur.User.PublicId == userPublicId
+                && ur.RevokedAt == null)
+            .Select(ur => new {
                 ur.RoleId,
                 ur.CommunityId,
-                CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null
-            })
+                CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null })
             .ToListAsync();
 
         foreach (var role in activeRoles)
@@ -295,20 +315,24 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityPublicId != null)
+            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityPublicId is not null)
             {
                 if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
                     return true;
 
                 if (!string.IsNullOrEmpty(hubPublicId))
                 {
-                    if (await _context.Hubs.AnyAsync(h => h.PublicId == hubPublicId && h.CommunityId == role.CommunityId))
+                    if (await _context.Hubs.AnyAsync(h =>
+                        h.PublicId == hubPublicId
+                        && h.CommunityId == role.CommunityId))
                         return true;
                 }
 
                 if (!string.IsNullOrEmpty(spacePublicId))
                 {
-                    if (await _context.Spaces.AnyAsync(s => s.PublicId == spacePublicId && s.Hub.CommunityId == role.CommunityId))
+                    if (await _context.Spaces.AnyAsync(s =>
+                        s.PublicId == spacePublicId
+                        && s.Hub.CommunityId == role.CommunityId))
                         return true;
                 }
             }
@@ -319,37 +343,38 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     // ==================== Ban Management ====================
 
-    public async Task<UserBanDto?> GetBanByPublicIdAsync(string publicId)
-    {
-        return await _context.UserBans
-            .Where(ub => ub.PublicId == publicId)
-            .Select(ub => new UserBanDto(
-                ub.PublicId,
-                ub.User.PublicId,
-                ub.User.DisplayName,
-                ((BanTypeEnum)ub.BanTypeId).ToString(),
-                ub.Community != null ? ub.Community.PublicId : null,
-                ub.Community != null ? ub.Community.Name : null,
-                ub.Hub != null ? ub.Hub.PublicId : null,
-                ub.Hub != null ? ub.Hub.Name : null,
-                ub.Space != null ? ub.Space.PublicId : null,
-                ub.Space != null ? ub.Space.Name : null,
-                ub.Reason,
-                ub.BannedAt,
-                ub.ExpiresAt,
-                ub.BannedByUser.PublicId,
-                ub.BannedByUser.DisplayName,
-                ub.UnbannedAt,
-                ub.UnbannedByUser != null ? ub.UnbannedByUser.PublicId : null,
-                ub.UnbannedByUser != null ? ub.UnbannedByUser.DisplayName : null))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<UserBanDto?> GetBanByPublicIdAsync(string publicId) => await _context.UserBans
+        .Where(ub => ub.PublicId == publicId)
+        .Select(ub => new UserBanDto(
+            ub.PublicId,
+            ub.User.PublicId,
+            ub.User.DisplayName,
+            ((BanTypeEnum)ub.BanTypeId).ToString(),
+            ub.Community != null ? ub.Community.PublicId : null,
+            ub.Community != null ? ub.Community.Name : null,
+            ub.Hub != null ? ub.Hub.PublicId : null,
+            ub.Hub != null ? ub.Hub.Name : null,
+            ub.Space != null ? ub.Space.PublicId : null,
+            ub.Space != null ? ub.Space.Name : null,
+            ub.Reason,
+            ub.BannedAt,
+            ub.ExpiresAt,
+            ub.BannedByUser.PublicId,
+            ub.BannedByUser.DisplayName,
+            ub.UnbannedAt,
+            ub.UnbannedByUser != null ? ub.UnbannedByUser.PublicId : null,
+            ub.UnbannedByUser != null ? ub.UnbannedByUser.DisplayName : null))
+        .FirstOrDefaultAsync();
 
     public async Task<IEnumerable<UserBanDto>> GetActiveBansForUserAsync(string userPublicId)
     {
         var now = DateTime.UtcNow;
+
         return await _context.UserBans
-            .Where(ub => ub.User.PublicId == userPublicId && ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
+            .Where(ub =>
+                ub.User.PublicId == userPublicId
+                && ub.UnbannedAt == null
+                && (ub.ExpiresAt == null || ub.ExpiresAt > now))
             .Select(ub => new UserBanDto(
                 ub.PublicId,
                 ub.User.PublicId,
@@ -371,43 +396,58 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .ToListAsync();
     }
 
-    public async Task<UserBanDto?> GetActiveBanForScopeAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
+    public async Task<UserBanDto?> GetActiveBanForScopeAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
     {
         var now = DateTime.UtcNow;
         var bans = await GetActiveBansForUserAsync(userPublicId);
 
         // Check platform-wide ban
-        var platformBan = bans.FirstOrDefault(b => b.CommunityPublicId == null && b.HubPublicId == null && b.SpacePublicId == null);
-        if (platformBan != null) return platformBan;
+        var platformBan = bans.FirstOrDefault(b =>
+            b.CommunityPublicId == null
+            && b.HubPublicId == null
+            && b.SpacePublicId == null);
+
+        if (platformBan is not null) return platformBan;
 
         // Check community ban
         if (!string.IsNullOrEmpty(communityPublicId))
         {
             var communityBan = bans.FirstOrDefault(b => b.CommunityPublicId == communityPublicId);
-            if (communityBan != null) return communityBan;
+
+            if (communityBan is not null) return communityBan;
         }
 
         // Check hub ban
         if (!string.IsNullOrEmpty(hubPublicId))
         {
             var hubBan = bans.FirstOrDefault(b => b.HubPublicId == hubPublicId);
-            if (hubBan != null) return hubBan;
+
+            if (hubBan is not null) return hubBan;
         }
 
         // Check space ban
         if (!string.IsNullOrEmpty(spacePublicId))
         {
             var spaceBan = bans.FirstOrDefault(b => b.SpacePublicId == spacePublicId);
-            if (spaceBan != null) return spaceBan;
+
+            if (spaceBan is not null) return spaceBan;
         }
 
         return null;
     }
 
-    public async Task<bool> IsUserBannedAsync(string userPublicId, string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
+    public async Task<bool> IsUserBannedAsync(
+        string userPublicId,
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
     {
         var ban = await GetActiveBanForScopeAsync(userPublicId, communityPublicId, hubPublicId, spacePublicId);
-        return ban != null;
+        return ban is not null;
     }
 
     public async Task<UserBanDto> BanUserAsync(
@@ -455,22 +495,27 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = targetUser.Id,
-            BanTypeId = (int)banType.ToShared(),
             CommunityId = communityId,
             HubId = hubId,
             SpaceId = spaceId,
             Reason = reason,
             BannedAt = DateTime.UtcNow,
             ExpiresAt = expiresAt,
-            BannedByUserId = banner.Id
+            BannedByUserId = banner.Id,
+
+            BanTypeId = (int)banType.ToShared(),
         };
 
         _context.UserBans.Add(ban);
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(bannedByUserPublicId, "BanUser",
+        await LogModerationActionAsync(
+            bannedByUserPublicId,
+            "BanUser",
             targetUserPublicId: targetUserPublicId,
-            communityPublicId: communityPublicId, hubPublicId: hubPublicId, spacePublicId: spacePublicId,
+            communityPublicId: communityPublicId,
+            hubPublicId: hubPublicId,
+            spacePublicId: spacePublicId,
             reason: reason,
             details: $"Banned user ({banType})" + (expiresAt.HasValue ? $" until {expiresAt}" : " permanently"));
 
@@ -490,7 +535,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             null, null, null);
     }
 
-    public async Task UnbanUserAsync(string banPublicId, string unbannedByUserPublicId)
+    public async Task UnbanUserAsync(
+        string banPublicId,
+        string unbannedByUserPublicId)
     {
         var ban = await _context.UserBans
             .AsTracking()
@@ -509,7 +556,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(unbannedByUserPublicId, "UnbanUser",
+        await LogModerationActionAsync(
+            unbannedByUserPublicId,
+            "UnbanUser",
             targetUserPublicId: ban.User.PublicId,
             communityPublicId: ban.Community?.PublicId,
             hubPublicId: ban.Hub?.PublicId,
@@ -519,66 +568,66 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     // ==================== Report Management ====================
 
-    public async Task<ReportDto?> GetReportByPublicIdAsync(string publicId)
-    {
-        return await _context.Reports
-            .Where(r => r.PublicId == publicId)
-            .Select(r => new ReportDto(
-                r.PublicId,
-                ((ReportStatusEnum)r.StatusId).ToString(),
-                r.ReporterUser.PublicId,
-                r.ReportedPost != null ? r.ReportedPost.PublicId : null,
-                r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
-                r.ReportedUser != null ? r.ReportedUser.PublicId : null,
-                r.Reason != null ? r.Reason.PublicId : null,
-                r.Details,
-                r.CreatedAt,
-                r.ResolvedAt,
-                r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
-                r.ResolutionNote))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<ReportDto?> GetReportByPublicIdAsync(string publicId) => await _context.Reports
+        .Where(r => r.PublicId == publicId)
+        .Select(r => new ReportDto(
+            r.PublicId,
+            ((ReportStatusEnum)r.StatusId).ToString(),
+            r.ReporterUser.PublicId,
+            r.ReportedPost != null ? r.ReportedPost.PublicId : null,
+            r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
+            r.ReportedUser != null ? r.ReportedUser.PublicId : null,
+            r.Reason != null ? r.Reason.PublicId : null,
+            r.Details,
+            r.CreatedAt,
+            r.ResolvedAt,
+            r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
+            r.ResolutionNote))
+        .FirstOrDefaultAsync();
 
-    public async Task<ReportDetailDto?> GetReportDetailByPublicIdAsync(string publicId)
-    {
-        return await _context.Reports
-            .Where(r => r.PublicId == publicId)
-            .Select(r => new ReportDetailDto(
-                r.PublicId,
-                ((ReportStatusEnum)r.StatusId).ToString(),
-                r.ReporterUser.PublicId,
-                r.ReporterUser.DisplayName,
-                r.ReportedPost != null ? r.ReportedPost.PublicId : null,
-                r.ReportedPost != null ? r.ReportedPost.Content : null,
-                r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
-                r.ReportedDiscussion != null ? r.ReportedDiscussion.Title : null,
-                r.ReportedUser != null ? r.ReportedUser.PublicId : null,
-                r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
-                r.Reason != null ? r.Reason.Name : null,
-                r.Reason != null ? r.Reason.Description : null,
-                r.Details,
-                r.CreatedAt,
-                r.ResolvedAt,
-                r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
-                r.ResolvedByUser != null ? r.ResolvedByUser.DisplayName : null,
-                r.ResolutionNote,
-                r.Space != null ? r.Space.PublicId : null,
-                r.Space != null ? r.Space.Name : null,
-                r.Hub != null ? r.Hub.PublicId : null,
-                r.Hub != null ? r.Hub.Name : null,
-                r.Community != null ? r.Community.PublicId : null,
-                r.Community != null ? r.Community.Name : null,
-                r.Comments.Where(c => !c.IsDeleted).Select(c => new ReportCommentDto(
+    public async Task<ReportDetailDto?> GetReportDetailByPublicIdAsync(string publicId) => await _context.Reports
+        .Where(r => r.PublicId == publicId)
+        .Select(r => new ReportDetailDto(
+            r.PublicId,
+            ((ReportStatusEnum)r.StatusId).ToString(),
+            r.ReporterUser.PublicId,
+            r.ReporterUser.DisplayName,
+            r.ReportedPost != null ? r.ReportedPost.PublicId : null,
+            r.ReportedPost != null ? r.ReportedPost.Content : null,
+            r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
+            r.ReportedDiscussion != null ? r.ReportedDiscussion.Title : null,
+            r.ReportedUser != null ? r.ReportedUser.PublicId : null,
+            r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
+            r.Reason != null ? r.Reason.Name : null,
+            r.Reason != null ? r.Reason.Description : null,
+            r.Details,
+            r.CreatedAt,
+            r.ResolvedAt,
+            r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
+            r.ResolvedByUser != null ? r.ResolvedByUser.DisplayName : null,
+            r.ResolutionNote,
+            r.Space != null ? r.Space.PublicId : null,
+            r.Space != null ? r.Space.Name : null,
+            r.Hub != null ? r.Hub.PublicId : null,
+            r.Hub != null ? r.Hub.Name : null,
+            r.Community != null ? r.Community.PublicId : null,
+            r.Community != null ? r.Community.Name : null,
+            r.Comments
+                .Where(c => !c.IsDeleted)
+                .Select(c => new ReportCommentDto(
                     c.PublicId,
                     c.AuthorUser.PublicId,
                     c.AuthorUser.DisplayName,
                     c.Content,
                     c.CreatedAt,
                     c.EditedAt))))
-            .FirstOrDefaultAsync();
-    }
+        .FirstOrDefaultAsync();
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(string communityPublicId, int? statusId, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(
+        string communityPublicId,
+        int? statusId,
+        int offset,
+        int pageSize)
     {
         var query = _context.Reports
             .Where(r => r.Community != null && r.Community.PublicId == communityPublicId);
@@ -589,11 +638,16 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(string hubPublicId, int? statusId, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(
+        string hubPublicId,
+        int? statusId,
+        int offset,
+        int pageSize)
     {
         var query = _context.Reports
-            .Where(r => (r.Hub != null && r.Hub.PublicId == hubPublicId) ||
-                        (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
+            .Where(r =>
+                (r.Hub != null && r.Hub.PublicId == hubPublicId)
+                || (r.Space != null && r.Space.Hub.PublicId == hubPublicId));
 
         if (statusId.HasValue)
             query = query.Where(r => r.StatusId == statusId.Value);
@@ -601,7 +655,11 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(string spacePublicId, int? statusId, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(
+        string spacePublicId,
+        int? statusId,
+        int offset,
+        int pageSize)
     {
         var query = _context.Reports
             .Where(r => r.Space != null && r.Space.PublicId == spacePublicId);
@@ -612,7 +670,11 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return await GetPagedReportsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(string moderatorPublicId, int? statusId, int offset, int pageSize)
+    public async Task<PagedResult<ReportListDto>> GetReportsForModeratorAsync(
+        string moderatorPublicId,
+        int? statusId,
+        int offset,
+        int pageSize)
     {
         // Get moderator's roles
         var roles = await GetActiveRolesForUserAsync(moderatorPublicId);
@@ -633,8 +695,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         if (!string.IsNullOrEmpty(highestRole.CommunityPublicId))
             return await GetReportsForCommunityAsync(highestRole.CommunityPublicId, statusId, offset, pageSize);
+
         if (!string.IsNullOrEmpty(highestRole.HubPublicId))
             return await GetReportsForHubAsync(highestRole.HubPublicId, statusId, offset, pageSize);
+
         if (!string.IsNullOrEmpty(highestRole.SpacePublicId))
             return await GetReportsForSpaceAsync(highestRole.SpacePublicId, statusId, offset, pageSize);
 
@@ -647,7 +711,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return reports.Items.Count();
     }
 
-    private async Task<PagedResult<ReportListDto>> GetPagedReportsAsync(IQueryable<ReportDatabaseEntity> query, int offset, int pageSize)
+    private async Task<PagedResult<ReportListDto>> GetPagedReportsAsync(
+        IQueryable<ReportDatabaseEntity> query,
+        int offset,
+        int pageSize)
     {
         var totalCount = await query.CountAsync();
 
@@ -661,7 +728,11 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 r.ReporterUser.PublicId,
                 r.ReporterUser.DisplayName,
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
-                r.ReportedPost != null ? (r.ReportedPost.Content.Length > 100 ? r.ReportedPost.Content.Substring(0, 100) + "..." : r.ReportedPost.Content) : null,
+                r.ReportedPost != null
+                    ? r.ReportedPost.Content.Length > 100
+                        ? r.ReportedPost.Content.Substring(0, 100) + "..."
+                        : r.ReportedPost.Content
+                    : null,
                 r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
                 r.ReportedDiscussion != null ? r.ReportedDiscussion.Title : null,
                 r.ReportedUser != null ? r.ReportedUser.PublicId : null,
@@ -738,6 +809,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         }
 
         int? reasonId = null;
+
         if (!string.IsNullOrEmpty(reasonPublicId))
         {
             var reason = await _context.ReportReasons.FirstOrDefaultAsync(r => r.PublicId == reasonPublicId);
@@ -753,11 +825,12 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ReportedUserId = reportedUserId,
             ReasonId = reasonId,
             Details = details,
-            StatusId = (int)ReportStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow,
             SpaceId = spaceId,
             HubId = hubId,
-            CommunityId = communityId
+            CommunityId = communityId,
+
+            StatusId = (int)ReportStatusEnum.Pending,
         };
 
         _context.Reports.Add(report);
@@ -776,7 +849,11 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             null, null, null);
     }
 
-    public async Task ResolveReportAsync(string reportPublicId, string resolvedByUserPublicId, string? resolutionNote, bool dismiss)
+    public async Task ResolveReportAsync(
+        string reportPublicId,
+        string resolvedByUserPublicId,
+        string? resolutionNote,
+        bool dismiss)
     {
         var report = await _context.Reports
             .AsTracking()
@@ -796,14 +873,19 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(resolvedByUserPublicId, dismiss ? "DismissReport" : "ResolveReport",
+        await LogModerationActionAsync(
+            resolvedByUserPublicId,
+            dismiss ? "DismissReport" : "ResolveReport",
             communityPublicId: report.Community?.PublicId,
             hubPublicId: report.Hub?.PublicId,
             spacePublicId: report.Space?.PublicId,
             reason: resolutionNote);
     }
 
-    public async Task<ReportCommentDto> AddReportCommentAsync(string reportPublicId, string authorUserPublicId, string content)
+    public async Task<ReportCommentDto> AddReportCommentAsync(
+        string reportPublicId,
+        string authorUserPublicId,
+        string content)
     {
         var report = await _context.Reports.FirstOrDefaultAsync(r => r.PublicId == reportPublicId)
             ?? throw new InvalidOperationException("Report not found");
@@ -834,15 +916,18 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     // ==================== Report Reasons ====================
 
-    public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsForScopeAsync(string? communityPublicId = null, string? hubPublicId = null, string? spacePublicId = null)
+    public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsForScopeAsync(
+        string? communityPublicId = null,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
     {
         var query = _context.ReportReasons.AsQueryable();
 
         query = query.Where(rr =>
-            (rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null) ||
-            (!string.IsNullOrEmpty(communityPublicId) && rr.Community != null && rr.Community.PublicId == communityPublicId) ||
-            (!string.IsNullOrEmpty(hubPublicId) && rr.Hub != null && rr.Hub.PublicId == hubPublicId) ||
-            (!string.IsNullOrEmpty(spacePublicId) && rr.Space != null && rr.Space.PublicId == spacePublicId));
+            (rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null)
+            || (!string.IsNullOrEmpty(communityPublicId) && rr.Community != null && rr.Community.PublicId == communityPublicId)
+            || (!string.IsNullOrEmpty(hubPublicId) && rr.Hub != null && rr.Hub.PublicId == hubPublicId)
+            || (!string.IsNullOrEmpty(spacePublicId) && rr.Space != null && rr.Space.PublicId == spacePublicId));
 
         return await query
             .OrderBy(rr => rr.DisplayOrder)
@@ -858,52 +943,71 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<ReportReasonDto>> GetGlobalReportReasonsAsync()
-    {
-        return await _context.ReportReasons
-            .Where(rr => rr.CommunityId == null && rr.HubId == null && rr.SpaceId == null)
-            .OrderBy(rr => rr.DisplayOrder)
-            .ThenBy(rr => rr.Name)
-            .Select(rr => new ReportReasonDto(
-                rr.PublicId,
-                rr.Name,
-                rr.Description,
-                null, null, null,
-                rr.DisplayOrder))
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<ReportReasonDto>> GetGlobalReportReasonsAsync() => await _context.ReportReasons
+        .Where(rr =>
+            rr.CommunityId == null
+            && rr.HubId == null
+            && rr.SpaceId == null)
+        .OrderBy(rr => rr.DisplayOrder)
+        .ThenBy(rr => rr.Name)
+        .Select(rr => new ReportReasonDto(
+            rr.PublicId,
+            rr.Name,
+            rr.Description,
+            null, null, null,
+            rr.DisplayOrder))
+        .ToListAsync();
 
     // ==================== Moderation Log ====================
 
-    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForCommunityAsync(string communityPublicId, int offset, int pageSize)
+    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForCommunityAsync(
+        string communityPublicId,
+        int offset,
+        int pageSize)
     {
         var query = _context.ModerationLogs
             .Where(ml => ml.Community != null && ml.Community.PublicId == communityPublicId);
+
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForHubAsync(string hubPublicId, int offset, int pageSize)
+    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForHubAsync(
+        string hubPublicId,
+        int offset,
+        int pageSize)
     {
         var query = _context.ModerationLogs
             .Where(ml => ml.Hub != null && ml.Hub.PublicId == hubPublicId);
+
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForSpaceAsync(string spacePublicId, int offset, int pageSize)
+    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForSpaceAsync(
+        string spacePublicId,
+        int offset,
+        int pageSize)
     {
         var query = _context.ModerationLogs
             .Where(ml => ml.Space != null && ml.Space.PublicId == spacePublicId);
+
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
-    public async Task<PagedResult<ModerationLogDto>> GetModerationLogByActorAsync(string actorUserPublicId, int offset, int pageSize)
+    public async Task<PagedResult<ModerationLogDto>> GetModerationLogByActorAsync(
+        string actorUserPublicId,
+        int offset,
+        int pageSize)
     {
         var query = _context.ModerationLogs
             .Where(ml => ml.ActorUser.PublicId == actorUserPublicId);
+
         return await GetPagedLogsAsync(query, offset, pageSize);
     }
 
-    private async Task<PagedResult<ModerationLogDto>> GetPagedLogsAsync(IQueryable<ModerationLogDatabaseEntity> query, int offset, int pageSize)
+    private async Task<PagedResult<ModerationLogDto>> GetPagedLogsAsync(
+        IQueryable<ModerationLogDatabaseEntity> query,
+        int offset,
+        int pageSize)
     {
         var totalCount = await query.CountAsync();
 
@@ -954,7 +1058,8 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string? reason = null)
     {
         var actor = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == actorUserPublicId);
-        if (actor == null) return;
+
+        if (actor is null) return;
 
         int? targetPostId = null, targetDiscussionId = null, targetUserId = null;
         int? communityId = null, hubId = null, spaceId = null;
@@ -981,6 +1086,16 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             PublicId = Ulid.NewUlid().ToString(),
             ActorUserId = actor.Id,
+            TargetPostId = targetPostId,
+            TargetDiscussionId = targetDiscussionId,
+            TargetUserId = targetUserId,
+            CommunityId = communityId,
+            HubId = hubId,
+            SpaceId = spaceId,
+            Details = details,
+            Reason = reason,
+            CreatedAt = DateTime.UtcNow,
+
             ActionId = action switch
             {
                 "DeletePost" => (int)ModerationActionEnum.DeletePost,
@@ -996,15 +1111,6 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 "UnlockDiscussion" => (int)ModerationActionEnum.LockDiscussion, // Using same enum value for now
                 _ => throw new ArgumentException($"Unknown moderation action: {action}", nameof(action))
             },
-            TargetPostId = targetPostId,
-            TargetDiscussionId = targetDiscussionId,
-            TargetUserId = targetUserId,
-            CommunityId = communityId,
-            HubId = hubId,
-            SpaceId = spaceId,
-            Details = details,
-            Reason = reason,
-            CreatedAt = DateTime.UtcNow
         };
 
         _context.ModerationLogs.Add(log);
@@ -1013,7 +1119,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     // ==================== Content Moderation ====================
 
-    public async Task ModeratorDeletePostAsync(string postPublicId, string moderatorPublicId, string? reason)
+    public async Task ModeratorDeletePostAsync(
+        string postPublicId,
+        string moderatorPublicId,
+        string? reason)
     {
         var post = await _context.Posts
             .AsTracking()
@@ -1023,7 +1132,8 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .FirstOrDefaultAsync(p => p.PublicId == postPublicId)
             ?? throw new InvalidOperationException("Post not found");
 
-        var canModerate = await CanModerateAsync(moderatorPublicId,
+        var canModerate = await CanModerateAsync(
+            moderatorPublicId,
             post.Discussion.Space.Hub.Community?.PublicId,
             post.Discussion.Space.Hub.PublicId,
             post.Discussion.Space.PublicId);
@@ -1036,7 +1146,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(moderatorPublicId, "DeletePost",
+        await LogModerationActionAsync(
+            moderatorPublicId,
+            "DeletePost",
             targetPostPublicId: postPublicId,
             communityPublicId: post.Discussion.Space.Hub.Community?.PublicId,
             hubPublicId: post.Discussion.Space.Hub.PublicId,
@@ -1044,7 +1156,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             reason: reason);
     }
 
-    public async Task ModeratorDeleteDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
+    public async Task ModeratorDeleteDiscussionAsync(
+        string discussionPublicId,
+        string moderatorPublicId,
+        string? reason)
     {
         var discussion = await _context.Discussions
             .AsTracking()
@@ -1054,7 +1169,8 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .FirstOrDefaultAsync(d => d.PublicId == discussionPublicId)
             ?? throw new InvalidOperationException("Discussion not found");
 
-        var canModerate = await CanModerateAsync(moderatorPublicId,
+        var canModerate = await CanModerateAsync(
+            moderatorPublicId,
             discussion.Space.Hub.Community?.PublicId,
             discussion.Space.Hub.PublicId,
             discussion.Space.PublicId);
@@ -1067,7 +1183,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(moderatorPublicId, "DeleteDiscussion",
+        await LogModerationActionAsync(
+            moderatorPublicId,
+            "DeleteDiscussion",
             targetDiscussionPublicId: discussionPublicId,
             communityPublicId: discussion.Space.Hub.Community?.PublicId,
             hubPublicId: discussion.Space.Hub.PublicId,
@@ -1075,7 +1193,10 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             reason: reason);
     }
 
-    public async Task LockDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
+    public async Task LockDiscussionAsync(
+        string discussionPublicId,
+        string moderatorPublicId,
+        string? reason)
     {
         var discussion = await _context.Discussions
             .AsTracking()
@@ -1085,7 +1206,8 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .FirstOrDefaultAsync(d => d.PublicId == discussionPublicId)
             ?? throw new InvalidOperationException("Discussion not found");
 
-        var canModerate = await CanModerateAsync(moderatorPublicId,
+        var canModerate = await CanModerateAsync(
+            moderatorPublicId,
             discussion.Space.Hub.Community?.PublicId,
             discussion.Space.Hub.PublicId,
             discussion.Space.PublicId);
@@ -1097,7 +1219,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(moderatorPublicId, "LockDiscussion",
+        await LogModerationActionAsync(
+            moderatorPublicId,
+            "LockDiscussion",
             targetDiscussionPublicId: discussionPublicId,
             communityPublicId: discussion.Space.Hub.Community?.PublicId,
             hubPublicId: discussion.Space.Hub.PublicId,
@@ -1105,7 +1229,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             reason: reason);
     }
 
-    public async Task UnlockDiscussionAsync(string discussionPublicId, string moderatorPublicId)
+    public async Task UnlockDiscussionAsync(
+        string discussionPublicId,
+        string moderatorPublicId)
     {
         var discussion = await _context.Discussions
             .AsTracking()
@@ -1115,7 +1241,8 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .FirstOrDefaultAsync(d => d.PublicId == discussionPublicId)
             ?? throw new InvalidOperationException("Discussion not found");
 
-        var canModerate = await CanModerateAsync(moderatorPublicId,
+        var canModerate = await CanModerateAsync(
+            moderatorPublicId,
             discussion.Space.Hub.Community?.PublicId,
             discussion.Space.Hub.PublicId,
             discussion.Space.PublicId);
@@ -1127,7 +1254,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
         await _context.SaveChangesAsync();
 
-        await LogModerationActionAsync(moderatorPublicId, "UnlockDiscussion",
+        await LogModerationActionAsync(
+            moderatorPublicId,
+            "UnlockDiscussion",
             targetDiscussionPublicId: discussionPublicId,
             communityPublicId: discussion.Space.Hub.Community?.PublicId,
             hubPublicId: discussion.Space.Hub.PublicId,

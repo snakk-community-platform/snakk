@@ -7,20 +7,17 @@ using Snakk.Application.Services;
 /// Development email sender that logs to console instead of sending real emails.
 /// Replace with real implementation (SendGrid, AWS SES, SMTP) in production.
 /// </summary>
-public class ConsoleEmailSender : IEmailSender
+public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSender
 {
-    private readonly ILogger<ConsoleEmailSender> _logger;
-
-    public ConsoleEmailSender(ILogger<ConsoleEmailSender> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task SendEmailVerificationAsync(string toEmail, string displayName, string verificationToken, string baseUrl)
+    public Task SendEmailVerificationAsync(
+        string toEmail,
+        string displayName,
+        string verificationToken,
+        string baseUrl)
     {
         var verificationUrl = $"{baseUrl}/auth/verify-email?token={verificationToken}";
 
-        _logger.LogInformation("""
+        logger.LogInformation("""
 
             ================================================
             EMAIL VERIFICATION
@@ -41,11 +38,15 @@ public class ConsoleEmailSender : IEmailSender
         return Task.CompletedTask;
     }
 
-    public Task SendPasswordResetAsync(string toEmail, string displayName, string resetToken, string baseUrl)
+    public Task SendPasswordResetAsync(
+        string toEmail,
+        string displayName,
+        string resetToken,
+        string baseUrl)
     {
         var resetUrl = $"{baseUrl}/auth/reset-password?token={resetToken}";
 
-        _logger.LogInformation("""
+        logger.LogInformation("""
 
             ================================================
             PASSWORD RESET
@@ -68,7 +69,7 @@ public class ConsoleEmailSender : IEmailSender
 
     public Task SendWelcomeEmailAsync(string toEmail, string displayName)
     {
-        _logger.LogInformation("""
+        logger.LogInformation("""
 
             ================================================
             WELCOME EMAIL
@@ -90,7 +91,7 @@ public class ConsoleEmailSender : IEmailSender
 
     public Task SendEmailAsync(string toEmail, string subject, string body)
     {
-        _logger.LogInformation("""
+        logger.LogInformation("""
 
             ================================================
             GENERIC EMAIL

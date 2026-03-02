@@ -21,6 +21,7 @@ public class FileValidationHelperTests
 
         var result = new byte[8];
         Array.Copy(magicBytes, result, magicBytes.Length);
+
         return result;
     }
 

@@ -55,16 +55,14 @@ public class UserAchievementProgress
         int currentValue,
         int targetValue,
         string? progressData,
-        DateTime lastUpdated)
-    {
-        return new UserAchievementProgress(
+        DateTime lastUpdated) =>
+        new UserAchievementProgress(
             userId,
             achievementId,
             currentValue,
             targetValue,
             progressData,
             lastUpdated);
-    }
 
     public void UpdateProgress(int currentValue, string? progressData = null)
     {
@@ -72,7 +70,8 @@ public class UserAchievementProgress
             throw new ArgumentException("Current value cannot be negative", nameof(currentValue));
 
         CurrentValue = currentValue;
-        if (progressData != null)
+
+        if (progressData is not null)
         {
             ProgressData = progressData;
         }

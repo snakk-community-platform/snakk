@@ -55,9 +55,14 @@ public class PrefetchCacheService(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PrefetchCacheService> _logger = logger;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly TimeSpan _defaultPrefetchTtl = TimeSpan.FromSeconds(configuration.GetValue("PrefetchCache:PrefetchTtlSeconds", 5));
-    private readonly TimeSpan _defaultSharedTtl = TimeSpan.FromSeconds(configuration.GetValue("PrefetchCache:SharedTtlSeconds", 10));
-    private readonly TimeSpan _defaultPrefetchTimeout = TimeSpan.FromMilliseconds(configuration.GetValue("PrefetchCache:PrefetchTimeoutMs", 1000));
+    private readonly TimeSpan _defaultPrefetchTtl =
+        TimeSpan.FromSeconds(configuration.GetValue("PrefetchCache:PrefetchTtlSeconds", 5));
+
+    private readonly TimeSpan _defaultSharedTtl =
+        TimeSpan.FromSeconds(configuration.GetValue("PrefetchCache:SharedTtlSeconds", 10));
+
+    private readonly TimeSpan _defaultPrefetchTimeout =
+        TimeSpan.FromMilliseconds(configuration.GetValue("PrefetchCache:PrefetchTimeoutMs", 1000));
 
     public void Prefetch<T>(string cacheKey, Func<Task<T>> factory, TimeSpan? ttl = null)
     {
@@ -92,7 +97,7 @@ public class PrefetchCacheService(
         var prefetchKey = $"prefetch:{cacheKey}";
 
         // Try to consume a prefetched task
-        if (_cache.TryGetValue<Task<T>>(prefetchKey, out var prefetchedTask) && prefetchedTask != null)
+        if (_cache.TryGetValue<Task<T>>(prefetchKey, out var prefetchedTask) && prefetchedTask is not null)
         {
             try
             {
@@ -129,6 +134,7 @@ public class PrefetchCacheService(
         sw2.Stop();
         var source = isSharedHit ? "cache" : "api";
         AddServerTiming("cache", sw2.ElapsedMilliseconds, $"{source}:{cacheKey}", offsetMs2);
+
         return new CacheResult<T>(value, source);
     }
 
@@ -184,7 +190,7 @@ public class PrefetchCacheService(
     public T? ResolveOrPrefetch<T>(string cacheKey, Func<Task<T?>> factory) where T : class
     {
         var cached = TryGetCached<T>(cacheKey);
-        if (cached != null)
+        if (cached is not null)
             return cached;
 
         try { Prefetch(cacheKey, async () => (await factory())!); } catch { }
@@ -195,7 +201,7 @@ public class PrefetchCacheService(
         where T : class where TResult : class
     {
         var data = ResolveOrPrefetch(cacheKey, factory);
-        return data != null ? mapper(data) : null;
+        return data is not null ? mapper(data) : null;
     }
 
     private void AddServerTiming(string name, double durationMs, string? description = null, long? offsetMs = null)

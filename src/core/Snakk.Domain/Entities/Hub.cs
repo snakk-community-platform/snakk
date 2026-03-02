@@ -83,9 +83,8 @@ public class Hub
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Space>? spaces = null)
-    {
-        return new Hub(
+        List<Space>? spaces = null) =>
+        new Hub(
             publicId,
             communityId,
             name,
@@ -96,7 +95,6 @@ public class Hub
             createdAt,
             lastModifiedAt,
             spaces);
-    }
 
     public static Hub RehydrateForList(
         HubId publicId,
@@ -106,9 +104,8 @@ public class Hub
         string? description,
         bool allowAnonymousReading,
         bool requireEmailConfirmation,
-        DateTime createdAt)
-    {
-        return new Hub(
+        DateTime createdAt) =>
+        new Hub(
             publicId,
             communityId,
             name,
@@ -119,7 +116,6 @@ public class Hub
             createdAt,
             lastModifiedAt: null,
             spaces: []);
-    }
 
     public void UpdateName(string name)
     {

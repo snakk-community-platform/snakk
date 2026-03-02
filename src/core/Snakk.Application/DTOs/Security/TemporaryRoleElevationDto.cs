@@ -17,6 +17,6 @@ public class TemporaryRoleElevationDto
     public required DateTime CreatedAt { get; set; }
 
     // Computed properties
-    public bool IsActive => RevokedAt == null && ExpiresAt > DateTime.UtcNow;
-    public bool IsExpired => RevokedAt == null && ExpiresAt <= DateTime.UtcNow;
+    public bool IsActive => RevokedAt is null && ExpiresAt > DateTime.UtcNow;
+    public bool IsExpired => RevokedAt is null && ExpiresAt <= DateTime.UtcNow;
 }

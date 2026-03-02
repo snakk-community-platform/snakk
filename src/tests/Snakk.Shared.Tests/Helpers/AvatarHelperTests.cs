@@ -173,7 +173,9 @@ public class AvatarHelperTests
         };
 
         // Act
-        var shards = ids.Select(AvatarHelper.GetShardFolder).ToHashSet();
+        var shards = ids
+            .Select(AvatarHelper.GetShardFolder)
+            .ToHashSet();
 
         // Assert - at least some should be different (not all the same shard)
         await Assert.That(shards.Count).IsGreaterThanOrEqualTo(2);

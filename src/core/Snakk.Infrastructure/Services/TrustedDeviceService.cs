@@ -9,15 +9,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-public class TrustedDeviceService : ITrustedDeviceService
+public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceService
 {
-    private readonly SnakkDbContext _context;
-
-    public TrustedDeviceService(SnakkDbContext context)
-    {
-        _context = context;
-    }
-
     public string GenerateDeviceFingerprint(string userAgent, string ipAddress)
     {
         // Combine User-Agent and IP, then hash for privacy
@@ -30,68 +23,71 @@ public class TrustedDeviceService : ITrustedDeviceService
     public string GetDeviceName(string userAgent)
     {
         // Parse User-Agent to get friendly name
-        var browser = "Unknown Browser";
-        var os = "Unknown OS";
-
-        // Detect browser
-        if (userAgent.Contains("Chrome") && !userAgent.Contains("Edg"))
-            browser = "Chrome";
-        else if (userAgent.Contains("Firefox"))
-            browser = "Firefox";
-        else if (userAgent.Contains("Safari") && !userAgent.Contains("Chrome"))
-            browser = "Safari";
-        else if (userAgent.Contains("Edg"))
-            browser = "Edge";
-        else if (userAgent.Contains("Opera") || userAgent.Contains("OPR"))
-            browser = "Opera";
+        var browser = userAgent switch
+        {
+            _ when userAgent.Contains("Edg") => "Edge",
+            _ when userAgent.Contains("Chrome") => "Chrome",
+            _ when userAgent.Contains("Firefox") => "Firefox",
+            _ when userAgent.Contains("Safari") && !userAgent.Contains("Chrome") => "Safari",
+            _ when userAgent.Contains("Opera") || userAgent.Contains("OPR") => "Opera",
+            _ => "Unknown Browser"
+        };
 
         // Detect OS
-        if (userAgent.Contains("Windows"))
-            os = "Windows";
-        else if (userAgent.Contains("Mac OS"))
-            os = "macOS";
-        else if (userAgent.Contains("Linux"))
-            os = "Linux";
-        else if (userAgent.Contains("Android"))
-            os = "Android";
-        else if (userAgent.Contains("iOS") || userAgent.Contains("iPhone") || userAgent.Contains("iPad"))
-            os = "iOS";
+        var os = userAgent switch
+        {
+            _ when userAgent.Contains("Windows") => "Windows",
+            _ when userAgent.Contains("Mac OS") => "macOS",
+            _ when userAgent.Contains("Linux") => "Linux",
+            _ when userAgent.Contains("Android") => "Android",
+            _ when userAgent.Contains("iOS") || userAgent.Contains("iPhone") || userAgent.Contains("iPad") => "iOS",
+            _ => "Unknown OS"
+        };
 
         return $"{browser} on {os}";
     }
 
     public async Task<bool> IsDeviceTrustedAsync(UserId userId, string deviceFingerprint)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return false;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+
+        if (user is null) return false;
 
         var now = DateTime.UtcNow;
-        return await _context.TrustedDevices
+
+        return await context.TrustedDevices
             .AnyAsync(d =>
-                d.UserId == user.Id &&
-                d.DeviceFingerprint == deviceFingerprint &&
-                d.RevokedAt == null &&
-                (d.ExpiresAt == null || d.ExpiresAt > now));
+                d.UserId == user.Id
+                && d.DeviceFingerprint == deviceFingerprint
+                && d.RevokedAt == null
+                && (d.ExpiresAt == null || d.ExpiresAt > now));
     }
 
-    public async Task TrustDeviceAsync(UserId userId, string deviceFingerprint, string deviceName, string ipAddress, int? expirationDays = null)
+    public async Task TrustDeviceAsync(
+        UserId userId,
+        string deviceFingerprint,
+        string deviceName,
+        string ipAddress,
+        int? expirationDays = null)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+
+        if (user is null)
             throw new InvalidOperationException($"User {userId} not found");
 
         // Check if device is already trusted
-        var existing = await _context.TrustedDevices
+        var existing = await context.TrustedDevices
             .FirstOrDefaultAsync(d =>
-                d.UserId == user.Id &&
-                d.DeviceFingerprint == deviceFingerprint &&
-                d.RevokedAt == null);
+                d.UserId == user.Id
+                && d.DeviceFingerprint == deviceFingerprint
+                && d.RevokedAt == null);
 
-        if (existing != null)
+        if (existing is not null)
         {
             // Update existing trust
             existing.LastUsedAt = DateTime.UtcNow;
             existing.LastUsedIp = ipAddress;
+
             if (expirationDays.HasValue)
                 existing.ExpiresAt = DateTime.UtcNow.AddDays(expirationDays.Value);
         }
@@ -110,56 +106,65 @@ public class TrustedDeviceService : ITrustedDeviceService
                 LastUsedIp = ipAddress
             };
 
-            _context.TrustedDevices.Add(device);
+            context.TrustedDevices.Add(device);
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task<List<TrustedDeviceDto>> GetTrustedDevicesAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null)
-            return new List<TrustedDeviceDto>();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+
+        if (user is null)
+            return [];
 
         var now = DateTime.UtcNow;
-        var devices = await _context.TrustedDevices
-            .Where(d => d.UserId == user.Id && d.RevokedAt == null)
+
+        var devices = await context.TrustedDevices
+            .Where(d =>
+                d.UserId == user.Id
+                && d.RevokedAt == null)
             .OrderByDescending(d => d.LastUsedAt ?? d.TrustedAt)
             .ToListAsync();
 
-        return devices.Select(d => new TrustedDeviceDto
-        {
-            PublicId = d.PublicId,
-            DeviceName = d.DeviceName,
-            TrustedAt = d.TrustedAt,
-            ExpiresAt = d.ExpiresAt,
-            LastUsedAt = d.LastUsedAt,
-            LastUsedIp = d.LastUsedIp,
-            IsActive = d.ExpiresAt == null || d.ExpiresAt > now
-        }).ToList();
+        return devices
+            .Select(d => new TrustedDeviceDto
+            {
+                PublicId = d.PublicId,
+                DeviceName = d.DeviceName,
+                TrustedAt = d.TrustedAt,
+                ExpiresAt = d.ExpiresAt,
+                LastUsedAt = d.LastUsedAt,
+                LastUsedIp = d.LastUsedIp,
+                IsActive = d.ExpiresAt == null || d.ExpiresAt > now
+            })
+            .ToList();
     }
 
     public async Task RevokeDeviceAsync(string devicePublicId, string reason)
     {
-        var device = await _context.TrustedDevices
+        var device = await context.TrustedDevices
             .FirstOrDefaultAsync(d => d.PublicId == devicePublicId);
 
-        if (device != null && device.RevokedAt == null)
+        if (device is not null && device.RevokedAt is null)
         {
             device.RevokedAt = DateTime.UtcNow;
             device.RevocationReason = reason;
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 
     public async Task RevokeAllDevicesAsync(UserId userId, string reason)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        var devices = await _context.TrustedDevices
-            .Where(d => d.UserId == user.Id && d.RevokedAt == null)
+        if (user is null) return;
+
+        var devices = await context.TrustedDevices
+            .Where(d =>
+                d.UserId == user.Id
+                && d.RevokedAt == null)
             .ToListAsync();
 
         foreach (var device in devices)
@@ -168,6 +173,6 @@ public class TrustedDeviceService : ITrustedDeviceService
             device.RevocationReason = reason;
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 }

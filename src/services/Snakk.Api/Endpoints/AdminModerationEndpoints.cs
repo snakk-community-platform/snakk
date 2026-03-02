@@ -67,7 +67,8 @@ public static class AdminModerationEndpoints
         IAdminUserService adminUserService)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         // Verify user exists
@@ -75,11 +76,9 @@ public static class AdminModerationEndpoints
             return Results.NotFound(new { error = "User not found" });
 
         // Calculate expiry date if duration is provided (in days)
-        DateTime? expiresAt = null;
-        if (request.Duration.HasValue && request.Duration.Value > 0)
-        {
-            expiresAt = DateTime.UtcNow.AddDays(request.Duration.Value);
-        }
+        var expiresAt = request.Duration is > 0
+            ? DateTime.UtcNow.AddDays(request.Duration.Value)
+            : (DateTime?)null;
 
         // Ban the user (platform-wide ban with full read/write restrictions)
         var result = await moderationUseCase.BanUserAsync(
@@ -111,7 +110,8 @@ public static class AdminModerationEndpoints
         SnakkDbContext context)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         // Verify user exists
@@ -123,11 +123,11 @@ public static class AdminModerationEndpoints
         // Find active ban for this user
         var activeBan = await context.UserBans
             .FirstOrDefaultAsync(b =>
-                b.User.PublicId == userId &&
-                b.UnbannedAt == null &&
-                (b.ExpiresAt == null || b.ExpiresAt > now));
+                b.User.PublicId == userId
+                && b.UnbannedAt == null
+                && (b.ExpiresAt == null || b.ExpiresAt > now));
 
-        if (activeBan == null)
+        if (activeBan is null)
             return Results.BadRequest(new { error = "User is not currently banned" });
 
         // Unban the user
@@ -148,13 +148,15 @@ public static class AdminModerationEndpoints
         SnakkDbContext context)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         // Verify user exists - also need to get database Id for role lookups
         var targetUser = await context.Users
             .FirstOrDefaultAsync(u => u.PublicId == userId);
-        if (targetUser == null)
+
+        if (targetUser is null)
             return Results.NotFound(new { error = "User not found" });
 
         // Parse role type - only support GlobalAdmin for now (simple platform-wide admin)
@@ -172,24 +174,26 @@ public static class AdminModerationEndpoints
             return Results.BadRequest(new { error = "Community moderator role requires a community scope. Use platform admin instead." });
         }
 
-        if (roleType == null && request.Role.ToLowerInvariant() != "user")
+        if (roleType is null && request.Role.ToLowerInvariant() != "user")
         {
             return Results.BadRequest(new { error = "Invalid role. Must be 'Admin' or 'User'" });
         }
 
         // If the role is "User", revoke any existing platform-wide role
-        if (roleType == null)
+        if (roleType is null)
         {
             var existingRole = await context.UserRoles
-                .FirstOrDefaultAsync(ur => ur.UserId == targetUser.Id &&
-                                          ur.CommunityId == null &&
-                                          ur.HubId == null &&
-                                          ur.SpaceId == null &&
-                                          ur.RevokedAt == null);
+                .FirstOrDefaultAsync(ur =>
+                    ur.UserId == targetUser.Id
+                    && ur.CommunityId == null
+                    && ur.HubId == null
+                    && ur.SpaceId == null
+                    && ur.RevokedAt == null);
 
-            if (existingRole != null)
+            if (existingRole is not null)
             {
                 var revokeResult = await moderationUseCase.RevokeRoleAsync(existingRole.PublicId, adminUserId);
+
                 if (!revokeResult.IsSuccess)
                     return Results.BadRequest(new { error = revokeResult.Error });
             }
@@ -199,14 +203,15 @@ public static class AdminModerationEndpoints
 
         // Check if user already has a platform-wide role
         var currentRole = await context.UserRoles
-            .FirstOrDefaultAsync(ur => ur.UserId == targetUser.Id &&
-                                      ur.CommunityId == null &&
-                                      ur.HubId == null &&
-                                      ur.SpaceId == null &&
-                                      ur.RevokedAt == null);
+            .FirstOrDefaultAsync(ur =>
+                ur.UserId == targetUser.Id
+                && ur.CommunityId == null
+                && ur.HubId == null
+                && ur.SpaceId == null
+                && ur.RevokedAt == null);
 
         // Check the role type
-        if (currentRole != null)
+        if (currentRole is not null)
         {
             var currentRoleType = currentRole.RoleId;
 
@@ -217,6 +222,7 @@ public static class AdminModerationEndpoints
 
             // Revoke existing role
             var revokeResult = await moderationUseCase.RevokeRoleAsync(currentRole.PublicId, adminUserId);
+
             if (!revokeResult.IsSuccess)
                 return Results.BadRequest(new { error = revokeResult.Error });
         }
@@ -248,12 +254,12 @@ public static class AdminModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         const int pageSize = 20;
         var offset = (page - 1) * pageSize;
-
         var statusId = ParseReportStatus(status);
 
         var result = await moderationUseCase.GetReportsForModeratorAsync(
@@ -263,19 +269,23 @@ public static class AdminModerationEndpoints
             pageSize);
 
         return TypedResults.Ok(new AdminReportListResponse(
-            Reports: result.Items.Select(r => new AdminReportItemResponse(
-                Id: r.PublicId,
-                ReporterUsername: r.ReporterUserDisplayName,
-                ReportedUsername: r.ReportedUserDisplayName,
-                ContentType: r.ReportedPostPublicId != null ? "Post" :
-                             r.ReportedDiscussionPublicId != null ? "Discussion" :
-                             r.ReportedUserPublicId != null ? "User" : "Unknown",
-                Reason: r.ReasonName,
-                Status: r.Status,
-                CreatedAt: r.CreatedAt,
-                ResolvedAt: r.ResolvedAt,
-                ResolverUsername: r.ResolvedByUserDisplayName,
-                Details: r.Details)).ToList(),
+            Reports: result.Items
+                .Select(r => new AdminReportItemResponse(
+                    Id: r.PublicId,
+                    ReporterUsername: r.ReporterUserDisplayName,
+                    ReportedUsername: r.ReportedUserDisplayName,
+                    ContentType:
+                        r.ReportedPostPublicId != null
+                        ? "Post" : r.ReportedDiscussionPublicId != null
+                            ? "Discussion" : r.ReportedUserPublicId != null
+                                ? "User" : "Unknown",
+                    Reason: r.ReasonName,
+                    Status: r.Status,
+                    CreatedAt: r.CreatedAt,
+                    ResolvedAt: r.ResolvedAt,
+                    ResolverUsername: r.ResolvedByUserDisplayName,
+                    Details: r.Details))
+                .ToList(),
             Total: result.Items.Count(),
             Page: page,
             PageSize: pageSize));
@@ -295,7 +305,7 @@ public static class AdminModerationEndpoints
             .Include(r => r.ResolvedByUser)
             .FirstOrDefaultAsync(r => r.PublicId == id);
 
-        if (report == null)
+        if (report is null)
             return Results.NotFound(new { error = "Report not found" });
 
         return TypedResults.Ok(new AdminReportDetailResponse(
@@ -324,7 +334,8 @@ public static class AdminModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ResolveReportAsync(
@@ -346,7 +357,8 @@ public static class AdminModerationEndpoints
         ModerationUseCase moderationUseCase)
     {
         var adminUserId = GetUserId(httpContext);
-        if (adminUserId == null)
+
+        if (adminUserId is null)
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ResolveReportAsync(
@@ -380,20 +392,24 @@ public static class AdminModerationEndpoints
             pageSize);
 
         return TypedResults.Ok(new AdminModerationLogResponse(
-            Actions: result.Items.Select(a => new AdminModerationLogItemResponse(
-                Id: a.PublicId,
-                ActionType: a.Action,
-                ModeratorUsername: a.ActorUserDisplayName,
-                TargetType: a.TargetPostPublicId != null ? "Post" :
-                            a.TargetDiscussionPublicId != null ? "Discussion" :
-                            a.TargetUserPublicId != null ? "User" : "Unknown",
-                TargetId: a.TargetPostPublicId ?? a.TargetDiscussionPublicId ?? a.TargetUserPublicId ?? "",
-                Reason: a.Reason,
-                Details: a.Details,
-                CreatedAt: a.CreatedAt,
-                CommunityName: a.CommunityName,
-                HubName: a.HubName,
-                SpaceName: a.SpaceName)).ToList(),
+            Actions: result.Items
+                .Select(a => new AdminModerationLogItemResponse(
+                    Id: a.PublicId,
+                    ActionType: a.Action,
+                    ModeratorUsername: a.ActorUserDisplayName,
+                    TargetType:
+                        a.TargetPostPublicId != null
+                        ? "Post" : a.TargetDiscussionPublicId != null
+                            ? "Discussion" : a.TargetUserPublicId != null
+                                ? "User" : "Unknown",
+                    TargetId: a.TargetPostPublicId ?? a.TargetDiscussionPublicId ?? a.TargetUserPublicId ?? "",
+                    Reason: a.Reason,
+                    Details: a.Details,
+                    CreatedAt: a.CreatedAt,
+                    CommunityName: a.CommunityName,
+                    HubName: a.HubName,
+                    SpaceName: a.SpaceName))
+                .ToList(),
             Total: result.Items.Count(),
             Page: page,
             PageSize: pageSize));
@@ -410,13 +426,15 @@ public static class AdminModerationEndpoints
         var result = await adminUserService.GetActiveBansAsync(page, pageSize);
 
         return TypedResults.Ok(new AdminActiveBansResponse(
-            Bans: result.Items.Select(b => new AdminActiveBanItemResponse(
-                UserId: b.UserId,
-                Username: b.UserDisplayName,
-                Reason: b.Reason,
-                BannedAt: b.BannedAt,
-                ExpiresAt: b.ExpiresAt,
-                BannedByUsername: b.BannedBy)).ToList(),
+            Bans: result.Items
+                .Select(b => new AdminActiveBanItemResponse(
+                    UserId: b.UserId,
+                    Username: b.UserDisplayName,
+                    Reason: b.Reason,
+                    BannedAt: b.BannedAt,
+                    ExpiresAt: b.ExpiresAt,
+                    BannedByUsername: b.BannedBy))
+                .ToList(),
             Total: result.Total,
             Page: result.Page,
             PageSize: result.PageSize));

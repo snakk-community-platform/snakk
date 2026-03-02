@@ -11,7 +11,11 @@ using Snakk.Protos.Discussion;
 namespace Snakk.Web.Pages.Spaces;
 
 [OutputCache(PolicyName = "Space")]
-public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
+public class DetailModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext,
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -60,7 +64,7 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
         Space = spaceTask.Result;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
-        if (Space == null)
+        if (Space is null)
             return NotFound();
 
         SidebarScopeId = Space.PublicId;
@@ -83,14 +87,27 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
     private void ResolveSidebarData()
     {
         if (ShowTrendingDiscussions)
-            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch($"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: SidebarScopeId), d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: SidebarScopeId),
+                d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingContributors)
-            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch($"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopContributorsTodayAsync(spaceId: SidebarScopeId), d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
+                $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(spaceId: SidebarScopeId),
+                d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
 
-        InlineSpaceRules = prefetchCache.ResolveOrPrefetch($"space-rules:{SidebarScopeId}",
-            () => _apiClient.GetSpaceRulesAsync(SidebarScopeId), d => new SidebarSpaceRulesVM(d, CommunityContext, HubSlug, CommunityContext.CommunitySlug ?? "", Space?.ParentHubHasRules ?? false, Space?.ParentCommunityHasRules ?? false, "cache"));
+        InlineSpaceRules = prefetchCache.ResolveOrPrefetch(
+            $"space-rules:{SidebarScopeId}",
+            () => _apiClient.GetSpaceRulesAsync(SidebarScopeId),
+            d => new SidebarSpaceRulesVM(
+                d,
+                CommunityContext,
+                HubSlug,
+                CommunityContext.CommunitySlug ?? "",
+                Space?.ParentHubHasRules ?? false,
+                Space?.ParentCommunityHasRules ?? false,
+                "cache"));
     }
 }

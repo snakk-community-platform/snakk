@@ -21,13 +21,13 @@ public class JwtTokenServiceTests
     {
         var configEntries = new Dictionary<string, string?>();
 
-        if (secretKey != null)
+        if (secretKey is not null)
             configEntries["Jwt:SecretKey"] = secretKey;
-        if (issuer != null)
+        if (issuer is not null)
             configEntries["Jwt:Issuer"] = issuer;
-        if (audience != null)
+        if (audience is not null)
             configEntries["Jwt:Audience"] = audience;
-        if (expirationMinutes != null)
+        if (expirationMinutes is not null)
             configEntries["Jwt:ExpirationMinutes"] = expirationMinutes;
 
         var config = new ConfigurationBuilder()

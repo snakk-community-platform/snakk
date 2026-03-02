@@ -18,52 +18,35 @@ public class HubRepository(SnakkDbContext context)
         bool RequireEmailConfirmation,
         DateTime CreatedAt);
 
-    public override async Task<HubDatabaseEntity?> GetByIdAsync(int id)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(h => h.Id == id);
-    }
+    public override async Task<HubDatabaseEntity?> GetByIdAsync(int id) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.Id == id);
 
-    public async Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId)
-    {
-        return await _dbSet
-            .AsTracking()
-            .Include(h => h.Community)
-            .FirstOrDefaultAsync(h => h.PublicId == publicId);
-    }
+    public async Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+        .AsTracking()
+        .Include(h => h.Community)
+        .FirstOrDefaultAsync(h => h.PublicId == publicId);
 
-    public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
+    public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync() =>
+        await _dbSet.ToListAsync();
 
-    public async Task<HubDetailDto?> GetForDisplayAsync(string publicId)
-    {
-        return await _dbSet
-            .Where(h => h.PublicId == publicId)
-            .Select(h => new HubDetailDto(
-                h.PublicId,
-                h.Community.PublicId,
-                h.Name,
-                h.Slug,
-                h.Description,
-                h.AllowAnonymousReading,
-                h.RequireEmailConfirmation,
-                h.CreatedAt))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<HubDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+        .Where(h => h.PublicId == publicId)
+        .Select(h => new HubDetailDto(
+            h.PublicId,
+            h.Community.PublicId,
+            h.Name,
+            h.Slug,
+            h.Description,
+            h.AllowAnonymousReading,
+            h.RequireEmailConfirmation,
+            h.CreatedAt))
+        .FirstOrDefaultAsync();
 
-    public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(h => h.PublicId == publicId);
-    }
+    public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.PublicId == publicId);
 
-    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(h => h.Slug == slug);
-    }
+    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.Slug == slug);
 
     public async Task<PagedResult<HubListDto>> GetFilteredForDisplayAsync(
         int offset,
@@ -85,7 +68,11 @@ public class HubRepository(SnakkDbContext context)
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         return new PagedResult<HubListDto>
         {
@@ -118,7 +105,11 @@ public class HubRepository(SnakkDbContext context)
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         return new PagedResult<HubListDto>
         {
@@ -129,11 +120,8 @@ public class HubRepository(SnakkDbContext context)
         };
     }
 
-    public async Task<int?> GetCommunityDbIdAsync(string communityPublicId)
-    {
-        return await _context.Communities
-            .Where(c => c.PublicId == communityPublicId)
-            .Select(c => (int?)c.Id)
-            .FirstOrDefaultAsync();
-    }
+    public async Task<int?> GetCommunityDbIdAsync(string communityPublicId) => await _context.Communities
+        .Where(c => c.PublicId == communityPublicId)
+        .Select(c => (int?)c.Id)
+        .FirstOrDefaultAsync();
 }

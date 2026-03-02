@@ -11,79 +11,76 @@ public class NotificationUseCase(
     IRealtimeNotifier realtimeNotifier,
     ICounterService counterService)
 {
-    private readonly INotificationRepository _notificationRepository = notificationRepository;
-    private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
-    private readonly ICounterService _counterService = counterService;
-
     public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(UserId userId, int offset, int pageSize)
     {
-        var result = await _notificationRepository.GetByUserIdAsync(userId, offset, pageSize);
+        var result = await notificationRepository.GetByUserIdAsync(userId, offset, pageSize);
 
         return new PagedResult<NotificationDto>
         {
-            Items = result.Items.Select(n => new NotificationDto(
-                n.PublicId,
-                n.Type.ToString(),
-                n.Title,
-                n.Body,
-                n.SourcePostId?.Value,
-                n.SourceDiscussionId?.Value,
-                n.ActorUserId?.Value,
-                n.IsRead,
-                n.CreatedAt)),
+            Items = result.Items
+                .Select(n => new NotificationDto(
+                    n.PublicId,
+                    n.Type.ToString(),
+                    n.Title,
+                    n.Body,
+                    n.SourcePostId?.Value,
+                    n.SourceDiscussionId?.Value,
+                    n.ActorUserId?.Value,
+                    n.IsRead,
+                    n.CreatedAt))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
         };
     }
 
-    public async Task<int> GetUnreadCountAsync(UserId userId)
-    {
-        return await _notificationRepository.GetUnreadCountAsync(userId);
-    }
+    public async Task<int> GetUnreadCountAsync(UserId userId) =>
+        await notificationRepository.GetUnreadCountAsync(userId);
 
     public async Task<Result> MarkAsReadAsync(NotificationId notificationId, UserId userId)
     {
-        var notification = await _notificationRepository.GetByPublicIdAsync(notificationId);
-        if (notification == null)
+        var notification = await notificationRepository.GetByPublicIdAsync(notificationId);
+
+        if (notification is null)
             return Result.Failure("Notification not found");
 
         if (notification.RecipientUserId.Value != userId.Value)
             return Result.Failure("Cannot mark other user's notification as read");
 
         notification.MarkAsRead();
-        await _notificationRepository.UpdateAsync(notification);
+        await notificationRepository.UpdateAsync(notification);
 
         // Update denormalized count
-        await _counterService.DecrementUnreadNotificationCountAsync(userId);
+        await counterService.DecrementUnreadNotificationCountAsync(userId);
 
         // Notify client to update badge
-        var unreadCount = await _notificationRepository.GetUnreadCountAsync(userId);
-        await _realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, unreadCount);
+        var unreadCount = await notificationRepository.GetUnreadCountAsync(userId);
+        await realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, unreadCount);
 
         return Result.Success();
     }
 
     public async Task MarkAllAsReadAsync(UserId userId)
     {
-        await _notificationRepository.MarkAllAsReadAsync(userId);
+        await notificationRepository.MarkAllAsReadAsync(userId);
 
         // Reset denormalized count
-        await _counterService.ResetUnreadNotificationCountAsync(userId);
+        await counterService.ResetUnreadNotificationCountAsync(userId);
 
         // Notify client to update badge
-        await _realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, 0);
+        await realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, 0);
     }
 
     public async Task CreateNotificationAsync(Notification notification)
     {
-        await _notificationRepository.AddAsync(notification);
+        await notificationRepository.AddAsync(notification);
 
         // Update denormalized count
-        await _counterService.IncrementUnreadNotificationCountAsync(notification.RecipientUserId);
+        await counterService.IncrementUnreadNotificationCountAsync(notification.RecipientUserId);
 
         // Real-time delivery
-        await _realtimeNotifier.NotifyUserAsync(notification.RecipientUserId, new
+        await realtimeNotifier.NotifyUserAsync(notification.RecipientUserId, new
         {
             type = notification.Type.ToString(),
             title = notification.Title,

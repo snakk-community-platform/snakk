@@ -51,14 +51,10 @@ public static class AuthHelper
         };
 
         if (!string.IsNullOrEmpty(email))
-        {
             claims.Add(new Claim(ClaimTypes.Email, email));
-        }
 
         if (!string.IsNullOrEmpty(role))
-        {
             claims.Add(new Claim(ClaimTypes.Role, role));
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

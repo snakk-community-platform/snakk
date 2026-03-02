@@ -17,18 +17,16 @@ public class UserProfileUseCase(
     IUserRepository userRepository,
     ISearchRepository searchRepository) : UseCaseBase
 {
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly ISearchRepository _searchRepository = searchRepository;
-
     public async Task<UserProfileDto?> GetUserProfileAsync(string publicId)
     {
-        var user = await _userRepository.GetByPublicIdAsync(UserId.From(publicId));
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(UserId.From(publicId));
+
+        if (user is null)
             return null;
 
         // Get discussion and post counts (sequential to avoid DbContext concurrency issues)
-        var discussionCount = await _searchRepository.GetDiscussionCountByAuthorAsync(publicId);
-        var postCount = await _searchRepository.GetPostCountByAuthorAsync(publicId);
+        var discussionCount = await searchRepository.GetDiscussionCountByAuthorAsync(publicId);
+        var postCount = await searchRepository.GetPostCountByAuthorAsync(publicId);
 
         return new UserProfileDto(
             user.PublicId.Value,

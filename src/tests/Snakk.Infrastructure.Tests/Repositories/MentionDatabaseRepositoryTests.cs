@@ -89,8 +89,8 @@ public class MentionDatabaseRepositoryTests : IDisposable
 
         await Assert.That(result.Count).IsEqualTo(3);
         await Assert.That(result.All(m => m.PostId == post.Id)).IsTrue();
-        await Assert.That(result.All(m => m.Post != null)).IsTrue();
-        await Assert.That(result.All(m => m.MentionedUser != null)).IsTrue();
+        await Assert.That(result.All(m => m.Post is not null)).IsTrue();
+        await Assert.That(result.All(m => m.MentionedUser is not null)).IsTrue();
     }
 
     [Test]

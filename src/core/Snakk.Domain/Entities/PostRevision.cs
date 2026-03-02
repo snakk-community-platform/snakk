@@ -52,13 +52,11 @@ public class PostRevision
         string content,
         UserId editedByUserId,
         int revisionNumber,
-        DateTime createdAt)
-    {
-        return new PostRevision(
+        DateTime createdAt) =>
+        new PostRevision(
             postId,
             content,
             editedByUserId,
             revisionNumber,
             createdAt);
-    }
 }

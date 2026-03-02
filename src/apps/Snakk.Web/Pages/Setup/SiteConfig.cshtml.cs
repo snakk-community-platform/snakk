@@ -34,6 +34,7 @@ public class SiteConfigModel : SetupPageBase
         state.DefaultCommunitySlug = DefaultCommunitySlug.Trim().ToLowerInvariant();
         state.MultiCommunityEnabled = MultiCommunityEnabled;
         SaveState(state);
+
         return RedirectToPage("Storage");
     }
 }

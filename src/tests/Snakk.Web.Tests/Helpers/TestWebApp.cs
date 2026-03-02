@@ -88,9 +88,7 @@ public class TestWebApp : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-        {
             MockApiHandler.Dispose();
-        }
         base.Dispose(disposing);
     }
 }
@@ -98,18 +96,11 @@ public class TestWebApp : WebApplicationFactory<Program>
 /// <summary>
 /// Simple IHttpClientFactory that always returns an HttpClient backed by the MockApiHandler.
 /// </summary>
-internal class MockHttpClientFactory : IHttpClientFactory
+internal class MockHttpClientFactory(MockApiHandler handler) : IHttpClientFactory
 {
-    private readonly MockApiHandler _handler;
-
-    public MockHttpClientFactory(MockApiHandler handler)
-    {
-        _handler = handler;
-    }
-
     public HttpClient CreateClient(string name)
     {
-        return new HttpClient(_handler, disposeHandler: false)
+        return new HttpClient(handler, disposeHandler: false)
         {
             BaseAddress = new Uri("http://localhost:19999")
         };

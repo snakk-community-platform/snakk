@@ -229,8 +229,8 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         // Assert — should be 200 (with status) or 400 (if 2FA not enabled), but NOT 401
         await Assert.That((int)response.StatusCode).IsNotEqualTo((int)HttpStatusCode.Unauthorized);
         await Assert.That(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.BadRequest
+            response.StatusCode == HttpStatusCode.OK
+            || response.StatusCode == HttpStatusCode.BadRequest
         ).IsTrue();
     }
 

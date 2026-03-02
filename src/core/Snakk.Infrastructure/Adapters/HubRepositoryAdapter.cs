@@ -11,12 +11,9 @@ public class HubRepositoryAdapter(
     Infrastructure.Database.Repositories.IHubRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IHubRepository
 {
-    private readonly Infrastructure.Database.Repositories.IHubRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Hub?> GetByIdAsync(int id)
     {
-        var projection = await _context.Hubs
+        var projection = await context.Hubs
             .Where(h => h.Id == id)
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
@@ -28,7 +25,7 @@ public class HubRepositoryAdapter(
 
     public async Task<Hub?> GetByPublicIdAsync(HubId publicId)
     {
-        var projection = await _context.Hubs
+        var projection = await context.Hubs
             .Where(h => h.PublicId == publicId.Value)
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
@@ -40,7 +37,7 @@ public class HubRepositoryAdapter(
 
     public async Task<Hub?> GetBySlugAsync(string slug)
     {
-        var projection = await _context.Hubs
+        var projection = await context.Hubs
             .Where(h => h.Slug == slug)
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
@@ -52,40 +49,48 @@ public class HubRepositoryAdapter(
 
     public async Task<IEnumerable<Hub>> GetAllAsync()
     {
-        var projections = await _context.Hubs
+        var projections = await context.Hubs
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize)
     {
-        var result = await _databaseRepository.GetFilteredForDisplayAsync(offset, pageSize);
+        var result = await databaseRepository.GetFilteredForDisplayAsync(offset, pageSize);
+
         return new PagedResult<Hub>
         {
-            Items = result.Items.Select(dto => Hub.RehydrateForList(
-                HubId.From(dto.PublicId),
-                CommunityId.From(dto.CommunityPublicId),
-                dto.Name,
-                dto.Slug,
-                dto.Description,
-                dto.AllowAnonymousReading,
-                dto.RequireEmailConfirmation,
-                dto.CreatedAt)).ToList(),
+            Items = result.Items
+                .Select(dto => Hub.RehydrateForList(
+                    HubId.From(dto.PublicId),
+                    CommunityId.From(dto.CommunityPublicId),
+                    dto.Name,
+                    dto.Slug,
+                    dto.Description,
+                    dto.AllowAnonymousReading,
+                    dto.RequireEmailConfirmation,
+                    dto.CreatedAt))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
         };
     }
 
-    public async Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize)
+    public async Task<PagedResult<Hub>> GetByCommunityAsync(
+        CommunityId communityId,
+        int offset,
+        int pageSize)
     {
         // First get the community's database ID
-        var communityDbId = await _databaseRepository.GetCommunityDbIdAsync(communityId.Value);
-        if (communityDbId == null)
+        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(communityId.Value);
+
+        if (communityDbId is null)
         {
             return new PagedResult<Hub>
             {
@@ -96,18 +101,21 @@ public class HubRepositoryAdapter(
             };
         }
 
-        var result = await _databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize);
+        var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize);
+
         return new PagedResult<Hub>
         {
-            Items = result.Items.Select(dto => Hub.RehydrateForList(
-                HubId.From(dto.PublicId),
-                CommunityId.From(dto.CommunityPublicId),
-                dto.Name,
-                dto.Slug,
-                dto.Description,
-                dto.AllowAnonymousReading,
-                dto.RequireEmailConfirmation,
-                dto.CreatedAt)).ToList(),
+            Items = result.Items
+                .Select(dto => Hub.RehydrateForList(
+                    HubId.From(dto.PublicId),
+                    CommunityId.From(dto.CommunityPublicId),
+                    dto.Name,
+                    dto.Slug,
+                    dto.Description,
+                    dto.AllowAnonymousReading,
+                    dto.RequireEmailConfirmation,
+                    dto.CreatedAt))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
@@ -117,20 +125,22 @@ public class HubRepositoryAdapter(
     public async Task AddAsync(Hub hub)
     {
         // Resolve CommunityId to database ID
-        var communityDbId = await _databaseRepository.GetCommunityDbIdAsync(hub.CommunityId.Value);
-        if (communityDbId == null)
+        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(hub.CommunityId.Value);
+
+        if (communityDbId is null)
             throw new InvalidOperationException($"Community with PublicId '{hub.CommunityId}' not found");
 
         var entity = hub.ToPersistence(communityDbId.Value);
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Hub hub)
     {
-        var entity = await _context.Hubs
+        var entity = await context.Hubs
             .FirstOrDefaultAsync(h => h.PublicId == hub.PublicId.Value);
-        if (entity == null)
+
+        if (entity is null)
             throw new InvalidOperationException($"Hub with PublicId '{hub.PublicId}' not found");
 
         entity.Name = hub.Name;
@@ -140,8 +150,8 @@ public class HubRepositoryAdapter(
         entity.RequireEmailConfirmation = hub.RequireEmailConfirmation;
         entity.LastModifiedAt = hub.LastModifiedAt;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record HubProjection(

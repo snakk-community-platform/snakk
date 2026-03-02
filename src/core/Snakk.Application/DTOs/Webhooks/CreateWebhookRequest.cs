@@ -18,7 +18,7 @@ public class CreateWebhookRequest
 
     [Required]
     [MinLength(1, ErrorMessage = "At least one event type must be selected")]
-    public string[] EventTypes { get; set; } = Array.Empty<string>();
+    public string[] EventTypes { get; set; } = [];
 
     public string? Secret { get; set; }
 

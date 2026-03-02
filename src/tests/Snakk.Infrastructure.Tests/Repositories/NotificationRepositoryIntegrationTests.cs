@@ -52,6 +52,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
         };
         _db.Context.Notifications.Add(notification);
         await _db.Context.SaveChangesAsync();
+
         return notification;
     }
 
@@ -230,7 +231,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
 
         await Assert.That(allNotifications.Count).IsEqualTo(3);
         await Assert.That(allNotifications.All(n => n.IsRead)).IsTrue();
-        await Assert.That(allNotifications.All(n => n.ReadAt != null)).IsTrue();
+        await Assert.That(allNotifications.All(n => n.ReadAt is not null)).IsTrue();
     }
 
     [Test]

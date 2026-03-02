@@ -10,29 +10,24 @@ public class PostCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<PostCreatedEvent>
 {
-    private readonly IActivityBroadcaster _activityBroadcaster = activityBroadcaster;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(PostCreatedEvent @event)
     {
         // Get user and discussion details
-        var data = await _context.Posts
+        var data = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
-            .Select(p => new
-            {
+            .Select(p => new {
                 Username = p.CreatedByUser.DisplayName,
                 DiscussionId = p.Discussion.PublicId,
                 DiscussionTitle = p.Discussion.Title,
                 CommunityName = p.Discussion.Space.Hub.Community.Name,
                 HubName = p.Discussion.Space.Hub.Name,
-                SpaceName = p.Discussion.Space.Name
-            })
+                SpaceName = p.Discussion.Space.Name })
             .FirstOrDefaultAsync();
 
-        if (data == null)
+        if (data is null)
             return;
 
-        await _activityBroadcaster.BroadcastPostCreated(
+        await activityBroadcaster.BroadcastPostCreated(
             @event.CreatedByUserId.Value,
             data.Username,
             @event.PostId.Value,

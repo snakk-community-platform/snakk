@@ -49,10 +49,8 @@ public class Mention
         MentionId publicId,
         PostId postId,
         UserId mentionedUserId,
-        DateTime createdAt)
-    {
-        return new Mention(publicId, postId, mentionedUserId, createdAt);
-    }
+        DateTime createdAt) =>
+        new Mention(publicId, postId, mentionedUserId, createdAt);
 
     private void AddDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
     public void ClearDomainEvents() => _domainEvents.Clear();

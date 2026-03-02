@@ -73,6 +73,7 @@ public static class AdminPermissionsEndpoints
         ILogger<object> logger)
     {
         var adminUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
         if (string.IsNullOrEmpty(adminUserId))
             return Results.Unauthorized();
 
@@ -80,7 +81,8 @@ public static class AdminPermissionsEndpoints
         {
             await permissionService.AssignPermissionToRoleAsync(roleId, request.PermissionId, adminUserId);
 
-            logger.LogInformation("Admin {AdminUserId} assigned permission {PermissionId} to role {RoleId}",
+            logger.LogInformation(
+                "Admin {AdminUserId} assigned permission {PermissionId} to role {RoleId}",
                 adminUserId, request.PermissionId, roleId);
 
             return TypedResults.Ok(new AdminPermissionActionResponse(
@@ -88,8 +90,11 @@ public static class AdminPermissionsEndpoints
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error assigning permission {PermissionId} to role {RoleId}",
+            logger.LogError(
+                ex,
+                "Error assigning permission {PermissionId} to role {RoleId}",
                 request.PermissionId, roleId);
+
             return Results.Problem(ex.Message);
         }
     }
@@ -103,6 +108,7 @@ public static class AdminPermissionsEndpoints
         ILogger<object> logger)
     {
         var adminUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
         if (string.IsNullOrEmpty(adminUserId))
             return Results.Unauthorized();
 
@@ -110,7 +116,8 @@ public static class AdminPermissionsEndpoints
         {
             await permissionService.RevokePermissionFromRoleAsync(roleId, permissionId, adminUserId);
 
-            logger.LogInformation("Admin {AdminUserId} revoked permission {PermissionId} from role {RoleId}",
+            logger.LogInformation(
+                "Admin {AdminUserId} revoked permission {PermissionId} from role {RoleId}",
                 adminUserId, permissionId, roleId);
 
             return TypedResults.Ok(new AdminPermissionActionResponse(
@@ -118,8 +125,11 @@ public static class AdminPermissionsEndpoints
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error revoking permission {PermissionId} from role {RoleId}",
+            logger.LogError(
+                ex,
+                "Error revoking permission {PermissionId} from role {RoleId}",
                 permissionId, roleId);
+
             return Results.Problem(ex.Message);
         }
     }
@@ -140,6 +150,7 @@ public static class AdminPermissionsEndpoints
         ILogger<object> logger)
     {
         var adminUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
         if (string.IsNullOrEmpty(adminUserId))
             return Results.Unauthorized();
 
@@ -164,6 +175,7 @@ public static class AdminPermissionsEndpoints
         catch (Exception ex)
         {
             logger.LogError(ex, "Error granting temporary role to user {UserId}", request.UserId);
+
             return Results.Problem(ex.Message);
         }
     }
@@ -177,6 +189,7 @@ public static class AdminPermissionsEndpoints
         ILogger<object> logger)
     {
         var adminUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
         if (string.IsNullOrEmpty(adminUserId))
             return Results.Unauthorized();
 
@@ -184,7 +197,8 @@ public static class AdminPermissionsEndpoints
         {
             await permissionService.RevokeTemporaryRoleAsync(elevationId, request.Reason, adminUserId);
 
-            logger.LogInformation("Admin {AdminUserId} revoked temporary role elevation {ElevationId}",
+            logger.LogInformation(
+                "Admin {AdminUserId} revoked temporary role elevation {ElevationId}",
                 adminUserId, elevationId);
 
             return TypedResults.Ok(new AdminTemporaryRoleRevokeResponse(
@@ -193,6 +207,7 @@ public static class AdminPermissionsEndpoints
         catch (Exception ex)
         {
             logger.LogError(ex, "Error revoking temporary role elevation {ElevationId}", elevationId);
+
             return Results.Problem(ex.Message);
         }
     }

@@ -47,5 +47,5 @@ public class RefreshTokenDatabaseEntity
     public bool IsRevoked => RevokedAt.HasValue;
 
     [NotMapped]
-    public bool IsActive => !IsExpired && !IsRevoked && ReplacedByTokenId == null;
+    public bool IsActive => !IsExpired && !IsRevoked && ReplacedByTokenId is null;
 }

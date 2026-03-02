@@ -15,12 +15,9 @@ public class NotificationRepositoryAdapter(
     INotificationDatabaseRepository databaseRepository,
     SnakkDbContext context) : INotificationRepository
 {
-    private readonly INotificationDatabaseRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Notification?> GetByPublicIdAsync(NotificationId notificationId)
     {
-        var projection = await _context.Notifications
+        var projection = await context.Notifications
             .Where(n => n.PublicId == notificationId.Value)
             .Select(n => new NotificationProjection(
                 n.PublicId, n.RecipientUser.PublicId, n.TypeId,
@@ -34,16 +31,20 @@ public class NotificationRepositoryAdapter(
         return projection?.ToDomain();
     }
 
-    public async Task<PagedResult<Notification>> GetByUserIdAsync(UserId userId, int offset, int pageSize)
+    public async Task<PagedResult<Notification>> GetByUserIdAsync(
+        UserId userId,
+        int offset,
+        int pageSize)
     {
-        var userDbId = await _context.Users
+        var userDbId = await context.Users
             .Where(u => u.PublicId == userId.Value)
             .Select(u => (int?)u.Id)
             .FirstOrDefaultAsync();
-        if (userDbId == null)
+
+        if (userDbId is null)
             return new PagedResult<Notification> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
-        var projections = await _context.Notifications
+        var projections = await context.Notifications
             .Where(n => n.RecipientUserId == userDbId.Value)
             .OrderByDescending(n => n.CreatedAt)
             .Skip(offset)
@@ -72,69 +73,73 @@ public class NotificationRepositoryAdapter(
 
     public async Task<int> GetUnreadCountAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return 0;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        return await _databaseRepository.GetUnreadCountAsync(user.Id);
+        if (user is null) return 0;
+
+        return await databaseRepository.GetUnreadCountAsync(user.Id);
     }
 
     public async Task AddAsync(Notification notification)
     {
         var entity = notification.ToPersistence();
 
-        var recipientUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == notification.RecipientUserId.Value);
-        if (recipientUser == null)
+        var recipientUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == notification.RecipientUserId.Value);
+
+        if (recipientUser is null)
             throw new InvalidOperationException($"User with PublicId '{notification.RecipientUserId}' not found");
 
         entity.RecipientUserId = recipientUser.Id;
 
-        if (notification.SourcePostId != null)
+        if (notification.SourcePostId is not null)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == notification.SourcePostId.Value);
+            var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == notification.SourcePostId.Value);
             entity.SourcePostId = post?.Id;
         }
 
-        if (notification.SourceDiscussionId != null)
+        if (notification.SourceDiscussionId is not null)
         {
-            var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == notification.SourceDiscussionId.Value);
+            var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == notification.SourceDiscussionId.Value);
             entity.SourceDiscussionId = discussion?.Id;
         }
 
-        if (notification.SourceSpaceId != null)
+        if (notification.SourceSpaceId is not null)
         {
-            var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == notification.SourceSpaceId.Value);
+            var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == notification.SourceSpaceId.Value);
             entity.SourceSpaceId = space?.Id;
         }
 
-        if (notification.ActorUserId != null)
+        if (notification.ActorUserId is not null)
         {
-            var actorUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == notification.ActorUserId.Value);
+            var actorUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == notification.ActorUserId.Value);
             entity.ActorUserId = actorUser?.Id;
         }
 
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Notification notification)
     {
-        var entity = await _context.Notifications.FirstOrDefaultAsync(n => n.PublicId == notification.PublicId.Value);
-        if (entity == null)
+        var entity = await context.Notifications.FirstOrDefaultAsync(n => n.PublicId == notification.PublicId.Value);
+
+        if (entity is null)
             throw new InvalidOperationException($"Notification with PublicId '{notification.PublicId}' not found");
 
         entity.IsRead = notification.IsRead;
         entity.ReadAt = notification.ReadAt;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task MarkAllAsReadAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        await _databaseRepository.MarkAllAsReadAsync(user.Id);
+        if (user is null) return;
+
+        await databaseRepository.MarkAllAsReadAsync(user.Id);
     }
 
     private record NotificationProjection(
@@ -156,10 +161,10 @@ public class NotificationRepositoryAdapter(
             UserId.From(RecipientUserPublicId),
             ((NotificationTypeEnum)TypeId).ToDomain(),
             Title, Body,
-            SourcePostPublicId != null ? PostId.From(SourcePostPublicId) : null,
-            SourceDiscussionPublicId != null ? DiscussionId.From(SourceDiscussionPublicId) : null,
-            SourceSpacePublicId != null ? SpaceId.From(SourceSpacePublicId) : null,
-            ActorUserPublicId != null ? UserId.From(ActorUserPublicId) : null,
+            SourcePostPublicId is not null ? PostId.From(SourcePostPublicId) : null,
+            SourceDiscussionPublicId is not null ? DiscussionId.From(SourceDiscussionPublicId) : null,
+            SourceSpacePublicId is not null ? SpaceId.From(SourceSpacePublicId) : null,
+            ActorUserPublicId is not null ? UserId.From(ActorUserPublicId) : null,
             IsRead, CreatedAt, ReadAt);
     }
 }

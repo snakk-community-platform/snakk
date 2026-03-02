@@ -53,7 +53,7 @@ public class AchievementCheckerWorker(
             .Where(a => a.RequirementType == Shared.Enums.AchievementRequirementTypeEnum.Count)
             .ToList();
 
-        if (!countAchievements.Any())
+        if (countAchievements.Count == 0)
             return;
 
         // Get users with recent metric updates (last 60 seconds)
@@ -110,17 +110,20 @@ public class AchievementCheckerWorker(
         {
             // Check if user already has this achievement
             var hasAchievement = await userAchievementRepo.HasAchievementAsync(userId, achievement.PublicId);
+
             if (hasAchievement)
                 continue;
 
             // Parse requirement config
             var config = JsonSerializer.Deserialize<AchievementConfig>(achievement.RequirementConfig);
-            if (config == null || string.IsNullOrEmpty(config.EventType))
+
+            if (config is null || string.IsNullOrEmpty(config.EventType))
                 continue;
 
             // Map eventType to metricType
             var metricType = GetMetricTypeFromEventType(config.EventType);
-            if (metricType == null)
+
+            if (metricType is null)
                 continue;
 
             // Check if user has reached the threshold
@@ -142,9 +145,8 @@ public class AchievementCheckerWorker(
         }
     }
 
-    private static string? GetMetricTypeFromEventType(string eventType)
-    {
-        return eventType switch
+    private static string? GetMetricTypeFromEventType(string eventType) =>
+        eventType switch
         {
             "POST_CREATE" => "POST_COUNT",
             "DISCUSSION_CREATE" => "DISCUSSION_COUNT",
@@ -152,7 +154,6 @@ public class AchievementCheckerWorker(
             "REACTION_RECEIVED" => "REACTION_RECEIVED",
             _ => null
         };
-    }
 
     private class AchievementConfig
     {

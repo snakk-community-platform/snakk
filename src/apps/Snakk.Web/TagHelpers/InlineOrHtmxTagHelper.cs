@@ -38,7 +38,7 @@ public class InlineOrHtmxTagHelper(IHtmlHelper htmlHelper) : TagHelper
 
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
-        if (Model != null)
+        if (Model is not null)
         {
             // Cache is warm — render partial inline, no wrapper element
             output.TagName = null;

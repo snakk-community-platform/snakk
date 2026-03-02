@@ -107,7 +107,10 @@ public class TokenServiceTests : IDisposable
         await Assert.That(jwt.Claims.First(c => c.Type == ClaimTypes.Email).Value).IsEqualTo("john@example.com");
         await Assert.That(jwt.Claims.First(c => c.Type == "2fa_enabled").Value).IsEqualTo("True");
 
-        var roleClaims = jwt.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+        var roleClaims = jwt.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .Select(c => c.Value)
+            .ToList();
         await Assert.That(roleClaims).Contains("GlobalAdmin");
         await Assert.That(roleClaims).Contains("CommunityAdmin");
     }
@@ -188,7 +191,9 @@ public class TokenServiceTests : IDisposable
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token);
 
-        var roleClaims = jwt.Claims.Where(c => c.Type == ClaimTypes.Role).ToList();
+        var roleClaims = jwt.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .ToList();
         await Assert.That(roleClaims.Count).IsEqualTo(0);
     }
 
@@ -385,7 +390,7 @@ public class TokenServiceTests : IDisposable
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             _context.RefreshTokens.Add(new RefreshTokenDatabaseEntity
             {
@@ -402,7 +407,9 @@ public class TokenServiceTests : IDisposable
         await _tokenService.RevokeAllUserTokensAsync(UserId.From("user_revoke_all"), "Security measure");
 
         // Assert
-        var tokens = await _context.RefreshTokens.Where(t => t.UserId == user.Id).ToListAsync();
+        var tokens = await _context.RefreshTokens
+            .Where(t => t.UserId == user.Id)
+            .ToListAsync();
         foreach (var token in tokens)
         {
             await Assert.That(token.RevokedAt).IsNotNull();

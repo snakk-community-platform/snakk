@@ -48,6 +48,7 @@ public class ReactionGrpcService(
         var reaction = await reactionUseCase.GetUserReactionAsync(PostId.From(request.PostId), userId);
 
         var response = new UserReactionResponse();
+
         if (reaction.HasValue)
             response.Reaction = reaction.Value.ToString();
 
@@ -60,7 +61,8 @@ public class ReactionGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userIdStr = currentUser.GetCurrentUserId();
-        if (userIdStr == null)
+
+        if (userIdStr is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userIdStr);

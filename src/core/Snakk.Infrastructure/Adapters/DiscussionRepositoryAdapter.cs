@@ -12,12 +12,9 @@ public class DiscussionRepositoryAdapter(
     Infrastructure.Database.Repositories.IDiscussionRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IDiscussionRepository
 {
-    private readonly Infrastructure.Database.Repositories.IDiscussionRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Discussion?> GetByIdAsync(int id)
     {
-        var projection = await _context.Discussions
+        var projection = await context.Discussions
             .Where(d => d.Id == id)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
@@ -29,7 +26,7 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId)
     {
-        var projection = await _context.Discussions
+        var projection = await context.Discussions
             .Where(d => d.PublicId == publicId.Value)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
@@ -41,7 +38,7 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<Discussion?> GetBySlugAsync(string slug)
     {
-        var projection = await _context.Discussions
+        var projection = await context.Discussions
             .Where(d => d.Slug == slug)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
@@ -53,13 +50,14 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId)
     {
-        var spaceDbId = await _context.Spaces
+        var spaceDbId = await context.Spaces
             .Where(s => s.PublicId == spaceId.Value)
             .Select(s => (int?)s.Id)
             .FirstOrDefaultAsync();
-        if (spaceDbId == null) return [];
 
-        var projections = await _context.Discussions
+        if (spaceDbId is null) return [];
+
+        var projections = await context.Discussions
             .Where(d => d.SpaceId == spaceDbId.Value)
             .OrderByDescending(d => d.IsPinned)
             .ThenByDescending(d => d.LastActivityAt)
@@ -68,13 +66,15 @@ public class DiscussionRepositoryAdapter(
                 d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
-    public async Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize)
-    {
-        return await GetPagedBySpaceIdAsync(spaceId, offset, pageSize);
-    }
+    public async Task<PagedResult<Discussion>> GetBySpaceIdAsync(
+        SpaceId spaceId,
+        int offset,
+        int pageSize) =>
+        await GetPagedBySpaceIdAsync(spaceId, offset, pageSize);
 
     public async Task<PagedResult<Discussion>> GetPagedBySpaceIdAsync(
         SpaceId spaceId,
@@ -82,9 +82,10 @@ public class DiscussionRepositoryAdapter(
         int pageSize)
     {
         // Get internal ID from PublicId
-        var space = await _context.Spaces
+        var space = await context.Spaces
             .FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
-        if (space == null)
+
+        if (space is null)
             return new PagedResult<Discussion>
             {
                 Items = [],
@@ -94,20 +95,22 @@ public class DiscussionRepositoryAdapter(
             };
 
         // Use the database repository's DTO-based method
-        var result = await _databaseRepository.GetPagedBySpaceIdAsync(space.Id, offset, pageSize);
+        var result = await databaseRepository.GetPagedBySpaceIdAsync(space.Id, offset, pageSize);
 
         return new PagedResult<Discussion>
         {
-            Items = result.Items.Select(dto => Discussion.RehydrateForList(
-                DiscussionId.From(dto.PublicId),
-                SpaceId.From(spaceId.Value),
-                UserId.From(dto.CreatedByUserPublicId),
-                dto.Title,
-                dto.Slug,
-                dto.CreatedAt,
-                dto.LastActivityAt,
-                dto.IsPinned,
-                dto.IsLocked)).ToList(),
+            Items = result.Items
+                .Select(dto => Discussion.RehydrateForList(
+                    DiscussionId.From(dto.PublicId),
+                    SpaceId.From(spaceId.Value),
+                    UserId.From(dto.CreatedByUserPublicId),
+                    dto.Title,
+                    dto.Slug,
+                    dto.CreatedAt,
+                    dto.LastActivityAt,
+                    dto.IsPinned,
+                    dto.IsLocked))
+                .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
@@ -116,7 +119,7 @@ public class DiscussionRepositoryAdapter(
 
     public async Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10)
     {
-        var projections = await _context.Discussions
+        var projections = await context.Discussions
             .OrderByDescending(d => d.LastActivityAt)
             .Take(count)
             .Select(d => new DiscussionProjection(
@@ -124,6 +127,7 @@ public class DiscussionRepositoryAdapter(
                 d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
@@ -133,26 +137,29 @@ public class DiscussionRepositoryAdapter(
         var entity = discussion.ToPersistence();
 
         // Resolve foreign keys from PublicIds
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == discussion.SpaceId.Value);
-        if (space == null)
+        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == discussion.SpaceId.Value);
+
+        if (space is null)
             throw new InvalidOperationException($"Space with PublicId '{discussion.SpaceId}' not found");
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == discussion.CreatedByUserId.Value);
-        if (user == null)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == discussion.CreatedByUserId.Value);
+
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{discussion.CreatedByUserId}' not found");
 
         entity.SpaceId = space.Id;
         entity.CreatedByUserId = user.Id;
 
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Discussion discussion)
     {
         // Fetch existing entity
-        var entity = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussion.PublicId.Value);
-        if (entity == null)
+        var entity = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussion.PublicId.Value);
+
+        if (entity is null)
             throw new InvalidOperationException($"Discussion with PublicId '{discussion.PublicId}' not found");
 
         // Update properties
@@ -163,8 +170,8 @@ public class DiscussionRepositoryAdapter(
         entity.IsPinned = discussion.IsPinned;
         entity.IsLocked = discussion.IsLocked;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task<List<Domain.Repositories.TopActiveDiscussion>> GetTopActiveDiscussionsSinceAsync(
@@ -174,55 +181,54 @@ public class DiscussionRepositoryAdapter(
         CommunityId? communityId,
         int limit)
     {
-        var postsQuery = _context.Posts
+        var postsQuery = context.Posts
             .Where(p => !p.IsDeleted && p.CreatedAt >= since);
 
         // Apply filters based on hierarchy
-        if (communityId != null)
+        if (communityId is not null)
         {
             postsQuery = postsQuery.Where(p =>
-                p.Discussion.Space.Hub.CommunityId == _context.Communities
+                p.Discussion.Space.Hub.CommunityId == context.Communities
                     .Where(c => c.PublicId == communityId.Value)
                     .Select(c => c.Id)
                     .FirstOrDefault());
         }
 
-        if (hubId != null)
+        if (hubId is not null)
         {
             postsQuery = postsQuery.Where(p =>
-                p.Discussion.Space.HubId == _context.Hubs
+                p.Discussion.Space.HubId == context.Hubs
                     .Where(h => h.PublicId == hubId.Value)
                     .Select(h => h.Id)
                     .FirstOrDefault());
         }
 
-        if (spaceId != null)
+        if (spaceId is not null)
         {
             postsQuery = postsQuery.Where(p =>
-                p.Discussion.SpaceId == _context.Spaces
+                p.Discussion.SpaceId == context.Spaces
                     .Where(s => s.PublicId == spaceId.Value)
                     .Select(s => s.Id)
                     .FirstOrDefault());
         }
 
         var topDiscussions = await postsQuery
-            .GroupBy(p => new
-            {
-                DiscussionPublicId = p.Discussion.PublicId,
+            .GroupBy(p => new {
+                p.Discussion.PublicId,
                 p.Discussion.Title,
                 p.Discussion.Slug,
                 AuthorPublicId = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.PublicId : "",
                 AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName : "",
+                p.Discussion.Space.Hub.CommunityId,
+
                 SpacePublicId = p.Discussion.Space.PublicId,
                 SpaceSlug = p.Discussion.Space.Slug,
                 SpaceName = p.Discussion.Space.Name,
                 HubPublicId = p.Discussion.Space.Hub.PublicId,
                 HubSlug = p.Discussion.Space.Hub.Slug,
-                HubName = p.Discussion.Space.Hub.Name
-            })
-            .Select(g => new
-            {
-                PublicId = g.Key.DiscussionPublicId,
+                HubName = p.Discussion.Space.Hub.Name })
+            .Select(g => new {
+                g.Key.PublicId,
                 g.Key.Title,
                 g.Key.Slug,
                 PostCount = g.Count(),
@@ -233,8 +239,7 @@ public class DiscussionRepositoryAdapter(
                 g.Key.HubSlug,
                 g.Key.HubName,
                 g.Key.AuthorPublicId,
-                g.Key.AuthorDisplayName
-            })
+                g.Key.AuthorDisplayName })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
             .ToListAsync();
@@ -256,10 +261,12 @@ public class DiscussionRepositoryAdapter(
             .ToList();
     }
 
-    public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate)
+    public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(
+        UserId userId,
+        DateTime startDate)
     {
         // Get the internal user ID
-        var userDbId = await _context.Users
+        var userDbId = await context.Users
             .Where(u => u.PublicId == userId.Value)
             .Select(u => u.Id)
             .FirstOrDefaultAsync();
@@ -267,10 +274,14 @@ public class DiscussionRepositoryAdapter(
         if (userDbId == 0)
             return [];
 
-        var activity = await _context.Discussions
-            .Where(d => d.CreatedByUserId == userDbId && d.CreatedAt >= startDate)
+        var activity = await context.Discussions
+            .Where(d =>
+                d.CreatedByUserId == userDbId
+                && d.CreatedAt >= startDate)
             .GroupBy(d => d.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .Select(g => new {
+                Date = g.Key,
+                Count = g.Count() })
             .ToListAsync();
 
         return activity.Select(a => (a.Date, a.Count));

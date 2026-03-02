@@ -114,7 +114,7 @@ public class NotificationWorkflowTests
 
         var pagedResult = new PagedResult<Notification>
         {
-            Items = new List<Notification> { notification },
+            Items = [notification],
             Offset = 0,
             PageSize = 20,
             HasMoreItems = false
@@ -270,7 +270,9 @@ public class NotificationWorkflowTests
 
         // Assert
         await Assert.That(result.Items).Count().IsEqualTo(3);
-        var types = result.Items.Select(n => n.Type).ToList();
+        var types = result.Items
+            .Select(n => n.Type)
+            .ToList();
         await Assert.That(types).Contains("Mention");
         await Assert.That(types).Contains("Reply");
         await Assert.That(types).Contains("NewPostInFollowedDiscussion");

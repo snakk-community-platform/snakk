@@ -8,7 +8,10 @@ public interface ISpaceManagementService
 
     Task<SpaceSettingsDto?> GetSettingsAsync(string spaceId, CancellationToken cancellationToken = default);
 
-    Task<SpaceSettingsDto?> UpdateSettingsAsync(string spaceId, UpdateSpaceSettingsRequest request, CancellationToken cancellationToken = default);
+    Task<SpaceSettingsDto?> UpdateSettingsAsync(
+        string spaceId,
+        UpdateSpaceSettingsRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<SpaceModerationDto> GetModerationDataAsync(string spaceId, CancellationToken cancellationToken = default);
 

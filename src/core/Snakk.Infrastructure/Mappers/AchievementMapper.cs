@@ -7,9 +7,8 @@ using Snakk.Shared.Enums;
 
 public static class AchievementMapper
 {
-    public static Achievement FromPersistence(this AchievementDatabaseEntity entity)
-    {
-        return Achievement.Rehydrate(
+    public static Achievement FromPersistence(this AchievementDatabaseEntity entity) =>
+        Achievement.Rehydrate(
             AchievementId.From(entity.PublicId),
             entity.Slug,
             entity.Name,
@@ -25,11 +24,9 @@ public static class AchievementMapper
             entity.DisplayOrder,
             entity.CreatedAt,
             entity.UpdatedAt);
-    }
 
-    public static AchievementDatabaseEntity ToPersistence(this Achievement achievement)
-    {
-        return new AchievementDatabaseEntity
+    public static AchievementDatabaseEntity ToPersistence(this Achievement achievement) =>
+        new()
         {
             PublicId = achievement.PublicId,
             Slug = achievement.Slug,
@@ -47,5 +44,4 @@ public static class AchievementMapper
             CreatedAt = achievement.CreatedAt,
             UpdatedAt = achievement.UpdatedAt
         };
-    }
 }

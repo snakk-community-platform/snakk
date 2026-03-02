@@ -101,9 +101,8 @@ public class Post
         PostId? replyToPostId = null,
         bool isDeleted = false,
         int revisionCount = 0,
-        List<PostRevision>? revisions = null)
-    {
-        return new Post(
+        List<PostRevision>? revisions = null) =>
+        new Post(
             publicId,
             discussionId,
             createdByUserId,
@@ -116,7 +115,6 @@ public class Post
             isDeleted,
             revisionCount,
             revisions);
-    }
 
     public void UpdateContent(string content, UserId editorUserId)
     {
@@ -158,21 +156,14 @@ public class Post
         AddDomainEvent(new PostDeletedEvent(PublicId, DiscussionId, deletedByUserId, true));
     }
 
-    public bool CanHardDelete()
-    {
-        var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
-        return CreatedAt > fiveMinutesAgo;
-    }
+    public bool CanHardDelete() =>
+        CreatedAt > DateTime.UtcNow.AddMinutes(-5);
 
-    public bool CanEdit(UserId userId)
-    {
-        return CreatedByUserId.Value == userId.Value;
-    }
+    public bool CanEdit(UserId userId) =>
+        CreatedByUserId.Value == userId.Value;
 
-    public bool CanDelete(UserId userId)
-    {
-        return CreatedByUserId.Value == userId.Value;
-    }
+    public bool CanDelete(UserId userId) =>
+        CreatedByUserId.Value == userId.Value;
 
     private void AddDomainEvent(IDomainEvent domainEvent)
     {

@@ -38,7 +38,8 @@ public static class ReactionEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var result = await reactionUseCase.ToggleReactionAsync(
@@ -74,7 +75,8 @@ public static class ReactionEndpoints
             return TypedResults.Ok(new UserReactionResponse(null));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return TypedResults.Ok(new UserReactionResponse(null));
 
         var reaction = await reactionUseCase.GetUserReactionAsync(

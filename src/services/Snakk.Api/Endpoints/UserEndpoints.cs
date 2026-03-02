@@ -39,7 +39,8 @@ public static class UserEndpoints
         UserProfileUseCase userProfileUseCase)
     {
         var profile = await userProfileUseCase.GetUserProfileAsync(publicId);
-        if (profile == null)
+
+        if (profile is null)
             return Results.NotFound();
 
         return Results.Ok(profile);

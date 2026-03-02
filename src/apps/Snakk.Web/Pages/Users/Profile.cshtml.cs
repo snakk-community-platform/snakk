@@ -5,7 +5,10 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Users;
 
-public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class ProfileModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -36,7 +39,7 @@ public class ProfileModel(SnakkApiClient apiClient, IConfiguration configuration
     {
         Profile = await _apiClient.GetUserProfileAsync(publicId);
 
-        if (Profile == null)
+        if (Profile is null)
             return NotFound();
 
         // Validate tab parameter

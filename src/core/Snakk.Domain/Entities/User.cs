@@ -186,9 +186,8 @@ public class User
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
         DateTime? lastLoginAt = null,
-        bool needsProfileSetup = false)
-    {
-        return new User(
+        bool needsProfileSetup = false) =>
+        new User(
             publicId,
             displayName,
             email,
@@ -207,7 +206,6 @@ public class User
             lastSeenAt,
             lastLoginAt,
             needsProfileSetup);
-    }
 
     public void UpdateDisplayName(string displayName)
     {
@@ -260,15 +258,11 @@ public class User
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public bool HasPassword()
-    {
-        return !string.IsNullOrEmpty(PasswordHash);
-    }
+    public bool HasPassword() =>
+        !string.IsNullOrEmpty(PasswordHash);
 
-    public bool IsOAuthUser()
-    {
-        return !string.IsNullOrEmpty(OAuthProvider);
-    }
+    public bool IsOAuthUser() =>
+        !string.IsNullOrEmpty(OAuthProvider);
 
     public void SetAvatarFileName(string? fileName)
     {

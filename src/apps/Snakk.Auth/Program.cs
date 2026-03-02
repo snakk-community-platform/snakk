@@ -7,7 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Load shared production config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
-builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(
+    Path.Combine(sharedConfigDir, "appsettings.Production.json"),
+    optional: true,
+    reloadOnChange: true);
 
 // Add Razor Pages
 builder.Services.AddRazorPages();

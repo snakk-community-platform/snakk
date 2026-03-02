@@ -32,12 +32,19 @@ public interface IWebhookService
     /// <summary>
     /// Test a webhook by sending a test event
     /// </summary>
-    Task<WebhookDeliveryLogResponse> TestWebhookAsync(Guid webhookId, WebhookTestRequest request, CancellationToken cancellationToken = default);
+    Task<WebhookDeliveryLogResponse> TestWebhookAsync(
+        Guid webhookId,
+        WebhookTestRequest request,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get delivery logs for a webhook
     /// </summary>
-    Task<List<WebhookDeliveryLogResponse>> GetDeliveryLogsAsync(Guid webhookId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<List<WebhookDeliveryLogResponse>> GetDeliveryLogsAsync(
+        Guid webhookId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get all available webhook event types

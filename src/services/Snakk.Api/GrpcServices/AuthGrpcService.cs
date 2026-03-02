@@ -27,7 +27,8 @@ public class AuthGrpcService(
             request.BaseUrl);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 "Registration failed. Please check your details and try again."));
 
         var user = result.Value!;
@@ -42,6 +43,7 @@ public class AuthGrpcService(
             roles.FirstOrDefault());
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
@@ -83,6 +85,7 @@ public class AuthGrpcService(
             roles.FirstOrDefault());
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
@@ -106,10 +109,9 @@ public class AuthGrpcService(
     public override async Task<Protos.Auth.MessageResponse> Logout(LogoutRequest request, ServerCallContext ctx)
     {
         var userId = currentUser.GetCurrentUserId();
-        if (userId != null)
-        {
+
+        if (userId is not null)
             await authUseCase.RevokeRefreshTokensAsync(UserId.From(userId));
-        }
 
         return new Protos.Auth.MessageResponse { Message = "Logged out successfully" };
     }
@@ -117,6 +119,7 @@ public class AuthGrpcService(
     public override async Task<Protos.Auth.RefreshTokenResponse> RefreshToken(RefreshTokenRequest request, ServerCallContext ctx)
     {
         var result = await authUseCase.RefreshTokenAsync(request.RefreshToken);
+
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid refresh token"));
 
@@ -141,6 +144,7 @@ public class AuthGrpcService(
     public override async Task<Protos.Auth.MessageResponse> VerifyEmail(VerifyEmailRequest request, ServerCallContext ctx)
     {
         var result = await authUseCase.VerifyEmailAsync(request.Token);
+
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Verification failed"));
 
@@ -173,7 +177,8 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = UserId.From(userIdValue);
@@ -183,6 +188,7 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, result.Error ?? "User not found"));
 
         var user = result.Value!;
+
         return new CurrentUserResponse
         {
             PublicId = user.PublicId.Value,
@@ -200,7 +206,8 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = UserId.From(userIdValue);
@@ -211,6 +218,7 @@ public class AuthGrpcService(
 
         // Generate new JWT with updated display name
         var userResult = await authUseCase.GetUserByIdAsync(userId);
+
         if (userResult.IsSuccess)
         {
             var user = userResult.Value!;
@@ -240,7 +248,8 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userIdValue = currentUser.GetCurrentUserId();
-        if (userIdValue == null)
+
+        if (userIdValue is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = UserId.From(userIdValue);
@@ -279,13 +288,18 @@ public class AuthGrpcService(
             roles.FirstOrDefault());
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
         var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
-        logger.LogInformation("OAuth {Provider} login for {Email} from {Ip} (new user: {IsNew})",
-            request.Provider, request.Email, request.IpAddress, isNewUser);
+        logger.LogInformation(
+            "OAuth {Provider} login for {Email} from {Ip} (new user: {IsNew})",
+            request.Provider,
+            request.Email,
+            request.IpAddress,
+            isNewUser);
 
         return new OAuthCallbackResponse
         {
@@ -312,6 +326,6 @@ public class AuthGrpcService(
 
         return userDbEntity?.Roles
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? new List<string>();
+            .ToList() ?? [];
     }
 }

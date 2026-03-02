@@ -31,7 +31,8 @@ public static class ServiceCollectionExtensions
         // Database (PostgreSQL) with DbContext pooling for better performance
         services.AddDbContextPool<SnakkDbContext>(options =>
             options
-                .UseNpgsql(configuration.GetConnectionString("DbConnection"),
+                .UseNpgsql(
+                    configuration.GetConnectionString("DbConnection"),
                     o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
             poolSize: 128);
@@ -79,8 +80,7 @@ public static class ServiceCollectionExtensions
                     return Task.CompletedTask;
                 }
             };
-        })
-        ;
+        });
 
         services.AddAuthorization(options =>
         {
@@ -122,7 +122,7 @@ public static class ServiceCollectionExtensions
         // Refresh Token Repository
         services.AddScoped<Domain.Repositories.IRefreshTokenRepository, Infrastructure.Database.Repositories.RefreshTokenRepository>();
 
-// Domain Repository Adapters
+        // Domain Repository Adapters
         services.AddScoped<Domain.Repositories.ICommunityRepository, Infrastructure.Adapters.CommunityRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IHubRepository, Infrastructure.Adapters.HubRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.ISpaceRepository, Infrastructure.Adapters.SpaceRepositoryAdapter>();
@@ -167,7 +167,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IViewRenderingService, ViewRenderingService>();
 
-// Services
+        // Services
         services.AddScoped<Application.Services.MentionService>();
         services.AddScoped<Application.Services.AchievementService>();
         services.AddScoped<Infrastructure.Services.MetricsService>();
@@ -237,10 +237,9 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];
+
             if (!string.IsNullOrEmpty(apiKey))
-            {
                 client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-            }
         });
 
         services.AddScoped<IRealtimeNotifier, Infrastructure.Realtime.HttpRealtimeNotifier>();
@@ -280,11 +279,11 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];
+
             if (!string.IsNullOrEmpty(apiKey))
-            {
                 client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-            }
         });
+
         services.AddSingleton<Application.Services.IActivityBroadcaster, Infrastructure.Realtime.HttpActivityBroadcaster>();
 
         return services;
@@ -326,6 +325,7 @@ public static class ServiceCollectionExtensions
                 context.HttpContext.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status429TooManyRequests;
 
                 double? retryAfterSeconds = null;
+
                 if (context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter))
                 {
                     retryAfterSeconds = retryAfter.TotalSeconds;

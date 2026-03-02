@@ -61,7 +61,10 @@ public class UserRepositoryAdapterTests : IDisposable
 
         await Assert.That(result).HasCount().EqualTo(3);
 
-        var displayNames = result.Select(u => u.DisplayName).OrderBy(n => n).ToList();
+        var displayNames = result
+            .Select(u => u.DisplayName)
+            .OrderBy(n => n)
+            .ToList();
         await Assert.That(displayNames).Contains("User One");
         await Assert.That(displayNames).Contains("User Two");
         await Assert.That(displayNames).Contains("User Three");

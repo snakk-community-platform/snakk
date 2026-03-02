@@ -14,13 +14,13 @@ public class FollowRepositoryAdapter(
     IFollowDatabaseRepository databaseRepository,
     SnakkDbContext context) : IFollowRepository
 {
-    private readonly IFollowDatabaseRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<Follow?> GetByUserAndDiscussionAsync(UserId userId, DiscussionId discussionId)
     {
-        var projection = await _context.Follows
-            .Where(f => f.User.PublicId == userId.Value && f.Discussion != null && f.Discussion.PublicId == discussionId.Value)
+        var projection = await context.Follows
+            .Where(f =>
+                f.User.PublicId == userId.Value
+                && f.Discussion != null
+                && f.Discussion.PublicId == discussionId.Value)
             .Select(f => new FollowProjection(
                 f.PublicId, f.User.PublicId, f.TargetTypeId,
                 f.Discussion != null ? f.Discussion.PublicId : null,
@@ -33,8 +33,11 @@ public class FollowRepositoryAdapter(
 
     public async Task<Follow?> GetByUserAndSpaceAsync(UserId userId, SpaceId spaceId)
     {
-        var projection = await _context.Follows
-            .Where(f => f.User.PublicId == userId.Value && f.Space != null && f.Space.PublicId == spaceId.Value)
+        var projection = await context.Follows
+            .Where(f =>
+                f.User.PublicId == userId.Value
+                && f.Space != null
+                && f.Space.PublicId == spaceId.Value)
             .Select(f => new FollowProjection(
                 f.PublicId, f.User.PublicId, f.TargetTypeId,
                 f.Discussion != null ? f.Discussion.PublicId : null,
@@ -47,8 +50,11 @@ public class FollowRepositoryAdapter(
 
     public async Task<Follow?> GetByUserAndFollowedUserAsync(UserId userId, UserId followedUserId)
     {
-        var projection = await _context.Follows
-            .Where(f => f.User.PublicId == userId.Value && f.FollowedUser != null && f.FollowedUser.PublicId == followedUserId.Value)
+        var projection = await context.Follows
+            .Where(f =>
+                f.User.PublicId == userId.Value
+                && f.FollowedUser != null
+                && f.FollowedUser.PublicId == followedUserId.Value)
             .Select(f => new FollowProjection(
                 f.PublicId, f.User.PublicId, f.TargetTypeId,
                 f.Discussion != null ? f.Discussion.PublicId : null,
@@ -61,12 +67,13 @@ public class FollowRepositoryAdapter(
 
     public async Task<IEnumerable<UserId>> GetFollowersOfDiscussionAsync(DiscussionId discussionId)
     {
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
-        if (discussion == null) return [];
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
 
-        var userIds = await _databaseRepository.GetFollowerUserIdsOfDiscussionAsync(discussion.Id);
+        if (discussion is null) return [];
 
-        var userPublicIds = await _context.Users
+        var userIds = await databaseRepository.GetFollowerUserIdsOfDiscussionAsync(discussion.Id);
+
+        var userPublicIds = await context.Users
             .Where(u => userIds.Contains(u.Id))
             .Select(u => u.PublicId)
             .ToListAsync();
@@ -76,12 +83,13 @@ public class FollowRepositoryAdapter(
 
     public async Task<IEnumerable<UserId>> GetFollowersOfSpaceAsync(SpaceId spaceId)
     {
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
-        if (space == null) return [];
+        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
 
-        var userIds = await _databaseRepository.GetFollowerUserIdsOfSpaceAsync(space.Id);
+        if (space is null) return [];
 
-        var userPublicIds = await _context.Users
+        var userIds = await databaseRepository.GetFollowerUserIdsOfSpaceAsync(space.Id);
+
+        var userPublicIds = await context.Users
             .Where(u => userIds.Contains(u.Id))
             .Select(u => u.PublicId)
             .ToListAsync();
@@ -91,12 +99,13 @@ public class FollowRepositoryAdapter(
 
     public async Task<IEnumerable<UserId>> GetFollowersOfUserAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return [];
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        var followerIds = await _databaseRepository.GetFollowerUserIdsOfUserAsync(user.Id);
+        if (user is null) return [];
 
-        var followerPublicIds = await _context.Users
+        var followerIds = await databaseRepository.GetFollowerUserIdsOfUserAsync(user.Id);
+
+        var followerPublicIds = await context.Users
             .Where(u => followerIds.Contains(u.Id))
             .Select(u => u.PublicId)
             .ToListAsync();
@@ -106,20 +115,22 @@ public class FollowRepositoryAdapter(
 
     public async Task<int> GetFollowerCountOfUserAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return 0;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        return await _databaseRepository.GetFollowerCountOfUserAsync(user.Id);
+        if (user is null) return 0;
+
+        return await databaseRepository.GetFollowerCountOfUserAsync(user.Id);
     }
 
     public async Task<IEnumerable<(UserId UserId, FollowLevel Level)>> GetFollowersOfSpaceWithLevelAsync(SpaceId spaceId)
     {
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
-        if (space == null) return [];
+        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
 
-        var followersWithLevel = (await _databaseRepository.GetFollowersOfSpaceWithLevelAsync(space.Id)).ToList();
+        if (space is null) return [];
 
-        var userIdToPublicId = await _context.Users
+        var followersWithLevel = (await databaseRepository.GetFollowersOfSpaceWithLevelAsync(space.Id)).ToList();
+
+        var userIdToPublicId = await context.Users
             .Where(u => followersWithLevel.Select(f => f.UserId).Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.PublicId);
 
@@ -133,58 +144,61 @@ public class FollowRepositoryAdapter(
 
     public async Task<bool> IsFollowingDiscussionAsync(UserId userId, DiscussionId discussionId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
 
-        if (user == null || discussion == null) return false;
+        if (user is null || discussion is null) return false;
 
-        return await _databaseRepository.IsFollowingDiscussionAsync(user.Id, discussion.Id);
+        return await databaseRepository.IsFollowingDiscussionAsync(user.Id, discussion.Id);
     }
 
     public async Task<bool> IsFollowingSpaceAsync(UserId userId, SpaceId spaceId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
 
-        if (user == null || space == null) return false;
+        if (user is null || space is null) return false;
 
-        return await _databaseRepository.IsFollowingSpaceAsync(user.Id, space.Id);
+        return await databaseRepository.IsFollowingSpaceAsync(user.Id, space.Id);
     }
 
     public async Task<bool> IsFollowingUserAsync(UserId userId, UserId followedUserId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var followedUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == followedUserId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == followedUserId.Value);
 
-        if (user == null || followedUser == null) return false;
+        if (user is null || followedUser is null) return false;
 
-        return await _databaseRepository.IsFollowingUserAsync(user.Id, followedUser.Id);
+        return await databaseRepository.IsFollowingUserAsync(user.Id, followedUser.Id);
     }
 
     public async Task<IEnumerable<SpaceId>> GetFollowedSpacesByUserAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return [];
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        var publicIds = await _databaseRepository.GetFollowedSpacePublicIdsByUserAsync(user.Id);
+        if (user is null) return [];
+
+        var publicIds = await databaseRepository.GetFollowedSpacePublicIdsByUserAsync(user.Id);
         return publicIds.Select(SpaceId.From);
     }
 
     public async Task<IEnumerable<DiscussionId>> GetFollowedDiscussionsByUserAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return [];
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        var publicIds = await _databaseRepository.GetFollowedDiscussionPublicIdsByUserAsync(user.Id);
+        if (user is null) return [];
+
+        var publicIds = await databaseRepository.GetFollowedDiscussionPublicIdsByUserAsync(user.Id);
         return publicIds.Select(DiscussionId.From);
     }
 
     public async Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null) return [];
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        var publicIds = await _databaseRepository.GetFollowedUserPublicIdsByUserAsync(user.Id);
+        if (user is null) return [];
+
+        var publicIds = await databaseRepository.GetFollowedUserPublicIdsByUserAsync(user.Id);
         return publicIds.Select(UserId.From);
     }
 
@@ -192,103 +206,118 @@ public class FollowRepositoryAdapter(
     {
         var entity = follow.ToPersistence();
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
-        if (user == null)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
+
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{follow.UserId}' not found");
 
         entity.UserId = user.Id;
 
-        if (follow.DiscussionId != null)
+        if (follow.DiscussionId is not null)
         {
-            var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
-            if (discussion == null)
+            var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
+
+            if (discussion is null)
                 throw new InvalidOperationException($"Discussion with PublicId '{follow.DiscussionId}' not found");
+
             entity.DiscussionId = discussion.Id;
         }
 
-        if (follow.SpaceId != null)
+        if (follow.SpaceId is not null)
         {
-            var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
-            if (space == null)
+            var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
+
+            if (space is null)
                 throw new InvalidOperationException($"Space with PublicId '{follow.SpaceId}' not found");
+
             entity.SpaceId = space.Id;
         }
 
-        if (follow.FollowedUserId != null)
+        if (follow.FollowedUserId is not null)
         {
-            var followedUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
-            if (followedUser == null)
+            var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
+
+            if (followedUser is null)
                 throw new InvalidOperationException($"User with PublicId '{follow.FollowedUserId}' not found");
+
             entity.FollowedUserId = followedUser.Id;
         }
 
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Follow follow)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
-        if (user == null) return;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
+
+        if (user is null) return;
 
         Database.Entities.FollowDatabaseEntity? entity = null;
 
-        if (follow.DiscussionId != null)
+        if (follow.DiscussionId is not null)
         {
-            var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
-            if (discussion != null)
-                entity = await _databaseRepository.GetByUserAndDiscussionAsync(user.Id, discussion.Id);
+            var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
+
+            if (discussion is not null)
+                entity = await databaseRepository.GetByUserAndDiscussionAsync(user.Id, discussion.Id);
         }
-        else if (follow.SpaceId != null)
+        else if (follow.SpaceId is not null)
         {
-            var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
-            if (space != null)
-                entity = await _databaseRepository.GetByUserAndSpaceAsync(user.Id, space.Id);
+            var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
+
+            if (space is not null)
+                entity = await databaseRepository.GetByUserAndSpaceAsync(user.Id, space.Id);
         }
-        else if (follow.FollowedUserId != null)
+        else if (follow.FollowedUserId is not null)
         {
-            var followedUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
-            if (followedUser != null)
-                entity = await _databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
+            var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
+
+            if (followedUser is not null)
+                entity = await databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
         }
 
-        if (entity == null) return;
+        if (entity is null) return;
 
         entity.LevelId = (int)follow.Level.ToShared();
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Follow follow)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
-        if (user == null) return;
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
+
+        if (user is null) return;
 
         Database.Entities.FollowDatabaseEntity? entity = null;
 
-        if (follow.DiscussionId != null)
+        if (follow.DiscussionId is not null)
         {
-            var discussion = await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
-            if (discussion != null)
-                entity = await _databaseRepository.GetByUserAndDiscussionAsync(user.Id, discussion.Id);
+            var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
+
+            if (discussion is not null)
+                entity = await databaseRepository.GetByUserAndDiscussionAsync(user.Id, discussion.Id);
         }
-        else if (follow.SpaceId != null)
+        else if (follow.SpaceId is not null)
         {
-            var space = await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
-            if (space != null)
-                entity = await _databaseRepository.GetByUserAndSpaceAsync(user.Id, space.Id);
+            var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
+
+            if (space is not null)
+                entity = await databaseRepository.GetByUserAndSpaceAsync(user.Id, space.Id);
         }
-        else if (follow.FollowedUserId != null)
+        else if (follow.FollowedUserId is not null)
         {
-            var followedUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
-            if (followedUser != null)
-                entity = await _databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
+            var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
+
+            if (followedUser is not null)
+                entity = await databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
         }
 
-        if (entity == null) return;
+        if (entity is null) return;
 
-        await _databaseRepository.DeleteAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.DeleteAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record FollowProjection(
@@ -305,9 +334,9 @@ public class FollowRepositoryAdapter(
             FollowId.From(PublicId),
             UserId.From(UserPublicId),
             ((FollowTargetTypeEnum)TargetTypeId).ToDomain(),
-            DiscussionPublicId != null ? DiscussionId.From(DiscussionPublicId) : null,
-            SpacePublicId != null ? SpaceId.From(SpacePublicId) : null,
-            FollowedUserPublicId != null ? UserId.From(FollowedUserPublicId) : null,
+            DiscussionPublicId is not null ? DiscussionId.From(DiscussionPublicId) : null,
+            SpacePublicId is not null ? SpaceId.From(SpacePublicId) : null,
+            FollowedUserPublicId is not null ? UserId.From(FollowedUserPublicId) : null,
             ((FollowLevelEnum)LevelId).ToDomain(),
             CreatedAt);
     }

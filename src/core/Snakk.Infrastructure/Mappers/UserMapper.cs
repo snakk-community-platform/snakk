@@ -12,7 +12,9 @@ public static class UserMapper
     {
         // Check if user has GlobalAdmin role in the Roles collection
         // Note: Roles collection must be loaded for this to work
-        string? role = entity.Roles?.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) == true
+        string? role = entity.Roles?.Any(r =>
+            r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
+            && r.RevokedAt is null) == true
             ? "Admin"
             : null;
 
@@ -37,11 +39,10 @@ public static class UserMapper
             entity.NeedsProfileSetup);
     }
 
-    public static UserDatabaseEntity ToPersistence(this User user)
-    {
+    public static UserDatabaseEntity ToPersistence(this User user) =>
         // Note: User.Role is derived from UserRoles collection, not stored as a column
         // Role assignments are managed through the UserRole table
-        return new UserDatabaseEntity
+        new()
         {
             PublicId = user.PublicId,
             DisplayName = user.DisplayName,
@@ -61,5 +62,4 @@ public static class UserMapper
             LastLoginAt = user.LastLoginAt,
             LastSeenAt = user.LastSeenAt
         };
-    }
 }

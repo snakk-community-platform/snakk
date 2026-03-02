@@ -325,11 +325,11 @@ public class ModerationWorkflowTests
         // Arrange
         var spaceLog = new PagedResult<ModerationLogDto>
         {
-            Items = new List<ModerationLogDto>
-            {
+            Items =
+            [
                 new("log-1", "mod-1", "Mod", "DeletePost", "post-1", null, null, null, null,
                     null, null, null, null, "space-1", "Space", null, null, DateTime.UtcNow)
-            },
+            ],
             Offset = 0,
             PageSize = 20,
             HasMoreItems = false

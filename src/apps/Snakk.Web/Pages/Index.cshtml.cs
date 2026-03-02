@@ -8,7 +8,11 @@ using Snakk.Protos.Discussion;
 namespace Snakk.Web.Pages;
 
 [OutputCache(PolicyName = "HomePage")]
-public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
+public class IndexModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext,
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -26,9 +30,9 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
 
     // Whether to show community in discussion list (multi-community enabled, default community, not on custom domain)
     public bool ShowCommunityInDiscussionList =>
-        Configuration.GetValue<bool>("Features:MultiCommunityEnabled") &&
-        CommunityContext.IsDefaultCommunity &&
-        !CommunityContext.IsCustomDomain;
+        Configuration.GetValue<bool>("Features:MultiCommunityEnabled")
+        && CommunityContext.IsDefaultCommunity
+        && !CommunityContext.IsCustomDomain;
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarPlatformStatsVM? InlinePlatformStats { get; set; }
@@ -75,27 +79,37 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
         // Platform stats (two source types → mapped to one VM)
         if (!string.IsNullOrEmpty(communityId))
         {
-            var data = prefetchCache.ResolveOrPrefetch($"platform-stats:community:{communityId}", () => _apiClient.GetCommunityStatsAsync(communityId));
-            if (data != null)
+            var data = prefetchCache.ResolveOrPrefetch(
+                $"platform-stats:community:{communityId}",
+                () => _apiClient.GetCommunityStatsAsync(communityId));
+            if (data is not null)
                 InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
         }
         else
         {
-            var data = prefetchCache.ResolveOrPrefetch("platform-stats:platform:global", () => _apiClient.GetPlatformStatsAsync());
-            if (data != null)
+            var data = prefetchCache.ResolveOrPrefetch(
+                "platform-stats:platform:global",
+                () => _apiClient.GetPlatformStatsAsync());
+            if (data is not null)
                 InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
         }
 
         if (ShowTrendingDiscussions)
-            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch($"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId), d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId),
+                d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingSpaces)
-            InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch($"trending-spaces:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId), d => new SidebarTrendingSpacesVM(d, CommunityContext, "cache"));
+            InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch(
+                $"trending-spaces:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId),
+                d => new SidebarTrendingSpacesVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingContributors)
-            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch($"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopContributorsTodayAsync(communityId: communityId), d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
+                $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(communityId: communityId),
+                d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
     }
 }

@@ -5,18 +5,12 @@ namespace Snakk.Web.Middleware;
 /// GET requests are allowed for viewing content, but modifying requests (POST, PUT, DELETE, PATCH)
 /// require authentication.
 /// </summary>
-public class AuthRedirectMiddleware
+public class AuthRedirectMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
     private static readonly HashSet<string> ModifyingMethods = new(StringComparer.OrdinalIgnoreCase)
     {
         "POST", "PUT", "DELETE", "PATCH"
     };
-
-    public AuthRedirectMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -26,7 +20,7 @@ public class AuthRedirectMiddleware
         // Skip auth check for static files and auth/BFF endpoints
         if (IsPublicPath(path))
         {
-            await _next(context);
+            await next(context);
             return;
         }
 
@@ -41,7 +35,7 @@ public class AuthRedirectMiddleware
             return;
         }
 
-        await _next(context);
+        await next(context);
     }
 
     private static bool IsPublicPath(string path)
@@ -59,12 +53,12 @@ public class AuthRedirectMiddleware
             return true;
 
         // Allow static files
-        if (path.StartsWith("/css/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/js/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/images/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/favicon.ico", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/robots.txt", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("/css/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/js/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/images/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/favicon.ico", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/robots.txt", StringComparison.OrdinalIgnoreCase))
             return true;
 
         return false;
@@ -73,8 +67,6 @@ public class AuthRedirectMiddleware
 
 public static class AuthRedirectMiddlewareExtensions
 {
-    public static IApplicationBuilder UseAuthRedirect(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<AuthRedirectMiddleware>();
-    }
+    public static IApplicationBuilder UseAuthRedirect(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<AuthRedirectMiddleware>();
 }

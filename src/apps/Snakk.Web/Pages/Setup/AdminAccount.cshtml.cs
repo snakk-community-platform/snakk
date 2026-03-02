@@ -41,6 +41,7 @@ public class AdminAccountModel : SetupPageBase
         state.AdminDisplayName = AdminDisplayName.Trim();
         state.AdminPassword = AdminPassword;
         SaveState(state);
+
         return RedirectToPage("TestData");
     }
 }

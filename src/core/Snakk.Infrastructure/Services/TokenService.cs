@@ -41,9 +41,7 @@ public class TokenService : ITokenService
         };
 
         if (!string.IsNullOrEmpty(user.Email))
-        {
             claims.Add(new(ClaimTypes.Email, user.Email));
-        }
 
         foreach (var role in roles)
         {
@@ -58,8 +56,7 @@ public class TokenService : ITokenService
             audience: _audience,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(30),
-            signingCredentials: credentials
-        );
+            signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
@@ -69,13 +66,21 @@ public class TokenService : ITokenService
         var randomBytes = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomBytes);
+
         return Convert.ToBase64String(randomBytes);
     }
 
-    public async Task<RefreshToken> CreateRefreshTokenAsync(UserId userId, string deviceName, string deviceFingerprint, string ipAddress, string userAgent, int expirationDays = 90)
+    public async Task<RefreshToken> CreateRefreshTokenAsync(
+        UserId userId,
+        string deviceName,
+        string deviceFingerprint,
+        string ipAddress,
+        string userAgent,
+        int expirationDays = 90)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user == null)
+
+        if (user is null)
             throw new InvalidOperationException($"User {userId} not found");
 
         var tokenValue = GenerateRefreshToken();
@@ -107,7 +112,7 @@ public class TokenService : ITokenService
                 .ThenInclude(u => u.Roles.Where(r => r.RevokedAt == null))
             .FirstOrDefaultAsync(t => t.TokenValue == refreshTokenValue);
 
-        if (tokenEntity == null || !tokenEntity.IsActive)
+        if (tokenEntity is null || !tokenEntity.IsActive)
             return null;
 
         // Update last used
@@ -134,8 +139,11 @@ public class TokenService : ITokenService
 
     public async Task RevokeRefreshTokenAsync(string tokenValue, string reason)
     {
-        var token = await _context.RefreshTokens.AsTracking().FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
-        if (token != null && !token.IsRevoked)
+        var token = await _context.RefreshTokens
+            .AsTracking()
+            .FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
+
+        if (token is not null && !token.IsRevoked)
         {
             token.RevokedAt = DateTime.UtcNow;
             token.RevocationReason = reason;
@@ -147,7 +155,9 @@ public class TokenService : ITokenService
     {
         var tokens = await _context.RefreshTokens
             .AsTracking()
-            .Where(t => t.User.PublicId == userId.Value && t.RevokedAt == null)
+            .Where(t =>
+                t.User.PublicId == userId.Value
+                && t.RevokedAt == null)
             .ToListAsync();
 
         foreach (var token in tokens)
@@ -164,6 +174,7 @@ public class TokenService : ITokenService
         try
         {
             var handler = new JwtSecurityTokenHandler();
+
             if (!handler.CanReadToken(token))
                 return null;
 

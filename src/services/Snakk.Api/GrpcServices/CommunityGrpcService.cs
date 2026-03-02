@@ -18,33 +18,39 @@ public class CommunityGrpcService(
     public override async Task<CommunityInfo> GetCommunityBySlug(GetCommunityBySlugRequest request, ServerCallContext context)
     {
         var result = await communityUseCase.GetCommunityBySlugAsync(request.Slug);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
     public override async Task<CommunityInfo> GetCommunityByDomain(GetCommunityByDomainRequest request, ServerCallContext context)
     {
         var result = await communityUseCase.GetCommunityByDomainAsync(request.Domain);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
     public override async Task<CommunityInfo> GetCommunity(GetCommunityRequest request, ServerCallContext context)
     {
         var result = await communityUseCase.GetCommunityAsync(CommunityId.From(request.PublicId));
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
@@ -70,10 +76,12 @@ public class CommunityGrpcService(
     public override async Task<CommunityStats> GetCommunityStats(GetCommunityStatsRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetCommunityStatsAsync(request.PublicId);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var stats = result.Value;
+
         return new CommunityStats
         {
             PublicId = stats.PublicId,
@@ -91,6 +99,7 @@ public class CommunityGrpcService(
         var rules = await communityManagement.GetRulesAsync(request.CommunityId);
 
         var response = new CommunityRulesResponse();
+
         foreach (var r in rules.Rules)
         {
             response.Rules.Add(new CommunityRule
@@ -108,10 +117,12 @@ public class CommunityGrpcService(
     {
         var data = await dbContext.Communities
             .Where(c => c.PublicId == publicId)
-            .Select(c => new { c.HasRules, c.RulesRevision })
+            .Select(c => new {
+                c.HasRules,
+                c.RulesRevision })
             .FirstOrDefaultAsync();
 
-        if (data != null)
+        if (data is not null)
         {
             info.HasRules = data.HasRules;
             info.RulesRevision = data.RulesRevision ?? "";
@@ -125,12 +136,13 @@ public class CommunityGrpcService(
             PublicId = c.PublicId.Value,
             Name = c.Name,
             Slug = c.Slug,
-            Visibility = c.Visibility.ToString(),
             ExposeToPlatformFeed = c.ExposeToPlatformFeed,
+
+            Visibility = c.Visibility.ToString(),
             CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc))
         };
 
-        if (c.Description != null)
+        if (c.Description is not null)
             info.Description = c.Description;
 
         return info;

@@ -7,7 +7,11 @@ using Snakk.Protos.Hub;
 
 namespace Snakk.Web.Pages.Communities;
 
-public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IPrefetchCacheService prefetchCache) : PageModel
+public class DetailModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext,
+    IPrefetchCacheService prefetchCache) : PageModel
 {
     private readonly SnakkApiClient _apiClient = apiClient;
     private readonly IConfiguration _configuration = configuration;
@@ -27,14 +31,16 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
 
         Community = await _apiClient.GetCommunityBySlugAsync(slug);
 
-        if (Community == null)
+        if (Community is null)
         {
             return NotFound();
         }
 
         if (Community.HasRules)
-            InlineCommunityRules = prefetchCache.ResolveOrPrefetch($"community-rules:{Community.PublicId}",
-                () => _apiClient.GetCommunityRulesAsync(Community.PublicId), d => new SidebarCommunityRulesVM(d, "cache"));
+            InlineCommunityRules = prefetchCache.ResolveOrPrefetch(
+                $"community-rules:{Community.PublicId}",
+                () => _apiClient.GetCommunityRulesAsync(Community.PublicId),
+                d => new SidebarCommunityRulesVM(d, "cache"));
 
         Hubs = await _apiClient.GetHubsByCommunityAsync(Community.PublicId, offset, 20);
 

@@ -11,39 +11,28 @@ using Snakk.Infrastructure.Hubs;
 /// SignalR implementation of IRealtimeNotifier.
 /// Fetches routing context and renders HTML for realtime updates.
 /// </summary>
-public class SignalRRealtimeNotifier : IRealtimeNotifier
+public class SignalRRealtimeNotifier(
+    IHubContext<SnakkHub> hubContext,
+    IPostHtmlRenderer htmlRenderer,
+    ISpaceRepository spaceRepository,
+    IHubRepository hubRepository) : IRealtimeNotifier
 {
-    private readonly IHubContext<SnakkHub> _hubContext;
-    private readonly IPostHtmlRenderer _htmlRenderer;
-    private readonly ISpaceRepository _spaceRepository;
-    private readonly IHubRepository _hubRepository;
-
     // Temporary user ID for rendering post cards
     private const string TempUserId = "01JJQP0000000000000000TEST";
-
-    public SignalRRealtimeNotifier(
-        IHubContext<SnakkHub> hubContext,
-        IPostHtmlRenderer htmlRenderer,
-        ISpaceRepository spaceRepository,
-        IHubRepository hubRepository)
-    {
-        _hubContext = hubContext;
-        _htmlRenderer = htmlRenderer;
-        _spaceRepository = spaceRepository;
-        _hubRepository = hubRepository;
-    }
 
     public async Task NotifyPostCreatedAsync(Post post, User author, Discussion discussion)
     {
         // Fetch routing context
-        var space = await _spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
-        if (space == null) return;
+        var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
 
-        var hub = await _hubRepository.GetByPublicIdAsync(space.HubId);
-        if (hub == null) return;
+        if (space is null) return;
+
+        var hub = await hubRepository.GetByPublicIdAsync(space.HubId);
+
+        if (hub is null) return;
 
         // Render HTML
-        var html = _htmlRenderer.RenderPostCard(
+        var html = htmlRenderer.RenderPostCard(
             post,
             author,
             hub.Slug,
@@ -52,7 +41,7 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
             TempUserId);
 
         // Send to discussion subscribers
-        await _hubContext.Clients
+        await hubContext.Clients
             .Group($"discussion:{post.DiscussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
@@ -66,14 +55,16 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
     public async Task NotifyPostEditedAsync(Post post, User author, Discussion discussion)
     {
         // Fetch routing context
-        var space = await _spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
-        if (space == null) return;
+        var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
 
-        var hub = await _hubRepository.GetByPublicIdAsync(space.HubId);
-        if (hub == null) return;
+        if (space is null) return;
+
+        var hub = await hubRepository.GetByPublicIdAsync(space.HubId);
+
+        if (hub is null) return;
 
         // Render entire post card with updated content
-        var html = _htmlRenderer.RenderPostCard(
+        var html = htmlRenderer.RenderPostCard(
             post,
             author,
             hub.Slug,
@@ -82,7 +73,7 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
             TempUserId);
 
         // Send to discussion subscribers
-        await _hubContext.Clients
+        await hubContext.Clients
             .Group($"discussion:{post.DiscussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
@@ -93,7 +84,10 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
             });
     }
 
-    public async Task NotifyPostDeletedAsync(PostId postId, DiscussionId discussionId, bool isHardDelete)
+    public async Task NotifyPostDeletedAsync(
+        PostId postId,
+        DiscussionId discussionId,
+        bool isHardDelete)
     {
         string html;
         string swapStrategy;
@@ -107,12 +101,12 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
         else
         {
             // Soft delete - replace with tombstone
-            html = _htmlRenderer.RenderTombstone();
+            html = htmlRenderer.RenderTombstone();
             swapStrategy = "outerHTML";
         }
 
         // Send to discussion subscribers
-        await _hubContext.Clients
+        await hubContext.Clients
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
@@ -123,21 +117,22 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
             });
     }
 
-    public async Task NotifyUserAsync(UserId userId, object notification)
-    {
-        await _hubContext.Clients
+    public async Task NotifyUserAsync(UserId userId, object notification) =>
+        await hubContext.Clients
             .Group($"user:{userId.Value}")
             .SendAsync("ReceiveNotification", notification);
-    }
 
-    public async Task NotifyReactionUpdatedAsync(PostId postId, DiscussionId discussionId, Dictionary<ReactionType, int> counts)
+    public async Task NotifyReactionUpdatedAsync(
+        PostId postId,
+        DiscussionId discussionId,
+        Dictionary<ReactionType, int> counts)
     {
         // Convert enum keys to strings for JSON serialization
         var countDict = counts.ToDictionary(
             kvp => kvp.Key.ToString(),
             kvp => kvp.Value);
 
-        await _hubContext.Clients
+        await hubContext.Clients
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
@@ -147,10 +142,8 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier
             });
     }
 
-    public async Task NotifyUnreadCountUpdatedAsync(UserId userId, int count)
-    {
-        await _hubContext.Clients
+    public async Task NotifyUnreadCountUpdatedAsync(UserId userId, int count) =>
+        await hubContext.Clients
             .Group($"user:{userId.Value}")
             .SendAsync("ReceiveNotificationCount", new { unreadCount = count });
-    }
 }

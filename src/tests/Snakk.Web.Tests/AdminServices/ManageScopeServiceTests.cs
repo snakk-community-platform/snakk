@@ -33,8 +33,8 @@ public class ManageScopeServiceTests
             HubSlug = hubSlug,
             SpaceSlug = spaceSlug,
             CommunityName = "Test Community",
-            HubName = hubSlug != null ? "Test Hub" : null,
-            SpaceName = spaceSlug != null ? "Test Space" : null,
+            HubName = hubSlug is not null ? "Test Hub" : null,
+            SpaceName = spaceSlug is not null ? "Test Space" : null,
             Permissions = permissions ?? []
         };
     }
@@ -45,6 +45,7 @@ public class ManageScopeServiceTests
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
         var logger = new Mock<ILogger<ManageScopeService>>();
         var service = new ManageScopeService(httpClient, logger.Object);
+
         return (service, handler);
     }
 

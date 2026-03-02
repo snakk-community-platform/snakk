@@ -9,31 +9,31 @@ using Snakk.Infrastructure.Database.Entities;
 
 public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : IDiscussionReadStateRepository
 {
-    private readonly SnakkDbContext _dbContext = dbContext;
-
     public async Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId)
     {
-        var entity = await _dbContext.DiscussionReadStates
-            .FirstOrDefaultAsync(rs => rs.UserId == userId.Value && rs.DiscussionId == discussionId.Value);
+        var entity = await dbContext.DiscussionReadStates
+            .FirstOrDefaultAsync(rs =>
+                rs.UserId == userId.Value
+                && rs.DiscussionId == discussionId.Value);
 
-        if (entity == null)
+        if (entity is null)
             return null;
 
         return DiscussionReadState.Rehydrate(
             UserId.From(entity.UserId),
             DiscussionId.From(entity.DiscussionId),
-            entity.LastReadPostId != null ? PostId.From(entity.LastReadPostId) : null,
+            entity.LastReadPostId is not null ? PostId.From(entity.LastReadPostId) : null,
             entity.LastReadAt);
     }
 
     public async Task SaveAsync(DiscussionReadState readState)
     {
-        var existing = await _dbContext.DiscussionReadStates
+        var existing = await dbContext.DiscussionReadStates
             .FirstOrDefaultAsync(rs =>
-                rs.UserId == readState.UserId.Value &&
-                rs.DiscussionId == readState.DiscussionId.Value);
+                rs.UserId == readState.UserId.Value
+                && rs.DiscussionId == readState.DiscussionId.Value);
 
-        if (existing != null)
+        if (existing is not null)
         {
             existing.LastReadPostId = readState.LastReadPostId?.Value;
             existing.LastReadAt = readState.LastReadAt;
@@ -47,39 +47,45 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
                 LastReadPostId = readState.LastReadPostId?.Value,
                 LastReadAt = readState.LastReadAt
             };
-            _dbContext.DiscussionReadStates.Add(entity);
+            dbContext.DiscussionReadStates.Add(entity);
         }
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(
-        UserId userId, List<string> discussionIds)
+        UserId userId,
+        List<string> discussionIds)
     {
-        var readStates = await _dbContext.DiscussionReadStates
-            .Where(rs => rs.UserId == userId.Value && discussionIds.Contains(rs.DiscussionId))
+        var readStates = await dbContext.DiscussionReadStates
+            .Where(rs =>
+                rs.UserId == userId.Value
+                && discussionIds.Contains(rs.DiscussionId))
             .ToListAsync();
 
         var results = new List<ReadStateWithPostNumber>();
 
         foreach (var readState in readStates)
         {
-            if (readState.LastReadPostId == null)
+            if (readState.LastReadPostId is null)
                 continue;
 
             // Calculate post number by counting posts created before or at the LastReadPost
-            var lastReadPost = await _dbContext.Posts
-                .Where(p => p.PublicId == readState.LastReadPostId && p.Discussion.PublicId == readState.DiscussionId)
+            var lastReadPost = await dbContext.Posts
+                .Where(p =>
+                    p.PublicId == readState.LastReadPostId
+                    && p.Discussion.PublicId == readState.DiscussionId)
                 .Select(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
             if (lastReadPost == default)
                 continue;
 
-            var postNumber = await _dbContext.Posts
-                .Where(p => p.Discussion.PublicId == readState.DiscussionId &&
-                           !p.IsDeleted &&
-                           p.CreatedAt <= lastReadPost)
+            var postNumber = await dbContext.Posts
+                .Where(p =>
+                    p.Discussion.PublicId == readState.DiscussionId
+                    && !p.IsDeleted
+                    && p.CreatedAt <= lastReadPost)
                 .CountAsync();
 
             results.Add(new ReadStateWithPostNumber(readState.DiscussionId, postNumber));

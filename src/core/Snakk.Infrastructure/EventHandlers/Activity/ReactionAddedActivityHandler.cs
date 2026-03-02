@@ -11,26 +11,21 @@ public class ReactionAddedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<ReactionAddedEvent>
 {
-    private readonly IActivityBroadcaster _activityBroadcaster = activityBroadcaster;
-    private readonly SnakkDbContext _context = context;
-
     public async Task HandleAsync(ReactionAddedEvent @event)
     {
-        var data = await _context.Reactions
+        var data = await context.Reactions
             .Where(r => r.PublicId == @event.ReactionId.Value)
-            .Select(r => new
-            {
+            .Select(r => new {
                 Username = r.User.DisplayName,
                 ReactionType = ((ReactionTypeEnum)r.TypeId).ToString(),
                 TargetId = r.Post.PublicId,
-                DiscussionTitle = r.Post.Discussion.Title
-            })
+                DiscussionTitle = r.Post.Discussion.Title })
             .FirstOrDefaultAsync();
 
-        if (data == null)
+        if (data is null)
             return;
 
-        await _activityBroadcaster.BroadcastReactionAdded(
+        await activityBroadcaster.BroadcastReactionAdded(
             @event.UserId.Value,
             data.Username,
             data.ReactionType,

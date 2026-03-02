@@ -25,6 +25,7 @@ public class TestDataBuilder
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -41,6 +42,7 @@ public class TestDataBuilder
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
+
         return community;
     }
 
@@ -57,6 +59,7 @@ public class TestDataBuilder
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
+
         return hub;
     }
 
@@ -73,6 +76,7 @@ public class TestDataBuilder
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
+
         return space;
     }
 
@@ -91,6 +95,7 @@ public class TestDataBuilder
         };
         _context.Discussions.Add(discussion);
         await _context.SaveChangesAsync();
+
         return discussion;
     }
 
@@ -108,6 +113,7 @@ public class TestDataBuilder
         };
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
+
         return post;
     }
 
@@ -132,6 +138,7 @@ public class TestDataBuilder
         };
         _context.UserRoles.Add(role);
         await _context.SaveChangesAsync();
+
         return role;
     }
 
@@ -146,6 +153,7 @@ public class TestDataBuilder
         };
         _context.Permissions.Add(permission);
         await _context.SaveChangesAsync();
+
         return permission;
     }
 
@@ -160,6 +168,7 @@ public class TestDataBuilder
         };
         _context.RolePermissions.Add(rp);
         await _context.SaveChangesAsync();
+
         return rp;
     }
 
@@ -186,6 +195,7 @@ public class TestDataBuilder
         };
         _context.TemporaryRoleElevations.Add(elevation);
         await _context.SaveChangesAsync();
+
         return elevation;
     }
 
@@ -203,6 +213,7 @@ public class TestDataBuilder
         };
         _context.ReportReasons.Add(reason);
         await _context.SaveChangesAsync();
+
         return reason;
     }
 
@@ -235,6 +246,7 @@ public class TestDataBuilder
         };
         _context.Reports.Add(report);
         await _context.SaveChangesAsync();
+
         return report;
     }
 
@@ -252,6 +264,7 @@ public class TestDataBuilder
         };
         _context.ReportComments.Add(comment);
         await _context.SaveChangesAsync();
+
         return comment;
     }
 
@@ -285,6 +298,7 @@ public class TestDataBuilder
         };
         _context.ModerationLogs.Add(log);
         await _context.SaveChangesAsync();
+
         return log;
     }
 
@@ -314,6 +328,7 @@ public class TestDataBuilder
         };
         _context.Achievements.Add(achievement);
         await _context.SaveChangesAsync();
+
         return achievement;
     }
 
@@ -332,6 +347,7 @@ public class TestDataBuilder
         };
         _context.UserAchievements.Add(userAchievement);
         await _context.SaveChangesAsync();
+
         return userAchievement;
     }
 
@@ -351,6 +367,7 @@ public class TestDataBuilder
         };
         _context.UserAchievementProgress.Add(progress);
         await _context.SaveChangesAsync();
+
         return progress;
     }
 
@@ -370,6 +387,7 @@ public class TestDataBuilder
         };
         _context.RefreshTokens.Add(token);
         await _context.SaveChangesAsync();
+
         return token;
     }
 
@@ -385,6 +403,7 @@ public class TestDataBuilder
         };
         _context.Mentions.Add(mention);
         await _context.SaveChangesAsync();
+
         return mention;
     }
 
@@ -409,6 +428,7 @@ public class TestDataBuilder
         };
         _context.PostRevisions.Add(revision);
         await _context.SaveChangesAsync();
+
         return revision;
     }
 
@@ -426,6 +446,7 @@ public class TestDataBuilder
         var space = await CreateSpaceAsync(hub.Id);
         var discussion = await CreateDiscussionAsync(space.Id, user.Id);
         var post = await CreatePostAsync(discussion.Id, user.Id, isFirstPost: true);
+
         return (user, community, hub, space, discussion, post);
     }
 }

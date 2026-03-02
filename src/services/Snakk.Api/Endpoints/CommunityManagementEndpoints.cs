@@ -20,7 +20,7 @@ public static class CommunityManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var overview = await service.GetOverviewAsync(communityId, cancellationToken);
-            return overview != null ? Results.Ok(overview) : Results.NotFound();
+            return overview is not null ? Results.Ok(overview) : Results.NotFound();
         })
         .RequireCommunityAdmin("communityId")
         .WithName("GetCommunityOverview");
@@ -32,7 +32,7 @@ public static class CommunityManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.GetSettingsAsync(communityId, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireCommunityAdmin("communityId")
         .WithName("GetCommunitySettings");
@@ -45,7 +45,7 @@ public static class CommunityManagementEndpoints
             CancellationToken cancellationToken) =>
         {
             var settings = await service.UpdateSettingsAsync(communityId, request, cancellationToken);
-            return settings != null ? Results.Ok(settings) : Results.NotFound();
+            return settings is not null ? Results.Ok(settings) : Results.NotFound();
         })
         .RequireCommunityAdmin("communityId")
         .WithName("UpdateCommunitySettings");

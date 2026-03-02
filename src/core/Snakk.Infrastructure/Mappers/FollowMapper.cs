@@ -8,22 +8,19 @@ using Snakk.Shared.Enums;
 
 public static class FollowMapper
 {
-    public static Follow FromPersistence(this FollowDatabaseEntity entity)
-    {
-        return Follow.Rehydrate(
+    public static Follow FromPersistence(this FollowDatabaseEntity entity) =>
+        Follow.Rehydrate(
             FollowId.From(entity.PublicId),
             UserId.From(entity.User.PublicId),
             ((FollowTargetTypeEnum)entity.TargetTypeId).ToDomain(),
-            entity.Discussion != null ? DiscussionId.From(entity.Discussion.PublicId) : null,
-            entity.Space != null ? SpaceId.From(entity.Space.PublicId) : null,
-            entity.FollowedUser != null ? UserId.From(entity.FollowedUser.PublicId) : null,
+            entity.Discussion is not null ? DiscussionId.From(entity.Discussion.PublicId) : null,
+            entity.Space is not null ? SpaceId.From(entity.Space.PublicId) : null,
+            entity.FollowedUser is not null ? UserId.From(entity.FollowedUser.PublicId) : null,
             ((FollowLevelEnum)entity.LevelId).ToDomain(),
             entity.CreatedAt);
-    }
 
-    public static FollowDatabaseEntity ToPersistence(this Follow follow)
-    {
-        return new FollowDatabaseEntity
+    public static FollowDatabaseEntity ToPersistence(this Follow follow) =>
+        new()
         {
             PublicId = follow.PublicId,
             TargetTypeId = (int)follow.TargetType.ToShared(),
@@ -31,5 +28,4 @@ public static class FollowMapper
             CreatedAt = follow.CreatedAt
             // Foreign keys are set by the adapter
         };
-    }
 }

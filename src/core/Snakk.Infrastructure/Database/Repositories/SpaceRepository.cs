@@ -19,53 +19,36 @@ public class SpaceRepository(SnakkDbContext context)
         string HubPublicId,
         string HubName);
 
-    public override async Task<SpaceDatabaseEntity?> GetByIdAsync(int id)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(s => s.Id == id);
-    }
+    public override async Task<SpaceDatabaseEntity?> GetByIdAsync(int id) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.Id == id);
 
-    public async Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId)
-    {
-        return await _dbSet
-            .AsTracking()
-            .Include(s => s.Hub)
-            .FirstOrDefaultAsync(s => s.PublicId == publicId);
-    }
+    public async Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+        .AsTracking()
+        .Include(s => s.Hub)
+        .FirstOrDefaultAsync(s => s.PublicId == publicId);
 
-    public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
+    public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync() =>
+        await _dbSet.ToListAsync();
 
-    public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId)
-    {
-        return await _dbSet
-            .Where(s => s.PublicId == publicId)
-            .Select(s => new SpaceDetailDto(
-                s.PublicId,
-                s.Name,
-                s.Slug,
-                s.Description,
-                s.AllowAnonymousReading,
-                s.RequireEmailConfirmation,
-                s.CreatedAt,
-                s.Hub.PublicId,
-                s.Hub.Name))
-            .FirstOrDefaultAsync();
-    }
+    public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+        .Where(s => s.PublicId == publicId)
+        .Select(s => new SpaceDetailDto(
+            s.PublicId,
+            s.Name,
+            s.Slug,
+            s.Description,
+            s.AllowAnonymousReading,
+            s.RequireEmailConfirmation,
+            s.CreatedAt,
+            s.Hub.PublicId,
+            s.Hub.Name))
+        .FirstOrDefaultAsync();
 
-    public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(s => s.PublicId == publicId);
-    }
+    public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.PublicId == publicId);
 
-    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(s => s.Slug == slug);
-    }
+    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug);
 
     public async Task<PagedResult<SpaceListDto>> GetFilteredForDisplayAsync(
         string hubPublicId,
@@ -90,7 +73,11 @@ public class SpaceRepository(SnakkDbContext context)
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var resultItems = hasMoreItems
+            ? items
+                .Take(pageSize)
+                .ToList()
+            : items;
 
         return new PagedResult<SpaceListDto>
         {

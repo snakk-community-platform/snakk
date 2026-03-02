@@ -5,15 +5,11 @@ namespace Snakk.AdminWeb.Pages.Auth;
 
 public class LogoutModel : PageModel
 {
-    public IActionResult OnGet()
-    {
-        return PerformLogout();
-    }
+    public IActionResult OnGet() =>
+        PerformLogout();
 
-    public IActionResult OnPost()
-    {
-        return PerformLogout();
-    }
+    public IActionResult OnPost() =>
+        PerformLogout();
 
     private IActionResult PerformLogout()
     {

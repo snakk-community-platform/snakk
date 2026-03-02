@@ -77,7 +77,15 @@ public class SnakkApiClient(
 
     public async Task<PagedHubList?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
     {
-        try { return await hubClient.ListHubsByCommunityAsync(new ListHubsByCommunityRequest { CommunityId = communityId, Offset = offset, PageSize = pageSize }); }
+        try
+        {
+            return await hubClient.ListHubsByCommunityAsync(new ListHubsByCommunityRequest
+            {
+                CommunityId = communityId,
+                Offset = offset,
+                PageSize = pageSize
+            });
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -99,7 +107,15 @@ public class SnakkApiClient(
 
     public async Task<PagedSpaceByHubList?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
     {
-        try { return await spaceClient.ListSpacesByHubAsync(new ListSpacesByHubRequest { HubId = hubId, Offset = offset, PageSize = pageSize }); }
+        try
+        {
+            return await spaceClient.ListSpacesByHubAsync(new ListSpacesByHubRequest
+            {
+                HubId = hubId,
+                Offset = offset,
+                PageSize = pageSize
+            });
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -111,7 +127,15 @@ public class SnakkApiClient(
 
     public async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
     {
-        try { return await discussionClient.GetDiscussionsBySpaceAsync(new GetDiscussionsBySpaceRequest { SpaceId = spaceId, Offset = offset, PageSize = pageSize }); }
+        try
+        {
+            return await discussionClient.GetDiscussionsBySpaceAsync(new GetDiscussionsBySpaceRequest
+            {
+                SpaceId = spaceId,
+                Offset = offset,
+                PageSize = pageSize
+            });
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -146,8 +170,9 @@ public class SnakkApiClient(
         try
         {
             var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content };
-            if (tags != null) request.Tags.AddRange(tags);
+            if (tags is not null) request.Tags.AddRange(tags);
             var result = await discussionClient.CreateDiscussionAsync(request);
+
             return result?.PublicId;
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -158,20 +183,25 @@ public class SnakkApiClient(
         try
         {
             var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
-            if (communityId != null) request.CommunityId = communityId;
+            if (communityId is not null) request.CommunityId = communityId;
+
             return await discussionClient.GetRecentDiscussionsAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    public async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(
+        string? hubId = null,
+        string? spaceId = null,
+        string? communityId = null)
     {
         try
         {
             var request = new GetTopActiveDiscussionsTodayRequest { Limit = 5 };
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
-            if (communityId != null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+
             return await statisticsClient.GetTopActiveDiscussionsTodayAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -187,7 +217,15 @@ public class SnakkApiClient(
 
     public async Task<PagedEnrichedPostList?> GetDiscussionPostsAsync(string discussionId, int offset = 0, int pageSize = 20)
     {
-        try { return await postClient.GetPostsByDiscussionAsync(new GetPostsByDiscussionRequest { DiscussionId = discussionId, Offset = offset, PageSize = pageSize }); }
+        try
+        {
+            return await postClient.GetPostsByDiscussionAsync(new GetPostsByDiscussionRequest
+            {
+                DiscussionId = discussionId,
+                Offset = offset,
+                PageSize = pageSize
+            });
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -196,8 +234,9 @@ public class SnakkApiClient(
         try
         {
             var request = new CreatePostRequest { DiscussionId = discussionId, Content = content };
-            if (replyToPostId != null) request.ReplyToPostId = replyToPostId;
+            if (replyToPostId is not null) request.ReplyToPostId = replyToPostId;
             var result = await postClient.CreatePostAsync(request);
+
             return result?.PublicId;
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -256,21 +295,26 @@ public class SnakkApiClient(
         try
         {
             var request = new GetTopActiveSpacesTodayRequest { Limit = 5 };
-            if (hubId != null) request.HubId = hubId;
-            if (communityId != null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (communityId is not null) request.CommunityId = communityId;
+
             return await statisticsClient.GetTopActiveSpacesTodayAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<TopContributorsList?> GetTopContributorsTodayAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    public async Task<TopContributorsList?> GetTopContributorsTodayAsync(
+        string? hubId = null,
+        string? spaceId = null,
+        string? communityId = null)
     {
         try
         {
             var request = new GetTopContributorsTodayRequest { Limit = 5 };
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
-            if (communityId != null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+
             return await statisticsClient.GetTopContributorsTodayAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -333,9 +377,10 @@ public class SnakkApiClient(
         try
         {
             var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
-            if (authorPublicId != null) request.AuthorId = authorPublicId;
-            if (spacePublicId != null) request.SpaceId = spacePublicId;
-            if (hubPublicId != null) request.HubId = hubPublicId;
+            if (authorPublicId is not null) request.AuthorId = authorPublicId;
+            if (spacePublicId is not null) request.SpaceId = spacePublicId;
+            if (hubPublicId is not null) request.HubId = hubPublicId;
+
             return await searchClient.SearchDiscussionsAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -348,9 +393,10 @@ public class SnakkApiClient(
         try
         {
             var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
-            if (authorPublicId != null) request.AuthorId = authorPublicId;
-            if (discussionPublicId != null) request.DiscussionId = discussionPublicId;
-            if (spacePublicId != null) request.SpaceId = spacePublicId;
+            if (authorPublicId is not null) request.AuthorId = authorPublicId;
+            if (discussionPublicId is not null) request.DiscussionId = discussionPublicId;
+            if (spacePublicId is not null) request.SpaceId = spacePublicId;
+
             return await searchClient.SearchPostsAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -394,6 +440,7 @@ public class SnakkApiClient(
             if (preferEndlessScroll.HasValue) request.PreferEndlessScroll = preferEndlessScroll.Value;
             if (autoFollowOnReply.HasValue) request.AutoFollowOnReply = autoFollowOnReply.Value;
             await authClient.UpdatePreferencesAsync(request);
+
             return true;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -429,7 +476,8 @@ public class SnakkApiClient(
         try
         {
             var request = new ToggleSpaceFollowRequest { SpaceId = spaceId };
-            if (level != null) request.Level = level;
+            if (level is not null) request.Level = level;
+
             return await followClient.ToggleSpaceFollowAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -581,10 +629,11 @@ public class SnakkApiClient(
         try
         {
             var request = new CanModerateRequest();
-            if (communityId != null) request.CommunityId = communityId;
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             var result = await moderationClient.CanModerateAsync(request);
+
             return result.CanModerate;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -595,10 +644,11 @@ public class SnakkApiClient(
         try
         {
             var request = new CanAdministerRequest();
-            if (communityId != null) request.CommunityId = communityId;
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             var result = await moderationClient.CanAdministerAsync(request);
+
             return result.CanAdminister;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -664,10 +714,11 @@ public class SnakkApiClient(
                 UserId = request.TargetUserId,
                 Role = request.RoleType
             };
-            if (request.CommunityId != null) grpcRequest.CommunityId = request.CommunityId;
-            if (request.HubId != null) grpcRequest.HubId = request.HubId;
-            if (request.SpaceId != null) grpcRequest.SpaceId = request.SpaceId;
+            if (request.CommunityId is not null) grpcRequest.CommunityId = request.CommunityId;
+            if (request.HubId is not null) grpcRequest.HubId = request.HubId;
+            if (request.SpaceId is not null) grpcRequest.SpaceId = request.SpaceId;
             var result = await moderationClient.AssignRoleAsync(grpcRequest);
+
             return MapRoleInfo(result);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -694,16 +745,21 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<BanCheckResult?> CheckUserBanAsync(string userId, string? communityId = null, string? hubId = null, string? spaceId = null)
+    public async Task<BanCheckResult?> CheckUserBanAsync(
+        string userId,
+        string? communityId = null,
+        string? hubId = null,
+        string? spaceId = null)
     {
         try
         {
             var request = new CheckUserBanRequest { UserId = userId };
-            if (communityId != null) request.CommunityId = communityId;
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             var result = await moderationClient.CheckUserBanAsync(request);
-            return new BanCheckResult(result.IsBanned, result.Ban != null ? MapBanInfo(result.Ban) : null);
+
+            return new BanCheckResult(result.IsBanned, result.Ban is not null ? MapBanInfo(result.Ban) : null);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
@@ -717,13 +773,14 @@ public class SnakkApiClient(
                 UserId = request.TargetUserId,
                 BanType = request.BanType
             };
-            if (request.CommunityId != null) grpcRequest.CommunityId = request.CommunityId;
-            if (request.HubId != null) grpcRequest.HubId = request.HubId;
-            if (request.SpaceId != null) grpcRequest.SpaceId = request.SpaceId;
-            if (request.Reason != null) grpcRequest.Reason = request.Reason;
+            if (request.CommunityId is not null) grpcRequest.CommunityId = request.CommunityId;
+            if (request.HubId is not null) grpcRequest.HubId = request.HubId;
+            if (request.SpaceId is not null) grpcRequest.SpaceId = request.SpaceId;
+            if (request.Reason is not null) grpcRequest.Reason = request.Reason;
             if (request.ExpiresAt.HasValue)
                 grpcRequest.ExpiresAt = Timestamp.FromDateTime(DateTime.SpecifyKind(request.ExpiresAt.Value, DateTimeKind.Utc));
             var result = await moderationClient.BanUserAsync(grpcRequest);
+
             return MapBanInfo(result);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -755,8 +812,9 @@ public class SnakkApiClient(
         try
         {
             var request = new GetReportsRequest { Offset = offset, PageSize = pageSize };
-            if (status != null && int.TryParse(status, out var statusId)) request.StatusId = statusId;
+            if (status is not null && int.TryParse(status, out var statusId)) request.StatusId = statusId;
             var result = await moderationClient.GetReportsAsync(request);
+
             return new PagedResult<ReportListDto>(
                 result.Items.Select(MapReportListItem),
                 result.Offset,
@@ -797,12 +855,13 @@ public class SnakkApiClient(
         try
         {
             var grpcRequest = new Snakk.Protos.Moderation.CreateReportRequest();
-            if (request.ReportedPostId != null) grpcRequest.PostId = request.ReportedPostId;
-            if (request.ReportedDiscussionId != null) grpcRequest.DiscussionId = request.ReportedDiscussionId;
-            if (request.ReportedUserId != null) grpcRequest.UserId = request.ReportedUserId;
-            if (request.ReasonId != null) grpcRequest.ReasonId = request.ReasonId;
-            if (request.Details != null) grpcRequest.Details = request.Details;
+            if (request.ReportedPostId is not null) grpcRequest.PostId = request.ReportedPostId;
+            if (request.ReportedDiscussionId is not null) grpcRequest.DiscussionId = request.ReportedDiscussionId;
+            if (request.ReportedUserId is not null) grpcRequest.UserId = request.ReportedUserId;
+            if (request.ReasonId is not null) grpcRequest.ReasonId = request.ReasonId;
+            if (request.Details is not null) grpcRequest.Details = request.Details;
             var result = await moderationClient.CreateReportAsync(grpcRequest);
+
             return new ReportDto(result.PublicId, result.Status, "", null, null, null, null, null,
                 result.CreatedAt.ToDateTime(), null, null, null);
         }
@@ -818,8 +877,9 @@ public class SnakkApiClient(
                 ReportId = reportId,
                 Dismiss = request.Dismiss
             };
-            if (request.ResolutionNote != null) grpcRequest.ResolutionNote = request.ResolutionNote;
+            if (request.ResolutionNote is not null) grpcRequest.ResolutionNote = request.ResolutionNote;
             var result = await moderationClient.ResolveReportAsync(grpcRequest);
+
             return result.Success;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -838,13 +898,17 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<ReportReasonDto>?> GetReportReasonsAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
+    public async Task<IEnumerable<ReportReasonDto>?> GetReportReasonsAsync(
+        string? communityId = null,
+        string? hubId = null,
+        string? spaceId = null)
     {
         try
         {
             var request = new GetReportReasonsRequest();
-            if (spaceId != null) request.SpaceId = spaceId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             var result = await moderationClient.GetReportReasonsAsync(request);
+
             return result.Items.Select(r => new ReportReasonDto(
                 r.PublicId, r.Name, r.Description,
                 r.CommunityPublicId, r.HubPublicId, r.SpacePublicId, r.DisplayOrder));
@@ -860,10 +924,11 @@ public class SnakkApiClient(
         try
         {
             var request = new GetModerationLogsRequest { Offset = offset, PageSize = pageSize };
-            if (communityId != null) request.CommunityId = communityId;
-            if (hubId != null) request.HubId = hubId;
-            if (spaceId != null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             var result = await moderationClient.GetModerationLogsAsync(request);
+
             return new PagedResult<ModerationLogDto>(
                 result.Items.Select(MapModerationLogItem),
                 result.Offset,
@@ -879,8 +944,9 @@ public class SnakkApiClient(
         try
         {
             var request = new DeletePostRequest { PostId = postId };
-            if (reason != null) request.Reason = reason;
+            if (reason is not null) request.Reason = reason;
             var result = await moderationClient.DeletePostAsync(request);
+
             return result.Success;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -891,8 +957,9 @@ public class SnakkApiClient(
         try
         {
             var request = new DeleteDiscussionRequest { DiscussionId = discussionId };
-            if (reason != null) request.Reason = reason;
+            if (reason is not null) request.Reason = reason;
             var result = await moderationClient.DeleteDiscussionAsync(request);
+
             return result.Success;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
@@ -903,8 +970,9 @@ public class SnakkApiClient(
         try
         {
             var request = new LockDiscussionRequest { DiscussionId = discussionId };
-            if (reason != null) request.Reason = reason;
+            if (reason is not null) request.Reason = reason;
             var result = await moderationClient.LockDiscussionAsync(request);
+
             return result.Success;
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }

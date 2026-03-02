@@ -22,22 +22,26 @@ public class HubGrpcService(
     public override async Task<HubInfo> GetHubBySlug(GetHubBySlugRequest request, ServerCallContext context)
     {
         var result = await hubUseCase.GetHubBySlugAsync(request.Slug);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
     public override async Task<HubInfo> GetHub(GetHubRequest request, ServerCallContext context)
     {
         var result = await hubUseCase.GetHubAsync(HubId.From(request.PublicId));
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+
         return info;
     }
 
@@ -61,10 +65,11 @@ public class HubGrpcService(
                 Name = h.Name,
                 Slug = h.Slug,
                 Description = h.Description ?? "",
-                CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(h.CreatedAt, DateTimeKind.Utc)),
                 SpaceCount = h.SpaceCount,
                 DiscussionCount = h.DiscussionCount,
-                ReplyCount = h.ReplyCount
+                ReplyCount = h.ReplyCount,
+
+                CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(h.CreatedAt, DateTimeKind.Utc))
             });
         }
 
@@ -96,10 +101,12 @@ public class HubGrpcService(
     public override async Task<HubStats> GetHubStats(GetHubStatsRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetHubStatsAsync(request.PublicId);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var stats = result.Value;
+
         return new HubStats
         {
             PublicId = stats.PublicId,
@@ -116,6 +123,7 @@ public class HubGrpcService(
         var rules = await hubManagement.GetRulesAsync(request.HubId);
 
         var response = new HubRulesResponse();
+
         foreach (var r in rules.Rules)
         {
             response.Rules.Add(new HubRule
@@ -133,10 +141,13 @@ public class HubGrpcService(
     {
         var data = await dbContext.Hubs
             .Where(h => h.PublicId == publicId)
-            .Select(h => new { h.HasRules, h.RulesRevision, h.ParentCommunityHasRules })
+            .Select(h => new {
+                h.HasRules,
+                h.RulesRevision,
+                h.ParentCommunityHasRules })
             .FirstOrDefaultAsync();
 
-        if (data != null)
+        if (data is not null)
         {
             info.HasRules = data.HasRules;
             info.RulesRevision = data.RulesRevision ?? "";
@@ -155,7 +166,7 @@ public class HubGrpcService(
             CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(h.CreatedAt, DateTimeKind.Utc))
         };
 
-        if (h.Description != null)
+        if (h.Description is not null)
             info.Description = h.Description;
 
         return info;

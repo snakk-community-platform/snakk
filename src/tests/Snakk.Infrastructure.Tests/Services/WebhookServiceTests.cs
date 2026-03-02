@@ -68,6 +68,7 @@ public class WebhookServiceTests : IDisposable
         };
         _context.Webhooks.Add(webhook);
         await _context.SaveChangesAsync();
+
         return webhook;
     }
 
@@ -263,7 +264,10 @@ public class WebhookServiceTests : IDisposable
         await Assert.That(events.Count).IsGreaterThan(0);
 
         // Should have events from all categories
-        var categories = events.Select(e => e.Category).Distinct().ToList();
+        var categories = events
+            .Select(e => e.Category)
+            .Distinct()
+            .ToList();
         await Assert.That(categories).Contains("User");
         await Assert.That(categories).Contains("Content");
         await Assert.That(categories).Contains("Moderation");

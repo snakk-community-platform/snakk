@@ -6,19 +6,11 @@ using System.Text.Json;
 
 namespace Snakk.Auth.Pages;
 
-public class RegisterModel : PageModel
+public class RegisterModel(
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
+    ILogger<RegisterModel> logger) : PageModel
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<RegisterModel> _logger;
-
-    public RegisterModel(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<RegisterModel> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
-        _logger = logger;
-    }
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -63,7 +55,7 @@ public class RegisterModel : PageModel
 
         try
         {
-            var httpClient = _httpClientFactory.CreateClient("SnakkApi");
+            var httpClient = httpClientFactory.CreateClient("SnakkApi");
 
             var registerRequest = new
             {
@@ -83,7 +75,7 @@ public class RegisterModel : PageModel
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Registration failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                logger.LogWarning("Registration failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
 
                 ErrorMessage = "Registration failed. Username or email may already be taken.";
                 return Page();
@@ -95,7 +87,7 @@ public class RegisterModel : PageModel
                 PropertyNameCaseInsensitive = true
             });
 
-            if (registerResponse?.AccessToken == null)
+            if (registerResponse?.AccessToken is null)
             {
                 ErrorMessage = "Registration completed but login failed. Please try logging in.";
                 return RedirectToPage("/Login", new { returnUrl = ReturnUrl });
@@ -128,7 +120,7 @@ public class RegisterModel : PageModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Registration error");
+            logger.LogError(ex, "Registration error");
             ErrorMessage = "An error occurred during registration. Please try again.";
             return Page();
         }

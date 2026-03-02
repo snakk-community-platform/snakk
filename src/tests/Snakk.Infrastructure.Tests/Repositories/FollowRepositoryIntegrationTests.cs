@@ -35,6 +35,7 @@ public class FollowRepositoryIntegrationTests : IDisposable
         };
         _db.Context.Follows.Add(follow);
         await _db.Context.SaveChangesAsync();
+
         return follow;
     }
 
@@ -51,6 +52,7 @@ public class FollowRepositoryIntegrationTests : IDisposable
         };
         _db.Context.Follows.Add(follow);
         await _db.Context.SaveChangesAsync();
+
         return follow;
     }
 
@@ -67,6 +69,7 @@ public class FollowRepositoryIntegrationTests : IDisposable
         };
         _db.Context.Follows.Add(follow);
         await _db.Context.SaveChangesAsync();
+
         return follow;
     }
 

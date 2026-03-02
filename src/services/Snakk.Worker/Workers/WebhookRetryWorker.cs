@@ -8,23 +8,15 @@ namespace Snakk.Worker.Workers;
 /// <summary>
 /// Background worker that periodically retries failed webhook deliveries
 /// </summary>
-public class WebhookRetryWorker : BackgroundService
+public class WebhookRetryWorker(
+    IServiceProvider serviceProvider,
+    ILogger<WebhookRetryWorker> logger) : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<WebhookRetryWorker> _logger;
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(1); // Run every minute
-
-    public WebhookRetryWorker(
-        IServiceProvider serviceProvider,
-        ILogger<WebhookRetryWorker> logger)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Webhook Retry Worker started");
+        logger.LogInformation("Webhook Retry Worker started");
 
         // Wait a bit before starting to allow app initialization
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
@@ -37,18 +29,18 @@ public class WebhookRetryWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing webhook retries");
+                logger.LogError(ex, "Error processing webhook retries");
             }
 
             await Task.Delay(_interval, stoppingToken);
         }
 
-        _logger.LogInformation("Webhook Retry Worker stopped");
+        logger.LogInformation("Webhook Retry Worker stopped");
     }
 
     private async Task ProcessWebhookRetriesAsync(CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var webhookService = scope.ServiceProvider.GetRequiredService<IWebhookService>();
 
         try
@@ -57,7 +49,7 @@ public class WebhookRetryWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retry webhook deliveries");
+            logger.LogError(ex, "Failed to retry webhook deliveries");
         }
     }
 }

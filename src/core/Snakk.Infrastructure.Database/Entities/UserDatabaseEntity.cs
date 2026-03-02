@@ -51,8 +51,8 @@ public class UserDatabaseEntity
     public DateTime? TwoFactorEnabledAt { get; set; }
 
     // Navigation properties
-    public virtual ICollection<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = new List<TrustedDeviceDatabaseEntity>();
-    public virtual ICollection<BackupCodeDatabaseEntity> BackupCodes { get; set; } = new List<BackupCodeDatabaseEntity>();
-    public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = new List<RefreshTokenDatabaseEntity>();
-    public virtual ICollection<UserRoleDatabaseEntity> Roles { get; set; } = new List<UserRoleDatabaseEntity>();
+    public virtual ICollection<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = [];
+    public virtual ICollection<BackupCodeDatabaseEntity> BackupCodes { get; set; } = [];
+    public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = [];
+    public virtual ICollection<UserRoleDatabaseEntity> Roles { get; set; } = [];
 }

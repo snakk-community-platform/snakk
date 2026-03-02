@@ -5,7 +5,10 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Moderation;
 
-public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class IndexModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     public IEnumerable<UserRoleDto>? MyRoles { get; set; }
     public PagedResult<ReportListDto>? PendingReports { get; set; }

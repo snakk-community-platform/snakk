@@ -6,7 +6,10 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
-public class BansModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+public class BansModel(
+    SnakkApiClient apiClient,
+    IConfiguration configuration,
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     [BindProperty(SupportsGet = true)]
     public string? UserId { get; set; }
@@ -44,7 +47,7 @@ public class BansModel(SnakkApiClient apiClient, IConfiguration configuration, I
 
     public async Task<IActionResult> OnPostBanAsync()
     {
-        if (BanRequest == null || string.IsNullOrEmpty(BanRequest.TargetUserId))
+        if (BanRequest is null || string.IsNullOrEmpty(BanRequest.TargetUserId))
         {
             return RedirectToPage(new { UserId });
         }

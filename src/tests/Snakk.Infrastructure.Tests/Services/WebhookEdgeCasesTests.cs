@@ -73,6 +73,7 @@ public class WebhookEdgeCasesTests : IDisposable
         };
         _context.Webhooks.Add(webhook);
         await _context.SaveChangesAsync();
+
         return webhook;
     }
 
@@ -145,6 +146,7 @@ public class WebhookEdgeCasesTests : IDisposable
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
         using var hmac = new HMACSHA256(keyBytes);
         var hashBytes = hmac.ComputeHash(payloadBytes);
+
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
@@ -165,7 +167,7 @@ public class WebhookEdgeCasesTests : IDisposable
         var now = DateTime.UtcNow;
         var deliveryLogs = new List<WebhookDeliveryLogDatabaseEntity>();
 
-        for (int attempt = 1; attempt <= 6; attempt++)
+        for (var attempt = 1; attempt <= 6; attempt++)
         {
             var log = new WebhookDeliveryLogDatabaseEntity
             {
@@ -204,7 +206,7 @@ public class WebhookEdgeCasesTests : IDisposable
         await Assert.That(storedLogs.Count).IsEqualTo(6);
 
         // Verify each retry time is progressively later
-        for (int i = 1; i < storedLogs.Count; i++)
+        for (var i = 1; i < storedLogs.Count; i++)
         {
             await Assert.That(storedLogs[i].NextRetryAt!.Value)
                 .IsGreaterThan(storedLogs[i - 1].NextRetryAt!.Value);
@@ -458,7 +460,7 @@ public class WebhookEdgeCasesTests : IDisposable
     {
         // Arrange
         var webhook = await CreateWebhook();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             _context.WebhookDeliveryLogs.Add(new WebhookDeliveryLogDatabaseEntity
             {
@@ -488,7 +490,7 @@ public class WebhookEdgeCasesTests : IDisposable
     {
         // Arrange
         var webhook = await CreateWebhook();
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             _context.WebhookDeliveryLogs.Add(new WebhookDeliveryLogDatabaseEntity
             {
@@ -508,7 +510,7 @@ public class WebhookEdgeCasesTests : IDisposable
         var logs = await _service.GetDeliveryLogsAsync(webhook.Id);
 
         // Assert - most recent first
-        for (int i = 1; i < logs.Count; i++)
+        for (var i = 1; i < logs.Count; i++)
         {
             await Assert.That(logs[i - 1].CreatedAt).IsGreaterThanOrEqualTo(logs[i].CreatedAt);
         }
@@ -525,7 +527,10 @@ public class WebhookEdgeCasesTests : IDisposable
         var events = await _service.GetAvailableEventTypesAsync();
 
         // Assert
-        var categories = events.Select(e => e.Category).Distinct().ToList();
+        var categories = events
+            .Select(e => e.Category)
+            .Distinct()
+            .ToList();
         await Assert.That(categories).Contains("User");
         await Assert.That(categories).Contains("Content");
         await Assert.That(categories).Contains("Moderation");
@@ -551,7 +556,10 @@ public class WebhookEdgeCasesTests : IDisposable
     {
         // Act
         var events = await _service.GetAvailableEventTypesAsync();
-        var userEvents = events.Where(e => e.Category == "User").Select(e => e.EventType).ToList();
+        var userEvents = events
+            .Where(e => e.Category == "User")
+            .Select(e => e.EventType)
+            .ToList();
 
         // Assert
         await Assert.That(userEvents).Contains("UserRegistered");

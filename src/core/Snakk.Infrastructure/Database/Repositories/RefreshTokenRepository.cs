@@ -5,22 +5,20 @@ using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Infrastructure.Database.Repositories;
 
-public class RefreshTokenRepository : IRefreshTokenRepository
+public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepository
 {
-    private readonly SnakkDbContext _context;
-
-    public RefreshTokenRepository(SnakkDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<RefreshToken?> GetByValueAsync(string tokenValue)
     {
         var projection = await _context.RefreshTokens
             .Where(t => t.TokenValue == tokenValue)
             .Select(t => new RefreshTokenProjection(
-                t.TokenValue, t.User.PublicId, t.ExpiresAt, t.CreatedAt, t.RevokedAt))
+                t.TokenValue,
+                t.User.PublicId,
+                t.ExpiresAt,
+                t.CreatedAt,
+                t.RevokedAt))
             .FirstOrDefaultAsync();
+
         return projection?.ToDomain();
     }
 
@@ -29,17 +27,21 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         var projections = await _context.RefreshTokens
             .Where(t => t.User.PublicId == userId.Value)
             .Select(t => new RefreshTokenProjection(
-                t.TokenValue, t.User.PublicId, t.ExpiresAt, t.CreatedAt, t.RevokedAt))
+                t.TokenValue,
+                t.User.PublicId,
+                t.ExpiresAt,
+                t.CreatedAt,
+                t.RevokedAt))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task AddAsync(RefreshToken token)
     {
         // Look up the user's internal ID
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == token.UserId.Value);
-        if (user == null)
-            throw new InvalidOperationException($"User {token.UserId} not found");
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == token.UserId.Value)
+            ?? throw new InvalidOperationException($"User {token.UserId} not found");
 
         var entity = new RefreshTokenDatabaseEntity
         {
@@ -60,7 +62,7 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         var entity = await _context.RefreshTokens
             .FirstOrDefaultAsync(t => t.TokenValue == token.Value);
 
-        if (entity != null)
+        if (entity is not null)
         {
             entity.RevokedAt = string.IsNullOrEmpty(token.RevokedAt) ? null : DateTime.Parse(token.RevokedAt);
             await _context.SaveChangesAsync();
@@ -70,7 +72,9 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     public async Task RevokeAllForUserAsync(UserId userId)
     {
         var tokens = await _context.RefreshTokens
-            .Where(t => t.User.PublicId == userId.Value && t.RevokedAt == null)
+            .Where(t =>
+                t.User.PublicId == userId.Value
+                && t.RevokedAt == null)
             .ToListAsync();
 
         foreach (var token in tokens)
@@ -91,6 +95,8 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         await _context.SaveChangesAsync();
     }
 
+    private readonly SnakkDbContext _context = context;
+
     private record RefreshTokenProjection(
         string TokenValue,
         string UserPublicId,
@@ -101,7 +107,8 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         public RefreshToken ToDomain() => RefreshToken.Rehydrate(
             TokenValue,
             UserId.From(UserPublicId),
-            ExpiresAt, CreatedAt,
+            ExpiresAt,
+            CreatedAt,
             RevokedAt?.ToString("O"));
     }
 }

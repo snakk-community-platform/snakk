@@ -3,30 +3,24 @@ using Microsoft.AspNetCore.Http;
 
 namespace Snakk.Api.Filters;
 
-public class ValidationFilter<T> : IEndpointFilter
+public class ValidationFilter<T>(IValidator<T> validator) : IEndpointFilter
 {
-    private readonly IValidator<T> _validator;
-
-    public ValidationFilter(IValidator<T> validator)
-    {
-        _validator = validator;
-    }
-
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var requestObject = context.Arguments.OfType<T>().FirstOrDefault();
-        if (requestObject == null)
+
+        if (requestObject is null)
             return await next(context);
 
-        var validationResult = await _validator.ValidateAsync(requestObject);
+        var validationResult = await validator.ValidateAsync(requestObject);
+
         if (!validationResult.IsValid)
         {
             var errors = validationResult.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(
                     g => g.Key,
-                    g => g.Select(e => e.ErrorMessage).ToArray()
-                );
+                    g => g.Select(e => e.ErrorMessage).ToArray());
 
             return Results.ValidationProblem(errors);
         }

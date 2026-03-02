@@ -9,9 +9,8 @@ public static class AuthCookieHelper
     public const string AccessCookieName = ".Snakk.Auth";
     public const string RefreshCookieName = ".Snakk.Auth.Refresh";
 
-    public static CookieOptions CreateOptions(bool isHttps, bool rememberMe = false)
-    {
-        return new CookieOptions
+    public static CookieOptions CreateOptions(bool isHttps, bool rememberMe = false) =>
+        new CookieOptions
         {
             HttpOnly = true,
             Secure = true, // Always secure — browsers treat localhost as secure context
@@ -21,7 +20,6 @@ public static class AuthCookieHelper
                 ? DateTimeOffset.UtcNow.AddDays(30)
                 : DateTimeOffset.UtcNow.AddHours(8)
         };
-    }
 
     public static void SetAuthCookies(HttpContext ctx, string accessToken, string refreshToken, bool rememberMe = false)
     {

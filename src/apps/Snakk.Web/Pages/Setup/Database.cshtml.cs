@@ -3,12 +3,8 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Setup;
 
-public class DatabaseModel : SetupPageBase
+public class DatabaseModel(SetupService setupService) : SetupPageBase
 {
-    private readonly SetupService _setupService;
-
-    public DatabaseModel(SetupService setupService) => _setupService = setupService;
-
     [BindProperty] public string DbHost { get; set; } = "localhost";
     [BindProperty] public int DbPort { get; set; } = 5432;
     [BindProperty] public string DbName { get; set; } = "snakk";
@@ -36,13 +32,15 @@ public class DatabaseModel : SetupPageBase
         state.DbUsername = DbUsername;
         state.DbPassword = DbPassword;
         SaveState(state);
+
         return RedirectToPage("SiteConfig");
     }
 
     public async Task<IActionResult> OnPostTestConnectionAsync()
     {
         var connStr = $"Host={DbHost};Port={DbPort};Database={DbName};Username={DbUsername};Password={DbPassword}";
-        var error = await _setupService.TestDatabaseConnectionAsync(connStr);
-        return new JsonResult(new { success = error == null, error });
+        var error = await setupService.TestDatabaseConnectionAsync(connStr);
+
+        return new JsonResult(new { success = error is null, error });
     }
 }

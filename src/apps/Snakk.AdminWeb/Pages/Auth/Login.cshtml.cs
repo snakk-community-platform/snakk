@@ -12,6 +12,7 @@ public class LoginModel : PageModel
         // Redirect to SSO login service
         var target = returnUrl ?? "/admin";
         var loginUrl = $"/auth/login?returnUrl={Uri.EscapeDataString(target)}";
+
         return Redirect(loginUrl);
     }
 }

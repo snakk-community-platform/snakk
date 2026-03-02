@@ -20,7 +20,8 @@ public class DiscussionGrpcService(
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
         var result = await discussionUseCase.GetDiscussionAsync(DiscussionId.From(request.PublicId));
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var d = result.Value;
@@ -53,11 +54,13 @@ public class DiscussionGrpcService(
             slug,
             request.Content);
 
-        if (!result.IsSuccess || result.Value == null)
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
+        if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
                 result.Error ?? "Failed to create discussion"));
 
         var d = result.Value;
+
         return new DiscussionCreatedInfo
         {
             PublicId = d.PublicId.Value,
@@ -94,6 +97,7 @@ public class DiscussionGrpcService(
                 IsLocked = d.IsLocked,
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
+
                 Space = new EntityRef
                 {
                     PublicId = d.SpacePublicId,
@@ -158,6 +162,7 @@ public class DiscussionGrpcService(
                 IsLocked = d.IsLocked,
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
+
                 Author = new AuthorRef
                 {
                     PublicId = d.AuthorPublicId,
@@ -169,7 +174,7 @@ public class DiscussionGrpcService(
             if (d.LastActivityAt.HasValue)
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
-            if (d.Tags != null)
+            if (d.Tags is not null)
             {
                 var tags = d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 item.Tags.AddRange(tags);
@@ -184,6 +189,7 @@ public class DiscussionGrpcService(
     public override async Task<DiscussionPreviewInfo> GetDiscussionPreview(GetDiscussionPreviewRequest request, ServerCallContext context)
     {
         var result = await discussionUseCase.GetFirstPostPreviewAsync(DiscussionId.From(request.DiscussionId));
+
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
@@ -193,10 +199,12 @@ public class DiscussionGrpcService(
     public override async Task<DiscussionStats> GetDiscussionStats(GetDiscussionStatsRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetDiscussionStatsAsync(request.PublicId);
-        if (!result.IsSuccess || result.Value == null)
+
+        if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var stats = result.Value;
+
         return new DiscussionStats
         {
             PublicId = stats.PublicId,
@@ -212,12 +220,13 @@ public class DiscussionGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);
     }
 
-    private static Timestamp ToTimestamp(DateTime dt)
-        => Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+    private static Timestamp ToTimestamp(DateTime dt) =>
+        Timestamp.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
 }

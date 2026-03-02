@@ -85,8 +85,8 @@ public static class AdminWebhooksEndpoints
         CancellationToken cancellationToken)
     {
         var webhook = await webhookService.GetWebhookByIdAsync(webhookId, cancellationToken);
-        
-        if (webhook == null)
+
+        if (webhook is null)
             return Results.NotFound(new { error = "Webhook not found" });
 
         return Results.Ok(webhook);
@@ -99,11 +99,12 @@ public static class AdminWebhooksEndpoints
         CancellationToken cancellationToken)
     {
         var currentUser = currentUserService.GetCurrentUserId();
-        if (currentUser == null)
+
+        if (currentUser is null)
             return Results.Unauthorized();
 
         var webhook = await webhookService.CreateWebhookAsync(request, currentUser, cancellationToken);
-        
+
         return Results.Created($"/admin/webhooks/{webhook.Id}", webhook);
     }
 
@@ -114,8 +115,8 @@ public static class AdminWebhooksEndpoints
         CancellationToken cancellationToken)
     {
         var webhook = await webhookService.UpdateWebhookAsync(webhookId, request, cancellationToken);
-        
-        if (webhook == null)
+
+        if (webhook is null)
             return Results.NotFound(new { error = "Webhook not found" });
 
         return Results.Ok(webhook);
@@ -127,7 +128,7 @@ public static class AdminWebhooksEndpoints
         CancellationToken cancellationToken)
     {
         var deleted = await webhookService.DeleteWebhookAsync(webhookId, cancellationToken);
-        
+
         if (!deleted)
             return Results.NotFound(new { error = "Webhook not found" });
 
@@ -167,6 +168,7 @@ public static class AdminWebhooksEndpoints
         page = Math.Max(1, page);
 
         var logs = await webhookService.GetDeliveryLogsAsync(webhookId, page, pageSize, cancellationToken);
+
         return Results.Ok(logs);
     }
 

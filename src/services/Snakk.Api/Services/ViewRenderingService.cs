@@ -57,23 +57,17 @@ public class ViewRenderingService : IViewRenderingService
             </div>";
     }
 
-    public string RenderError(string message)
-    {
-        return $"<div class='alert alert-error'>{message}</div>";
-    }
+    public string RenderError(string message) =>
+        $"<div class='alert alert-error'>{message}</div>";
 
-    public string RenderSuccess(string message)
-    {
-        return $"<div class='alert alert-success'>{message}</div>";
-    }
+    public string RenderSuccess(string message) =>
+        $"<div class='alert alert-success'>{message}</div>";
 
-    public string RenderDeletedPostTombstone(string postId)
-    {
-        return $@"
+    public string RenderDeletedPostTombstone(string postId) =>
+        $@"
             <div id='post-{postId}' class='card bg-base-200 shadow-md mb-4 opacity-50'>
                 <div class='card-body'>
                     <p class='italic text-base-content/60'>[This post has been deleted]</p>
                 </div>
             </div>";
-    }
 }

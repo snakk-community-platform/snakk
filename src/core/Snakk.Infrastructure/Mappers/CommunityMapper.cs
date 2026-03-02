@@ -8,9 +8,8 @@ using Snakk.Shared.Enums;
 
 public static class CommunityMapper
 {
-    public static Community FromPersistence(this CommunityDatabaseEntity entity)
-    {
-        return Community.Rehydrate(
+    public static Community FromPersistence(this CommunityDatabaseEntity entity) =>
+        Community.Rehydrate(
             CommunityId.From(entity.PublicId),
             entity.Name,
             entity.Slug,
@@ -20,11 +19,9 @@ public static class CommunityMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             hubs: []);
-    }
 
-    public static CommunityDatabaseEntity ToPersistence(this Community community)
-    {
-        return new CommunityDatabaseEntity
+    public static CommunityDatabaseEntity ToPersistence(this Community community) =>
+        new()
         {
             PublicId = community.PublicId,
             Name = community.Name,
@@ -35,5 +32,4 @@ public static class CommunityMapper
             CreatedAt = community.CreatedAt,
             LastModifiedAt = community.LastModifiedAt
         };
-    }
 }

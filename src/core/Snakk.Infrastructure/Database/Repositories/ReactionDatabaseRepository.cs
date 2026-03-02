@@ -17,30 +17,23 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
                     .Select(r => (int?)r.TypeId)
                     .FirstOrDefault());
 
-    public async Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId)
-    {
-        return await _dbSet
-            .FirstOrDefaultAsync(r => r.UserId == userId && r.PostId == postId);
-    }
+    public async Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId) => await _dbSet
+        .FirstOrDefaultAsync(r =>
+            r.UserId == userId
+            && r.PostId == postId);
 
-    public async Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId)
-    {
-        return await _dbSet
-            .Where(r => r.PostId == postId)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId) => await _dbSet
+        .Where(r => r.PostId == postId)
+        .ToListAsync();
 
-    public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId)
-    {
-        return await _dbSet
-            .Where(r => r.PostId == postId)
-            .GroupBy(r => r.TypeId)
-            .Select(g => new { Type = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Type, x => x.Count);
-    }
+    public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId) => await _dbSet
+        .Where(r => r.PostId == postId)
+        .GroupBy(r => r.TypeId)
+        .Select(g => new {
+            Type = g.Key,
+            Count = g.Count() })
+        .ToDictionaryAsync(x => x.Type, x => x.Count);
 
-    public async Task<int?> GetUserReactionTypeForPostAsync(int userId, int postId)
-    {
-        return await _getUserReactionType(_context, userId, postId);
-    }
+    public async Task<int?> GetUserReactionTypeForPostAsync(int userId, int postId) =>
+        await _getUserReactionType(_context, userId, postId);
 }

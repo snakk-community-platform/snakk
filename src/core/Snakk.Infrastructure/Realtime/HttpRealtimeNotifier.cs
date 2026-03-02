@@ -11,21 +11,12 @@ namespace Snakk.Infrastructure.Realtime;
 /// <summary>
 /// HTTP-based implementation of IRealtimeNotifier that posts events to a SignalR microservice
 /// </summary>
-public class HttpRealtimeNotifier : IRealtimeNotifier
+public class HttpRealtimeNotifier(
+    IHttpClientFactory httpClientFactory,
+    IMarkupParser markupParser,
+    ILogger<HttpRealtimeNotifier> logger) : IRealtimeNotifier
 {
-    private readonly HttpClient _httpClient;
-    private readonly IMarkupParser _markupParser;
-    private readonly ILogger<HttpRealtimeNotifier> _logger;
-
-    public HttpRealtimeNotifier(
-        IHttpClientFactory httpClientFactory,
-        IMarkupParser markupParser,
-        ILogger<HttpRealtimeNotifier> logger)
-    {
-        _httpClient = httpClientFactory.CreateClient("RealtimeService");
-        _markupParser = markupParser;
-        _logger = logger;
-    }
+    private readonly HttpClient _httpClient = httpClientFactory.CreateClient("RealtimeService");
 
     public async Task NotifyPostCreatedAsync(Post post, User author, Discussion discussion)
     {
@@ -44,7 +35,7 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast post created: {PostId}", post.PublicId);
+            logger.LogWarning(ex, "Failed to broadcast post created: {PostId}", post.PublicId);
         }
     }
 
@@ -65,7 +56,7 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast post edited: {PostId}", post.PublicId);
+            logger.LogWarning(ex, "Failed to broadcast post edited: {PostId}", post.PublicId);
         }
     }
 
@@ -84,19 +75,21 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast post deleted: {PostId}", postId.Value);
+            logger.LogWarning(ex, "Failed to broadcast post deleted: {PostId}", postId.Value);
         }
     }
 
-    public async Task NotifyReactionUpdatedAsync(PostId postId, DiscussionId discussionId, Dictionary<ReactionType, int> counts)
+    public async Task NotifyReactionUpdatedAsync(
+        PostId postId,
+        DiscussionId discussionId,
+        Dictionary<ReactionType, int> counts)
     {
         try
         {
             // Convert ReactionType enum to string keys for JavaScript
             var countsDict = counts.ToDictionary(
                 kvp => kvp.Key.ToString(),
-                kvp => kvp.Value
-            );
+                kvp => kvp.Value);
 
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
@@ -111,7 +104,7 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast reaction updated: {PostId}", postId.Value);
+            logger.LogWarning(ex, "Failed to broadcast reaction updated: {PostId}", postId.Value);
         }
     }
 
@@ -130,7 +123,7 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast notification count: {UserId}", userId.Value);
+            logger.LogWarning(ex, "Failed to broadcast notification count: {UserId}", userId.Value);
         }
     }
 
@@ -149,14 +142,14 @@ public class HttpRealtimeNotifier : IRealtimeNotifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast user notification: {UserId}", userId.Value);
+            logger.LogWarning(ex, "Failed to broadcast user notification: {UserId}", userId.Value);
         }
     }
 
     private string RenderPostHtml(Post post, User author)
     {
         // Parse markdown to HTML
-        var contentHtml = _markupParser.ToHtml(post.Content);
+        var contentHtml = markupParser.ToHtml(post.Content);
 
         // Generate post HTML (this matches your existing post card structure)
         return $@"

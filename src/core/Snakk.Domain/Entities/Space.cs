@@ -83,9 +83,8 @@ public class Space
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Discussion>? discussions = null)
-    {
-        return new Space(
+        List<Discussion>? discussions = null) =>
+        new Space(
             publicId,
             hubId,
             name,
@@ -96,7 +95,6 @@ public class Space
             createdAt,
             lastModifiedAt,
             discussions);
-    }
 
     public static Space RehydrateForList(
         SpaceId publicId,
@@ -106,9 +104,8 @@ public class Space
         string? description,
         bool allowAnonymousReading,
         bool requireEmailConfirmation,
-        DateTime createdAt)
-    {
-        return new Space(
+        DateTime createdAt) =>
+        new Space(
             publicId,
             hubId,
             name,
@@ -119,7 +116,6 @@ public class Space
             createdAt,
             lastModifiedAt: null,
             discussions: []);
-    }
 
     public void UpdateName(string name)
     {

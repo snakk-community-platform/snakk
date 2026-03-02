@@ -18,6 +18,7 @@ public class TestDataModel : SetupPageBase
         var state = GetState();
         state.SeedTestData = SeedTestData;
         SaveState(state);
+
         return RedirectToPage("Security");
     }
 }

@@ -46,14 +46,15 @@ public static class PostEndpoints
     {
         // SECURITY: Extract userId from JWT claims, NOT from request
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var result = await useCase.CreatePostAsync(
             DiscussionId.From(request.DiscussionId),
             userId,
             request.Content,
-            request.ReplyToPostId != null ? PostId.From(request.ReplyToPostId) : null);
+            request.ReplyToPostId is not null ? PostId.From(request.ReplyToPostId) : null);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -74,7 +75,8 @@ public static class PostEndpoints
     {
         // SECURITY: Extract userId from JWT claims
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var result = await useCase.UpdatePostAsync(
@@ -97,7 +99,8 @@ public static class PostEndpoints
     {
         // SECURITY: Extract userId from JWT claims
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var result = await useCase.DeletePostAsync(
@@ -109,6 +112,7 @@ public static class PostEndpoints
 
         // Return empty content for hard delete, or tombstone for soft delete
         var post = await useCase.GetPostAsync(PostId.From(publicId));
+
         if (post.IsSuccess && post.Value!.IsDeleted)
         {
             return Results.Content(viewService.RenderDeletedPostTombstone(publicId), "text/html");
@@ -126,17 +130,22 @@ public static class PostEndpoints
         var revisions = await useCase.GetPostHistoryAsync(PostId.From(publicId));
         var revisionList = revisions.ToList();
 
-        if (!revisionList.Any())
+        if (revisionList.Count == 0)
             return Results.Content("<p>No edit history available.</p>", "text/html");
 
         // Batch fetch all editors in one query
-        var editorIds = revisionList.Select(r => r.EditedByUserId).Distinct().ToList();
+        var editorIds = revisionList
+            .Select(r => r.EditedByUserId)
+            .Distinct()
+            .ToList();
+
         var editors = await userRepository.GetByPublicIdsAsync(editorIds);
         var authorNames = editors.ToDictionary(
             u => u.PublicId.Value,
             u => u.DisplayName);
 
         var html = viewService.RenderPostHistory(revisionList, authorNames);
+
         return Results.Content(html, "text/html");
     }
 }

@@ -62,6 +62,7 @@ public class CommunityManagementServiceTests : IDisposable
         };
         _context.Discussions.Add(discussion);
         await _context.SaveChangesAsync();
+
         return discussion;
     }
 
@@ -77,6 +78,7 @@ public class CommunityManagementServiceTests : IDisposable
         };
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
+
         return post;
     }
 

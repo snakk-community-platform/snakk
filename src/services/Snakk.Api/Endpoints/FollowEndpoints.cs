@@ -81,7 +81,8 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var result = await followUseCase.ToggleFollowDiscussionAsync(
@@ -103,7 +104,8 @@ public static class FollowEndpoints
             return TypedResults.Ok(new FollowToggleResponse(false));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return TypedResults.Ok(new FollowToggleResponse(false));
 
         var isFollowing = await followUseCase.IsFollowingDiscussionAsync(
@@ -123,7 +125,8 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var followLevel = level?.ToLowerInvariant() switch
@@ -153,7 +156,8 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var followLevel = level?.ToLowerInvariant() switch
@@ -182,7 +186,8 @@ public static class FollowEndpoints
             return TypedResults.Ok(new SpaceFollowStatusResponse(false, null));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return TypedResults.Ok(new SpaceFollowStatusResponse(false, null));
 
         var (isFollowing, level) = await followUseCase.GetSpaceFollowStatusAsync(
@@ -201,7 +206,8 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var currentUserIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (currentUserIdClaim == null)
+
+        if (currentUserIdClaim is null)
             return Results.Unauthorized();
 
         var result = await followUseCase.ToggleFollowUserAsync(
@@ -223,7 +229,8 @@ public static class FollowEndpoints
             return TypedResults.Ok(new FollowToggleResponse(false));
 
         var currentUserIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (currentUserIdClaim == null)
+
+        if (currentUserIdClaim is null)
             return TypedResults.Ok(new FollowToggleResponse(false));
 
         var isFollowing = await followUseCase.IsFollowingUserAsync(
@@ -241,13 +248,17 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var followedSpaces = await followUseCase.GetFollowedSpacesAsync(
             UserId.From(userIdClaim.Value));
 
-        var publicIds = followedSpaces.Select(s => s.Value).ToList();
+        var publicIds = followedSpaces
+            .Select(s => s.Value)
+            .ToList();
+
         return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 
@@ -259,13 +270,17 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var followedDiscussions = await followUseCase.GetFollowedDiscussionsAsync(
             UserId.From(userIdClaim.Value));
 
-        var publicIds = followedDiscussions.Select(d => d.Value).ToList();
+        var publicIds = followedDiscussions
+            .Select(d => d.Value)
+            .ToList();
+
         return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 
@@ -277,13 +292,17 @@ public static class FollowEndpoints
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null)
+
+        if (userIdClaim is null)
             return Results.Unauthorized();
 
         var followedUsers = await followUseCase.GetFollowedUsersAsync(
             UserId.From(userIdClaim.Value));
 
-        var publicIds = followedUsers.Select(u => u.Value).ToList();
+        var publicIds = followedUsers
+            .Select(u => u.Value)
+            .ToList();
+
         return TypedResults.Ok(new FollowedIdsResponse(publicIds));
     }
 }

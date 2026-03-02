@@ -68,6 +68,7 @@ public class SettingsServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 

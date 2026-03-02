@@ -36,8 +36,8 @@ public class ManagePermissionSet
     /// Returns true if the user has at least one permission (can access manage pages at all).
     /// </summary>
     public bool HasAnyPermission =>
-        ViewDashboard || ManageContent || ManageReports || ManageBans ||
-        ManageSettings || ManageTeam || ManageWebhooks;
+        ViewDashboard || ManageContent || ManageReports || ManageBans
+        || ManageSettings || ManageTeam || ManageWebhooks;
 
     /// <summary>
     /// Check a specific permission by enum value.
@@ -60,6 +60,7 @@ public class ManagePermissionSet
     public List<ManagePermissionEnum> GetGrantedPermissions()
     {
         var permissions = new List<ManagePermissionEnum>();
+
         if (ViewDashboard) permissions.Add(ManagePermissionEnum.ViewDashboard);
         if (ManageContent) permissions.Add(ManagePermissionEnum.ManageContent);
         if (ManageReports) permissions.Add(ManagePermissionEnum.ManageReports);
@@ -67,6 +68,7 @@ public class ManagePermissionSet
         if (ManageSettings) permissions.Add(ManagePermissionEnum.ManageSettings);
         if (ManageTeam) permissions.Add(ManagePermissionEnum.ManageTeam);
         if (ManageWebhooks) permissions.Add(ManagePermissionEnum.ManageWebhooks);
+
         return permissions;
     }
 

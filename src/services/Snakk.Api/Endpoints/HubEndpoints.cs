@@ -152,7 +152,8 @@ public static class HubEndpoints
         var items = result.Items.Select(s =>
         {
             LatestDiscussionRef? latestDiscussion = null;
-            if (s.LatestDiscussion != null)
+
+            if (s.LatestDiscussion is not null)
             {
                 latestDiscussion = new LatestDiscussionRef(
                     PublicId: s.LatestDiscussion.PublicId,
@@ -184,7 +185,9 @@ public static class HubEndpoints
             HasMoreItems: result.HasMoreItems));
     }
 
-    private static async Task<IResult> GetHubStatsAsync(string publicId, StatisticsUseCase useCase)
+    private static async Task<IResult> GetHubStatsAsync(
+        string publicId,
+        StatisticsUseCase useCase)
     {
         var result = await useCase.GetHubStatsAsync(publicId);
 
@@ -192,6 +195,7 @@ public static class HubEndpoints
             return Results.NotFound();
 
         var stats = result.Value!;
+
         return TypedResults.Ok(new HubStatsResponse
         {
             PublicId = stats.PublicId,

@@ -74,7 +74,7 @@ public class PostRepositoryAdapterTests : IDisposable
         var (user, _, _, _, discussion, _) = await _builder.CreateFullHierarchyAsync();
         // The hierarchy already created 1 post (isFirstPost=true)
         // Create 4 more posts
-        for (int i = 2; i <= 5; i++)
+        for (var i = 2; i <= 5; i++)
         {
             await _builder.CreatePostAsync(discussion.Id, user.Id, $"Post content {i}");
         }

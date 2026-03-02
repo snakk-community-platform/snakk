@@ -9,7 +9,7 @@ public class CurrentUserServiceTests
     private static CurrentUserService CreateService(ClaimsPrincipal? user = null)
     {
         var context = new DefaultHttpContext();
-        if (user != null)
+        if (user is not null)
             context.User = user;
 
         var accessor = new HttpContextAccessor { HttpContext = context };

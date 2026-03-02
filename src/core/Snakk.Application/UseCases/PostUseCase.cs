@@ -17,15 +17,6 @@ public class PostUseCase(
     ICounterService counterService,
     ReactionUseCase reactionUseCase) : UseCaseBase
 {
-    private readonly IPostRepository _postRepository = postRepository;
-    private readonly IDiscussionRepository _discussionRepository = discussionRepository;
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly IFollowRepository _followRepository = followRepository;
-    private readonly IDomainEventDispatcher _eventDispatcher = eventDispatcher;
-    private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
-    private readonly ICounterService _counterService = counterService;
-    private readonly ReactionUseCase _reactionUseCase = reactionUseCase;
-
     public async Task<Result<Post>> CreatePostAsync(
         DiscussionId discussionId,
         UserId userId,
@@ -33,8 +24,9 @@ public class PostUseCase(
         PostId? replyToPostId = null)
     {
         // Validate discussion exists
-        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
-        if (discussion == null)
+        var discussion = await discussionRepository.GetByPublicIdAsync(discussionId);
+
+        if (discussion is null)
             return Result<Post>.Failure($"Discussion '{discussionId}' not found");
 
         // Check if discussion is locked
@@ -42,15 +34,17 @@ public class PostUseCase(
             return Result<Post>.Failure("Cannot post to a locked discussion");
 
         // Validate user exists
-        var user = await _userRepository.GetByPublicIdAsync(userId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(userId);
+
+        if (user is null)
             return Result<Post>.Failure($"User '{userId}' not found");
 
         // If replying, validate reply-to post exists
-        if (replyToPostId != null)
+        if (replyToPostId is not null)
         {
-            var replyToPost = await _postRepository.GetByPublicIdAsync(replyToPostId);
-            if (replyToPost == null)
+            var replyToPost = await postRepository.GetByPublicIdAsync(replyToPostId);
+
+            if (replyToPost is null)
                 return Result<Post>.Failure($"Reply-to post '{replyToPostId}' not found");
         }
 
@@ -60,12 +54,13 @@ public class PostUseCase(
         // Auto-follow discussion if user has the preference enabled
         if (user.AutoFollowOnReply)
         {
-            var existingFollow = await _followRepository.GetByUserAndDiscussionAsync(userId, discussionId);
-            if (existingFollow == null)
+            var existingFollow = await followRepository.GetByUserAndDiscussionAsync(userId, discussionId);
+
+            if (existingFollow is null)
             {
                 var follow = Follow.CreateForDiscussion(userId, discussionId);
-                await _followRepository.AddAsync(follow);
-                await _counterService.IncrementDiscussionFollowerCountAsync(discussionId);
+                await followRepository.AddAsync(follow);
+                await counterService.IncrementDiscussionFollowerCountAsync(discussionId);
             }
         }
 
@@ -73,20 +68,20 @@ public class PostUseCase(
         discussion.UpdateActivity();
 
         // Persist
-        await _postRepository.AddAsync(post);
-        await _discussionRepository.UpdateAsync(discussion);
+        await postRepository.AddAsync(post);
+        await discussionRepository.UpdateAsync(discussion);
 
         // Update denormalized counts
-        await _counterService.IncrementPostCountAsync(discussionId);
-        await _counterService.IncrementUserReplyCountAsync(userId);
+        await counterService.IncrementPostCountAsync(discussionId);
+        await counterService.IncrementUserReplyCountAsync(userId);
 
         // Dispatch domain events
-        await _eventDispatcher.DispatchAsync(post.DomainEvents);
+        await eventDispatcher.DispatchAsync(post.DomainEvents);
 
         post.ClearDomainEvents();
 
         // Send realtime notification
-        await _realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
+        await realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
 
         return Result<Post>.Success(post);
     }
@@ -96,37 +91,41 @@ public class PostUseCase(
         UserId userId,
         string newContent)
     {
-        var post = await _postRepository.GetByPublicIdAsync(postId);
-        if (post == null)
+        var post = await postRepository.GetByPublicIdAsync(postId);
+
+        if (post is null)
             return Result<Post>.Failure($"Post '{postId}' not found");
 
         // Fetch user and discussion for realtime notification
-        var user = await _userRepository.GetByPublicIdAsync(userId);
-        if (user == null)
+        var user = await userRepository.GetByPublicIdAsync(userId);
+
+        if (user is null)
             return Result<Post>.Failure($"User '{userId}' not found");
 
-        var discussion = await _discussionRepository.GetByPublicIdAsync(post.DiscussionId);
-        if (discussion == null)
+        var discussion = await discussionRepository.GetByPublicIdAsync(post.DiscussionId);
+
+        if (discussion is null)
             return Result<Post>.Failure($"Discussion '{post.DiscussionId}' not found");
 
         try
         {
             post.UpdateContent(newContent, userId);
-            await _postRepository.UpdateAsync(post);
+            await postRepository.UpdateAsync(post);
 
             // Save only new/unsaved revisions
             foreach (var revision in post.UnsavedRevisions)
             {
-                await _postRepository.AddRevisionAsync(revision);
+                await postRepository.AddRevisionAsync(revision);
             }
+
             post.ClearUnsavedRevisions();
 
             // Dispatch domain events
-            await _eventDispatcher.DispatchAsync(post.DomainEvents);
+            await eventDispatcher.DispatchAsync(post.DomainEvents);
             post.ClearDomainEvents();
 
             // Send realtime notification
-            await _realtimeNotifier.NotifyPostEditedAsync(post, user, discussion);
+            await realtimeNotifier.NotifyPostEditedAsync(post, user, discussion);
 
             return Result<Post>.Success(post);
         }
@@ -142,30 +141,28 @@ public class PostUseCase(
 
     public async Task<Result<Post>> GetPostAsync(PostId postId)
     {
-        var post = await _postRepository.GetByPublicIdAsync(postId);
-        if (post == null)
+        var post = await postRepository.GetByPublicIdAsync(postId);
+
+        if (post is null)
             return Result<Post>.Failure($"Post '{postId}' not found");
 
         return Result<Post>.Success(post);
     }
 
-    public async Task<IEnumerable<Post>> GetPostsByPublicIdsAsync(IEnumerable<PostId> postIds)
-    {
-        return await _postRepository.GetByPublicIdsAsync(postIds);
-    }
+    public async Task<IEnumerable<Post>> GetPostsByPublicIdsAsync(IEnumerable<PostId> postIds) =>
+        await postRepository.GetByPublicIdsAsync(postIds);
 
     public async Task<PagedResult<Post>> GetPostsByDiscussionAsync(
         DiscussionId discussionId,
         int offset = 0,
-        int pageSize = 20)
-    {
-        return await _postRepository.GetPagedByDiscussionIdAsync(discussionId, offset, pageSize);
-    }
+        int pageSize = 20) =>
+        await postRepository.GetPagedByDiscussionIdAsync(discussionId, offset, pageSize);
 
     public async Task<Result> DeletePostAsync(PostId postId, UserId userId)
     {
-        var post = await _postRepository.GetByPublicIdAsync(postId);
-        if (post == null)
+        var post = await postRepository.GetByPublicIdAsync(postId);
+
+        if (post is null)
             return Result.Failure($"Post '{postId}' not found");
 
         if (!post.CanDelete(userId))
@@ -180,25 +177,26 @@ public class PostUseCase(
             {
                 // Hard delete - remove completely from database
                 post.HardDelete(userId);
-                await _eventDispatcher.DispatchAsync(post.DomainEvents);
-                await _postRepository.DeleteAsync(post);
+                await eventDispatcher.DispatchAsync(post.DomainEvents);
+                await postRepository.DeleteAsync(post);
             }
             else
             {
                 // Soft delete - mark as deleted
                 post.SoftDelete(userId);
-                await _postRepository.UpdateAsync(post);
-                await _eventDispatcher.DispatchAsync(post.DomainEvents);
+                await postRepository.UpdateAsync(post);
+                await eventDispatcher.DispatchAsync(post.DomainEvents);
                 post.ClearDomainEvents();
             }
 
             // Decrement denormalized counts
-            await _counterService.DecrementPostCountAsync(discussionId);
+            await counterService.DecrementPostCountAsync(discussionId);
+
             if (!post.IsFirstPost)
-                await _counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
+                await counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
 
             // Send realtime notification
-            await _realtimeNotifier.NotifyPostDeletedAsync(postId, discussionId, isHardDelete);
+            await realtimeNotifier.NotifyPostDeletedAsync(postId, discussionId, isHardDelete);
 
             return Result.Success();
         }
@@ -208,10 +206,8 @@ public class PostUseCase(
         }
     }
 
-    public async Task<IEnumerable<PostRevision>> GetPostHistoryAsync(PostId postId)
-    {
-        return await _postRepository.GetRevisionsAsync(postId);
-    }
+    public async Task<IEnumerable<PostRevision>> GetPostHistoryAsync(PostId postId) =>
+        await postRepository.GetRevisionsAsync(postId);
 
     /// <summary>
     /// Gets posts with enriched data (authors, reactions, reply-to snippets)
@@ -223,20 +219,28 @@ public class PostUseCase(
         int pageSize)
     {
         // 0. Validate discussion exists
-        var discussion = await _discussionRepository.GetByPublicIdAsync(discussionId);
-        if (discussion == null)
+        var discussion = await discussionRepository.GetByPublicIdAsync(discussionId);
+
+        if (discussion is null)
             return Result<EnrichedPostsResult>.Failure($"Discussion '{discussionId}' not found");
 
         // 1. Fetch posts
         var postsResult = await GetPostsByDiscussionAsync(discussionId, offset, pageSize);
-        var visiblePosts = postsResult.Items.Where(p => !p.IsDeleted).ToList();
+        var visiblePosts = postsResult.Items
+            .Where(p => !p.IsDeleted)
+            .ToList();
 
         // 2. Batch fetch authors
-        var authorIds = visiblePosts.Select(p => p.CreatedByUserId).Distinct().ToList();
-        var authorUsers = await _userRepository.GetByPublicIdsAsync(authorIds);
+        var authorIds = visiblePosts
+            .Select(p => p.CreatedByUserId)
+            .Distinct()
+            .ToList();
+
+        var authorUsers = await userRepository.GetByPublicIdsAsync(authorIds);
         var authorsDict = authorUsers.ToDictionary(u => u.PublicId.Value);
 
         var authors = new Dictionary<string, AuthorInfo>();
+
         foreach (var authorId in authorIds)
         {
             if (authorsDict.TryGetValue(authorId.Value, out var user))
@@ -249,28 +253,30 @@ public class PostUseCase(
                     false);
             }
             else
-            {
                 authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true);
-            }
         }
 
         // 3. Batch fetch reply-to posts
         var replyToIds = visiblePosts
-            .Where(p => p.ReplyToPostId != null)
+            .Where(p => p.ReplyToPostId is not null)
             .Select(p => p.ReplyToPostId!)
             .Distinct()
             .ToList();
 
         var replyToPosts = new Dictionary<string, ReplyToInfo>();
 
-        if (replyToIds.Any())
+        if (replyToIds.Count > 0)
         {
             var replyPostsList = (await GetPostsByPublicIdsAsync(replyToIds))
                 .Where(p => !p.IsDeleted)
                 .ToList();
 
-            var replyAuthorIds = replyPostsList.Select(p => p.CreatedByUserId).Distinct().ToList();
-            var replyAuthorUsers = await _userRepository.GetByPublicIdsAsync(replyAuthorIds);
+            var replyAuthorIds = replyPostsList
+                .Select(p => p.CreatedByUserId)
+                .Distinct()
+                .ToList();
+
+            var replyAuthorUsers = await userRepository.GetByPublicIdsAsync(replyAuthorIds);
             var replyAuthorsDict = replyAuthorUsers.ToDictionary(u => u.PublicId.Value);
 
             foreach (var replyPost in replyPostsList)
@@ -288,34 +294,36 @@ public class PostUseCase(
         }
 
         // 4. Batch fetch reactions
-        var postIds = visiblePosts.Select(p => p.PublicId).ToList();
-        var reactionCounts = await _reactionUseCase.GetReactionCountsBatchAsync(postIds);
+        var postIds = visiblePosts
+            .Select(p => p.PublicId)
+            .ToList();
+
+        var reactionCounts = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
 
         // 5. Fetch current user's reactions if authenticated
         var userReactions = new Dictionary<string, ReactionType>();
-        if (currentUserId != null)
-        {
-            userReactions = await _reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds);
-        }
+
+        if (currentUserId is not null)
+            userReactions = await reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds);
 
         // 6. Build enriched result
-        var enrichedPosts = visiblePosts.Select((p, index) => new EnrichedPost(
-            Post: p,
-            PostNumber: offset + index + 1,
-            Author: authors[p.CreatedByUserId.Value],
-            ReplyTo: p.ReplyToPostId != null && replyToPosts.ContainsKey(p.ReplyToPostId.Value)
-                ? replyToPosts[p.ReplyToPostId.Value]
-                : null,
-            ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
-            UserReaction: userReactions.TryGetValue(p.PublicId.Value, out var ur) ? ur : null
-        )).ToList();
+        var enrichedPosts = visiblePosts
+            .Select((p, index) => new EnrichedPost(
+                Post: p,
+                PostNumber: offset + index + 1,
+                Author: authors[p.CreatedByUserId.Value],
+                ReplyTo: p.ReplyToPostId is not null && replyToPosts.ContainsKey(p.ReplyToPostId.Value)
+                    ? replyToPosts[p.ReplyToPostId.Value]
+                    : null,
+                ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
+                UserReaction: userReactions.TryGetValue(p.PublicId.Value, out var ur) ? ur : null))
+            .ToList();
 
         return Result<EnrichedPostsResult>.Success(new EnrichedPostsResult(
             enrichedPosts,
             postsResult.Offset,
             postsResult.PageSize,
-            postsResult.HasMoreItems
-        ));
+            postsResult.HasMoreItems));
     }
 }
 

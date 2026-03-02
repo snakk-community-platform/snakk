@@ -34,24 +34,24 @@ public class NotificationGrpcService(
                 CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc))
             };
 
-            if (n.ActorUserId != null)
+            if (n.ActorUserId is not null)
             {
                 item.SourcePublicId = n.ActorUserId;
                 item.SourceType = "User";
             }
 
-            if (n.SourceDiscussionId != null)
+            if (n.SourceDiscussionId is not null)
             {
                 item.TargetPublicId = n.SourceDiscussionId;
                 item.TargetType = "Discussion";
             }
-            else if (n.SourcePostId != null)
+            else if (n.SourcePostId is not null)
             {
                 item.TargetPublicId = n.SourcePostId;
                 item.TargetType = "Post";
             }
 
-            if (n.Body != null)
+            if (n.Body is not null)
                 item.SourceDisplayName = n.Body;
 
             response.Items.Add(item);
@@ -64,6 +64,7 @@ public class NotificationGrpcService(
     {
         var userId = RequireAuth();
         var count = await notificationUseCase.GetUnreadCountAsync(userId);
+
         return new UnreadCountResponse { Count = count };
     }
 
@@ -81,6 +82,7 @@ public class NotificationGrpcService(
     {
         var userId = RequireAuth();
         await notificationUseCase.MarkAllAsReadAsync(userId);
+
         return new MarkAllAsReadResponse { Success = true };
     }
 
@@ -90,7 +92,8 @@ public class NotificationGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);

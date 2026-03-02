@@ -15,8 +15,6 @@ public class LogoutModel : PageModel
         return Redirect("/");
     }
 
-    public IActionResult OnPost()
-    {
-        return OnGet();
-    }
+    public IActionResult OnPost() =>
+        OnGet();
 }

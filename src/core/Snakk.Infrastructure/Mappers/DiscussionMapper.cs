@@ -6,9 +6,8 @@ using Snakk.Domain.ValueObjects;
 
 public static class DiscussionMapper
 {
-    public static Discussion FromPersistence(this DiscussionDatabaseEntity entity)
-    {
-        return Discussion.Rehydrate(
+    public static Discussion FromPersistence(this DiscussionDatabaseEntity entity) =>
+        Discussion.Rehydrate(
             DiscussionId.From(entity.PublicId),
             SpaceId.From(entity.Space.PublicId),
             UserId.From(entity.CreatedByUser.PublicId),
@@ -20,13 +19,11 @@ public static class DiscussionMapper
             entity.IsPinned,
             entity.IsLocked,
             posts: []);
-    }
 
-    public static DiscussionDatabaseEntity ToPersistence(this Discussion discussion)
-    {
+    public static DiscussionDatabaseEntity ToPersistence(this Discussion discussion) =>
         // Note: Navigation properties (Space, CreatedByUser) must be set separately
         // in the repository adapter after fetching them by PublicId
-        return new DiscussionDatabaseEntity
+        new()
         {
             PublicId = discussion.PublicId,
             Title = discussion.Title,
@@ -38,5 +35,4 @@ public static class DiscussionMapper
             IsLocked = discussion.IsLocked
             // SpaceId and CreatedByUserId will be set by repository adapter
         };
-    }
 }

@@ -7,7 +7,7 @@ public static class RefreshTokenMapper
 {
     public static RefreshToken FromPersistence(this RefreshTokenDatabaseEntity entity)
     {
-        if (entity.User == null)
+        if (entity.User is null)
             throw new InvalidOperationException("User navigation property must be loaded");
 
         return RefreshToken.Rehydrate(

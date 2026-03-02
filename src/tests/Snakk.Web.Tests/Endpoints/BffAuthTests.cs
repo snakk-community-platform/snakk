@@ -63,7 +63,7 @@ public class BffAuthTests
         // AuthStatusDto(false, null, null, false, null, null), which the BFF endpoint
         // maps to an "unauthenticated" result. Since IsAuthenticated is false but not null,
         // the endpoint still returns 200 with isAuthenticated=false.
-        // However, looking at the BFF code: if (apiResult == null) return Results.Unauthorized();
+        // However, looking at the BFF code: if (apiResult is null) return Results.Unauthorized();
         // The SnakkApiClient returns a new AuthStatusDto(false,...) on error, so apiResult is NOT null.
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();

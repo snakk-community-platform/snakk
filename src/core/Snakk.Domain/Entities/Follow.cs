@@ -108,10 +108,8 @@ public class Follow
         SpaceId? spaceId,
         UserId? followedUserId,
         FollowLevel level,
-        DateTime createdAt)
-    {
-        return new Follow(publicId, userId, targetType, discussionId, spaceId, followedUserId, level, createdAt);
-    }
+        DateTime createdAt) =>
+        new Follow(publicId, userId, targetType, discussionId, spaceId, followedUserId, level, createdAt);
 
     /// <summary>
     /// Updates the notification level for this follow.

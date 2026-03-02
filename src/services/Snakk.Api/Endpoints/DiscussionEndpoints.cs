@@ -59,7 +59,8 @@ public static class DiscussionEndpoints
     {
         // SECURITY: Extract userId from JWT, NOT from request
         var userId = context.User.GetUserId();
-        if (userId == null)
+
+        if (userId is null)
             return Results.Unauthorized();
 
         var result = await useCase.CreateDiscussionAsync(
@@ -226,7 +227,7 @@ public static class DiscussionEndpoints
 
         // Get current user ID
         var userId = currentUser.GetCurrentUserId();
-        var currentUserId = userId != null ? UserId.From(userId) : null;
+        var currentUserId = userId is not null ? UserId.From(userId) : null;
 
         // Call use case
         var result = await useCase.GetEnrichedPostsByDiscussionAsync(
@@ -240,6 +241,7 @@ public static class DiscussionEndpoints
 
         // Map to typed DTOs
         var data = result.Value!;
+
         return TypedResults.Ok(new PagedResponse<EnrichedPostResponse>(
             Items: data.Posts.Select(p => new EnrichedPostResponse(
                 PostNumber: p.PostNumber,
@@ -256,7 +258,7 @@ public static class DiscussionEndpoints
                     AvatarUrl: AvatarHelper.GetAvatarUrl(p.Post.CreatedByUserId.Value, AvatarEntityType.User, p.Author.AvatarRevision),
                     Role: p.Author.Role,
                     IsDeleted: p.Author.IsDeleted),
-                ReplyTo: p.ReplyTo != null ? new ReplyToRef(
+                ReplyTo: p.ReplyTo is not null ? new ReplyToRef(
                     AuthorName: p.ReplyTo.AuthorName,
                     ContentSnippet: p.ReplyTo.ContentSnippet) : null,
                 Reactions: new PostReactionsResponse(
@@ -271,7 +273,9 @@ public static class DiscussionEndpoints
             HasMoreItems: data.HasMoreItems));
     }
 
-    private static async Task<IResult> GetDiscussionStatsAsync(string publicId, StatisticsUseCase useCase)
+    private static async Task<IResult> GetDiscussionStatsAsync(
+        string publicId,
+        StatisticsUseCase useCase)
     {
         var result = await useCase.GetDiscussionStatsAsync(publicId);
 
@@ -279,6 +283,7 @@ public static class DiscussionEndpoints
             return Results.NotFound();
 
         var stats = result.Value!;
+
         return TypedResults.Ok(new DiscussionStatsResponse(
             PublicId: stats.PublicId,
             Title: stats.Title,

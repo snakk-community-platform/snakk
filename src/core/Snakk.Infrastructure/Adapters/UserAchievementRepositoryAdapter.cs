@@ -10,12 +10,9 @@ public class UserAchievementRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserAchievementRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IUserAchievementRepository
 {
-    private readonly Infrastructure.Database.Repositories.IUserAchievementRepository _databaseRepository = databaseRepository;
-    private readonly SnakkDbContext _context = context;
-
     public async Task<UserAchievement?> GetByIdAsync(int id)
     {
-        var projection = await _context.UserAchievements
+        var projection = await context.UserAchievements
             .Where(ua => ua.Id == id)
             .Select(ua => new UserAchievementProjection(
                 ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
@@ -26,7 +23,7 @@ public class UserAchievementRepositoryAdapter(
 
     public async Task<UserAchievement?> GetByPublicIdAsync(UserAchievementId publicId)
     {
-        var projection = await _context.UserAchievements
+        var projection = await context.UserAchievements
             .Where(ua => ua.PublicId == publicId.Value)
             .Select(ua => new UserAchievementProjection(
                 ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
@@ -37,42 +34,46 @@ public class UserAchievementRepositoryAdapter(
 
     public async Task<IEnumerable<UserAchievement>> GetByUserIdAsync(UserId userId)
     {
-        var projections = await _context.UserAchievements
+        var projections = await context.UserAchievements
             .Where(ua => ua.User.PublicId == userId.Value)
             .Select(ua => new UserAchievementProjection(
                 ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<IEnumerable<UserAchievement>> GetDisplayedByUserIdAsync(UserId userId)
     {
-        var projections = await _context.UserAchievements
-            .Where(ua => ua.User.PublicId == userId.Value && ua.IsDisplayed)
+        var projections = await context.UserAchievements
+            .Where(ua =>
+                ua.User.PublicId == userId.Value
+                && ua.IsDisplayed)
             .OrderBy(ua => ua.DisplayOrder)
             .Select(ua => new UserAchievementProjection(
                 ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync();
+
         return projections.Select(p => p.ToDomain());
     }
 
     public async Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId)
     {
-        var user = await _context.Users
+        var user = await context.Users
             .FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        if (user == null)
+        if (user is null)
             return false;
 
-        var achievement = await _context.Achievements
+        var achievement = await context.Achievements
             .FirstOrDefaultAsync(a => a.PublicId == achievementId.Value);
 
-        if (achievement == null)
+        if (achievement is null)
             return false;
 
-        return await _databaseRepository.HasAchievementAsync(user.Id, achievement.Id);
+        return await databaseRepository.HasAchievementAsync(user.Id, achievement.Id);
     }
 
     public async Task AddAsync(UserAchievement userAchievement)
@@ -80,27 +81,29 @@ public class UserAchievementRepositoryAdapter(
         var entity = userAchievement.ToPersistence();
 
         // Resolve foreign keys from PublicIds
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == userAchievement.UserId.Value);
-        if (user == null)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userAchievement.UserId.Value);
+
+        if (user is null)
             throw new InvalidOperationException($"User with PublicId '{userAchievement.UserId}' not found");
 
-        var achievement = await _context.Achievements.FirstOrDefaultAsync(a => a.PublicId == userAchievement.AchievementId.Value);
-        if (achievement == null)
+        var achievement = await context.Achievements.FirstOrDefaultAsync(a => a.PublicId == userAchievement.AchievementId.Value);
+
+        if (achievement is null)
             throw new InvalidOperationException($"Achievement with PublicId '{userAchievement.AchievementId}' not found");
 
         entity.UserId = user.Id;
         entity.AchievementId = achievement.Id;
 
-        await _databaseRepository.AddAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(UserAchievement userAchievement)
     {
-        var entity = await _context.UserAchievements
+        var entity = await context.UserAchievements
             .FirstOrDefaultAsync(ua => ua.PublicId == userAchievement.PublicId.Value);
 
-        if (entity == null)
+        if (entity is null)
             throw new InvalidOperationException($"UserAchievement with PublicId '{userAchievement.PublicId}' not found");
 
         // Update properties
@@ -108,8 +111,8 @@ public class UserAchievementRepositoryAdapter(
         entity.DisplayOrder = userAchievement.DisplayOrder;
         entity.NotificationSent = userAchievement.NotificationSent;
 
-        await _databaseRepository.UpdateAsync(entity);
-        await _databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity);
+        await databaseRepository.SaveChangesAsync();
     }
 
     private record UserAchievementProjection(

@@ -61,6 +61,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -182,12 +183,17 @@ public class TwoFactorAuthServiceTests : IDisposable
     {
         await CreateTestUser("enable_backup", twoFactorSecret: "SECRET");
         _mockTotpService.Setup(s => s.VerifyCode(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(true);
-        _mockTotpService.Setup(s => s.GenerateBackupCodes(10)).Returns(Enumerable.Range(1, 10).Select(i => $"CODE{i}").ToList());
+        _mockTotpService.Setup(s => s.GenerateBackupCodes(10)).Returns(
+            Enumerable.Range(1, 10)
+                .Select(i => $"CODE{i}")
+                .ToList());
         _mockTotpService.Setup(s => s.HashBackupCode(It.IsAny<string>())).Returns("hashed");
 
         await _service.EnableTwoFactorAsync("enable_backup", "123456");
 
-        var codes = await _context.BackupCodes.Where(bc => bc.User.PublicId == "enable_backup").ToListAsync();
+        var codes = await _context.BackupCodes
+            .Where(bc => bc.User.PublicId == "enable_backup")
+            .ToListAsync();
         await Assert.That(codes.Count).IsEqualTo(10);
     }
 
@@ -390,7 +396,9 @@ public class TwoFactorAuthServiceTests : IDisposable
 
         await Assert.That(codes.Count).IsEqualTo(2);
 
-        var dbCodes = await _context.BackupCodes.Where(bc => bc.UserId == user.Id).ToListAsync();
+        var dbCodes = await _context.BackupCodes
+            .Where(bc => bc.UserId == user.Id)
+            .ToListAsync();
         await Assert.That(dbCodes.Count).IsEqualTo(2);
     }
 

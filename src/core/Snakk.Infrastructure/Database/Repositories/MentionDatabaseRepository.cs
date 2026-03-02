@@ -7,22 +7,14 @@ using Snakk.Infrastructure.Database.Entities;
 public class MentionDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<MentionDatabaseEntity>(context), IMentionDatabaseRepository
 {
-    public async Task<IEnumerable<MentionDatabaseEntity>> GetByPostIdAsync(int postId)
-    {
-        return await _dbSet
-            .Where(m => m.PostId == postId)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<MentionDatabaseEntity>> GetByPostIdAsync(int postId) => await _dbSet
+        .Where(m => m.PostId == postId)
+        .ToListAsync();
 
-    public async Task AddRangeAsync(IEnumerable<MentionDatabaseEntity> mentions)
-    {
+    public async Task AddRangeAsync(IEnumerable<MentionDatabaseEntity> mentions) =>
         await _dbSet.AddRangeAsync(mentions);
-    }
 
-    public async Task DeleteByPostIdAsync(int postId)
-    {
-        await _dbSet
-            .Where(m => m.PostId == postId)
-            .ExecuteDeleteAsync();
-    }
+    public async Task DeleteByPostIdAsync(int postId) => await _dbSet
+        .Where(m => m.PostId == postId)
+        .ExecuteDeleteAsync();
 }

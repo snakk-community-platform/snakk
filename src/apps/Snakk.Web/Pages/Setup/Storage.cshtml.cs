@@ -25,6 +25,7 @@ public class StorageModel : SetupPageBase
         var state = GetState();
         state.AvatarStoragePath = AvatarStoragePath.Trim();
         SaveState(state);
+
         return RedirectToPage("AdminAccount");
     }
 }

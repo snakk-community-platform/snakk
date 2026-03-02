@@ -25,7 +25,10 @@ public static class HttpClientExtensions
     /// <summary>
     /// Safely fetch JSON from an endpoint with cancellation token, returning null on any error
     /// </summary>
-    public static async Task<T?> GetFromJsonAsyncSafe<T>(this HttpClient client, string requestUri, CancellationToken cancellationToken) where T : class
+    public static async Task<T?> GetFromJsonAsyncSafe<T>(
+        this HttpClient client,
+        string requestUri,
+        CancellationToken cancellationToken) where T : class
     {
         try
         {

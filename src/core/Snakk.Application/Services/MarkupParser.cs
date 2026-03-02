@@ -71,6 +71,7 @@ public partial class MarkupParser : IMarkupParser
         {
             var index = codeBlocks.Count;
             codeBlocks.Add(match.Groups[1].Value.Trim());
+
             return $"{{{{CODEBLOCK{index}}}}}";
         });
 
@@ -80,6 +81,7 @@ public partial class MarkupParser : IMarkupParser
         {
             var index = inlineCodes.Count;
             inlineCodes.Add(match.Groups[1].Value);
+
             return $"{{{{INLINECODE{index}}}}}";
         });
 
@@ -193,6 +195,7 @@ public partial class MarkupParser : IMarkupParser
         foreach (var line in lines)
         {
             var match = BlockquoteRegex().Match(line);
+
             if (match.Success)
             {
                 if (!inBlockquote)
@@ -200,6 +203,7 @@ public partial class MarkupParser : IMarkupParser
                     result.Append("<blockquote class=\"border-l-4 border-primary pl-4 my-2 italic text-base-content/80\">");
                     inBlockquote = true;
                 }
+
                 result.Append(match.Groups[1].Value);
                 result.Append("<br>");
             }
@@ -210,6 +214,7 @@ public partial class MarkupParser : IMarkupParser
                     result.Append("</blockquote>");
                     inBlockquote = false;
                 }
+
                 result.Append(line);
                 result.Append('\n');
             }
@@ -242,11 +247,13 @@ public partial class MarkupParser : IMarkupParser
                     result.Append("</ol>");
                     inOrderedList = false;
                 }
+
                 if (!inUnorderedList)
                 {
                     result.Append("<ul class=\"list-disc list-inside my-2\">");
                     inUnorderedList = true;
                 }
+
                 result.Append($"<li>{ulMatch.Groups[1].Value}</li>");
             }
             else if (olMatch.Success)
@@ -256,11 +263,13 @@ public partial class MarkupParser : IMarkupParser
                     result.Append("</ul>");
                     inUnorderedList = false;
                 }
+
                 if (!inOrderedList)
                 {
                     result.Append("<ol class=\"list-decimal list-inside my-2\">");
                     inOrderedList = true;
                 }
+
                 result.Append($"<li>{olMatch.Groups[1].Value}</li>");
             }
             else
@@ -270,11 +279,13 @@ public partial class MarkupParser : IMarkupParser
                     result.Append("</ul>");
                     inUnorderedList = false;
                 }
+
                 if (inOrderedList)
                 {
                     result.Append("</ol>");
                     inOrderedList = false;
                 }
+
                 result.Append(line);
                 result.Append('\n');
             }

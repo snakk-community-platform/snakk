@@ -8,7 +8,10 @@ public interface IHubManagementService
 
     Task<HubSettingsDto?> GetSettingsAsync(string hubId, CancellationToken cancellationToken = default);
 
-    Task<HubSettingsDto?> UpdateSettingsAsync(string hubId, UpdateHubSettingsRequest request, CancellationToken cancellationToken = default);
+    Task<HubSettingsDto?> UpdateSettingsAsync(
+        string hubId,
+        UpdateHubSettingsRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<HubModerationDto> GetModerationDataAsync(string hubId, CancellationToken cancellationToken = default);
 

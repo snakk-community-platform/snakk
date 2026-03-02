@@ -76,7 +76,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         var space = await _builder.CreateSpaceAsync(hub.Id);
 
         // Create 5 discussions
-        for (int i = 1; i <= 5; i++)
+        for (var i = 1; i <= 5; i++)
         {
             await _builder.CreateDiscussionAsync(space.Id, user.Id, $"Discussion {i}", $"discussion-{i}");
         }
@@ -161,7 +161,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         var hub = await _builder.CreateHubAsync(community.Id);
         var space = await _builder.CreateSpaceAsync(hub.Id);
 
-        for (int i = 1; i <= 5; i++)
+        for (var i = 1; i <= 5; i++)
         {
             await _builder.CreateDiscussionAsync(space.Id, user.Id, $"Discussion {i}", $"discussion-{i}");
         }

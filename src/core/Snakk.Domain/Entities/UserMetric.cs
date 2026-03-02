@@ -41,7 +41,7 @@ public class UserMetric
         if (string.IsNullOrWhiteSpace(metricType))
             throw new ArgumentException("MetricType cannot be empty", nameof(metricType));
 
-        if (scope != MetricScopeEnum.Global && scopeId == null)
+        if (scope != MetricScopeEnum.Global && scopeId is null)
             throw new ArgumentException("ScopeId is required for non-global scopes", nameof(scopeId));
 
         return new UserMetric(
@@ -59,16 +59,14 @@ public class UserMetric
         MetricScopeEnum scope,
         int? scopeId,
         int value,
-        DateTime lastUpdated)
-    {
-        return new UserMetric(
+        DateTime lastUpdated) =>
+        new UserMetric(
             userId,
             metricType,
             scope,
             scopeId,
             value,
             lastUpdated);
-    }
 
     public void Increment(int amount = 1)
     {

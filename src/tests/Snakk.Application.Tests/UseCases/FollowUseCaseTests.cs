@@ -122,8 +122,8 @@ public class FollowUseCaseTests
         await Assert.That(result.Value).IsTrue();
 
         _mockFollowRepository.Verify(r => r.AddAsync(It.Is<Follow>(f =>
-            f.SpaceId == spaceId &&
-            f.Level == FollowLevel.DiscussionsOnly)), Times.Once);
+            f.SpaceId == spaceId
+            && f.Level == FollowLevel.DiscussionsOnly)), Times.Once);
     }
 
     [Test]

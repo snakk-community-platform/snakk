@@ -25,6 +25,7 @@ public class FollowGrpcService(
     {
         var userId = RequireAuth();
         var isFollowing = await followUseCase.IsFollowingDiscussionAsync(userId, DiscussionId.From(request.DiscussionId));
+
         return new FollowToggleResponse { IsFollowing = isFollowing };
     }
 
@@ -89,6 +90,7 @@ public class FollowGrpcService(
     {
         var userId = RequireAuth();
         var isFollowing = await followUseCase.IsFollowingUserAsync(userId, UserId.From(request.UserId));
+
         return new FollowToggleResponse { IsFollowing = isFollowing };
     }
 
@@ -99,6 +101,7 @@ public class FollowGrpcService(
 
         var response = new FollowedIdsResponse();
         response.PublicIds.AddRange(spaceIds.Select(id => id.Value));
+
         return response;
     }
 
@@ -109,6 +112,7 @@ public class FollowGrpcService(
 
         var response = new FollowedIdsResponse();
         response.PublicIds.AddRange(discussionIds.Select(id => id.Value));
+
         return response;
     }
 
@@ -119,6 +123,7 @@ public class FollowGrpcService(
 
         var response = new FollowedIdsResponse();
         response.PublicIds.AddRange(userIds.Select(id => id.Value));
+
         return response;
     }
 
@@ -128,7 +133,8 @@ public class FollowGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = currentUser.GetCurrentUserId();
-        if (userId == null)
+
+        if (userId is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);

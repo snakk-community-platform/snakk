@@ -42,6 +42,7 @@ public class AdminUserServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -64,6 +65,7 @@ public class AdminUserServiceTests : IDisposable
         };
         _context.UserBans.Add(ban);
         await _context.SaveChangesAsync();
+
         return ban;
     }
 

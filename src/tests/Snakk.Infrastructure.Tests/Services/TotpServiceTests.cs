@@ -168,7 +168,9 @@ public class TotpServiceTests
     public async Task GenerateBackupCodes_ReturnsUniqueCodes()
     {
         var codes = _totpService.GenerateBackupCodes(10);
-        var uniqueCodes = codes.Distinct().ToList();
+        var uniqueCodes = codes
+            .Distinct()
+            .ToList();
 
         await Assert.That(uniqueCodes.Count).IsEqualTo(codes.Count);
     }

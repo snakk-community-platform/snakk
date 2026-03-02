@@ -46,6 +46,7 @@ public class ManagePermissionServiceTests : IDisposable
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
         return user;
     }
 
@@ -61,6 +62,7 @@ public class ManagePermissionServiceTests : IDisposable
         };
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
+
         return community;
     }
 
@@ -76,6 +78,7 @@ public class ManagePermissionServiceTests : IDisposable
         };
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
+
         return hub;
     }
 
@@ -91,6 +94,7 @@ public class ManagePermissionServiceTests : IDisposable
         };
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
+
         return space;
     }
 
@@ -120,6 +124,7 @@ public class ManagePermissionServiceTests : IDisposable
         var community = await CreateCommunity(commId);
         var hub = await CreateHub(community.Id, hubId);
         var space = await CreateSpace(hub.Id, spaceId);
+
         return (community, hub, space);
     }
 
