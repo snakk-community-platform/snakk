@@ -49,19 +49,15 @@ public class HubRepositoryTests : IDisposable
     #region GetForUpdateAsync Tests
 
     [Test]
-    public async Task GetForUpdateAsync_ExistingHub_ReturnsWithSpacesIncluded()
+    public async Task GetForUpdateAsync_ExistingHub_ReturnsWithCommunityLoaded()
     {
         var community = await _builder.CreateCommunityAsync();
         var hub = await _builder.CreateHubAsync(community.Id, "Hub With Spaces");
-        var space1 = await _builder.CreateSpaceAsync(hub.Id, "Space One");
-        var space2 = await _builder.CreateSpaceAsync(hub.Id, "Space Two");
 
         var result = await _repository.GetForUpdateAsync(hub.PublicId);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.PublicId).IsEqualTo(hub.PublicId);
-        await Assert.That(result.Spaces).IsNotNull();
-        await Assert.That(result.Spaces.Count).IsEqualTo(2);
         await Assert.That(result.Community).IsNotNull();
     }
 

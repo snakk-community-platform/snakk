@@ -62,7 +62,7 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
 
         try
         {
-            RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(offset, 50, communityId);
+            RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId);
         }
         catch
         {

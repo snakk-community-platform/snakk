@@ -55,7 +55,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.Space.Hub.Slug,
                 d.CreatedAt,
                 d.LastActivityAt,
-                d.Posts.Count,
+                d.PostCount,
                 d.ReactionCount))
             .ToListAsync();
 

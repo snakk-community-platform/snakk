@@ -29,7 +29,6 @@ public class HubRepository(SnakkDbContext context)
         return await _dbSet
             .AsTracking()
             .Include(h => h.Community)
-            .Include(h => h.Spaces)
             .FirstOrDefaultAsync(h => h.PublicId == publicId);
     }
 

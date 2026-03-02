@@ -30,7 +30,6 @@ public class SpaceRepository(SnakkDbContext context)
         return await _dbSet
             .AsTracking()
             .Include(s => s.Hub)
-            .Include(s => s.Discussions)
             .FirstOrDefaultAsync(s => s.PublicId == publicId);
     }
 

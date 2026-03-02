@@ -2,6 +2,13 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+        reservations:
+          memory: 256m
     environment:
       POSTGRES_DB: snakk
       POSTGRES_USER: snakk
@@ -32,6 +39,13 @@ services:
       - "${SNAKK_PORT:-17000}:17000"
     volumes:
       - snakk-storage:/app/storage
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2.0"
+        reservations:
+          memory: 512m
     environment:
       # Database host for entrypoint migration check
       DB_HOST: postgres

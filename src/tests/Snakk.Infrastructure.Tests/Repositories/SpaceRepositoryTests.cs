@@ -50,17 +50,14 @@ public class SpaceRepositoryIntegrationTests : IDisposable
     #region GetForUpdateAsync Tests
 
     [Test]
-    public async Task GetForUpdateAsync_ExistingSpace_ReturnsEntityWithDiscussionsIncluded()
+    public async Task GetForUpdateAsync_ExistingSpace_ReturnsWithHubLoaded()
     {
         var (user, _, hub, space, discussion, _) = await _builder.CreateFullHierarchyAsync();
-        var discussion2 = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Second Discussion");
 
         var result = await _repository.GetForUpdateAsync(space.PublicId);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.PublicId).IsEqualTo(space.PublicId);
-        await Assert.That(result.Discussions).IsNotNull();
-        await Assert.That(result.Discussions.Count).IsEqualTo(2);
         await Assert.That(result.Hub).IsNotNull();
         await Assert.That(result.Hub.Id).IsEqualTo(hub.Id);
     }

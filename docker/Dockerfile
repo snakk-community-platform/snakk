@@ -54,17 +54,16 @@ RUN cd apps/Snakk.Web && npm run build
 # (Docker COPY resets timestamps, which makes MSBuild think the output is stale)
 RUN touch core/Snakk.Sdk/Generated/SnakkApiClient.cs
 
-# --- Publish all 8 projects ---
-RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-restore
-RUN dotnet publish services/Snakk.Api/Snakk.Api.csproj -c Release -o /publish/api --no-restore
-RUN dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-restore
-RUN dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-restore
-RUN dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-restore
-RUN dotnet publish apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj -c Release -o /publish/admin --no-restore
-RUN dotnet publish tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj -c Release -o /publish/dbseeder --no-restore
-
-# Snakk.Web: skip the BuildTailwindCSS MSBuild target (CSS already built by npm above)
-RUN dotnet publish apps/Snakk.Web/Snakk.Web.csproj -c Release -o /publish/web --no-restore -p:SkipBuildTailwindCSS=true
+# --- Publish all 8 projects in parallel ---
+RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-restore & \
+    dotnet publish services/Snakk.Api/Snakk.Api.csproj -c Release -o /publish/api --no-restore & \
+    dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-restore & \
+    dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-restore & \
+    dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-restore & \
+    dotnet publish apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj -c Release -o /publish/admin --no-restore & \
+    dotnet publish tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj -c Release -o /publish/dbseeder --no-restore & \
+    dotnet publish apps/Snakk.Web/Snakk.Web.csproj -c Release -o /publish/web --no-restore -p:SkipBuildTailwindCSS=true & \
+    wait
 
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime

@@ -49,17 +49,14 @@ public class DiscussionRepositoryTests : IDisposable
     #region GetForUpdateAsync Tests
 
     [Test]
-    public async Task GetForUpdateAsync_ExistingDiscussion_ReturnsWithPostsIncluded()
+    public async Task GetForUpdateAsync_ExistingDiscussion_ReturnsWithNavigationsLoaded()
     {
         var (user, _, _, _, discussion, post) = await _builder.CreateFullHierarchyAsync();
-        var post2 = await _builder.CreatePostAsync(discussion.Id, user.Id, "Second post");
 
         var result = await _repository.GetForUpdateAsync(discussion.PublicId);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.PublicId).IsEqualTo(discussion.PublicId);
-        await Assert.That(result.Posts).IsNotNull();
-        await Assert.That(result.Posts.Count).IsEqualTo(2);
         await Assert.That(result.Space).IsNotNull();
         await Assert.That(result.CreatedByUser).IsNotNull();
     }

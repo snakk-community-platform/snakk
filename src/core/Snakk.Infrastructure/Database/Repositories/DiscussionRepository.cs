@@ -20,7 +20,6 @@ public class DiscussionRepository(SnakkDbContext context)
             .AsTracking()
             .Include(d => d.Space)
             .Include(d => d.CreatedByUser)
-            .Include(d => d.Posts)
             .FirstOrDefaultAsync(d => d.PublicId == publicId);
     }
 

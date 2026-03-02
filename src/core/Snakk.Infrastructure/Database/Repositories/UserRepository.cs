@@ -50,13 +50,13 @@ public class UserRepository(SnakkDbContext context)
 
     public async Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName)
     {
-        return await _dbSet.FirstOrDefaultAsync(u => u.DisplayName.ToLower() == displayName.ToLower());
+        return await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName, displayName));
     }
 
     public async Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(string query, int limit)
     {
         return await _dbSet
-            .Where(u => u.DisplayName.ToLower().Contains(query.ToLower()))
+            .Where(u => EF.Functions.ILike(u.DisplayName, $"%{query}%"))
             .Take(limit)
             .ToListAsync();
     }

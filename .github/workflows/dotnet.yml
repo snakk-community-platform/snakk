@@ -23,6 +23,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/Snakk.slnx
     - name: Build
-      run: dotnet build src/Snakk.slnx --no-restore
+      run: dotnet build src/Snakk.slnx --no-restore -p:SkipBuildTailwindCSS=true
     - name: Test
       run: dotnet test src/Snakk.slnx --no-build --verbosity normal
