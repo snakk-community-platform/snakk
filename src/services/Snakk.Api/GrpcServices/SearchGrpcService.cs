@@ -125,9 +125,12 @@ public class SearchGrpcService(
 
     public override async Task<SitemapResponse> GetSitemapDiscussions(SitemapRequest request, ServerCallContext context)
     {
-        var discussions = await searchRepository.GetSitemapDiscussionsAsync();
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : 25000, 1, 25000);
 
-        var response = new SitemapResponse();
+        var (discussions, totalCount) = await searchRepository.GetSitemapDiscussionsAsync(page, pageSize);
+
+        var response = new SitemapResponse { TotalCount = totalCount };
 
         foreach (var d in discussions)
         {

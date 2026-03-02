@@ -76,7 +76,10 @@ message PagedPostSearchResults {
 
 // --- Sitemap ---
 
-message SitemapRequest {}
+message SitemapRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
 
 message SitemapDiscussion {
   string public_id = 1;
@@ -90,4 +93,5 @@ message SitemapDiscussion {
 
 message SitemapResponse {
   repeated SitemapDiscussion discussions = 1;
+  int32 total_count = 2;
 }

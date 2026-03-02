@@ -93,11 +93,5 @@ public class PostRepository(SnakkDbContext context)
         };
     }
 
-    public async Task<IEnumerable<PostDatabaseEntity>> GetByUserIdAsync(int userId)
-    {
-        return await _dbSet
-            .Where(p => p.CreatedByUserId == userId)
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync();
-    }
+
 }

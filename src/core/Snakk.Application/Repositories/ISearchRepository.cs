@@ -49,7 +49,7 @@ public interface ISearchRepository
     /// <summary>
     /// Gets all discussions for sitemap generation
     /// </summary>
-    Task<List<SitemapDiscussionDto>> GetSitemapDiscussionsAsync();
+    Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize);
 
     /// <summary>
     /// Gets recent discussions with detailed information across all communities

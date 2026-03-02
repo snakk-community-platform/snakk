@@ -329,20 +329,22 @@ public class SearchRepositoryIntegrationTests : IDisposable
         await _db.Context.SaveChangesAsync();
 
         // Act
-        var sitemapItems = await _repository.GetSitemapDiscussionsAsync();
+        var (sitemapItems, totalCount) = await _repository.GetSitemapDiscussionsAsync(1, 100);
 
         // Assert: deleted discussion should be excluded
         await Assert.That(sitemapItems.Count).IsEqualTo(2);
+        await Assert.That(totalCount).IsEqualTo(2);
     }
 
     [Test]
     public async Task GetSitemapDiscussionsAsync_EmptyDatabase_ReturnsEmptyList()
     {
         // Act
-        var sitemapItems = await _repository.GetSitemapDiscussionsAsync();
+        var (sitemapItems, totalCount) = await _repository.GetSitemapDiscussionsAsync(1, 100);
 
         // Assert
         await Assert.That(sitemapItems.Count).IsEqualTo(0);
+        await Assert.That(totalCount).IsEqualTo(0);
     }
 
     [Test]
@@ -352,16 +354,35 @@ public class SearchRepositoryIntegrationTests : IDisposable
         var (user, community, hub, space, discussion, firstPost) = await _builder.CreateFullHierarchyAsync();
 
         // Act
-        var sitemapItems = await _repository.GetSitemapDiscussionsAsync();
+        var (sitemapItems, totalCount) = await _repository.GetSitemapDiscussionsAsync(1, 100);
 
         // Assert
         await Assert.That(sitemapItems.Count).IsEqualTo(1);
+        await Assert.That(totalCount).IsEqualTo(1);
         var item = sitemapItems[0];
         await Assert.That(item.PublicId).IsEqualTo(discussion.PublicId);
         await Assert.That(item.Slug).IsEqualTo(discussion.Slug);
         await Assert.That(item.HubSlug).IsEqualTo(hub.Slug);
         await Assert.That(item.SpaceSlug).IsEqualTo(space.Slug);
         await Assert.That(item.CommunitySlug).IsEqualTo(community.Slug);
+    }
+
+    [Test]
+    public async Task GetSitemapDiscussionsAsync_RespectsPagination()
+    {
+        // Arrange
+        var (user, community, hub, space, discussion, firstPost) = await _builder.CreateFullHierarchyAsync();
+        await _builder.CreateDiscussionAsync(space.Id, user.Id, "Second Discussion");
+        await _builder.CreateDiscussionAsync(space.Id, user.Id, "Third Discussion");
+
+        // Act - page 1 with pageSize 2
+        var (page1Items, totalCount) = await _repository.GetSitemapDiscussionsAsync(1, 2);
+        var (page2Items, _) = await _repository.GetSitemapDiscussionsAsync(2, 2);
+
+        // Assert
+        await Assert.That(totalCount).IsEqualTo(3);
+        await Assert.That(page1Items.Count).IsEqualTo(2);
+        await Assert.That(page2Items.Count).IsEqualTo(1);
     }
 
     #endregion

@@ -296,11 +296,17 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         };
     }
 
-    public async Task<List<SitemapDiscussionDto>> GetSitemapDiscussionsAsync()
+    public async Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize)
     {
-        var discussions = await _context.Discussions
-            .Where(d => !d.IsDeleted)
+        var query = _context.Discussions
+            .Where(d => !d.IsDeleted);
+
+        var totalCount = await query.CountAsync();
+
+        var discussions = await query
             .OrderByDescending(d => d.LastModifiedAt ?? d.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(d => new SitemapDiscussionDto(
                 d.PublicId,
                 d.Slug,
@@ -311,7 +317,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.IsPinned))
             .ToListAsync();
 
-        return discussions;
+        return (discussions, totalCount);
     }
 
     public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetRecentDiscussionsAsync(

@@ -11,7 +11,7 @@ public interface IPostRepository
     Task<IEnumerable<Post>> GetByPublicIdsAsync(IEnumerable<PostId> publicIds);
     Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId);
     Task<PagedResult<Post>> GetPagedByDiscussionIdAsync(DiscussionId discussionId, int offset, int pageSize);
-    Task<IEnumerable<Post>> GetByUserIdAsync(UserId userId);
+
     Task AddAsync(Post post);
     Task UpdateAsync(Post post);
     Task DeleteAsync(Post post);

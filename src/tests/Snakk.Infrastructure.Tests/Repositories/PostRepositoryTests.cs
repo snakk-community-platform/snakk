@@ -310,41 +310,4 @@ public class PostRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetByUserIdAsync Tests
-
-    [Test]
-    public async Task GetByUserIdAsync_ReturnPostsByUserOrderedByNewestFirst()
-    {
-        var (user, _, _, _, discussion, firstPost) = await _builder.CreateFullHierarchyAsync();
-
-        var olderPost = new PostDatabaseEntity
-        {
-            PublicId = $"post_older_{Guid.NewGuid():N}",
-            DiscussionId = discussion.Id,
-            CreatedByUserId = user.Id,
-            Content = "Older post",
-            CreatedAt = DateTime.UtcNow.AddMinutes(-10),
-            IsFirstPost = false
-        };
-        var newerPost = new PostDatabaseEntity
-        {
-            PublicId = $"post_newer_{Guid.NewGuid():N}",
-            DiscussionId = discussion.Id,
-            CreatedByUserId = user.Id,
-            Content = "Newer post",
-            CreatedAt = DateTime.UtcNow.AddMinutes(10),
-            IsFirstPost = false
-        };
-        _db.Context.Posts.AddRange(olderPost, newerPost);
-        await _db.Context.SaveChangesAsync();
-
-        var result = (await _repository.GetByUserIdAsync(user.Id)).ToList();
-
-        await Assert.That(result.Count).IsEqualTo(3);
-        // Verify descending order by CreatedAt (newest first)
-        await Assert.That(result[0].CreatedAt >= result[1].CreatedAt).IsTrue();
-        await Assert.That(result[1].CreatedAt >= result[2].CreatedAt).IsTrue();
-    }
-
-    #endregion
 }

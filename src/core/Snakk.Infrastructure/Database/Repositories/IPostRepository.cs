@@ -10,7 +10,7 @@ public interface IPostRepository : IGenericDatabaseRepository<PostDatabaseEntity
     Task<PostDatabaseEntity?> GetByPublicIdAsync(string publicId);
     Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId);
     Task<PagedResult<PostListDto>> GetPagedByDiscussionIdAsync(int discussionId, int offset, int pageSize);
-    Task<IEnumerable<PostDatabaseEntity>> GetByUserIdAsync(int userId);
+
 }
 
 public record PostListDto(

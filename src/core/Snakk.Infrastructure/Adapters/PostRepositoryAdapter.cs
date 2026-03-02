@@ -126,19 +126,7 @@ public class PostRepositoryAdapter(
         };
     }
 
-    public async Task<IEnumerable<Post>> GetByUserIdAsync(UserId userId)
-    {
-        var projections = await _context.Posts
-            .Where(p => p.CreatedByUser.PublicId == userId.Value)
-            .OrderByDescending(p => p.CreatedAt)
-            .Select(p => new PostProjection(
-                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
-                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
-                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.RevisionCount))
-            .ToListAsync();
-        return projections.Select(p => p.ToDomain());
-    }
+
 
     public async Task AddAsync(Post post)
     {
