@@ -74,6 +74,10 @@ public static class CommunityEndpoints
         int pageSize,
         CommunityUseCase useCase)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         var result = await useCase.GetPublicCommunitiesAsync(offset, pageSize);
 
         return TypedResults.Ok(new PagedResponse<CommunityResponse>(
@@ -159,6 +163,10 @@ public static class CommunityEndpoints
         int pageSize,
         HubUseCase useCase)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         var result = await useCase.GetHubsByCommunityAsync(CommunityId.From(communityId), offset, pageSize);
 
         return TypedResults.Ok(new PagedResponse<HubResponse>(

@@ -98,7 +98,7 @@ public class SpaceGrpcService(
         {
             response.Rules.Add(new SpaceRule
             {
-                Id = r.Id,
+                Id = r.Order,
                 Title = r.Title,
                 Description = r.Description
             });

@@ -87,7 +87,6 @@ public class HubManagementService : IHubManagementService
 
         return new HubOverviewDto
         {
-            Id = hub.Id,
             Slug = hub.Slug,
             Name = hub.Name,
             Description = hub.Description,
@@ -125,7 +124,6 @@ public class HubManagementService : IHubManagementService
 
         return new HubSettingsDto
         {
-            Id = hub.Id,
             Slug = hub.Slug,
             Name = hub.Name,
             Description = hub.Description,
@@ -171,7 +169,7 @@ public class HubManagementService : IHubManagementService
             .Take(50)
             .Select(r => new ModerationReportDto
             {
-                Id = r.Id,
+                PublicId = r.PublicId,
                 Type = r.ReportedPost != null ? "Post" : r.ReportedDiscussion != null ? "Discussion" : "User",
                 Reason = r.Reason != null ? r.Reason.Name : "Other",
                 Description = r.Details,
@@ -179,6 +177,8 @@ public class HubManagementService : IHubManagementService
                 ReportedByDisplayName = r.ReporterUser.DisplayName,
                 TargetUserId = r.ReportedUser != null ? r.ReportedUser.PublicId : null,
                 TargetUserDisplayName = r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
+                TargetPostPublicId = r.ReportedPost != null ? r.ReportedPost.PublicId : null,
+                TargetDiscussionPublicId = r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
                 CreatedAt = r.CreatedAt
             })
@@ -192,7 +192,7 @@ public class HubManagementService : IHubManagementService
             .Take(20)
             .Select(a => new ModerationActionDto
             {
-                Id = a.Id,
+                PublicId = a.PublicId,
                 ActionType = a.Action,
                 ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName : "System",
                 Reason = a.Reason ?? "",
@@ -243,7 +243,6 @@ public class HubManagementService : IHubManagementService
             .Where(s => s.HubId == hubDbId)
             .Select(s => new HubSpaceItemDto
             {
-                Id = s.Id,
                 Slug = s.Slug,
                 Name = s.Name,
                 Description = s.Description,
@@ -268,7 +267,6 @@ public class HubManagementService : IHubManagementService
             .OrderBy(r => r.SortOrder)
             .Select(r => new HubRuleDto
             {
-                Id = r.Id,
                 Title = r.Title,
                 Description = r.Description,
                 Order = r.SortOrder

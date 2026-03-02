@@ -408,7 +408,7 @@ public class PermissionService : IPermissionService
         // Get user and admin database IDs
         var user = await _context.Users
             .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Id, u.DisplayName })
+            .Select(u => new { u.Id, u.PublicId, u.DisplayName })
             .FirstOrDefaultAsync();
 
         if (user == null)
@@ -416,7 +416,7 @@ public class PermissionService : IPermissionService
 
         var adminUser = await _context.Users
             .Where(a => a.PublicId == adminUserId)
-            .Select(a => new { a.Id, a.Email })
+            .Select(a => new { a.Id, a.DisplayName })
             .FirstOrDefaultAsync();
 
         if (adminUser == null)
@@ -455,15 +455,14 @@ public class PermissionService : IPermissionService
         return new TemporaryRoleElevationDto
         {
             PublicId = elevation.PublicId,
-            UserId = user.Id,
+            UserPublicId = user.PublicId,
             UserDisplayName = user.DisplayName,
             RoleType = roleType,
             Scope = scope,
-            ScopeId = scopeId,
+            ScopePublicId = await ResolveScopePublicIdAsync(scope, scopeId),
             ExpiresAt = expiresAt,
             Reason = reason,
-            GrantedById = adminUser.Id,
-            GrantedByEmail = adminUser.Email,
+            GrantedByDisplayName = adminUser.DisplayName,
             CreatedAt = elevation.CreatedAt
         };
     }
@@ -509,28 +508,35 @@ public class PermissionService : IPermissionService
     {
         var now = DateTime.UtcNow;
 
-        return await _context.TemporaryRoleElevations
+        var elevations = await _context.TemporaryRoleElevations
             .Where(e => e.RevokedAt == null && e.ExpiresAt > now)
             .OrderByDescending(e => e.CreatedAt)
-            .Select(e => new TemporaryRoleElevationDto
+            .Include(e => e.User)
+            .Include(e => e.GrantedBy)
+            .Include(e => e.RevokedBy)
+            .ToListAsync();
+
+        var result = new List<TemporaryRoleElevationDto>();
+        foreach (var e in elevations)
+        {
+            result.Add(new TemporaryRoleElevationDto
             {
                 PublicId = e.PublicId,
-                UserId = e.UserId,
-                UserDisplayName = e.User!.DisplayName,
+                UserPublicId = e.User!.PublicId,
+                UserDisplayName = e.User.DisplayName,
                 RoleType = e.RoleType,
                 Scope = e.Scope,
-                ScopeId = e.ScopeId,
+                ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
                 ExpiresAt = e.ExpiresAt,
                 Reason = e.Reason,
-                GrantedById = e.GrantedById,
-                GrantedByEmail = e.GrantedBy!.Email,
+                GrantedByDisplayName = e.GrantedBy!.DisplayName,
                 RevokedAt = e.RevokedAt,
-                RevokedById = e.RevokedById,
-                RevokedByEmail = e.RevokedBy != null ? e.RevokedBy.Email : null,
+                RevokedByDisplayName = e.RevokedBy?.DisplayName,
                 RevokedReason = e.RevokedReason,
                 CreatedAt = e.CreatedAt
-            })
-            .ToListAsync();
+            });
+        }
+        return result;
     }
 
     public async Task<List<TemporaryRoleElevationDto>> GetUserTemporaryRolesAsync(string userId)
@@ -539,28 +545,46 @@ public class PermissionService : IPermissionService
         if (userDbId == null)
             return new List<TemporaryRoleElevationDto>();
 
-        return await _context.TemporaryRoleElevations
+        var elevations = await _context.TemporaryRoleElevations
             .Where(e => e.UserId == userDbId.Value)
             .OrderByDescending(e => e.CreatedAt)
-            .Select(e => new TemporaryRoleElevationDto
+            .Include(e => e.User)
+            .Include(e => e.GrantedBy)
+            .Include(e => e.RevokedBy)
+            .ToListAsync();
+
+        var result = new List<TemporaryRoleElevationDto>();
+        foreach (var e in elevations)
+        {
+            result.Add(new TemporaryRoleElevationDto
             {
                 PublicId = e.PublicId,
-                UserId = e.UserId,
-                UserDisplayName = e.User!.DisplayName,
+                UserPublicId = e.User!.PublicId,
+                UserDisplayName = e.User.DisplayName,
                 RoleType = e.RoleType,
                 Scope = e.Scope,
-                ScopeId = e.ScopeId,
+                ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
                 ExpiresAt = e.ExpiresAt,
                 Reason = e.Reason,
-                GrantedById = e.GrantedById,
-                GrantedByEmail = e.GrantedBy!.Email,
+                GrantedByDisplayName = e.GrantedBy!.DisplayName,
                 RevokedAt = e.RevokedAt,
-                RevokedById = e.RevokedById,
-                RevokedByEmail = e.RevokedBy != null ? e.RevokedBy.Email : null,
+                RevokedByDisplayName = e.RevokedBy?.DisplayName,
                 RevokedReason = e.RevokedReason,
                 CreatedAt = e.CreatedAt
-            })
-            .ToListAsync();
+            });
+        }
+        return result;
+    }
+
+    private async Task<string> ResolveScopePublicIdAsync(string scope, int scopeId)
+    {
+        return scope switch
+        {
+            "Community" => await _context.Communities.Where(c => c.Id == scopeId).Select(c => c.PublicId).FirstOrDefaultAsync() ?? "",
+            "Hub" => await _context.Hubs.Where(h => h.Id == scopeId).Select(h => h.PublicId).FirstOrDefaultAsync() ?? "",
+            "Space" => await _context.Spaces.Where(s => s.Id == scopeId).Select(s => s.PublicId).FirstOrDefaultAsync() ?? "",
+            _ => ""
+        };
     }
 
     private async Task InvalidateRoleCacheAsync(int roleId)

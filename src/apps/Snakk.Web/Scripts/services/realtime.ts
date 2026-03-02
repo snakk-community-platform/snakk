@@ -50,6 +50,24 @@ interface Subscriptions {
 (function(): void {
     'use strict';
 
+    // Sanitize HTML to prevent XSS from SignalR-delivered content
+    const sanitizeHtml = (window as any).SnakkUtils?.sanitizeHtml || function(html: string): string {
+        if (!html) return '';
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
+        doc.body.querySelectorAll('*').forEach(el => {
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+            });
+            ['href', 'src', 'action', 'formaction'].forEach(a => {
+                const v = el.getAttribute(a);
+                if (v && v.trim().toLowerCase().startsWith('javascript:')) el.removeAttribute(a);
+            });
+        });
+        return doc.body.innerHTML;
+    };
+
     // Use SNAKK debug logger if available, otherwise noop
     const snakkDebug = (window as any).SnakkDebug;
     function debugLog(message: string): void {
@@ -61,7 +79,7 @@ interface Subscriptions {
     }
 
     // Initialize SignalR connection to dedicated Realtime service
-    const realtimeUrl = window.realtimeServiceUrl || 'http://localhost:5300/realtime';
+    const realtimeUrl = window.realtimeServiceUrl || 'https://localhost:17101/realtime';
     // Exponential backoff: 0s, 2s, 10s, 30s (SignalR will repeat the last value)
     const connection = new signalR.HubConnectionBuilder()
         .withUrl(realtimeUrl)
@@ -151,10 +169,13 @@ interface Subscriptions {
 
         const wasNearBottom = isNearBottom();
 
+        // Sanitize server-delivered HTML before DOM insertion
+        const safeHtml = sanitizeHtml(message.htmlContent);
+
         // HTMX-compatible DOM updates
         switch (message.swapStrategy) {
             case "beforeend":
-                target.insertAdjacentHTML('beforeend', message.htmlContent);
+                target.insertAdjacentHTML('beforeend', safeHtml);
                 // Add animation class to new posts
                 if (message.eventType === 'post-created') {
                     const newElement = target.lastElementChild;
@@ -173,21 +194,21 @@ interface Subscriptions {
                 }
                 break;
             case "afterbegin":
-                target.insertAdjacentHTML('afterbegin', message.htmlContent);
+                target.insertAdjacentHTML('afterbegin', safeHtml);
                 break;
             case "innerHTML":
-                target.innerHTML = message.htmlContent;
+                target.innerHTML = safeHtml;
                 break;
             case "outerHTML":
                 if (message.htmlContent === "") {
                     // Hard delete - remove element
                     target.remove();
                 } else {
-                    target.outerHTML = message.htmlContent;
+                    target.outerHTML = safeHtml;
                 }
                 break;
             default:
-                target.innerHTML = message.htmlContent;
+                target.innerHTML = safeHtml;
         }
 
         // Trigger HTMX processing for new content (if needed)

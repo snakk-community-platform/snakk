@@ -120,7 +120,7 @@ public class HubGrpcService(
         {
             response.Rules.Add(new HubRule
             {
-                Id = r.Id,
+                Id = r.Order,
                 Title = r.Title,
                 Description = r.Description
             });

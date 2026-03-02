@@ -14,12 +14,14 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddSnakkServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // CORS - Allow Web client and Admin panel to call API
+        // CORS - Allow Web client and Admin panel to call API (configurable for production)
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>
             {
-                policy.WithOrigins("https://localhost:7001", "http://localhost:5001", "http://localhost:3000")
+                var origins = configuration["Cors:AllowedOrigins"]?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    ?? ["https://localhost:17110", "https://localhost:17112", "https://localhost:17111"];
+                policy.WithOrigins(origins)
                       .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "x-signalr-user-agent")
                       .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                       .AllowCredentials();
@@ -231,7 +233,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("RealtimeService", client =>
         {
             client.BaseAddress = new Uri(
-                configuration["Realtime:BaseUrl"] ?? "http://localhost:5300");
+                configuration["Realtime:BaseUrl"] ?? "https://localhost:17101");
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];
@@ -274,7 +276,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("ActivityBroadcaster", client =>
         {
             client.BaseAddress = new Uri(
-                configuration["Realtime:BaseUrl"] ?? "http://localhost:5300");
+                configuration["Realtime:BaseUrl"] ?? "https://localhost:17101");
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];

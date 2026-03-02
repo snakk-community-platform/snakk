@@ -50,11 +50,9 @@ public static class ManageContextEndpoints
             return Results.Ok(new ManageScopeDto
             {
                 ScopeType = "Community",
-                ScopeId = community.Id,
                 ScopeName = community.Name,
                 CommunitySlug = community.Slug,
                 CommunityName = community.Name,
-                CommunityId = community.Id,
                 Permissions = communityPermissions.GetGrantedPermissions()
             });
         }
@@ -78,14 +76,11 @@ public static class ManageContextEndpoints
             return Results.Ok(new ManageScopeDto
             {
                 ScopeType = "Hub",
-                ScopeId = hub.Id,
                 ScopeName = hub.Name,
                 CommunitySlug = community.Slug,
                 HubSlug = hub.Slug,
                 CommunityName = community.Name,
-                CommunityId = community.Id,
                 HubName = hub.Name,
-                HubId = hub.Id,
                 Permissions = hubPermissions.GetGrantedPermissions()
             });
         }
@@ -106,17 +101,13 @@ public static class ManageContextEndpoints
         return Results.Ok(new ManageScopeDto
         {
             ScopeType = "Space",
-            ScopeId = space.Id,
             ScopeName = space.Name,
             CommunitySlug = community.Slug,
             HubSlug = hub.Slug,
             SpaceSlug = space.Slug,
             CommunityName = community.Name,
-            CommunityId = community.Id,
             HubName = hub.Name,
-            HubId = hub.Id,
             SpaceName = space.Name,
-            SpaceId = space.Id,
             Permissions = spacePermissions.GetGrantedPermissions()
         });
     }

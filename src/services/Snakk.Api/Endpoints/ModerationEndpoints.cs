@@ -227,6 +227,10 @@ public static class ModerationEndpoints
         if (moderatorUserId == null)
             return Results.Unauthorized();
 
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         var statusId = ParseReportStatus(status);
 
         var result = await moderationUseCase.GetReportsForModeratorAsync(
@@ -401,6 +405,10 @@ public static class ModerationEndpoints
         var moderatorUserId = GetUserId(httpContext);
         if (moderatorUserId == null)
             return Results.Unauthorized();
+
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
 
         // Permission check is handled inside ModerationUseCase.GetModerationLogAsync
         var result = await moderationUseCase.GetModerationLogAsync(

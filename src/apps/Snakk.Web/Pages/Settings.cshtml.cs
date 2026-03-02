@@ -18,7 +18,7 @@ public class SettingsModel(SnakkApiClient apiClient, IConfiguration configuratio
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
 
-    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 
     public IActionResult OnGetAsync()
     {

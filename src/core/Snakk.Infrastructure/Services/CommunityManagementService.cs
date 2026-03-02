@@ -193,7 +193,7 @@ public class CommunityManagementService : ICommunityManagementService
             .Take(50)
             .Select(r => new ModerationReportDto
             {
-                Id = r.Id,
+                PublicId = r.PublicId,
                 Type = r.ReportedPost != null ? "Post" : r.ReportedDiscussion != null ? "Discussion" : "User",
                 Reason = r.Reason != null ? r.Reason.Name : "Other",
                 Description = r.Details,
@@ -201,6 +201,8 @@ public class CommunityManagementService : ICommunityManagementService
                 ReportedByDisplayName = r.ReporterUser.DisplayName,
                 TargetUserId = r.ReportedUser != null ? r.ReportedUser.PublicId : null,
                 TargetUserDisplayName = r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
+                TargetPostPublicId = r.ReportedPost != null ? r.ReportedPost.PublicId : null,
+                TargetDiscussionPublicId = r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
                 CreatedAt = r.CreatedAt
             })
@@ -214,7 +216,7 @@ public class CommunityManagementService : ICommunityManagementService
             .Take(20)
             .Select(a => new ModerationActionDto
             {
-                Id = a.Id,
+                PublicId = a.PublicId,
                 ActionType = a.Action,
                 ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName : "System",
                 Reason = a.Reason ?? "",
@@ -353,7 +355,6 @@ public class CommunityManagementService : ICommunityManagementService
             .Where(s => s.Hub.Community.PublicId == communityId)
             .Select(s => new HubSpaceItemDto
             {
-                Id = s.Id,
                 Slug = s.Slug,
                 Name = s.Name,
                 Description = s.Description,
@@ -372,7 +373,6 @@ public class CommunityManagementService : ICommunityManagementService
             .OrderBy(r => r.SortOrder)
             .Select(r => new CommunityRuleDto
             {
-                Id = r.Id,
                 Title = r.Title,
                 Description = r.Description,
                 Order = r.SortOrder

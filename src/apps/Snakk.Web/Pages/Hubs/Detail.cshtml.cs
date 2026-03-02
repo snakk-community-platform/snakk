@@ -17,7 +17,7 @@ public class DetailModel(SnakkApiClient apiClient, IConfiguration configuration,
     public PagedSpaceByHubList? Spaces { get; set; }
     public HubStats? HubStats { get; set; }
     public string Slug { get; set; } = string.Empty;
-    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
     public ICommunityContext Community => communityContext;
 
     // Sidebar scope for HTMX partials

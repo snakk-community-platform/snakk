@@ -28,17 +28,13 @@ public class ManageScopeServiceTests
         return new ManageScopeDto
         {
             ScopeType = scopeType,
-            ScopeId = 1,
             ScopeName = $"Test {scopeType}",
             CommunitySlug = communitySlug,
             HubSlug = hubSlug,
             SpaceSlug = spaceSlug,
             CommunityName = "Test Community",
-            CommunityId = 1,
             HubName = hubSlug != null ? "Test Hub" : null,
-            HubId = hubSlug != null ? 2 : null,
             SpaceName = spaceSlug != null ? "Test Space" : null,
-            SpaceId = spaceSlug != null ? 3 : null,
             Permissions = permissions ?? []
         };
     }

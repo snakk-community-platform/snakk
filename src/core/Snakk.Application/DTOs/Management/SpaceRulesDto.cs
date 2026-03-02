@@ -9,8 +9,6 @@ public class SpaceRulesDto
 
 public class SpaceRuleDto
 {
-    public int Id { get; set; }
-
     [Required]
     [StringLength(100)]
     public string Title { get; set; } = string.Empty;

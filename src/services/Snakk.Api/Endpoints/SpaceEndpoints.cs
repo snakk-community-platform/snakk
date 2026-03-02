@@ -117,6 +117,10 @@ public static class SpaceEndpoints
         int pageSize,
         Application.Repositories.ISearchRepository searchRepo)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
 
         var items = result.Items.Select(d => new DiscussionBySpaceResponse(

@@ -5,7 +5,7 @@
 @inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Community?.Name ?? "Community";
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 <div class="breadcrumb-bar">

@@ -6,7 +6,7 @@
 @inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Space?.Name ?? "Space";
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 @if (Model.Space == null)
@@ -304,7 +304,7 @@ else
     <script>
     // Global configuration for JavaScript modules
     window.SnakkConfig = {
-        apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:7291',
+        apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:17100',
         communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
         space: {
             publicId: '@Model.Space.PublicId',

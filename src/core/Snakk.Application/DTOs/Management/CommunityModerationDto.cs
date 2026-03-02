@@ -10,7 +10,7 @@ public class CommunityModerationDto
 
 public class ModerationReportDto
 {
-    public int Id { get; set; }
+    public string PublicId { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty; // "Post", "Discussion", "User"
     public string Reason { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -18,8 +18,8 @@ public class ModerationReportDto
     public string ReportedByDisplayName { get; set; } = string.Empty;
     public string? TargetUserId { get; set; }
     public string? TargetUserDisplayName { get; set; }
-    public int? TargetPostId { get; set; }
-    public int? TargetDiscussionId { get; set; }
+    public string? TargetPostPublicId { get; set; }
+    public string? TargetDiscussionPublicId { get; set; }
     public string Status { get; set; } = string.Empty; // "Pending", "Resolved", "Dismissed"
     public DateTime CreatedAt { get; set; }
     public string? ContentPreview { get; set; }
@@ -27,7 +27,7 @@ public class ModerationReportDto
 
 public class ModerationActionDto
 {
-    public int Id { get; set; }
+    public string PublicId { get; set; } = string.Empty;
     public string ActionType { get; set; } = string.Empty; // "Ban", "DeletePost", "DeleteDiscussion", "Warning"
     public string ModeratorDisplayName { get; set; } = string.Empty;
     public string? TargetUserDisplayName { get; set; }

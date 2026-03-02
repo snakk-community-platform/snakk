@@ -86,7 +86,7 @@ public abstract class BasePageModel : PageModel
     }
 
     // Common properties
-    public string ApiBaseUrl => Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    public string ApiBaseUrl => Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
     public ICommunityContext Community => CommunityContext;
     public bool ShowCommunityInBreadcrumb =>
         Configuration.GetValue<bool>("Features:MultiCommunityEnabled") &&

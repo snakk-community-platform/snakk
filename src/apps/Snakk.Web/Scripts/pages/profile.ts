@@ -29,6 +29,30 @@ interface ActivityDataPoint {
         return div.innerHTML;
     };
 
+    const sanitizeHtml = window.SnakkUtils?.sanitizeHtml || function(html: string): string {
+        if (!html) return '';
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
+        doc.body.querySelectorAll('*').forEach(el => {
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+            });
+            ['href', 'src', 'action', 'formaction'].forEach(a => {
+                const v = el.getAttribute(a);
+                if (v && v.trim().toLowerCase().startsWith('javascript:')) el.removeAttribute(a);
+            });
+        });
+        return doc.body.innerHTML;
+    };
+
+    const sanitizeUrl = window.SnakkUtils?.sanitizeUrl || function(url: string): string {
+        if (!url) return '#';
+        const trimmed = url.trim().toLowerCase();
+        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) return '#';
+        return url;
+    };
+
     const formatRelativeTime = window.SnakkUtils?.formatRelativeTime || function(dateString: string): string {
         const date = new Date(dateString);
         const now = new Date();
@@ -89,7 +113,7 @@ interface ActivityDataPoint {
                 }
 
                 container.innerHTML = data.items.map((discussion: any) => `
-                    <a href="${discussion.url}" class="block hover:bg-base-200 p-3 rounded transition-colors">
+                    <a href="${sanitizeUrl(discussion.url)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
                         <h4 class="font-medium mb-1">${escapeHtml(discussion.title)}</h4>
                         <div class="flex items-center gap-4 text-sm text-muted">
                             <span>${discussion.replyCount} ${discussion.replyCount === 1 ? 'reply' : 'replies'}</span>
@@ -122,9 +146,9 @@ interface ActivityDataPoint {
                 }
 
                 container.innerHTML = data.items.map((post: any) => `
-                    <a href="${post.discussionUrl}" class="block hover:bg-base-200 p-3 rounded transition-colors">
+                    <a href="${sanitizeUrl(post.discussionUrl)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
                         <div class="prose prose-sm max-w-none mb-2">
-                            ${post.contentPreview}
+                            ${sanitizeHtml(post.contentPreview)}
                         </div>
                         <div class="flex items-center gap-4 text-sm text-muted">
                             <span>in ${escapeHtml(post.discussionTitle)}</span>
@@ -162,7 +186,7 @@ interface ActivityDataPoint {
 
                 container.innerHTML = data.items.map((discussion: any) => `
                     <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${discussion.url}" class="block p-4">
+                        <a href="${sanitizeUrl(discussion.url)}" class="block p-4">
                             <h3 class="font-semibold mb-2">${escapeHtml(discussion.title)}</h3>
                             <div class="flex items-center gap-4 text-sm text-muted">
                                 <span>${discussion.replyCount} ${discussion.replyCount === 1 ? 'reply' : 'replies'}</span>
@@ -202,9 +226,9 @@ interface ActivityDataPoint {
 
                 container.innerHTML = data.items.map((post: any) => `
                     <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${post.discussionUrl}" class="block p-4">
+                        <a href="${sanitizeUrl(post.discussionUrl)}" class="block p-4">
                             <div class="prose prose-sm max-w-none mb-3">
-                                ${post.contentPreview}
+                                ${sanitizeHtml(post.contentPreview)}
                             </div>
                             <div class="flex items-center gap-4 text-sm text-muted">
                                 <span>in ${escapeHtml(post.discussionTitle)}</span>
@@ -362,7 +386,7 @@ interface ActivityDataPoint {
                             ${index + 1}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <a href="${discussion.url}" class="font-medium hover:underline block truncate">
+                            <a href="${sanitizeUrl(discussion.url)}" class="font-medium hover:underline block truncate">
                                 ${escapeHtml(discussion.title)}
                             </a>
                             <div class="text-sm text-muted">

@@ -70,6 +70,10 @@ public static class CommunityManagementEndpoints
             [FromServices] ICommunityManagementService service,
             CancellationToken cancellationToken) =>
         {
+            // Clamp pagination parameters
+            pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+            page = Math.Max(1, page);
+
             var members = await service.GetMembersAsync(communityId, page, pageSize, cancellationToken);
             return Results.Ok(members);
         })

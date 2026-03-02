@@ -35,6 +35,10 @@ public static class NotificationEndpoints
         HttpContext httpContext,
         NotificationUseCase notificationUseCase)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
             return Results.Unauthorized();
 

@@ -136,6 +136,10 @@ public static class DiscussionEndpoints
         string? communityId = null,
         string? cursor = null)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, cursor);
 
         return TypedResults.Ok(new PagedResponse<RecentDiscussionResponse>(
@@ -216,6 +220,10 @@ public static class DiscussionEndpoints
         PostUseCase useCase,
         Snakk.Api.Services.ICurrentUserService currentUser)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
+        offset = Math.Max(0, offset);
+
         // Get current user ID
         var userId = currentUser.GetCurrentUserId();
         var currentUserId = userId != null ? UserId.From(userId) : null;

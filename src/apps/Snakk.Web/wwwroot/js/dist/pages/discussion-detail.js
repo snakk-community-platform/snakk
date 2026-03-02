@@ -130,7 +130,7 @@
         })
             .then(response => response.text())
             .then(html => {
-            previewContent.innerHTML = html;
+            previewContent.innerHTML = sanitizeHtml(html);
         })
             .catch(() => {
             previewContent.innerHTML = '<p class="text-error">Preview failed</p>';
@@ -258,6 +258,25 @@
         div.textContent = text;
         return div.innerHTML;
     }
+    const sanitizeHtml = window.SnakkUtils?.sanitizeHtml || function (html) {
+        if (!html)
+            return '';
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
+        doc.body.querySelectorAll('*').forEach(el => {
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on'))
+                    el.removeAttribute(attr.name);
+            });
+            ['href', 'src', 'action', 'formaction'].forEach(a => {
+                const v = el.getAttribute(a);
+                if (v && v.trim().toLowerCase().startsWith('javascript:'))
+                    el.removeAttribute(a);
+            });
+        });
+        return doc.body.innerHTML;
+    };
     function submitEdit(postId, userId) {
         const textarea = document.getElementById('edit-textarea-' + postId);
         if (!textarea)
@@ -1017,7 +1036,7 @@
             });
             if (response.ok) {
                 const html = await response.text();
-                contentDiv.innerHTML = html;
+                contentDiv.innerHTML = sanitizeHtml(html);
             }
         }
         catch (err) {
@@ -1202,7 +1221,7 @@
         <div class="pl-11 mt-1">
             ${replyToHtml}
             <div id="post-content-${post.publicId}" class="prose prose-content" data-raw-content="${escapeHtml(post.content)}" data-author-name="${escapeHtml(post.author.displayName)}">
-                ${post.renderedContent || escapeHtml(post.content)}
+                ${post.renderedContent ? sanitizeHtml(post.renderedContent) : escapeHtml(post.content)}
             </div>
         </div>
     `;

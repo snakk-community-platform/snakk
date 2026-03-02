@@ -16,7 +16,7 @@ public class IndexModel(SnakkApiClient apiClient, IConfiguration configuration, 
     public PagedHubList? Hubs { get; set; }
     public PlatformStats? PlatformStats { get; set; }
     public CommunityStats? CommunityStats { get; set; }
-    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
     public ICommunityContext Community => communityContext;
 
     // Sidebar scope for HTMX partials

@@ -9,8 +9,6 @@ public class CommunityRulesDto
 
 public class CommunityRuleDto
 {
-    public int Id { get; set; }
-
     [Required]
     [StringLength(100)]
     public string Title { get; set; } = string.Empty;

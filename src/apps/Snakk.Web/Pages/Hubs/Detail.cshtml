@@ -5,7 +5,7 @@
 @inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Hub?.Name ?? "Hub";
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7291";
+    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 @if (Model.Hub == null)

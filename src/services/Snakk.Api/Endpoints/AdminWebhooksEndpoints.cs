@@ -162,6 +162,10 @@ public static class AdminWebhooksEndpoints
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
+        // Clamp pagination parameters
+        pageSize = Math.Clamp(pageSize > 0 ? pageSize : 50, 1, 100);
+        page = Math.Max(1, page);
+
         var logs = await webhookService.GetDeliveryLogsAsync(webhookId, page, pageSize, cancellationToken);
         return Results.Ok(logs);
     }

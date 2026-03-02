@@ -18,7 +18,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
 
 // Scoped token provider for Blazor Server circuits
-var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "http://localhost:5000";
+var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
 
 builder.Services.AddScoped<CircuitTokenProvider>();
 

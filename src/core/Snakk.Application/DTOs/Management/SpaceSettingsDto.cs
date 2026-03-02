@@ -4,7 +4,6 @@ namespace Snakk.Application.DTOs.Management;
 
 public class SpaceSettingsDto
 {
-    public int Id { get; set; }
     public string Slug { get; set; } = string.Empty;
 
     [Required]

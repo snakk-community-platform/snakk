@@ -95,7 +95,7 @@ public class CommunityGrpcService(
         {
             response.Rules.Add(new CommunityRule
             {
-                Id = r.Id,
+                Id = r.Order,
                 Title = r.Title,
                 Description = r.Description
             });

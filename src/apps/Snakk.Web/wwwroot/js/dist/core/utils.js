@@ -55,6 +55,58 @@
         return div.innerHTML;
     }
     /**
+     * Sanitize HTML to prevent XSS while preserving safe markup.
+     * Strips script/iframe/object tags, event handler attributes, and javascript: URLs.
+     * Use for server-rendered HTML content (e.g., rendered markdown from BFF).
+     */
+    function sanitizeHtml(html) {
+        if (!html)
+            return '';
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        // Remove dangerous elements entirely
+        const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'base', 'meta', 'link', 'style'];
+        dangerousTags.forEach(tag => {
+            doc.querySelectorAll(tag).forEach(el => el.remove());
+        });
+        // Sanitize all remaining elements
+        doc.body.querySelectorAll('*').forEach(el => {
+            // Remove event handler attributes (onclick, onerror, onload, etc.)
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on')) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+            // Sanitize href/src/action attributes — block javascript: and data: (except images)
+            ['href', 'src', 'action', 'formaction', 'xlink:href'].forEach(attrName => {
+                const value = el.getAttribute(attrName);
+                if (!value)
+                    return;
+                const trimmed = value.trim().toLowerCase();
+                if (trimmed.startsWith('javascript:')) {
+                    el.removeAttribute(attrName);
+                }
+                if (attrName === 'src' && trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) {
+                    el.removeAttribute(attrName);
+                }
+            });
+        });
+        return doc.body.innerHTML;
+    }
+    /**
+     * Sanitize a URL to prevent javascript: and data: protocol injection.
+     * Returns '#' for dangerous URLs.
+     */
+    function sanitizeUrl(url) {
+        if (!url)
+            return '#';
+        const trimmed = url.trim().toLowerCase();
+        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
+            return '#';
+        }
+        return url;
+    }
+    /**
      * Format badges HTML for a discussion (pinned, locked, tags)
      */
     function formatDiscussionBadges(discussion) {
@@ -228,6 +280,8 @@
         formatRelativeTime,
         formatCount,
         escapeHtml,
+        sanitizeHtml,
+        sanitizeUrl,
         formatDiscussionBadges,
         debounce,
         throttle,

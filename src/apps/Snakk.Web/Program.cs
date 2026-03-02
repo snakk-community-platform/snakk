@@ -87,12 +87,12 @@ builder.Services.AddWebOptimizer(pipeline =>
 // Configure HttpClient for Internal API (for avatar proxy and other BFF endpoints)
 builder.Services.AddHttpClient("InternalApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242");
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 // gRPC channel + clients for API communication
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 builder.Services.AddSingleton(sp =>
 {
     return Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions

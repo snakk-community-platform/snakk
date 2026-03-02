@@ -14,7 +14,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
 
 // gRPC client for calling Snakk.Api
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5242";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 builder.Services.AddSingleton(_ =>
     Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
     {
