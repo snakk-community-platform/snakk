@@ -1,17 +1,11 @@
 namespace Snakk.Api.Services;
 
 using Microsoft.IdentityModel.Tokens;
+using Snakk.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Snakk.Domain.Entities;
-
-public interface IJwtTokenService
-{
-    string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null);
-    string GenerateToken(User user);
-    ClaimsPrincipal? ValidateToken(string token);
-}
 
 public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
 {

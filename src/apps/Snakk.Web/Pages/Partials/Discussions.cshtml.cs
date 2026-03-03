@@ -12,6 +12,7 @@ public class DiscussionsModel(
     public IEnumerable<RecentDiscussionInfo> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
+    public int MaxOffset { get; set; }
     public bool ShowCommunity { get; set; }
     public ICommunityContext Community => communityContext;
     public string? CommunityId { get; set; }
@@ -22,6 +23,9 @@ public class DiscussionsModel(
 
         CommunityId = communityId;
         pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 20);
+        MaxOffset = maxPages * pageSize;
 
         ShowCommunity = configuration.GetValue<bool>("Features:MultiCommunityEnabled")
             && communityContext.IsDefaultCommunity

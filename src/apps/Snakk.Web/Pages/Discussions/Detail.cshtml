@@ -709,8 +709,48 @@
     {
         <div class="mt-8">
             <div class="clean-card p-6 text-center">
-                <h3 class="font-semibold mb-1">Join the conversation</h3>
-                <p class="text-sm text-muted mb-4">Log in to reply to this discussion.</p>
+                <svg xmlns="http://www.w3.org/2000/svg" width="140" height="90" viewBox="0 0 140 90" class="mx-auto mb-3 opacity-25">
+                    <!-- Empty chair at a desk -->
+                    <!-- Desk surface -->
+                    <line x1="30" y1="52" x2="110" y2="52" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <!-- Desk legs -->
+                    <line x1="35" y1="52" x2="35" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    <line x1="105" y1="52" x2="105" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+
+                    <!-- Monitor on desk -->
+                    <rect x="58" y="30" width="24" height="18" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    <line x1="70" y1="48" x2="70" y2="52" stroke="currentColor" stroke-width="1.5" />
+                    <!-- Chat bubbles on screen -->
+                    <rect x="61" y="34" width="10" height="4" rx="1.5" stroke="currentColor" stroke-width="0.8" fill="none" />
+                    <rect x="67" y="40" width="10" height="4" rx="1.5" stroke="currentColor" stroke-width="0.8" fill="none" />
+
+                    <!-- Coffee mug -->
+                    <rect x="92" y="44" width="7" height="8" rx="1" stroke="currentColor" stroke-width="1" fill="none" />
+                    <path d="M99 46 Q103 47 99 50" stroke="currentColor" stroke-width="0.8" fill="none" />
+                    <!-- Steam -->
+                    <path d="M94 42 Q93 39 95 37" stroke="currentColor" stroke-width="0.7" fill="none" stroke-linecap="round" />
+                    <path d="M97 41 Q96 38 98 36" stroke="currentColor" stroke-width="0.7" fill="none" stroke-linecap="round" />
+
+                    <!-- Empty office chair -->
+                    <ellipse cx="70" cy="68" rx="10" ry="3" stroke="currentColor" stroke-width="1.2" fill="none" />
+                    <!-- Chair back -->
+                    <path d="M62 68 Q60 58 64 55 Q70 52 76 55 Q80 58 78 68" stroke="currentColor" stroke-width="1.2" fill="none" />
+                    <!-- Chair base -->
+                    <line x1="70" y1="71" x2="70" y2="78" stroke="currentColor" stroke-width="1.2" />
+                    <!-- Chair wheels -->
+                    <line x1="70" y1="78" x2="62" y2="82" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+                    <line x1="70" y1="78" x2="78" y2="82" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+                    <circle cx="62" cy="83" r="1.2" stroke="currentColor" stroke-width="0.8" fill="none" />
+                    <circle cx="78" cy="83" r="1.2" stroke="currentColor" stroke-width="0.8" fill="none" />
+
+                    <!-- Arrow pointing at chair -->
+                    <line x1="30" y1="78" x2="55" y2="72" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2" stroke-linecap="round" />
+                    <polyline points="52,69 55,72 51,74" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    <!-- "You?" label -->
+                    <text x="24" y="82" text-anchor="middle" fill="currentColor" font-size="7" font-family="sans-serif" font-style="italic">you?</text>
+                </svg>
+                <h3 class="font-semibold mb-1">This seat is taken (just kidding)</h3>
+                <p class="text-sm text-muted mb-4">The chair's warm, the coffee's hot, and the conversation needs you.</p>
                 <a href="/auth/login?returnUrl=@Uri.EscapeDataString($"/h/{Model.HubSlug}/{Model.SpaceSlug}/{Model.SlugWithId}")" class="btn btn-primary btn-sm">
                     Log in
                 </a>

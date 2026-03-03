@@ -11,18 +11,38 @@
              model="new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community)" />
 }
 
-@if (Model.HasMoreItems)
+@if (Model.HasMoreItems && Model.NextOffset < Model.MaxOffset)
 {
     <div hx-get="/partials/discussions?offset=@Model.NextOffset&pageSize=20@(Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "")"
          hx-trigger="revealed"
          hx-swap="outerHTML"
-         class="flex justify-center py-4">
-        <span class="loading loading-spinner loading-md"></span>
+         hx-target="this"
+         hx-push-url="false"
+         class="py-1">
+        <div class="topic-item-wrapper">
+            <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+            <div class="topic-item flex-1">
+                <div class="skeleton h-4 w-3/4 mb-2"></div>
+                <div class="skeleton h-3 w-1/2"></div>
+            </div>
+        </div>
+        <div class="topic-item-wrapper">
+            <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+            <div class="topic-item flex-1">
+                <div class="skeleton h-4 w-2/3 mb-2"></div>
+                <div class="skeleton h-3 w-2/5"></div>
+            </div>
+        </div>
+        <div class="topic-item-wrapper">
+            <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+            <div class="topic-item flex-1">
+                <div class="skeleton h-4 w-4/5 mb-2"></div>
+                <div class="skeleton h-3 w-1/3"></div>
+            </div>
+        </div>
     </div>
 }
 else if (Model.Items.Any())
 {
-    <div class="text-center text-muted py-6">
-        You've reached the end
-    </div>
+    <partial name="Shared/_EndOfScroll" />
 }

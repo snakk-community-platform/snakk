@@ -2,6 +2,7 @@ using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Helpers;
 using Snakk.Api.Services;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;

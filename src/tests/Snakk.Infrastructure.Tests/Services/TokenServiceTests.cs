@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Moq;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -14,8 +16,7 @@ public class TokenServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly TokenService _tokenService;
-    private readonly IConfiguration _configuration;
-    private const string TestSecretKey = "ThisIsAVerySecureSecretKeyForTestingPurposesAtLeast256Bits!!";
+    private readonly Mock<IJwtTokenService> _jwtTokenServiceMock;
 
     public TokenServiceTests()
     {
@@ -24,17 +25,18 @@ public class TokenServiceTests : IDisposable
             .Options;
         _context = new SnakkDbContext(options);
 
-        var configValues = new Dictionary<string, string?>
-        {
-            ["Jwt:SecretKey"] = TestSecretKey,
-            ["Jwt:Issuer"] = "TestIssuer",
-            ["Jwt:Audience"] = "TestAudience"
-        };
-        _configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
+        _jwtTokenServiceMock = new Mock<IJwtTokenService>();
+        _jwtTokenServiceMock
+            .Setup(s => s.GenerateToken(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>()))
+            .Returns("mock-jwt-token");
 
-        _tokenService = new TokenService(_context, _configuration);
+        _tokenService = new TokenService(_context, _jwtTokenServiceMock.Object);
     }
 
     public void Dispose()
@@ -42,162 +44,6 @@ public class TokenServiceTests : IDisposable
         _context.Database.EnsureDeleted();
         _context.Dispose();
     }
-
-    #region Constructor Tests
-
-    [Test]
-    public async Task Constructor_WithMissingSecretKey_ThrowsInvalidOperationException()
-    {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>())
-            .Build();
-
-        var options = new DbContextOptionsBuilder<SnakkDbContext>()
-            .UseInMemoryDatabase($"TokenServiceTests_NoKey_{Guid.NewGuid()}")
-            .Options;
-        var ctx = new SnakkDbContext(options);
-
-        await Assert.That(() => new TokenService(ctx, config)).ThrowsException();
-
-        ctx.Dispose();
-    }
-
-    #endregion
-
-    #region GenerateAccessToken Tests
-
-    [Test]
-    public async Task GenerateAccessToken_ReturnsValidJwt()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user123",
-            DisplayName = "TestUser",
-            Email = "test@example.com",
-            TwoFactorEnabled = false
-        };
-
-        var token = _tokenService.GenerateAccessToken(user, ["GlobalAdmin"]);
-
-        await Assert.That(token).IsNotNull();
-        await Assert.That(token.Length).IsGreaterThan(0);
-
-        // Verify it is a valid JWT (3 parts separated by dots)
-        var parts = token.Split('.');
-        await Assert.That(parts.Length).IsEqualTo(3);
-    }
-
-    [Test]
-    public async Task GenerateAccessToken_ContainsCorrectClaims()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user456",
-            DisplayName = "John Doe",
-            Email = "john@example.com",
-            TwoFactorEnabled = true
-        };
-
-        var token = _tokenService.GenerateAccessToken(user, ["GlobalAdmin", "CommunityAdmin"]);
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-
-        await Assert.That(jwt.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value).IsEqualTo("user456");
-        await Assert.That(jwt.Claims.First(c => c.Type == ClaimTypes.Name).Value).IsEqualTo("John Doe");
-        await Assert.That(jwt.Claims.First(c => c.Type == ClaimTypes.Email).Value).IsEqualTo("john@example.com");
-        await Assert.That(jwt.Claims.First(c => c.Type == "2fa_enabled").Value).IsEqualTo("True");
-
-        var roleClaims = jwt.Claims
-            .Where(c => c.Type == ClaimTypes.Role)
-            .Select(c => c.Value)
-            .ToList();
-        await Assert.That(roleClaims).Contains("GlobalAdmin");
-        await Assert.That(roleClaims).Contains("CommunityAdmin");
-    }
-
-    [Test]
-    public async Task GenerateAccessToken_WithNullEmail_OmitsEmailClaim()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user789",
-            DisplayName = "NoEmail",
-            Email = null,
-            TwoFactorEnabled = false
-        };
-
-        var token = _tokenService.GenerateAccessToken(user, []);
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-
-        var emailClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email);
-        await Assert.That(emailClaim).IsNull();
-    }
-
-    [Test]
-    public async Task GenerateAccessToken_SetsCorrectIssuerAndAudience()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user001",
-            DisplayName = "Test",
-            Email = null,
-            TwoFactorEnabled = false
-        };
-
-        var token = _tokenService.GenerateAccessToken(user, []);
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-
-        await Assert.That(jwt.Issuer).IsEqualTo("TestIssuer");
-        await Assert.That(jwt.Audiences.First()).IsEqualTo("TestAudience");
-    }
-
-    [Test]
-    public async Task GenerateAccessToken_SetsExpirationIn30Minutes()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user002",
-            DisplayName = "Test",
-            Email = null,
-            TwoFactorEnabled = false
-        };
-
-        var beforeGeneration = DateTime.UtcNow;
-        var token = _tokenService.GenerateAccessToken(user, []);
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-
-        var expectedMin = beforeGeneration.AddMinutes(29);
-        var expectedMax = beforeGeneration.AddMinutes(31);
-
-        await Assert.That(jwt.ValidTo > expectedMin).IsTrue();
-        await Assert.That(jwt.ValidTo < expectedMax).IsTrue();
-    }
-
-    [Test]
-    public async Task GenerateAccessToken_WithEmptyRoles_NoRoleClaims()
-    {
-        var user = new TokenUser
-        {
-            PublicId = "user003",
-            DisplayName = "Test",
-            Email = null,
-            TwoFactorEnabled = false
-        };
-
-        var token = _tokenService.GenerateAccessToken(user, []);
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-
-        var roleClaims = jwt.Claims
-            .Where(c => c.Type == ClaimTypes.Role)
-            .ToList();
-        await Assert.That(roleClaims.Count).IsEqualTo(0);
-    }
-
-    #endregion
 
     #region GenerateRefreshToken Tests
 
@@ -424,14 +270,17 @@ public class TokenServiceTests : IDisposable
     [Test]
     public async Task GetTokenExpiration_WithValidToken_ReturnsExpiration()
     {
-        var user = new TokenUser
-        {
-            PublicId = "user_exp",
-            DisplayName = "Test",
-            Email = null,
-            TwoFactorEnabled = false
-        };
-        var token = _tokenService.GenerateAccessToken(user, []);
+        // Create a real JWT to test expiration parsing
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes("ThisIsAVerySecureSecretKeyForTestingPurposesAtLeast256Bits!!"));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var jwt = new JwtSecurityToken(
+            issuer: "Test",
+            audience: "Test",
+            claims: [new Claim(ClaimTypes.NameIdentifier, "user_exp")],
+            expires: DateTime.UtcNow.AddMinutes(30),
+            signingCredentials: credentials);
+        var token = new JwtSecurityTokenHandler().WriteToken(jwt);
 
         var expiration = _tokenService.GetTokenExpiration(token);
 

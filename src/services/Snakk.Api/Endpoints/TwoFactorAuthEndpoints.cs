@@ -120,6 +120,7 @@ public static class TwoFactorAuthEndpoints
         [FromBody] VerifyTwoFactorRequest request,
         ITotpService totpService,
         ITokenService tokenService,
+        IJwtTokenService jwtTokenService,
         ITrustedDeviceService trustedDeviceService,
         HttpContext httpContext,
         SnakkDbContext context)
@@ -170,19 +171,17 @@ public static class TwoFactorAuthEndpoints
             return Results.BadRequest(new { error = "Invalid 2FA code" });
 
         // Generate tokens with 2FA verified claim
-        var roles = user.Roles
+        var role = user.Roles
             .Select(r => ((Snakk.Shared.Enums.UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList();
+            .FirstOrDefault();
 
-        var appUser = new Application.Services.TokenUser
-        {
-            PublicId = user.PublicId,
-            DisplayName = user.DisplayName,
-            Email = user.Email,
-            TwoFactorEnabled = user.TwoFactorEnabled
-        };
-
-        var accessToken = tokenService.GenerateAccessToken(appUser, roles);
+        var accessToken = jwtTokenService.GenerateToken(
+            user.PublicId,
+            user.DisplayName,
+            user.Email,
+            user.EmailVerified,
+            user.OAuthProvider,
+            role);
 
         // Check if device should be trusted
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";

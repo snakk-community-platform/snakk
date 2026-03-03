@@ -27,5 +27,5 @@ jobs:
       run: dotnet build Snakk.slnx --no-restore -p:SkipBuildTailwindCSS=true
       working-directory: src
     - name: Test
-      run: dotnet test Snakk.slnx --no-build --verbosity normal
+      run: dotnet test --solution Snakk.slnx --no-build --verbosity normal
       working-directory: src
