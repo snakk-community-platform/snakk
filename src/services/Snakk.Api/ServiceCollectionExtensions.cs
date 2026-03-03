@@ -40,8 +40,8 @@ public static class ServiceCollectionExtensions
         // Data Protection for encrypting sensitive settings
         services.AddDataProtection();
 
-        // Memory Cache for settings caching
-        services.AddMemoryCache();
+        // HybridCache for settings/permissions caching (stampede-safe, also registers IMemoryCache)
+        services.AddHybridCache();
 
         // JWT Service
         services.AddSingleton<IJwtTokenService, JwtTokenService>();

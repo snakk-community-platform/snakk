@@ -1,7 +1,7 @@
 namespace Snakk.Worker.Workers;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,7 +43,7 @@ public class TemporaryRoleExpirationWorker(
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
-        var cache = scope.ServiceProvider.GetRequiredService<IMemoryCache>();
+        var cache = scope.ServiceProvider.GetRequiredService<HybridCache>();
 
         var now = DateTime.UtcNow;
 
@@ -74,7 +74,7 @@ public class TemporaryRoleExpirationWorker(
                 elevation.RevokedReason = "Automatic expiration";
 
                 // Invalidate user's permission cache
-                cache.Remove($"user_permissions_{elevation.User.PublicId}");
+                await cache.RemoveAsync($"user_permissions_{elevation.User.PublicId}");
 
                 _logger.LogInformation(
                     "Expired temporary role elevation {ElevationId} for user {UserId} ({RoleType} in {Scope}:{ScopeId})",

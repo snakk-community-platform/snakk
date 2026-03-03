@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -14,7 +15,7 @@ public class ManagePermissionServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly ManagePermissionService _service;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
 
     public ManagePermissionServiceTests()
     {
@@ -22,15 +23,18 @@ public class ManagePermissionServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"ManagePermissionServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
-        _service = new ManagePermissionService(_context, _cache, new Mock<ILogger<ManagePermissionService>>().Object);
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
+        _service = new ManagePermissionService(_context, cache, new Mock<ILogger<ManagePermissionService>>().Object);
     }
 
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
     }
 
     #region Helpers

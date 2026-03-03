@@ -1,12 +1,11 @@
 @page "/h/{hubSlug}/{slug}"
 @using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Spaces.DetailModel
-@inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Space?.Name ?? "Space";
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 @if (Model.Space == null)
@@ -48,7 +47,7 @@ else
                 <!-- Space Header -->
                 <div class="page-header">
                     <div class="flex items-start gap-4">
-                        <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
+                        <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h1>@Model.Space.Name</h1>
@@ -114,90 +113,30 @@ else
                     <div class="topic-list" id="discussions-container">
                         @foreach (var discussion in Model.Discussions.Items)
                         {
-                            var baseUrl = SnakkUrlHelper.Discussion(Model.Community, Model.HubSlug, Model.Slug, $"{discussion.Slug}~{discussion.PublicId}");
-                            var unreadUrl = $"{baseUrl}?gotoUnread=true";
+                            <partial name="Shared/_SpaceDiscussionListItem"
+                                     model="new SpaceDiscussionListItemVM(discussion, Model.Community, Model.HubSlug, Model.Slug)" />
+                        }
 
-                            <div class="topic-item-wrapper">
-                                <a href="@baseUrl" class="topic-item">
-                                    <div class="topic-content">
-                                        <div class="topic-title">
-                                            @discussion.Title
-                                            @if (discussion.IsPinned)
-                                            {
-                                                <span class="badge badge-primary badge-xs ml-2">Pinned</span>
-                                            }
-                                            @if (discussion.IsLocked)
-                                            {
-                                                <span class="badge badge-warning badge-xs ml-2">Locked</span>
-                                            }
-                                            @if (discussion.Tags != null && discussion.Tags.Count > 0)
-                                            {
-                                                @foreach (var tag in discussion.Tags)
-                                                {
-                                                    <span class="badge badge-ghost badge-xs ml-2">@tag</span>
-                                                }
-                                            }
-                                        </div>
-                                        <div class="topic-meta">
-                                            <span>@discussion.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</span>
-                                            @if (discussion.LastActivityAt != null)
-                                            {
-                                                <span class="topic-meta-separator">·</span>
-                                                <span>Last activity @Model.GetRelativeTime(discussion.LastActivityAt?.ToDateTime())</span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="topic-stats hidden sm:flex">
-                                        <div class="topic-stat">
-                                            <div class="topic-stat-icon">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="topic-stat-value">@discussion.ReactionCount</div>
-                                        </div>
-                                        <div class="topic-stat">
-                                            <div class="topic-stat-icon">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="topic-stat-value">@discussion.PostCount</div>
-                                        </div>
-                                    </div>
-                                </a>
-                                <button class="preview-btn"
-                                        data-discussion-id="@discussion.PublicId"
-                                        title="Preview first post"
-                                        type="button">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </button>
-                                <a href="@unreadUrl" class="topic-latest-link" title="Jump to first unread post">
-                                    <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </a>
+                        @if (Model.PreferEndlessScroll && Model.Discussions.HasMoreItems)
+                        {
+                            var nextOffset = Model.Discussions.Offset + Model.Discussions.PageSize;
+
+                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&spaceSlug=@Model.Slug&offset=@nextOffset&pageSize=20"
+                                 hx-trigger="revealed"
+                                 hx-swap="outerHTML"
+                                 class="flex justify-center py-4">
+                                <span class="loading loading-spinner loading-md"></span>
                             </div>
-                            <div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
-                                <div class="preview-content"></div>
+                        }
+                        else if (Model.PreferEndlessScroll)
+                        {
+                            <div class="text-center py-8 text-base-content/50 text-sm">
+                                You've reached the end
                             </div>
                         }
                     </div>
 
-                    @if (Model.PreferEndlessScroll)
-                    {
-                        <!-- Endless scroll sentinel -->
-                        <div id="scroll-sentinel" class="h-4"></div>
-                        <div id="loading-indicator" class="hidden flex justify-center py-8">
-                            <span class="loading loading-spinner loading-md"></span>
-                        </div>
-                        <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
-                            You've reached the end
-                        </div>
-                    }
-                    else if (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems)
+                    @if (!Model.PreferEndlessScroll && (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems))
                     {
                         <div class="flex justify-center gap-2 mt-8">
                             @if (Model.Discussions.Offset > 0)
@@ -299,25 +238,20 @@ else
 }
 
 @section Scripts {
-    @* INLINE REASON: Server-side configuration object with Razor syntax (@Model.Space.PublicId, etc.).
-       Values are page-specific and only known at render time. Cannot be in external .js files. *@
+    @* INLINE REASON: Server-side configuration for follow button functionality.
+       Values are page-specific and only known at render time. Cannot be in external .js files.
+       Endless scroll is now handled by HTMX (hx-trigger="revealed"). *@
     <script>
-    // Global configuration for JavaScript modules
     window.SnakkConfig = {
-        apiBaseUrl: window.snakkApiBaseUrl || 'https://localhost:17100',
         communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
         space: {
             publicId: '@Model.Space.PublicId',
             hubSlug: '@Model.HubSlug',
-            slug: '@Model.Slug',
-            preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
-            initialDiscussionsCount: @(Model.Discussions?.Items?.Count() ?? 0),
-            hasMoreItems: @(Model.Discussions?.HasMoreItems == true ? "true" : "false"),
-            pageSize: 20
+            slug: '@Model.Slug'
         }
     };
     </script>
-    <script src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true"></script>
-    <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
     }
 }

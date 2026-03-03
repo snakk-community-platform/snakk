@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -17,24 +18,27 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
 {
     private readonly SqliteTestDatabase _db;
     private readonly TestDataBuilder _builder;
-    private readonly MemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
     private readonly PermissionService _service;
 
     public PermissionServiceSqliteEdgeCaseTests()
     {
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
-        _cache = new MemoryCache(new MemoryCacheOptions());
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
         _service = new PermissionService(
             _db.Context,
-            _cache,
+            cache,
             Mock.Of<ILogger<PermissionService>>(),
             Mock.Of<ISecurityService>());
     }
 
     public void Dispose()
     {
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
         _db.Dispose();
     }
 

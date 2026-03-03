@@ -1,0 +1,40 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Protos.Discussion;
+using Snakk.Web.Services;
+
+namespace Snakk.Web.Pages.Partials;
+
+public class SpaceDiscussionsModel(
+    SnakkApiClient apiClient,
+    ICommunityContext communityContext) : PageModel
+{
+    public IEnumerable<DiscussionBySpaceInfo> Items { get; set; } = [];
+    public bool HasMoreItems { get; set; }
+    public int NextOffset { get; set; }
+    public ICommunityContext Community => communityContext;
+    public string SpaceId { get; set; } = string.Empty;
+    public string HubSlug { get; set; } = string.Empty;
+    public string SpaceSlug { get; set; } = string.Empty;
+
+    public async Task OnGetAsync(string spaceId, string hubSlug, string spaceSlug, int offset = 0, int pageSize = 20)
+    {
+        Response.Headers.CacheControl = "public, max-age=5";
+
+        SpaceId = spaceId;
+        HubSlug = hubSlug;
+        SpaceSlug = spaceSlug;
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        try
+        {
+            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
+            Items = result?.Items ?? [];
+            HasMoreItems = result?.HasMoreItems ?? false;
+            NextOffset = offset + pageSize;
+        }
+        catch
+        {
+            // Return empty on failure
+        }
+    }
+}

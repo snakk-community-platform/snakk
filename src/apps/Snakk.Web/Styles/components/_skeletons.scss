@@ -3,7 +3,7 @@
 // ============================================
 
 .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, var(--border-primary) 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-primary) 50%, var(--bg-subtle) 75%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
     border-radius: 4px;
@@ -32,4 +32,13 @@
     &.short {
         width: 60%;
     }
+}
+
+// Avatar loading shimmer — visible while <img> src is loading,
+// covered naturally once the image renders.
+img.rounded-full,
+.avatar img {
+    background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-primary) 50%, var(--bg-subtle) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
 }

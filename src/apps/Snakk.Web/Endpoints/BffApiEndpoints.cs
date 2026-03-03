@@ -652,31 +652,35 @@ public static class BffApiEndpoints
 
     // Search endpoints
     private static async Task<IResult> SearchDiscussionsAsync(
+        [FromQuery] string? q,
         [FromQuery] string? authorPublicId,
         [FromQuery] int pageSize,
+        [FromQuery] int offset,
         SnakkApiClient apiClient)
     {
         var result = await apiClient.SearchDiscussionsAsync(
-            query: null,
+            query: q,
             authorPublicId: authorPublicId,
             spacePublicId: null,
             hubPublicId: null,
-            offset: 0,
+            offset: offset,
             pageSize: pageSize);
         return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
     }
 
     private static async Task<IResult> SearchPostsAsync(
+        [FromQuery] string? q,
         [FromQuery] string? authorPublicId,
         [FromQuery] int pageSize,
+        [FromQuery] int offset,
         SnakkApiClient apiClient)
     {
         var result = await apiClient.SearchPostsAsync(
-            query: null,
+            query: q,
             authorPublicId: authorPublicId,
             discussionPublicId: null,
             spacePublicId: null,
-            offset: 0,
+            offset: offset,
             pageSize: pageSize);
         return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
     }

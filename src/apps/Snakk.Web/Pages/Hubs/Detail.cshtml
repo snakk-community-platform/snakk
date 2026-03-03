@@ -42,7 +42,7 @@ else
                 <!-- Hub Header -->
                 <div class="page-header">
                     <div class="flex items-start gap-4">
-                        <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" loading="lazy" class="w-16 h-16 rounded-full flex-shrink-0" />
+                        <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h1>@Model.Hub.Name</h1>
@@ -85,7 +85,7 @@ else
                             <div class="category-card-wrapper">
                                 <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="category-card">
                                     <div class="flex items-start gap-3">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
                                         <div class="flex-1 min-w-0">
                                             <h3 class="category-title">@space.Name</h3>
                                             @if (!string.IsNullOrEmpty(space.Description))
@@ -114,7 +114,7 @@ else
                                         <div class="avatar avatar-xs mr-2 flex-shrink-0">
                                             <img src="@SnakkUrlHelper.UserAvatar(space.LatestDiscussion.AuthorPublicId)"
                                                  alt="@space.LatestDiscussion.AuthorDisplayName"
-                                                 loading="lazy" />
+                                                 width="24" height="24" />
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <a href="@baseDiscussionUrl" class="space-latest-link">

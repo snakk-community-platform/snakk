@@ -7,6 +7,10 @@ using Snakk.Infrastructure.Database.Entities;
 public class UserRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserDatabaseEntity>(context), IUserRepository
 {
+    private static string EscapeLikePattern(string input) => input
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_");
     public async Task<UserDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
         .AsTracking()
         .FirstOrDefaultAsync(u => u.PublicId == publicId);
@@ -45,7 +49,7 @@ public class UserRepository(SnakkDbContext context)
     public async Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(
         string query,
         int limit) => await _dbSet
-        .Where(u => EF.Functions.ILike(u.DisplayName, $"%{query}%"))
+        .Where(u => EF.Functions.ILike(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
         .Take(limit)
         .ToListAsync();
 }

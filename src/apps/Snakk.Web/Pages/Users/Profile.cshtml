@@ -23,6 +23,7 @@
                 <div class="avatar avatar-lg">
                     <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId)"
                          alt="@Model.Profile.DisplayName"
+                         width="96" height="96"
                          class="rounded-full w-24 h-24" />
                 </div>
                 <div class="flex-1 text-center sm:text-left">
@@ -119,7 +120,7 @@
         </div>
 
         <!-- Activity Tabs -->
-        <div class="tabs tabs-boxed mb-6">
+        <div class="tabs tabs-box mb-6">
             <a href="/u/@Model.Profile.PublicId?tab=overview"
                class="tab @(Model.Tab == "overview" ? "tab-active" : "")">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,21 +254,32 @@
 </div>
 
 @section Scripts {
-    <script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true" defer></script>
     @* INLINE REASON: Initialization code with Razor syntax (@Model.Profile.X) for server-side data.
-       Passes render-time values to external profile.js. Must stay inline to access @Model. *@
+       Passes render-time values to external profile.js. Must stay inline to access @Model.
+       Wrapped in DOMContentLoaded to ensure deferred profile.js has executed first. *@
     <script>
-        // Initialize profile with server-side data
-        const totalActivity = @Model.Profile.DiscussionCount + @Model.Profile.PostCount;
-        const daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days);
-        const discussionCount = @Model.Profile.DiscussionCount;
-        const postCount = @Model.Profile.PostCount;
+        (function() {
+            function init() {
+                var totalActivity = @Model.Profile.DiscussionCount + @Model.Profile.PostCount;
+                var daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days);
+                var discussionCount = @Model.Profile.DiscussionCount;
+                var postCount = @Model.Profile.PostCount;
 
-        initializeProfile('@Model.Profile?.PublicId', '@Model.Tab', {
-            totalActivity: totalActivity,
-            daysSinceJoined: daysSinceJoined,
-            discussionCount: discussionCount,
-            postCount: postCount
-        });
+                initializeProfile('@Model.Profile?.PublicId', '@Model.Tab', {
+                    totalActivity: totalActivity,
+                    daysSinceJoined: daysSinceJoined,
+                    discussionCount: discussionCount,
+                    postCount: postCount
+                });
+            }
+            // On initial page load: wait for deferred profile.js to execute
+            // On HTMX navigation: readyState is already 'complete', run immediately
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
     </script>
 }

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Sdk\Snakk.Sdk.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />

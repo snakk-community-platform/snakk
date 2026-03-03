@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
   </ItemGroup>
@@ -20,7 +21,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
 
     <!-- PostgreSQL (for setup wizard DB connection test) -->
-    <PackageReference Include="Npgsql" Version="10.0.0" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
 
     <!-- gRPC client -->
     <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />

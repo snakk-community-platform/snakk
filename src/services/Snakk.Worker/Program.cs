@@ -3,12 +3,15 @@ using Snakk.Worker.Workers;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Services;
 using Snakk.Application.Services;
+using Snakk.ServiceDefaults;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 // Load shared production config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // Database (PostgreSQL) with DbContext pooling for better performance
 builder.Services.AddDbContextPool<SnakkDbContext>(options =>
@@ -18,8 +21,8 @@ builder.Services.AddDbContextPool<SnakkDbContext>(options =>
         .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
     poolSize: 32);
 
-// Memory Cache for settings and permissions caching
-builder.Services.AddMemoryCache();
+// HybridCache for settings and permissions caching (stampede-safe, also registers IMemoryCache)
+builder.Services.AddHybridCache();
 
 // File Storage for avatars
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();

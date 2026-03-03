@@ -5,12 +5,16 @@ using Snakk.Api.Endpoints;
 using Snakk.Api.Middleware;
 using Snakk.Api.Services;
 using Snakk.Infrastructure.Database;
+using Serilog;
+using Snakk.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Load shared production config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // HTTP/2 only — required for gRPC over plaintext (h2c) in Docker
 builder.WebHost.ConfigureKestrel(options =>
@@ -44,6 +48,8 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

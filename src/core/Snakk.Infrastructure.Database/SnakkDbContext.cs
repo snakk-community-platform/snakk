@@ -1091,5 +1091,31 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(d => new { d.SpaceId, d.CreatedAt })
             .IsDescending(false, true)
             .HasDatabaseName("IX_Discussion_SpaceId_CreatedAt_Desc");
+
+        // === Full-Text Search (tsvector stored generated columns + GIN indexes) ===
+
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .Property(d => d.SearchVector)
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql(
+                """to_tsvector('english', coalesce("Title", ''))""",
+                stored: true);
+
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => d.SearchVector)
+            .HasMethod("GIN")
+            .HasDatabaseName("IX_Discussion_SearchVector_Gin");
+
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .Property(p => p.SearchVector)
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql(
+                """to_tsvector('english', coalesce("Content", ''))""",
+                stored: true);
+
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => p.SearchVector)
+            .HasMethod("GIN")
+            .HasDatabaseName("IX_Post_SearchVector_Gin");
     }
 }

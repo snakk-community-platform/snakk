@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Infrastructure.Database;
@@ -12,7 +13,7 @@ public class AdminUserServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly AdminUserService _service;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
 
     public AdminUserServiceTests()
     {
@@ -20,15 +21,18 @@ public class AdminUserServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"AdminUserServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
-        _service = new AdminUserService(_context, _cache, new Mock<ILogger<AdminUserService>>().Object);
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
+        _service = new AdminUserService(_context, cache, new Mock<ILogger<AdminUserService>>().Object);
     }
 
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
     }
 
     private async Task<UserDatabaseEntity> CreateUser(string publicId, string displayName, string email)

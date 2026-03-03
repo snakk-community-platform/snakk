@@ -1,218 +1,37 @@
-"use strict";
-/**
- * Frontpage Discussion List Manager
- * Handles endless scroll, discussion previews, and scroll-to-top functionality
- */
-class FrontpageDiscussions {
-    constructor(options = {}) {
-        this.pageSize = options.pageSize || 30;
-        this.scrollSentinelMargin = options.scrollSentinelMargin || '200px';
-        this.previewMaxLength = options.previewMaxLength || 480;
-        this.nextCursor = '';
-        this.hasMore = false;
-        this.scrollObserver = null;
-        this.loadMoreRequest = null;
-        this.previewHandlersAttached = false;
-        this.previewCache = new Map();
-        this.scrollToTopBtn = null;
-        this.scrollCounter = null;
-        this.initialDiscussionCount = 0;
-    }
-    /**
-     * Initialize the frontpage discussion list
-     */
-    init() {
-        const container = document.getElementById('discussions-container');
-        const sentinel = document.getElementById('endless-scroll-sentinel');
-        if (!container || !sentinel)
-            return;
-        // Get config from global
-        const config = window.SnakkConfig;
-        if (!config || !config.discussions)
-            return;
-        this.nextCursor = config.discussions.nextCursor || '';
-        this.hasMore = config.discussions.hasMoreItems || false;
-        // Count initial discussions
-        this.initialDiscussionCount = container.querySelectorAll('.topic-item-wrapper').length;
-        // Disconnect previous observer if it exists
-        if (this.scrollObserver) {
-            this.scrollObserver.disconnect();
-        }
-        // Initialize observer for endless scroll
-        this.scrollObserver = new IntersectionObserver((entries) => {
-            const entry = entries[0];
-            if (entry && entry.isIntersecting && !this.loadMoreRequest && this.hasMore) {
-                this.loadMore();
-            }
-        }, {
-            rootMargin: this.scrollSentinelMargin
-        });
-        this.scrollObserver.observe(sentinel);
-        // Set up event delegation for preview buttons (only once)
-        if (!this.previewHandlersAttached) {
-            this.attachPreviewHandlers(container);
-            this.previewHandlersAttached = true;
-        }
-        // Initialize scroll-to-top button
-        this.initScrollToTop();
-    }
-    /**
-     * Truncate text to a maximum length
-     * @param {string} text
-     * @param {number} maxLength
-     * @returns {string}
-     */
-    truncateText(text, maxLength) {
-        if (text.length <= maxLength)
-            return text;
-        // Find the last space before maxLength
-        let truncated = text.substring(0, maxLength);
-        const lastSpace = truncated.lastIndexOf(' ');
-        if (lastSpace > 0) {
-            truncated = truncated.substring(0, lastSpace);
-        }
-        return truncated + '...';
-    }
-    /**
-     * Fetch preview content for a discussion
-     * @param {string} discussionId
-     * @returns {Promise<string|null>}
-     */
-    async fetchPreview(discussionId) {
-        if (this.previewCache.has(discussionId)) {
-            const cached = this.previewCache.get(discussionId);
-            return cached !== undefined ? cached : null;
-        }
-        try {
-            const response = await fetch(`/bff/discussions/${discussionId}/preview`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch preview');
-            }
-            const data = await response.json();
-            this.previewCache.set(discussionId, data.content);
-            return data.content;
-        }
-        catch (error) {
-            console.error('[FrontpageDiscussions] Error fetching preview:', error);
-            return null;
-        }
-    }
-    /**
-     * Toggle preview visibility
-     * @param {HTMLElement} button
-     * @param {HTMLElement} previewDiv
-     * @param {string} discussionId
-     */
-    async togglePreview(button, previewDiv, discussionId) {
-        const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
-        if (isCurrentlyVisible) {
-            // Hide preview
-            previewDiv.classList.add('hidden');
-            button.classList.remove('active');
-        }
-        else {
-            // Show preview
-            const previewContent = previewDiv.querySelector('.preview-content');
-            if (!previewContent)
-                return;
-            if (previewContent.textContent) {
-                // Already loaded, just show
-                previewDiv.classList.remove('hidden');
-                button.classList.add('active');
-            }
-            else {
-                // Load and show - create loading spinner element
-                const spinner = document.createElement('span');
-                spinner.className = 'loading loading-spinner loading-sm';
-                previewContent.replaceChildren(spinner);
-                previewDiv.classList.remove('hidden');
-                button.classList.add('active');
-                const content = await this.fetchPreview(discussionId);
-                if (content) {
-                    const truncated = this.truncateText(content, this.previewMaxLength);
-                    previewContent.textContent = truncated;
-                }
-                else {
-                    previewContent.textContent = 'Failed to load preview';
-                }
-            }
-        }
-    }
-    /**
-     * Attach preview button handlers using event delegation
-     * @param {HTMLElement} container
-     */
-    attachPreviewHandlers(container) {
-        // Use event delegation for dynamically added preview buttons
-        container.addEventListener('click', (e) => {
-            const target = e.target;
-            const button = target.closest('.preview-btn');
-            if (!button || !button.dataset.discussionId)
-                return;
-            e.preventDefault();
-            const discussionId = button.dataset.discussionId;
-            const wrapper = button.closest('.topic-item-wrapper');
-            const previewDiv = wrapper?.nextElementSibling;
-            if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
-                this.togglePreview(button, previewDiv, discussionId);
-            }
-        });
-    }
-    /**
-     * Create a discussion list item element
-     * @param {Object} discussion
-     * @returns {DocumentFragment}
-     */
-    createDiscussionElement(discussion) {
-        // Extract utility functions from SnakkUtils
-        const { formatRelativeTime, formatDiscussionBadges, escapeHtml } = window.SnakkUtils || {};
-        const config = window.SnakkConfig;
-        const communityPrefix = (config.showCommunityInDiscussionList && discussion.community?.slug)
-            ? `/c/${discussion.community.slug}`
-            : config.communityPrefix;
-        const baseUrl = `${communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}/${discussion.slug}~${discussion.publicId}`;
-        const unreadUrl = `${baseUrl}?gotoUnread=true`;
-        const spaceAvatarUrl = discussion.space.avatarUrl;
-        const relativeTime = formatRelativeTime(discussion.lastActivityAt || discussion.createdAt);
-        const badges = formatDiscussionBadges(discussion);
-        let communityLink = '';
-        if (config.showCommunityInDiscussionList && discussion.community) {
-            communityLink = `
-                <a href="/c/${discussion.community.slug}"
+"use strict";class FrontpageDiscussions{constructor(e={}){this.pageSize=e.pageSize||30,this.scrollSentinelMargin=e.scrollSentinelMargin||"200px",this.previewMaxLength=e.previewMaxLength||480,this.nextCursor="",this.hasMore=!1,this.scrollObserver=null,this.loadMoreRequest=null,this.previewHandlersAttached=!1,this.previewCache=new Map,this.scrollToTopBtn=null,this.scrollCounter=null,this.initialDiscussionCount=0}init(){const e=document.getElementById("discussions-container"),t=document.getElementById("endless-scroll-sentinel");if(!e||!t)return;const n=window.SnakkConfig;!n||!n.discussions||(this.nextCursor=n.discussions.nextCursor||"",this.hasMore=n.discussions.hasMoreItems||!1,this.initialDiscussionCount=e.querySelectorAll(".topic-item-wrapper").length,this.scrollObserver&&this.scrollObserver.disconnect(),this.scrollObserver=new IntersectionObserver(s=>{const i=s[0];i&&i.isIntersecting&&!this.loadMoreRequest&&this.hasMore&&this.loadMore()},{rootMargin:this.scrollSentinelMargin}),this.scrollObserver.observe(t),this.previewHandlersAttached||(this.attachPreviewHandlers(e),this.previewHandlersAttached=!0),this.initScrollToTop())}truncateText(e,t){if(e.length<=t)return e;let n=e.substring(0,t);const s=n.lastIndexOf(" ");return s>0&&(n=n.substring(0,s)),n+"..."}async fetchPreview(e){if(this.previewCache.has(e)){const t=this.previewCache.get(e);return t!==void 0?t:null}try{const t=await fetch(`/bff/discussions/${e}/preview`);if(!t.ok)throw new Error("Failed to fetch preview");const n=await t.json();return this.previewCache.set(e,n.content),n.content}catch(t){return console.error("[FrontpageDiscussions] Error fetching preview:",t),null}}async togglePreview(e,t,n){if(!t.classList.contains("hidden"))t.classList.add("hidden"),e.classList.remove("active");else{const i=t.querySelector(".preview-content");if(!i)return;if(i.textContent)t.classList.remove("hidden"),e.classList.add("active");else{const r=document.createElement("span");r.className="loading loading-spinner loading-sm",i.replaceChildren(r),t.classList.remove("hidden"),e.classList.add("active");const o=await this.fetchPreview(n);if(o){const l=this.truncateText(o,this.previewMaxLength);i.textContent=l}else i.textContent="Failed to load preview"}}}attachPreviewHandlers(e){e.addEventListener("click",t=>{const s=t.target.closest(".preview-btn");if(!s||!s.dataset.discussionId)return;t.preventDefault();const i=s.dataset.discussionId,o=s.closest(".topic-item-wrapper")?.nextElementSibling;o&&o.classList.contains("discussion-preview")&&this.togglePreview(s,o,i)})}createDiscussionElement(e){const{formatRelativeTime:t,formatDiscussionBadges:n,escapeHtml:s}=window.SnakkUtils||{},i=window.SnakkConfig,r=i.showCommunityInDiscussionList&&e.community?.slug?`/c/${e.community.slug}`:i.communityPrefix,o=`${r}/h/${e.hub.slug}/${e.space.slug}/${e.slug}~${e.publicId}`,l=`${o}?gotoUnread=true`,a=e.space.avatarUrl,c=t(e.lastActivityAt||e.createdAt),d=n(e);let p="";i.showCommunityInDiscussionList&&e.community&&(p=`
+                <a href="/c/${e.community.slug}"
                    class="topic-meta-link"
                    data-popup-type="community"
-                   data-popup-id="${discussion.community.publicId}"
-                   data-popup-name="${escapeHtml(discussion.community.name)}">${escapeHtml(discussion.community.name)}</a>
+                   data-popup-id="${e.community.publicId}"
+                   data-popup-name="${s(e.community.name)}">${s(e.community.name)}</a>
                 <span class="topic-meta-separator">/</span>
-            `;
-        }
-        const html = `
+            `);const u=`
             <div class="topic-item-wrapper">
-                <img src="${spaceAvatarUrl}"
-                     alt="${escapeHtml(discussion.space.name)}"
+                <img src="${a}"
+                     alt="${s(e.space.name)}"
                      loading="lazy"
                      class="w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block" />
 
                 <div class="topic-item">
                     <div class="topic-content">
                         <div class="topic-title">
-                            <a href="${baseUrl}" class="topic-title-link">${escapeHtml(discussion.title)}</a>${badges}
+                            <a href="${o}" class="topic-title-link">${s(e.title)}</a>${d}
                         </div>
                         <div class="topic-meta">
-                            ${communityLink}
-                            <a href="${communityPrefix}/h/${discussion.hub.slug}"
+                            ${p}
+                            <a href="${r}/h/${e.hub.slug}"
                                class="topic-meta-link"
                                data-popup-type="hub"
-                               data-popup-id="${discussion.hub.publicId}"
-                               data-popup-name="${escapeHtml(discussion.hub.name)}">${escapeHtml(discussion.hub.name)}</a>
+                               data-popup-id="${e.hub.publicId}"
+                               data-popup-name="${s(e.hub.name)}">${s(e.hub.name)}</a>
                             <span class="topic-meta-separator">/</span>
-                            <a href="${communityPrefix}/h/${discussion.hub.slug}/${discussion.space.slug}"
+                            <a href="${r}/h/${e.hub.slug}/${e.space.slug}"
                                class="topic-meta-link"
                                data-popup-type="space"
-                               data-popup-id="${discussion.space.publicId}"
-                               data-popup-name="${escapeHtml(discussion.space.name)}">${escapeHtml(discussion.space.name)}</a>
-                            <span class="topic-meta-separator">·</span>
-                            <span>${relativeTime}</span>
+                               data-popup-id="${e.space.publicId}"
+                               data-popup-name="${s(e.space.name)}">${s(e.space.name)}</a>
+                            <span class="topic-meta-separator">\xB7</span>
+                            <span>${c}</span>
                         </div>
                     </div>
                     <div class="topic-stats hidden sm:flex">
@@ -222,7 +41,7 @@ class FrontpageDiscussions {
                                     <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
                                 </svg>
                             </div>
-                            <div class="topic-stat-value">${discussion.reactionCount || 0}</div>
+                            <div class="topic-stat-value">${e.reactionCount||0}</div>
                         </div>
                         <div class="topic-stat">
                             <div class="topic-stat-icon">
@@ -230,201 +49,30 @@ class FrontpageDiscussions {
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                 </svg>
                             </div>
-                            <div class="topic-stat-value">${discussion.postCount || 0}</div>
+                            <div class="topic-stat-value">${e.postCount||0}</div>
                         </div>
                     </div>
                 </div>
                 <button class="preview-btn"
-                        data-discussion-id="${discussion.publicId}"
+                        data-discussion-id="${e.publicId}"
                         title="Preview first post"
                         type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <a href="${unreadUrl}" class="topic-latest-link" title="Jump to first unread post">
+                <a href="${l}" class="topic-latest-link" title="Jump to first unread post">
                     <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </a>
             </div>
-            <div class="discussion-preview hidden" data-discussion-id="${discussion.publicId}">
+            <div class="discussion-preview hidden" data-discussion-id="${e.publicId}">
                 <div class="preview-content"></div>
             </div>
-        `;
-        const template = document.createElement('template');
-        template.innerHTML = html.trim();
-        return template.content;
-    }
-    /**
-     * Initialize scroll-to-top button
-     */
-    initScrollToTop() {
-        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
-        this.scrollToTopBtn = document.getElementById('scroll-to-top-btn');
-        this.scrollCounter = document.getElementById('scroll-counter');
-        if (!scrollWrapper || !this.scrollToTopBtn)
-            return;
-        // Update counter on initial load
-        this.updateScrollCounter();
-        // Show/hide button based on scroll position
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            if (scrollTimeout !== undefined) {
-                window.cancelAnimationFrame(scrollTimeout);
-            }
-            scrollTimeout = window.requestAnimationFrame(() => {
-                this.handleScrollPosition();
-            });
-        }, { passive: true });
-        // Scroll to top on click
-        this.scrollToTopBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
-        // Initial check
-        this.handleScrollPosition();
-    }
-    /**
-     * Handle scroll position and show/hide button
-     */
-    handleScrollPosition() {
-        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
-        if (!scrollWrapper)
-            return;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const container = document.getElementById('discussions-container');
-        if (!container)
-            return;
-        const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
-        // Show button after scrolling down 800px OR after loading more discussions
-        const shouldShow = scrollTop > 800 || totalDiscussions > this.initialDiscussionCount;
-        if (shouldShow) {
-            scrollWrapper.classList.remove('hidden');
-        }
-        else {
-            scrollWrapper.classList.add('hidden');
-        }
-    }
-    /**
-     * Update the scroll counter badge
-     */
-    updateScrollCounter() {
-        if (!this.scrollCounter)
-            return;
-        const container = document.getElementById('discussions-container');
-        if (!container)
-            return;
-        const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
-        this.scrollCounter.textContent = totalDiscussions.toString();
-    }
-    /**
-     * Load more discussions from the API
-     */
-    async loadMore() {
-        // Prevent overlapping requests
-        if (this.loadMoreRequest || !this.hasMore)
-            return;
-        const config = window.SnakkConfig;
-        const container = document.getElementById('discussions-container');
-        const sentinel = document.getElementById('endless-scroll-sentinel');
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const endOfList = document.getElementById('end-of-list');
-        if (!container || !sentinel)
-            return;
-        loadingIndicator?.classList.remove('hidden');
-        try {
-            const discussionsConfig = config.discussions;
-            if (!discussionsConfig)
-                return;
-            let url = `/bff/discussions/recent?offset=0&pageSize=${this.pageSize}`;
-            if (discussionsConfig.communityId) {
-                url += `&communityId=${discussionsConfig.communityId}`;
-            }
-            if (this.nextCursor) {
-                url += `&cursor=${encodeURIComponent(this.nextCursor)}`;
-            }
-            this.loadMoreRequest = fetch(url, { credentials: 'include' });
-            const response = await this.loadMoreRequest;
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
-            if (data.items && data.items.length > 0) {
-                data.items.forEach((discussion) => {
-                    const element = this.createDiscussionElement(discussion);
-                    container.appendChild(element);
-                });
-                this.nextCursor = data.nextCursor || '';
-                this.hasMore = data.hasMoreItems && !!this.nextCursor;
-                // Update counter after loading more
-                this.updateScrollCounter();
-                this.handleScrollPosition();
-            }
-            else {
-                this.hasMore = false;
-                this.nextCursor = '';
-            }
-            if (!this.hasMore) {
-                sentinel.classList.add('hidden');
-                endOfList?.classList.remove('hidden');
-            }
-        }
-        catch (error) {
-            console.error('[FrontpageDiscussions] Failed to load more discussions:', error);
-            // Show error message to user
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'alert alert-error my-4';
-            errorDiv.innerHTML = `
+        `,h=document.createElement("template");return h.innerHTML=u.trim(),h.content}initScrollToTop(){const e=document.getElementById("scroll-to-top-wrapper");if(this.scrollToTopBtn=document.getElementById("scroll-to-top-btn"),this.scrollCounter=document.getElementById("scroll-counter"),!e||!this.scrollToTopBtn)return;this.updateScrollCounter();let t;window.addEventListener("scroll",()=>{t!==void 0&&window.cancelAnimationFrame(t),t=window.requestAnimationFrame(()=>{this.handleScrollPosition()})},{passive:!0}),this.scrollToTopBtn.addEventListener("click",()=>{window.scrollTo({top:0,behavior:"smooth"})}),this.handleScrollPosition()}handleScrollPosition(){const e=document.getElementById("scroll-to-top-wrapper");if(!e)return;const t=window.pageYOffset||document.documentElement.scrollTop,n=document.getElementById("discussions-container");if(!n)return;const s=n.querySelectorAll(".topic-item-wrapper").length;t>800||s>this.initialDiscussionCount?e.classList.remove("hidden"):e.classList.add("hidden")}updateScrollCounter(){if(!this.scrollCounter)return;const e=document.getElementById("discussions-container");if(!e)return;const t=e.querySelectorAll(".topic-item-wrapper").length;this.scrollCounter.textContent=t.toString()}async loadMore(){if(this.loadMoreRequest||!this.hasMore)return;const e=window.SnakkConfig,t=document.getElementById("discussions-container"),n=document.getElementById("endless-scroll-sentinel"),s=document.getElementById("loading-indicator"),i=document.getElementById("end-of-list");if(!(!t||!n)){s?.classList.remove("hidden");try{const r=e.discussions;if(!r)return;let o=`/bff/discussions/recent?offset=0&pageSize=${this.pageSize}`;r.communityId&&(o+=`&communityId=${r.communityId}`),this.nextCursor&&(o+=`&cursor=${encodeURIComponent(this.nextCursor)}`),this.loadMoreRequest=fetch(o,{credentials:"include"});const l=await this.loadMoreRequest;if(!l.ok)throw new Error(`HTTP ${l.status}: ${l.statusText}`);const a=await l.json();a.items&&a.items.length>0?(a.items.forEach(c=>{const d=this.createDiscussionElement(c);t.appendChild(d)}),this.nextCursor=a.nextCursor||"",this.hasMore=a.hasMoreItems&&!!this.nextCursor,this.updateScrollCounter(),this.handleScrollPosition()):(this.hasMore=!1,this.nextCursor=""),this.hasMore||(n.classList.add("hidden"),i?.classList.remove("hidden"))}catch(r){console.error("[FrontpageDiscussions] Failed to load more discussions:",r);const o=document.createElement("div");o.className="alert alert-error my-4",o.innerHTML=`
                 <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>Failed to load more discussions. Please refresh the page.</span>
-            `;
-            container.appendChild(errorDiv);
-            this.hasMore = false;
-        }
-        finally {
-            this.loadMoreRequest = null;
-            loadingIndicator?.classList.add('hidden');
-        }
-    }
-    /**
-     * Clear preview cache
-     */
-    clearPreviewCache() {
-        this.previewCache.clear();
-    }
-    /**
-     * Destroy the frontpage discussions manager (cleanup)
-     */
-    destroy() {
-        // Disconnect observer
-        if (this.scrollObserver) {
-            this.scrollObserver.disconnect();
-            this.scrollObserver = null;
-        }
-        // Clear state
-        this.previewCache.clear();
-        this.loadMoreRequest = null;
-        this.scrollToTopBtn = null;
-        this.scrollCounter = null;
-    }
-}
-// Export the class
-window.FrontpageDiscussions = FrontpageDiscussions;
-// Create and initialize singleton instance for backward compatibility
-window.SnakkFrontpageDiscussions = new FrontpageDiscussions();
-// Run on initial page load
-document.addEventListener('DOMContentLoaded', () => {
-    window.SnakkFrontpageDiscussions.init();
-});
-// Run after HTMX content swap (for SPA-like navigation)
-document.body.addEventListener('htmx:load', () => {
-    if (document.getElementById('discussions-container')) {
-        window.SnakkFrontpageDiscussions.init();
-    }
-});
-//# sourceMappingURL=frontpage-discussions.js.map
+            `,t.appendChild(o),this.hasMore=!1}finally{this.loadMoreRequest=null,s?.classList.add("hidden")}}}clearPreviewCache(){this.previewCache.clear()}destroy(){this.scrollObserver&&(this.scrollObserver.disconnect(),this.scrollObserver=null),this.previewCache.clear(),this.loadMoreRequest=null,this.scrollToTopBtn=null,this.scrollCounter=null}}window.FrontpageDiscussions=FrontpageDiscussions,window.SnakkFrontpageDiscussions=new FrontpageDiscussions,document.addEventListener("DOMContentLoaded",()=>{window.SnakkFrontpageDiscussions.init()}),document.body.addEventListener("htmx:load",()=>{document.getElementById("discussions-container")&&window.SnakkFrontpageDiscussions.init()});

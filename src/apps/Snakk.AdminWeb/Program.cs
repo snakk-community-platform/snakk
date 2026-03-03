@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using Snakk.AdminWeb.Services;
 using Snakk.Sdk;
 using System.Net.Http.Headers;
+using Serilog;
+using Snakk.ServiceDefaults;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,8 @@ builder.Configuration.AddJsonFile(
     Path.Combine(sharedConfigDir, "appsettings.Production.json"),
     optional: true,
     reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // Add services to the container
 builder.Services.AddRazorPages();
@@ -119,6 +123,8 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

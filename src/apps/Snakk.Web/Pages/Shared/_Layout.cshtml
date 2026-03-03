@@ -4,6 +4,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
+@inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersionProvider
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,20 +18,50 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}{Context.Request.QueryString}")" />
 
+    <!-- Preconnect to Realtime service for faster WebSocket setup -->
+    @{
+        var realtimeUrl = Configuration["RealtimeServiceUrl"];
+    }
+    @if (!string.IsNullOrEmpty(realtimeUrl) && Uri.TryCreate(realtimeUrl, UriKind.Absolute, out var realtimeUri))
+    {
+        <link rel="preconnect" href="@($"{realtimeUri.Scheme}://{realtimeUri.Host}:{realtimeUri.Port}")" />
+    }
+
     <!-- CSRF Token for JavaScript -->
     @{
         var tokens = Antiforgery.GetAndStoreTokens(Context);
     }
     <meta name="csrf-token" content="@tokens.RequestToken" />
 
-    <!-- Theme Management (load early to prevent flash) -->
-    <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true"></script>
+    <!-- Preload critical CSS — browser starts downloading before parser reaches stylesheet links -->
+    <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" />
 
-    <!-- Tailwind CSS + daisyUI (locally compiled) -->
+    @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
+       Reads localStorage preference, resolves auto→system, sets data-theme, and loads dark CSS if needed.
+       Full theme.ts is deferred below. *@
+    @{
+        var darkThemeCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dark-theme", isVendor: true));
+    }
+    <script>
+        (function() {
+            var p = localStorage.getItem('snakk_theme_preference');
+            var isDark = p === 'dark' || ((!p || p === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'lofi');
+            if (isDark) document.write('<link id="dark-theme-css" rel="stylesheet" href="@Html.Raw(darkThemeCssUrl)">');
+        })();
+    </script>
+
+    <!-- Dark theme CSS URL for dynamic loading by theme.ts -->
+    <meta name="dark-theme-css" content="@darkThemeCssUrl" />
+
+    <!-- Tailwind CSS + daisyUI (locally compiled, light theme only — dark loaded on demand) -->
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
 
-    <!-- HTMX -->
+    <!-- HTMX + extensions (preload on hover, head merge on SPA nav) -->
     <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     @* INLINE REASON: HTMX framework integration that must run in <head> before page renders.
        This is tiny (10 lines) and must execute immediately to handle SPA-style navigation.
        Extracting would add HTTP overhead for minimal code. *@
@@ -81,8 +112,9 @@
 
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
-    <!-- Auth (CSRF interceptor) -->
+    <!-- Auth (CSRF interceptor) + Theme (full management, toggle, system listener) -->
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
 
     <!-- Realtime Service Configuration -->
     <script>
@@ -92,7 +124,7 @@
     <!-- Note: JavaScript only calls /bff/* endpoints for HTTP (Backend-for-Frontend pattern)
          JavaScript connects directly to Snakk.Realtime for WebSocket (no proxy) -->
 </head>
-<body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true">
+<body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true" hx-ext="preload,head-support" preload>
     <div id="loading-bar" class="loading-bar"></div>
     @if (HostEnvironment.IsDevelopment())
     {
@@ -125,7 +157,7 @@
                            id="search-input"
                            name="q"
                            placeholder="Search..."
-                           class="input input-bordered input-sm w-full pl-8"
+                           class="input input-sm w-full pl-8"
                            autocomplete="off" />
 
                     <!-- Search Focus Pane -->
@@ -168,7 +200,11 @@
                     </svg>
                 </a>
                 <div id="auth-nav">
-                    <!-- Auth UI will be loaded here -->
+                    <!-- Skeleton replaced by auth-navbar.js once auth status loads -->
+                    <div class="flex items-center gap-2">
+                        <div class="skeleton h-8 w-16 rounded-lg"></div>
+                        <div class="skeleton h-8 w-8 rounded-full"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -186,11 +222,8 @@
     <footer class="footer footer-center py-6 text-muted mt-16">
     </footer>
 
-    <!-- SignalR Client (local copy) -->
-    <script src="@SnakkUrlHelper.Js("signalr.min", isVendor: true)" asp-append-version="true" defer></script>
-
-    <!-- Site JavaScript (hover popups, etc.) -->
-    <script src="@SnakkUrlHelper.Js("components/site")" asp-append-version="true" defer></script>
+    <!-- SignalR Client URL (lazy-loaded by realtime.ts when idle) -->
+    <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
 
     @if (HostEnvironment.IsDevelopment())
     {
@@ -200,11 +233,42 @@
     <!-- Realtime Updates -->
     <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
 
-    <!-- Sidebar Scrollbar Detection -->
-    <script src="@SnakkUrlHelper.Js("components/sidebar-scrollbar")" asp-append-version="true" defer></script>
+    <!-- Non-critical scripts: lazy-loaded after initial render -->
+    @{
+        var siteJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"));
+        var sidebarJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/sidebar-scrollbar"));
+        var breadcrumbJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/breadcrumb-title"));
+    }
+    <script>
+        (function() {
+            // Load a script dynamically by URL
+            function loadScript(src) {
+                var s = document.createElement('script');
+                s.src = src;
+                document.body.appendChild(s);
+            }
 
-    <!-- Breadcrumb Page Title (scroll-triggered) -->
-    <script src="@SnakkUrlHelper.Js("components/breadcrumb-title")" asp-append-version="true" defer></script>
+            // Hover popups: load on first pointer interaction
+            var popupsLoaded = false;
+            document.addEventListener('pointerover', function handler() {
+                if (popupsLoaded) return;
+                popupsLoaded = true;
+                document.removeEventListener('pointerover', handler);
+                loadScript('@Html.Raw(siteJsUrl)');
+            }, { passive: true, capture: true });
+
+            // Sidebar scrollbar + breadcrumb title: load when browser is idle
+            function loadIdleScripts() {
+                loadScript('@Html.Raw(sidebarJsUrl)');
+                loadScript('@Html.Raw(breadcrumbJsUrl)');
+            }
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(loadIdleScripts);
+            } else {
+                setTimeout(loadIdleScripts, 200);
+            }
+        })();
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

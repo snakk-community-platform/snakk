@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
     <!-- Prevent YARP's transitive System.IO.Hashing 8.0.0 from overriding the framework version -->
     <PackageReference Include="System.IO.Hashing" Version="8.0.0" ExcludeAssets="runtime" PrivateAssets="all" />

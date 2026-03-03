@@ -10,6 +10,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Grpc.Core.Interceptors;
+using Serilog;
+using Snakk.ServiceDefaults;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,8 @@ builder.Configuration.AddJsonFile(
     Path.Combine(sharedConfigDir, "appsettings.Production.json"),
     optional: true,
     reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // HTTP/1.1 + HTTP/2 — supports both REST and gRPC clients
 builder.WebHost.ConfigureKestrel(options =>
@@ -65,8 +69,8 @@ builder.Services.AddRazorPages(options =>
 // Add HttpContextAccessor for forwarding auth cookies
 builder.Services.AddHttpContextAccessor();
 
-// Memory cache for domain -> community mapping
-builder.Services.AddMemoryCache();
+// HybridCache for caching (stampede-safe, also registers IMemoryCache for domain cache)
+builder.Services.AddHybridCache();
 
 // Community context (scoped per request)
 builder.Services.AddScoped<ICommunityContext, CommunityContext>();
@@ -200,15 +204,41 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
+
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    app.UseStatusCodePagesWithReExecute("/NotFound");
     app.UseHsts();
 }
 
+app.UseStatusCodePagesWithReExecute("/NotFound");
+
 app.UseHttpsRedirection();
+
+// Resource preload hints — send Link headers for critical CSS so browser starts downloading
+// before HTML parsing. These headers propagate through YARP gateway to the client.
+app.Use(async (context, next) =>
+{
+    var accept = context.Request.Headers.Accept.ToString();
+    if (accept.Contains("text/html")
+        && !context.Request.Path.StartsWithSegments("/bff")
+        && !context.Request.Path.StartsWithSegments("/partials")
+        && !context.Request.Path.StartsWithSegments("/health"))
+    {
+        var fvp = context.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider>();
+        var basePath = context.Request.PathBase;
+
+        var tailwindUrl = fvp.AddFileVersionToPath(basePath, "/css/vendor/tailwind.css");
+        var siteUrl = fvp.AddFileVersionToPath(basePath, "/css/dist/site.css");
+
+        context.Response.Headers.Append("Link",
+            $"<{tailwindUrl}>; rel=preload; as=style, <{siteUrl}>; rel=preload; as=style");
+    }
+
+    await next();
+});
 
 // Enable response compression and WebOptimizer (skip for partials — small HTML fragments)
 app.UseWhen(

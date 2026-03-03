@@ -60,6 +60,7 @@
                     <div class="flex items-center gap-3">
                         <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ReporterUserPublicId)"
                              alt="@Model.Report.ReporterUserDisplayName"
+                             width="40" height="40"
                              class="w-10 h-10 rounded-full" />
                         <div>
                             <a href="/u/@Model.Report.ReporterUserPublicId" class="font-medium hover:underline">@Model.Report.ReporterUserDisplayName</a>
@@ -76,6 +77,7 @@
                         <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
                             <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ReportedUserPublicId)"
                                  alt="@Model.Report.ReportedUserDisplayName"
+                                 width="40" height="40"
                                  class="w-10 h-10 rounded-full" />
                             <div>
                                 <div class="text-xs text-muted mb-1">Reported User</div>
@@ -136,6 +138,7 @@
                             {
                                 <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ResolvedByUserPublicId)"
                                      alt="@Model.Report.ResolvedByUserDisplayName"
+                                     width="32" height="32"
                                      class="w-8 h-8 rounded-full" />
                             }
                             <div>
@@ -173,6 +176,7 @@
                                 <div class="flex items-start gap-3 p-3 bg-base-200 rounded-lg">
                                     <img src="@SnakkUrlHelper.UserAvatar(comment.AuthorUserPublicId)"
                                          alt="@comment.AuthorUserDisplayName"
+                                         width="32" height="32"
                                          class="w-8 h-8 rounded-full" />
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-1">
@@ -190,7 +194,7 @@
                     <form method="post" asp-page-handler="AddComment">
                         <div class="form-control">
                             <textarea name="CommentContent"
-                                      class="textarea textarea-bordered w-full"
+                                      class="textarea w-full"
                                       rows="2"
                                       placeholder="Add a comment for other moderators..."></textarea>
                         </div>
@@ -260,7 +264,7 @@
                             <span class="label-text">Resolution Note (optional)</span>
                         </label>
                         <textarea name="ResolutionNote"
-                                  class="textarea textarea-bordered w-full"
+                                  class="textarea w-full"
                                   rows="3"
                                   placeholder="Describe the action taken..."></textarea>
                     </div>
@@ -286,7 +290,7 @@
                             <span class="label-text">Dismissal Note (optional)</span>
                         </label>
                         <textarea name="ResolutionNote"
-                                  class="textarea textarea-bordered w-full"
+                                  class="textarea w-full"
                                   rows="3"
                                   placeholder="Reason for dismissal..."></textarea>
                     </div>

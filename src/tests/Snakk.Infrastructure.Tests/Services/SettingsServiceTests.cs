@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -13,7 +14,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class SettingsServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
     private readonly IConfiguration _configuration;
     private readonly Mock<ISecurityService> _mockSecurityService;
     private readonly SettingsService _service;
@@ -24,7 +25,10 @@ public class SettingsServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SettingsTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
 
         var configValues = new Dictionary<string, string?>
         {
@@ -44,7 +48,7 @@ public class SettingsServiceTests : IDisposable
 
         _service = new SettingsService(
             _context,
-            _cache,
+            cache,
             dataProtectionProvider,
             _configuration,
             _mockSecurityService.Object);
@@ -54,7 +58,7 @@ public class SettingsServiceTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
     }
 
     private async Task<UserDatabaseEntity> CreateUser(string publicId = "admin")

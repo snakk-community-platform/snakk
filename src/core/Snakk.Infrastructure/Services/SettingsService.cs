@@ -3,7 +3,7 @@ namespace Snakk.Infrastructure.Services;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Snakk.Application.DTOs.Settings;
 using Snakk.Application.Services;
@@ -14,15 +14,15 @@ using Snakk.Infrastructure.Database.Entities;
 public class SettingsService : ISettingsService
 {
     private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
+    private readonly HybridCache _cache;
     private readonly IDataProtector _dataProtector;
     private readonly IConfiguration _configuration;
     private readonly ISecurityService _securityService;
-    private const int CacheDurationMinutes = 5;
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     public SettingsService(
         SnakkDbContext context,
-        IMemoryCache cache,
+        HybridCache cache,
         IDataProtectionProvider dataProtectionProvider,
         IConfiguration configuration,
         ISecurityService securityService)
@@ -40,34 +40,34 @@ public class SettingsService : ISettingsService
     {
         var cacheKey = $"settings_category_{category}";
 
-        if (_cache.TryGetValue(cacheKey, out SettingsByCategoryResponse? cached) && cached is not null)
-            return cached;
-
-        var settings = await _context.SystemSettings
-            .Where(s => s.Category == category)
-            .OrderBy(s => s.Key)
-            .Select(s => new SettingDto
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel =>
             {
-                Id = s.PublicId,
-                Category = s.Category,
-                Key = s.Key,
-                Value = s.IsEncrypted ? DecryptValue(s.Value) : s.Value,
-                ValueType = s.ValueType,
-                IsEncrypted = s.IsEncrypted,
-                Description = s.Description,
-                UpdatedAt = s.UpdatedAt,
-                UpdatedByUsername = s.UpdatedBy != null ? s.UpdatedBy.DisplayName : null
-            })
-            .ToListAsync();
+                var settings = await _context.SystemSettings
+                    .Where(s => s.Category == category)
+                    .OrderBy(s => s.Key)
+                    .Select(s => new SettingDto
+                    {
+                        Id = s.PublicId,
+                        Category = s.Category,
+                        Key = s.Key,
+                        Value = s.IsEncrypted ? DecryptValue(s.Value) : s.Value,
+                        ValueType = s.ValueType,
+                        IsEncrypted = s.IsEncrypted,
+                        Description = s.Description,
+                        UpdatedAt = s.UpdatedAt,
+                        UpdatedByUsername = s.UpdatedBy != null ? s.UpdatedBy.DisplayName : null
+                    })
+                    .ToListAsync(cancel);
 
-        var response = new SettingsByCategoryResponse
-        {
-            Category = category,
-            Settings = settings
-        };
-
-        _cache.Set(cacheKey, response, TimeSpan.FromMinutes(CacheDurationMinutes));
-        return response;
+                return new SettingsByCategoryResponse
+                {
+                    Category = category,
+                    Settings = settings
+                };
+            },
+            CacheOptions);
     }
 
     public async Task<SettingDto?> GetSettingAsync(string category, string key)
@@ -137,7 +137,7 @@ public class SettingsService : ISettingsService
         await _context.SaveChangesAsync();
 
         // Invalidate cache
-        _cache.Remove($"settings_category_{category}");
+        await _cache.RemoveAsync($"settings_category_{category}");
 
         // Audit log
         await _securityService.LogAuditAsync(

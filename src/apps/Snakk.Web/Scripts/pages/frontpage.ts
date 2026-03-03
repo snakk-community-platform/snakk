@@ -96,14 +96,17 @@
 
     /**
      * Discussion Preview Feature
+     * Uses event delegation on #discussions-container so HTMX-loaded items work automatically.
      */
     function initDiscussionPreviews(): void {
+        const container = document.getElementById('discussions-container');
+        if (!container) return;
+
         const previewCache = new Map<string, string>();
 
         function truncateText(text: string, maxLength: number): string {
             if (text.length <= maxLength) return text;
 
-            // Find the last space before maxLength
             let truncated = text.substring(0, maxLength);
             const lastSpace = truncated.lastIndexOf(' ');
 
@@ -138,28 +141,23 @@
             const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
 
             if (isCurrentlyVisible) {
-                // Hide preview
                 previewDiv.classList.add('hidden');
                 button.classList.remove('active');
             } else {
-                // Show preview
                 const previewContent = previewDiv.querySelector<HTMLElement>('.preview-content');
                 if (!previewContent) return;
 
                 if (previewContent.textContent) {
-                    // Already loaded, just show
                     previewDiv.classList.remove('hidden');
                     button.classList.add('active');
                 } else {
-                    // Load and show
                     previewContent.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
                     previewDiv.classList.remove('hidden');
                     button.classList.add('active');
 
                     fetchPreview(discussionId).then(content => {
                         if (content) {
-                            const truncated = truncateText(content, 480);
-                            previewContent.textContent = truncated;
+                            previewContent.textContent = truncateText(content, 480);
                         } else {
                             previewContent.textContent = 'Failed to load preview';
                         }
@@ -168,23 +166,20 @@
             }
         }
 
-        // Attach click handlers to all preview buttons
-        document.querySelectorAll<HTMLElement>('.preview-btn').forEach(button => {
-            button.addEventListener('click', function(e: MouseEvent) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent bubbling to event delegation handler
-                const discussionId = this.dataset.discussionId;
-                if (!discussionId) return;
+        // Event delegation: catches clicks on both initial and HTMX-loaded preview buttons
+        container.addEventListener('click', (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const button = target.closest('.preview-btn') as HTMLElement | null;
+            if (!button || !button.dataset.discussionId) return;
 
-                const wrapper = this.closest('.topic-item-wrapper');
-                if (!wrapper) return;
+            e.preventDefault();
+            const discussionId = button.dataset.discussionId;
+            const wrapper = button.closest('.topic-item-wrapper');
+            const previewDiv = wrapper?.nextElementSibling as HTMLElement | null;
 
-                const previewDiv = wrapper.nextElementSibling as HTMLElement | null;
-
-                if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
-                    togglePreview(this, previewDiv, discussionId);
-                }
-            });
+            if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
+                togglePreview(button, previewDiv, discussionId);
+            }
         });
     }
 

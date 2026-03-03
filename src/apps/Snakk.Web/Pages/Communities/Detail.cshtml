@@ -21,7 +21,7 @@
         <div class="flex items-start gap-4">
             @if (Model.Community != null)
             {
-                <img src="@SnakkUrlHelper.CommunityAvatar(Model.Community.PublicId)" alt="" class="w-16 h-16 rounded-full flex-shrink-0" />
+                <img src="@SnakkUrlHelper.CommunityAvatar(Model.Community.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
             }
             <div class="flex-1">
                 <div class="flex items-center gap-2">
@@ -80,7 +80,7 @@
             {
                 <a href="@SnakkUrlHelper.Hub(Model.CommunityContext, hub.Slug)" class="category-card">
                     <div class="flex items-start gap-3">
-                        <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" class="w-10 h-10 rounded-full flex-shrink-0" />
+                        <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
                         <div class="flex-1 min-w-0">
                             <h2 class="category-title"
                                 data-popup-type="hub"

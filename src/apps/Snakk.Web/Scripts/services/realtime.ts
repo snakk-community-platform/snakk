@@ -78,13 +78,9 @@ interface Subscriptions {
         }
     }
 
-    // Initialize SignalR connection to dedicated Realtime service
+    // Connection is created lazily after SignalR library loads
     const realtimeUrl = window.realtimeServiceUrl || 'https://localhost:17101/realtime';
-    // Exponential backoff: 0s, 2s, 10s, 30s (SignalR will repeat the last value)
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl(realtimeUrl)
-        .withAutomaticReconnect([0, 2000, 10000, 30000])
-        .build();
+    let connection: signalR.HubConnection | null = null;
 
     // Track if user is near bottom of page for auto-scroll
     function isNearBottom(threshold: number = 200): boolean {
@@ -151,74 +147,10 @@ interface Subscriptions {
         reactionsBar.innerHTML = html;
     }
 
-    // Handle incoming updates
-    connection.on("ReceiveUpdate", function(message: RealtimeMessage): void {
-        debugLog(`Update: ${message.eventType}`);
-
-        // Handle reaction updates specially
-        if (message.eventType === 'reaction-updated' && message.postId && message.counts) {
-            handleReactionUpdate(message.postId, message.counts);
-            return;
-        }
-
-        const target = document.getElementById(message.targetId);
-        if (!target) {
-            debugLog(`Target not found: ${message.targetId}`);
-            return;
-        }
-
-        const wasNearBottom = isNearBottom();
-
-        // Sanitize server-delivered HTML before DOM insertion
-        const safeHtml = sanitizeHtml(message.htmlContent);
-
-        // HTMX-compatible DOM updates
-        switch (message.swapStrategy) {
-            case "beforeend":
-                target.insertAdjacentHTML('beforeend', safeHtml);
-                // Add animation class to new posts
-                if (message.eventType === 'post-created') {
-                    const newElement = target.lastElementChild;
-                    if (newElement) {
-                        newElement.classList.add('post-new');
-                        // Remove animation class after animation completes
-                        setTimeout(() => newElement.classList.remove('post-new'), 500);
-
-                        // Auto-scroll if user was near bottom, otherwise show indicator
-                        if (wasNearBottom) {
-                            newElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                        } else {
-                            showNewPostIndicator();
-                        }
-                    }
-                }
-                break;
-            case "afterbegin":
-                target.insertAdjacentHTML('afterbegin', safeHtml);
-                break;
-            case "innerHTML":
-                target.innerHTML = safeHtml;
-                break;
-            case "outerHTML":
-                if (message.htmlContent === "") {
-                    // Hard delete - remove element
-                    target.remove();
-                } else {
-                    target.outerHTML = safeHtml;
-                }
-                break;
-            default:
-                target.innerHTML = safeHtml;
-        }
-
-        // Trigger HTMX processing for new content (if needed)
-        if (typeof htmx !== 'undefined') {
-            htmx.process(target.parentElement || document.body);
-        }
-    });
-
     // Subscribe to groups based on page context
     function subscribeToGroups(): void {
+        if (!connection) return;
+
         // Always subscribe to global
         connection.invoke("SubscribeToGlobal")
             .catch(_err => debugLog('Failed to subscribe to global'));
@@ -258,6 +190,8 @@ interface Subscriptions {
 
     // Update subscriptions based on current page context
     function updateSubscriptions(): void {
+        if (!connection) return;
+
         const discussionId = document.body.dataset.discussionId;
         const spaceSlug = document.body.dataset.spaceSlug;
         const hubSlug = document.body.dataset.hubSlug;
@@ -311,6 +245,8 @@ interface Subscriptions {
 
     // Subscribe to user notifications if logged in
     function subscribeToUserNotifications(): void {
+        if (!connection) return;
+
         const userId = window.currentUserId;
         if (userId) {
             debugLog(`Subscribe: notifications ${userId}`);
@@ -319,56 +255,141 @@ interface Subscriptions {
         }
     }
 
-    // Start connection
-    connection.start()
-        .then(() => {
-            debugLog('Connected');
-            subscribeToGroups();
-        })
-        .catch(_err => {
-            debugLog('Connection error');
+    // Load SignalR library on demand from meta tag URL
+    function loadSignalR(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (typeof signalR !== 'undefined') {
+                resolve();
+                return;
+            }
+
+            var meta = document.querySelector('meta[name="signalr-src"]');
+            if (!meta) {
+                reject(new Error('SignalR meta tag not found'));
+                return;
+            }
+
+            var script = document.createElement('script');
+            script.src = meta.getAttribute('content')!;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load SignalR'));
+            document.body.appendChild(script);
         });
+    }
 
-    // Re-subscribe on reconnect (idempotent)
-    connection.onreconnected(() => {
-        debugLog('Reconnected');
-        subscribeToGroups();
-    });
+    // Start connection after browser is idle to avoid competing with initial render
+    function startConnection(): void {
+        loadSignalR()
+            .then(() => {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(realtimeUrl)
+                    .withAutomaticReconnect([0, 2000, 10000, 30000])
+                    .build();
 
-    connection.onreconnecting(() => {
-        debugLog('Reconnecting...');
-    });
+                // Register event handlers
+                connection.on("ReceiveUpdate", handleReceiveUpdate);
+                connection.on("ReceiveNotificationCount", handleNotificationCount);
+                connection.on("ReceiveNotification", handleNotification);
 
-    connection.onclose(() => {
-        debugLog('Disconnected');
-    });
+                connection.onreconnected(() => {
+                    debugLog('Reconnected');
+                    subscribeToGroups();
+                });
+                connection.onreconnecting(() => debugLog('Reconnecting...'));
+                connection.onclose(() => debugLog('Disconnected'));
 
-    // Update subscriptions when navigating via HTMX
-    document.body.addEventListener('htmx:load', function() {
-        // Wait a tick for page scripts to update body data attributes
-        setTimeout(updateSubscriptions, 100);
-    });
+                window.snakkRealtime = connection;
 
-    // Handle notification count updates
-    connection.on("ReceiveNotificationCount", function(data: NotificationData): void {
+                return connection.start();
+            })
+            .then(() => {
+                debugLog('Connected');
+                subscribeToGroups();
+            })
+            .catch(_err => {
+                debugLog('Connection error');
+            });
+    }
+
+    // Event handlers (defined as named functions for registration)
+    function handleReceiveUpdate(message: RealtimeMessage): void {
+        debugLog(`Update: ${message.eventType}`);
+
+        if (message.eventType === 'reaction-updated' && message.postId && message.counts) {
+            handleReactionUpdate(message.postId, message.counts);
+            return;
+        }
+
+        const target = document.getElementById(message.targetId);
+        if (!target) {
+            debugLog(`Target not found: ${message.targetId}`);
+            return;
+        }
+
+        const wasNearBottom = isNearBottom();
+        const safeHtml = sanitizeHtml(message.htmlContent);
+
+        switch (message.swapStrategy) {
+            case "beforeend":
+                target.insertAdjacentHTML('beforeend', safeHtml);
+                if (message.eventType === 'post-created') {
+                    const newElement = target.lastElementChild;
+                    if (newElement) {
+                        newElement.classList.add('post-new');
+                        setTimeout(() => newElement.classList.remove('post-new'), 500);
+                        if (wasNearBottom) {
+                            newElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        } else {
+                            showNewPostIndicator();
+                        }
+                    }
+                }
+                break;
+            case "afterbegin":
+                target.insertAdjacentHTML('afterbegin', safeHtml);
+                break;
+            case "innerHTML":
+                target.innerHTML = safeHtml;
+                break;
+            case "outerHTML":
+                if (message.htmlContent === "") {
+                    target.remove();
+                } else {
+                    target.outerHTML = safeHtml;
+                }
+                break;
+            default:
+                target.innerHTML = safeHtml;
+        }
+
+        if (typeof htmx !== 'undefined') {
+            htmx.process(target.parentElement || document.body);
+        }
+    }
+
+    function handleNotificationCount(data: NotificationData): void {
         debugLog(`Notification count: ${data.unreadCount}`);
-
-        // Dispatch custom event
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification-count', {
             detail: { unreadCount: data.unreadCount }
         }));
-    });
+    }
 
-    // Handle new notifications
-    connection.on("ReceiveNotification", function(notification: Notification): void {
+    function handleNotification(notification: Notification): void {
         debugLog(`Notification: ${notification.type}`);
-
-        // Dispatch custom event
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification', {
             detail: { notification }
         }));
-    });
+    }
 
-    // Expose connection for debugging
-    window.snakkRealtime = connection;
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(startConnection);
+    } else {
+        setTimeout(startConnection, 200);
+    }
+
+    // Update subscriptions when navigating via HTMX
+    document.body.addEventListener('htmx:load', function() {
+        if (!connection) return;
+        setTimeout(updateSubscriptions, 100);
+    });
 })();

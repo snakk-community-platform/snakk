@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Admin;
 using Snakk.Application.Services;
@@ -9,35 +9,28 @@ namespace Snakk.Infrastructure.Services;
 
 public class AdminUserService(
     SnakkDbContext context,
-    IMemoryCache cache,
+    HybridCache cache,
     ILogger<AdminUserService> logger) : IAdminUserService
 {
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
     public async Task<AdminUserDto?> GetUserByIdAsync(string userId)
     {
-        // Try cache first
         var cacheKey = $"admin_user_{userId}";
 
-        if (cache.TryGetValue<AdminUserDto>(cacheKey, out var cachedUser))
-            return cachedUser;
-
-        var user = await context.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new AdminUserDto
-            {
-                PublicId = u.PublicId,
-                DisplayName = u.DisplayName,
-                Email = u.Email!,
-                CreatedAt = u.CreatedAt
-            })
-            .FirstOrDefaultAsync();
-
-        if (user is not null)
-        {
-            // Cache for 5 minutes
-            cache.Set(cacheKey, user, TimeSpan.FromMinutes(5));
-        }
-
-        return user;
+        return await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => await context.Users
+                .Where(u => u.PublicId == userId)
+                .Select(u => new AdminUserDto
+                {
+                    PublicId = u.PublicId,
+                    DisplayName = u.DisplayName,
+                    Email = u.Email!,
+                    CreatedAt = u.CreatedAt
+                })
+                .FirstOrDefaultAsync(cancel),
+            CacheOptions);
     }
 
     public async Task<bool> UserExistsAsync(string userId) =>

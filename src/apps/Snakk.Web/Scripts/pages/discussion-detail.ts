@@ -327,7 +327,7 @@ function editPost(postId: string, userId: string): void {
 
     contentDiv.innerHTML = `
         <form id="edit-form-${postId}" class="space-y-2">
-            <textarea class="textarea textarea-bordered w-full min-h-20 text-sm resize-none"
+            <textarea class="textarea w-full min-h-20 text-sm resize-none"
                       id="edit-textarea-${postId}"
                       oninput="autoGrow(this)">${escapeHtml(rawContent)}</textarea>
             <div class="flex items-center justify-between">

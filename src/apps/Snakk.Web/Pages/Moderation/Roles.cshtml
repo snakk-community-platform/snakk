@@ -26,7 +26,7 @@
                        name="userId"
                        value="@Model.UserId"
                        placeholder="Enter user ID to view their roles..."
-                       class="input input-bordered w-full" />
+                       class="input w-full" />
             </div>
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
@@ -39,6 +39,7 @@
             <div class="flex items-center gap-4">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.UserProfile.PublicId)"
                      alt="@Model.UserProfile.DisplayName"
+                     width="64" height="64"
                      class="w-16 h-16 rounded-full" />
                 <div class="flex-1">
                     <h2 class="text-xl font-bold">@Model.UserProfile.DisplayName</h2>
@@ -85,6 +86,7 @@
                         <div class="flex items-center gap-3">
                             <img src="@SnakkUrlHelper.UserAvatar(role.UserPublicId)"
                                  alt="@role.UserDisplayName"
+                                 width="40" height="40"
                                  class="w-10 h-10 rounded-full" />
                             <div>
                                 <div class="flex items-center gap-2 mb-1">
@@ -180,7 +182,7 @@
                         <label class="label">
                             <span class="label-text">Role Type</span>
                         </label>
-                        <select name="AssignRequest.RoleType" class="select select-bordered w-full">
+                        <select name="AssignRequest.RoleType" class="select w-full">
                             <option value="SpaceMod">Space Moderator</option>
                             <option value="HubMod">Hub Moderator</option>
                             <option value="CommunityMod">Community Moderator</option>
@@ -192,9 +194,9 @@
                         <label class="label">
                             <span class="label-text">Scope (based on role type)</span>
                         </label>
-                        <input type="text" name="AssignRequest.CommunityId" placeholder="Community ID" class="input input-bordered w-full mb-2" />
-                        <input type="text" name="AssignRequest.HubId" placeholder="Hub ID" class="input input-bordered w-full mb-2" />
-                        <input type="text" name="AssignRequest.SpaceId" placeholder="Space ID" class="input input-bordered w-full" />
+                        <input type="text" name="AssignRequest.CommunityId" placeholder="Community ID" class="input w-full mb-2" />
+                        <input type="text" name="AssignRequest.HubId" placeholder="Hub ID" class="input w-full mb-2" />
+                        <input type="text" name="AssignRequest.SpaceId" placeholder="Space ID" class="input w-full" />
                         <label class="label">
                             <span class="label-text-alt text-muted">Enter the appropriate ID based on the role level</span>
                         </label>

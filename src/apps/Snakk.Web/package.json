@@ -6,15 +6,17 @@
   "scripts": {
     "build": "npm run build:ts && npm run build:css",
     "build:ts": "tsc && node esbuild.minify.mjs",
-    "build:css": "npm run build:tailwind && npm run build:custom",
+    "build:css": "npm run build:tailwind && npm run build:tailwind-dark && npm run build:custom",
     "build:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --minify",
+    "build:tailwind-dark": "tailwindcss -i ./Styles/dark-input.css -o ./wwwroot/css/vendor/dark-theme.css --minify",
     "build:custom": "sass Styles/site.scss:wwwroot/css/dist/site.css --style=compressed --no-source-map",
     "watch": "npm run watch:ts & npm run watch:css",
     "watch:ts": "tsc --watch",
-    "watch:css": "npm run watch:tailwind & npm run watch:custom",
+    "watch:css": "npm run watch:tailwind & npm run watch:tailwind-dark & npm run watch:custom",
     "watch:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --watch",
+    "watch:tailwind-dark": "tailwindcss -i ./Styles/dark-input.css -o ./wwwroot/css/vendor/dark-theme.css --watch",
     "watch:custom": "sass Styles/site.scss:wwwroot/css/dist/site.css --watch --no-source-map",
-    "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/vendor/htmx.min.js'\"",
+    "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/vendor/htmx.min.js'; Copy-Item 'node_modules/htmx.org/dist/ext/head-support.js' 'wwwroot/js/vendor/htmx-head-support.js'\"",
     "postinstall": "npm run copy:libs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,13 +26,11 @@
   "type": "commonjs",
   "devDependencies": {
     "@microsoft/signalr": "^8.0.7",
+    "@tailwindcss/cli": "^4.0.0",
     "@types/node": "^22.10.2",
-    "autoprefixer": "^10.4.24",
-    "daisyui": "^4.12.14",
+    "daisyui": "^5.0.0",
     "htmx.org": "^2.0.4",
-    "postcss": "^8.5.6",
     "sass": "^1.97.3",
-    "tailwindcss": "^3.4.19",
     "esbuild": "^0.25.0",
     "typescript": "^5.7.2"
   }

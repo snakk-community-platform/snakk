@@ -1,159 +1,30 @@
-"use strict";
-/**
- * User Profile Page
- * Handles profile display, activity charts, and user interactions
- */
-(function () {
-    'use strict';
-    // Use utilities from utils.js
-    const escapeHtml = window.SnakkUtils?.escapeHtml || function (text) {
-        if (!text)
-            return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    };
-    const sanitizeHtml = window.SnakkUtils?.sanitizeHtml || function (html) {
-        if (!html)
-            return '';
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
-        doc.body.querySelectorAll('*').forEach(el => {
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on'))
-                    el.removeAttribute(attr.name);
-            });
-            ['href', 'src', 'action', 'formaction'].forEach(a => {
-                const v = el.getAttribute(a);
-                if (v && v.trim().toLowerCase().startsWith('javascript:'))
-                    el.removeAttribute(a);
-            });
-        });
-        return doc.body.innerHTML;
-    };
-    const sanitizeUrl = window.SnakkUtils?.sanitizeUrl || function (url) {
-        if (!url)
-            return '#';
-        const trimmed = url.trim().toLowerCase();
-        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:'))
-            return '#';
-        return url;
-    };
-    const formatRelativeTime = window.SnakkUtils?.formatRelativeTime || function (dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-        if (seconds < 60)
-            return 'just now';
-        if (seconds < 3600)
-            return `${Math.floor(seconds / 60)}m ago`;
-        if (seconds < 86400)
-            return `${Math.floor(seconds / 3600)}h ago`;
-        if (seconds < 604800)
-            return `${Math.floor(seconds / 86400)}d ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-    /**
-     * Initialize profile page with data from server
-     */
-    function initializeProfile(userId, currentTab, stats) {
-        // Load user stats
-        async function loadUserStats() {
-            try {
-                const response = await fetch(`/bff/users/${userId}/stats`);
-                const data = await response.json();
-                const followerStat = document.getElementById('stat-followers');
-                if (followerStat) {
-                    followerStat.textContent = data.followerCount || 0;
-                }
-                const replyStat = document.getElementById('stat-replies');
-                if (replyStat && data.replyCount !== undefined) {
-                    replyStat.textContent = data.replyCount;
-                }
-            }
-            catch (error) {
-                console.error('Error loading user stats:', error);
-                const followerStat = document.getElementById('stat-followers');
-                if (followerStat) {
-                    followerStat.textContent = '0';
-                }
-            }
-        }
-        // Recent discussions
-        async function loadRecentDiscussions(limit) {
-            const container = document.getElementById('recent-discussions');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/search/discussions?authorPublicId=${userId}&pageSize=${limit}`);
-                const data = await response.json();
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
+"use strict";(function(){"use strict";const m=window.SnakkUtils?.escapeHtml||function(r){if(!r)return"";const c=document.createElement("div");return c.textContent=r,c.innerHTML},$=window.SnakkUtils?.sanitizeHtml||function(r){if(!r)return"";const d=new DOMParser().parseFromString(r,"text/html");return d.querySelectorAll("script,iframe,object,embed,form,base,meta,link,style").forEach(a=>a.remove()),d.body.querySelectorAll("*").forEach(a=>{Array.from(a.attributes).forEach(p=>{p.name.startsWith("on")&&a.removeAttribute(p.name)}),["href","src","action","formaction"].forEach(p=>{const b=a.getAttribute(p);b&&b.trim().toLowerCase().startsWith("javascript:")&&a.removeAttribute(p)})}),d.body.innerHTML},v=window.SnakkUtils?.sanitizeUrl||function(r){if(!r)return"#";const c=r.trim().toLowerCase();return c.startsWith("javascript:")||c.startsWith("data:")?"#":r},y=window.SnakkUtils?.formatRelativeTime||function(r){const c=new Date(r),a=Math.floor((new Date().getTime()-c.getTime())/1e3);return a<60?"just now":a<3600?`${Math.floor(a/60)}m ago`:a<86400?`${Math.floor(a/3600)}h ago`:a<604800?`${Math.floor(a/86400)}d ago`:c.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})};function H(r,c,d){async function a(){try{const t=await(await fetch(`/bff/users/${r}/stats`)).json(),e=document.getElementById("stat-followers");e&&(e.textContent=t.followerCount||0);const s=document.getElementById("stat-replies");s&&t.replyCount!==void 0&&(s.textContent=t.replyCount)}catch(o){console.error("Error loading user stats:",o);const t=document.getElementById("stat-followers");t&&(t.textContent="0")}}async function p(o){const t=document.getElementById("recent-discussions");if(t)try{const s=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=${o}`)).json();if(!s.items||s.items.length===0){t.innerHTML=`
                         <div class="text-center py-8 text-muted">
                             <p>No discussions yet</p>
                         </div>
-                    `;
-                    return;
-                }
-                container.innerHTML = data.items.map((discussion) => `
-                    <a href="${sanitizeUrl(discussion.url)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
-                        <h4 class="font-medium mb-1">${escapeHtml(discussion.title)}</h4>
+                    `;return}t.innerHTML=s.items.map(i=>`
+                    <a href="${v(i.url)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
+                        <h4 class="font-medium mb-1">${m(i.title)}</h4>
                         <div class="flex items-center gap-4 text-sm text-muted">
-                            <span>${discussion.replyCount} ${discussion.replyCount === 1 ? 'reply' : 'replies'}</span>
-                            <span>${formatRelativeTime(discussion.createdAt)}</span>
+                            <span>${i.replyCount} ${i.replyCount===1?"reply":"replies"}</span>
+                            <span>${y(i.createdAt)}</span>
                         </div>
                     </a>
-                `).join('');
-            }
-            catch (error) {
-                console.error('Error loading discussions:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load discussions</div>';
-            }
-        }
-        // Recent posts
-        async function loadRecentPosts(limit) {
-            const container = document.getElementById('recent-posts');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/search/posts?authorPublicId=${userId}&pageSize=${limit}`);
-                const data = await response.json();
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
+                `).join("")}catch(e){console.error("Error loading discussions:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load discussions</div>'}}async function b(o){const t=document.getElementById("recent-posts");if(t)try{const s=await(await fetch(`/bff/search/posts?authorPublicId=${r}&pageSize=${o}`)).json();if(!s.items||s.items.length===0){t.innerHTML=`
                         <div class="text-center py-8 text-muted">
                             <p>No posts yet</p>
                         </div>
-                    `;
-                    return;
-                }
-                container.innerHTML = data.items.map((post) => `
-                    <a href="${sanitizeUrl(post.discussionUrl)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
+                    `;return}t.innerHTML=s.items.map(i=>`
+                    <a href="${v(i.discussionUrl)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
                         <div class="prose prose-sm max-w-none mb-2">
-                            ${sanitizeHtml(post.contentPreview)}
+                            ${$(i.contentPreview)}
                         </div>
                         <div class="flex items-center gap-4 text-sm text-muted">
-                            <span>in ${escapeHtml(post.discussionTitle)}</span>
-                            <span>${formatRelativeTime(post.createdAt)}</span>
+                            <span>in ${m(i.discussionTitle)}</span>
+                            <span>${y(i.createdAt)}</span>
                         </div>
                     </a>
-                `).join('');
-            }
-            catch (error) {
-                console.error('Error loading posts:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load posts</div>';
-            }
-        }
-        // All discussions (paginated)
-        async function loadAllDiscussions() {
-            const container = document.getElementById('all-discussions');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/search/discussions?authorPublicId=${userId}&pageSize=20`);
-                const data = await response.json();
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
+                `).join("")}catch(e){console.error("Error loading posts:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load posts</div>'}}async function T(){const o=document.getElementById("all-discussions");if(o)try{const e=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=20`)).json();if(!e.items||e.items.length===0){o.innerHTML=`
                         <div class="text-center py-12">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -161,37 +32,18 @@
                             <h3 class="font-semibold mb-2">No discussions yet</h3>
                             <p class="text-sm text-muted">This user hasn't started any discussions</p>
                         </div>
-                    `;
-                    return;
-                }
-                container.innerHTML = data.items.map((discussion) => `
+                    `;return}o.innerHTML=e.items.map(s=>`
                     <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${sanitizeUrl(discussion.url)}" class="block p-4">
-                            <h3 class="font-semibold mb-2">${escapeHtml(discussion.title)}</h3>
+                        <a href="${v(s.url)}" class="block p-4">
+                            <h3 class="font-semibold mb-2">${m(s.title)}</h3>
                             <div class="flex items-center gap-4 text-sm text-muted">
-                                <span>${discussion.replyCount} ${discussion.replyCount === 1 ? 'reply' : 'replies'}</span>
-                                <span>${formatRelativeTime(discussion.createdAt)}</span>
-                                <span class="ml-auto">${escapeHtml(discussion.spaceName)}</span>
+                                <span>${s.replyCount} ${s.replyCount===1?"reply":"replies"}</span>
+                                <span>${y(s.createdAt)}</span>
+                                <span class="ml-auto">${m(s.spaceName)}</span>
                             </div>
                         </a>
                     </div>
-                `).join('');
-            }
-            catch (error) {
-                console.error('Error loading all discussions:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load discussions</div>';
-            }
-        }
-        // All posts (paginated)
-        async function loadAllPosts() {
-            const container = document.getElementById('all-posts');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/search/posts?authorPublicId=${userId}&pageSize=20`);
-                const data = await response.json();
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
+                `).join("")}catch(t){console.error("Error loading all discussions:",t),o.innerHTML='<div class="text-center py-8 text-error">Failed to load discussions</div>'}}async function E(){const o=document.getElementById("all-posts");if(o)try{const e=await(await fetch(`/bff/search/posts?authorPublicId=${r}&pageSize=20`)).json();if(!e.items||e.items.length===0){o.innerHTML=`
                         <div class="text-center py-12">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
@@ -199,59 +51,20 @@
                             <h3 class="font-semibold mb-2">No posts yet</h3>
                             <p class="text-sm text-muted">This user hasn't made any posts</p>
                         </div>
-                    `;
-                    return;
-                }
-                container.innerHTML = data.items.map((post) => `
+                    `;return}o.innerHTML=e.items.map(s=>`
                     <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${sanitizeUrl(post.discussionUrl)}" class="block p-4">
+                        <a href="${v(s.discussionUrl)}" class="block p-4">
                             <div class="prose prose-sm max-w-none mb-3">
-                                ${sanitizeHtml(post.contentPreview)}
+                                ${$(s.contentPreview)}
                             </div>
                             <div class="flex items-center gap-4 text-sm text-muted">
-                                <span>in ${escapeHtml(post.discussionTitle)}</span>
-                                <span>${formatRelativeTime(post.createdAt)}</span>
-                                <span class="ml-auto">${escapeHtml(post.spaceName)}</span>
+                                <span>in ${m(s.discussionTitle)}</span>
+                                <span>${y(s.createdAt)}</span>
+                                <span class="ml-auto">${m(s.spaceName)}</span>
                             </div>
                         </a>
                     </div>
-                `).join('');
-            }
-            catch (error) {
-                console.error('Error loading all posts:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load posts</div>';
-            }
-        }
-        // Activity Chart
-        async function loadActivityChart(days) {
-            // Update button states
-            ['14', '30', '90'].forEach(d => {
-                const btn = document.getElementById(`chart-${d}`);
-                if (btn) {
-                    if (d === days.toString()) {
-                        btn.classList.add('btn-active');
-                    }
-                    else {
-                        btn.classList.remove('btn-active');
-                    }
-                }
-            });
-            const container = document.getElementById('activity-chart');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/users/${userId}/activity-history?days=${days}`);
-                const result = await response.json();
-                renderActivityChart(container, result.data, days);
-            }
-            catch (error) {
-                console.error('Error loading activity chart:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load activity chart</div>';
-            }
-        }
-        function renderActivityChart(container, data, days) {
-            if (!data || data.length === 0) {
-                container.innerHTML = `
+                `).join("")}catch(t){console.error("Error loading all posts:",t),o.innerHTML='<div class="text-center py-8 text-error">Failed to load posts</div>'}}async function M(o){["14","30","90"].forEach(e=>{const s=document.getElementById(`chart-${e}`);s&&(e===o.toString()?s.classList.add("btn-active"):s.classList.remove("btn-active"))});const t=document.getElementById("activity-chart");if(t)try{const s=await(await fetch(`/bff/users/${r}/activity-history?days=${o}`)).json();C(t,s.data,o)}catch(e){console.error("Error loading activity chart:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load activity chart</div>'}}function C(o,t,e){if(!t||t.length===0){o.innerHTML=`
                     <div class="text-center py-12">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -259,281 +72,71 @@
                         <h3 class="font-semibold mb-2">No activity yet</h3>
                         <p class="text-sm text-muted">Activity will appear here once this user starts contributing</p>
                     </div>
-                `;
-                return;
-            }
-            // Calculate max value for scaling
-            const maxValue = Math.max(...data.map((d) => d.total), 1);
-            const maxHeight = 150; // pixels
-            // Group by week for better visualization if > 30 days
-            const shouldGroupByWeek = days > 30;
-            let chartData = data;
-            if (shouldGroupByWeek) {
-                const grouped = [];
-                for (let i = 0; i < data.length; i += 7) {
-                    const week = data.slice(i, i + 7);
-                    if (week.length === 0 || !week[0])
-                        continue;
-                    const weekTotal = {
-                        date: week[0].date,
-                        discussions: week.reduce((sum, d) => sum + d.discussions, 0),
-                        posts: week.reduce((sum, d) => sum + d.posts, 0),
-                        total: week.reduce((sum, d) => sum + d.total, 0),
-                        isWeek: true
-                    };
-                    grouped.push(weekTotal);
-                }
-                chartData = grouped;
-            }
-            const barsHtml = chartData.map((day) => {
-                const heightPercent = maxValue > 0 ? (day.total / maxValue) * 100 : 0;
-                const discussionsPercent = day.total > 0 ? (day.discussions / day.total) * 100 : 0;
-                const postsPercent = day.total > 0 ? (day.posts / day.total) * 100 : 0;
-                const dateLabel = shouldGroupByWeek
-                    ? `Week of ${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                    : new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                return `
+                `;return}const s=Math.max(...t.map(n=>n.total),1),i=150,g=e>30;let f=t;if(g){const n=[];for(let l=0;l<t.length;l+=7){const u=t.slice(l,l+7);if(u.length===0||!u[0])continue;const x={date:u[0].date,discussions:u.reduce((h,w)=>h+w.discussions,0),posts:u.reduce((h,w)=>h+w.posts,0),total:u.reduce((h,w)=>h+w.total,0),isWeek:!0};n.push(x)}f=n}const P=f.map(n=>{const l=s>0?n.total/s*100:0,u=n.total>0?n.discussions/n.total*100:0,x=n.total>0?n.posts/n.total*100:0,h=g?`Week of ${new Date(n.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}`:new Date(n.date).toLocaleDateString("en-US",{month:"short",day:"numeric"});return`
                     <div class="activity-chart-bar-wrapper">
-                        <div class="activity-chart-bar-container" style="height: ${maxHeight}px;">
+                        <div class="activity-chart-bar-container" style="height: ${i}px;">
                             <div class="activity-chart-bar"
-                                 style="height: ${day.total === 0 ? '4px' : heightPercent + '%'}; ${day.total === 0 ? 'min-height: 4px;' : ''}"
-                                 title="${day.total} contribution${day.total !== 1 ? 's' : ''}\\n${day.discussions} discussion${day.discussions !== 1 ? 's' : ''}\\n${day.posts} post${day.posts !== 1 ? 's' : ''}\\n${dateLabel}">
-                                ${day.discussions > 0 ? `<div class="activity-chart-bar-segment-primary" style="height: ${discussionsPercent}%;"></div>` : ''}
-                                ${day.posts > 0 ? `<div class="activity-chart-bar-segment-secondary" style="height: ${postsPercent}%;"></div>` : ''}
-                                ${day.total === 0 ? '<div class="activity-chart-bar-zero"></div>' : ''}
+                                 style="height: ${n.total===0?"4px":l+"%"}; ${n.total===0?"min-height: 4px;":""}"
+                                 title="${n.total} contribution${n.total!==1?"s":""}\\n${n.discussions} discussion${n.discussions!==1?"s":""}\\n${n.posts} post${n.posts!==1?"s":""}\\n${h}">
+                                ${n.discussions>0?`<div class="activity-chart-bar-segment-primary" style="height: ${u}%;"></div>`:""}
+                                ${n.posts>0?`<div class="activity-chart-bar-segment-secondary" style="height: ${x}%;"></div>`:""}
+                                ${n.total===0?'<div class="activity-chart-bar-zero"></div>':""}
                             </div>
                         </div>
                     </div>
-                `;
-            }).join('');
-            const totalDiscussions = data.reduce((sum, d) => sum + d.discussions, 0);
-            const totalPosts = data.reduce((sum, d) => sum + d.posts, 0);
-            const totalActivity = totalDiscussions + totalPosts;
-            container.innerHTML = `
+                `}).join(""),k=t.reduce((n,l)=>n+l.discussions,0),L=t.reduce((n,l)=>n+l.posts,0),z=k+L;o.innerHTML=`
                 <div class="space-y-4">
-                    <div class="activity-chart-wrapper" style="height: ${maxHeight + 40}px;">
-                        ${barsHtml}
+                    <div class="activity-chart-wrapper" style="height: ${i+40}px;">
+                        ${P}
                     </div>
                     <div class="activity-chart-legend">
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color activity-chart-legend-color-primary"></div>
-                            <span>${totalDiscussions} discussions</span>
+                            <span>${k} discussions</span>
                         </div>
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color activity-chart-legend-color-secondary"></div>
-                            <span>${totalPosts} posts</span>
+                            <span>${L} posts</span>
                         </div>
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color bg-accent"></div>
-                            <span>${totalActivity} total</span>
+                            <span>${z} total</span>
                         </div>
                     </div>
                 </div>
-            `;
-        }
-        // Top Contributions
-        async function loadTopContributions() {
-            const container = document.getElementById('top-contributions');
-            if (!container)
-                return;
-            try {
-                const response = await fetch(`/bff/search/discussions?authorPublicId=${userId}&pageSize=3`);
-                const data = await response.json();
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
+            `}async function S(){const o=document.getElementById("top-contributions");if(o)try{const e=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=3`)).json();if(!e.items||e.items.length===0){o.innerHTML=`
                         <div class="text-center py-6 text-muted">
                             <p>No discussions yet</p>
                         </div>
-                    `;
-                    return;
-                }
-                container.innerHTML = data.items.map((discussion, index) => `
+                    `;return}o.innerHTML=e.items.map((s,i)=>`
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold">
-                            ${index + 1}
+                            ${i+1}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <a href="${sanitizeUrl(discussion.url)}" class="font-medium hover:underline block truncate">
-                                ${escapeHtml(discussion.title)}
+                            <a href="${v(s.url)}" class="font-medium hover:underline block truncate">
+                                ${m(s.title)}
                             </a>
                             <div class="text-sm text-muted">
-                                ${discussion.replyCount} ${discussion.replyCount === 1 ? 'reply' : 'replies'}
+                                ${s.replyCount} ${s.replyCount===1?"reply":"replies"}
                             </div>
                         </div>
                     </div>
-                `).join('');
-            }
-            catch (error) {
-                console.error('Error loading top contributions:', error);
-                container.innerHTML = '<div class="text-center py-6 text-error">Failed to load</div>';
-            }
-        }
-        // Profile Actions (Follow/Unfollow)
-        async function loadProfileActions() {
-            const container = document.getElementById('profile-actions');
-            if (!container)
-                return;
-            try {
-                // Check if user is authenticated and viewing someone else's profile
-                const authResponse = await fetch(`/bff/auth/status`, { credentials: 'include' });
-                const authData = await authResponse.json();
-                if (!authData.isAuthenticated) {
-                    container.innerHTML = ''; // No actions for anonymous users
-                    return;
-                }
-                if (authData.publicId === userId) {
-                    // Viewing own profile
-                    container.innerHTML = `
+                `).join("")}catch(t){console.error("Error loading top contributions:",t),o.innerHTML='<div class="text-center py-6 text-error">Failed to load</div>'}}async function j(){const o=document.getElementById("profile-actions");if(o)try{const e=await(await fetch("/bff/auth/status",{credentials:"include"})).json();if(!e.isAuthenticated){o.innerHTML="";return}if(e.publicId===r){o.innerHTML=`
                         <a href="/settings" class="btn btn-outline btn-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             Edit Profile
                         </a>
-                    `;
-                    return;
-                }
-                // Check follow status
-                const followResponse = await fetch(`/bff/users/${userId}/follow-status?currentUserId=${authData.publicId}`, {
-                    credentials: 'include'
-                });
-                const followData = await followResponse.json();
-                container.innerHTML = `
+                    `;return}const i=await(await fetch(`/bff/users/${r}/follow-status?currentUserId=${e.publicId}`,{credentials:"include"})).json();o.innerHTML=`
                     <button data-action="toggle-follow-user"
-                            data-user-id="${userId}"
-                            class="btn ${followData.isFollowing ? 'btn-outline' : 'btn-primary'} btn-sm"
+                            data-user-id="${r}"
+                            class="btn ${i.isFollowing?"btn-outline":"btn-primary"} btn-sm"
                             id="follow-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${followData.isFollowing ? 'M5 13l4 4L19 7' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'}" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${i.isFollowing?"M5 13l4 4L19 7":"M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"}" />
                         </svg>
-                        <span id="follow-btn-text">${followData.isFollowing ? 'Following' : 'Follow'}</span>
+                        <span id="follow-btn-text">${i.isFollowing?"Following":"Follow"}</span>
                     </button>
-                `;
-            }
-            catch (error) {
-                console.error('Error loading profile actions:', error);
-                container.innerHTML = '';
-            }
-        }
-        // Toggle follow/unfollow
-        async function toggleFollowUser(targetUserId) {
-            const btn = document.getElementById('follow-btn');
-            const btnText = document.getElementById('follow-btn-text');
-            if (!btn || !btnText)
-                return;
-            btn.disabled = true;
-            try {
-                const response = await fetch(`/bff/users/${targetUserId}/follow`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    const result = await response.json();
-                    btnText.textContent = result.isFollowing ? 'Following' : 'Follow';
-                    if (result.isFollowing) {
-                        btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-outline');
-                    }
-                    else {
-                        btn.classList.remove('btn-outline');
-                        btn.classList.add('btn-primary');
-                    }
-                    // Update follower count
-                    loadUserStats();
-                }
-                else {
-                    throw new Error('Failed to toggle follow');
-                }
-            }
-            catch (error) {
-                console.error('Error toggling follow:', error);
-                alert('Failed to update follow status');
-            }
-            finally {
-                btn.disabled = false;
-            }
-        }
-        // Generate badges based on activity
-        function loadUserBadges() {
-            const container = document.getElementById('user-badges');
-            if (!container)
-                return;
-            const badges = [];
-            const totalActivity = stats.totalActivity;
-            const daysSinceJoined = stats.daysSinceJoined;
-            const discussionCount = stats.discussionCount;
-            const postCount = stats.postCount;
-            // Activity level badges
-            if (totalActivity >= 1000) {
-                badges.push({ text: '🏆 Power User', color: 'badge-warning', title: '1000+ contributions' });
-            }
-            else if (totalActivity >= 500) {
-                badges.push({ text: '⭐ Super Contributor', color: 'badge-info', title: '500+ contributions' });
-            }
-            else if (totalActivity >= 100) {
-                badges.push({ text: '✨ Active Member', color: 'badge-success', title: '100+ contributions' });
-            }
-            // Discussion starter badge
-            if (discussionCount >= 50) {
-                badges.push({ text: '💬 Discussion Starter', color: 'badge-primary', title: '50+ discussions' });
-            }
-            // Engagement badge (lots of posts relative to discussions)
-            if (postCount >= 100 && postCount > discussionCount * 3) {
-                badges.push({ text: '🗣️ Conversationalist', color: 'badge-accent', title: 'Highly engaged in discussions' });
-            }
-            // Veteran badge
-            if (daysSinceJoined >= 365) {
-                badges.push({ text: '🎖️ Veteran', color: 'badge-secondary', title: 'Member for over a year' });
-            }
-            else if (daysSinceJoined >= 180) {
-                badges.push({ text: '📅 Regular', color: 'badge-neutral', title: 'Member for 6+ months' });
-            }
-            if (badges.length > 0) {
-                container.innerHTML = badges.map(badge => `<div class="badge ${badge.color} badge-sm" title="${badge.title}">${badge.text}</div>`).join('');
-            }
-        }
-        // Initialize page based on current tab
-        loadUserStats();
-        loadProfileActions();
-        loadUserBadges();
-        if (currentTab === 'overview') {
-            loadActivityChart(30);
-            loadTopContributions();
-            loadRecentDiscussions(5);
-            loadRecentPosts(5);
-        }
-        else if (currentTab === 'discussions') {
-            loadAllDiscussions();
-        }
-        else if (currentTab === 'posts') {
-            loadAllPosts();
-        }
-        // Event delegation for profile actions
-        document.addEventListener('click', async (e) => {
-            const target = e.target;
-            if (!target)
-                return;
-            const action = target.closest('[data-action]');
-            if (!action || !action.dataset.action)
-                return;
-            const actionName = action.dataset.action;
-            switch (actionName) {
-                case 'toggle-follow-user':
-                    e.preventDefault();
-                    if (action.dataset.userId) {
-                        await toggleFollowUser(action.dataset.userId);
-                    }
-                    break;
-                case 'load-activity-chart':
-                    e.preventDefault();
-                    if (action.dataset.days) {
-                        await loadActivityChart(parseInt(action.dataset.days, 10));
-                    }
-                    break;
-            }
-        });
-    }
-    // Export only initializeProfile
-    window.initializeProfile = initializeProfile;
-})();
-//# sourceMappingURL=profile.js.map
+                `}catch(t){console.error("Error loading profile actions:",t),o.innerHTML=""}}async function A(o){const t=document.getElementById("follow-btn"),e=document.getElementById("follow-btn-text");if(!(!t||!e)){t.disabled=!0;try{const s=await fetch(`/bff/users/${o}/follow`,{method:"POST",credentials:"include"});if(s.ok){const i=await s.json();e.textContent=i.isFollowing?"Following":"Follow",i.isFollowing?(t.classList.remove("btn-primary"),t.classList.add("btn-outline")):(t.classList.remove("btn-outline"),t.classList.add("btn-primary")),a()}else throw new Error("Failed to toggle follow")}catch(s){console.error("Error toggling follow:",s),alert("Failed to update follow status")}finally{t.disabled=!1}}}function B(){const o=document.getElementById("user-badges");if(!o)return;const t=[],e=d.totalActivity,s=d.daysSinceJoined,i=d.discussionCount,g=d.postCount;e>=1e3?t.push({text:"\u{1F3C6} Power User",color:"badge-warning",title:"1000+ contributions"}):e>=500?t.push({text:"\u2B50 Super Contributor",color:"badge-info",title:"500+ contributions"}):e>=100&&t.push({text:"\u2728 Active Member",color:"badge-success",title:"100+ contributions"}),i>=50&&t.push({text:"\u{1F4AC} Discussion Starter",color:"badge-primary",title:"50+ discussions"}),g>=100&&g>i*3&&t.push({text:"\u{1F5E3}\uFE0F Conversationalist",color:"badge-accent",title:"Highly engaged in discussions"}),s>=365?t.push({text:"\u{1F396}\uFE0F Veteran",color:"badge-secondary",title:"Member for over a year"}):s>=180&&t.push({text:"\u{1F4C5} Regular",color:"badge-neutral",title:"Member for 6+ months"}),t.length>0&&(o.innerHTML=t.map(f=>`<div class="badge ${f.color} badge-sm" title="${f.title}">${f.text}</div>`).join(""))}a(),j(),B(),c==="overview"?(M(30),S(),p(5),b(5)):c==="discussions"?T():c==="posts"&&E(),document.addEventListener("click",async o=>{const t=o.target;if(!t)return;const e=t.closest("[data-action]");if(!e||!e.dataset.action)return;switch(e.dataset.action){case"toggle-follow-user":o.preventDefault(),e.dataset.userId&&await A(e.dataset.userId);break;case"load-activity-chart":o.preventDefault(),e.dataset.days&&await M(parseInt(e.dataset.days,10));break}})}window.initializeProfile=H})();

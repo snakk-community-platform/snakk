@@ -51,7 +51,7 @@ public class InlineOrHtmxTagHelper(IHtmlHelper htmlHelper) : TagHelper
             // Cache is cold — emit HTMX lazy-load div with skeleton child content
             output.TagName = "div";
             output.Attributes.SetAttribute("hx-get", HtmxUrl);
-            output.Attributes.SetAttribute("hx-trigger", "load");
+            output.Attributes.SetAttribute("hx-trigger", "revealed");
             output.Attributes.SetAttribute("hx-target", "this");
             output.Attributes.SetAttribute("hx-swap", "innerHTML");
             output.Attributes.SetAttribute("hx-push-url", "false");

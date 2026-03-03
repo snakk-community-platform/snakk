@@ -8,28 +8,28 @@
     <div class="grid grid-cols-2 gap-4">
         <div class="form-control">
             <label class="label"><span class="label-text">Host</span></label>
-            <input type="text" asp-for="DbHost" class="input input-bordered" placeholder="localhost" />
+            <input type="text" asp-for="DbHost" class="input" placeholder="localhost" />
             <span asp-validation-for="DbHost" class="text-error text-sm"></span>
         </div>
         <div class="form-control">
             <label class="label"><span class="label-text">Port</span></label>
-            <input type="number" asp-for="DbPort" class="input input-bordered" placeholder="5432" />
+            <input type="number" asp-for="DbPort" class="input" placeholder="5432" />
         </div>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Database Name</span></label>
-        <input type="text" asp-for="DbName" class="input input-bordered" placeholder="snakk" />
+        <input type="text" asp-for="DbName" class="input" placeholder="snakk" />
     </div>
 
     <div class="grid grid-cols-2 gap-4">
         <div class="form-control">
             <label class="label"><span class="label-text">Username</span></label>
-            <input type="text" asp-for="DbUsername" class="input input-bordered" placeholder="snakk" />
+            <input type="text" asp-for="DbUsername" class="input" placeholder="snakk" />
         </div>
         <div class="form-control">
             <label class="label"><span class="label-text">Password</span></label>
-            <input type="password" asp-for="DbPassword" class="input input-bordered" />
+            <input type="password" asp-for="DbPassword" class="input" />
         </div>
     </div>
 

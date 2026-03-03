@@ -40,7 +40,8 @@
                 <a href="@discussionUrl" class="topic-item">
                     <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
                         <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
-                             alt="@discussion.Author.DisplayName" />
+                             alt="@discussion.Author.DisplayName"
+                             width="32" height="32" />
                     </div>
                     <div class="topic-content">
                         <div class="topic-title">@discussion.Title</div>
@@ -121,7 +122,8 @@ else if (Model.SearchType == "post")
                     <div class="flex items-start gap-3">
                         <div class="avatar avatar-sm flex-shrink-0">
                             <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
-                                 alt="@post.Author.DisplayName" />
+                                 alt="@post.Author.DisplayName"
+                                 width="32" height="32" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 text-sm text-muted mb-2">

@@ -204,32 +204,32 @@ interface NotificationsResponse {
 
         if (data.isAuthenticated && data.displayName && data.publicId) {
             const verifiedBadge = data.emailVerified
-                ? '<span class="text-green-400">verified</span>'
-                : '<span class="text-orange-400">unverified</span>';
+                ? '<span class="text-success">verified</span>'
+                : '<span class="text-warning">unverified</span>';
 
             const roleBadge = data.role
-                ? `<span class="text-gray-500">|</span>
-                   <span class="text-gray-400">Role:</span>
-                   <span class="text-purple-400 font-semibold uppercase">${escapeHtml(data.role)}</span>`
+                ? `<span class="opacity-40">|</span>
+                   <span class="opacity-50">Role:</span>
+                   <span class="text-secondary font-semibold uppercase">${escapeHtml(data.role)}</span>`
                 : '';
 
             debugAuthInfo.innerHTML = `
-                <span class="text-gray-400">Auth:</span>
-                <span class="text-green-300">logged in</span>
-                <span class="text-gray-500">|</span>
-                <span class="text-gray-400">User:</span>
-                <span class="text-cyan-300">${escapeHtml(data.displayName)}</span>
-                <span class="text-gray-600">(${data.publicId})</span>
-                <span class="text-gray-500">|</span>
-                <span class="text-gray-400">Email:</span>
+                <span class="opacity-50">Auth:</span>
+                <span class="text-success">logged in</span>
+                <span class="opacity-40">|</span>
+                <span class="opacity-50">User:</span>
+                <span class="text-info">${escapeHtml(data.displayName)}</span>
+                <span class="opacity-40">(${data.publicId})</span>
+                <span class="opacity-40">|</span>
+                <span class="opacity-50">Email:</span>
                 ${verifiedBadge}
                 ${roleBadge}
             `;
         } else {
             debugAuthInfo.innerHTML = `
-                <span class="text-gray-400">Auth:</span>
-                <span class="text-red-400">not logged in</span>
-                ${data.error ? `<span class="text-gray-600">(${escapeHtml(data.error)})</span>` : ''}
+                <span class="opacity-50">Auth:</span>
+                <span class="text-error">not logged in</span>
+                ${data.error ? `<span class="opacity-40">(${escapeHtml(data.error)})</span>` : ''}
             `;
         }
     }

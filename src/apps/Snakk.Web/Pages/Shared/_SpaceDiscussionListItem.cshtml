@@ -1,0 +1,76 @@
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using static Snakk.Web.Helpers.DisplayHelper
+@model SpaceDiscussionListItemVM
+@{
+    var discussion = Model.Discussion;
+    var baseUrl = SnakkUrlHelper.Discussion(Model.Community, Model.HubSlug, Model.SpaceSlug, $"{discussion.Slug}~{discussion.PublicId}");
+    var unreadUrl = $"{baseUrl}?gotoUnread=true";
+}
+
+<div class="topic-item-wrapper">
+    <a href="@baseUrl" class="topic-item">
+        <div class="topic-content">
+            <div class="topic-title">
+                @discussion.Title
+                @if (discussion.IsPinned)
+                {
+                    <span class="badge badge-primary badge-xs ml-2">Pinned</span>
+                }
+                @if (discussion.IsLocked)
+                {
+                    <span class="badge badge-warning badge-xs ml-2">Locked</span>
+                }
+                @if (discussion.Tags != null && discussion.Tags.Count > 0)
+                {
+                    @foreach (var tag in discussion.Tags)
+                    {
+                        <span class="badge badge-ghost badge-xs ml-2">@tag</span>
+                    }
+                }
+            </div>
+            <div class="topic-meta">
+                <span>@discussion.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</span>
+                @if (discussion.LastActivityAt != null)
+                {
+                    <span class="topic-meta-separator">&middot;</span>
+                    <span>Last activity @FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</span>
+                }
+            </div>
+        </div>
+        <div class="topic-stats hidden sm:flex">
+            <div class="topic-stat">
+                <div class="topic-stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </div>
+                <div class="topic-stat-value">@discussion.ReactionCount</div>
+            </div>
+            <div class="topic-stat">
+                <div class="topic-stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="topic-stat-value">@discussion.PostCount</div>
+            </div>
+        </div>
+    </a>
+    <button class="preview-btn"
+            data-discussion-id="@discussion.PublicId"
+            title="Preview first post"
+            type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    </button>
+    <a href="@unreadUrl" class="topic-latest-link" title="Jump to first unread post">
+        <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    </a>
+</div>
+<div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
+    <div class="preview-content"></div>
+</div>

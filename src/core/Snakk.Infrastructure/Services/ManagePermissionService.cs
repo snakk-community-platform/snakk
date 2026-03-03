@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -9,10 +9,10 @@ namespace Snakk.Infrastructure.Services;
 
 public class ManagePermissionService(
     SnakkDbContext context,
-    IMemoryCache cache,
+    HybridCache cache,
     ILogger<ManagePermissionService> logger) : IManagePermissionService
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(
         string userId,
@@ -21,11 +21,10 @@ public class ManagePermissionService(
     {
         var cacheKey = $"manage_perms_{userId}_{scopeType}_{scopePublicId}";
 
-        var cached = await cache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            return await ComputePermissionsAsync(userId, scopeType, scopePublicId);
-        });
+        var cached = await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => await ComputePermissionsAsync(userId, scopeType, scopePublicId),
+            CacheOptions);
 
         return cached ?? ManagePermissionSet.None;
     }

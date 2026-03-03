@@ -40,6 +40,7 @@
                 <div class="avatar avatar-xl" id="current-avatar">
                     <img src="@SnakkUrlHelper.UserAvatar(Model.UserId)"
                          alt="Your avatar"
+                         width="80" height="80"
                          id="avatar-preview" />
                 </div>
                 <span class="text-sm text-muted">Current avatar</span>
@@ -58,7 +59,7 @@
                                id="avatar-file"
                                name="avatar"
                                accept="image/jpeg,image/png,image/gif,image/webp"
-                               class="file-input file-input-bordered w-full max-w-xs" />
+                               class="file-input w-full max-w-xs" />
                     </div>
 
                     <div class="flex gap-2">
@@ -85,7 +86,7 @@
                 <input type="text"
                        name="displayName"
                        value=""
-                       class="input input-bordered w-full max-w-xs"
+                       class="input w-full max-w-xs"
                        required
                        placeholder="Your display name" />
                 <label class="label">

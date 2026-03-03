@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -17,7 +18,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class PermissionEdgeCasesTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
     private readonly Mock<ILogger<PermissionService>> _mockLogger;
     private readonly Mock<ISecurityService> _mockSecurityService;
     private readonly PermissionService _service;
@@ -28,18 +29,21 @@ public class PermissionEdgeCasesTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"PermissionEdgeTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
         _mockLogger = new Mock<ILogger<PermissionService>>();
         _mockSecurityService = new Mock<ISecurityService>();
 
-        _service = new PermissionService(_context, _cache, _mockLogger.Object, _mockSecurityService.Object);
+        _service = new PermissionService(_context, cache, _mockLogger.Object, _mockSecurityService.Object);
     }
 
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
     }
 
     private async Task<UserDatabaseEntity> CreateUser(string publicId, string displayName = "Test User")

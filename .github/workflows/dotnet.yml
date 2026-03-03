@@ -21,8 +21,11 @@ jobs:
       with:
         dotnet-version: 10.0.x
     - name: Restore dependencies
-      run: dotnet restore src/Snakk.slnx
+      run: dotnet restore Snakk.slnx
+      working-directory: src
     - name: Build
-      run: dotnet build src/Snakk.slnx --no-restore -p:SkipBuildTailwindCSS=true
+      run: dotnet build Snakk.slnx --no-restore -p:SkipBuildTailwindCSS=true
+      working-directory: src
     - name: Test
-      run: dotnet test src/Snakk.slnx --no-build --verbosity normal
+      run: dotnet test Snakk.slnx --no-build --verbosity normal
+      working-directory: src

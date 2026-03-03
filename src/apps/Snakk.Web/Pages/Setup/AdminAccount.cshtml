@@ -7,25 +7,25 @@
 <form method="post" class="space-y-4">
     <div class="form-control">
         <label class="label"><span class="label-text">Email</span></label>
-        <input type="email" asp-for="AdminEmail" class="input input-bordered" placeholder="admin@example.com" />
+        <input type="email" asp-for="AdminEmail" class="input" placeholder="admin@example.com" />
         <span asp-validation-for="AdminEmail" class="text-error text-sm"></span>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Display Name</span></label>
-        <input type="text" asp-for="AdminDisplayName" class="input input-bordered" placeholder="Admin" />
+        <input type="text" asp-for="AdminDisplayName" class="input" placeholder="Admin" />
         <span asp-validation-for="AdminDisplayName" class="text-error text-sm"></span>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Password</span></label>
-        <input type="password" asp-for="AdminPassword" class="input input-bordered" placeholder="Minimum 8 characters" />
+        <input type="password" asp-for="AdminPassword" class="input" placeholder="Minimum 8 characters" />
         <span asp-validation-for="AdminPassword" class="text-error text-sm"></span>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Confirm Password</span></label>
-        <input type="password" asp-for="ConfirmPassword" class="input input-bordered" />
+        <input type="password" asp-for="ConfirmPassword" class="input" />
         <span asp-validation-for="ConfirmPassword" class="text-error text-sm"></span>
     </div>
 

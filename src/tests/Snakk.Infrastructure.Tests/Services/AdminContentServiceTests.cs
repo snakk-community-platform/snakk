@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Application.Services;
@@ -14,7 +15,7 @@ public class AdminContentServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly AdminContentService _service;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _cacheServiceProvider;
     private readonly Mock<ISecurityService> _mockSecurityService;
 
     public AdminContentServiceTests()
@@ -23,7 +24,10 @@ public class AdminContentServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"AdminContentServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        _cacheServiceProvider = services.BuildServiceProvider();
+        var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
         _mockSecurityService = new Mock<ISecurityService>();
 
         _mockSecurityService
@@ -36,7 +40,7 @@ public class AdminContentServiceTests : IDisposable
 
         _service = new AdminContentService(
             _context,
-            _cache,
+            cache,
             _mockSecurityService.Object,
             new Mock<ILogger<AdminContentService>>().Object);
     }
@@ -45,7 +49,7 @@ public class AdminContentServiceTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _cacheServiceProvider.Dispose();
     }
 
     #region Helpers

@@ -2,6 +2,8 @@ using System.IO.Compression;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Serilog;
+using Snakk.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,8 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 // Load shared production config (written by setup wizard)
 var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // Real client IP header (set by CDN/reverse proxy like Cloudflare)
 var clientIpHeader = builder.Configuration["Gateway:ClientIpHeader"] ?? "CF-Connecting-IP";
@@ -97,6 +101,8 @@ builder.Services.AddReverseProxy()
     });
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // HTTPS redirection (skip in production — Caddy/Cloudflare handles TLS)
 if (!app.Environment.IsProduction())

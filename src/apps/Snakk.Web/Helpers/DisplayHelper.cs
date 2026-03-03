@@ -11,6 +11,18 @@ public static class DisplayHelper
     /// </summary>
     /// <param name="count">The count to format</param>
     /// <returns>A formatted string with suffix (k, m, b) for large numbers</returns>
+    public static string FormatRelativeTime(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return "";
+        var diff = DateTime.UtcNow - dateTime.Value;
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
+        if (diff.TotalDays < 365) return dateTime.Value.ToString("MMM d");
+        return dateTime.Value.ToString("MMM d, yyyy");
+    }
+
     public static string FormatCount(int count) =>
         count switch
         {

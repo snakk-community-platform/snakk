@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Admin;
 using Snakk.Application.Services;
@@ -9,31 +9,27 @@ namespace Snakk.Infrastructure.Services;
 
 public class AdminContentService(
     SnakkDbContext context,
-    IMemoryCache cache,
+    HybridCache cache,
     ISecurityService securityService,
     ILogger<AdminContentService> logger) : IAdminContentService
 {
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
     public async Task<ContentOverviewDto> GetContentOverviewAsync()
     {
-        // Try cache first
         var cacheKey = "admin_content_overview";
 
-        if (cache.TryGetValue<ContentOverviewDto>(cacheKey, out var cachedOverview))
-            return cachedOverview!;
-
-        var overview = new ContentOverviewDto
-        {
-            TotalCommunities = await context.Communities.CountAsync(),
-            TotalHubs = await context.Hubs.CountAsync(),
-            TotalSpaces = await context.Spaces.CountAsync(),
-            TotalDiscussions = await context.Discussions.CountAsync(),
-            TotalPosts = await context.Posts.CountAsync()
-        };
-
-        // Cache for 5 minutes
-        cache.Set(cacheKey, overview, TimeSpan.FromMinutes(5));
-
-        return overview;
+        return await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => new ContentOverviewDto
+            {
+                TotalCommunities = await context.Communities.CountAsync(cancel),
+                TotalHubs = await context.Hubs.CountAsync(cancel),
+                TotalSpaces = await context.Spaces.CountAsync(cancel),
+                TotalDiscussions = await context.Discussions.CountAsync(cancel),
+                TotalPosts = await context.Posts.CountAsync(cancel)
+            },
+            CacheOptions);
     }
 
     public async Task<PaginatedResponse<AdminCommunityDto>> GetCommunitiesAsync(

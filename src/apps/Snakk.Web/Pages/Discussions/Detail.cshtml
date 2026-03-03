@@ -302,8 +302,9 @@
                             {
                                 <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
                                      alt="@post.Author.DisplayName"
+                                     width="32" height="32"
                                      class="w-8 h-8 rounded-full flex-shrink-0"
-                                     loading="lazy" />
+                                     @(i >= 10 ? "loading=\"lazy\"" : "") />
                             }
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
@@ -877,7 +878,7 @@ else
                 <label class="label">
                     <span class="label-text">Reason <span class="text-error">*</span></span>
                 </label>
-                <select id="report-reason" name="reasonId" class="select select-bordered w-full" required>
+                <select id="report-reason" name="reasonId" class="select w-full" required>
                     <option value="">Select a reason...</option>
                 </select>
                 <div id="report-reason-description" class="text-xs text-muted mt-1 hidden"></div>
@@ -889,7 +890,7 @@ else
                 </label>
                 <textarea id="report-details"
                           name="details"
-                          class="textarea textarea-bordered w-full"
+                          class="textarea w-full"
                           rows="3"
                           placeholder="Provide any additional context that might help moderators..."></textarea>
             </div>

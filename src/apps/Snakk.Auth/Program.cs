@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Snakk.ServiceDefaults;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,8 @@ builder.Configuration.AddJsonFile(
     Path.Combine(sharedConfigDir, "appsettings.Production.json"),
     optional: true,
     reloadOnChange: true);
+
+builder.AddSnakkDefaults();
 
 // Add Razor Pages
 builder.Services.AddRazorPages();
@@ -94,6 +98,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

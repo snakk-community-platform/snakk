@@ -39,6 +39,8 @@
     display: flex;
     align-items: center;
     padding: .75rem 0;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
 
     &:last-child {
         border-bottom: none;

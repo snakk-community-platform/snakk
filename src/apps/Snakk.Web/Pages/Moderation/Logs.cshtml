@@ -26,21 +26,21 @@
                        name="communityId"
                        value="@Model.CommunityId"
                        placeholder="Community ID"
-                       class="input input-bordered input-sm w-full" />
+                       class="input input-sm w-full" />
             </div>
             <div class="flex-1 min-w-[200px]">
                 <input type="text"
                        name="hubId"
                        value="@Model.HubId"
                        placeholder="Hub ID"
-                       class="input input-bordered input-sm w-full" />
+                       class="input input-sm w-full" />
             </div>
             <div class="flex-1 min-w-[200px]">
                 <input type="text"
                        name="spaceId"
                        value="@Model.SpaceId"
                        placeholder="Space ID"
-                       class="input input-bordered input-sm w-full" />
+                       class="input input-sm w-full" />
             </div>
             <button type="submit" class="btn btn-sm btn-primary">Filter</button>
             <a href="/moderation/logs" class="btn btn-sm btn-ghost">Clear</a>
@@ -85,6 +85,7 @@
                                     <div class="flex items-center gap-2">
                                         <img src="@SnakkUrlHelper.UserAvatar(log.ActorUserPublicId)"
                                              alt="@log.ActorUserDisplayName"
+                                             width="24" height="24"
                                              class="w-6 h-6 rounded-full" />
                                         <a href="/u/@log.ActorUserPublicId" class="link link-hover text-sm">@log.ActorUserDisplayName</a>
                                     </div>

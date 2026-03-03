@@ -9,6 +9,12 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
 
+    /// <summary>Escapes LIKE/ILIKE metacharacters so user input is treated as literal text.</summary>
+    private static string EscapeLikePattern(string input) => input
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_");
+
     public async Task<PagedResult<DiscussionSearchResultDto>> SearchDiscussionsAsync(
         string query,
         string? authorPublicId = null,
@@ -17,18 +23,14 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        var baseQuery = _context.Discussions.AsQueryable();
+        var baseQuery = _context.Discussions
+            .Where(d => !d.IsDeleted);
 
-        // Apply case-insensitive ILIKE search on Title (PostgreSQL)
+        // Full-text search using tsvector + websearch_to_tsquery (supports stemming, AND/OR/NOT)
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var term in searchTerms)
-            {
-                var likeTerm = term; // Capture for closure
-                baseQuery = baseQuery.Where(d => EF.Functions.ILike(d.Title, $"%{likeTerm}%"));
-            }
+            var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
+            baseQuery = baseQuery.Where(d => d.SearchVector.Matches(tsQuery));
         }
 
         // Apply filters
@@ -41,8 +43,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         if (!string.IsNullOrEmpty(hubPublicId))
             baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
 
-        var items = await baseQuery
-            .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+        // Order by relevance when searching, by activity when browsing
+        var orderedQuery = !string.IsNullOrWhiteSpace(query)
+            ? baseQuery
+                .OrderByDescending(d => d.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
+                .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+            : baseQuery
+                .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt);
+
+        var items = await orderedQuery
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(d => new DiscussionSearchResultDto(
@@ -82,18 +91,14 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset = 0,
         int pageSize = 20)
     {
-        var baseQuery = _context.Posts.AsQueryable();
+        var baseQuery = _context.Posts
+            .Where(p => !p.IsDeleted);
 
-        // Apply case-insensitive ILIKE search on Content (PostgreSQL)
+        // Full-text search using tsvector + websearch_to_tsquery (supports stemming, AND/OR/NOT)
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var searchTerms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var term in searchTerms)
-            {
-                var likeTerm = term; // Capture for closure
-                baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Content, $"%{likeTerm}%"));
-            }
+            var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
+            baseQuery = baseQuery.Where(p => p.SearchVector.Matches(tsQuery));
         }
 
         // Apply filters
@@ -106,8 +111,15 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         if (!string.IsNullOrEmpty(spacePublicId))
             baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
 
-        var items = await baseQuery
-            .OrderByDescending(p => p.CreatedAt)
+        // Order by relevance when searching, by date when browsing
+        var orderedQuery = !string.IsNullOrWhiteSpace(query)
+            ? baseQuery
+                .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
+                .ThenByDescending(p => p.CreatedAt)
+            : baseQuery
+                .OrderByDescending(p => p.CreatedAt);
+
+        var items = await orderedQuery
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(p => new PostSearchResultDto(

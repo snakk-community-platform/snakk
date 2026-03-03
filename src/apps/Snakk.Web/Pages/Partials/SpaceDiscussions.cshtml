@@ -1,0 +1,28 @@
+@page "/partials/space-discussions"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.SpaceDiscussionsModel
+@{
+    Layout = null;
+}
+
+@foreach (var discussion in Model.Items)
+{
+    <partial name="Shared/_SpaceDiscussionListItem"
+             model="new SpaceDiscussionListItemVM(discussion, Model.Community, Model.HubSlug, Model.SpaceSlug)" />
+}
+
+@if (Model.HasMoreItems)
+{
+    <div hx-get="/partials/space-discussions?spaceId=@Model.SpaceId&hubSlug=@Model.HubSlug&spaceSlug=@Model.SpaceSlug&offset=@Model.NextOffset&pageSize=20"
+         hx-trigger="revealed"
+         hx-swap="outerHTML"
+         class="flex justify-center py-4">
+        <span class="loading loading-spinner loading-md"></span>
+    </div>
+}
+else if (Model.Items.Any())
+{
+    <div class="text-center py-8 text-base-content/50 text-sm">
+        You've reached the end
+    </div>
+}

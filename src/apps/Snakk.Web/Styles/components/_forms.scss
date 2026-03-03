@@ -77,3 +77,21 @@ select:focus-visible {
     outline-offset: 0;
     border-color: var(--link-primary);
 }
+
+// daisyUI v4 → v5 compatibility shims (form-control and label-text removed in v5)
+// These preserve existing form styling until views are gradually migrated to fieldset/legend
+.form-control {
+    display: flex;
+    flex-direction: column;
+}
+
+.label-text {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-primary);
+}
+
+.label-text-alt {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}

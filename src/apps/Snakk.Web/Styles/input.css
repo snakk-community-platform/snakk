@@ -1,3 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "../Pages";
+@source "../Views";
+@source "../wwwroot/js";
+
+/* Strip unused Tailwind defaults — daisyUI provides our semantic color palette */
+@theme {
+    --color-*: initial;
+    --drop-shadow-*: initial;
+    --blur-*: initial;
+}
+
+@plugin "daisyui" {
+    themes: lofi --default;
+}

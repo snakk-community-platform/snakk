@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Security;
 using Snakk.Application.Services;
@@ -12,11 +12,11 @@ namespace Snakk.Infrastructure.Services;
 
 public class PermissionService(
     SnakkDbContext context,
-    IMemoryCache cache,
+    HybridCache cache,
     ILogger<PermissionService> logger,
     ISecurityService securityService) : IPermissionService
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     // Compiled queries for hot-path permission lookups
     private static readonly Func<SnakkDbContext, string, Task<int?>> _getUserIdByPublicId
@@ -98,14 +98,10 @@ public class PermissionService(
         // Finally, check explicit permissions for the user's roles
         var cacheKey = $"user_permissions_{userId}";
 
-        var userPermissions = await cache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            return await GetUserPermissionsInternalAsync(userId);
-        });
-
-        if (userPermissions is null)
-            return false;
+        var userPermissions = await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => await GetUserPermissionsInternalAsync(userId),
+            CacheOptions);
 
         return userPermissions.Any(p => p.Name == permissionName);
     }
@@ -242,11 +238,10 @@ public class PermissionService(
     {
         var cacheKey = $"user_permissions_{userId}";
 
-        var permissions = await cache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-            return await GetUserPermissionsInternalAsync(userId);
-        });
+        var permissions = await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => await GetUserPermissionsInternalAsync(userId),
+            CacheOptions);
 
         return permissions ?? [];
     }
@@ -307,11 +302,9 @@ public class PermissionService(
     {
         var cacheKey = "all_permissions";
 
-        var permissions = await cache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-
-            return await context.Permissions
+        var permissions = await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel => await context.Permissions
                 .OrderBy(p => p.Category)
                 .ThenBy(p => p.Name)
                 .Select(p => new PermissionDto
@@ -323,8 +316,8 @@ public class PermissionService(
                     IsSystemPermission = p.IsSystemPermission,
                     CreatedAt = p.CreatedAt
                 })
-                .ToListAsync();
-        });
+                .ToListAsync(cancel),
+            CacheOptions);
 
         return permissions ?? [];
     }
@@ -465,7 +458,7 @@ public class PermissionService(
         await context.SaveChangesAsync();
 
         // Invalidate user's permission cache
-        cache.Remove($"user_permissions_{userId}");
+        await cache.RemoveAsync($"user_permissions_{userId}");
 
         // Log audit event
         await securityService.LogAuditAsync(
@@ -522,7 +515,7 @@ public class PermissionService(
         await context.SaveChangesAsync();
 
         // Invalidate user's permission cache
-        cache.Remove($"user_permissions_{elevation.User.PublicId}");
+        await cache.RemoveAsync($"user_permissions_{elevation.User.PublicId}");
 
         // Log audit event
         await securityService.LogAuditAsync(
@@ -648,7 +641,7 @@ public class PermissionService(
         // Invalidate cache for each user
         foreach (var userId in userIds)
         {
-            cache.Remove($"user_permissions_{userId}");
+            await cache.RemoveAsync($"user_permissions_{userId}");
         }
     }
 }

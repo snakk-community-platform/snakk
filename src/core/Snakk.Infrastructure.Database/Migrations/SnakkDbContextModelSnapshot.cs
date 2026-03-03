@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using Snakk.Infrastructure.Database;
 
 #nullable disable
@@ -414,6 +415,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("ReactionCount")
                         .HasColumnType("integer");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('english', coalesce(\"Title\", ''))", true);
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text");
@@ -435,6 +442,11 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("PublicId")
                         .IsUnique();
+
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("IX_Discussion_SearchVector_Gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("Slug");
 
@@ -920,6 +932,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("RevisionCount")
                         .HasColumnType("integer");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('english', coalesce(\"Content\", ''))", true);
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted")
@@ -930,6 +948,11 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("ReplyToPostId")
                         .HasDatabaseName("IX_Post_ReplyToPostId");
+
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("IX_Post_SearchVector_Gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("CreatedAt", "DiscussionId", "IsDeleted")
                         .IsDescending(true, false, false)

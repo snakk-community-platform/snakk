@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Database.Entities;
 
 using System.ComponentModel.DataAnnotations.Schema;
+using NpgsqlTypes;
 
 [Table("Discussion")]
 public class DiscussionDatabaseEntity
@@ -34,6 +35,9 @@ public class DiscussionDatabaseEntity
 
     public int CreatedByUserId { get; set; }
     public virtual UserDatabaseEntity CreatedByUser { get; set; } = null!;
+
+    // Full-text search vector (stored generated column)
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
 
     // One-to-many relationships
     public virtual ICollection<PostDatabaseEntity> Posts { get; set; } = [];

@@ -80,7 +80,7 @@
                     {
                         <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="category-card">
                             <div class="flex items-start gap-3">
-                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" loading="lazy" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
                                 <div class="flex-1 min-w-0">
                                     <h2 class="category-title">@hub.Name</h2>
                                     @if (!string.IsNullOrEmpty(hub.Description))
