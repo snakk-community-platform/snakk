@@ -99,10 +99,7 @@ src/
 
 docs/
 ├── ARCHITECTURE.md                 # Architecture documentation
-├── MODERATION.MD                   # Moderation system
 ├── REALTIME.MD                     # Real-time features
-├── HierarchicalPermissions.md      # Permission system
-├── client-caching-guide.md         # Client-side caching
 └── GDRP.MD                        # GDPR compliance
 ```
 
