@@ -182,11 +182,14 @@ public static class DiscussionEndpoints
 
     private static async Task<IResult> GetTopActiveDiscussionsTodayAsync(
         StatisticsUseCase useCase,
+        IConfiguration configuration,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
     {
+        var since = DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
         var result = await useCase.GetTopActiveDiscussionsTodayAsync(
+            since,
             hubId,
             spaceId,
             communityId,

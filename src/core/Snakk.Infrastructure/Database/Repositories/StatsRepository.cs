@@ -97,15 +97,14 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             discussion.FollowerCount);
     }
 
-    public async Task<List<TopActiveSpaceDto>> GetTopActiveSpacesTodayAsync(
+    public async Task<List<TopActiveSpaceDto>> GetTopActiveSpacesSinceAsync(
+        DateTime since,
         string? hubId = null,
         string? communityId = null,
         int limit = 5)
     {
-        var today = DateTime.UtcNow.Date;
-
         var postsQuery = _context.Posts
-            .Where(p => !p.IsDeleted && p.CreatedAt >= today);
+            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))

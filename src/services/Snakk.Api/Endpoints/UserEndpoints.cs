@@ -64,11 +64,14 @@ public static class UserEndpoints
 
     private static async Task<IResult> GetTopContributorsTodayAsync(
         StatisticsUseCase useCase,
+        IConfiguration configuration,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
     {
+        var since = DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
         var result = await useCase.GetTopContributorsTodayAsync(
+            since,
             hubId,
             spaceId,
             communityId,

@@ -4,97 +4,105 @@
  * Discussion previews are handled by frontpage.ts via event delegation.
  */
 
-class FrontpageDiscussions {
-    private scrollToTopBtn: HTMLElement | null;
-    private scrollCounter: HTMLElement | null;
-    private initialDiscussionCount: number;
+(function(): void {
+    'use strict';
 
-    constructor() {
-        this.scrollToTopBtn = null;
-        this.scrollCounter = null;
-        this.initialDiscussionCount = 0;
-    }
+    class FrontpageDiscussions {
+        private scrollToTopBtn: HTMLElement | null;
+        private scrollCounter: HTMLElement | null;
+        private initialDiscussionCount: number;
 
-    init(): void {
-        const container = document.getElementById('discussions-container');
-        if (!container) return;
+        constructor() {
+            this.scrollToTopBtn = null;
+            this.scrollCounter = null;
+            this.initialDiscussionCount = 0;
+        }
 
-        this.initialDiscussionCount = container.querySelectorAll('.topic-item-wrapper').length;
-        this.initScrollToTop();
-    }
+        init(): void {
+            const container = document.getElementById('discussions-container');
+            if (!container) return;
 
-    initScrollToTop(): void {
-        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
-        this.scrollToTopBtn = document.getElementById('scroll-to-top-btn');
-        this.scrollCounter = document.getElementById('scroll-counter');
+            this.initialDiscussionCount = container.querySelectorAll('.topic-item-wrapper').length;
+            this.initScrollToTop();
+        }
 
-        if (!scrollWrapper || !this.scrollToTopBtn) return;
+        initScrollToTop(): void {
+            const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
+            this.scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+            this.scrollCounter = document.getElementById('scroll-counter');
 
-        this.updateScrollCounter();
+            if (!scrollWrapper || !this.scrollToTopBtn) return;
 
-        let scrollTimeout: number | undefined;
-        window.addEventListener('scroll', () => {
-            if (scrollTimeout !== undefined) {
-                window.cancelAnimationFrame(scrollTimeout);
-            }
-            scrollTimeout = window.requestAnimationFrame(() => {
-                this.handleScrollPosition();
+            this.updateScrollCounter();
+
+            let scrollTimeout: number | undefined;
+            window.addEventListener('scroll', () => {
+                if (scrollTimeout !== undefined) {
+                    window.cancelAnimationFrame(scrollTimeout);
+                }
+                scrollTimeout = window.requestAnimationFrame(() => {
+                    this.handleScrollPosition();
+                });
+            }, { passive: true });
+
+            this.scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
-        }, { passive: true });
 
-        this.scrollToTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+            this.handleScrollPosition();
+        }
 
-        this.handleScrollPosition();
-    }
+        handleScrollPosition(): void {
+            const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
+            if (!scrollWrapper) return;
 
-    handleScrollPosition(): void {
-        const scrollWrapper = document.getElementById('scroll-to-top-wrapper');
-        if (!scrollWrapper) return;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const container = document.getElementById('discussions-container');
+            if (!container) return;
 
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const container = document.getElementById('discussions-container');
-        if (!container) return;
+            const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
+            const shouldShow = scrollTop > 800 || totalDiscussions > this.initialDiscussionCount;
 
-        const totalDiscussions = container.querySelectorAll('.topic-item-wrapper').length;
-        const shouldShow = scrollTop > 800 || totalDiscussions > this.initialDiscussionCount;
+            if (shouldShow) {
+                scrollWrapper.classList.remove('hidden');
+            } else {
+                scrollWrapper.classList.add('hidden');
+            }
+        }
 
-        if (shouldShow) {
-            scrollWrapper.classList.remove('hidden');
-        } else {
-            scrollWrapper.classList.add('hidden');
+        updateScrollCounter(): void {
+            if (!this.scrollCounter) return;
+
+            const container = document.getElementById('discussions-container');
+            if (!container) return;
+
+            this.scrollCounter.textContent = container.querySelectorAll('.topic-item-wrapper').length.toString();
+        }
+
+        destroy(): void {
+            this.scrollToTopBtn = null;
+            this.scrollCounter = null;
         }
     }
 
-    updateScrollCounter(): void {
-        if (!this.scrollCounter) return;
+    // Export — always create fresh instance on re-execution (SPA navigation)
+    (window as any).FrontpageDiscussions = FrontpageDiscussions;
+    (window as any).SnakkFrontpageDiscussions = new FrontpageDiscussions();
 
-        const container = document.getElementById('discussions-container');
-        if (!container) return;
-
-        this.scrollCounter.textContent = container.querySelectorAll('.topic-item-wrapper').length.toString();
+    // Initialize immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            (window as any).SnakkFrontpageDiscussions.init();
+        });
+    } else {
+        (window as any).SnakkFrontpageDiscussions.init();
     }
 
-    destroy(): void {
-        this.scrollToTopBtn = null;
-        this.scrollCounter = null;
-    }
-}
-
-// Export
-window.FrontpageDiscussions = FrontpageDiscussions;
-window.SnakkFrontpageDiscussions = new FrontpageDiscussions();
-
-// Run on initial page load
-document.addEventListener('DOMContentLoaded', () => {
-    window.SnakkFrontpageDiscussions.init();
-});
-
-// Update counter and scroll position when HTMX loads new discussion batches
-document.body.addEventListener('htmx:afterSwap', () => {
-    if (document.getElementById('discussions-container')) {
-        window.SnakkFrontpageDiscussions.updateScrollCounter();
-        window.SnakkFrontpageDiscussions.handleScrollPosition();
-    }
-});
+    // Update counter and scroll position when HTMX loads new discussion batches
+    document.body.addEventListener('htmx:afterSwap', () => {
+        if (document.getElementById('discussions-container')) {
+            (window as any).SnakkFrontpageDiscussions.updateScrollCounter();
+            (window as any).SnakkFrontpageDiscussions.handleScrollPosition();
+        }
+    });
+})();

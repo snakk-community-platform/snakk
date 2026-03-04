@@ -296,10 +296,10 @@ public class StatsRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetTopActiveSpacesTodayAsync Tests
+    #region GetTopActiveSpacesSinceAsync Tests
 
     [Test]
-    public async Task GetTopActiveSpacesTodayAsync_WithRecentPosts_ReturnsActiveSpaces()
+    public async Task GetTopActiveSpacesSinceAsync_WithRecentPosts_ReturnsActiveSpaces()
     {
         // Arrange
         var (user, community, hub, space, discussion, firstPost) = await _builder.CreateFullHierarchyAsync();
@@ -309,7 +309,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
         await _builder.CreatePostAsync(discussion.Id, user.Id, "Today post 2");
 
         // Act
-        var topSpaces = await _repository.GetTopActiveSpacesTodayAsync();
+        var topSpaces = await _repository.GetTopActiveSpacesSinceAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert: the first post + 2 additional posts = 3 posts today in that space
         await Assert.That(topSpaces.Count).IsEqualTo(1);
@@ -318,17 +318,17 @@ public class StatsRepositoryIntegrationTests : IDisposable
     }
 
     [Test]
-    public async Task GetTopActiveSpacesTodayAsync_EmptyDatabase_ReturnsEmptyList()
+    public async Task GetTopActiveSpacesSinceAsync_EmptyDatabase_ReturnsEmptyList()
     {
         // Act
-        var topSpaces = await _repository.GetTopActiveSpacesTodayAsync();
+        var topSpaces = await _repository.GetTopActiveSpacesSinceAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert
         await Assert.That(topSpaces.Count).IsEqualTo(0);
     }
 
     [Test]
-    public async Task GetTopActiveSpacesTodayAsync_RespectsLimitParameter()
+    public async Task GetTopActiveSpacesSinceAsync_RespectsLimitParameter()
     {
         // Arrange: create 3 spaces with different post counts
         var user = await _builder.CreateUserAsync();
@@ -351,7 +351,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
         await _builder.CreatePostAsync(disc3.Id, user.Id, "Post 3");
 
         // Act: request only top 2
-        var topSpaces = await _repository.GetTopActiveSpacesTodayAsync(limit: 2);
+        var topSpaces = await _repository.GetTopActiveSpacesSinceAsync(DateTime.UtcNow.AddHours(-24), limit: 2);
 
         // Assert
         await Assert.That(topSpaces.Count).IsEqualTo(2);

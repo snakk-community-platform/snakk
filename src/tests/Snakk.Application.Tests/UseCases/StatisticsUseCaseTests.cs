@@ -51,7 +51,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync([user1, user2]);
 
         // Act
-        var result = await _useCase.GetTopContributorsTodayAsync();
+        var result = await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -84,7 +84,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync([]); // No users found (deleted)
 
         // Act
-        var result = await _useCase.GetTopContributorsTodayAsync();
+        var result = await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -105,7 +105,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync([]);
 
         // Act
-        await _useCase.GetTopContributorsTodayAsync(hubId: hubId);
+        await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24), hubId: hubId);
 
         // Assert
         _mockPostRepo.Verify(r => r.GetTopContributorsSinceAsync(
@@ -123,7 +123,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync([]);
 
         // Act
-        await _useCase.GetTopContributorsTodayAsync(limit: 10);
+        await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24), limit: 10);
 
         // Assert
         _mockPostRepo.Verify(r => r.GetTopContributorsSinceAsync(
@@ -155,7 +155,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync(topDiscussions);
 
         // Act
-        var result = await _useCase.GetTopActiveDiscussionsTodayAsync();
+        var result = await _useCase.GetTopActiveDiscussionsTodayAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -178,7 +178,7 @@ public class StatisticsUseCaseTests
             .ReturnsAsync([]);
 
         // Act
-        await _useCase.GetTopActiveDiscussionsTodayAsync(spaceId: spaceId);
+        await _useCase.GetTopActiveDiscussionsTodayAsync(DateTime.UtcNow.AddHours(-24), spaceId: spaceId);
 
         // Assert
         _mockDiscussionRepo.Verify(r => r.GetTopActiveDiscussionsSinceAsync(
@@ -542,11 +542,11 @@ public class StatisticsUseCaseTests
             new("space-2", "Off Topic", "off-topic", 15, "hub-1", "main", "Main Hub")
         };
 
-        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesTodayAsync(null, null, 5))
+        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), null, null, 5))
             .ReturnsAsync(spaces);
 
         // Act
-        var result = await _useCase.GetTopActiveSpacesTodayAsync();
+        var result = await _useCase.GetTopActiveSpacesTodayAsync(DateTime.UtcNow.AddHours(-24));
 
         // Assert
         await Assert.That(result).Count().IsEqualTo(2);
@@ -558,28 +558,28 @@ public class StatisticsUseCaseTests
     public async Task GetTopActiveSpacesTodayAsync_WithHubFilter_PassesHubId()
     {
         // Arrange
-        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesTodayAsync("hub-1", null, 5))
+        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), "hub-1", null, 5))
             .ReturnsAsync([]);
 
         // Act
-        await _useCase.GetTopActiveSpacesTodayAsync(hubId: "hub-1");
+        await _useCase.GetTopActiveSpacesTodayAsync(DateTime.UtcNow.AddHours(-24), hubId: "hub-1");
 
         // Assert
-        _mockStatsRepo.Verify(r => r.GetTopActiveSpacesTodayAsync("hub-1", null, 5), Times.Once);
+        _mockStatsRepo.Verify(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), "hub-1", null, 5), Times.Once);
     }
 
     [Test]
     public async Task GetTopActiveSpacesTodayAsync_WithCommunityFilter_PassesCommunityId()
     {
         // Arrange
-        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesTodayAsync(null, "community-1", 5))
+        _mockStatsRepo.Setup(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), null, "community-1", 5))
             .ReturnsAsync([]);
 
         // Act
-        await _useCase.GetTopActiveSpacesTodayAsync(communityId: "community-1");
+        await _useCase.GetTopActiveSpacesTodayAsync(DateTime.UtcNow.AddHours(-24), communityId: "community-1");
 
         // Assert
-        _mockStatsRepo.Verify(r => r.GetTopActiveSpacesTodayAsync(null, "community-1", 5), Times.Once);
+        _mockStatsRepo.Verify(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), null, "community-1", 5), Times.Once);
     }
 
     #endregion

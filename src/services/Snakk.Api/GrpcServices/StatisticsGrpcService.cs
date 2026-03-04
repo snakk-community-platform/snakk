@@ -9,8 +9,12 @@ using Snakk.Shared.Enums;
 namespace Snakk.Api.GrpcServices;
 
 public class StatisticsGrpcService(
-    StatisticsUseCase statisticsUseCase) : StatisticsService.StatisticsServiceBase
+    StatisticsUseCase statisticsUseCase,
+    IConfiguration configuration) : StatisticsService.StatisticsServiceBase
 {
+    private DateTime GetTrendingSince() =>
+        DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
+
     public override async Task<PlatformStats> GetPlatformStats(GetPlatformStatsRequest request, ServerCallContext context)
     {
         var stats = await statisticsUseCase.GetPlatformStatsAsync();
@@ -27,6 +31,7 @@ public class StatisticsGrpcService(
     public override async Task<TopActiveDiscussionsList> GetTopActiveDiscussionsToday(GetTopActiveDiscussionsTodayRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetTopActiveDiscussionsTodayAsync(
+            GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
@@ -73,6 +78,7 @@ public class StatisticsGrpcService(
     public override async Task<TopActiveSpacesList> GetTopActiveSpacesToday(GetTopActiveSpacesTodayRequest request, ServerCallContext context)
     {
         var spaces = await statisticsUseCase.GetTopActiveSpacesTodayAsync(
+            GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit);
@@ -102,6 +108,7 @@ public class StatisticsGrpcService(
     public override async Task<TopContributorsList> GetTopContributorsToday(GetTopContributorsTodayRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetTopContributorsTodayAsync(
+            GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,

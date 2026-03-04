@@ -33,9 +33,10 @@ public interface IStatsRepository
     Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId);
 
     /// <summary>
-    /// Gets top active spaces by post count for today
+    /// Gets top active spaces by post count since the given cutoff
     /// </summary>
-    Task<List<TopActiveSpaceDto>> GetTopActiveSpacesTodayAsync(
+    Task<List<TopActiveSpaceDto>> GetTopActiveSpacesSinceAsync(
+        DateTime since,
         string? hubId = null,
         string? communityId = null,
         int limit = 5);

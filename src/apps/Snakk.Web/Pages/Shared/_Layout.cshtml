@@ -46,7 +46,7 @@
             var p = localStorage.getItem('snakk_theme_preference');
             var isDark = p === 'dark' || ((!p || p === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
             document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'lofi');
-            if (isDark) document.write('<link id="dark-theme-css" rel="stylesheet" href="@Html.Raw(darkThemeCssUrl)">');
+            if (isDark) { var l = document.createElement('link'); l.id = 'dark-theme-css'; l.rel = 'stylesheet'; l.href = '@Html.Raw(darkThemeCssUrl)'; document.head.appendChild(l); }
         })();
     </script>
 

@@ -149,10 +149,12 @@ public static class SpaceEndpoints
 
     private static async Task<IResult> GetTopActiveSpacesTodayAsync(
         StatisticsUseCase useCase,
+        IConfiguration configuration,
         string? hubId = null,
         string? communityId = null)
     {
-        var topSpaces = await useCase.GetTopActiveSpacesTodayAsync(hubId, communityId);
+        var since = DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
+        var topSpaces = await useCase.GetTopActiveSpacesTodayAsync(since, hubId, communityId);
 
         var items = topSpaces.Select(s => new TopActiveSpaceResponse(
             PublicId: s.PublicId,

@@ -15,15 +15,14 @@ public class StatisticsUseCase(
     /// Gets top contributors by post count for today
     /// </summary>
     public async Task<Result<PagedResult<TopContributorResult>>> GetTopContributorsTodayAsync(
+        DateTime since,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null,
         int limit = 5)
     {
-        var today = DateTime.UtcNow.Date;
-
         var topContributors = await postRepo.GetTopContributorsSinceAsync(
-            today,
+            since,
             hubId is not null ? HubId.From(hubId) : null,
             spaceId is not null ? SpaceId.From(spaceId) : null,
             communityId is not null ? CommunityId.From(communityId) : null,
@@ -59,15 +58,14 @@ public class StatisticsUseCase(
     /// Gets top active discussions by post count for today
     /// </summary>
     public async Task<Result<PagedResult<TopDiscussionResult>>> GetTopActiveDiscussionsTodayAsync(
+        DateTime since,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null,
         int limit = 5)
     {
-        var today = DateTime.UtcNow.Date;
-
         var topDiscussions = await discussionRepo.GetTopActiveDiscussionsSinceAsync(
-            today,
+            since,
             hubId is not null ? HubId.From(hubId) : null,
             spaceId is not null ? SpaceId.From(spaceId) : null,
             communityId is not null ? CommunityId.From(communityId) : null,
@@ -237,10 +235,11 @@ public class StatisticsUseCase(
     /// Gets top active spaces by post count for today
     /// </summary>
     public async Task<List<TopActiveSpaceDto>> GetTopActiveSpacesTodayAsync(
+        DateTime since,
         string? hubId = null,
         string? communityId = null,
         int limit = 5) =>
-        await statsRepo.GetTopActiveSpacesTodayAsync(hubId, communityId, limit);
+        await statsRepo.GetTopActiveSpacesSinceAsync(since, hubId, communityId, limit);
 }
 
 // Result DTOs
