@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y curl && \
 WORKDIR /src
 
 # --- NuGet restore (cached layer — only invalidated when csproj files change) ---
-COPY docker/Snakk.Docker.slnx Snakk.slnx
+COPY docker/Snakk.Docker.slnx Snakk.Docker.slnx
 COPY src/aspire/Snakk.ServiceDefaults/Snakk.ServiceDefaults.csproj aspire/Snakk.ServiceDefaults/
 COPY src/core/Snakk.Domain/Snakk.Domain.csproj core/Snakk.Domain/
 COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
@@ -35,7 +35,7 @@ COPY src/apps/Snakk.Web/Snakk.Web.csproj apps/Snakk.Web/
 COPY src/apps/Snakk.Auth/Snakk.Auth.csproj apps/Snakk.Auth/
 COPY src/apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj apps/Snakk.AdminWeb/
 COPY src/tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj tools/Snakk.DbSeeder/
-RUN dotnet restore Snakk.slnx
+RUN dotnet restore Snakk.Docker.slnx
 
 # --- npm install (cached layer — only invalidated when package files change) ---
 COPY src/apps/Snakk.Web/package.json src/apps/Snakk.Web/package-lock.json apps/Snakk.Web/
@@ -73,7 +73,7 @@ RUN cd apps/Snakk.Auth && npm run build:css
 RUN touch core/Snakk.Sdk/Generated/SnakkApiClient.cs
 
 # --- Build the entire solution (resolves shared dependencies once) ---
-RUN dotnet build Snakk.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipBuildTailwindCSS=true
+RUN dotnet build Snakk.Docker.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipBuildTailwindCSS=true
 
 # --- Publish all 9 projects in parallel (no compilation, just copy) ---
 RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-build --no-restore & \
