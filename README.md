@@ -272,7 +272,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Pal Rune Sorensen Tuv**
+**Pål Rune Sørensen Tuv**
 Senior Software Engineer / Systems Architect
 
 - GitHub: [https://github.com/paaltuv](https://github.com/paaltuv)
