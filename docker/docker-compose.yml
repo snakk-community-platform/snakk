@@ -6,7 +6,6 @@ services:
       resources:
         limits:
           memory: 1g
-          cpus: "1.0"
         reservations:
           memory: 256m
     environment:
@@ -43,7 +42,6 @@ services:
       resources:
         limits:
           memory: 2g
-          cpus: "2.0"
         reservations:
           memory: 512m
     environment:
