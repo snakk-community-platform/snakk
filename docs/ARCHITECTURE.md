@@ -1,8 +1,7 @@
 # Snakk Platform - Architecture Documentation
 
-**Last Updated**: 2026-02-17
-**Version**: Current Production State
-**Status**: ✅ ACTIVE
+**Last Updated**: 2026-03-04
+**Status**: Current
 
 ---
 
@@ -19,90 +18,119 @@
 
 ## Solution Overview
 
-Snakk is a hierarchical community discussion platform built on .NET 10 with a microservices architecture and strict adherence to Clean Architecture principles.
+Snakk is a hierarchical community discussion platform built on .NET 10 with a microservices architecture, Clean Architecture principles, and gRPC for internal service communication.
 
-### Core Services
+### Services
 
 | Service | Technology | Port | Access | Purpose |
 |---------|-----------|------|--------|---------|
-| **Snakk.Api** | .NET 10 + ASP.NET | 17100 | Internal (firewalled) | Business logic REST API |
-| **Snakk.Web** | .NET 10 + Razor Pages | 17200 | Public | Main platform + BFF layer |
-| **Snakk.Realtime** | .NET 10 + SignalR | 17101 | Public | WebSocket hub for real-time updates |
-| **Snakk.AdminWeb** | .NET 10 + Blazor | 17201 | Internal | Admin dashboard |
+| **Snakk.Gateway** | .NET 10 + YARP | 17000 | Public | Reverse proxy, routes traffic to services |
+| **Snakk.Api** | .NET 10 + gRPC/REST | 17100 | Internal (firewalled) | Business logic API |
+| **Snakk.Realtime** | .NET 9 + SignalR | 17101 | Public | WebSocket hub for real-time updates |
+| **Snakk.Web** | .NET 10 + Razor Pages | 17110 | Public | Main platform + BFF layer |
+| **Snakk.Auth** | .NET 10 + Razor Pages | 17111 | Public | Authentication (login, register, OAuth) |
+| **Snakk.AdminWeb** | .NET 10 + Blazor Server | 17112 | Internal | Admin dashboard |
+| **Snakk.Setup** | .NET 10 + Razor Pages | — | Local | First-run setup wizard |
+| **Snakk.Worker** | .NET 10 | — | Internal | Background job processor |
 
 ### Architecture Diagram
 
 ```
-                    ┌─────────────────────┐
-                    │   Browser Client    │
-                    └──────────┬──────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-          ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  Snakk.Web      │  │ Snakk.Realtime  │  │ Snakk.AdminWeb  │
-│  (BFF + SSR)    │  │   (SignalR)     │  │    (Blazor)     │
-│  Port 17200     │  │   Port 17101    │  │   Port 17201    │
-└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
-         │                    │                    │
-         │ HTTP               │ HTTP               │ HTTP + Sdk
-         │                    │ (broadcast)        │
-         │                    │                    │
-         └────────────────────┼────────────────────┘
-                              ▼
-                    ┌─────────────────────┐
-                    │    Snakk.Api        │
-                    │   (Internal API)    │
-                    │    Port 17100       │
-                    │   🔒 Firewalled     │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌──────────────────┐
-                    │   PostgreSQL     │
-                    │    Database      │
-                    └──────────────────┘
+                     ┌──────────────────────┐
+                     │    Browser Client     │
+                     └──────────┬───────────┘
+                                │
+               ┌────────────────┼─────────────────┐
+               │                │                  │
+               ▼                ▼                  ▼
+    ┌──────────────────┐  ┌───────────┐  ┌─────────────────┐
+    │  Snakk.Gateway   │  │ Snakk.    │  │  Snakk.AdminWeb │
+    │  (YARP Proxy)    │  │ Realtime  │  │   (Blazor)      │
+    │  Port 17000      │  │ (SignalR) │  │  Port 17112     │
+    └───────┬──────────┘  │ Port 17101│  └────────┬────────┘
+            │             └─────┬─────┘           │
+     ┌──────┼───────┐          │                  │
+     │      │       │          │                  │
+     ▼      ▼       ▼          │                  │
+  ┌─────┐┌─────┐┌──────┐      │                  │
+  │ Web ││Auth ││Setup │      │            Snakk.Sdk
+  │17110││17111││      │      │                  │
+  └──┬──┘└──┬──┘└──┬───┘      │                  │
+     │      │      │           │                  │
+     └──────┼──────┘           │                  │
+            │ gRPC             │ gRPC             │ HTTP
+            ▼                  ▼                  ▼
+    ┌──────────────────────────────────────────────┐
+    │               Snakk.Api                      │
+    │         (Internal gRPC + REST API)           │
+    │              Port 17100                      │
+    │            🔒 Firewalled                     │
+    └───────────────────┬──────────────────────────┘
+                        │
+                        ▼
+               ┌────────────────┐
+               │   PostgreSQL   │
+               └────────────────┘
 ```
+
+### Orchestration
+
+**.NET Aspire** orchestrates all services during development:
+
+```
+src/aspire/
+├── Snakk.AppHost/           # Service orchestrator (ports, config, dependencies)
+└── Snakk.ServiceDefaults/   # Shared defaults (OpenTelemetry, health checks, resilience)
+```
+
+Run `dotnet run` in `Snakk.AppHost` to start everything with the Aspire dashboard for observability.
 
 ---
 
 ## Technology Stack
 
 ### Backend (.NET)
-- **.NET 10** - Latest LTS framework
-- **ASP.NET Core** - Minimal APIs for endpoints
-- **Entity Framework Core 10** - ORM with PostgreSQL
-- **SignalR** - Real-time communication (dedicated service)
-- **BCrypt.NET** - Password hashing
-- **FluentValidation** - Request validation
-- **ImageSharp** - Avatar generation
+- **.NET 10** — Latest framework (Realtime uses .NET 9)
+- **ASP.NET Core** — Minimal APIs, Razor Pages, Blazor Server
+- **gRPC** — Internal service-to-service communication (Snakk.Protos)
+- **Entity Framework Core 10** — ORM with PostgreSQL (Npgsql)
+- **YARP** — Reverse proxy gateway
+- **SignalR** — Real-time WebSocket communication
+- **Serilog** — Structured logging
+- **HybridCache** — In-memory + distributed caching
+- **BCrypt.NET** — Password hashing
+- **FluentValidation** — Request validation
+- **ImageSharp** — Avatar generation
 
 ### Frontend (Snakk.Web)
-- **Razor Pages** - Server-side rendering (SSR)
-- **HTMX** - HTML-first interactive enhancements
-- **Tailwind CSS** - Utility-first CSS framework
-- **daisyUI** - Tailwind component library
-- **Vanilla JavaScript ES6+** - IIFE modules, event delegation
-- **SignalR Client** - WebSocket connection
+- **Razor Pages** — Server-side rendering (SSR)
+- **HTMX** — HTML-first interactive enhancements (SPA-like navigation)
+- **Tailwind CSS v4** — Utility-first CSS framework
+- **daisyUI v5** — Tailwind component library
+- **SCSS** — Custom styles compiled with Dart Sass
+- **TypeScript** — Client-side logic compiled with tsc + esbuild minification
+- **Vanilla JavaScript ES6+** — IIFE modules, event delegation
+- **SignalR Client** — WebSocket connection for real-time updates
+
+### Frontend (Snakk.Auth)
+- **Razor Pages** — Server-side rendering
+- **SCSS** — Custom styles compiled with Dart Sass (no Tailwind, no daisyUI)
 
 ### Admin Panel (Snakk.AdminWeb)
-- **Blazor Server** - .NET UI framework
-- **Microsoft Fluent UI** - Component library
-- **Cookie Authentication** - Admin session management
+- **Blazor Server** — .NET UI framework
+- **Microsoft Fluent UI** — Component library
+- **Cookie Authentication** — Admin session management
+- **Snakk.Sdk** — Auto-generated API client (NSwag from OpenAPI spec)
 
 ### Database & Storage
-- **PostgreSQL** - Primary database
-- **Local File Storage** - Avatar storage with XxHash32 sharding (256 folders)
-  - Configurable via `FileStorage:BasePath` in appsettings.json
-  - Served from `/avatars` endpoint
-  - CDN-ready structure (can be migrated to S3/Azure Blob Storage)
+- **PostgreSQL** — Primary database with trigram indexes for full-text search
+- **Local File Storage** — Avatar storage with XxHash32 sharding (256 folders)
 
 ### Authentication & Security
-- **JWT Bearer Tokens** - API authentication
-- **Cookie Authentication** - Admin panel
-- **OAuth 2.0** - Google, GitHub, Discord (configured)
-- **Two-Factor Authentication** - TOTP-based
+- **JWT Bearer Tokens** — API authentication
+- **Cookie Authentication** — Web and admin panel sessions
+- **OAuth 2.0** — Google, GitHub, Discord
+- **Rate Limiting** — Per-endpoint limits
 
 ---
 
@@ -110,17 +138,17 @@ Snakk is a hierarchical community discussion platform built on .NET 10 with a mi
 
 ### 1. Clean Architecture (C# Backend)
 
-**MANDATORY RULES:**
-- ✅ API layer: HTTP concerns ONLY (no business logic)
-- ✅ Application layer: DTOs, service interfaces, use cases
-- ✅ Infrastructure layer: Service implementations
-- ✅ Domain layer: Business logic (NO external dependencies)
-- ❌ **FORBIDDEN**: API layer referencing Infrastructure types
+**Rules:**
+- API layer: HTTP/gRPC concerns ONLY (no business logic)
+- Application layer: DTOs, service interfaces, use cases
+- Infrastructure layer: Service implementations
+- Domain layer: Business logic (NO external dependencies)
+- **FORBIDDEN**: API layer referencing Infrastructure types
 
 **Layer Dependencies:**
 ```
 ┌─────────────────────────────┐
-│ Snakk.Api (Endpoints)       │  ← Controllers/Endpoints only
+│ Snakk.Api (Endpoints/gRPC)  │  ← HTTP/gRPC handlers only
 ├─────────────────────────────┤
 │ Snakk.Application           │  ← DTOs, interfaces, use cases
 │ (No Infrastructure deps)    │
@@ -135,39 +163,14 @@ Snakk is a hierarchical community discussion platform built on .NET 10 with a mi
 └─────────────────────────────┘
 ```
 
-**Example Violation (WRONG):**
-```csharp
-// ❌ BAD: API endpoint directly injecting DbContext
-public static void MapPostEndpoints(this IEndpointRouteBuilder app)
-{
-    app.MapPost("/posts", async (SnakkDbContext context, ...) =>
-    {
-        // This violates Clean Architecture!
-    });
-}
-```
-
-**Correct Approach:**
-```csharp
-// ✅ GOOD: API endpoint using Application layer service
-public static void MapPostEndpoints(this IEndpointRouteBuilder app)
-{
-    app.MapPost("/posts", async (IPostService postService, ...) =>
-    {
-        // Service interface from Application layer
-        var result = await postService.CreatePostAsync(...);
-    });
-}
-```
-
 ### 2. Backend-for-Frontend (BFF) Pattern
 
-**MANDATORY RULES:**
-- ✅ JavaScript calls `/bff/*` endpoints ONLY
-- ✅ BFF proxies requests to internal API
-- ✅ SignalR connects directly to Snakk.Realtime (not proxied)
-- ❌ **FORBIDDEN**: Direct `fetch()` to `/api/*` from browser
-- ❌ **FORBIDDEN**: Exposing API URLs to frontend
+**Rules:**
+- JavaScript calls `/bff/*` endpoints ONLY
+- BFF (Snakk.Web) proxies requests to internal API via gRPC
+- SignalR connects directly to Snakk.Realtime (not proxied)
+- **FORBIDDEN**: Direct `fetch()` to `/api/*` from browser
+- **FORBIDDEN**: Exposing API URLs to frontend
 
 **Request Flow:**
 ```
@@ -175,32 +178,42 @@ Browser
   ├── HTTP GET /bff/posts?page=1
   │     ↓
   │   Snakk.Web (BFF)
-  │     ↓ HTTP GET /api/posts?page=1
+  │     ↓ gRPC GetDiscussions()
   │   Snakk.Api
   │     ↓
-  │   Response (DTO)
+  │   Response (protobuf)
   │     ↓
-  │   Transform if needed
+  │   Transform to JSON
   │     ↓
   │   Return to browser
   │
-  └── WebSocket connect → Snakk.Realtime:5300
+  └── WebSocket connect → Snakk.Realtime:17101
                             (Direct connection, no proxy)
 ```
 
-**Rationale:**
-- **Security**: API is firewalled, only accessible to BFF
-- **Validation**: BFF can sanitize/validate requests
-- **Flexibility**: Can change internal API without breaking frontend
-- **Auth Conversion**: BFF handles JWT/cookie conversion
+### 3. gRPC Internal Communication
 
-**Why SignalR is NOT proxied:**
-- WebSocket connections are stateful (BFF should be stateless)
-- Lower latency (1 hop vs 2 hops)
-- Easier to scale independently
-- SignalR has app-level authentication
+All BFF-to-API communication uses gRPC with protobuf contracts defined in `Snakk.Protos`:
 
-### 3. Event-Driven Architecture
+```
+src/core/Snakk.Protos/Protos/
+├── auth.proto           # Authentication (login, register, current user)
+├── community.proto      # Communities
+├── discussion.proto     # Discussions
+├── follow.proto         # Follow relationships
+├── hub.proto            # Hubs
+├── moderation.proto     # Moderation (reports, bans, roles)
+├── notification.proto   # Notifications
+├── post.proto           # Posts
+├── reaction.proto       # Reactions
+├── read_state.proto     # Read state tracking
+├── search.proto         # Search
+├── space.proto          # Spaces
+├── trending.proto       # Trending content
+└── user.proto           # User profiles
+```
+
+### 4. Event-Driven Architecture
 
 **Domain Events:**
 - Events raised by domain entities: `PostCreatedEvent`, `DiscussionCreatedEvent`, `ReactionAddedEvent`
@@ -210,18 +223,18 @@ Browser
 **Event Flow:**
 ```
 1. User submits post in browser
-2. BFF endpoint calls API
+2. BFF endpoint calls API via gRPC
 3. API UseCase creates Post domain entity
 4. Post entity raises PostCreatedEvent
 5. Domain event dispatcher invokes handlers
 6. Handler calls IRealtimeNotifier.NotifyAsync()
-7. Notifier POSTs to Snakk.Realtime:/api/broadcast
+7. Notifier POSTs to Snakk.Realtime broadcast endpoint
 8. Realtime hub broadcasts to connected clients
 9. Browser receives update via SignalR
 10. JavaScript updates DOM
 ```
 
-### 4. Use Case Pattern
+### 5. Use Case Pattern
 
 Each business operation is encapsulated in a use case class:
 
@@ -230,7 +243,6 @@ public class PostUseCase
 {
     private readonly IPostRepository _postRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
-    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public async Task<Result<Post>> CreatePostAsync(CreatePostCommand command)
     {
@@ -243,9 +255,6 @@ public class PostUseCase
 
         // 4. Dispatch domain events
         await _eventDispatcher.DispatchAsync(post.DomainEvents);
-
-        // 5. Broadcast real-time update
-        await _realtimeNotifier.NotifyPostCreatedAsync(post);
 
         return Result.Success(post);
     }
@@ -264,8 +273,7 @@ src/core/
 │   ├── Entities/                    # Domain entities (User, Post, Discussion)
 │   ├── ValueObjects/                # UserId, PostId, DiscussionId
 │   ├── Events/                      # Domain events
-│   ├── Repositories/                # Repository interfaces
-│   └── Exceptions.cs                # Domain exceptions
+│   └── Repositories/                # Repository interfaces
 │
 ├── Snakk.Application/               # Application layer (DTOs, use cases)
 │   ├── DTOs/                        # Data transfer objects
@@ -274,11 +282,9 @@ src/core/
 │   └── Validators/                  # FluentValidation validators
 │
 ├── Snakk.Infrastructure/            # Service implementations
-│   ├── Adapters/                    # External service adapters
 │   ├── Database/                    # Database repositories
 │   ├── EventHandlers/               # Domain event handlers
 │   ├── Events/                      # Event dispatcher
-│   ├── Hubs/                        # SignalR hub implementations
 │   ├── Mappers/                     # DTO/Entity mappers
 │   ├── Realtime/                    # Real-time notification services
 │   └── Services/                    # IPostService, IUserService implementations
@@ -289,29 +295,40 @@ src/core/
 │   ├── SnakkDbContext.cs            # DbContext
 │   └── Configurations/              # Fluent API configurations
 │
+├── Snakk.Protos/                    # Protobuf definitions
+│   └── Protos/                      # .proto files for gRPC contracts
+│
 ├── Snakk.Shared/                    # Shared utilities
 │   ├── Enums/                       # UserRoleTypeEnum, NotificationType
 │   └── Extensions/                  # String extensions, etc.
 │
-└── Snakk.Sdk/                       # Client SDK
-    └── SnakkApiClient.cs            # HTTP client for admin panel
+└── Snakk.Sdk/                       # Auto-generated client SDK
+    ├── openapi.json                 # OpenAPI spec from Snakk.Api
+    ├── nswag.json                   # NSwag generation config
+    └── Generated/SnakkApiClient.cs  # Generated HTTP client
 ```
 
 ### Services
 
 ```
 src/services/
-├── Snakk.Api/                       # Internal REST API
-│   ├── Endpoints/                   # Endpoint groups (AuthEndpoints, PostEndpoints)
+├── Snakk.Api/                       # Internal gRPC + REST API
+│   ├── GrpcServices/                # gRPC service implementations
+│   ├── Endpoints/                   # REST endpoint groups
 │   ├── Services/                    # CurrentUserService, JwtTokenService
 │   ├── Authorization/               # Authorization handlers
-│   ├── Middleware/                  # Custom middleware
-│   └── Program.cs                   # Application entry point
+│   └── Program.cs
 │
-└── Snakk.Realtime/                  # SignalR hub
-    ├── Hubs/                        # SignalR hubs
-    ├── Controllers/                 # Broadcast API controller
-    └── Program.cs                   # Service entry point
+├── Snakk.Gateway/                   # YARP reverse proxy
+│   └── Program.cs                   # Route configuration
+│
+├── Snakk.Realtime/                  # SignalR hub
+│   ├── Hubs/                        # SignalR hubs
+│   ├── Controllers/                 # Broadcast API controller
+│   └── Program.cs
+│
+└── Snakk.Worker/                    # Background jobs
+    └── Program.cs
 ```
 
 ### Applications
@@ -319,39 +336,67 @@ src/services/
 ```
 src/apps/
 ├── Snakk.Web/                       # Main platform (Razor Pages + BFF)
-│   ├── Pages/                       # Razor Pages (Index, Auth, Profile)
-│   ├── Endpoints/                   # BFF API endpoints
-│   ├── Services/                    # SnakkApiClient, CurrentUserService
-│   ├── Middleware/                  # URL rewrite, error handling
+│   ├── Pages/                       # Razor Pages
+│   ├── Endpoints/                   # BFF API endpoints (/bff/*)
+│   ├── Services/                    # SnakkApiClient (gRPC), CurrentUserService
+│   ├── TagHelpers/                  # Custom tag helpers
 │   ├── Scripts/                     # TypeScript source files
 │   │   ├── core/                    # auth.ts, theme.ts, utils.ts
 │   │   ├── components/              # auth-navbar.ts, site.ts
 │   │   ├── services/                # realtime.ts, cache-manager.ts
-│   │   ├── pages/                   # discussion-detail.ts, profile.ts
-│   │   └── enums/                   # user-role-type.ts
+│   │   └── pages/                   # discussion-detail.ts, profile.ts
+│   ├── Styles/                      # SCSS source files
+│   │   ├── base/                    # variables, typography, layout
+│   │   ├── components/              # navbar, forms, cards, buttons
+│   │   ├── features/                # posts, discussions, sidebar
+│   │   ├── utilities/               # scrollbar, transitions, mobile
+│   │   ├── themes/                  # dark mode
+│   │   ├── site.scss                # Main SCSS entry point
+│   │   └── input.css                # Tailwind CSS entry point
 │   └── wwwroot/
-│       ├── js/
-│       │   ├── dist/                # Compiled TypeScript → JavaScript
-│       │   │   ├── core/
-│       │   │   ├── components/
-│       │   │   ├── services/
-│       │   │   ├── pages/
-│       │   │   └── enums/
-│       │   └── vendor/              # htmx.min.js, signalr.min.js
-│       └── css/
-│           ├── dist/                # Compiled Tailwind CSS
-│           └── vendor/              # Third-party CSS
+│       ├── js/dist/                 # Compiled TypeScript output
+│       ├── js/vendor/               # htmx.min.js, signalr
+│       ├── css/dist/                # Compiled SCSS output
+│       └── css/vendor/              # Compiled Tailwind CSS
 │
-└── Snakk.AdminWeb/                  # Admin panel (Blazor Server)
-    ├── Pages/                       # Razor Pages (Dashboard, Auth)
-    ├── Components/                  # Blazor components
-    │   ├── Layout/                  # MainLayout, Sidebar
-    │   └── Pages/                   # User management, Content management
-    ├── Services/                    # AdminApiClientService
-    ├── Middleware/                  # AdminAuthenticationMiddleware
-    └── wwwroot/
-        ├── js/core/                 # auth-check.js, utils.js, actions.js
-        └── css/                     # admin.css, site.css
+├── Snakk.Auth/                      # Authentication service
+│   ├── Pages/                       # Login, Register
+│   ├── Endpoints/                   # OAuth callback handlers
+│   ├── Styles/                      # SCSS source (auth.scss)
+│   └── wwwroot/css/                 # Compiled auth.css
+│
+├── Snakk.AdminWeb/                  # Admin panel (Blazor Server)
+│   ├── Pages/                       # Razor Pages (Dashboard, Auth)
+│   ├── Components/                  # Blazor components (Fluent UI)
+│   ├── Services/                    # AdminApiClientService
+│   └── wwwroot/
+│
+└── Snakk.Setup/                     # First-run setup wizard
+    ├── Pages/                       # Setup steps (DB, SiteConfig, Storage, etc.)
+    ├── Services/                    # SetupService, SetupState
+    ├── Styles/                      # Tailwind CSS entry point
+    └── wwwroot/css/                 # Compiled setup.css
+```
+
+### Tests
+
+```
+src/tests/
+├── Snakk.Domain.Tests/              # Domain entity and value object tests
+├── Snakk.Application.Tests/         # Use case and DTO tests
+├── Snakk.Shared.Tests/              # Shared utility tests
+├── Snakk.Infrastructure.Tests/      # Repository and service tests
+├── Snakk.Api.Tests/                 # API endpoint integration tests
+├── Snakk.Realtime.Tests/            # SignalR hub tests
+└── Snakk.Web.Tests/                 # Web layer tests
+```
+
+### Tools
+
+```
+src/tools/
+├── Snakk.DbSeeder/                  # Database seeding tool
+└── Snakk.VBulletinImporter/         # vBulletin migration tool
 ```
 
 ---
@@ -364,87 +409,56 @@ src/apps/
 |------|-----------|---------|
 | **Domain Entity** | PascalCase (no suffix) | `User`, `Post`, `Discussion` |
 | **Database Entity** | PascalCase + "DatabaseEntity" | `UserDatabaseEntity`, `PostDatabaseEntity` |
-| **DTO** | PascalCase + "Dto"/"Request"/"Response" | `CreatePostDto`, `LoginRequest`, `UserProfileResponse` |
+| **DTO** | Descriptive PascalCase | `CreatePostDto`, `LoginRequest` |
 | **Service Interface** | I + PascalCase + "Service" | `IUserService`, `IPostService` |
 | **Service Implementation** | PascalCase + "Service" | `UserService`, `PostService` |
 | **Use Case** | PascalCase + "UseCase" | `UserUseCase`, `PostUseCase` |
-| **Value Object** | PascalCase (entity name + "Id") | `UserId`, `PostId`, `DiscussionId` |
+| **Value Object** | PascalCase (entity + "Id") | `UserId`, `PostId`, `DiscussionId` |
 | **Endpoint Class** | PascalCase + "Endpoints" | `AuthEndpoints`, `PostEndpoints` |
-| **Repository Interface** | I + Entity + "Repository" | `IUserRepository`, `IPostRepository` |
+| **gRPC Service** | PascalCase + "GrpcService" | `AuthGrpcService`, `PostGrpcService` |
 
-**Entity Property Naming (CRITICAL):**
-- `FollowDatabaseEntity`: Use `FollowedUser`, `Space`, `Discussion` (NOT TargetUser, TargetCommunity)
+### File Naming
+
+- **C# files**: PascalCase (`SnakkUrlHelper.cs`)
+- **CSS, SCSS, JS, TS, images**: kebab-case (`auth-navbar.ts`, `cache-manager.js`)
+
+### Entity Property Naming
+
+- `FollowDatabaseEntity`: Use `FollowedUser`, `Space`, `Discussion` (NOT TargetUser)
 - `ReactionDatabaseEntity`: Use `Type`, only has `Post` property (NOT ReactionType)
 - `UserDatabaseEntity`: Use `DisplayName` (NOT Username)
-- `RefreshTokenDatabaseEntity`: NO `LastUsedAt` property
 
-**EF Core Relationship Configuration:**
-```csharp
-// ✅ ALWAYS specify the collection explicitly
-modelBuilder.Entity<UserRoleDatabaseEntity>()
-    .HasOne(ur => ur.User)
-    .WithMany(u => u.Roles)  // Explicit collection!
-    .HasForeignKey(ur => ur.UserId);
+### EF Core Rules
 
-// ❌ NEVER use empty WithMany() - creates shadow FK
-modelBuilder.Entity<UserRoleDatabaseEntity>()
-    .HasOne(ur => ur.User)
-    .WithMany()  // Creates "UserDatabaseEntityId" shadow FK!
-    .HasForeignKey(ur => ur.UserId);
-```
+- DbContext defaults: `NoTrackingWithIdentityResolution` + `SplitQuery`
+- Write paths must use `.AsTracking()`
+- Always use `.Select()` projections — never load full entities when a subset suffices
+- Always specify `.WithMany(u => u.Collection)` explicitly in relationships
+- Never use `.ToLower()` in LINQ — use `EF.Functions.ILike()` for case-insensitive search
+- Use denormalized count columns (`d.PostCount`) instead of `.Count()` on navigation properties
+- Default page size: 20, clamped with `Math.Clamp(pageSize, 1, maxAllowed)`
 
 ### JavaScript Conventions
 
 **Module Pattern (IIFE):**
 ```javascript
-// auth.js
 (function() {
     'use strict';
 
     function setToken(token) { /* ... */ }
     function getToken() { /* ... */ }
 
-    // Export to window
-    window.snakkAuth = {
-        setToken,
-        getToken,
-        clearToken,
-        isAuthenticated,
-        getAuthHeaders
-    };
+    window.snakkAuth = { setToken, getToken };
 })();
 ```
 
-**Event Delegation:**
-```javascript
-// Modern event delegation pattern
-document.addEventListener('click', (e) => {
-    const deleteBtn = e.target.closest('[data-action="delete"]');
-    if (deleteBtn) {
-        handleDelete(deleteBtn.dataset.id);
-    }
-});
-```
-
-**Custom Events:**
-```javascript
-// Dispatch custom events
-document.dispatchEvent(new CustomEvent('snakk:auth:token-set', {
-    detail: { userId, displayName }
-}));
-
-// Listen for custom events
-document.addEventListener('snakk:auth:token-set', (e) => {
-    console.log('User logged in:', e.detail.userId);
-});
-```
-
 **Security Rules:**
-- ✅ Use `window.SnakkUtils.escapeHtml()` for user content
-- ✅ Use `textContent` instead of `innerHTML` for text
-- ❌ NO `innerHTML` with user-generated content
-- ❌ NO `eval()` or `new Function()`
-- ❌ NO inline `onclick` handlers
+- Use `window.SnakkUtils.escapeHtml()` for user content in HTML
+- Use `window.SnakkUtils.sanitizeHtml()` for server-rendered HTML (markdown, etc.)
+- Use `window.SnakkUtils.sanitizeUrl()` for URLs from API data
+- Use `textContent` instead of `innerHTML` for plain text
+- NO `innerHTML` with unsanitized user-generated content
+- NO `eval()` or `new Function()`
 
 ### API Response Formats
 
@@ -458,33 +472,6 @@ document.addEventListener('snakk:auth:token-set', (e) => {
 }
 ```
 
-**Failed Login Attempts:**
-```json
-{
-  "failures": [...],
-  "suspiciousIps": [...],
-  "total": 50,
-  "page": 1,
-  "pageSize": 20
-}
-```
-
-**Success Response:**
-```json
-{
-  "data": { ... }
-}
-```
-
-**Error Response:**
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE",
-  "details": { ... }
-}
-```
-
 ---
 
 ## Security
@@ -493,62 +480,52 @@ document.addEventListener('snakk:auth:token-set', (e) => {
 
 **JWT Bearer Tokens (API):**
 ```
-1. User logs in via /bff/auth/login
-2. BFF calls /api/auth/login
-3. API validates credentials
-4. API generates JWT + refresh token
-5. BFF returns tokens to browser
-6. JavaScript stores JWT in localStorage
-7. Subsequent API calls include JWT in Authorization header
+1. User visits /auth/login (Snakk.Auth)
+2. Auth service validates credentials via gRPC to Snakk.Api
+3. API generates JWT + refresh token
+4. Auth service sets HTTP-only cookies
+5. Snakk.Web reads cookies for BFF requests
+6. BFF forwards JWT in gRPC metadata to API
 ```
 
 **Cookie Authentication (Admin Panel):**
 ```
-1. Admin logs in via /admin/auth/login
-2. Blazor validates credentials via Sdk.SnakkApiClient
+1. Admin logs in via Snakk.AdminWeb
+2. Blazor validates credentials via Snakk.Sdk HTTP client
 3. Sets authentication cookie
 4. Cookie automatically sent with each request
 ```
 
 ### Authorization
 
-**Role-Based Access Control (RBAC):**
-- `GlobalAdmin` - Platform-wide access
-- `CommunityAdmin` - Community-level access
-- `CommunityMod` - Community moderation
-- `HubMod` - Hub moderation
-- `SpaceMod` - Space moderation
-
-**Hierarchical Permissions:**
+**Hierarchical Role-Based Access Control:**
 ```
-GlobalAdmin → Full access to everything
+GlobalAdmin  → Full access to everything
 CommunityAdmin → Community + all child hubs/spaces/discussions
-HubMod → Hub + all child spaces/discussions
-SpaceMod → Space + child discussions only
+HubMod       → Hub + all child spaces/discussions
+SpaceMod     → Space + child discussions only
 ```
+
+Permissions "bubble down" but NOT up. A SpaceMod cannot access parent hub settings.
 
 **Usage:**
 ```csharp
-app.MapDelete("/api/communities/{id}", DeleteCommunityAsync)
-    .RequireGlobalAdmin();  // Only GlobalAdmin
-
-app.MapPost("/api/hubs/{hubId}/posts", CreatePostAsync)
-    .RequireHubModerator("hubId");  // HubMod or higher
+.RequireGlobalAdmin()                          // Global admin only
+.RequireCommunityAdmin("communityId")          // Community admin or higher
+.RequireHubModerator("hubId")                  // Hub mod or higher
+.RequireSpaceModerator("spaceId")              // Space mod or higher
 ```
+
+Implementation uses `PermissionService.UserHasPermissionAsync` with automatic parent resolution and a 5-minute per-user permission cache.
 
 ### Security Best Practices
 
-**API Security:**
-- CORS: Whitelist only Snakk.Web and Snakk.AdminWeb origins
-- Rate Limiting: Per-endpoint limits (auth, posts, API calls)
-- HTTPS Only: Enforce TLS 1.2+
-- JWT Validation: Signature, expiration, issuer, audience
-
-**Frontend Security:**
-- XSS Prevention: Escape all user content with `escapeHtml()`
-- CSRF Protection: SameSite cookies + anti-forgery tokens
-- Content Security Policy: Restrict inline scripts, external resources
-- Input Validation: Server-side validation on all inputs
+- **No internal IDs in APIs**: Use `PublicId` (GUID) for all external-facing contracts, never database integer IDs
+- **Rate Limiting**: Per-endpoint limits on auth, posts, and API calls (static assets exempted)
+- **HTTPS Only**: Enforced in production
+- **XSS Prevention**: `escapeHtml()`, `sanitizeHtml()`, `sanitizeUrl()` utilities
+- **BFF Firewall**: Internal API not accessible from browser
+- **No CDN dependencies**: All CSS and JS served locally
 
 ---
 
@@ -556,221 +533,66 @@ app.MapPost("/api/hubs/{hubId}/posts", CreatePostAsync)
 
 ### wwwroot Serving
 
-Snakk.Web serves static files from wwwroot at the root path (not prefixed):
-- `/css/dist/*` → Compiled Tailwind CSS
-- `/css/vendor/*` → Third-party CSS libraries
-- `/js/dist/*` → Compiled TypeScript output
-- `/js/vendor/*` → Third-party JavaScript (HTMX, SignalR)
-- `/robots.txt`, `/favicon.ico` → Root-level files
+Snakk.Web serves static files from wwwroot:
+- `/css/dist/*` — Compiled SCSS output
+- `/css/vendor/*` — Compiled Tailwind CSS + daisyUI
+- `/js/dist/*` — Compiled TypeScript output
+- `/js/vendor/*` — HTMX, SignalR client
 
-**Cache Policy:**
-- Production: 1 year cache (`public,max-age=31536000`)
-- Development: No caching
+**Cache Policy:** 1 year in production (`public,max-age=31536000`), no caching in development.
 
 ### Avatar Storage
 
-User-generated avatars are served from a configurable storage path.
+User-generated avatars use XxHash32 sharding across 256 folders:
 
-**Configuration (`appsettings.json`):**
-```json
-"FileStorage": {
-  "BasePath": "c:\\Snakk\\storage",
-  "PublicUrlBase": "/avatars"
-}
-```
+- Generated avatars: `/avatars/generated/{type}/{shard}/{id}.svg` (cached 1 year, immutable)
+- Uploaded avatars: `/avatars/uploaded/{type}/{shard}/{id}-r{revision}.svg` (cached 1 hour)
 
-**URL Structure:**
-- Generated avatars: `/avatars/generated/{type}/{shard}/{id}.svg`
-  - Example: `/avatars/generated/users/4a/01H2K3M4N5P6Q7R8S9T0A1B2.svg`
-  - Cached: 1 year with `immutable` directive (deterministic SVGs, never change)
-
-- Uploaded avatars: `/avatars/uploaded/{type}/{shard}/{id}-r{revision}.svg`
-  - Example: `/avatars/uploaded/users/4a/01H2K3M4N5P6Q7R8S9T0A1B2-r5.svg`
-  - Cached: 1 hour (can be updated by users)
-
-**Sharding Strategy:**
-- Uses XxHash32 to distribute avatars across 256 folders (00-ff)
-- Prevents filesystem bottlenecks with large file counts
-- Example: User ID `01H2K3M4N5P6Q7R8S9T0A1B2` hashes to shard `4a`
-
-**Helper Usage:**
-```csharp
-// C# - Uses AvatarHelper from Snakk.Shared
-var url = AvatarHelper.GetAvatarUrl(userId, AvatarEntityType.User, revision: 0);
-// Returns: "/avatars/generated/users/4a/01H2K3M4N5P6Q7R8S9T0A1B2.svg"
-
-// C# - Via SnakkUrlHelper (wraps AvatarHelper)
-var url = SnakkUrlHelper.UserAvatar(userId, revision: 0);
-
-// TypeScript - In site.ts
-getAvatarUrl('users', userId);
-// Returns: "/avatars/generated/users/01H2K3M4N5P6Q7R8S9T0A1B2.svg"
-```
-
-**Physical Storage:**
-```
-C:\Snakk\storage\
-└── avatars\
-    ├── generated\
-    │   ├── users\
-    │   │   ├── 00\
-    │   │   ├── 01\
-    │   │   ├── ...
-    │   │   └── ff\
-    │   ├── communities\
-    │   ├── hubs\
-    │   └── spaces\
-    └── uploaded\
-        └── users\
-            ├── 00\
-            └── ...
-```
-
-**Why `/avatars` endpoint?**
-- Clear separation from wwwroot static assets
-- Configurable storage location (can be moved to CDN/S3)
-- Independent cache policies (generated vs uploaded)
-- Security: Can add authorization middleware for private avatars
+Storage path is configurable via `FileStorage:BasePath` in appsettings.json.
 
 ---
 
 ## Deployment
 
-### Environment Variables
+### Docker (Recommended)
 
-**Snakk.Api:**
-```env
-ConnectionStrings__DefaultConnection=Host=localhost;Database=snakk;Username=snakk;Password=***
-Jwt__SecretKey=***
-Jwt__Issuer=Snakk
-Jwt__Audience=Snakk
-Jwt__ExpirationMinutes=15
-OAuth__Google__ClientId=***
-OAuth__Google__ClientSecret=***
-OAuth__GitHub__ClientId=***
-OAuth__GitHub__ClientSecret=***
-OAuth__Discord__ClientId=***
-OAuth__Discord__ClientSecret=***
-FileStorage__BasePath=c:\Snakk\storage
-FileStorage__PublicUrlBase=/avatars
-RealtimeServiceUrl=http://localhost:17101
+One-command install on Linux:
+```bash
+curl -fsSL https://raw.githubusercontent.com/snakk-community-platform/snakk-installer/main/docker/install.sh | sudo bash
 ```
 
-**Snakk.Web:**
-```env
-ApiBaseUrl=https://localhost:17100
-RealtimeServiceUrl=https://localhost:17101
-FileStorage__BasePath=c:\Snakk\storage
-FileStorage__PublicUrlBase=/avatars
+The installer handles Docker, PostgreSQL, Caddy (HTTPS), RAM-based memory tuning, and launches the browser-based setup wizard. See the [README](../README.md#installation) for details.
+
+### Development
+
+Use .NET Aspire for local development:
+```bash
+cd src/aspire/Snakk.AppHost
+dotnet run
 ```
 
-**Snakk.Realtime:**
-```env
-ApiBaseUrl=http://localhost:17100
-AllowedOrigins=https://localhost:17200,https://localhost:17201
+### SDK Regeneration
+
+When API endpoints change, regenerate the SDK:
+```bash
+# 1. Start Snakk.Api
+dotnet run --project src/services/Snakk.Api
+
+# 2. Fetch updated OpenAPI spec
+curl -k https://localhost:17100/openapi/v1.json -o src/core/Snakk.Sdk/openapi.json
+
+# 3. Rebuild SDK
+dotnet build src/core/Snakk.Sdk
 ```
 
-### Docker Compose (Production Example)
-
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: snakk
-      POSTGRES_USER: snakk
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  api:
-    image: snakk-api:latest
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=snakk;Username=snakk;Password=${DB_PASSWORD}
-      - Jwt__SecretKey=${JWT_SECRET}
-      - FileStorage__BasePath=/app/storage
-      - FileStorage__PublicUrlBase=/avatars
-      - RealtimeServiceUrl=http://realtime:17101
-    volumes:
-      - avatar-storage:/app/storage
-    depends_on:
-      - postgres
-
-  web:
-    image: snakk-web:latest
-    environment:
-      - ApiBaseUrl=http://api:17100
-      - RealtimeServiceUrl=http://realtime:17101
-      - FileStorage__BasePath=/app/storage
-      - FileStorage__PublicUrlBase=/avatars
-    ports:
-      - "17200:17200"
-    volumes:
-      - avatar-storage:/app/storage
-    depends_on:
-      - api
-
-  realtime:
-    image: snakk-realtime:latest
-    environment:
-      - ApiBaseUrl=http://api:17100
-      - AllowedOrigins=https://yourdomain.com
-    ports:
-      - "17101:17101"
-    depends_on:
-      - api
-
-  admin:
-    image: snakk-admin:latest
-    environment:
-      - ApiBaseUrl=http://api:17100
-    ports:
-      - "17201:17201"
-    depends_on:
-      - api
-
-volumes:
-  postgres_data:
-  avatar-storage:
-```
-
----
-
-## Common Pitfalls & Solutions
-
-### Pitfall 1: Clean Architecture Violation
-**Problem:** Endpoint directly injects `SnakkDbContext`
-**Solution:** Create service interface in Application layer, implementation in Infrastructure layer
-
-### Pitfall 2: BFF Pattern Violation
-**Problem:** JavaScript calls `/api/*` directly
-**Solution:** Always call `/bff/*` endpoints, let BFF proxy to API
-
-### Pitfall 3: EF Core Shadow Foreign Keys
-**Problem:** Using `.WithMany()` without specifying collection
-**Solution:** Always use `.WithMany(u => u.Collection)` explicitly
-
-### Pitfall 4: XSS Vulnerabilities
-**Problem:** Using `innerHTML` with user content
-**Solution:** Use `textContent` or `window.SnakkUtils.escapeHtml()`
-
-### Pitfall 5: Missing Role Checks
-**Problem:** Admin endpoints accessible to regular users
-**Solution:** Use `.RequireGlobalAdmin()` or appropriate permission check
+Both `openapi.json` and `Generated/SnakkApiClient.cs` are committed for reproducible builds without needing the API running.
 
 ---
 
 ## Additional Resources
 
-- **Clean Architecture Refactoring Guide**: See plan file in `C:\Users\me\.claude\plans\steady-percolating-yeti.md`
-- **BFF Pattern Guide**: See `docs/BFF_REFACTORING_GUIDE.md`
-- **Hierarchical Permissions**: See `docs/HierarchicalPermissions.md`
-- **Client Caching**: See `docs/client-caching-guide.md`
-
----
-
-**Document Status**: ✅ Current and Accurate
-**Obsoletes**: `docs/plans/admin-panel-architecture.md`, `docs/plans/nextjs-admin-implementation-guide.md`
-**Maintained By**: Development Team
-**Last Reviewed**: 2026-02-17
+- **Moderation System**: [docs/MODERATION.MD](MODERATION.MD)
+- **Real-Time Features**: [docs/REALTIME.MD](REALTIME.MD)
+- **Hierarchical Permissions**: [docs/HierarchicalPermissions.md](HierarchicalPermissions.md)
+- **Client Caching**: [docs/client-caching-guide.md](client-caching-guide.md)
+- **GDPR Compliance**: [docs/GDRP.MD](GDRP.MD)
