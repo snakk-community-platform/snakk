@@ -18,6 +18,7 @@ WORKDIR /src
 
 # --- NuGet restore (cached layer — only invalidated when csproj files change) ---
 COPY docker/Snakk.Docker.slnx Snakk.slnx
+COPY src/aspire/Snakk.ServiceDefaults/Snakk.ServiceDefaults.csproj aspire/Snakk.ServiceDefaults/
 COPY src/core/Snakk.Domain/Snakk.Domain.csproj core/Snakk.Domain/
 COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
 COPY src/core/Snakk.Infrastructure/Snakk.Infrastructure.csproj core/Snakk.Infrastructure/
@@ -47,6 +48,11 @@ WORKDIR /src/apps/Snakk.Setup
 RUN npm ci --ignore-scripts
 WORKDIR /src
 
+COPY src/apps/Snakk.Auth/package.json src/apps/Snakk.Auth/package-lock.json apps/Snakk.Auth/
+WORKDIR /src/apps/Snakk.Auth
+RUN npm ci --ignore-scripts
+WORKDIR /src
+
 # --- Copy all source code ---
 COPY src/ ./
 
@@ -58,6 +64,9 @@ RUN cd apps/Snakk.Web && npm run build
 
 # Build Snakk.Setup CSS (Tailwind + daisyUI)
 RUN cd apps/Snakk.Setup && npm run build:css
+
+# Build Snakk.Auth CSS (Sass)
+RUN cd apps/Snakk.Auth && npm run build:css
 
 # Prevent NSwag from regenerating the committed SDK client
 # (Docker COPY resets timestamps, which makes MSBuild think the output is stale)

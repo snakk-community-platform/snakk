@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/aspire/">
+    <Project Path="aspire/Snakk.ServiceDefaults/Snakk.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/core/">
     <Project Path="core/Snakk.Application/Snakk.Application.csproj" />
     <Project Path="core/Snakk.Domain/Snakk.Domain.csproj" />
