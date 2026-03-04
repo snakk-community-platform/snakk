@@ -97,6 +97,17 @@
                     b.classList.add('complete');
                 }
             });
+            document.addEventListener('htmx:historyRestore', function() {
+                var b = getBar(); if (!b) return;
+                b.classList.remove('active');
+                b.classList.add('complete');
+                startTime = null;
+            });
+            document.addEventListener('htmx:abort', function() {
+                var b = getBar(); if (!b) return;
+                b.classList.remove('active', 'complete');
+                startTime = null;
+            });
         })();
 
         // Update page title after HTMX content swap

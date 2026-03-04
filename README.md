@@ -1,156 +1,210 @@
 # Snakk
 
-A modern, performant community platform built with .NET 10 and ASP.NET Core Razor Pages. Snakk enables communities to create organized discussions through a hierarchical structure of hubs and spaces, with built-in moderation, real-time features, and multi-community support.
+A modern, performant community platform built with .NET 10 and ASP.NET Core. Snakk enables communities to create organized discussions through a hierarchical structure of communities, hubs, and spaces, with built-in moderation, real-time features, and multi-community support.
 
-> **⚠️ Pre-Release Software**
-> Snakk is currently in active development and should be considered pre-release/alpha software. While the codebase builds and core functionality works, some features may be incomplete, unstable, or subject to breaking changes. Use in production environments is strongly advised against.
+> **Pre-Release Software**
+> Snakk is in active development and should be considered pre-release/alpha software. Core functionality works, but some features may be incomplete or subject to breaking changes.
 
 ## Features
 
-### Core Functionality
-- **Hierarchical Organization**: Communities → Hubs → Spaces → Discussions → Posts
-- **Multi-Community Support**: Host multiple communities with custom domains
-- **Rich Discussion System**: Threaded discussions with markdown support
-- **User Authentication**: OAuth integration (Google, GitHub, Discord)
-- **Moderation Tools**: Comprehensive moderation dashboard with role-based permissions
-- **Search & Discovery**: Full-text search across discussions and posts
+### Core
+- **Hierarchical Organization**: Communities > Hubs > Spaces > Discussions > Posts
+- **Multi-Community Support**: Host multiple communities with custom domains on a single instance
+- **Rich Discussions**: Threaded discussions with markdown support and reactions
+- **OAuth Authentication**: Google, GitHub, and Discord login via dedicated auth service
+- **Moderation Tools**: Hierarchical role-based permissions with audit logs, reports, and bans
+- **Full-Text Search**: PostgreSQL trigram-based search across discussions and posts
 - **Trending Content**: Algorithmic trending discussions, spaces, and contributors
 
-### Performance & Scalability
-- **Client-Side Caching**: Smart caching with batch read state updates
-- **Output Caching**: Page-level caching with granular invalidation
-- **Database Optimization**: PostgreSQL with efficient queries and indexes
-- **Real-time Updates**: SignalR integration for live features (planned)
+### Performance
+- **HybridCache**: In-memory + distributed caching with granular invalidation
+- **Output Caching**: Page-level caching for public content
+- **Database Optimization**: PostgreSQL with trigram indexes, projection queries, and denormalized counters
+- **HTMX Navigation**: SPA-like page transitions with adaptive loading indicators
+
+### Real-Time
+- **SignalR Hub**: Live activity feed, notifications, and presence via dedicated microservice
+- **Read State Tracking**: Batched read state updates with unread indicators
 
 ### User Experience
-- **Responsive Design**: Mobile-first UI with Tailwind CSS
-- **Dark Mode**: System-preference aware theming (planned)
-- **Endless Scroll**: Configurable infinite scroll with pagination fallback
-- **Smart Navigation**: Resume-reading features with unread tracking
+- **Dark Mode**: System-preference aware with manual toggle
+- **Infinite Scroll**: HTMX-powered endless scroll with pagination fallback
+- **Smart Navigation**: Resume-reading, unread tracking, and draft persistence
 
 ## Technology Stack
 
-### Backend
-- **.NET 10** - Latest LTS framework
-- **ASP.NET Core** - Web framework with Razor Pages
-- **Entity Framework Core 10** - ORM for database access
-- **PostgreSQL** - Primary database
-- **SignalR** - Real-time communication (planned)
+### Backend (.NET 10)
+- **ASP.NET Core** - Razor Pages (Web), Minimal APIs (API), Blazor Server (Admin)
+- **gRPC** - Internal service-to-service communication
+- **Entity Framework Core 10** - PostgreSQL with Npgsql
+- **SignalR** - Real-time WebSocket communication (.NET 9)
+- **YARP** - Reverse proxy gateway
+- **Serilog** - Structured logging
+- **.NET Aspire** - Service orchestration and observability
 
 ### Frontend
-- **Razor Pages** - Server-side rendering
-- **Tailwind CSS** - Utility-first CSS framework
-- **HTMX** - Modern interactions without heavy JavaScript
-- **Vanilla JavaScript** - Lightweight client-side enhancements
+- **Razor Pages** - Server-side rendering with HTMX for interactivity
+- **Tailwind CSS v4** + **daisyUI v5** - Utility-first CSS with component library
+- **SCSS** - Custom styles compiled with Dart Sass
+- **TypeScript** - Client-side logic compiled with tsc + esbuild
+- **Vanilla JS** - IIFE modules with event delegation
 
 ### Architecture
-- **Clean Architecture** - Separation of concerns with Domain/Application/Infrastructure layers
-- **CQRS Pattern** - Command/Query separation for complex operations
-- **Repository Pattern** - Abstraction over data access
-- **Domain-Driven Design** - Rich domain models with value objects
+- **Clean Architecture** - Domain / Application / Infrastructure layer separation
+- **BFF Pattern** - Backend-for-Frontend; JavaScript only calls `/bff/*` endpoints
+- **CQRS** - Command/Query separation with use case orchestrators
+- **Domain-Driven Design** - Value objects, domain events, aggregate roots
 
 ## Project Structure
 
 ```
 src/
+├── aspire/
+│   ├── Snakk.AppHost/              # .NET Aspire orchestrator
+│   └── Snakk.ServiceDefaults/      # Shared service configuration
+│
 ├── core/
-│   ├── Snakk.Api/              # REST API backend
-│   ├── Snakk.Application/       # Business logic and use cases
-│   ├── Snakk.Domain/            # Domain models and interfaces
-│   ├── Snakk.Infrastructure/    # External services implementation
-│   ├── Snakk.Infrastructure.Database/  # Database context and migrations
-│   └── Snakk.Shared/            # Shared utilities and extensions
-└── clients/
-    └── Snakk.Web/              # Frontend Razor Pages application
+│   ├── Snakk.Domain/               # Domain entities, events, value objects
+│   ├── Snakk.Application/          # DTOs, service interfaces, use cases
+│   ├── Snakk.Infrastructure/       # Service implementations
+│   ├── Snakk.Infrastructure.Database/  # EF Core DbContext, migrations
+│   ├── Snakk.Protos/               # Protobuf definitions for gRPC
+│   ├── Snakk.Shared/               # Enums, utilities
+│   └── Snakk.Sdk/                  # Auto-generated API client (NSwag)
+│
+├── services/
+│   ├── Snakk.Api/                  # Internal gRPC + REST API (port 17100)
+│   ├── Snakk.Gateway/              # YARP reverse proxy (port 17000)
+│   ├── Snakk.Realtime/             # SignalR hub (port 17101)
+│   └── Snakk.Worker/               # Background job processor
+│
+├── apps/
+│   ├── Snakk.Web/                  # Main platform — Razor Pages + HTMX (port 17110)
+│   ├── Snakk.Auth/                 # Authentication service (port 17111)
+│   ├── Snakk.AdminWeb/             # Admin panel — Blazor Server + Fluent UI (port 17112)
+│   └── Snakk.Setup/                # First-run setup wizard
+│
+├── tests/
+│   ├── Snakk.Domain.Tests/
+│   ├── Snakk.Application.Tests/
+│   ├── Snakk.Shared.Tests/
+│   ├── Snakk.Infrastructure.Tests/
+│   ├── Snakk.Api.Tests/
+│   ├── Snakk.Realtime.Tests/
+│   └── Snakk.Web.Tests/
+│
+└── tools/
+    ├── Snakk.DbSeeder/             # Database seeding tool
+    └── Snakk.VBulletinImporter/    # vBulletin migration tool
 
 docs/
-├── client-caching-guide.md     # Client-side caching implementation
-├── MODERATION.MD               # Moderation system documentation
-├── PROJECT-STRUCTURE.MD        # Detailed architecture overview
-├── REALTIME.MD                 # Real-time features documentation
-└── GDRP.MD                     # GDPR compliance notes
+├── ARCHITECTURE.md                 # Architecture documentation
+├── MODERATION.MD                   # Moderation system
+├── REALTIME.MD                     # Real-time features
+├── HierarchicalPermissions.md      # Permission system
+├── client-caching-guide.md         # Client-side caching
+└── GDRP.MD                        # GDPR compliance
 ```
 
-## Getting Started
+## Installation
 
-### Prerequisites
+### Docker (Recommended)
+
+The fastest way to deploy Snakk on a Linux server. The installer handles Docker, PostgreSQL, Caddy (HTTPS), memory tuning, and launches the browser-based setup wizard.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/snakk-community-platform/snakk-installer/main/docker/install.sh | sudo bash
+```
+
+**What it does:**
+1. Installs prerequisites (Git, Docker, optionally Caddy for HTTPS)
+2. Clones the repository to `/opt/snakk`
+3. Detects system RAM and tunes PostgreSQL accordingly
+4. Builds and starts containers
+5. Prints the URL to complete setup in your browser
+
+**Supported distros:** Ubuntu, Debian, Rocky Linux, AlmaLinux, RHEL
+
+**After installation:**
+```bash
+cd /opt/snakk/docker
+docker compose logs -f snakk     # View logs
+docker compose restart            # Restart services
+docker compose down               # Stop everything
+docker compose up -d --build      # Rebuild after updates
+```
+
+### Development Setup
+
+#### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Node.js 20+](https://nodejs.org/) (for frontend builds)
 - [PostgreSQL 14+](https://www.postgresql.org/download/)
-- Your favorite IDE (Visual Studio 2022, VS Code, Rider)
 
-### Initial Setup
+#### Running with .NET Aspire (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/snakk.git
-   cd snakk
-   ```
+The easiest way to run Snakk locally is with the Aspire AppHost, which orchestrates all services:
 
-2. **Configure Database**
+```bash
+cd src/aspire/Snakk.AppHost
+dotnet run
+```
 
-   Create a PostgreSQL database:
-   ```sql
-   CREATE DATABASE snakk;
-   CREATE USER snakk WITH PASSWORD 'your_password';
-   GRANT ALL PRIVILEGES ON DATABASE snakk TO snakk;
-   ```
+This starts all services with the correct ports and configuration. The Aspire dashboard provides observability into all running services.
 
-3. **Configure Application Settings**
+#### Running Individual Services
 
-   Copy `appsettings.Development.json.example` (if exists) or create:
+If you prefer to run services manually:
 
-   `src/core/Snakk.Api/appsettings.Development.json`:
-   ```json
-   {
-     "ConnectionStrings": {
-       "DbConnection": "Host=localhost;Database=snakk;Username=snakk;Password=your_password"
-     },
-     "Authentication": {
-       "Google": {
-         "ClientId": "your_google_client_id",
-         "ClientSecret": "your_google_client_secret"
-       },
-       "GitHub": {
-         "ClientId": "your_github_client_id",
-         "ClientSecret": "your_github_client_secret"
-       },
-       "Discord": {
-         "ClientId": "your_discord_client_id",
-         "ClientSecret": "your_discord_client_secret"
-       }
-     }
-   }
-   ```
+```bash
+# API (internal, port 17100)
+dotnet run --project src/services/Snakk.Api
 
-4. **Run Database Migrations**
-   ```bash
-   cd src/core/Snakk.Infrastructure.Database
-   dotnet ef database update
-   ```
+# Web platform (port 17110)
+dotnet run --project src/apps/Snakk.Web
 
-5. **Start the API**
-   ```bash
-   cd src/core/Snakk.Api
-   dotnet run
-   ```
-   API will be available at `https://localhost:7291`
+# Auth service (port 17111)
+dotnet run --project src/apps/Snakk.Auth
 
-6. **Start the Web Client**
-   ```bash
-   cd src/clients/Snakk.Web
-   dotnet run
-   ```
-   Web app will be available at `https://localhost:7001`
+# Realtime hub (port 17101)
+dotnet run --project src/services/Snakk.Realtime
+```
+
+### First-Run Setup
+
+On first launch, the setup wizard guides you through:
+1. Database connection
+2. Site configuration (domain, name)
+3. Storage path
+4. Admin account creation
+5. Security keys (auto-generated)
+6. OAuth provider configuration (optional)
+
+### Frontend Builds
+
+Frontend assets (CSS, JS) are pre-compiled and committed. To rebuild after changes:
+
+```bash
+# Snakk.Web
+cd src/apps/Snakk.Web
+npm install
+npm run build          # Build all (TypeScript + CSS)
+
+# Snakk.Auth
+cd src/apps/Snakk.Auth
+npm install
+npm run build:css      # Build SCSS
+```
 
 ### OAuth Configuration
 
-To enable social authentication, register OAuth applications:
+To enable social login, register OAuth applications:
 
 - **Google**: [Google Cloud Console](https://console.cloud.google.com/)
 - **GitHub**: [GitHub Developer Settings](https://github.com/settings/developers)
 - **Discord**: [Discord Developer Portal](https://discord.com/developers/applications)
 
-Set redirect URIs to: `https://localhost:7291/signin-{provider}` (e.g., `/signin-google`)
+Configure via the setup wizard or in `appsettings.Production.json`.
 
 ## Development
 
@@ -164,54 +218,38 @@ dotnet build
 dotnet test
 ```
 
+There are 2,500+ tests across 7 test projects covering domain logic, application use cases, infrastructure, API endpoints, realtime hub, and web layer.
+
 ### Database Migrations
 ```bash
-# Create new migration
 cd src/core/Snakk.Infrastructure.Database
 dotnet ef migrations add MigrationName
-
-# Apply migrations
 dotnet ef database update
 ```
 
 ### Code Structure Guidelines
 
-- **Domain Layer**: Pure business logic, no dependencies
-- **Application Layer**: Use cases, orchestration, DTOs
-- **Infrastructure Layer**: External services, database, file system
-- **Web Layer**: UI, controllers, pages, minimal logic
+- **Domain Layer**: Pure business logic, no external dependencies
+- **Application Layer**: Use cases, orchestration, DTOs, service interfaces
+- **Infrastructure Layer**: Service implementations, database repositories
+- **Web Layer**: Razor Pages, BFF endpoints, minimal logic
 
-See [docs/PROJECT-STRUCTURE.MD](docs/PROJECT-STRUCTURE.MD) for detailed architecture.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
 
-## Configuration
+## Service Ports (Development)
 
-Key configuration options in `appsettings.json`:
-
-```json
-{
-  "Features": {
-    "MultiCommunityEnabled": true
-  },
-  "Trending": {
-    "FrontPage": {
-      "ShowDiscussions": true,
-      "ShowSpaces": true,
-      "ShowContributors": true
-    }
-  },
-  "Snakk": {
-    "DefaultCommunitySlug": "snakk",
-    "PrimaryDomains": ["localhost"],
-    "DomainCache": {
-      "ExpirationMinutes": 15
-    }
-  }
-}
-```
+| Service | Port | Purpose |
+|---------|------|---------|
+| Snakk.Gateway | 17000 | YARP reverse proxy |
+| Snakk.Api | 17100 | Internal gRPC + REST API |
+| Snakk.Realtime | 17101 | SignalR WebSocket hub |
+| Snakk.Web | 17110 | Main platform |
+| Snakk.Auth | 17111 | Authentication service |
+| Snakk.AdminWeb | 17112 | Admin panel |
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines (coming soon) before submitting pull requests.
+Contributions are welcome! Please read the contributing guidelines before submitting pull requests.
 
 ### Development Workflow
 1. Create a feature branch from `main`
@@ -225,31 +263,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-- [ ] Real-time notifications with SignalR
-- [ ] Full-text search with Elasticsearch
 - [ ] Email notifications
-- [ ] API rate limiting
 - [ ] Mobile apps (iOS/Android)
-- [ ] Admin dashboard
-- [ ] Analytics and insights
 - [ ] Plugin system
-- [ ] Dark mode support
 - [ ] Localization/i18n
-
-## Support
-
-For questions, issues, or feature requests, please [open an issue](https://github.com/yourusername/snakk/issues).
 
 ---
 
 ## Author
 
-**Pål Rune Sørensen Tuv**
+**Pal Rune Sorensen Tuv**
 Senior Software Engineer / Systems Architect
 
 - GitHub: [https://github.com/paaltuv](https://github.com/paaltuv)
-- LinkedIn: [https://www.linkedin.com/in/pål-rune-sørensen-tuv-702412392/](https://www.linkedin.com/in/p%C3%A5l-rune-s%C3%B8rensen-tuv-702412392/)
-
----
-
-Built with ❤️ using .NET and modern web technologies.
+- LinkedIn: [https://www.linkedin.com/in/pal-rune-sorensen-tuv-702412392/](https://www.linkedin.com/in/p%C3%A5l-rune-s%C3%B8rensen-tuv-702412392/)

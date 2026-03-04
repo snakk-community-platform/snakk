@@ -19,6 +19,7 @@
 
   <!-- Build Tailwind CSS before build (skip in Docker where CSS is pre-built) -->
   <Target Name="BuildSetupCSS" BeforeTargets="Build" Condition="'$(SkipBuildCSS)' != 'true'">
+    <Exec Command="npm ci --ignore-scripts" WorkingDirectory="$(ProjectDir)" />
     <Exec Command="npm run build:css" WorkingDirectory="$(ProjectDir)" />
   </Target>
 
