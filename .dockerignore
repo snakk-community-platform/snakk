@@ -15,7 +15,7 @@
 
 # Tests and dev orchestration (not needed in production)
 src/tests/
-src/aspire/
+src/aspire/Snakk.AppHost/
 
 # Documentation
 docs/
