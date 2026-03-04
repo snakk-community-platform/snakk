@@ -223,6 +223,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
             TargetTypeId = (int)FollowTargetTypeEnum.User,
             CreatedAt = DateTime.UtcNow
         });
+        user.FollowerCount++;
         await _db.Context.SaveChangesAsync();
 
         // Act
@@ -282,6 +283,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
             TargetTypeId = (int)FollowTargetTypeEnum.Discussion,
             CreatedAt = DateTime.UtcNow
         });
+        discussion.FollowerCount++;
         await _db.Context.SaveChangesAsync();
 
         // Act

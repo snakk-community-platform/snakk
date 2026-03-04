@@ -75,10 +75,10 @@ public class SecurityHeadersMiddlewareTests
         var context = await InvokeMiddleware();
 
         var header = context.Response.Headers["Content-Security-Policy"].ToString();
-        await Assert.That(header).Contains("default-src 'self'");
-        await Assert.That(header).Contains("script-src 'self'");
+        await Assert.That(header).Contains("default-src 'none'");
         await Assert.That(header).Contains("frame-ancestors 'none'");
-        await Assert.That(header).Contains("base-uri 'self'");
+        await Assert.That(header).Contains("base-uri 'none'");
+        await Assert.That(header).Contains("form-action 'none'");
     }
 
     [Test]

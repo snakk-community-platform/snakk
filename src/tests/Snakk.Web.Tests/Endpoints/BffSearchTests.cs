@@ -1,6 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Google.Protobuf.WellKnownTypes;
+using Moq;
+using Snakk.Protos;
+using Snakk.Protos.Search;
 using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.Endpoints;
@@ -17,37 +21,47 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/search/discussions", new
+
+        var searchResults = new PagedDiscussionSearchResults
         {
-            items = new[]
+            Offset = 0,
+            PageSize = 10,
+            HasMoreItems = false
+        };
+        searchResults.Items.Add(new DiscussionSearchResult
+        {
+            PublicId = "disc-001",
+            Title = "Test Discussion",
+            Slug = "test-discussion",
+            CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 10, 0, 0, DateTimeKind.Utc)),
+            PostCount = 5,
+            Author = new AuthorRef
             {
-                new
-                {
-                    publicId = "disc-001",
-                    title = "Test Discussion",
-                    slug = "test-discussion",
-                    authorPublicId = "user-001",
-                    authorDisplayName = "Test User",
-                    authorAvatarFileName = (string?)null,
-                    spacePublicId = "space-001",
-                    spaceName = "General",
-                    spaceSlug = "general",
-                    hubSlug = "main-hub",
-                    createdAt = "2026-02-25T10:00:00Z",
-                    lastActivityAt = "2026-02-25T12:00:00Z",
-                    postCount = 5,
-                    reactionCount = 2
-                }
+                PublicId = "user-001",
+                DisplayName = "Test User"
             },
-            offset = 0,
-            pageSize = 10,
-            hasMoreItems = false
+            Space = new EntityRef
+            {
+                PublicId = "space-001",
+                Name = "General",
+                Slug = "general"
+            },
+            Hub = new EntityRef
+            {
+                Slug = "main-hub"
+            }
         });
+
+        app.MockApiClient
+            .Setup(c => c.SearchDiscussionsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.GetAsync("/bff/search/discussions?authorPublicId=user-001&pageSize=10");
+        var response = await client.GetAsync("/bff/search/discussions?authorPublicId=user-001&pageSize=10&offset=0");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -63,13 +77,16 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.SearchDiscussionsAsync catches errors and returns null
-        app.MockApiHandler.SetupResponse("/api/search/discussions", HttpStatusCode.InternalServerError);
+        app.MockApiClient
+            .Setup(c => c.SearchDiscussionsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((PagedDiscussionSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.GetAsync("/bff/search/discussions?pageSize=10");
+        var response = await client.GetAsync("/bff/search/discussions?pageSize=10&offset=0");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -84,48 +101,56 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/search/posts", new
+
+        var searchResults = new PagedPostSearchResults
         {
-            items = new[]
+            Offset = 0,
+            PageSize = 10,
+            HasMoreItems = false
+        };
+        searchResults.Items.Add(new PostSearchResult
+        {
+            PublicId = "post-001",
+            ContentHighlight = "This is a test post content",
+            CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 10, 0, 0, DateTimeKind.Utc)),
+            Author = new AuthorRef
             {
-                new
-                {
-                    publicId = "post-001",
-                    content = "This is a test post content",
-                    authorPublicId = "user-001",
-                    authorDisplayName = "Test User",
-                    authorAvatarFileName = (string?)null,
-                    discussionPublicId = "disc-001",
-                    discussionTitle = "Test Discussion",
-                    discussionSlug = "test-discussion",
-                    spaceSlug = "general",
-                    hubSlug = "main-hub",
-                    createdAt = "2026-02-25T10:00:00Z"
-                },
-                new
-                {
-                    publicId = "post-002",
-                    content = "Another post matching the search",
-                    authorPublicId = "user-001",
-                    authorDisplayName = "Test User",
-                    authorAvatarFileName = (string?)null,
-                    discussionPublicId = "disc-002",
-                    discussionTitle = "Another Discussion",
-                    discussionSlug = "another-discussion",
-                    spaceSlug = "general",
-                    hubSlug = "main-hub",
-                    createdAt = "2026-02-25T11:00:00Z"
-                }
+                PublicId = "user-001",
+                DisplayName = "Test User"
             },
-            offset = 0,
-            pageSize = 10,
-            hasMoreItems = false
+            DiscussionPublicId = "disc-001",
+            DiscussionTitle = "Test Discussion",
+            DiscussionSlug = "test-discussion",
+            Space = new EntityRef { Slug = "general" },
+            Hub = new EntityRef { Slug = "main-hub" }
         });
+        searchResults.Items.Add(new PostSearchResult
+        {
+            PublicId = "post-002",
+            ContentHighlight = "Another post matching the search",
+            CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 11, 0, 0, DateTimeKind.Utc)),
+            Author = new AuthorRef
+            {
+                PublicId = "user-001",
+                DisplayName = "Test User"
+            },
+            DiscussionPublicId = "disc-002",
+            DiscussionTitle = "Another Discussion",
+            DiscussionSlug = "another-discussion",
+            Space = new EntityRef { Slug = "general" },
+            Hub = new EntityRef { Slug = "main-hub" }
+        });
+
+        app.MockApiClient
+            .Setup(c => c.SearchPostsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.GetAsync("/bff/search/posts?authorPublicId=user-001&pageSize=10");
+        var response = await client.GetAsync("/bff/search/posts?authorPublicId=user-001&pageSize=10&offset=0");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -142,12 +167,16 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/api/search/posts", HttpStatusCode.InternalServerError);
+        app.MockApiClient
+            .Setup(c => c.SearchPostsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((PagedPostSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.GetAsync("/bff/search/posts?pageSize=10");
+        var response = await client.GetAsync("/bff/search/posts?pageSize=10&offset=0");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -162,28 +191,32 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/search/discussions", new
-        {
-            items = Array.Empty<object>(),
-            offset = 0,
-            pageSize = 20,
-            hasMoreItems = false
-        });
+        app.MockApiClient
+            .Setup(c => c.SearchDiscussionsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(new PagedDiscussionSearchResults
+            {
+                Offset = 0,
+                PageSize = 20,
+                HasMoreItems = false
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        await client.GetAsync("/bff/search/discussions?authorPublicId=user-123&pageSize=20");
+        await client.GetAsync("/bff/search/discussions?authorPublicId=user-123&pageSize=20&offset=0");
 
-        // Assert - verify the API received the correct query parameters
-        var apiCalls = app.MockApiHandler.ReceivedRequests
-            .Where(r => r.RequestUri?.PathAndQuery?.Contains("/api/search/discussions") == true)
-            .ToList();
-        await Assert.That(apiCalls.Count).IsEqualTo(1);
-
-        var apiUri = apiCalls[0].RequestUri?.ToString() ?? "";
-        await Assert.That(apiUri.Contains("authorPublicId=user-123")).IsTrue();
-        await Assert.That(apiUri.Contains("pageSize=20")).IsTrue();
+        // Assert - verify the API client received the correct parameters
+        app.MockApiClient.Verify(
+            c => c.SearchDiscussionsAsync(
+                It.IsAny<string?>(),
+                "user-123",
+                null,
+                null,
+                It.IsAny<int>(),
+                20),
+            Times.Once);
     }
 
     [Test]
@@ -191,27 +224,31 @@ public class BffSearchTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/search/posts", new
-        {
-            items = Array.Empty<object>(),
-            offset = 0,
-            pageSize = 15,
-            hasMoreItems = false
-        });
+        app.MockApiClient
+            .Setup(c => c.SearchPostsAsync(
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(new PagedPostSearchResults
+            {
+                Offset = 0,
+                PageSize = 15,
+                HasMoreItems = false
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        await client.GetAsync("/bff/search/posts?authorPublicId=user-456&pageSize=15");
+        await client.GetAsync("/bff/search/posts?authorPublicId=user-456&pageSize=15&offset=0");
 
-        // Assert
-        var apiCalls = app.MockApiHandler.ReceivedRequests
-            .Where(r => r.RequestUri?.PathAndQuery?.Contains("/api/search/posts") == true)
-            .ToList();
-        await Assert.That(apiCalls.Count).IsEqualTo(1);
-
-        var apiUri = apiCalls[0].RequestUri?.ToString() ?? "";
-        await Assert.That(apiUri.Contains("authorPublicId=user-456")).IsTrue();
-        await Assert.That(apiUri.Contains("pageSize=15")).IsTrue();
+        // Assert - verify the API client received the correct parameters
+        app.MockApiClient.Verify(
+            c => c.SearchPostsAsync(
+                It.IsAny<string?>(),
+                "user-456",
+                null,
+                null,
+                It.IsAny<int>(),
+                15),
+            Times.Once);
     }
 }

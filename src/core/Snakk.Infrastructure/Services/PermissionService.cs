@@ -18,48 +18,43 @@ public class PermissionService(
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
-    // Compiled queries for hot-path permission lookups
-    private static readonly Func<SnakkDbContext, string, Task<int?>> _getUserIdByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Users
-                .Where(u => u.PublicId == publicId)
-                .Select(u => (int?)u.Id)
-                .FirstOrDefault());
+    // Regular async queries — compiled queries are incompatible with multiple EF providers
+    // (InMemory + SQLite in tests) because they lock to the first provider's model.
+    private static Task<int?> GetUserIdByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Users
+            .Where(u => u.PublicId == publicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
 
-    private static readonly Func<SnakkDbContext, string, Task<int?>> _getCommunityIdByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Communities
-                .Where(c => c.PublicId == publicId)
-                .Select(c => (int?)c.Id)
-                .FirstOrDefault());
+    private static Task<int?> GetCommunityIdByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Communities
+            .Where(c => c.PublicId == publicId)
+            .Select(c => (int?)c.Id)
+            .FirstOrDefaultAsync();
 
-    private static readonly Func<SnakkDbContext, string, Task<HubScope?>> _getHubScopeByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Hubs
-                .Where(h => h.PublicId == publicId)
-                .Select(h => new HubScope(h.Id, h.CommunityId))
-                .FirstOrDefault());
+    private static Task<HubScope?> GetHubScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Hubs
+            .Where(h => h.PublicId == publicId)
+            .Select(h => new HubScope(h.Id, h.CommunityId))
+            .FirstOrDefaultAsync();
 
-    private static readonly Func<SnakkDbContext, string, Task<SpaceScope?>> _getSpaceScopeByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Spaces
-                .Where(s => s.PublicId == publicId)
-                .Select(s => new SpaceScope(s.Id, s.HubId, s.Hub.CommunityId))
-                .FirstOrDefault());
+    private static Task<SpaceScope?> GetSpaceScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Spaces
+            .Where(s => s.PublicId == publicId)
+            .Select(s => new SpaceScope(s.Id, s.HubId, s.Hub.CommunityId))
+            .FirstOrDefaultAsync();
 
-    private static readonly Func<SnakkDbContext, string, Task<ScopeIds?>> _getDiscussionScopeByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Discussions
-                .Where(d => d.PublicId == publicId)
-                .Select(d => new ScopeIds(d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId))
-                .FirstOrDefault());
+    private static Task<ScopeIds?> GetDiscussionScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Discussions
+            .Where(d => d.PublicId == publicId)
+            .Select(d => new ScopeIds(d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId))
+            .FirstOrDefaultAsync();
 
-    private static readonly Func<SnakkDbContext, string, Task<ScopeIds?>> _getPostScopeByPublicId
-        = EF.CompileAsyncQuery(
-            (SnakkDbContext ctx, string publicId) => ctx.Posts
-                .Where(p => p.PublicId == publicId)
-                .Select(p => new ScopeIds(p.Discussion.SpaceId, p.Discussion.Space.HubId, p.Discussion.Space.Hub.CommunityId))
-                .FirstOrDefault());
+    private static Task<ScopeIds?> GetPostScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
+        ctx.Posts
+            .Where(p => p.PublicId == publicId)
+            .Select(p => new ScopeIds(p.Discussion.SpaceId, p.Discussion.Space.HubId, p.Discussion.Space.Hub.CommunityId))
+            .FirstOrDefaultAsync();
 
     public async Task<bool> UserHasPermissionAsync(
         string userId,
@@ -68,7 +63,7 @@ public class PermissionService(
         string? scopePublicId = null)
     {
         // Get user's database ID from PublicId
-        var userDbId = await _getUserIdByPublicId(context, userId);
+        var userDbId = await GetUserIdByPublicIdAsync(context, userId);
 
         if (userDbId is null)
             return false;
@@ -152,7 +147,7 @@ public class PermissionService(
         {
             case "community":
                 // Resolve community publicId to internal ID
-                var communityId = await _getCommunityIdByPublicId(context, scopePublicId);
+                var communityId = await GetCommunityIdByPublicIdAsync(context, scopePublicId);
 
                 if (communityId is null)
                     return false;
@@ -164,7 +159,7 @@ public class PermissionService(
 
             case "hub":
                 // Resolve hub publicId to internal ID + parent community
-                var hub = await _getHubScopeByPublicId(context, scopePublicId);
+                var hub = await GetHubScopeByPublicIdAsync(context, scopePublicId);
 
                 if (hub is null)
                     return false;
@@ -178,7 +173,7 @@ public class PermissionService(
 
             case "space":
                 // Resolve space publicId to internal ID + parent hub/community
-                var space = await _getSpaceScopeByPublicId(context, scopePublicId);
+                var space = await GetSpaceScopeByPublicIdAsync(context, scopePublicId);
 
                 if (space is null)
                     return false;
@@ -194,7 +189,7 @@ public class PermissionService(
 
             case "discussion":
                 // Resolve discussion publicId to internal IDs for parent space/hub/community
-                var discussion = await _getDiscussionScopeByPublicId(context, scopePublicId);
+                var discussion = await GetDiscussionScopeByPublicIdAsync(context, scopePublicId);
 
                 if (discussion is null)
                     return false;
@@ -206,7 +201,7 @@ public class PermissionService(
 
             case "post":
                 // Resolve post publicId to internal IDs for parent discussion/space/hub/community
-                var post = await _getPostScopeByPublicId(context, scopePublicId);
+                var post = await GetPostScopeByPublicIdAsync(context, scopePublicId);
 
                 if (post is null)
                     return false;
@@ -249,7 +244,7 @@ public class PermissionService(
     private async Task<List<PermissionDto>> GetUserPermissionsInternalAsync(string userId)
     {
         // Get user's database ID from PublicId
-        var userDbId = await _getUserIdByPublicId(context, userId);
+        var userDbId = await GetUserIdByPublicIdAsync(context, userId);
 
         if (userDbId is null)
             return [];
@@ -337,7 +332,7 @@ public class PermissionService(
         }
 
         // Get admin user database ID
-        var adminDbId = await _getUserIdByPublicId(context, adminUserId);
+        var adminDbId = await GetUserIdByPublicIdAsync(context, adminUserId);
 
         var rolePermission = new RolePermissionDatabaseEntity
         {
@@ -506,7 +501,7 @@ public class PermissionService(
         }
 
         // Get admin user database ID
-        var adminDbId = await _getUserIdByPublicId(context, adminUserId);
+        var adminDbId = await GetUserIdByPublicIdAsync(context, adminUserId);
 
         elevation.RevokedAt = DateTime.UtcNow;
         elevation.RevokedById = adminDbId;
@@ -569,7 +564,7 @@ public class PermissionService(
 
     public async Task<List<TemporaryRoleElevationDto>> GetUserTemporaryRolesAsync(string userId)
     {
-        var userDbId = await _getUserIdByPublicId(context, userId);
+        var userDbId = await GetUserIdByPublicIdAsync(context, userId);
 
         if (userDbId is null)
             return [];

@@ -44,7 +44,11 @@ public class ReactionGrpcService(
 
     public override async Task<UserReactionResponse> GetMyReaction(GetMyReactionRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new UserReactionResponse();
+
         var reaction = await reactionUseCase.GetUserReactionAsync(PostId.From(request.PostId), userId);
 
         var response = new UserReactionResponse();
@@ -55,16 +59,14 @@ public class ReactionGrpcService(
         return response;
     }
 
-    private UserId RequireAuth()
+    private UserId? TryGetAuthUserId()
     {
-        if (!currentUser.IsAuthenticated())
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        var userIdStr = currentUser.GetCurrentUserId();
-
-        if (userIdStr is null)
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        return UserId.From(userIdStr);
+        if (!currentUser.IsAuthenticated()) return null;
+        var id = currentUser.GetCurrentUserId();
+        return id is null ? null : UserId.From(id);
     }
+
+    private UserId RequireAuth() =>
+        TryGetAuthUserId()
+        ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 }

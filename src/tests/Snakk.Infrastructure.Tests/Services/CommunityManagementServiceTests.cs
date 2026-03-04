@@ -40,10 +40,13 @@ public class CommunityManagementServiceTests : IDisposable
 
         var hub = new HubDatabaseEntity { PublicId = "hub-001", CommunityId = community.Id, Name = "Test Hub", Slug = "test-hub", CreatedAt = DateTime.UtcNow };
         _context.Hubs.Add(hub);
+        community.HubCount++;
         await _context.SaveChangesAsync();
 
         var space = new SpaceDatabaseEntity { PublicId = "space-001", HubId = hub.Id, Name = "Test Space", Slug = "test-space", CreatedAt = DateTime.UtcNow };
         _context.Spaces.Add(space);
+        hub.SpaceCount++;
+        community.SpaceCount++;
         await _context.SaveChangesAsync();
 
         return (user, community, hub, space);
@@ -61,6 +64,14 @@ public class CommunityManagementServiceTests : IDisposable
             CreatedAt = DateTime.UtcNow
         };
         _context.Discussions.Add(discussion);
+
+        var space = await _context.Spaces.FindAsync(spaceId);
+        space!.DiscussionCount++;
+        var hub = await _context.Hubs.FindAsync(space.HubId);
+        hub!.DiscussionCount++;
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        community!.DiscussionCount++;
+
         await _context.SaveChangesAsync();
 
         return discussion;
@@ -77,6 +88,16 @@ public class CommunityManagementServiceTests : IDisposable
             CreatedAt = DateTime.UtcNow
         };
         _context.Posts.Add(post);
+
+        var discussion = await _context.Discussions.FindAsync(discussionId);
+        discussion!.PostCount++;
+        var space = await _context.Spaces.FindAsync(discussion.SpaceId);
+        space!.PostCount++;
+        var hub = await _context.Hubs.FindAsync(space.HubId);
+        hub!.PostCount++;
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        community!.PostCount++;
+
         await _context.SaveChangesAsync();
 
         return post;
@@ -92,10 +113,13 @@ public class CommunityManagementServiceTests : IDisposable
         // Add a second hub and space
         var hub2 = new HubDatabaseEntity { PublicId = "hub-002", CommunityId = community.Id, Name = "Hub 2", Slug = "hub-2", CreatedAt = DateTime.UtcNow };
         _context.Hubs.Add(hub2);
+        community.HubCount++;
         await _context.SaveChangesAsync();
 
         var space2 = new SpaceDatabaseEntity { PublicId = "space-002", HubId = hub2.Id, Name = "Space 2", Slug = "space-2", CreatedAt = DateTime.UtcNow };
         _context.Spaces.Add(space2);
+        hub2.SpaceCount++;
+        community.SpaceCount++;
         await _context.SaveChangesAsync();
 
         // Create discussions and posts

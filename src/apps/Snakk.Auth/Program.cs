@@ -14,7 +14,7 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // Add Razor Pages
 builder.Services.AddRazorPages();
@@ -99,7 +99,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

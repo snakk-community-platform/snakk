@@ -30,7 +30,7 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // Real client IP header (set by CDN/reverse proxy like Cloudflare)
 var clientIpHeader = builder.Configuration["Gateway:ClientIpHeader"] ?? "CF-Connecting-IP";
@@ -102,7 +102,7 @@ builder.Services.AddReverseProxy()
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // HTTPS redirection (skip in production — Caddy/Cloudflare handles TLS)
 if (!app.Environment.IsProduction())

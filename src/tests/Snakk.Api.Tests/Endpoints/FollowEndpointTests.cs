@@ -18,7 +18,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/discussions/some-id/follow", null);
+        var response = await client.PostAsync("/discussions/some-id/follow", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -31,7 +31,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.PostAsync("/api/discussions/some-discussion-id/follow", null);
+        var response = await client.PostAsync("/discussions/some-discussion-id/follow", null);
 
         // Assert
         // Discussion may not exist, but auth should pass; expect Ok or BadRequest (not 401/403)
@@ -45,7 +45,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/discussions/some-discussion-id/follow-status");
+        var response = await client.GetAsync("/discussions/some-discussion-id/follow-status");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -63,7 +63,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/discussions/some-discussion-id/follow-status");
+        var response = await client.GetAsync("/discussions/some-discussion-id/follow-status");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -83,7 +83,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/spaces/some-space-id/follow", null);
+        var response = await client.PostAsync("/spaces/some-space-id/follow", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -94,7 +94,7 @@ public class FollowEndpointTests : IAsyncDisposable
     {
         // Arrange
         var client = _server.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Put, "/api/spaces/some-space-id/follow-level?level=posts");
+        var request = new HttpRequestMessage(HttpMethod.Put, "/spaces/some-space-id/follow-level?level=posts");
 
         // Act
         var response = await client.SendAsync(request);
@@ -110,7 +110,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/spaces/some-space-id/follow-status");
+        var response = await client.GetAsync("/spaces/some-space-id/follow-status");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -130,7 +130,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/users/some-user-id/follow", null);
+        var response = await client.PostAsync("/users/some-user-id/follow", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -143,7 +143,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/users/some-user-id/follow-status");
+        var response = await client.GetAsync("/users/some-user-id/follow-status");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -163,7 +163,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/spaces");
+        var response = await client.GetAsync("/follows/spaces");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -176,7 +176,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/discussions");
+        var response = await client.GetAsync("/follows/discussions");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -189,7 +189,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/users");
+        var response = await client.GetAsync("/follows/users");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -202,7 +202,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/spaces");
+        var response = await client.GetAsync("/follows/spaces");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -220,7 +220,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/discussions");
+        var response = await client.GetAsync("/follows/discussions");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -238,7 +238,7 @@ public class FollowEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/follows/users");
+        var response = await client.GetAsync("/follows/users");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

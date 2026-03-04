@@ -18,7 +18,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/sessions");
+        var response = await client.GetAsync("/sessions");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -31,7 +31,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/sessions");
+        var response = await client.GetAsync("/sessions");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -52,7 +52,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/sessions/nonexistent-session-id");
+        var response = await client.DeleteAsync("/sessions/nonexistent-session-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -65,7 +65,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/sessions/nonexistent-session-id");
+        var response = await client.DeleteAsync("/sessions/nonexistent-session-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -85,7 +85,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/sessions/revoke-all", null);
+        var response = await client.PostAsync("/sessions/revoke-all", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -98,7 +98,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.PostAsync("/api/sessions/revoke-all", null);
+        var response = await client.PostAsync("/sessions/revoke-all", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -118,7 +118,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/sessions/refresh", null);
+        var response = await client.PostAsync("/sessions/refresh", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -129,7 +129,7 @@ public class SessionManagementEndpointTests : IAsyncDisposable
     {
         // Arrange - send a bogus refresh_token cookie
         var client = _server.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/sessions/refresh");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/sessions/refresh");
         request.Headers.Add("Cookie", "refresh_token=invalid-bogus-token-value");
 
         // Act

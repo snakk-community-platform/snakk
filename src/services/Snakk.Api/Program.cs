@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // HTTP/2 only — required for gRPC over plaintext (h2c) in Docker
 builder.WebHost.ConfigureKestrel(options =>
@@ -49,7 +49,7 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

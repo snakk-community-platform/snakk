@@ -29,12 +29,12 @@ public class DetailModel(
             return RedirectToPage("/Index");
         }
 
-        Community = await _apiClient.GetCommunityBySlugAsync(slug);
+        var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 
-        if (Community is null)
-        {
-            return NotFound();
-        }
+        if (!communityResult.IsSuccess)
+            return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
+        Community = communityResult.Value;
 
         if (Community.HasRules)
             InlineCommunityRules = prefetchCache.ResolveOrPrefetch(

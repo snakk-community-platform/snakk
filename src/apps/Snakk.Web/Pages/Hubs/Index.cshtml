@@ -31,7 +31,7 @@
             @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
             {
                 <div class="flex-shrink-0">
-                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community.CommunitySlug)" class="btn btn-primary">Manage Community</a>
+                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)" class="btn btn-primary">Manage Community</a>
                 </div>
             }
             @*

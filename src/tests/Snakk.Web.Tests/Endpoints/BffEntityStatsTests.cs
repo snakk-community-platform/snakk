@@ -1,6 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Moq;
+using Snakk.Protos.Community;
+using Snakk.Protos.Discussion;
+using Snakk.Protos.Hub;
+using Snakk.Protos.Space;
+using Snakk.Protos.Statistics;
 using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.Endpoints;
@@ -24,16 +30,18 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/hubs/hub-001/stats", new
-        {
-            publicId = "hub-001",
-            name = "Test Hub",
-            description = "A test hub for unit tests",
-            avatarUrl = "/avatars/hub-001.png",
-            spaceCount = 5,
-            discussionCount = 42,
-            replyCount = 128
-        });
+        app.MockApiClient
+            .Setup(c => c.GetHubStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new HubStats
+            {
+                PublicId = "hub-001",
+                Name = "Test Hub",
+                Description = "A test hub for unit tests",
+                AvatarUrl = "/avatars/hub-001.png",
+                SpaceCount = 5,
+                DiscussionCount = 42,
+                ReplyCount = 128
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -54,19 +62,21 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetHubStats_WhenApiFails_ReturnsNotFound()
+    public async Task GetHubStats_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetHubStatsAsync has try-catch, returns null on failure
-        app.MockApiHandler.SetupResponse("/api/hubs/hub-999/stats", HttpStatusCode.InternalServerError);
+        // SnakkApiClient.GetHubStatsAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetHubStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync((HubStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/hubs/hub-999/stats");
 
-        // Assert
+        // Assert — BFF returns NotFound when apiClient returns null
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
@@ -77,16 +87,18 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/spaces/space-001/stats", new
-        {
-            publicId = "space-001",
-            name = "Test Space",
-            description = "A test space",
-            avatarUrl = "/avatars/space-001.png",
-            discussionCount = 15,
-            replyCount = 87,
-            followerCount = 23
-        });
+        app.MockApiClient
+            .Setup(c => c.GetSpaceStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new SpaceStats
+            {
+                PublicId = "space-001",
+                Name = "Test Space",
+                Description = "A test space",
+                AvatarUrl = "/avatars/space-001.png",
+                DiscussionCount = 15,
+                ReplyCount = 87,
+                FollowerCount = 23
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -107,19 +119,21 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetSpaceStats_WhenApiFails_ReturnsNotFound()
+    public async Task GetSpaceStats_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetSpaceStatsAsync has try-catch, returns null on failure
-        app.MockApiHandler.SetupResponse("/api/spaces/space-999/stats", HttpStatusCode.InternalServerError);
+        // SnakkApiClient.GetSpaceStatsAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetSpaceStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync((SpaceStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/spaces/space-999/stats");
 
-        // Assert
+        // Assert — BFF returns NotFound when apiClient returns null
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
@@ -130,17 +144,19 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/communities/comm-001/stats", new
-        {
-            publicId = "comm-001",
-            name = "Test Community",
-            description = "A test community",
-            avatarUrl = "/avatars/comm-001.png",
-            hubCount = 3,
-            spaceCount = 12,
-            discussionCount = 150,
-            replyCount = 430
-        });
+        app.MockApiClient
+            .Setup(c => c.GetCommunityStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new CommunityStats
+            {
+                PublicId = "comm-001",
+                Name = "Test Community",
+                Description = "A test community",
+                AvatarUrl = "/avatars/comm-001.png",
+                HubCount = 3,
+                SpaceCount = 12,
+                DiscussionCount = 150,
+                ReplyCount = 430
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -162,19 +178,21 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetCommunityStats_WhenApiFails_ReturnsNotFound()
+    public async Task GetCommunityStats_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetCommunityStatsAsync has try-catch, returns null on failure
-        app.MockApiHandler.SetupResponse("/api/communities/comm-999/stats", HttpStatusCode.InternalServerError);
+        // SnakkApiClient.GetCommunityStatsAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetCommunityStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync((CommunityStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/communities/comm-999/stats");
 
-        // Assert
+        // Assert — BFF returns NotFound when apiClient returns null
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
@@ -185,16 +203,18 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/users/user-001/stats", new
-        {
-            publicId = "user-001",
-            displayName = "Test User",
-            avatarUrl = "/avatars/user-001.png",
-            discussionCount = 10,
-            replyCount = 55,
-            followerCount = 8,
-            followingCount = 12
-        });
+        app.MockApiClient
+            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UserStats
+            {
+                PublicId = "user-001",
+                DisplayName = "Test User",
+                AvatarUrl = "/avatars/user-001.png",
+                DiscussionCount = 10,
+                ReplyCount = 55,
+                FollowerCount = 8,
+                FollowingCount = 12
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -215,20 +235,22 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetUserStatsPopup_WhenApiReturnsNotFound_ReturnsNotFound()
+    public async Task GetUserStatsPopup_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetUserStatsAsync has no try-catch; GetFromJsonAsync throws on non-success
-        app.MockApiHandler.SetupResponse("/api/users/user-999/stats", HttpStatusCode.NotFound);
+        // SnakkApiClient.GetUserStatsAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync((UserStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/users/user-999/stats-popup");
 
-        // Assert — the unhandled exception propagates as 500
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.InternalServerError);
+        // Assert — BFF returns NotFound when apiClient returns null
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // ==================== Discussion Stats ====================
@@ -238,11 +260,15 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/discussions/disc-001/stats", new
-        {
-            postCount = 25,
-            views = 340
-        });
+        app.MockApiClient
+            .Setup(c => c.GetDiscussionStatsForPopupAsync(It.IsAny<string>()))
+            .ReturnsAsync(new DiscussionStats
+            {
+                PublicId = "disc-001",
+                Title = "Test Discussion",
+                ReplyCount = 25,
+                FollowerCount = 10
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -253,25 +279,27 @@ public class BffEntityStatsTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("postCount").GetInt32()).IsEqualTo(25);
-        await Assert.That(body.GetProperty("views").GetInt32()).IsEqualTo(340);
+        await Assert.That(body.GetProperty("replyCount").GetInt32()).IsEqualTo(25);
+        await Assert.That(body.GetProperty("followerCount").GetInt32()).IsEqualTo(10);
     }
 
     [Test]
-    public async Task GetDiscussionStats_WhenApiReturnsNotFound_ReturnsError()
+    public async Task GetDiscussionStats_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetDiscussionStatsForPopupAsync has no try-catch; throws on non-success
-        app.MockApiHandler.SetupResponse("/api/discussions/disc-999/stats", HttpStatusCode.NotFound);
+        // SnakkApiClient.GetDiscussionStatsForPopupAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetDiscussionStatsForPopupAsync(It.IsAny<string>()))
+            .ReturnsAsync((DiscussionStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/discussions/disc-999/stats");
 
-        // Assert — the unhandled exception propagates as 500
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.InternalServerError);
+        // Assert — BFF returns NotFound when result is null
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // ==================== User Stats (regular) ====================
@@ -281,16 +309,18 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/users/user-002/stats", new
-        {
-            publicId = "user-002",
-            displayName = "Another User",
-            avatarUrl = "/avatars/user-002.png",
-            discussionCount = 3,
-            replyCount = 19,
-            followerCount = 2,
-            followingCount = 7
-        });
+        app.MockApiClient
+            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UserStats
+            {
+                PublicId = "user-002",
+                DisplayName = "Another User",
+                AvatarUrl = "/avatars/user-002.png",
+                DiscussionCount = 3,
+                ReplyCount = 19,
+                FollowerCount = 2,
+                FollowingCount = 7
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -311,20 +341,22 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetUserStats_WhenApiReturnsNotFound_ReturnsError()
+    public async Task GetUserStats_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetUserStatsAsync has no try-catch; GetFromJsonAsync throws on non-success
-        app.MockApiHandler.SetupResponse("/api/users/user-999/stats", HttpStatusCode.NotFound);
+        // SnakkApiClient.GetUserStatsAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
+            .ReturnsAsync((UserStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/users/user-999/stats");
 
-        // Assert — the unhandled exception propagates as 500
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.InternalServerError);
+        // Assert — BFF returns NotFound when apiClient returns null
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // ==================== User Activity History ====================
@@ -334,15 +366,14 @@ public class BffEntityStatsTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/users/user-001/activity-history", new
-        {
-            activities = new[]
-            {
-                new { date = "2026-02-25", postCount = 3, discussionCount = 1 },
-                new { date = "2026-02-26", postCount = 5, discussionCount = 2 },
-                new { date = "2026-02-27", postCount = 0, discussionCount = 0 }
-            }
-        });
+        var activityHistory = new UserActivityHistory { Days = 30 };
+        activityHistory.Data.Add(new ActivityDay { Date = "2026-02-25", Posts = 3, Discussions = 1, Total = 4 });
+        activityHistory.Data.Add(new ActivityDay { Date = "2026-02-26", Posts = 5, Discussions = 2, Total = 7 });
+        activityHistory.Data.Add(new ActivityDay { Date = "2026-02-27", Posts = 0, Discussions = 0, Total = 0 });
+
+        app.MockApiClient
+            .Setup(c => c.GetUserActivityHistoryAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync(activityHistory);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -363,19 +394,21 @@ public class BffEntityStatsTests
     }
 
     [Test]
-    public async Task GetUserActivityHistory_WhenApiReturnsNotFound_ReturnsError()
+    public async Task GetUserActivityHistory_WhenApiReturnsNull_ReturnsNotFound()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SnakkApiClient.GetUserActivityHistoryAsync has no try-catch; throws on non-success
-        app.MockApiHandler.SetupResponse("/api/users/user-999/activity-history", HttpStatusCode.NotFound);
+        // SnakkApiClient.GetUserActivityHistoryAsync catches RpcException and returns null
+        app.MockApiClient
+            .Setup(c => c.GetUserActivityHistoryAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync((UserActivityHistory?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
         var response = await client.GetAsync("/bff/users/user-999/activity-history?days=30");
 
-        // Assert — the unhandled exception propagates as 500
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.InternalServerError);
+        // Assert — BFF returns NotFound when apiClient returns null
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 }

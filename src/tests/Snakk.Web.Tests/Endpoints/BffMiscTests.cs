@@ -1,6 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Moq;
+using Snakk.Protos;
+using Snakk.Protos.Discussion;
+using Snakk.Protos.Follow;
+using Snakk.Protos.Statistics;
+using Snakk.Web.Models;
+using Snakk.Web.Services;
 using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.Endpoints;
@@ -24,67 +31,65 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
 
-        app.MockApiHandler.SetupJsonResponse("/discussions/recent", new
+        var recentDiscussions = new PagedRecentDiscussionList
         {
-            items = new[]
-            {
-                new
-                {
-                    publicId = "disc-001",
-                    title = "Recent Discussion",
-                    slug = "recent-discussion",
-                    postCount = 3
-                }
-            },
-            offset = 0,
-            pageSize = 10,
-            hasMoreItems = false
+            Offset = 0,
+            PageSize = 10,
+            HasMoreItems = false
+        };
+        recentDiscussions.Items.Add(new RecentDiscussionInfo
+        {
+            PublicId = "disc-001",
+            Title = "Recent Discussion",
+            Slug = "recent-discussion",
+            PostCount = 3
         });
 
-        app.MockApiHandler.SetupJsonResponse("/discussions/top-active-today", new
+        var topActiveDiscussions = new TopActiveDiscussionsList();
+        topActiveDiscussions.Items.Add(new TopActiveDiscussionInfo
         {
-            items = new[]
-            {
-                new
-                {
-                    publicId = "disc-002",
-                    title = "Hot Discussion",
-                    slug = "hot-discussion",
-                    postCountToday = 15,
-                    space = new { publicId = "space-001", slug = "general", name = "General" },
-                    hub = new { publicId = "hub-001", slug = "main", name = "Main Hub" },
-                    author = new { publicId = "user-001", displayName = "Active User" }
-                }
-            }
+            PublicId = "disc-002",
+            Title = "Hot Discussion",
+            Slug = "hot-discussion",
+            PostCountToday = 15,
+            Space = new EntityRef { PublicId = "space-001", Slug = "general", Name = "General" },
+            Hub = new EntityRef { PublicId = "hub-001", Slug = "main", Name = "Main Hub" },
+            Author = new AuthorRef { PublicId = "user-001", DisplayName = "Active User" }
         });
 
-        app.MockApiHandler.SetupJsonResponse("/spaces/top-active-today", new
+        var topActiveSpaces = new TopActiveSpacesList();
+        topActiveSpaces.Items.Add(new TopActiveSpaceInfo
         {
-            items = new[]
-            {
-                new
-                {
-                    publicId = "space-001",
-                    name = "General",
-                    slug = "general",
-                    postCountToday = 42,
-                    hub = new { publicId = "hub-001", slug = "main", name = "Main Hub" }
-                }
-            }
+            PublicId = "space-001",
+            Name = "General",
+            Slug = "general",
+            PostCountToday = 42,
+            Hub = new EntityRef { PublicId = "hub-001", Slug = "main", Name = "Main Hub" }
         });
 
-        app.MockApiHandler.SetupJsonResponse("/api/users/top-contributors-today", new
+        var topContributors = new TopContributorsList();
+        topContributors.Items.Add(new TopContributorInfo
         {
-            items = new[]
-            {
-                new
-                {
-                    publicId = "user-001",
-                    displayName = "Top Contributor",
-                    postCountToday = 20
-                }
-            }
+            PublicId = "user-001",
+            DisplayName = "Top Contributor",
+            PostCountToday = 20
         });
+
+        app.MockApiClient
+            .Setup(c => c.GetRecentDiscussionsAsync(0, 10, null))
+            .ReturnsAsync(recentDiscussions);
+
+        app.MockApiClient
+            .Setup(c => c.GetTopActiveDiscussionsAsync(null))
+            .ReturnsAsync(topActiveDiscussions);
+
+        app.MockApiClient
+            .Setup(c => c.GetTopActiveSpacesAsync(null))
+            .ReturnsAsync(topActiveSpaces);
+
+        app.MockApiClient
+            .Setup(c => c.GetTopContributorsAsync(null))
+            .ReturnsAsync(topContributors);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -114,8 +119,8 @@ public class BffMiscTests
         await Assert.That(topSpaceItems.GetArrayLength()).IsEqualTo(1);
 
         // Verify topContributors
-        var topContributors = body.GetProperty("topContributors");
-        var topContribItems = topContributors.GetProperty("items");
+        var topContrib = body.GetProperty("topContributors");
+        var topContribItems = topContrib.GetProperty("items");
         await Assert.That(topContribItems.GetArrayLength()).IsEqualTo(1);
         await Assert.That(topContribItems[0].GetProperty("displayName").GetString()).IsEqualTo("Top Contributor");
     }
@@ -126,42 +131,54 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
 
-        app.MockApiHandler.SetupJsonResponse("/discussions/recent", new
+        var recentDiscussions = new PagedRecentDiscussionList
         {
-            items = new[]
-            {
-                new { publicId = "disc-001", title = "Recent Discussion", slug = "recent", postCount = 1 }
-            },
-            offset = 0,
-            pageSize = 10,
-            hasMoreItems = false
+            Offset = 0,
+            PageSize = 10,
+            HasMoreItems = false
+        };
+        recentDiscussions.Items.Add(new RecentDiscussionInfo
+        {
+            PublicId = "disc-001",
+            Title = "Recent Discussion",
+            Slug = "recent",
+            PostCount = 1
         });
 
-        // top-active-today returns error → GetTopActiveDiscussionsTodayAsync catches and returns null
-        app.MockApiHandler.SetupResponse("/discussions/top-active-today", HttpStatusCode.InternalServerError);
-
-        app.MockApiHandler.SetupJsonResponse("/spaces/top-active-today", new
+        var topActiveSpaces = new TopActiveSpacesList();
+        topActiveSpaces.Items.Add(new TopActiveSpaceInfo
         {
-            items = new[]
-            {
-                new
-                {
-                    publicId = "space-001",
-                    name = "General",
-                    slug = "general",
-                    postCountToday = 5,
-                    hub = new { publicId = "hub-001", slug = "main", name = "Main Hub" }
-                }
-            }
+            PublicId = "space-001",
+            Name = "General",
+            Slug = "general",
+            PostCountToday = 5,
+            Hub = new EntityRef { PublicId = "hub-001", Slug = "main", Name = "Main Hub" }
         });
 
-        app.MockApiHandler.SetupJsonResponse("/api/users/top-contributors-today", new
+        var topContributors = new TopContributorsList();
+        topContributors.Items.Add(new TopContributorInfo
         {
-            items = new[]
-            {
-                new { publicId = "user-001", displayName = "Contributor", postCountToday = 3 }
-            }
+            PublicId = "user-001",
+            DisplayName = "Contributor",
+            PostCountToday = 3
         });
+
+        app.MockApiClient
+            .Setup(c => c.GetRecentDiscussionsAsync(0, 10, null))
+            .ReturnsAsync(recentDiscussions);
+
+        // GetTopActiveDiscussionsAsync returns null (simulating gRPC failure caught by SnakkApiClient)
+        app.MockApiClient
+            .Setup(c => c.GetTopActiveDiscussionsAsync(null))
+            .ReturnsAsync((TopActiveDiscussionsList?)null);
+
+        app.MockApiClient
+            .Setup(c => c.GetTopActiveSpacesAsync(null))
+            .ReturnsAsync(topActiveSpaces);
+
+        app.MockApiClient
+            .Setup(c => c.GetTopContributorsAsync(null))
+            .ReturnsAsync(topContributors);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -177,7 +194,7 @@ public class BffMiscTests
         var recent = body.GetProperty("recentDiscussions");
         await Assert.That(recent.GetProperty("items").GetArrayLength()).IsEqualTo(1);
 
-        // topActiveDiscussions should be null (caught exception)
+        // topActiveDiscussions should be null (caught exception returned null)
         var topDiscussions = body.GetProperty("topActiveDiscussions");
         await Assert.That(topDiscussions.ValueKind).IsEqualTo(JsonValueKind.Null);
 
@@ -193,10 +210,9 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/markup/preview", new
-        {
-            html = "<p>This is <strong>bold</strong> text</p>"
-        });
+        app.MockApiClient
+            .Setup(c => c.PreviewMarkupAsync(It.IsAny<string>()))
+            .ReturnsAsync("<p>This is <strong>bold</strong> text</p>");
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -215,7 +231,10 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/api/markup/preview", HttpStatusCode.InternalServerError);
+        // PreviewMarkupAsync catches RpcException and returns null → BFF maps to empty string
+        app.MockApiClient
+            .Setup(c => c.PreviewMarkupAsync(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -236,14 +255,12 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/moderation/reports", new
-        {
-            publicId = "report-001",
-            entityType = "Post",
-            entityId = "post-123",
-            reason = "Spam",
-            status = "Pending"
-        });
+        app.MockApiClient
+            .Setup(c => c.CreateReportAsync(It.IsAny<CreateReportRequest>()))
+            .ReturnsAsync(new ReportDto(
+                "report-001", "Pending", "test-user-001",
+                null, null, null, null, null,
+                DateTime.UtcNow, null, null, null));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -259,12 +276,10 @@ public class BffMiscTests
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Verify the API received the request
-        var apiCalls = app.MockApiHandler.ReceivedRequests
-            .Where(r => r.RequestUri?.PathAndQuery?.Contains("/api/moderation/reports") == true
-                        && r.Method == HttpMethod.Post)
-            .ToList();
-        await Assert.That(apiCalls.Count).IsEqualTo(1);
+        // Verify the API client received the call
+        app.MockApiClient.Verify(
+            c => c.CreateReportAsync(It.IsAny<CreateReportRequest>()),
+            Times.Once);
     }
 
     // ==================== Report Reasons ====================
@@ -274,17 +289,16 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        // GetReportReasonsAsync returns result?.Items (an IEnumerable), so the mock
-        // must wrap items in an object with "items" property for deserialization
-        app.MockApiHandler.SetupJsonResponse("/api/moderation/report-reasons", new
+        var reasons = new List<ReportReasonDto>
         {
-            items = new[]
-            {
-                new { publicId = "reason-001", name = "Spam", description = "Unsolicited content" },
-                new { publicId = "reason-002", name = "Harassment", description = "Abusive behavior" },
-                new { publicId = "reason-003", name = "Off-topic", description = "Irrelevant content" }
-            }
-        });
+            new("reason-001", "Spam", "Unsolicited content", null, null, null, 1),
+            new("reason-002", "Harassment", "Abusive behavior", null, null, null, 2),
+            new("reason-003", "Off-topic", "Irrelevant content", null, null, null, 3)
+        };
+
+        app.MockApiClient
+            .Setup(c => c.GetReportReasonsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(reasons);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -306,8 +320,10 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        // GetReportReasonsAsync catches exceptions and returns null
-        app.MockApiHandler.SetupResponse("/api/moderation/report-reasons", HttpStatusCode.InternalServerError);
+        // GetReportReasonsAsync catches RpcException and returns null → BFF returns empty array
+        app.MockApiClient
+            .Setup(c => c.GetReportReasonsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync((IEnumerable<ReportReasonDto>?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -329,7 +345,9 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/api/read-states/batch", HttpStatusCode.OK);
+        app.MockApiClient
+            .Setup(c => c.BatchUpdateReadStatesAsync(It.IsAny<List<(string, string)>>()))
+            .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -338,20 +356,18 @@ public class BffMiscTests
         {
             updates = new[]
             {
-                new { discussionId = "disc-001", postId = "post-010", timestamp = 1709000000000L },
-                new { discussionId = "disc-002", postId = "post-020", timestamp = 1709000001000L }
+                new { discussionId = "disc-001", postId = "post-010" },
+                new { discussionId = "disc-002", postId = "post-020" }
             }
         });
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Verify the API received the batch request
-        var apiCalls = app.MockApiHandler.ReceivedRequests
-            .Where(r => r.RequestUri?.PathAndQuery?.Contains("/api/read-states/batch") == true
-                        && r.Method == HttpMethod.Post)
-            .ToList();
-        await Assert.That(apiCalls.Count).IsEqualTo(1);
+        // Verify the API client received the batch request
+        app.MockApiClient.Verify(
+            c => c.BatchUpdateReadStatesAsync(It.Is<List<(string, string)>>(l => l.Count == 2)),
+            Times.Once);
     }
 
     // ==================== Set Space Follow Level ====================
@@ -361,11 +377,9 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/api/spaces/space-001/follow-level", new
-        {
-            isFollowing = true,
-            level = "AllActivity"
-        });
+        app.MockApiClient
+            .Setup(c => c.SetSpaceFollowLevelAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new FollowLevelResponse { Level = "AllActivity" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -385,8 +399,10 @@ public class BffMiscTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        // SetSpaceFollowLevelAsync catches exceptions and returns null → BFF returns BadRequest
-        app.MockApiHandler.SetupResponse("/api/spaces/space-001/follow-level", HttpStatusCode.InternalServerError);
+        // SetSpaceFollowLevelAsync catches RpcException and returns null → BFF returns BadRequest
+        app.MockApiClient
+            .Setup(c => c.SetSpaceFollowLevelAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((FollowLevelResponse?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 

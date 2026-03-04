@@ -53,7 +53,7 @@ public class PostEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PostAsync(
-            "/api/posts/some-post-id/edit?content=edited",
+            "/posts/some-post-id/edit?content=edited",
             null);
 
         // Assert
@@ -67,7 +67,7 @@ public class PostEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/posts/some-post-id");
+        var response = await client.DeleteAsync("/posts/some-post-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -80,7 +80,7 @@ public class PostEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/some-post-id/history");
+        var response = await client.GetAsync("/posts/some-post-id/history");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);

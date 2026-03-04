@@ -26,7 +26,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/roles", request);
+        var response = await client.PostAsJsonAsync("/moderation/roles", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -39,7 +39,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/moderation/roles/some-role-id");
+        var response = await client.DeleteAsync("/moderation/roles/some-role-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -52,7 +52,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/moderation/users/some-user-id/roles");
+        var response = await client.GetAsync("/moderation/users/some-user-id/roles");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -78,7 +78,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/bans", request);
+        var response = await client.PostAsJsonAsync("/moderation/bans", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -91,7 +91,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/moderation/bans/some-ban-id");
+        var response = await client.DeleteAsync("/moderation/bans/some-ban-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -104,7 +104,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/moderation/users/some-user-id/banned");
+        var response = await client.GetAsync("/moderation/users/some-user-id/banned");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -131,7 +131,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/reports", request);
+        var response = await client.PostAsJsonAsync("/moderation/reports", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -144,7 +144,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/moderation/reports?offset=0&pageSize=10");
+        var response = await client.GetAsync("/moderation/reports?offset=0&pageSize=10");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -158,7 +158,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var request = new { resolutionNote = "Resolved" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/reports/some-id/resolve", request);
+        var response = await client.PostAsJsonAsync("/moderation/reports/some-id/resolve", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -172,7 +172,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var request = new { resolutionNote = "Dismissed" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/reports/some-id/dismiss", request);
+        var response = await client.PostAsJsonAsync("/moderation/reports/some-id/dismiss", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -185,7 +185,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/moderation/reports/reasons");
+        var response = await client.GetAsync("/moderation/reports/reasons");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -206,7 +206,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var request = new { reason = "Spam" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/posts/some-post-id/delete", request);
+        var response = await client.PostAsJsonAsync("/moderation/posts/some-post-id/delete", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -220,7 +220,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var request = new { reason = "Off-topic" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/moderation/discussions/some-id/lock", request);
+        var response = await client.PostAsJsonAsync("/moderation/discussions/some-id/lock", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -233,7 +233,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/moderation/discussions/some-id/unlock", null);
+        var response = await client.PostAsync("/moderation/discussions/some-id/unlock", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -248,7 +248,7 @@ public class ModerationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/moderation/log?offset=0&pageSize=10");
+        var response = await client.GetAsync("/moderation/log?offset=0&pageSize=10");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);

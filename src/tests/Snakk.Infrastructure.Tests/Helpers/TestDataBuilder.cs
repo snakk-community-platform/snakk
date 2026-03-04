@@ -58,6 +58,11 @@ public class TestDataBuilder
             CreatedAt = DateTime.UtcNow
         };
         _context.Hubs.Add(hub);
+
+        // Increment denormalized counter on parent community
+        var community = await _context.Communities.FindAsync(communityId);
+        community!.HubCount++;
+
         await _context.SaveChangesAsync();
 
         return hub;
@@ -75,6 +80,13 @@ public class TestDataBuilder
             CreatedAt = DateTime.UtcNow
         };
         _context.Spaces.Add(space);
+
+        // Increment denormalized counters on parent hub and community
+        var hub = await _context.Hubs.FindAsync(hubId);
+        hub!.SpaceCount++;
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        community!.SpaceCount++;
+
         await _context.SaveChangesAsync();
 
         return space;
@@ -94,6 +106,17 @@ public class TestDataBuilder
             LastActivityAt = DateTime.UtcNow
         };
         _context.Discussions.Add(discussion);
+
+        // Increment denormalized counters up the hierarchy
+        var space = await _context.Spaces.FindAsync(spaceId);
+        space!.DiscussionCount++;
+        var hub = await _context.Hubs.FindAsync(space.HubId);
+        hub!.DiscussionCount++;
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        community!.DiscussionCount++;
+        var user = await _context.Users.FindAsync(createdByUserId);
+        user!.DiscussionCount++;
+
         await _context.SaveChangesAsync();
 
         return discussion;
@@ -112,6 +135,22 @@ public class TestDataBuilder
             IsFirstPost = isFirstPost
         };
         _context.Posts.Add(post);
+
+        // Increment denormalized counters up the hierarchy
+        var discussion = await _context.Discussions.FindAsync(discussionId);
+        discussion!.PostCount++;
+        var space = await _context.Spaces.FindAsync(discussion.SpaceId);
+        space!.PostCount++;
+        var hub = await _context.Hubs.FindAsync(space.HubId);
+        hub!.PostCount++;
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        community!.PostCount++;
+        if (!isFirstPost)
+        {
+            var user = await _context.Users.FindAsync(createdByUserId);
+            user!.ReplyCount++;
+        }
+
         await _context.SaveChangesAsync();
 
         return post;

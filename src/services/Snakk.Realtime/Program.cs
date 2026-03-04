@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -39,7 +39,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();

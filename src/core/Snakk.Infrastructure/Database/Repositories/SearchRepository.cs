@@ -9,6 +9,8 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
 
+    private bool IsPostgres => _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
+
     /// <summary>Escapes LIKE/ILIKE metacharacters so user input is treated as literal text.</summary>
     private static string EscapeLikePattern(string input) => input
         .Replace("\\", "\\\\")
@@ -26,11 +28,19 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         var baseQuery = _context.Discussions
             .Where(d => !d.IsDeleted);
 
-        // Full-text search using tsvector + websearch_to_tsquery (supports stemming, AND/OR/NOT)
+        // Full-text search: PostgreSQL uses tsvector + websearch_to_tsquery, others fall back to LIKE
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
-            baseQuery = baseQuery.Where(d => d.SearchVector.Matches(tsQuery));
+            if (IsPostgres)
+            {
+                var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
+                baseQuery = baseQuery.Where(d => d.SearchVector.Matches(tsQuery));
+            }
+            else
+            {
+                var pattern = $"%{EscapeLikePattern(query.Trim())}%";
+                baseQuery = baseQuery.Where(d => EF.Functions.Like(d.Title, pattern));
+            }
         }
 
         // Apply filters
@@ -44,12 +54,18 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
 
         // Order by relevance when searching, by activity when browsing
-        var orderedQuery = !string.IsNullOrWhiteSpace(query)
-            ? baseQuery
+        IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity> orderedQuery;
+        if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
+        {
+            orderedQuery = baseQuery
                 .OrderByDescending(d => d.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
-                .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-            : baseQuery
+                .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt);
+        }
+        else
+        {
+            orderedQuery = baseQuery
                 .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt);
+        }
 
         var items = await orderedQuery
             .Skip(offset)
@@ -94,11 +110,19 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         var baseQuery = _context.Posts
             .Where(p => !p.IsDeleted);
 
-        // Full-text search using tsvector + websearch_to_tsquery (supports stemming, AND/OR/NOT)
+        // Full-text search: PostgreSQL uses tsvector + websearch_to_tsquery, others fall back to LIKE
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
-            baseQuery = baseQuery.Where(p => p.SearchVector.Matches(tsQuery));
+            if (IsPostgres)
+            {
+                var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
+                baseQuery = baseQuery.Where(p => p.SearchVector.Matches(tsQuery));
+            }
+            else
+            {
+                var pattern = $"%{EscapeLikePattern(query.Trim())}%";
+                baseQuery = baseQuery.Where(p => EF.Functions.Like(p.Content, pattern));
+            }
         }
 
         // Apply filters
@@ -112,12 +136,18 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
 
         // Order by relevance when searching, by date when browsing
-        var orderedQuery = !string.IsNullOrWhiteSpace(query)
-            ? baseQuery
+        IOrderedQueryable<Database.Entities.PostDatabaseEntity> orderedQuery;
+        if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
+        {
+            orderedQuery = baseQuery
                 .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
-                .ThenByDescending(p => p.CreatedAt)
-            : baseQuery
+                .ThenByDescending(p => p.CreatedAt);
+        }
+        else
+        {
+            orderedQuery = baseQuery
                 .OrderByDescending(p => p.CreatedAt);
+        }
 
         var items = await orderedQuery
             .Skip(offset)

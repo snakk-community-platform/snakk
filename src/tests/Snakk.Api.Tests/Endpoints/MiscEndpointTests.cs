@@ -137,7 +137,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/users/search?query=test");
+        var response = await client.GetAsync("/users/search?query=test");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -150,7 +150,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/users/non-existent-id/profile");
+        var response = await client.GetAsync("/users/non-existent-id/profile");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -165,7 +165,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/discussions/some-discussion-id/read-state");
+        var response = await client.GetAsync("/discussions/some-discussion-id/read-state");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -179,7 +179,7 @@ public class MiscEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PostAsync(
-            "/api/discussions/some-discussion-id/mark-read?postId=some-post-id",
+            "/discussions/some-discussion-id/mark-read?postId=some-post-id",
             null);
 
         // Assert
@@ -193,7 +193,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/discussions/some-discussion-id/read-state");
+        var response = await client.GetAsync("/discussions/some-discussion-id/read-state");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -215,7 +215,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var content = new StringContent("", Encoding.UTF8, "text/plain");
 
         // Act
-        var response = await client.PostAsync("/api/markup/preview", content);
+        var response = await client.PostAsync("/markup/preview", content);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -232,7 +232,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var content = new StringContent("**bold text**", Encoding.UTF8, "text/plain");
 
         // Act
-        var response = await client.PostAsync("/api/markup/preview", content);
+        var response = await client.PostAsync("/markup/preview", content);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -241,24 +241,7 @@ public class MiscEndpointTests : IAsyncDisposable
         await Assert.That(body).Contains("prose");
     }
 
-    // ==================== Sitemap Endpoints ====================
-
-    [Test]
-    public async Task GetSitemap_Returns_200_WithXml()
-    {
-        // Arrange
-        var client = _server.CreateClient();
-
-        // Act
-        var response = await client.GetAsync("/sitemap.xml");
-
-        // Assert
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var body = await response.Content.ReadAsStringAsync();
-        await Assert.That(body).Contains("<?xml");
-        await Assert.That(body).Contains("<urlset");
-    }
+    // Sitemap moved to Snakk.Web (public-facing app) — no longer served by the API
 
     public async ValueTask DisposeAsync()
     {

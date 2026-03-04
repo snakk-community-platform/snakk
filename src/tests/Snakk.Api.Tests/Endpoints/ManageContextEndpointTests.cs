@@ -165,7 +165,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/manage/resolve?communitySlug={CommunitySlug}");
+        var response = await client.GetAsync($"/manage/resolve?communityId=community-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -174,14 +174,14 @@ public class ManageContextEndpointTests : IAsyncDisposable
     // ==================== Missing required parameters ====================
 
     [Test]
-    public async Task ResolveScope_MissingCommunitySlug_ReturnsBadRequest()
+    public async Task ResolveScope_MissingCommunityId_ReturnsBadRequest()
     {
-        // Arrange — communitySlug is a required (non-nullable) string parameter,
+        // Arrange — communityId is a required (non-nullable) string parameter,
         // so omitting it should result in a 400 Bad Request from model binding.
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync("/api/manage/resolve");
+        var response = await client.GetAsync("/manage/resolve");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -197,7 +197,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/manage/resolve?communitySlug={CommunitySlug}");
+        var response = await client.GetAsync($"/manage/resolve?communityId=community-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -209,19 +209,17 @@ public class ManageContextEndpointTests : IAsyncDisposable
         await Assert.That(json.RootElement.GetProperty("scopeName").GetString()).IsEqualTo(CommunityName);
         await Assert.That(json.RootElement.GetProperty("communitySlug").GetString()).IsEqualTo(CommunitySlug);
         await Assert.That(json.RootElement.GetProperty("communityName").GetString()).IsEqualTo(CommunityName);
-        await Assert.That(json.RootElement.GetProperty("scopeId").GetInt32()).IsEqualTo(1);
-        await Assert.That(json.RootElement.GetProperty("communityId").GetInt32()).IsEqualTo(1);
     }
 
     [Test]
-    public async Task ResolveScope_CommunityOnly_NonExistentSlug_ReturnsNotFound()
+    public async Task ResolveScope_CommunityOnly_NonExistentId_ReturnsNotFound()
     {
-        // Arrange — seed data so the user exists and auth passes, but use a non-existent slug
+        // Arrange — seed data so the user exists and auth passes, but use a non-existent id
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync("/api/manage/resolve?communitySlug=does-not-exist");
+        var response = await client.GetAsync("/manage/resolve?communityId=does-not-exist");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -235,7 +233,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync($"/api/manage/resolve?communitySlug={CommunitySlug}");
+        var response = await client.GetAsync($"/manage/resolve?communityId=community-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
@@ -252,7 +250,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -262,25 +260,22 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         await Assert.That(json.RootElement.GetProperty("scopeType").GetString()).IsEqualTo("Hub");
         await Assert.That(json.RootElement.GetProperty("scopeName").GetString()).IsEqualTo(HubName);
-        await Assert.That(json.RootElement.GetProperty("scopeId").GetInt32()).IsEqualTo(1);
         await Assert.That(json.RootElement.GetProperty("communitySlug").GetString()).IsEqualTo(CommunitySlug);
         await Assert.That(json.RootElement.GetProperty("hubSlug").GetString()).IsEqualTo(HubSlug);
         await Assert.That(json.RootElement.GetProperty("communityName").GetString()).IsEqualTo(CommunityName);
-        await Assert.That(json.RootElement.GetProperty("communityId").GetInt32()).IsEqualTo(1);
         await Assert.That(json.RootElement.GetProperty("hubName").GetString()).IsEqualTo(HubName);
-        await Assert.That(json.RootElement.GetProperty("hubId").GetInt32()).IsEqualTo(1);
     }
 
     [Test]
     public async Task ResolveScope_WithHub_NonExistentHub_ReturnsNotFound()
     {
-        // Arrange — community exists but hub slug does not
+        // Arrange — community exists but hub id does not
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug=nonexistent-hub");
+            $"/manage/resolve?communityId=community-public-id&hubId=nonexistent-hub");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -295,7 +290,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
@@ -312,7 +307,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}&spaceSlug={SpaceSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id&spaceId=space-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -322,28 +317,24 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         await Assert.That(json.RootElement.GetProperty("scopeType").GetString()).IsEqualTo("Space");
         await Assert.That(json.RootElement.GetProperty("scopeName").GetString()).IsEqualTo(SpaceName);
-        await Assert.That(json.RootElement.GetProperty("scopeId").GetInt32()).IsEqualTo(1);
         await Assert.That(json.RootElement.GetProperty("communitySlug").GetString()).IsEqualTo(CommunitySlug);
         await Assert.That(json.RootElement.GetProperty("hubSlug").GetString()).IsEqualTo(HubSlug);
         await Assert.That(json.RootElement.GetProperty("spaceSlug").GetString()).IsEqualTo(SpaceSlug);
         await Assert.That(json.RootElement.GetProperty("communityName").GetString()).IsEqualTo(CommunityName);
         await Assert.That(json.RootElement.GetProperty("hubName").GetString()).IsEqualTo(HubName);
         await Assert.That(json.RootElement.GetProperty("spaceName").GetString()).IsEqualTo(SpaceName);
-        await Assert.That(json.RootElement.GetProperty("communityId").GetInt32()).IsEqualTo(1);
-        await Assert.That(json.RootElement.GetProperty("hubId").GetInt32()).IsEqualTo(1);
-        await Assert.That(json.RootElement.GetProperty("spaceId").GetInt32()).IsEqualTo(1);
     }
 
     [Test]
     public async Task ResolveScope_WithSpace_NonExistentSpace_ReturnsNotFound()
     {
-        // Arrange — community and hub exist but space slug does not
+        // Arrange — community and hub exist but space id does not
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}&spaceSlug=nonexistent-space");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id&spaceId=nonexistent-space");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -359,7 +350,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/manage/resolve?communitySlug={CommunitySlug}");
+        var response = await client.GetAsync($"/manage/resolve?communityId=community-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -398,11 +389,11 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Act — test all three scope levels to verify GlobalAdmin passes all permission checks
         var communityResponse = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}");
+            $"/manage/resolve?communityId=community-public-id");
         var hubResponse = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id");
         var spaceResponse = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}&spaceSlug={SpaceSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id&spaceId=space-public-id");
 
         // Assert — all three should succeed
         await Assert.That(communityResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -419,7 +410,7 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.GetAsync(
-            $"/api/manage/resolve?communitySlug={CommunitySlug}&hubSlug={HubSlug}");
+            $"/manage/resolve?communityId=community-public-id&hubId=hub-public-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -429,14 +420,11 @@ public class ManageContextEndpointTests : IAsyncDisposable
 
         // Hub scope should include community breadcrumb data
         await Assert.That(json.RootElement.GetProperty("communityName").GetString()).IsEqualTo(CommunityName);
-        await Assert.That(json.RootElement.GetProperty("communityId").GetInt32()).IsEqualTo(1);
         await Assert.That(json.RootElement.GetProperty("hubName").GetString()).IsEqualTo(HubName);
-        await Assert.That(json.RootElement.GetProperty("hubId").GetInt32()).IsEqualTo(1);
 
         // Space fields should be null at hub scope
         await Assert.That(json.RootElement.GetProperty("spaceSlug").ValueKind).IsEqualTo(JsonValueKind.Null);
         await Assert.That(json.RootElement.GetProperty("spaceName").ValueKind).IsEqualTo(JsonValueKind.Null);
-        await Assert.That(json.RootElement.GetProperty("spaceId").ValueKind).IsEqualTo(JsonValueKind.Null);
     }
 
     public async ValueTask DisposeAsync()

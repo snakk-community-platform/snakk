@@ -17,7 +17,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/platform/stats");
+        var response = await client.GetAsync("/platform/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -40,7 +40,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/hubs/non-existent-id/stats");
+        var response = await client.GetAsync("/hubs/non-existent-id/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -55,7 +55,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/spaces/non-existent-id/stats");
+        var response = await client.GetAsync("/spaces/non-existent-id/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -70,7 +70,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/communities/non-existent-id/stats");
+        var response = await client.GetAsync("/communities/non-existent-id/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -85,7 +85,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/users/non-existent-id/stats");
+        var response = await client.GetAsync("/users/non-existent-id/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -100,7 +100,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/discussions/non-existent-id/stats");
+        var response = await client.GetAsync("/discussions/non-existent-id/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -115,7 +115,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/platform/stats");
+        var response = await client.GetAsync("/platform/stats");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -128,7 +128,7 @@ public class StatsEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/hubs/missing-hub/stats");
+        var response = await client.GetAsync("/hubs/missing-hub/stats");
 
         // Assert — should be NotFound (entity missing), NOT Unauthorized
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);

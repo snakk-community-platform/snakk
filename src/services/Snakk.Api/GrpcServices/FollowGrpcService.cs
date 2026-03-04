@@ -23,7 +23,11 @@ public class FollowGrpcService(
 
     public override async Task<FollowToggleResponse> GetDiscussionFollowStatus(GetDiscussionFollowStatusRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowToggleResponse { IsFollowing = false };
+
         var isFollowing = await followUseCase.IsFollowingDiscussionAsync(userId, DiscussionId.From(request.DiscussionId));
 
         return new FollowToggleResponse { IsFollowing = isFollowing };
@@ -48,7 +52,11 @@ public class FollowGrpcService(
 
     public override async Task<SpaceFollowStatusResponse> GetSpaceFollowStatus(GetSpaceFollowStatusRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new SpaceFollowStatusResponse { IsFollowing = false };
+
         var (isFollowing, level) = await followUseCase.GetSpaceFollowStatusAsync(userId, SpaceId.From(request.SpaceId));
 
         var response = new SpaceFollowStatusResponse
@@ -88,7 +96,11 @@ public class FollowGrpcService(
 
     public override async Task<FollowToggleResponse> GetUserFollowStatus(GetUserFollowStatusRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowToggleResponse { IsFollowing = false };
+
         var isFollowing = await followUseCase.IsFollowingUserAsync(userId, UserId.From(request.UserId));
 
         return new FollowToggleResponse { IsFollowing = isFollowing };
@@ -96,7 +108,11 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedSpaces(GetFollowedSpacesRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowedIdsResponse();
+
         var spaceIds = await followUseCase.GetFollowedSpacesAsync(userId);
 
         var response = new FollowedIdsResponse();
@@ -107,7 +123,11 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedDiscussions(GetFollowedDiscussionsRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowedIdsResponse();
+
         var discussionIds = await followUseCase.GetFollowedDiscussionsAsync(userId);
 
         var response = new FollowedIdsResponse();
@@ -118,7 +138,11 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedUsers(GetFollowedUsersRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowedIdsResponse();
+
         var userIds = await followUseCase.GetFollowedUsersAsync(userId);
 
         var response = new FollowedIdsResponse();
@@ -127,18 +151,16 @@ public class FollowGrpcService(
         return response;
     }
 
-    private UserId RequireAuth()
+    private UserId? TryGetAuthUserId()
     {
-        if (!currentUser.IsAuthenticated())
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        var userId = currentUser.GetCurrentUserId();
-
-        if (userId is null)
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        return UserId.From(userId);
+        if (!currentUser.IsAuthenticated()) return null;
+        var id = currentUser.GetCurrentUserId();
+        return id is null ? null : UserId.From(id);
     }
+
+    private UserId RequireAuth() =>
+        TryGetAuthUserId()
+        ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
     private static FollowLevel ParseFollowLevel(string? level)
     {

@@ -85,7 +85,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/overview");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -99,7 +99,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/overview");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -117,12 +117,12 @@ public class HubManagementEndpointTests : IAsyncDisposable
     [Test]
     public async Task GetOverview_NonExistentHub_ReturnsNotFound()
     {
-        // Arrange — seed admin user so authorization passes, but use a non-existent hub slug
+        // Arrange — seed admin user so authorization passes, but use a non-existent hub id
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/does-not-exist/manage/overview");
+        var response = await client.GetAsync("/hubs/does-not-exist/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -137,7 +137,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/settings");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -151,7 +151,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/settings");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -173,7 +173,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var request = new { Name = "Updated Hub Name", Description = "Updated description" };
 
         // Act
-        var response = await client.PutAsJsonAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/settings", request);
+        var response = await client.PutAsJsonAsync($"/hubs/hub-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -188,7 +188,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var request = new { Name = "Updated Hub Name", Description = "Updated description" };
 
         // Act
-        var response = await client.PutAsJsonAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/settings", request);
+        var response = await client.PutAsJsonAsync($"/hubs/hub-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -208,7 +208,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/moderation");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -222,7 +222,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/moderation");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -243,7 +243,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/spaces");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/spaces");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -257,7 +257,7 @@ public class HubManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/h/{TestHubSlug}/manage/spaces");
+        var response = await client.GetAsync($"/hubs/hub-public-id/manage/spaces");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

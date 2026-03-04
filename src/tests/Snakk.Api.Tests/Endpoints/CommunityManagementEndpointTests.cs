@@ -87,7 +87,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/overview");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -101,7 +101,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/overview");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
@@ -115,7 +115,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/overview");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -132,14 +132,14 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
     }
 
     [Test]
-    public async Task GetOverview_NonExistentSlug_ReturnsNotFound()
+    public async Task GetOverview_NonExistentId_ReturnsNotFound()
     {
-        // Arrange — seed admin user so authorization passes, but use a non-existent slug
+        // Arrange — seed admin user so authorization passes, but use a non-existent id
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync("/api/c/does-not-exist/manage/overview");
+        var response = await client.GetAsync("/communities/does-not-exist/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -154,7 +154,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/settings");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -168,7 +168,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/settings");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -190,7 +190,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var request = new { Name = "Updated Name", Description = "Updated description" };
 
         // Act
-        var response = await client.PutAsJsonAsync($"/api/c/{TestSlug}/manage/settings", request);
+        var response = await client.PutAsJsonAsync($"/communities/community-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -205,7 +205,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var request = new { Name = "Updated Community Name", Description = "Updated description" };
 
         // Act
-        var response = await client.PutAsJsonAsync($"/api/c/{TestSlug}/manage/settings", request);
+        var response = await client.PutAsJsonAsync($"/communities/community-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -225,7 +225,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/moderation");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -239,7 +239,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/moderation");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -261,7 +261,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/members?page=1&pageSize=10");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/members?page=1&pageSize=10");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -289,7 +289,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PostAsJsonAsync(
-            $"/api/c/{TestSlug}/manage/members/{TargetUserId}/role", request);
+            $"/communities/community-public-id/manage/members/{TargetUserId}/role", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -305,7 +305,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PostAsJsonAsync(
-            $"/api/c/{TestSlug}/manage/members/nonexistent-user/role", request);
+            $"/communities/community-public-id/manage/members/nonexistent-user/role", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -321,7 +321,7 @@ public class CommunityManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestSlug}/manage/spaces");
+        var response = await client.GetAsync($"/communities/community-public-id/manage/spaces");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

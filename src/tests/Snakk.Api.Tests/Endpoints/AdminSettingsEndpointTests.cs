@@ -67,7 +67,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.TryGetProperty("providers", out _)).IsTrue();
+        await Assert.That(json.RootElement.ValueKind).IsEqualTo(JsonValueKind.Array);
     }
 
     [Test]

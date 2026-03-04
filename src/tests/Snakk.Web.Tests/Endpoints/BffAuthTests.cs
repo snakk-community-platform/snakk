@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Grpc.Core;
+using Moq;
+using Snakk.Protos.Auth;
 using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.Endpoints;
@@ -10,25 +13,28 @@ namespace Snakk.Web.Tests.Endpoints;
 ///   GET  /bff/auth/status
 ///   POST /bff/auth/logout
 ///   POST /bff/auth/refresh
-///   POST /bff/auth/set-tokens
-///   PUT  /bff/auth/update-profile
+///   PUT  /bff/me/profile
 /// </summary>
 public class BffAuthTests
 {
+    // ==================== Auth Status ====================
+
     [Test]
     public async Task GetAuthStatus_WithValidToken_ReturnsAuthenticatedStatus()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/auth/status", new
-        {
-            isAuthenticated = true,
-            publicId = "user-001",
-            displayName = "Test User",
-            emailVerified = true,
-            role = "User",
-            avatarUrl = "/avatars/generated/users/ab/user-001.svg"
-        });
+        app.MockApiClient
+            .Setup(c => c.GetAuthStatusAsync())
+            .ReturnsAsync(new AuthStatusResponse
+            {
+                IsAuthenticated = true,
+                PublicId = "user-001",
+                DisplayName = "Test User",
+                EmailVerified = true,
+                Role = "User",
+                AvatarUrl = "/avatars/generated/users/ab/user-001.svg"
+            });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -48,34 +54,54 @@ public class BffAuthTests
     }
 
     [Test]
-    public async Task GetAuthStatus_WhenApiReturnsNull_ReturnsUnauthorized()
+    public async Task GetAuthStatus_WhenApiReturnsUnauthenticated_ReturnsOkWithFalse()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/auth/status", HttpStatusCode.Unauthorized);
+        app.MockApiClient
+            .Setup(c => c.GetAuthStatusAsync())
+            .ReturnsAsync(new AuthStatusResponse { IsAuthenticated = false });
 
         var client = app.CreateClient();
 
         // Act
         var response = await client.GetAsync("/bff/auth/status");
 
-        // Assert — SnakkApiClient.GetAuthStatusAsync catches exceptions and returns
-        // AuthStatusDto(false, null, null, false, null, null), which the BFF endpoint
-        // maps to an "unauthenticated" result. Since IsAuthenticated is false but not null,
-        // the endpoint still returns 200 with isAuthenticated=false.
-        // However, looking at the BFF code: if (apiResult is null) return Results.Unauthorized();
-        // The SnakkApiClient returns a new AuthStatusDto(false,...) on error, so apiResult is NOT null.
+        // Assert — SnakkApiClient.GetAuthStatusAsync returns a non-null AuthStatusResponse
+        // with IsAuthenticated=false on error, so the BFF endpoint returns 200 with the mapped DTO.
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.GetProperty("isAuthenticated").GetBoolean()).IsFalse();
     }
 
     [Test]
-    public async Task Logout_WithValidToken_ReturnsOkAndClearsApiSession()
+    public async Task GetAuthStatus_WhenApiReturnsNull_ReturnsUnauthorized()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/auth/logout", HttpStatusCode.OK);
+        app.MockApiClient
+            .Setup(c => c.GetAuthStatusAsync())
+            .ReturnsAsync((AuthStatusResponse?)null);
+
+        var client = app.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/bff/auth/status");
+
+        // Assert — when apiResult is null, the BFF endpoint returns 401
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    // ==================== Logout ====================
+
+    [Test]
+    public async Task Logout_WithValidToken_ReturnsOkAndCallsApi()
+    {
+        // Arrange
+        await using var app = new TestWebApp();
+        app.MockApiClient
+            .Setup(c => c.LogoutAsync())
+            .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -85,26 +111,33 @@ public class BffAuthTests
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Verify the API logout endpoint was called
-        var apiCalls = app.MockApiHandler.ReceivedRequests
-            .Where(r => r.RequestUri?.PathAndQuery?.StartsWith("/auth/logout") == true)
-            .ToList();
-        await Assert.That(apiCalls.Count).IsEqualTo(1);
+        // Verify the API logout was called
+        app.MockApiClient.Verify(c => c.LogoutAsync(), Times.Once);
     }
 
+    // ==================== Refresh Token ====================
+
     [Test]
-    public async Task Refresh_WithValidRefreshCookie_ReturnsOk()
+    public async Task Refresh_WithValidRefreshCookie_ReturnsOkAndSetsCookies()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupJsonResponse("/auth/refresh", new
-        {
-            accessToken = TestJwtHelper.GenerateToken(),
-            refreshToken = "new-refresh-token-abc"
-        });
+        var newAccessToken = TestJwtHelper.GenerateToken();
+        var newRefreshToken = "new-refresh-token-abc";
+
+        app.MockAuthClient
+            .Setup(c => c.RefreshTokenAsync(
+                It.IsAny<RefreshTokenRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(TestGrpcHelpers.CreateAsyncUnaryCall(new RefreshTokenResponse
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
+            }));
 
         var client = app.CreateClient();
-        // Set a refresh token cookie
         client.DefaultRequestHeaders.Add("Cookie", ".Snakk.Auth.Refresh=old-refresh-token-123");
 
         // Act
@@ -119,7 +152,6 @@ public class BffAuthTests
             .SelectMany(h => h.Value)
             .ToList();
 
-        // Should have set at least the access cookie
         var hasAuthCookie = setCookieHeaders.Any(c => c.Contains(".Snakk.Auth="));
         await Assert.That(hasAuthCookie).IsTrue();
     }
@@ -139,11 +171,21 @@ public class BffAuthTests
     }
 
     [Test]
-    public async Task Refresh_WhenApiRejectsToken_ReturnsUnauthorized()
+    public async Task Refresh_WhenGrpcReturnsEmptyTokens_ReturnsUnauthorized()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/auth/refresh", HttpStatusCode.Unauthorized);
+        app.MockAuthClient
+            .Setup(c => c.RefreshTokenAsync(
+                It.IsAny<RefreshTokenRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(TestGrpcHelpers.CreateAsyncUnaryCall(new RefreshTokenResponse
+            {
+                AccessToken = "",
+                RefreshToken = ""
+            }));
 
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add("Cookie", ".Snakk.Auth.Refresh=invalid-refresh-token");
@@ -156,91 +198,49 @@ public class BffAuthTests
     }
 
     [Test]
-    public async Task SetTokens_WithValidTokens_ReturnsOkAndSetsCookies()
+    public async Task Refresh_WhenGrpcThrows_ReturnsUnauthorized()
     {
         // Arrange
         await using var app = new TestWebApp();
-        var client = app.CreateClient();
+        app.MockAuthClient
+            .Setup(c => c.RefreshTokenAsync(
+                It.IsAny<RefreshTokenRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(TestGrpcHelpers.CreateFailedAsyncUnaryCall<RefreshTokenResponse>(
+                StatusCode.Unauthenticated, "Token expired"));
 
-        var request = new
-        {
-            accessToken = TestJwtHelper.GenerateToken(),
-            refreshToken = "refresh-token-xyz"
-        };
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add("Cookie", ".Snakk.Auth.Refresh=expired-refresh-token");
 
         // Act
-        var response = await client.PostAsJsonAsync("/bff/auth/set-tokens", request);
+        var response = await client.PostAsync("/bff/auth/refresh", null);
 
-        // Assert
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var setCookieHeaders = response.Headers
-            .Where(h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
-            .SelectMany(h => h.Value)
-            .ToList();
-
-        var hasAccessCookie = setCookieHeaders.Any(c => c.Contains(".Snakk.Auth="));
-        var hasRefreshCookie = setCookieHeaders.Any(c => c.Contains(".Snakk.Auth.Refresh="));
-
-        await Assert.That(hasAccessCookie).IsTrue();
-        await Assert.That(hasRefreshCookie).IsTrue();
+        // Assert — the BFF endpoint catches all exceptions and returns 401
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
-    [Test]
-    public async Task SetTokens_WithMissingAccessToken_ReturnsBadRequest()
-    {
-        // Arrange
-        await using var app = new TestWebApp();
-        var client = app.CreateClient();
-
-        var request = new
-        {
-            accessToken = "",
-            refreshToken = "refresh-token-xyz"
-        };
-
-        // Act
-        var response = await client.PostAsJsonAsync("/bff/auth/set-tokens", request);
-
-        // Assert
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-    }
-
-    [Test]
-    public async Task SetTokens_WithMissingRefreshToken_ReturnsBadRequest()
-    {
-        // Arrange
-        await using var app = new TestWebApp();
-        var client = app.CreateClient();
-
-        var request = new
-        {
-            accessToken = TestJwtHelper.GenerateToken(),
-            refreshToken = ""
-        };
-
-        // Act
-        var response = await client.PostAsJsonAsync("/bff/auth/set-tokens", request);
-
-        // Assert
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-    }
+    // ==================== Update Profile ====================
 
     [Test]
     public async Task UpdateProfile_WithValidRequest_ReturnsOk()
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/auth/update-profile", HttpStatusCode.OK);
+        app.MockApiClient
+            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Display Name" };
 
         // Act
-        var response = await client.PutAsJsonAsync("/bff/auth/update-profile", request);
+        var response = await client.PutAsJsonAsync("/bff/me/profile", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        app.MockApiClient.Verify(c => c.UpdateProfileAsync("New Display Name"), Times.Once);
     }
 
     [Test]
@@ -248,13 +248,15 @@ public class BffAuthTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        app.MockApiHandler.SetupResponse("/auth/update-profile", HttpStatusCode.BadRequest);
+        app.MockApiClient
+            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Name" };
 
         // Act
-        var response = await client.PutAsJsonAsync("/bff/auth/update-profile", request);
+        var response = await client.PutAsJsonAsync("/bff/me/profile", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

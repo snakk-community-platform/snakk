@@ -6,30 +6,28 @@ using Snakk.Shared.Helpers;
 public static class SnakkUrlHelper
 {
     /// <summary>
-    /// Gets the URL prefix for a community.
+    /// Gets the URL prefix for the current community context.
+    /// - Empty for the default community (its content lives at /h/... directly)
     /// - Empty for custom domains (domain itself identifies the community)
-    /// - Empty for default community in single-community mode (shortcut)
-    /// - /c/{slug} for all communities in multi-community mode
     /// - /c/{slug} for non-default communities
     /// </summary>
-    private static string GetCommunityPrefix(
-        string? communitySlug,
-        bool isDefaultCommunity,
-        bool isCustomDomain = false,
-        bool isMultiCommunity = false)
-        => (string.IsNullOrEmpty(communitySlug) || isCustomDomain || (isDefaultCommunity && !isMultiCommunity))
+    private static string GetCommunityPrefix(ICommunityContext community)
+        => string.IsNullOrEmpty(community.CommunitySlug)
+            || community.IsCustomDomain
+            || community.IsDefaultCommunity
             ? ""
-            : $"/c/{communitySlug}";
+            : $"/c/{community.CommunitySlug}";
 
     /// <summary>
-    /// Gets the URL prefix for the current community context.
+    /// Gets the URL prefix for an explicit community slug (used in cross-community listings).
+    /// Compares against the default community slug to determine if a prefix is needed.
     /// </summary>
-    private static string GetCommunityPrefix(ICommunityContext community)
-        => GetCommunityPrefix(
-            community.CommunitySlug,
-            community.IsDefaultCommunity,
-            community.IsCustomDomain,
-            community.IsMultiCommunityEnabled);
+    private static string GetCommunityPrefix(string? communitySlug, ICommunityContext context)
+        => string.IsNullOrEmpty(communitySlug)
+            || context.IsCustomDomain
+            || string.Equals(communitySlug, context.DefaultCommunitySlug, StringComparison.OrdinalIgnoreCase)
+            ? ""
+            : $"/c/{communitySlug}";
 
     /// <summary>
     /// Public accessor for the community prefix, used by inline JavaScript.
@@ -39,8 +37,10 @@ public static class SnakkUrlHelper
 
     // ===== Community-aware URL methods =====
 
-    public static string Community(string communitySlug) 
-        => $"/c/{communitySlug}";
+    public static string Community(string communitySlug, ICommunityContext context)
+        => string.Equals(communitySlug, context.DefaultCommunitySlug, StringComparison.OrdinalIgnoreCase)
+            ? "/"
+            : $"/c/{communitySlug}";
 
     public static string Hub(
         ICommunityContext community,
@@ -83,28 +83,28 @@ public static class SnakkUrlHelper
 
 
     // ===== Explicit-slug overloads (for cross-community listings) =====
-    // These always include /c/{slug} prefix — used when rendering items
-    // from mixed communities (e.g., frontpage in multi-community mode)
+    // Used when rendering items from mixed communities (e.g., frontpage in multi-community mode).
+    // The default community gets no /c/ prefix — its content lives at /h/... directly.
 
-    public static string Hub(string communitySlug, string hubSlug)
-        => $"/c/{communitySlug}/h/{hubSlug}";
+    public static string Hub(string communitySlug, ICommunityContext context, string hubSlug)
+        => $"{GetCommunityPrefix(communitySlug, context)}/h/{hubSlug}";
 
-    public static string Space(string communitySlug, string hubSlug, string spaceSlug)
-        => $"/c/{communitySlug}/h/{hubSlug}/{spaceSlug}";
+    public static string Space(string communitySlug, ICommunityContext context, string hubSlug, string spaceSlug)
+        => $"{GetCommunityPrefix(communitySlug, context)}/h/{hubSlug}/{spaceSlug}";
 
-    public static string Discussion(string communitySlug, string hubSlug, string spaceSlug, string slugWithId)
-        => $"/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
+    public static string Discussion(string communitySlug, ICommunityContext context, string hubSlug, string spaceSlug, string slugWithId)
+        => $"{GetCommunityPrefix(communitySlug, context)}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
 
-    // ===== Manage URL methods (always include /c/{slug} for gateway routing) =====
+    // ===== Manage URL methods =====
 
-    public static string ManageCommunity(string communitySlug)
-        => $"/c/{communitySlug}/manage";
+    public static string ManageCommunity(ICommunityContext community)
+        => $"{GetCommunityPrefix(community)}/manage";
 
-    public static string ManageHub(string communitySlug, string hubSlug)
-        => $"/c/{communitySlug}/h/{hubSlug}/manage";
+    public static string ManageHub(ICommunityContext community, string hubSlug)
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/manage";
 
-    public static string ManageSpace(string communitySlug, string hubSlug, string spaceSlug)
-        => $"/c/{communitySlug}/h/{hubSlug}/s/{spaceSlug}/manage";
+    public static string ManageSpace(ICommunityContext community, string hubSlug, string spaceSlug)
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/s/{spaceSlug}/manage";
 
     public static string HubAvatar(string publicId, int revision = 0)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Hub, revision);

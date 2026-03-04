@@ -141,11 +141,11 @@ public class DetailModel(
                         Space.ParentHubHasRules, Space.ParentCommunityHasRules, "cache"));
             }
 
-            Discussion = await _apiClient.GetDiscussionAsync(PublicId);
-            if (Discussion is null)
-            {
-                return NotFound();
-            }
+            var discussionResult = await _apiClient.GetDiscussionResultAsync(PublicId);
+            if (!discussionResult.IsSuccess)
+                return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
+            Discussion = discussionResult.Value;
 
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
         }

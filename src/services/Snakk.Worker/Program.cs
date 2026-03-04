@@ -11,7 +11,7 @@ var builder = Host.CreateApplicationBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // Database (PostgreSQL) with DbContext pooling for better performance
 builder.Services.AddDbContextPool<SnakkDbContext>(options =>

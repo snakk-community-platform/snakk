@@ -44,12 +44,19 @@ public class UserRepository(SnakkDbContext context)
         await _dbSet.FirstOrDefaultAsync(u => u.OAuthProviderId == oauthProviderId);
 
     public async Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName) =>
-        await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName, displayName));
+        context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
+            ? await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName, displayName))
+            : await _dbSet.FirstOrDefaultAsync(u => EF.Functions.Like(u.DisplayName, displayName));
 
     public async Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(
         string query,
-        int limit) => await _dbSet
-        .Where(u => EF.Functions.ILike(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
-        .Take(limit)
-        .ToListAsync();
+        int limit) => context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
+        ? await _dbSet
+            .Where(u => EF.Functions.ILike(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
+            .Take(limit)
+            .ToListAsync()
+        : await _dbSet
+            .Where(u => EF.Functions.Like(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
+            .Take(limit)
+            .ToListAsync();
 }

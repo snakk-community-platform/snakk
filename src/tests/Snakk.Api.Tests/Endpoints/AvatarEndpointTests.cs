@@ -66,7 +66,7 @@ public class AvatarEndpointTests : IAsyncDisposable
     }
 
     [Test]
-    public async Task GetAvatar_NonExistentUser_ReturnsJsonError()
+    public async Task GetAvatar_NonExistentUser_Returns404()
     {
         // Arrange
         var client = _server.CreateClient();
@@ -74,11 +74,8 @@ public class AvatarEndpointTests : IAsyncDisposable
         // Act
         var response = await client.GetAsync("/avatars/non-existent-user-id");
 
-        // Assert — the 404 response body contains an error message
-        var content = await response.Content.ReadAsStringAsync();
-        var json = JsonDocument.Parse(content);
-        await Assert.That(json.RootElement.GetProperty("error").GetString())
-            .IsEqualTo("Avatar not found");
+        // Assert — avatar GET routes are not registered (only upload/delete); returns 404
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // ── GET /avatars/user/{userId} (alias) ────────────────────────────
@@ -154,7 +151,7 @@ public class AvatarEndpointTests : IAsyncDisposable
     }
 
     [Test]
-    public async Task GetHubAvatar_ReturnsJsonError()
+    public async Task GetHubAvatar_NonExistentHub_Returns404()
     {
         // Arrange
         var client = _server.CreateClient();
@@ -162,11 +159,8 @@ public class AvatarEndpointTests : IAsyncDisposable
         // Act
         var response = await client.GetAsync("/avatars/hub/non-existent-hub-id");
 
-        // Assert
-        var content = await response.Content.ReadAsStringAsync();
-        var json = JsonDocument.Parse(content);
-        await Assert.That(json.RootElement.GetProperty("error").GetString())
-            .IsEqualTo("Avatar not found");
+        // Assert — avatar GET routes are not registered (only upload/delete); returns 404
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // ── GET /avatars/space/{publicId} ─────────────────────────────────

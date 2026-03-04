@@ -17,7 +17,7 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // Add services to the container
 builder.Services.AddRazorPages();
@@ -124,7 +124,7 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

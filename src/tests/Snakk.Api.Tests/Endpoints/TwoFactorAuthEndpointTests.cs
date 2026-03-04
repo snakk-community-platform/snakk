@@ -21,7 +21,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/auth/2fa/setup", null);
+        var response = await client.PostAsync("/auth/2fa/setup", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -51,7 +51,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
             email: "setup2fa@example.com");
 
         // Act
-        var response = await authClient.PostAsync("/api/auth/2fa/setup", null);
+        var response = await authClient.PostAsync("/auth/2fa/setup", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -76,7 +76,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var request = new { code = "123456" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/auth/2fa/enable", request);
+        var response = await client.PostAsJsonAsync("/auth/2fa/enable", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -106,11 +106,11 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
             email: "enable2fa@example.com");
 
         // Set up 2FA so a secret exists
-        await authClient.PostAsync("/api/auth/2fa/setup", null);
+        await authClient.PostAsync("/auth/2fa/setup", null);
 
         // Act — try enabling with a bogus code
         var enableRequest = new { code = "000000" };
-        var response = await authClient.PostAsJsonAsync("/api/auth/2fa/enable", enableRequest);
+        var response = await authClient.PostAsJsonAsync("/auth/2fa/enable", enableRequest);
 
         // Assert — invalid TOTP code should be rejected
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -128,7 +128,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var request = new { password = "SomePassword!" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/auth/2fa/disable", request);
+        var response = await client.PostAsJsonAsync("/auth/2fa/disable", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -159,7 +159,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
 
         // Act — try disabling 2FA when it was never enabled
         var disableRequest = new { password = "StrongP@ssw0rd!" };
-        var response = await authClient.PostAsJsonAsync("/api/auth/2fa/disable", disableRequest);
+        var response = await authClient.PostAsJsonAsync("/auth/2fa/disable", disableRequest);
 
         // Assert — should fail because 2FA is not enabled
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -177,7 +177,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var request = new { email = "nonexistent@example.com", code = "123456" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/auth/2fa/verify", request);
+        var response = await client.PostAsJsonAsync("/auth/2fa/verify", request);
 
         // Assert — user not found or 2FA not enabled → bad request
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -194,7 +194,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/auth/2fa/backup-codes");
+        var response = await client.GetAsync("/auth/2fa/backup-codes");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -224,7 +224,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
             email: "backupcodes@example.com");
 
         // Act
-        var response = await authClient.GetAsync("/api/auth/2fa/backup-codes");
+        var response = await authClient.GetAsync("/auth/2fa/backup-codes");
 
         // Assert — should be 200 (with status) or 400 (if 2FA not enabled), but NOT 401
         await Assert.That((int)response.StatusCode).IsNotEqualTo((int)HttpStatusCode.Unauthorized);
@@ -246,7 +246,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var request = new { password = "SomePassword!" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/auth/2fa/backup-codes/regenerate", request);
+        var response = await client.PostAsJsonAsync("/auth/2fa/backup-codes/regenerate", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -264,7 +264,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var request = new { expirationDays = 30 };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/auth/2fa/trust-device", request);
+        var response = await client.PostAsJsonAsync("/auth/2fa/trust-device", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -281,7 +281,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/auth/2fa/trusted-devices");
+        var response = await client.GetAsync("/auth/2fa/trusted-devices");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -298,7 +298,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.DeleteAsync("/api/auth/2fa/trusted-devices/some-device-id");
+        var response = await client.DeleteAsync("/auth/2fa/trusted-devices/some-device-id");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);

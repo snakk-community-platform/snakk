@@ -157,7 +157,7 @@ public class AuthEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/auth/me");
+        var response = await client.GetAsync("/me");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -191,7 +191,7 @@ public class AuthEndpointTests : IAsyncDisposable
             email: "metest@example.com");
 
         // Act
-        var response = await authenticatedClient.GetAsync("/auth/me");
+        var response = await authenticatedClient.GetAsync("/me");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

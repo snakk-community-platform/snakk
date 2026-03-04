@@ -17,7 +17,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/discussions?q=test&offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/discussions?q=test&offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -30,7 +30,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/discussions?q=&offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/discussions?q=&offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -43,7 +43,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/discussions?offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/discussions?offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -58,7 +58,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/posts?q=test&offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/posts?q=test&offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -71,7 +71,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/posts?q=&offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/posts?q=&offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -84,7 +84,7 @@ public class SearchEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/search/posts?offset=0&pageSize=20");
+        var response = await client.GetAsync("/search/posts?offset=0&pageSize=20");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

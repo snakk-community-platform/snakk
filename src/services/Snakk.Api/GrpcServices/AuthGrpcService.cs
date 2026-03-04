@@ -175,23 +175,24 @@ public class AuthGrpcService(
     public override async Task<CurrentUserResponse> GetCurrentUser(GetCurrentUserRequest request, ServerCallContext ctx)
     {
         if (!currentUser.IsAuthenticated())
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+            return new CurrentUserResponse();
 
         var userIdValue = currentUser.GetCurrentUserId();
 
         if (userIdValue is null)
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+            return new CurrentUserResponse();
 
         var userId = UserId.From(userIdValue);
         var result = await authUseCase.GetUserByIdAsync(userId);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.NotFound, result.Error ?? "User not found"));
+            return new CurrentUserResponse();
 
         var user = result.Value!;
 
         return new CurrentUserResponse
         {
+            IsAuthenticated = true,
             PublicId = user.PublicId.Value,
             DisplayName = user.DisplayName,
             Email = user.Email,

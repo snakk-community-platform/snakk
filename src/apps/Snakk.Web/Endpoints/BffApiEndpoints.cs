@@ -267,13 +267,15 @@ public static class BffApiEndpoints
         [FromQuery] string? level,
         SnakkApiClient apiClient)
     {
-        var apiResult = await apiClient.ToggleSpaceFollowAsync(spaceId, level);
-        if (apiResult is null) return Results.BadRequest();
+        var result = await apiClient.ToggleSpaceFollowResultAsync(spaceId, level);
+
+        if (!result.IsSuccess)
+            return MapGrpcError(result.Status, result.Error);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
-            IsFollowing = apiResult.IsFollowing,
-            Level = apiResult.Level
+            IsFollowing = result.Value!.IsFollowing,
+            Level = result.Value.Level
         };
 
         return Results.Ok(bffResponse);
@@ -316,12 +318,14 @@ public static class BffApiEndpoints
         string discussionId,
         SnakkApiClient apiClient)
     {
-        var apiResult = await apiClient.ToggleDiscussionFollowAsync(discussionId);
-        if (apiResult is null) return Results.BadRequest();
+        var result = await apiClient.ToggleDiscussionFollowResultAsync(discussionId);
+
+        if (!result.IsSuccess)
+            return MapGrpcError(result.Status, result.Error);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
-            IsFollowing = apiResult.IsFollowing,
+            IsFollowing = result.Value!.IsFollowing,
             Level = null // Discussion follows don't have levels
         };
 
@@ -363,7 +367,7 @@ public static class BffApiEndpoints
 
         var bffResponse = new Models.Bff.BffMyReactionResponse
         {
-            Reaction = apiResult?.Reaction
+            Reaction = string.IsNullOrEmpty(apiResult?.Reaction) ? null : apiResult.Reaction
         };
 
         return Results.Ok(bffResponse);
@@ -638,12 +642,14 @@ public static class BffApiEndpoints
         string userId,
         SnakkApiClient apiClient)
     {
-        var apiResult = await apiClient.ToggleUserFollowAsync(userId);
-        if (apiResult is null) return Results.BadRequest();
+        var result = await apiClient.ToggleUserFollowResultAsync(userId);
+
+        if (!result.IsSuccess)
+            return MapGrpcError(result.Status, result.Error);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
-            IsFollowing = apiResult.IsFollowing,
+            IsFollowing = result.Value!.IsFollowing,
             Level = null // User follows don't have levels
         };
 
@@ -702,8 +708,12 @@ public static class BffApiEndpoints
         [FromQuery] string content,
         SnakkApiClient apiClient)
     {
-        var success = await apiClient.EditPostAsync(postId, userId, content);
-        return success ? Results.Ok() : Results.BadRequest();
+        var result = await apiClient.EditPostResultAsync(postId, content);
+
+        if (!result.IsSuccess)
+            return MapGrpcError(result.Status, result.Error);
+
+        return Results.Ok();
     }
 
     // Discussion preview endpoint
@@ -830,6 +840,16 @@ public static class BffApiEndpoints
 
     // Avatar proxy endpoints
     // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
+
+    // Helper: map GrpcStatus to HTTP result
+    private static IResult MapGrpcError(GrpcStatus status, string? error = null) => status switch
+    {
+        GrpcStatus.Unauthenticated => Results.Unauthorized(),
+        GrpcStatus.NotFound => Results.NotFound(),
+        GrpcStatus.PermissionDenied => Results.Forbid(),
+        GrpcStatus.InvalidArgument => Results.BadRequest(error is not null ? new { error } : null),
+        _ => Results.StatusCode(503)
+    };
 }
 
 public record ToggleReactionRequest(int Type);

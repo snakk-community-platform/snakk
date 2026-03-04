@@ -37,10 +37,12 @@ public class ProfileModel(
 
     public async Task<IActionResult> OnGetAsync(string publicId)
     {
-        Profile = await _apiClient.GetUserProfileAsync(publicId);
+        var profileResult = await _apiClient.GetUserProfileResultAsync(publicId);
 
-        if (Profile is null)
-            return NotFound();
+        if (!profileResult.IsSuccess)
+            return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
+        Profile = profileResult.Value;
 
         // Validate tab parameter
         if (!new[] { "overview", "discussions", "posts" }.Contains(Tab))

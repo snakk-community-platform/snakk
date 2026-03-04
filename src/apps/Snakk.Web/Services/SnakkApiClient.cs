@@ -55,27 +55,54 @@ public class SnakkApiClient(
         => logger.LogWarning(ex, "gRPC call failed in {Method}: {Status}",
             caller, ex is RpcException rpc ? rpc.StatusCode.ToString() : "N/A");
 
+    // ==================== gRPC Result Helpers ====================
+
+    private async Task<GrpcResult<T>> CallAsync<T>(
+        Func<Task<T>> grpcCall,
+        [CallerMemberName] string? caller = null)
+    {
+        try
+        {
+            var result = await grpcCall();
+            return GrpcResult<T>.Ok(result);
+        }
+        catch (RpcException ex)
+        {
+            LogGrpcError(ex, caller);
+            return GrpcResult<T>.FromRpcException(ex);
+        }
+    }
+
+    private async Task<T?> CallOrDefaultAsync<T>(
+        Func<Task<T>> grpcCall,
+        T? fallback = default,
+        [CallerMemberName] string? caller = null) where T : class
+    {
+        try { return await grpcCall(); }
+        catch (RpcException ex) { LogGrpcError(ex, caller); return fallback; }
+    }
+
     // ==================== Community ====================
 
-    public async Task<PagedCommunityList?> GetCommunitiesAsync(int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedCommunityList?> GetCommunitiesAsync(int offset = 0, int pageSize = 20)
     {
         try { return await communityClient.ListCommunitiesAsync(new ListCommunitiesRequest { Offset = offset, PageSize = pageSize }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<CommunityInfo?> GetCommunityBySlugAsync(string slug)
+    public virtual async Task<CommunityInfo?> GetCommunityBySlugAsync(string slug)
     {
         try { return await communityClient.GetCommunityBySlugAsync(new GetCommunityBySlugRequest { Slug = slug }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<CommunityInfo?> GetCommunityByDomainAsync(string domain)
+    public virtual async Task<CommunityInfo?> GetCommunityByDomainAsync(string domain)
     {
         try { return await communityClient.GetCommunityByDomainAsync(new GetCommunityByDomainRequest { Domain = domain }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<PagedHubList?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedHubList?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
     {
         try
         {
@@ -91,13 +118,13 @@ public class SnakkApiClient(
 
     // ==================== Hub ====================
 
-    public async Task<PagedHubList?> GetHubsAsync(int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedHubList?> GetHubsAsync(int offset = 0, int pageSize = 20)
     {
         try { return await hubClient.ListHubsAsync(new ListHubsRequest { Offset = offset, PageSize = pageSize }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<HubInfo?> GetHubBySlugAsync(string slug)
+    public virtual async Task<HubInfo?> GetHubBySlugAsync(string slug)
     {
         try { return await hubClient.GetHubBySlugAsync(new GetHubBySlugRequest { Slug = slug }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -105,7 +132,7 @@ public class SnakkApiClient(
 
     // ==================== Space ====================
 
-    public async Task<PagedSpaceByHubList?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedSpaceByHubList?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
     {
         try
         {
@@ -119,13 +146,13 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug)
+    public virtual async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug)
     {
         try { return await spaceClient.GetSpaceBySlugAsync(new GetSpaceBySlugRequest { Slug = slug }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
     {
         try
         {
@@ -139,19 +166,19 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<SpaceRulesResponse?> GetSpaceRulesAsync(string spaceId)
+    public virtual async Task<SpaceRulesResponse?> GetSpaceRulesAsync(string spaceId)
     {
         try { return await spaceClient.GetSpaceRulesAsync(new GetSpaceRulesRequest { SpaceId = spaceId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<HubRulesResponse?> GetHubRulesAsync(string hubId)
+    public virtual async Task<HubRulesResponse?> GetHubRulesAsync(string hubId)
     {
         try { return await hubClient.GetHubRulesAsync(new GetHubRulesRequest { HubId = hubId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<CommunityRulesResponse?> GetCommunityRulesAsync(string communityId)
+    public virtual async Task<CommunityRulesResponse?> GetCommunityRulesAsync(string communityId)
     {
         try { return await communityClient.GetCommunityRulesAsync(new GetCommunityRulesRequest { CommunityId = communityId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -159,13 +186,13 @@ public class SnakkApiClient(
 
     // ==================== Discussion ====================
 
-    public async Task<DiscussionInfo?> GetDiscussionAsync(string publicId)
+    public virtual async Task<DiscussionInfo?> GetDiscussionAsync(string publicId)
     {
         try { return await discussionClient.GetDiscussionAsync(new GetDiscussionRequest { PublicId = publicId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<string?> CreateDiscussionAsync(string spaceId, string title, string content, IEnumerable<string>? tags = null)
+    public virtual async Task<string?> CreateDiscussionAsync(string spaceId, string title, string content, IEnumerable<string>? tags = null)
     {
         try
         {
@@ -178,7 +205,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(int offset = 0, int pageSize = 20, string? communityId = null)
+    public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(int offset = 0, int pageSize = 20, string? communityId = null)
     {
         try
         {
@@ -190,7 +217,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(
+    public virtual async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
@@ -207,7 +234,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<DiscussionPreviewInfo?> GetDiscussionPreviewAsync(string discussionId)
+    public virtual async Task<DiscussionPreviewInfo?> GetDiscussionPreviewAsync(string discussionId)
     {
         try { return await discussionClient.GetDiscussionPreviewAsync(new GetDiscussionPreviewRequest { DiscussionId = discussionId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -215,7 +242,7 @@ public class SnakkApiClient(
 
     // ==================== Post ====================
 
-    public async Task<PagedEnrichedPostList?> GetDiscussionPostsAsync(string discussionId, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedEnrichedPostList?> GetDiscussionPostsAsync(string discussionId, int offset = 0, int pageSize = 20)
     {
         try
         {
@@ -229,7 +256,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<string?> CreatePostAsync(string discussionId, string content, string? replyToPostId = null)
+    public virtual async Task<string?> CreatePostAsync(string discussionId, string content, string? replyToPostId = null)
     {
         try
         {
@@ -242,7 +269,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<int> GetPostNumberAsync(string discussionId, string postId)
+    public virtual async Task<int> GetPostNumberAsync(string discussionId, string postId)
     {
         try
         {
@@ -252,7 +279,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return 1; }
     }
 
-    public async Task<bool> EditPostAsync(string postId, string userId, string content)
+    public virtual async Task<bool> EditPostAsync(string postId, string userId, string content)
     {
         try
         {
@@ -264,19 +291,19 @@ public class SnakkApiClient(
 
     // ==================== Read State ====================
 
-    public async Task<ReadStateInfo?> GetReadStateAsync(string userId, string discussionId)
+    public virtual async Task<ReadStateInfo?> GetReadStateAsync(string userId, string discussionId)
     {
         try { return await readStateClient.GetReadStateAsync(new ReadStateGetRequest { DiscussionId = discussionId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task MarkDiscussionAsReadAsync(string discussionId, string userId, string postId)
+    public virtual async Task MarkDiscussionAsReadAsync(string discussionId, string userId, string postId)
     {
         try { await readStateClient.MarkAsReadAsync(new ReadStateMarkRequest { DiscussionId = discussionId, LastReadPostId = postId }); }
         catch (RpcException ex) { LogGrpcError(ex); }
     }
 
-    public async Task BatchUpdateReadStatesAsync(List<(string DiscussionId, string PostId)> updates)
+    public virtual async Task BatchUpdateReadStatesAsync(List<(string DiscussionId, string PostId)> updates)
     {
         try
         {
@@ -290,7 +317,7 @@ public class SnakkApiClient(
 
     // ==================== Top Active / Trending ====================
 
-    public async Task<TopActiveSpacesList?> GetTopActiveSpacesTodayAsync(string? hubId = null, string? communityId = null)
+    public virtual async Task<TopActiveSpacesList?> GetTopActiveSpacesTodayAsync(string? hubId = null, string? communityId = null)
     {
         try
         {
@@ -303,7 +330,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<TopContributorsList?> GetTopContributorsTodayAsync(
+    public virtual async Task<TopContributorsList?> GetTopContributorsTodayAsync(
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
@@ -321,56 +348,56 @@ public class SnakkApiClient(
     }
 
     // Backward compatibility aliases
-    public Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsAsync(string? communityId = null)
+    public virtual Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsAsync(string? communityId = null)
         => GetTopActiveDiscussionsTodayAsync(communityId: communityId);
 
-    public Task<TopActiveSpacesList?> GetTopActiveSpacesAsync(string? communityId = null)
+    public virtual Task<TopActiveSpacesList?> GetTopActiveSpacesAsync(string? communityId = null)
         => GetTopActiveSpacesTodayAsync(communityId: communityId);
 
-    public Task<TopContributorsList?> GetTopContributorsAsync(string? communityId = null)
+    public virtual Task<TopContributorsList?> GetTopContributorsAsync(string? communityId = null)
         => GetTopContributorsTodayAsync(communityId: communityId);
 
     // ==================== Stats ====================
 
-    public async Task<PlatformStats?> GetPlatformStatsAsync()
+    public virtual async Task<PlatformStats?> GetPlatformStatsAsync()
     {
         try { return await statisticsClient.GetPlatformStatsAsync(new GetPlatformStatsRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<HubStats?> GetHubStatsAsync(string hubId)
+    public virtual async Task<HubStats?> GetHubStatsAsync(string hubId)
     {
         try { return await hubClient.GetHubStatsAsync(new GetHubStatsRequest { PublicId = hubId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<SpaceStats?> GetSpaceStatsAsync(string spaceId)
+    public virtual async Task<SpaceStats?> GetSpaceStatsAsync(string spaceId)
     {
         try { return await spaceClient.GetSpaceStatsAsync(new GetSpaceStatsRequest { PublicId = spaceId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<CommunityStats?> GetCommunityStatsAsync(string communityId)
+    public virtual async Task<CommunityStats?> GetCommunityStatsAsync(string communityId)
     {
         try { return await communityClient.GetCommunityStatsAsync(new GetCommunityStatsRequest { PublicId = communityId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<DiscussionStats?> GetDiscussionStatsForPopupAsync(string publicId)
+    public virtual async Task<DiscussionStats?> GetDiscussionStatsForPopupAsync(string publicId)
     {
         try { return await discussionClient.GetDiscussionStatsAsync(new GetDiscussionStatsRequest { PublicId = publicId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     // Entity stats aliases
-    public Task<HubStats?> GetHubStatsForPopupAsync(string publicId) => GetHubStatsAsync(publicId);
-    public Task<SpaceStats?> GetSpaceStatsForPopupAsync(string publicId) => GetSpaceStatsAsync(publicId);
-    public Task<CommunityStats?> GetCommunityStatsForPopupAsync(string publicId) => GetCommunityStatsAsync(publicId);
-    public Task<UserStats?> GetUserStatsForPopupAsync(string publicId) => GetUserStatsAsync(publicId);
+    public virtual Task<HubStats?> GetHubStatsForPopupAsync(string publicId) => GetHubStatsAsync(publicId);
+    public virtual Task<SpaceStats?> GetSpaceStatsForPopupAsync(string publicId) => GetSpaceStatsAsync(publicId);
+    public virtual Task<CommunityStats?> GetCommunityStatsForPopupAsync(string publicId) => GetCommunityStatsAsync(publicId);
+    public virtual Task<UserStats?> GetUserStatsForPopupAsync(string publicId) => GetUserStatsAsync(publicId);
 
     // ==================== Search ====================
 
-    public async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
+    public virtual async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
         string? query = null, string? authorPublicId = null, string? spacePublicId = null,
         string? hubPublicId = null, int offset = 0, int pageSize = 20)
     {
@@ -386,7 +413,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<PagedPostSearchResults?> SearchPostsAsync(
+    public virtual async Task<PagedPostSearchResults?> SearchPostsAsync(
         string? query = null, string? authorPublicId = null, string? discussionPublicId = null,
         string? spacePublicId = null, int offset = 0, int pageSize = 20)
     {
@@ -402,7 +429,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<UserProfileInfo?> GetUserProfileAsync(string publicId)
+    public virtual async Task<UserProfileInfo?> GetUserProfileAsync(string publicId)
     {
         try { return await userClient.GetUserProfileAsync(new GetUserProfileRequest { PublicId = publicId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -410,19 +437,23 @@ public class SnakkApiClient(
 
     // ==================== Auth ====================
 
-    public async Task<AuthStatusResponse?> GetAuthStatusAsync()
+    public virtual async Task<AuthStatusResponse?> GetAuthStatusAsync()
     {
         try { return await authClient.GetAuthStatusAsync(new GetAuthStatusRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); return new AuthStatusResponse { IsAuthenticated = false }; }
     }
 
-    public async Task<CurrentUserResponse?> GetCurrentUserAsync()
+    public virtual async Task<CurrentUserResponse?> GetCurrentUserAsync()
     {
-        try { return await authClient.GetCurrentUserAsync(new GetCurrentUserRequest()); }
+        try
+        {
+            var result = await authClient.GetCurrentUserAsync(new GetCurrentUserRequest());
+            return result.IsAuthenticated ? result : null;
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<bool> UpdateProfileAsync(string displayName)
+    public virtual async Task<bool> UpdateProfileAsync(string displayName)
     {
         try
         {
@@ -432,7 +463,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null)
     {
         try
         {
@@ -446,13 +477,13 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task LogoutAsync()
+    public virtual async Task LogoutAsync()
     {
         try { await authClient.LogoutAsync(new LogoutRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); }
     }
 
-    public async Task<bool> IsHealthyAsync()
+    public virtual async Task<bool> IsHealthyAsync()
     {
         try
         {
@@ -465,13 +496,13 @@ public class SnakkApiClient(
     // ==================== Follow ====================
 
     // Space follow
-    public async Task<SpaceFollowStatusResponse?> GetSpaceFollowStatusAsync(string spaceId)
+    public virtual async Task<SpaceFollowStatusResponse?> GetSpaceFollowStatusAsync(string spaceId)
     {
         try { return await followClient.GetSpaceFollowStatusAsync(new GetSpaceFollowStatusRequest { SpaceId = spaceId }); }
         catch (RpcException ex) { LogGrpcError(ex); return new SpaceFollowStatusResponse { IsFollowing = false }; }
     }
 
-    public async Task<SpaceFollowToggleResponse?> ToggleSpaceFollowAsync(string spaceId, string? level)
+    public virtual async Task<SpaceFollowToggleResponse?> ToggleSpaceFollowAsync(string spaceId, string? level)
     {
         try
         {
@@ -483,40 +514,40 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<FollowLevelResponse?> SetSpaceFollowLevelAsync(string spaceId, string level)
+    public virtual async Task<FollowLevelResponse?> SetSpaceFollowLevelAsync(string spaceId, string level)
     {
         try { return await followClient.SetSpaceFollowLevelAsync(new SetSpaceFollowLevelRequest { SpaceId = spaceId, Level = level }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     // Discussion follow
-    public async Task<FollowToggleResponse?> GetDiscussionFollowStatusAsync(string discussionId)
+    public virtual async Task<FollowToggleResponse?> GetDiscussionFollowStatusAsync(string discussionId)
     {
         try { return await followClient.GetDiscussionFollowStatusAsync(new GetDiscussionFollowStatusRequest { DiscussionId = discussionId }); }
         catch (RpcException ex) { LogGrpcError(ex); return new FollowToggleResponse { IsFollowing = false }; }
     }
 
-    public async Task<FollowToggleResponse?> ToggleDiscussionFollowAsync(string discussionId)
+    public virtual async Task<FollowToggleResponse?> ToggleDiscussionFollowAsync(string discussionId)
     {
         try { return await followClient.ToggleDiscussionFollowAsync(new ToggleDiscussionFollowRequest { DiscussionId = discussionId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     // User follow
-    public async Task<FollowToggleResponse?> GetUserFollowStatusAsync(string userId, string currentUserId)
+    public virtual async Task<FollowToggleResponse?> GetUserFollowStatusAsync(string userId, string currentUserId)
     {
         try { return await followClient.GetUserFollowStatusAsync(new GetUserFollowStatusRequest { UserId = userId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<FollowToggleResponse?> ToggleUserFollowAsync(string userId)
+    public virtual async Task<FollowToggleResponse?> ToggleUserFollowAsync(string userId)
     {
         try { return await followClient.ToggleUserFollowAsync(new ToggleUserFollowRequest { UserId = userId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     // Follow lists
-    public async Task<List<string>> GetFollowedSpacesAsync()
+    public virtual async Task<List<string>> GetFollowedSpacesAsync()
     {
         try
         {
@@ -526,7 +557,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return []; }
     }
 
-    public async Task<List<string>> GetFollowedDiscussionsAsync()
+    public virtual async Task<List<string>> GetFollowedDiscussionsAsync()
     {
         try
         {
@@ -536,7 +567,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return []; }
     }
 
-    public async Task<List<string>> GetFollowedUsersAsync()
+    public virtual async Task<List<string>> GetFollowedUsersAsync()
     {
         try
         {
@@ -548,19 +579,19 @@ public class SnakkApiClient(
 
     // ==================== Reactions ====================
 
-    public async Task<Snakk.Protos.ReactionCounts?> GetPostReactionsAsync(string postId)
+    public virtual async Task<Snakk.Protos.ReactionCounts?> GetPostReactionsAsync(string postId)
     {
         try { return await reactionClient.GetReactionCountsAsync(new GetReactionCountsRequest { PostId = postId }); }
         catch (RpcException ex) { LogGrpcError(ex); return new Snakk.Protos.ReactionCounts(); }
     }
 
-    public async Task<UserReactionResponse?> GetMyPostReactionAsync(string postId)
+    public virtual async Task<UserReactionResponse?> GetMyPostReactionAsync(string postId)
     {
         try { return await reactionClient.GetMyReactionAsync(new GetMyReactionRequest { PostId = postId }); }
         catch (RpcException ex) { LogGrpcError(ex); return new UserReactionResponse(); }
     }
 
-    public async Task TogglePostReactionAsync(string postId, int type)
+    public virtual async Task TogglePostReactionAsync(string postId, int type)
     {
         try { await reactionClient.ToggleReactionAsync(new ToggleReactionRequest { PostId = postId, ReactionType = type.ToString() }); }
         catch (RpcException ex) { LogGrpcError(ex); }
@@ -568,25 +599,25 @@ public class SnakkApiClient(
 
     // ==================== Notifications ====================
 
-    public async Task<PagedNotificationList?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
+    public virtual async Task<PagedNotificationList?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
     {
         try { return await notificationClient.GetNotificationsAsync(new NotifGetRequest { Offset = offset, PageSize = pageSize }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<UnreadCountResponse?> GetUnreadNotificationCountAsync()
+    public virtual async Task<UnreadCountResponse?> GetUnreadNotificationCountAsync()
     {
         try { return await notificationClient.GetUnreadCountAsync(new NotifUnreadRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); return new UnreadCountResponse { Count = 0 }; }
     }
 
-    public async Task MarkNotificationAsReadAsync(string notificationId)
+    public virtual async Task MarkNotificationAsReadAsync(string notificationId)
     {
         try { await notificationClient.MarkAsReadAsync(new NotifMarkReadRequest { NotificationId = notificationId }); }
         catch (RpcException ex) { LogGrpcError(ex); }
     }
 
-    public async Task MarkAllNotificationsAsReadAsync()
+    public virtual async Task MarkAllNotificationsAsReadAsync()
     {
         try { await notificationClient.MarkAllAsReadAsync(new NotifMarkAllReadRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); }
@@ -594,7 +625,7 @@ public class SnakkApiClient(
 
     // ==================== Markup ====================
 
-    public async Task<string?> PreviewMarkupAsync(string content)
+    public virtual async Task<string?> PreviewMarkupAsync(string content)
     {
         try
         {
@@ -606,25 +637,25 @@ public class SnakkApiClient(
 
     // ==================== User ====================
 
-    public async Task<UserStats?> GetUserStatsAsync(string userId)
+    public virtual async Task<UserStats?> GetUserStatsAsync(string userId)
     {
         try { return await statisticsClient.GetUserStatsAsync(new GetUserStatsRequest { PublicId = userId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<UserActivityHistory?> GetUserActivityHistoryAsync(string userId, int days = 30)
+    public virtual async Task<UserActivityHistory?> GetUserActivityHistoryAsync(string userId, int days = 30)
     {
         try { return await statisticsClient.GetUserActivityHistoryAsync(new GetUserActivityHistoryRequest { PublicId = userId, Days = days }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     // Endless scroll (alias for GetDiscussionsBySpaceAsync)
-    public Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize)
+    public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize)
         => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
 
     // ==================== Moderation ====================
 
-    public async Task<bool> CanModerateAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
+    public virtual async Task<bool> CanModerateAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
@@ -639,7 +670,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<bool> CanAdministerAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
+    public virtual async Task<bool> CanAdministerAsync(string? communityId = null, string? hubId = null, string? spaceId = null)
     {
         try
         {
@@ -655,7 +686,7 @@ public class SnakkApiClient(
     }
 
     // Role management — returns local DTOs mapped from proto
-    public async Task<IEnumerable<UserRoleDto>?> GetMyRolesAsync()
+    public virtual async Task<IEnumerable<UserRoleDto>?> GetMyRolesAsync()
     {
         try
         {
@@ -665,7 +696,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<UserRoleDto>?> GetUserRolesAsync(string userId)
+    public virtual async Task<IEnumerable<UserRoleDto>?> GetUserRolesAsync(string userId)
     {
         try
         {
@@ -675,7 +706,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<UserRoleDto>?> GetRolesForCommunityAsync(string communityId)
+    public virtual async Task<IEnumerable<UserRoleDto>?> GetRolesForCommunityAsync(string communityId)
     {
         try
         {
@@ -685,7 +716,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<UserRoleDto>?> GetRolesForHubAsync(string hubId)
+    public virtual async Task<IEnumerable<UserRoleDto>?> GetRolesForHubAsync(string hubId)
     {
         try
         {
@@ -695,7 +726,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<UserRoleDto>?> GetRolesForSpaceAsync(string spaceId)
+    public virtual async Task<IEnumerable<UserRoleDto>?> GetRolesForSpaceAsync(string spaceId)
     {
         try
         {
@@ -705,7 +736,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<UserRoleDto?> AssignRoleAsync(Snakk.Web.Models.AssignRoleRequest request)
+    public virtual async Task<UserRoleDto?> AssignRoleAsync(Snakk.Web.Models.AssignRoleRequest request)
     {
         try
         {
@@ -724,7 +755,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<bool> RevokeRoleAsync(string roleId)
+    public virtual async Task<bool> RevokeRoleAsync(string roleId)
     {
         try
         {
@@ -735,7 +766,7 @@ public class SnakkApiClient(
     }
 
     // Ban management
-    public async Task<IEnumerable<UserBanDto>?> GetUserBansAsync(string userId)
+    public virtual async Task<IEnumerable<UserBanDto>?> GetUserBansAsync(string userId)
     {
         try
         {
@@ -745,7 +776,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<BanCheckResult?> CheckUserBanAsync(
+    public virtual async Task<BanCheckResult?> CheckUserBanAsync(
         string userId,
         string? communityId = null,
         string? hubId = null,
@@ -764,7 +795,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<UserBanDto?> BanUserAsync(Snakk.Web.Models.BanUserRequest request)
+    public virtual async Task<UserBanDto?> BanUserAsync(Snakk.Web.Models.BanUserRequest request)
     {
         try
         {
@@ -786,7 +817,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<bool> UnbanUserAsync(string banId)
+    public virtual async Task<bool> UnbanUserAsync(string banId)
     {
         try
         {
@@ -797,7 +828,7 @@ public class SnakkApiClient(
     }
 
     // Report management
-    public async Task<int> GetPendingReportCountAsync()
+    public virtual async Task<int> GetPendingReportCountAsync()
     {
         try
         {
@@ -807,7 +838,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return 0; }
     }
 
-    public async Task<PagedResult<ReportListDto>?> GetReportsAsync(string? status = null, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedResult<ReportListDto>?> GetReportsAsync(string? status = null, int offset = 0, int pageSize = 20)
     {
         try
         {
@@ -824,7 +855,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<ReportDetailDto?> GetReportDetailAsync(string reportId)
+    public virtual async Task<ReportDetailDto?> GetReportDetailAsync(string reportId)
     {
         try
         {
@@ -850,7 +881,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<ReportDto?> CreateReportAsync(Snakk.Web.Models.CreateReportRequest request)
+    public virtual async Task<ReportDto?> CreateReportAsync(Snakk.Web.Models.CreateReportRequest request)
     {
         try
         {
@@ -868,7 +899,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<bool> ResolveReportAsync(string reportId, Snakk.Web.Models.ResolveReportRequest request)
+    public virtual async Task<bool> ResolveReportAsync(string reportId, Snakk.Web.Models.ResolveReportRequest request)
     {
         try
         {
@@ -885,7 +916,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<ReportCommentDto?> AddReportCommentAsync(string reportId, Snakk.Web.Models.AddReportCommentRequest request)
+    public virtual async Task<ReportCommentDto?> AddReportCommentAsync(string reportId, Snakk.Web.Models.AddReportCommentRequest request)
     {
         try
         {
@@ -898,7 +929,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public async Task<IEnumerable<ReportReasonDto>?> GetReportReasonsAsync(
+    public virtual async Task<IEnumerable<ReportReasonDto>?> GetReportReasonsAsync(
         string? communityId = null,
         string? hubId = null,
         string? spaceId = null)
@@ -917,7 +948,7 @@ public class SnakkApiClient(
     }
 
     // Moderation log
-    public async Task<PagedResult<ModerationLogDto>?> GetModerationLogsAsync(
+    public virtual async Task<PagedResult<ModerationLogDto>?> GetModerationLogsAsync(
         string? communityId = null, string? hubId = null, string? spaceId = null,
         int offset = 0, int pageSize = 20)
     {
@@ -939,7 +970,7 @@ public class SnakkApiClient(
     }
 
     // Content moderation
-    public async Task<bool> DeletePostAsync(string postId, string? reason = null)
+    public virtual async Task<bool> DeletePostAsync(string postId, string? reason = null)
     {
         try
         {
@@ -952,7 +983,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<bool> DeleteDiscussionAsync(string discussionId, string? reason = null)
+    public virtual async Task<bool> DeleteDiscussionAsync(string discussionId, string? reason = null)
     {
         try
         {
@@ -965,7 +996,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<bool> LockDiscussionAsync(string discussionId, string? reason = null)
+    public virtual async Task<bool> LockDiscussionAsync(string discussionId, string? reason = null)
     {
         try
         {
@@ -978,7 +1009,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public async Task<bool> UnlockDiscussionAsync(string discussionId)
+    public virtual async Task<bool> UnlockDiscussionAsync(string discussionId)
     {
         try
         {
@@ -987,6 +1018,56 @@ public class SnakkApiClient(
         }
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
+
+    // ==================== GrpcResult<T> Overloads ====================
+    // These return typed results with error differentiation.
+    // Callers can distinguish NotFound vs Unauthenticated vs ServerError.
+
+    public virtual Task<GrpcResult<CommunityInfo>> GetCommunityBySlugResultAsync(string slug) =>
+        CallAsync(() => communityClient.GetCommunityBySlugAsync(
+            new GetCommunityBySlugRequest { Slug = slug }).ResponseAsync);
+
+    public virtual Task<GrpcResult<HubInfo>> GetHubBySlugResultAsync(string slug) =>
+        CallAsync(() => hubClient.GetHubBySlugAsync(
+            new GetHubBySlugRequest { Slug = slug }).ResponseAsync);
+
+    public virtual Task<GrpcResult<SpaceInfo>> GetSpaceBySlugResultAsync(string slug) =>
+        CallAsync(() => spaceClient.GetSpaceBySlugAsync(
+            new GetSpaceBySlugRequest { Slug = slug }).ResponseAsync);
+
+    public virtual Task<GrpcResult<DiscussionInfo>> GetDiscussionResultAsync(string publicId) =>
+        CallAsync(() => discussionClient.GetDiscussionAsync(
+            new GetDiscussionRequest { PublicId = publicId }).ResponseAsync);
+
+    public virtual Task<GrpcResult<UserProfileInfo>> GetUserProfileResultAsync(string publicId) =>
+        CallAsync(() => userClient.GetUserProfileAsync(
+            new GetUserProfileRequest { PublicId = publicId }).ResponseAsync);
+
+    public virtual Task<GrpcResult<SpaceFollowToggleResponse>> ToggleSpaceFollowResultAsync(string spaceId, string? level)
+    {
+        var request = new ToggleSpaceFollowRequest { SpaceId = spaceId };
+        if (level is not null) request.Level = level;
+        return CallAsync(() => followClient.ToggleSpaceFollowAsync(request).ResponseAsync);
+    }
+
+    public virtual Task<GrpcResult<FollowToggleResponse>> ToggleDiscussionFollowResultAsync(string discussionId) =>
+        CallAsync(() => followClient.ToggleDiscussionFollowAsync(
+            new ToggleDiscussionFollowRequest { DiscussionId = discussionId }).ResponseAsync);
+
+    public virtual Task<GrpcResult<FollowToggleResponse>> ToggleUserFollowResultAsync(string userId) =>
+        CallAsync(() => followClient.ToggleUserFollowAsync(
+            new ToggleUserFollowRequest { UserId = userId }).ResponseAsync);
+
+    public virtual Task<GrpcResult<PostCreatedInfo>> CreatePostResultAsync(string discussionId, string content, string? replyToPostId = null)
+    {
+        var request = new CreatePostRequest { DiscussionId = discussionId, Content = content };
+        if (replyToPostId is not null) request.ReplyToPostId = replyToPostId;
+        return CallAsync(() => postClient.CreatePostAsync(request).ResponseAsync);
+    }
+
+    public virtual Task<GrpcResult<EditPostResponse>> EditPostResultAsync(string postId, string content) =>
+        CallAsync(() => postClient.EditPostAsync(
+            new EditPostRequest { PostId = postId, Content = content }).ResponseAsync);
 
     // ==================== Private mapping helpers ====================
 

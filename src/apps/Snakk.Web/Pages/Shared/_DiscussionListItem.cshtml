@@ -7,6 +7,7 @@
     var baseUrl = Model.ShowCommunity
         ? SnakkUrlHelper.Discussion(
             discussion.Community.Slug,
+            Model.Community,
             discussion.Hub.Slug,
             discussion.Space.Slug,
             $"{discussion.Slug}~{discussion.PublicId}")
@@ -53,7 +54,7 @@
             <div class="topic-meta">
                 @if (Model.ShowCommunity)
                 {
-                    <a href="@SnakkUrlHelper.Community(discussion.Community.Slug)"
+                    <a href="@SnakkUrlHelper.Community(discussion.Community.Slug, Model.Community)"
                        class="topic-meta-link"
                        data-popup-type="community"
                        data-popup-id="@discussion.Community.PublicId"
@@ -64,10 +65,10 @@
                 }
                 @{
                     var hubUrl = Model.ShowCommunity
-                        ? SnakkUrlHelper.Hub(discussion.Community.Slug, discussion.Hub.Slug)
+                        ? SnakkUrlHelper.Hub(discussion.Community.Slug, Model.Community, discussion.Hub.Slug)
                         : SnakkUrlHelper.Hub(Model.Community, discussion.Hub.Slug);
                     var spaceUrl = Model.ShowCommunity
-                        ? SnakkUrlHelper.Space(discussion.Community.Slug, discussion.Hub.Slug, discussion.Space.Slug)
+                        ? SnakkUrlHelper.Space(discussion.Community.Slug, Model.Community, discussion.Hub.Slug, discussion.Space.Slug)
                         : SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug);
                 }
                 <a href="@hubUrl"

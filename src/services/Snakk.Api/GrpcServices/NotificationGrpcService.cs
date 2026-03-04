@@ -13,7 +13,11 @@ public class NotificationGrpcService(
 {
     public override async Task<PagedNotificationList> GetNotifications(GetNotificationsRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new PagedNotificationList { Offset = request.Offset, PageSize = request.PageSize };
+
         var result = await notificationUseCase.GetNotificationsAsync(userId, request.Offset, request.PageSize);
 
         var response = new PagedNotificationList
@@ -62,7 +66,11 @@ public class NotificationGrpcService(
 
     public override async Task<UnreadCountResponse> GetUnreadCount(GetUnreadCountRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new UnreadCountResponse { Count = 0 };
+
         var count = await notificationUseCase.GetUnreadCountAsync(userId);
 
         return new UnreadCountResponse { Count = count };
@@ -86,16 +94,14 @@ public class NotificationGrpcService(
         return new MarkAllAsReadResponse { Success = true };
     }
 
-    private UserId RequireAuth()
+    private UserId? TryGetAuthUserId()
     {
-        if (!currentUser.IsAuthenticated())
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        var userId = currentUser.GetCurrentUserId();
-
-        if (userId is null)
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        return UserId.From(userId);
+        if (!currentUser.IsAuthenticated()) return null;
+        var id = currentUser.GetCurrentUserId();
+        return id is null ? null : UserId.From(id);
     }
+
+    private UserId RequireAuth() =>
+        TryGetAuthUserId()
+        ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 }

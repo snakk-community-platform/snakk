@@ -13,7 +13,10 @@ public class ReadStateGrpcService(
 {
     public override async Task<ReadStateInfo> GetReadState(GetReadStateRequest request, ServerCallContext context)
     {
-        var userId = RequireAuth();
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new ReadStateInfo();
 
         var readState = await readStateRepository.GetAsync(
             userId,
@@ -84,16 +87,14 @@ public class ReadStateGrpcService(
         return new BatchMarkAsReadResponse { Success = true, Processed = processed };
     }
 
-    private UserId RequireAuth()
+    private UserId? TryGetAuthUserId()
     {
-        if (!currentUser.IsAuthenticated())
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        var userId = currentUser.GetCurrentUserId();
-
-        if (userId is null)
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
-
-        return UserId.From(userId);
+        if (!currentUser.IsAuthenticated()) return null;
+        var id = currentUser.GetCurrentUserId();
+        return id is null ? null : UserId.From(id);
     }
+
+    private UserId RequireAuth() =>
+        TryGetAuthUserId()
+        ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 }

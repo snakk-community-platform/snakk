@@ -30,9 +30,15 @@ public interface ICommunityContext
 
     /// <summary>
     /// Whether multi-community mode is enabled (Features:MultiCommunityEnabled).
-    /// When true, even the default community uses /c/{slug} URL prefix.
     /// </summary>
     bool IsMultiCommunityEnabled { get; }
+
+    /// <summary>
+    /// The slug of the default community (from configuration).
+    /// Used by URL helpers to determine whether a given slug needs a /c/{slug} prefix.
+    /// The default community never gets a prefix — its content lives at /h/... directly.
+    /// </summary>
+    string DefaultCommunitySlug { get; }
 
     /// <summary>
     /// Sets the current community context.
@@ -42,7 +48,8 @@ public interface ICommunityContext
         bool isDefault,
         bool isCustomDomain = false,
         string? name = null,
-        bool isMultiCommunity = false);
+        bool isMultiCommunity = false,
+        string? defaultCommunitySlug = null);
 }
 
 /// <summary>
@@ -55,18 +62,22 @@ public class CommunityContext : ICommunityContext
     public bool IsDefaultCommunity { get; private set; } = true;
     public bool IsCustomDomain { get; private set; }
     public bool IsMultiCommunityEnabled { get; private set; }
+    public string DefaultCommunitySlug { get; private set; } = "main";
 
     public void SetCommunity(
         string slug,
         bool isDefault,
         bool isCustomDomain = false,
         string? name = null,
-        bool isMultiCommunity = false)
+        bool isMultiCommunity = false,
+        string? defaultCommunitySlug = null)
     {
         CommunitySlug = slug;
         CommunityName = name;
         IsDefaultCommunity = isDefault;
         IsCustomDomain = isCustomDomain;
         IsMultiCommunityEnabled = isMultiCommunity;
+        if (defaultCommunitySlug is not null)
+            DefaultCommunitySlug = defaultCommunitySlug;
     }
 }

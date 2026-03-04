@@ -11,7 +11,7 @@ namespace Snakk.Api.Tests.Endpoints;
 public class AdminWebhooksEndpointTests : IAsyncDisposable
 {
     private readonly TestWebServer _server = new();
-    private const string BaseUrl = "/api/admin/webhooks";
+    private const string BaseUrl = "/admin/webhooks";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

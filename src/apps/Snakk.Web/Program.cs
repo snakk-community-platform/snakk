@@ -23,7 +23,7 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
-builder.AddSnakkDefaults();
+//builder.AddSnakkDefaults();
 
 // HTTP/1.1 + HTTP/2 — supports both REST and gRPC clients
 builder.WebHost.ConfigureKestrel(options =>
@@ -204,7 +204,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
@@ -214,6 +214,20 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStatusCodePagesWithReExecute("/NotFound");
+
+// Disable status code page re-execution for BFF API endpoints — they return JSON error
+// responses with proper HTTP status codes, not HTML error pages
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/bff"))
+    {
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
+        if (feature is not null)
+            feature.Enabled = false;
+    }
+
+    await next();
+});
 
 app.UseHttpsRedirection();
 

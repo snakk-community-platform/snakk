@@ -15,7 +15,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/notifications?offset=0&pageSize=10");
+        var response = await client.GetAsync("/notifications?offset=0&pageSize=10");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -28,7 +28,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/notifications/unread-count");
+        var response = await client.GetAsync("/notifications/unread-count");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -41,7 +41,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/notifications?offset=0&pageSize=10");
+        var response = await client.GetAsync("/notifications?offset=0&pageSize=10");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -54,7 +54,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/notifications/unread-count");
+        var response = await client.GetAsync("/notifications/unread-count");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -73,7 +73,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/notifications/some-id/read", null);
+        var response = await client.PostAsync("/notifications/some-id/read", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -86,7 +86,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.PostAsync("/api/notifications/read-all", null);
+        var response = await client.PostAsync("/notifications/read-all", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -99,7 +99,7 @@ public class NotificationEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.PostAsync("/api/notifications/read-all", null);
+        var response = await client.PostAsync("/notifications/read-all", null);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

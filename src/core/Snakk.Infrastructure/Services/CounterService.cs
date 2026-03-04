@@ -287,8 +287,23 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
                 x => x.UnreadNotificationCount,
                 x => x.UnreadNotificationCount - 1));
 
-    public async Task ResetUnreadNotificationCountAsync(UserId userId) =>
-        await dbContext.Users
-            .Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.UnreadNotificationCount, 0));
+    public async Task ResetUnreadNotificationCountAsync(UserId userId)
+    {
+        try
+        {
+            await dbContext.Users
+                .Where(u => u.PublicId == userId.Value)
+                .ExecuteUpdateAsync(u => u.SetProperty(x => x.UnreadNotificationCount, 0));
+        }
+        catch (InvalidOperationException)
+        {
+            // Fallback for providers that don't support ExecuteUpdateAsync (e.g. InMemory)
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+            if (user is not null)
+            {
+                user.UnreadNotificationCount = 0;
+                await dbContext.SaveChangesAsync();
+            }
+        }
+    }
 }

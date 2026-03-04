@@ -112,6 +112,7 @@ message CurrentUserResponse {
   optional string oauth_provider = 5;
   bool prefer_endless_scroll = 6;
   bool auto_follow_on_reply = 7;
+  bool is_authenticated = 8; // False when anonymous — mirrors AuthStatusResponse pattern
 }
 
 message UpdateProfileResponse {

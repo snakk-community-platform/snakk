@@ -52,20 +52,21 @@ public class DetailModel(
         PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // Fetch hub, space, and community in parallel
-        var hubTask = _apiClient.GetHubBySlugAsync(hubSlug);
-        var spaceTask = _apiClient.GetSpaceBySlugAsync(slug);
+        var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug);
+        var spaceTask = _apiClient.GetSpaceBySlugResultAsync(slug);
         var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
 
         await Task.WhenAll(hubTask, spaceTask, communityTask);
 
-        Hub = hubTask.Result;
-        Space = spaceTask.Result;
+        Hub = hubTask.Result.IsSuccess ? hubTask.Result.Value : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
-        if (Space is null)
-            return NotFound();
+        if (!spaceTask.Result.IsSuccess)
+            return spaceTask.Result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
+        Space = spaceTask.Result.Value;
 
         SidebarScopeId = Space.PublicId;
 

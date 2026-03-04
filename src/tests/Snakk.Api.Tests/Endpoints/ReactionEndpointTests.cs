@@ -19,7 +19,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var body = new { type = "ThumbsUp" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/posts/some-post-id/reactions/", body);
+        var response = await client.PostAsJsonAsync("/posts/some-post-id/reactions/", body);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -33,7 +33,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var body = new { type = "ThumbsUp" };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/posts/some-post-id/reactions/", body);
+        var response = await client.PostAsJsonAsync("/posts/some-post-id/reactions/", body);
 
         // Assert
         // Post may not exist, but auth should pass; we should not get 401
@@ -49,7 +49,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/some-post-id/reactions/");
+        var response = await client.GetAsync("/posts/some-post-id/reactions/");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -62,7 +62,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/some-post-id/reactions/");
+        var response = await client.GetAsync("/posts/some-post-id/reactions/");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -83,7 +83,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/non-existent-post/reactions/");
+        var response = await client.GetAsync("/posts/non-existent-post/reactions/");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -106,7 +106,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/some-post-id/reactions/me");
+        var response = await client.GetAsync("/posts/some-post-id/reactions/me");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -124,7 +124,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient();
 
         // Act
-        var response = await client.GetAsync("/api/posts/some-post-id/reactions/me");
+        var response = await client.GetAsync("/posts/some-post-id/reactions/me");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);

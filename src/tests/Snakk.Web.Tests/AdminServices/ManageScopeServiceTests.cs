@@ -148,7 +148,7 @@ public class ManageScopeServiceTests
     public async Task ResolveScopeAsync_NotFound_ReturnsNull()
     {
         var (service, handler) = CreateService();
-        handler.SetupResponse("/api/manage/resolve", HttpStatusCode.NotFound);
+        handler.SetupResponse("/manage/resolve", HttpStatusCode.NotFound);
 
         var result = await service.ResolveScopeAsync("nonexistent");
 
@@ -159,7 +159,7 @@ public class ManageScopeServiceTests
     public async Task ResolveScopeAsync_Forbidden_ReturnsNull()
     {
         var (service, handler) = CreateService();
-        handler.SetupResponse("/api/manage/resolve", HttpStatusCode.Forbidden);
+        handler.SetupResponse("/manage/resolve", HttpStatusCode.Forbidden);
 
         var result = await service.ResolveScopeAsync("restricted");
 
@@ -170,7 +170,7 @@ public class ManageScopeServiceTests
     public async Task ResolveScopeAsync_HttpRequestException_ReturnsNull()
     {
         var (service, handler) = CreateService();
-        handler.SetupResponse("/api/manage/resolve", _ =>
+        handler.SetupResponse("/manage/resolve", _ =>
             throw new HttpRequestException("Connection refused"));
 
         var result = await service.ResolveScopeAsync("gaming");
@@ -188,7 +188,7 @@ public class ManageScopeServiceTests
             ManagePermissionEnum.ManageContent
         ]);
 
-        handler.SetupJsonResponse("/api/manage/resolve", expectedScope);
+        handler.SetupJsonResponse("/manage/resolve", expectedScope);
 
         var result = await service.ResolveScopeAsync("gaming");
 

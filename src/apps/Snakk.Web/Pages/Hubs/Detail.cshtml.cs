@@ -47,9 +47,11 @@ public class DetailModel(
     {
         Slug = slug;
 
-        Hub = await _apiClient.GetHubBySlugAsync(slug);
-        if (Hub is null)
-            return NotFound();
+        var hubResult = await _apiClient.GetHubBySlugResultAsync(slug);
+        if (!hubResult.IsSuccess)
+            return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
+        Hub = hubResult.Value;
 
         SidebarScopeId = Hub.PublicId;
 

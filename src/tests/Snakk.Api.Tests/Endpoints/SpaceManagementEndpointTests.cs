@@ -97,7 +97,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/overview");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -111,7 +111,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/overview");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -120,12 +120,12 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
     [Test]
     public async Task GetOverview_NonExistentSpace_ReturnsNotFound()
     {
-        // Arrange — seed admin user so authorization passes, but use a non-existent space slug
+        // Arrange — seed admin user so authorization passes, but use a non-existent space id
         await SeedDataAsync();
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/does-not-exist/manage/overview");
+        var response = await client.GetAsync("/spaces/does-not-exist/manage/overview");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -141,7 +141,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/settings");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -160,7 +160,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/settings");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/settings");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -185,7 +185,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PutAsJsonAsync(
-            $"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/settings", request);
+            $"/spaces/space-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -212,7 +212,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PutAsJsonAsync(
-            $"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/settings", request);
+            $"/spaces/space-public-id/manage/settings", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -228,7 +228,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/moderation");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -241,7 +241,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/moderation");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/moderation");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -257,7 +257,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/rules");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/rules");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -270,7 +270,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/rules");
+        var response = await client.GetAsync($"/spaces/space-public-id/manage/rules");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
@@ -295,7 +295,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PutAsJsonAsync(
-            $"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/rules", request);
+            $"/spaces/space-public-id/manage/rules", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -316,7 +316,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
 
         // Act
         var response = await client.PutAsJsonAsync(
-            $"/api/c/{TestCommunitySlug}/s/{TestSpaceSlug}/manage/rules", request);
+            $"/spaces/space-public-id/manage/rules", request);
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);

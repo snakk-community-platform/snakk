@@ -41,7 +41,8 @@ public class CommunityResolutionMiddleware
                 isDefault,
                 isCustomDomain: true,
                 name: domainLookup.CommunityName,
-                isMultiCommunity: _isMultiCommunity);
+                isMultiCommunity: _isMultiCommunity,
+                defaultCommunitySlug: _defaultCommunitySlug);
 
             // No path rewriting needed for custom domains
             await _next(context);
@@ -62,7 +63,7 @@ public class CommunityResolutionMiddleware
 
                 // Set community context
                 var isDefault = communitySlug.Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase);
-                communityContext.SetCommunity(communitySlug, isDefault, isMultiCommunity: _isMultiCommunity);
+                communityContext.SetCommunity(communitySlug, isDefault, isMultiCommunity: _isMultiCommunity, defaultCommunitySlug: _defaultCommunitySlug);
 
                 // Rewrite path to remove /c/{community} prefix
                 context.Request.Path = newPath;
@@ -73,13 +74,14 @@ public class CommunityResolutionMiddleware
                 // Don't rewrite, let the /c/{slug} page handle it
                 communityContext.SetCommunity(remainingPath.TrimEnd('/'),
                     remainingPath.TrimEnd('/').Equals(_defaultCommunitySlug, StringComparison.OrdinalIgnoreCase),
-                    isMultiCommunity: _isMultiCommunity);
+                    isMultiCommunity: _isMultiCommunity,
+                    defaultCommunitySlug: _defaultCommunitySlug);
             }
         }
         else
         {
             // Step 3: No /c/ prefix - use default community
-            communityContext.SetCommunity(_defaultCommunitySlug, isDefault: true, isMultiCommunity: _isMultiCommunity);
+            communityContext.SetCommunity(_defaultCommunitySlug, isDefault: true, isMultiCommunity: _isMultiCommunity, defaultCommunitySlug: _defaultCommunitySlug);
         }
 
         await _next(context);
