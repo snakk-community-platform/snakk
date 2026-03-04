@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\services\Snakk.Gateway\Snakk.Gateway.csproj" />
     <ProjectReference Include="..\..\services\Snakk.Realtime\Snakk.Realtime.csproj" />
     <ProjectReference Include="..\..\services\Snakk.Worker\Snakk.Worker.csproj" />
+    <ProjectReference Include="..\..\apps\Snakk.Setup\Snakk.Setup.csproj" />
     <ProjectReference Include="..\..\apps\Snakk.Web\Snakk.Web.csproj" />
     <ProjectReference Include="..\..\apps\Snakk.Auth\Snakk.Auth.csproj" />
     <ProjectReference Include="..\..\apps\Snakk.AdminWeb\Snakk.AdminWeb.csproj" />

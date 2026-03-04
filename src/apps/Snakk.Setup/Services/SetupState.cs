@@ -1,0 +1,46 @@
+namespace Snakk.Setup.Services;
+
+/// <summary>
+/// Holds wizard state across setup steps. Stored in session via JSON serialization.
+/// </summary>
+public class SetupState
+{
+    // Step 2: Database
+    public string DbHost { get; set; } = "postgres";
+    public int DbPort { get; set; } = 5432;
+    public string DbName { get; set; } = "snakk";
+    public string DbUsername { get; set; } = "snakk";
+    public string DbPassword { get; set; } = "";
+
+    // Step 3: Site Config
+    public string Domain { get; set; } = "";
+    public string SiteName { get; set; } = "Snakk";
+    public string DefaultCommunitySlug { get; set; } = "main";
+    public bool MultiCommunityEnabled { get; set; }
+
+    // Step 4: Storage
+    public string AvatarStoragePath { get; set; } = "/app/storage";
+
+    // Step 5: Admin Account
+    public string AdminEmail { get; set; } = "";
+    public string AdminDisplayName { get; set; } = "";
+    public string AdminPassword { get; set; } = "";
+
+    // Step 6: Test Data
+    public bool SeedTestData { get; set; }
+
+    // Step 7: Security
+    public string JwtSecretKey { get; set; } = "";
+    public string RealtimeApiKey { get; set; } = "";
+
+    // Step 8: OAuth
+    public string GoogleClientId { get; set; } = "";
+    public string GoogleClientSecret { get; set; } = "";
+    public string GitHubClientId { get; set; } = "";
+    public string GitHubClientSecret { get; set; } = "";
+    public string DiscordClientId { get; set; } = "";
+    public string DiscordClientSecret { get; set; } = "";
+
+    public string GetConnectionString() =>
+        $"Host={DbHost};Port={DbPort};Database={DbName};Username={DbUsername};Password={DbPassword}";
+}

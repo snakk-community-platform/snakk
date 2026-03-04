@@ -29,6 +29,7 @@ COPY src/services/Snakk.Api/Snakk.Api.csproj services/Snakk.Api/
 COPY src/services/Snakk.Gateway/Snakk.Gateway.csproj services/Snakk.Gateway/
 COPY src/services/Snakk.Realtime/Snakk.Realtime.csproj services/Snakk.Realtime/
 COPY src/services/Snakk.Worker/Snakk.Worker.csproj services/Snakk.Worker/
+COPY src/apps/Snakk.Setup/Snakk.Setup.csproj apps/Snakk.Setup/
 COPY src/apps/Snakk.Web/Snakk.Web.csproj apps/Snakk.Web/
 COPY src/apps/Snakk.Auth/Snakk.Auth.csproj apps/Snakk.Auth/
 COPY src/apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj apps/Snakk.AdminWeb/
@@ -41,6 +42,11 @@ WORKDIR /src/apps/Snakk.Web
 RUN npm ci --ignore-scripts
 WORKDIR /src
 
+COPY src/apps/Snakk.Setup/package.json src/apps/Snakk.Setup/package-lock.json apps/Snakk.Setup/
+WORKDIR /src/apps/Snakk.Setup
+RUN npm ci --ignore-scripts
+WORKDIR /src
+
 # --- Copy all source code ---
 COPY src/ ./
 
@@ -50,17 +56,21 @@ RUN cp apps/Snakk.Web/node_modules/htmx.org/dist/htmx.min.js apps/Snakk.Web/wwwr
 # Build TypeScript + Tailwind CSS + Sass (not auto-triggered by MSBuild, must run explicitly)
 RUN cd apps/Snakk.Web && npm run build
 
+# Build Snakk.Setup CSS (Tailwind + daisyUI)
+RUN cd apps/Snakk.Setup && npm run build:css
+
 # Prevent NSwag from regenerating the committed SDK client
 # (Docker COPY resets timestamps, which makes MSBuild think the output is stale)
 RUN touch core/Snakk.Sdk/Generated/SnakkApiClient.cs
 
-# --- Publish all 8 projects in parallel ---
+# --- Publish all 9 projects in parallel ---
 RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-restore & \
     dotnet publish services/Snakk.Api/Snakk.Api.csproj -c Release -o /publish/api --no-restore & \
     dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-restore & \
     dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-restore & \
     dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-restore & \
     dotnet publish apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj -c Release -o /publish/admin --no-restore & \
+    dotnet publish apps/Snakk.Setup/Snakk.Setup.csproj -c Release -o /publish/setup --no-restore -p:SkipBuildCSS=true & \
     dotnet publish tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj -c Release -o /publish/dbseeder --no-restore & \
     dotnet publish apps/Snakk.Web/Snakk.Web.csproj -c Release -o /publish/web --no-restore -p:SkipBuildTailwindCSS=true & \
     wait
@@ -83,6 +93,7 @@ COPY --from=build /publish/api ./api/
 COPY --from=build /publish/realtime ./realtime/
 COPY --from=build /publish/worker ./worker/
 COPY --from=build /publish/web ./web/
+COPY --from=build /publish/setup ./setup/
 COPY --from=build /publish/auth ./auth/
 COPY --from=build /publish/admin ./admin/
 COPY --from=build /publish/dbseeder ./dbseeder/

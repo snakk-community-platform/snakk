@@ -1,0 +1,69 @@
+@page
+@model Snakk.Setup.Pages.ReviewModel
+
+<h2 class="text-xl font-semibold mb-4">Review Configuration</h2>
+<p class="text-base-content/70 mb-6">Please review your settings before installation. You can go back to any step to make changes.</p>
+
+<div class="overflow-x-auto">
+    <table class="table table-zebra">
+        <tbody>
+            <!-- Database -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Database</th></tr>
+            <tr><td class="font-medium w-48">Host</td><td>@Model.State.DbHost</td></tr>
+            <tr><td class="font-medium">Port</td><td>@Model.State.DbPort</td></tr>
+            <tr><td class="font-medium">Database</td><td>@Model.State.DbName</td></tr>
+            <tr><td class="font-medium">Username</td><td>@Model.State.DbUsername</td></tr>
+            <tr><td class="font-medium">Password</td><td>********</td></tr>
+
+            <!-- Site Config -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Site Configuration</th></tr>
+            <tr><td class="font-medium">Domain</td><td>@Model.State.Domain</td></tr>
+            <tr><td class="font-medium">Site Name</td><td>@Model.State.SiteName</td></tr>
+            <tr><td class="font-medium">Default Community</td><td>@Model.State.DefaultCommunitySlug</td></tr>
+            <tr><td class="font-medium">Multi-Community</td><td>@(Model.State.MultiCommunityEnabled ? "Enabled" : "Disabled")</td></tr>
+
+            <!-- Storage -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Storage</th></tr>
+            <tr><td class="font-medium">Storage Path</td><td><code>@Model.State.AvatarStoragePath</code></td></tr>
+
+            <!-- Admin Account -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Admin Account</th></tr>
+            <tr><td class="font-medium">Email</td><td>@Model.State.AdminEmail</td></tr>
+            <tr><td class="font-medium">Display Name</td><td>@Model.State.AdminDisplayName</td></tr>
+
+            <!-- Test Data -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Test Data</th></tr>
+            <tr><td class="font-medium">Seed Data</td><td>@(Model.State.SeedTestData ? "Yes — populate with sample data" : "No — empty database")</td></tr>
+
+            <!-- Security -->
+            <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Security</th></tr>
+            <tr><td class="font-medium">JWT Secret</td><td><code class="text-xs">@Model.State.JwtSecretKey[..8]...@Model.State.JwtSecretKey[^4..]</code></td></tr>
+            <tr><td class="font-medium">Realtime API Key</td><td><code class="text-xs">@Model.State.RealtimeApiKey[..8]...@Model.State.RealtimeApiKey[^4..]</code></td></tr>
+
+            <!-- OAuth -->
+            @if (!string.IsNullOrEmpty(Model.State.GoogleClientId) || !string.IsNullOrEmpty(Model.State.GitHubClientId) || !string.IsNullOrEmpty(Model.State.DiscordClientId))
+            {
+                <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">OAuth Providers</th></tr>
+                @if (!string.IsNullOrEmpty(Model.State.GoogleClientId))
+                {
+                    <tr><td class="font-medium">Google</td><td>Configured</td></tr>
+                }
+                @if (!string.IsNullOrEmpty(Model.State.GitHubClientId))
+                {
+                    <tr><td class="font-medium">GitHub</td><td>Configured</td></tr>
+                }
+                @if (!string.IsNullOrEmpty(Model.State.DiscordClientId))
+                {
+                    <tr><td class="font-medium">Discord</td><td>Configured</td></tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<form method="post" class="mt-6">
+    <div class="flex justify-between">
+        <a asp-page="OAuth" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary btn-lg">Begin Installation</button>
+    </div>
+</form>

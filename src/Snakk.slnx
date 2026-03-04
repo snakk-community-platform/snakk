@@ -21,6 +21,7 @@
   <Folder Name="/apps/">
     <Project Path="apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj" />
     <Project Path="apps/Snakk.Auth/Snakk.Auth.csproj" />
+    <Project Path="apps/Snakk.Setup/Snakk.Setup.csproj" />
     <Project Path="apps/Snakk.Web/Snakk.Web.csproj" />
   </Folder>
   <Folder Name="/Solution Items/" />

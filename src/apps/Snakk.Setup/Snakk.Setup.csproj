@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PostgreSQL (DB connection test) -->
+    <PackageReference Include="Npgsql" Version="10.0.1" />
+    <!-- JWT generation for auto-login -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+  </ItemGroup>
+
+  <!-- Build Tailwind CSS before build (skip in Docker where CSS is pre-built) -->
+  <Target Name="BuildSetupCSS" BeforeTargets="Build" Condition="'$(SkipBuildCSS)' != 'true'">
+    <Exec Command="npm run build:css" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+</Project>

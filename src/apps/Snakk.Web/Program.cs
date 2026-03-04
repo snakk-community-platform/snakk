@@ -143,31 +143,10 @@ AddGrpcClient<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(builder.Ser
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
 
-// Setup wizard service (scoped — uses IConfiguration)
-builder.Services.AddScoped<SetupService>();
-
-// Session for setup wizard state
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
 // JWT-based authentication from SSO service
-// During first-run setup, Jwt:SecretKey is not configured yet — use a placeholder.
-// SetupMiddleware blocks all non-setup requests, so the placeholder key is never used for real auth.
-var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
-if (string.IsNullOrEmpty(jwtSecretKey))
-{
-    jwtSecretKey = "SETUP_NOT_COMPLETE_PLACEHOLDER_KEY_MINIMUM_32_CHARS_LONG_FOR_HMAC256";
-    if (!builder.Environment.IsDevelopment())
-    {
-        var startupLogger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
-        startupLogger.LogWarning("SECURITY: Jwt:SecretKey not configured — using setup placeholder. " +
-            "This is expected during first-run setup only. Complete the setup wizard to generate a real key.");
-    }
-}
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException(
+        "Jwt:SecretKey is not configured. Run the setup wizard (Snakk.Setup) first to generate configuration.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Snakk";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Snakk";
 
@@ -312,15 +291,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseMiddleware<Snakk.Web.Middleware.ServerTimingMiddleware>();
 }
-
-// Session (required by setup wizard for state management — skip for partials)
-app.UseWhen(
-    context => !context.Request.Path.StartsWithSegments("/partials"),
-    appBuilder => appBuilder.UseSession()
-);
-
-// First-run setup wizard — redirects to /setup if not configured
-app.UseMiddleware<SetupMiddleware>();
 
 // Resolve community from URL (must be before routing)
 app.UseCommunityResolution();

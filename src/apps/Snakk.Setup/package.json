@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i Styles/input.css -o wwwroot/css/setup.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0",
+    "daisyui": "^5.0.0"
+  }
+}

@@ -30,6 +30,18 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
 
+// Setup mode: if first-run setup hasn't completed, route catch-all and static assets to Snakk.Setup
+// This check runs once at startup. After setup completes, entrypoint.sh restarts all services,
+// so the gateway re-launches and sees .setup-complete → normal routing.
+var setupComplete = File.Exists(Path.Combine(sharedConfigDir, ".setup-complete"));
+if (!setupComplete)
+{
+    builder.Configuration["ReverseProxy:Routes:web-route:ClusterId"] = "setup-cluster";
+    builder.Configuration["ReverseProxy:Routes:static-css-route:ClusterId"] = "setup-cluster";
+    builder.Configuration["ReverseProxy:Routes:static-js-route:ClusterId"] = "setup-cluster";
+    builder.Configuration["ReverseProxy:Routes:static-images-route:ClusterId"] = "setup-cluster";
+}
+
 //builder.AddSnakkDefaults();
 
 // Real client IP header (set by CDN/reverse proxy like Cloudflare)
