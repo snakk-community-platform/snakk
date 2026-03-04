@@ -6,6 +6,9 @@
 @model Snakk.Web.Pages.Spaces.DetailModel
 @{
     ViewData["Title"] = Model.Space?.Name ?? "Space";
+    ViewData["Description"] = Model.Space != null
+        ? $"{Model.Space.Name} — discussions and topics in this space on Snakk."
+        : null;
 }
 
 @if (Model.Space == null)

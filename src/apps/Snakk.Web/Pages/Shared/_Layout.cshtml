@@ -14,18 +14,15 @@
 
     <!-- SEO Meta Tags -->
     @await RenderSectionAsync("Meta", required: false)
+    @if (ViewData["Description"] != null)
+    {
+        <meta name="description" content="@ViewData["Description"]" />
+    }
 
     <!-- Canonical URL -->
     <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}{Context.Request.QueryString}")" />
 
-    <!-- Preconnect to Realtime service for faster WebSocket setup -->
-    @{
-        var realtimeUrl = Configuration["RealtimeServiceUrl"];
-    }
-    @if (!string.IsNullOrEmpty(realtimeUrl) && Uri.TryCreate(realtimeUrl, UriKind.Absolute, out var realtimeUri))
-    {
-        <link rel="preconnect" href="@($"{realtimeUri.Scheme}://{realtimeUri.Host}:{realtimeUri.Port}")" />
-    }
+    <!-- Realtime WebSocket connects same-origin through the gateway — no preconnect needed -->
 
     <!-- CSRF Token for JavaScript -->
     @{
@@ -33,9 +30,10 @@
     }
     <meta name="csrf-token" content="@tokens.RequestToken" />
 
-    <!-- Preload critical CSS — browser starts downloading before parser reaches stylesheet links -->
+    <!-- Preload critical resources — browser starts downloading before parser reaches them -->
     <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" />
     <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" as="script" asp-append-version="true" />
 
     @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
        Reads localStorage preference, resolves auto→system, sets data-theme, and loads dark CSS if needed.
@@ -59,7 +57,7 @@
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
 
     <!-- HTMX + extensions (preload on hover, head merge on SPA nav) -->
-    <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     @* INLINE REASON: HTMX framework integration that must run in <head> before page renders.
@@ -159,7 +157,7 @@
             <!-- Desktop Search -->
             <form method="get" action="/search" class="hidden sm:flex items-center gap-1 flex-1 max-w-md" hx-boost="false" id="search-form">
                 <div class="relative flex-1" id="search-wrapper">
-                    <button type="submit" class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle">
+                    <button type="submit" class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle" aria-label="Search">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>

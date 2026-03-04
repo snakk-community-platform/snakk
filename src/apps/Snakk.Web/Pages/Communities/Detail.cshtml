@@ -5,6 +5,9 @@
 @inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Community?.Name ?? "Community";
+    ViewData["Description"] = Model.Community != null
+        ? $"{Model.Community.Name} — a community on Snakk with {Model.Community.MemberCount} members."
+        : null;
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 

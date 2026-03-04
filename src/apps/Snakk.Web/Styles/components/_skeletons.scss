@@ -3,15 +3,24 @@
 // ============================================
 
 .skeleton {
-    background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-primary) 50%, var(--bg-subtle) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-subtle);
     border-radius: 4px;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent 25%, var(--border-primary) 50%, transparent 75%);
+        animation: skeleton-loading 1.5s infinite;
+        will-change: transform;
+    }
 }
 
 @keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 .skeleton-post {
@@ -36,9 +45,17 @@
 
 // Avatar loading shimmer — visible while <img> src is loading,
 // covered naturally once the image renders.
+// Note: <img> is a replaced element, so ::after won't work.
+// Uses background-position animation (non-composited but acceptable
+// since it only runs briefly until the image loads).
 img.rounded-full,
 .avatar img {
     background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-primary) 50%, var(--bg-subtle) 75%);
     background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
+    animation: avatar-shimmer 1.5s infinite;
+}
+
+@keyframes avatar-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }

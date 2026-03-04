@@ -31,7 +31,7 @@ SUPERVISOR_PID=$!
 if [ "$SETUP_WAS_COMPLETE" = true ]; then
     # Setup already done — stop the setup wizard (autorestart=false keeps it down)
     sleep 2
-    supervisorctl stop setup 2>/dev/null || true
+    supervisorctl -c /etc/supervisor/conf.d/snakk.conf stop setup 2>/dev/null || true
 else
     echo ""
     echo "============================================"
@@ -52,8 +52,8 @@ else
 
         # Stop setup wizard, then restart everything else.
         # Gateway restart causes it to re-check .setup-complete → routes to web-cluster.
-        supervisorctl stop setup
-        supervisorctl restart all
+        supervisorctl -c /etc/supervisor/conf.d/snakk.conf stop setup
+        supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart all
 
         echo "=== All services restarted. Platform is live! ==="
     ) &

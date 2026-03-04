@@ -5,6 +5,9 @@
 @inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Hub?.Name ?? "Hub";
+    ViewData["Description"] = Model.Hub != null
+        ? $"{Model.Hub.Name} — browse spaces and discussions in this hub on Snakk."
+        : null;
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
