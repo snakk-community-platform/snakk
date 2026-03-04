@@ -129,7 +129,7 @@ docs/
 The fastest way to deploy Snakk on a Linux server. The installer handles Docker, PostgreSQL, Caddy (HTTPS), memory tuning, and launches the browser-based setup wizard.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/snakk-community-platform/snakk-installer/main/docker/install.sh | sudo bash
+curl -fsSL https://get.snakk.community/install-docker.sh | sudo bash
 ```
 
 **What it does:**
