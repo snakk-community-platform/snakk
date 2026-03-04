@@ -268,6 +268,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Plugin system
 - [ ] Localization/i18n
 
+## AI Assistance
+
+This project was developed using LLM-based tooling as an implementation aid.
+All architectural and design decisions originated from the author.
+
 ---
 
 ## Author
