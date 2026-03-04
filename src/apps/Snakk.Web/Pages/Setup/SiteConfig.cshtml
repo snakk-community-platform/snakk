@@ -7,20 +7,20 @@
 <form method="post" class="space-y-4">
     <div class="form-control">
         <label class="label"><span class="label-text">Domain</span></label>
-        <input type="text" asp-for="Domain" class="input" placeholder="snakk.example.com" />
+        <input type="text" asp-for="Domain" class="input w-full" placeholder="snakk.example.com" />
         <label class="label"><span class="label-text-alt text-base-content/50">The domain where your Snakk instance will be accessible (without https://)</span></label>
         <span asp-validation-for="Domain" class="text-error text-sm"></span>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Site Name</span></label>
-        <input type="text" asp-for="SiteName" class="input" placeholder="My Community" />
+        <input type="text" asp-for="SiteName" class="input w-full" placeholder="My Community" />
         <label class="label"><span class="label-text-alt text-base-content/50">Displayed in the browser title and header</span></label>
     </div>
 
     <div class="form-control">
         <label class="label"><span class="label-text">Default Community Slug</span></label>
-        <input type="text" asp-for="DefaultCommunitySlug" class="input" placeholder="main" />
+        <input type="text" asp-for="DefaultCommunitySlug" class="input w-full" placeholder="main" />
         <label class="label"><span class="label-text-alt text-base-content/50">URL-friendly identifier for the default community</span></label>
     </div>
 

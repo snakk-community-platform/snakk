@@ -4,22 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Snakk</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'snakk-purple': '#667eea',
-                        'snakk-purple-dark': '#764ba2',
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="/css/auth.css" />
 </head>
-<body class="min-h-screen bg-gradient-to-br from-snakk-purple to-snakk-purple-dark flex items-center justify-center p-4">
-    <main role="main" class="w-full">
+<body>
+    <main role="main">
         @RenderBody()
     </main>
 

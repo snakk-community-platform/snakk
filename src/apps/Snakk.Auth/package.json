@@ -1,0 +1,12 @@
+{
+  "name": "snakk.auth",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "sass Styles/auth.scss:wwwroot/css/auth.css --style=compressed --no-source-map",
+    "watch:css": "sass Styles/auth.scss:wwwroot/css/auth.css --watch --no-source-map"
+  },
+  "devDependencies": {
+    "sass": "^1.97.3"
+  }
+}

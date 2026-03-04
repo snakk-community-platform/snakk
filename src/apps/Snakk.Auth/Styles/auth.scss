@@ -1,0 +1,270 @@
+// ============================================
+// Snakk Auth Styles (SCSS)
+// ============================================
+// Compiled to wwwroot/css/auth.css
+// Run: npm run build:css (or npm run watch:css)
+
+// ============================================
+// Variables
+// ============================================
+$snakk-purple: #667eea;
+$snakk-purple-dark: #764ba2;
+$text-primary: #374151;
+$text-muted: #6b7280;
+$text-placeholder: #9ca3af;
+$border-color: #e5e7eb;
+$border-hover: #d1d5db;
+$bg-light: #f9fafb;
+$error-bg: #fee2e2;
+$error-text: #991b1b;
+$error-border: #fecaca;
+$error-input: #f87171;
+$danger: #dc2626;
+
+// ============================================
+// Reset & Base
+// ============================================
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, $snakk-purple 0%, $snakk-purple-dark 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+// ============================================
+// Auth Container & Card
+// ============================================
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+// ============================================
+// Header
+// ============================================
+.auth-header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    h1 {
+        font-size: 48px;
+        margin-bottom: 8px;
+    }
+
+    p {
+        color: $text-muted;
+        font-size: 18px;
+    }
+}
+
+// ============================================
+// Forms
+// ============================================
+.auth-form {
+    margin-bottom: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: $text-primary;
+        font-size: 14px;
+    }
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid $border-color;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: $snakk-purple;
+    }
+}
+
+.form-group-checkbox {
+    margin-bottom: 24px;
+
+    label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-weight: normal;
+    }
+
+    input[type="checkbox"] {
+        margin-right: 8px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+}
+
+// ============================================
+// Buttons
+// ============================================
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, $snakk-purple 0%, $snakk-purple-dark 100%);
+    color: white;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba($snakk-purple, 0.4);
+    }
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-oauth {
+    background: white;
+    border: 2px solid $border-color;
+    color: $text-primary;
+    gap: 8px;
+
+    &:hover {
+        border-color: $border-hover;
+        background: $bg-light;
+    }
+
+    span {
+        font-size: 20px;
+    }
+}
+
+// ============================================
+// Divider
+// ============================================
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: $text-placeholder;
+    font-size: 14px;
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: $border-color;
+    }
+
+    span {
+        padding: 0 16px;
+    }
+}
+
+// ============================================
+// OAuth Buttons Container
+// ============================================
+.oauth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+// ============================================
+// Footer
+// ============================================
+.auth-footer {
+    text-align: center;
+    margin-top: 24px;
+    color: $text-muted;
+    font-size: 14px;
+
+    a {
+        color: $snakk-purple;
+        text-decoration: none;
+        font-weight: 600;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+// ============================================
+// Alerts & Validation
+// ============================================
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.alert-error {
+    background: $error-bg;
+    color: $error-text;
+    border: 1px solid $error-border;
+}
+
+.text-danger {
+    color: $danger;
+    font-size: 13px;
+    margin-top: 4px;
+    display: block;
+}
+
+input.input-validation-error {
+    border-color: $error-input;
+}
+
+.validation-summary-errors {
+    background: $error-bg;
+    color: $error-text;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    li {
+        margin-bottom: 4px;
+    }
+}

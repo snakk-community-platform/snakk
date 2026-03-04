@@ -143,7 +143,7 @@
     <nav class="navbar minimal-nav sticky top-0 z-50">
         <div class="w-full max-w-6xl mx-auto px-4 flex items-center gap-4">
             <!-- Brand -->
-            <a class="brand-text" href="/" hx-boost="false">@(CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null ? CommunityContext.CommunityName : "Snakk")</a>
+            <a class="brand-text" href="/">@(CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null ? CommunityContext.CommunityName : "Snakk")</a>
 
             <!-- Desktop Search -->
             <form method="get" action="/search" class="hidden sm:flex items-center gap-1 flex-1 max-w-md" hx-boost="false" id="search-form">

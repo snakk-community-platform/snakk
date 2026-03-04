@@ -7,7 +7,7 @@
 <form method="post" class="space-y-4">
     <div class="form-control">
         <label class="label"><span class="label-text">Storage Path</span></label>
-        <input type="text" asp-for="AvatarStoragePath" class="input" placeholder="/app/storage" />
+        <input type="text" asp-for="AvatarStoragePath" class="input w-full" placeholder="/app/storage" />
         <label class="label"><span class="label-text-alt text-base-content/50">
             Absolute path for file storage. In Docker, this should be a mounted volume (default: /app/storage).
             For local development, use a relative or absolute path.
