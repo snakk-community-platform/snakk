@@ -147,6 +147,7 @@ public class SetupService(IConfiguration configuration)
         {
             FileName = "dotnet",
             Arguments = $"\"{seederPath}\" {skipSeedFlag}".Trim(),
+            WorkingDirectory = Path.GetDirectoryName(seederPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -368,6 +369,7 @@ public class SetupService(IConfiguration configuration)
         {
             FileName = "dotnet",
             Arguments = $"\"{seederPath}\" {skipSeedFlag}".Trim(),
+            WorkingDirectory = Path.GetDirectoryName(seederPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
