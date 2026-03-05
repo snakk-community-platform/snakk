@@ -28,30 +28,33 @@
 
         function updateMeasurements(): void {
             if (!sidebar || !nav) return;
-            navHeight = nav.offsetHeight;
+
+            // Batch all reads first
+            const newNavHeight = nav.offsetHeight;
             const sidebarRect = sidebar.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollTop = window.scrollY;
+
+            // Then writes
+            navHeight = newNavHeight;
 
             if (sidebarOriginalTop === null) {
                 sidebarOriginalTop = sidebarRect.top + scrollTop;
             }
 
-            // Set max-height to viewport minus nav height
             sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
         }
 
         function handleScroll(): void {
             if (!sidebar || sidebarOriginalTop === null) return;
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            const scrollTop = window.scrollY;
             const triggerPoint = sidebarOriginalTop - navHeight;
 
             if (scrollTop >= triggerPoint && !isSticky) {
-                // Make sticky
                 sidebar.classList.add('sidebar-sticky');
                 sidebar.style.top = `calc(${navHeight}px + 1rem)`;
                 isSticky = true;
             } else if (scrollTop < triggerPoint && isSticky) {
-                // Remove sticky
                 sidebar.classList.remove('sidebar-sticky');
                 sidebar.style.top = '';
                 isSticky = false;

@@ -250,9 +250,12 @@ function quotePost(postId: string, content: string, authorName: string): void {
 // Track current selection for smart quoting
 let currentSelection: CurrentSelection = { postId: null, text: '', authorName: '' };
 
+let quoteButtonActive = false;
 function hideSelectionQuoteButton(): void {
+    if (!quoteButtonActive) return;
     const btn = document.getElementById('selection-quote-btn');
     if (btn) btn.remove();
+    quoteButtonActive = false;
 }
 
 function showSelectionQuoteButton(): void {
@@ -294,6 +297,7 @@ function showSelectionQuoteButton(): void {
     };
 
     document.body.appendChild(button);
+    quoteButtonActive = true;
 }
 
 // Clear reply context
@@ -424,30 +428,48 @@ function jumpToUnread(): void {
     }
 }
 
-// Mark posts as read on scroll (debounced)
-let markReadTimeout: ReturnType<typeof setTimeout> | null = null;
-function markPostsAsRead(): void {
-    if (markReadTimeout) clearTimeout(markReadTimeout);
-    markReadTimeout = setTimeout(() => {
-        const posts = document.querySelectorAll<HTMLElement>('.post-item');
-        let lastVisiblePostId: string | null = null;
+// Mark posts as read via IntersectionObserver (no scroll polling or querySelectorAll)
+let readObserver: IntersectionObserver | null = null;
+let readFlushTimeout: ReturnType<typeof setTimeout> | null = null;
+let latestVisiblePostId: string | null = null;
 
-        for (const post of posts) {
-            const rect = post.getBoundingClientRect();
-            if (rect.bottom > 0 && rect.top < window.innerHeight) {
-                lastVisiblePostId = post.dataset.postId || null;
+function initReadObserver(): void {
+    if (readObserver) readObserver.disconnect();
+
+    readObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                const postId = (entry.target as HTMLElement).dataset.postId;
+                if (postId) latestVisiblePostId = postId;
             }
         }
+        flushReadState();
+    }, { threshold: 0.1 });
 
-        if (lastVisiblePostId && lastVisiblePostId !== lastReadPostId) {
-            // Batch update via read state batcher (reduces API calls)
+    // Observe existing posts
+    document.querySelectorAll<HTMLElement>('.post-item').forEach(post => {
+        readObserver!.observe(post);
+    });
+}
+
+function flushReadState(): void {
+    if (readFlushTimeout) clearTimeout(readFlushTimeout);
+    readFlushTimeout = setTimeout(() => {
+        if (latestVisiblePostId && latestVisiblePostId !== lastReadPostId) {
             const discussionId = document.body.dataset.discussionId;
             if (discussionId && window.SnakkReadStateBatcher) {
-                window.SnakkReadStateBatcher.updateReadState(discussionId, lastVisiblePostId);
+                window.SnakkReadStateBatcher.updateReadState(discussionId, latestVisiblePostId);
             }
-            lastReadPostId = lastVisiblePostId;
+            lastReadPostId = latestVisiblePostId;
         }
     }, 1000);
+}
+
+function observeNewPosts(): void {
+    if (!readObserver) return;
+    document.querySelectorAll<HTMLElement>('.post-item').forEach(post => {
+        readObserver!.observe(post); // Already-observed elements are ignored
+    });
 }
 
 // Initialize draft auto-save
@@ -1173,6 +1195,9 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
 
             // Render markdown for new posts
             newPostIds.forEach(postId => renderPostContent(postId));
+
+            // Observe new posts for read tracking
+            observeNewPosts();
         }
 
         postsHasMoreItems = data.hasMoreItems;
@@ -1669,11 +1694,8 @@ function initDiscussionPage(config: DiscussionConfig): void {
         window.SnakkReadStateBatcher.init(config.isAuthenticated);
     }
 
-    // Track scroll for read state
-    window.addEventListener('scroll', markPostsAsRead, { passive: true });
-
-    // Initial mark as read
-    markPostsAsRead();
+    // Track post visibility for read state (IntersectionObserver — no scroll polling)
+    initReadObserver();
 
     // Apply hidden users filter
     applyHiddenUsers();

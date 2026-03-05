@@ -31,8 +31,8 @@
     <meta name="csrf-token" content="@tokens.RequestToken" />
 
     <!-- Preload critical resources — browser starts downloading before parser reaches them -->
-    <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" />
-    <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" fetchpriority="high" />
+    <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" fetchpriority="high" />
     <link rel="preload" href="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" as="script" asp-append-version="true" />
 
     @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
@@ -55,72 +55,14 @@
 
     <!-- Tailwind CSS + daisyUI (locally compiled, light theme only — dark loaded on demand) -->
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 
     <!-- HTMX + extensions (preload on hover, head merge on SPA nav) -->
     <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
-    @* INLINE REASON: HTMX framework integration that must run in <head> before page renders.
-       This is tiny (10 lines) and must execute immediately to handle SPA-style navigation.
-       Extracting would add HTTP overhead for minimal code. *@
-    <script>
-        // Navigation loading bar with adaptive duration
-        (function() {
-            var bar, startTime, durations = [];
-            function getBar() { return bar || (bar = document.getElementById('loading-bar')); }
-            function p95() {
-                if (durations.length < 3) return 2000;
-                var sorted = durations.slice().sort(function(a,b){ return a-b; });
-                return sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1];
-            }
-            document.addEventListener('htmx:beforeRequest', function(evt) {
-                if (evt.detail.target && evt.detail.target.id === 'main-content') {
-                    var b = getBar(); if (!b) return;
-                    startTime = performance.now();
-                    b.style.setProperty('--loading-duration', p95() + 'ms');
-                    b.classList.remove('complete');
-                    void b.offsetWidth;
-                    b.classList.add('active');
-                }
-            });
-            document.addEventListener('htmx:afterSettle', function(evt) {
-                if (evt.detail.target && evt.detail.target.id === 'main-content') {
-                    var b = getBar(); if (!b) return;
-                    if (startTime) {
-                        durations.push(performance.now() - startTime);
-                        if (durations.length > 20) durations.shift();
-                        startTime = null;
-                    }
-                    b.classList.remove('active');
-                    b.classList.add('complete');
-                }
-            });
-            document.addEventListener('htmx:historyRestore', function() {
-                var b = getBar(); if (!b) return;
-                b.classList.remove('active');
-                b.classList.add('complete');
-                startTime = null;
-            });
-            document.addEventListener('htmx:abort', function() {
-                var b = getBar(); if (!b) return;
-                b.classList.remove('active', 'complete');
-                startTime = null;
-            });
-        })();
-
-        // Update page title after HTMX content swap
-        document.addEventListener('htmx:afterSwap', function(evt) {
-            if (evt.detail.target.id === 'main-content') {
-                const titleEl = document.getElementById('page-title');
-                if (titleEl && titleEl.dataset.title) {
-                    document.title = titleEl.dataset.title;
-                }
-            }
-        });
-    </script>
-
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
-    @await RenderSectionAsync("Styles", required: false)
+    <script src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
     <!-- Auth (CSRF interceptor) + Theme (full management, toggle, system listener) -->
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
