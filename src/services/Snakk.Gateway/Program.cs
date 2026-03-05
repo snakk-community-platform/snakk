@@ -33,7 +33,8 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 // Setup mode: if first-run setup hasn't completed, route catch-all and static assets to Snakk.Setup
 // This check runs once at startup. After setup completes, entrypoint.sh restarts all services,
 // so the gateway re-launches and sees .setup-complete → normal routing.
-var setupComplete = File.Exists(Path.Combine(sharedConfigDir, ".setup-complete"));
+var setupComplete = builder.Environment.IsDevelopment()
+    || File.Exists(Path.Combine(sharedConfigDir, ".setup-complete"));
 if (!setupComplete)
 {
     builder.Configuration["ReverseProxy:Routes:web-route:ClusterId"] = "setup-cluster";

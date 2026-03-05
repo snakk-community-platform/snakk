@@ -51,22 +51,7 @@
         <a asp-page="Review" class="btn btn-ghost mt-4">Back to Review</a>
     </div>
 
-    <!-- Success display (hidden by default) -->
-    <div id="success-display" class="hidden space-y-4">
-        <div class="alert alert-success">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>Setup complete! Your Snakk instance is ready.</span>
-        </div>
-        <p class="text-base-content/70">
-            <span class="loading loading-spinner loading-xs"></span>
-            Services are restarting with your new configuration.
-            You'll be redirected to the homepage in <span id="countdown">20</span> seconds.
-        </p>
-        <p class="text-sm text-base-content/50">
-            You've been automatically logged in as admin. If the homepage appears empty,
-            the API may still be starting — just refresh after a few seconds.
-        </p>
-    </div>
+    <!-- Success: redirect to restarting page -->
 </div>
 
 <script>
@@ -132,32 +117,8 @@
             document.getElementById('error-display').classList.remove('hidden');
         }
 
-        async function showSuccess() {
-            // Mark all visible steps done
-            for (var i = 0; i < stepOrder.length; i++) {
-                if (!seedEnabled && stepOrder[i] === 'seeding') continue;
-                markStep(stepOrder[i], 'done');
-            }
-
-            document.getElementById('status-icon').className = 'text-5xl';
-            document.getElementById('status-icon').textContent = '\u2705';
-            document.getElementById('status-title').textContent = 'Setup Complete!';
-            document.getElementById('status-message').classList.add('hidden');
-            document.getElementById('progress-steps').classList.add('hidden');
-            document.getElementById('status-detail').classList.add('hidden');
-            document.getElementById('success-display').classList.remove('hidden');
-
-            // Countdown and redirect
-            var count = 20;
-            var countdownEl = document.getElementById('countdown');
-            var interval = setInterval(function () {
-                count--;
-                countdownEl.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = '/';
-                }
-            }, 1000);
+        function showSuccess() {
+            window.location.href = '/restarting';
         }
 
         async function pollStatus() {

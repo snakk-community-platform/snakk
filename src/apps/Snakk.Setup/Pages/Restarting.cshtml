@@ -1,0 +1,81 @@
+@page
+@model Snakk.Setup.Pages.RestartingModel
+
+@Html.AntiForgeryToken()
+
+<div class="text-center space-y-6">
+    <div id="status-icon">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+    <h2 id="status-title" class="text-2xl font-bold">Restarting Services</h2>
+    <p id="status-message" class="text-base-content/70">
+        Your Snakk instance has been configured. Services are restarting now.
+    </p>
+    <p id="status-detail" class="text-sm text-base-content/40">Waiting for services to come back online...</p>
+
+    <!-- Error display (hidden by default) -->
+    <div id="error-display" class="hidden space-y-3">
+        <div class="alert alert-error text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+                <h3 class="font-bold">Services didn't come back up</h3>
+                <p class="text-sm">
+                    Check the container logs for errors:
+                    <code class="bg-base-200 px-1 rounded">docker compose logs snakk</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict';
+
+        var csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var maxWait = 60;
+        var pollInterval = 3;
+        var elapsed = 0;
+
+        // Fire-and-forget: trigger service restart
+        fetch('/restarting?handler=Restart', {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': csrfToken }
+        }).catch(function () {}); // Ignore — process may die before responding
+
+        // Poll /health until it responds 200
+        var timer = setInterval(async function () {
+            elapsed += pollInterval;
+
+            var secondsLeft = maxWait - elapsed;
+            var detailEl = document.getElementById('status-detail');
+            if (secondsLeft > 0) {
+                detailEl.textContent = 'Waiting for services to come back online... (' + secondsLeft + 's)';
+            }
+
+            try {
+                var res = await fetch('/health', { method: 'GET', cache: 'no-store' });
+                if (res.ok) {
+                    clearInterval(timer);
+                    window.location.href = '/';
+                    return;
+                }
+            } catch (e) {
+                // Expected during restart — gateway is down
+            }
+
+            if (elapsed >= maxWait) {
+                clearInterval(timer);
+                document.getElementById('status-icon').innerHTML = '';
+                document.getElementById('status-title').textContent = 'Restart Timed Out';
+                document.getElementById('status-message').textContent =
+                    'Services did not become healthy within ' + maxWait + ' seconds.';
+                document.getElementById('status-detail').classList.add('hidden');
+                document.getElementById('error-display').classList.remove('hidden');
+            }
+        }, pollInterval * 1000);
+    })();
+</script>
