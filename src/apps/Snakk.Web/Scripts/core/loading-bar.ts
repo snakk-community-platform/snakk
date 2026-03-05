@@ -25,8 +25,15 @@
     function resetBar(b: HTMLElement): void {
         generation++;
         b.classList.remove('active');
+        // Force scaleX(1) inline — CSS can't reliably transition from an interrupted animation
+        b.style.transform = 'scaleX(1)';
         b.classList.add('complete');
         startTime = null;
+        // Clean up inline style after the opacity transition completes
+        b.addEventListener('transitionend', function cleanup() {
+            b.removeEventListener('transitionend', cleanup);
+            b.style.transform = '';
+        }, { once: true });
     }
 
     document.addEventListener('htmx:beforeRequest', (evt: Event) => {
@@ -37,6 +44,7 @@
             const gen = ++generation;
             startTime = performance.now();
             b.style.setProperty('--loading-duration', p95() + 'ms');
+            b.style.transform = '';
             b.classList.remove('complete');
             // Double rAF ensures browser paints the reset before starting the animation
             // Generation check prevents stale callbacks after historyRestore/abort
@@ -74,6 +82,7 @@
         if (!b) return;
         generation++;
         b.classList.remove('active', 'complete');
+        b.style.transform = '';
         startTime = null;
     });
 

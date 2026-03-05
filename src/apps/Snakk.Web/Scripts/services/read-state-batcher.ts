@@ -4,6 +4,12 @@
  * Flushes every 30 seconds or on page unload
  */
 
+(function(): void {
+    'use strict';
+
+    // Guard: skip re-execution during HTMX SPA navigation
+    if ((window as any).ReadStateBatcher) return;
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -345,3 +351,5 @@ class ReadStateBatcher {
 
 // Export singleton instance for backward compatibility
 (window as any).SnakkReadStateBatcher = new ReadStateBatcher();
+
+})();

@@ -3,6 +3,12 @@
  * Auto-saves reply/post drafts to prevent data loss
  */
 
+(function(): void {
+    'use strict';
+
+    // Guard: skip re-execution during HTMX SPA navigation
+    if ((window as any).DraftManager) return;
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -325,3 +331,5 @@ class DraftManager {
 
 // Export singleton instance for backward compatibility
 (window as any).SnakkDraftManager = new DraftManager();
+
+})();

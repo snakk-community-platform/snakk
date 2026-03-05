@@ -2,6 +2,12 @@
  * Generic Cache Manager with TTL and LRU eviction
  */
 
+(function(): void {
+    'use strict';
+
+    // Guard: skip re-execution during HTMX SPA navigation
+    if ((window as any).CacheManager) return;
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -177,3 +183,5 @@ class CacheManager<T = any> {
 
 // Export for use in other modules
 (window as any).CacheManager = CacheManager;
+
+})();

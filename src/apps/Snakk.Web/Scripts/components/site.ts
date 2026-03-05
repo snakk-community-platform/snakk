@@ -3,6 +3,12 @@
  * Displays entity information on hover
  */
 
+(function(): void {
+    'use strict';
+
+    // Guard: skip re-execution during HTMX SPA navigation
+    if ((window as any).SnakkPopup) return;
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -455,3 +461,5 @@ if (document.readyState === 'loading') {
 } else {
     (window as any).SnakkPopupInstance.init();
 }
+
+})();
