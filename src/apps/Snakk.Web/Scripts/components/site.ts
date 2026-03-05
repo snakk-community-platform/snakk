@@ -32,8 +32,6 @@ interface EntityStats {
     hubCount?: number;
 }
 
-type EntityType = 'hub' | 'space' | 'community' | 'user' | 'discussion';
-
 // ============================================================================
 // Implementation
 // ============================================================================
