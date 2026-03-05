@@ -9,6 +9,7 @@
 
     let bar: HTMLElement | null = null;
     let startTime: number | null = null;
+    let generation = 0; // Invalidates pending rAF callbacks on cancel/restore
     const durations: number[] = [];
 
     function getBar(): HTMLElement | null {
@@ -21,18 +22,29 @@
         return sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 2000;
     }
 
+    function resetBar(b: HTMLElement): void {
+        generation++;
+        b.classList.remove('active');
+        b.classList.add('complete');
+        startTime = null;
+    }
+
     document.addEventListener('htmx:beforeRequest', (evt: Event) => {
         const detail = (evt as CustomEvent).detail;
         if (detail.target && detail.target.id === 'main-content') {
             const b = getBar();
             if (!b) return;
+            const gen = ++generation;
             startTime = performance.now();
             b.style.setProperty('--loading-duration', p95() + 'ms');
             b.classList.remove('complete');
             // Double rAF ensures browser paints the reset before starting the animation
+            // Generation check prevents stale callbacks after historyRestore/abort
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    b.classList.add('active');
+                    if (gen === generation) {
+                        b.classList.add('active');
+                    }
                 });
             });
         }
@@ -46,24 +58,21 @@
             if (startTime) {
                 durations.push(performance.now() - startTime);
                 if (durations.length > 20) durations.shift();
-                startTime = null;
             }
-            b.classList.remove('active');
-            b.classList.add('complete');
+            resetBar(b);
         }
     });
 
     document.addEventListener('htmx:historyRestore', () => {
         const b = getBar();
         if (!b) return;
-        b.classList.remove('active');
-        b.classList.add('complete');
-        startTime = null;
+        resetBar(b);
     });
 
     document.addEventListener('htmx:abort', () => {
         const b = getBar();
         if (!b) return;
+        generation++;
         b.classList.remove('active', 'complete');
         startTime = null;
     });
