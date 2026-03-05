@@ -50,10 +50,10 @@ else
         echo "=== Setup complete! Restarting services... ==="
         sleep 3  # Let the wizard's HTTP response reach the browser
 
-        # Stop setup wizard, then restart everything else.
+        # Stop setup wizard and restart everything else (but not setup).
         # Gateway restart causes it to re-check .setup-complete → routes to web-cluster.
         supervisorctl -c /etc/supervisor/conf.d/snakk.conf stop setup
-        supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart all
+        supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart gateway api web auth admin realtime worker
 
         echo "=== All services restarted. Platform is live! ==="
     ) &

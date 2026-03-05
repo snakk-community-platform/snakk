@@ -16,7 +16,7 @@ public class RestartingModel : SetupPageBase
         Process.Start(new ProcessStartInfo
         {
             FileName = "/bin/sh",
-            Arguments = "-c 'sleep 2 && supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart all'",
+            Arguments = "-c 'sleep 2 && supervisorctl -c /etc/supervisor/conf.d/snakk.conf stop setup && supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart gateway api web auth admin realtime worker'",
             UseShellExecute = false,
             RedirectStandardOutput = false,
             RedirectStandardError = false
