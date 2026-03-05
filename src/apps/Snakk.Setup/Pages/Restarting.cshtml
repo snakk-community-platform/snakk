@@ -11,7 +11,7 @@
     <p id="status-message" class="text-base-content/70">
         Your Snakk instance has been configured. Services are restarting now.
     </p>
-    <p id="status-detail" class="text-sm text-base-content/40">Waiting for services to come back online...</p>
+    <p id="status-detail" class="text-sm text-base-content/40"></p>
 
     <!-- Error display (hidden by default) -->
     <div id="error-display" class="hidden space-y-3">
@@ -36,9 +36,10 @@
         'use strict';
 
         var csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-        var maxWait = 60;
+        var detailEl = document.getElementById('status-detail');
+        var initialDelay = 10;
+        var maxPollTime = 60;
         var pollInterval = 3;
-        var elapsed = 0;
 
         // Fire-and-forget: trigger service restart
         fetch('/restarting?handler=Restart', {
@@ -46,36 +47,54 @@
             headers: { 'RequestVerificationToken': csrfToken }
         }).catch(function () {}); // Ignore — process may die before responding
 
-        // Poll /health until it responds 200
-        var timer = setInterval(async function () {
-            elapsed += pollInterval;
+        // Phase 1: Wait for services to shut down (10 seconds)
+        var remaining = initialDelay;
+        detailEl.textContent = 'Waiting for services to restart... (' + remaining + 's)';
 
-            var secondsLeft = maxWait - elapsed;
-            var detailEl = document.getElementById('status-detail');
-            if (secondsLeft > 0) {
-                detailEl.textContent = 'Waiting for services to come back online... (' + secondsLeft + 's)';
+        var countdown = setInterval(function () {
+            remaining--;
+            if (remaining > 0) {
+                detailEl.textContent = 'Waiting for services to restart... (' + remaining + 's)';
+            } else {
+                clearInterval(countdown);
+                startPolling();
             }
+        }, 1000);
 
-            try {
-                var res = await fetch('/health', { method: 'GET', cache: 'no-store' });
-                if (res.ok) {
-                    clearInterval(timer);
-                    window.location.href = '/';
-                    return;
+        // Phase 2: Poll /health until Snakk.Web responds 200
+        function startPolling() {
+            var elapsed = 0;
+            detailEl.textContent = 'Checking if services are online... (' + maxPollTime + 's)';
+
+            var timer = setInterval(async function () {
+                elapsed += pollInterval;
+                var secondsLeft = maxPollTime - elapsed;
+
+                try {
+                    var res = await fetch('/health', { method: 'GET', cache: 'no-store' });
+                    if (res.ok) {
+                        clearInterval(timer);
+                        window.location.href = '/';
+                        return;
+                    }
+                } catch (e) {
+                    // Expected during restart — gateway is down
                 }
-            } catch (e) {
-                // Expected during restart — gateway is down
-            }
 
-            if (elapsed >= maxWait) {
-                clearInterval(timer);
-                document.getElementById('status-icon').innerHTML = '';
-                document.getElementById('status-title').textContent = 'Restart Timed Out';
-                document.getElementById('status-message').textContent =
-                    'Services did not become healthy within ' + maxWait + ' seconds.';
-                document.getElementById('status-detail').classList.add('hidden');
-                document.getElementById('error-display').classList.remove('hidden');
-            }
-        }, pollInterval * 1000);
+                if (secondsLeft > 0) {
+                    detailEl.textContent = 'Checking if services are online... (' + secondsLeft + 's)';
+                }
+
+                if (elapsed >= maxPollTime) {
+                    clearInterval(timer);
+                    document.getElementById('status-icon').innerHTML = '';
+                    document.getElementById('status-title').textContent = 'Restart Timed Out';
+                    document.getElementById('status-message').textContent =
+                        'Services did not become healthy within ' + (initialDelay + maxPollTime) + ' seconds.';
+                    detailEl.classList.add('hidden');
+                    document.getElementById('error-display').classList.remove('hidden');
+                }
+            }, pollInterval * 1000);
+        }
     })();
 </script>
