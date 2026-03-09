@@ -14,34 +14,9 @@
         <div class="topic-content">
             <div class="topic-title">
                 @discussion.Title
-                @if (discussion.Type != "Standard")
-                {
-                    var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
-                    <span class="discussion-type-badge @cssClass">@icon @label</span>
-                }
-                @if (discussion.IsPinned)
-                {
-                    <span class="badge badge-primary badge-xs ml-2">📌 Pinned</span>
-                }
-                @if (discussion.IsLocked)
-                {
-                    <span class="badge badge-warning badge-xs ml-2">🔒 Locked</span>
-                }
-                @if (discussion.Tags != null && discussion.Tags.Count > 0)
-                {
-                    @foreach (var tag in discussion.Tags)
-                    {
-                        <span class="badge badge-ghost badge-xs ml-2">@tag</span>
-                    }
-                }
             </div>
             <div class="topic-meta">
-                <span>@discussion.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</span>
-                @if (discussion.LastActivityAt != null)
-                {
-                    <span class="topic-meta-separator">&middot;</span>
-                    <span>Last activity @FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</span>
-                }
+                <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
             </div>
         </div>
         <div class="topic-stats hidden sm:flex">
@@ -76,7 +51,7 @@
             <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
     </a>
-</div>
-<div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
-    <div class="preview-content"></div>
+    <div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
+        <div class="preview-content"></div>
+    </div>
 </div>

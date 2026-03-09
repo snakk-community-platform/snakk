@@ -6,8 +6,8 @@
     position: sticky;
     top: 4rem; // below navbar (daisyUI navbar min-height)
     z-index: 40;
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border-primary);
+    background: var(--breadcrumb-bg);
+    border-bottom: 1px solid var(--breadcrumb-border);
 
     .breadcrumb {
         max-width: 72rem; // matches max-w-6xl / navbar
@@ -22,7 +22,7 @@
         padding: 0 1rem;
         font-weight: 600;
         font-size: 0.875rem;
-        color: var(--text-primary);
+        color: var(--breadcrumb-text);
         line-height: 1.3;
         display: grid;
         grid-template-rows: 0fr;
@@ -46,17 +46,23 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: var(--breadcrumb-text);
 
     a {
-        color: var(--text-secondary);
+        color: var(--breadcrumb-text);
         text-decoration: none;
         transition: color 0.15s;
 
         &:hover {
-            color: var(--text-primary);
+            color: var(--breadcrumb-text);
+            opacity: 1;
         }
     }
+}
+
+.breadcrumb-separator {
+    color: var(--breadcrumb-text);
+    opacity: 0.5;
 }
 
 .breadcrumb-list {
@@ -69,6 +75,3 @@
     flex-wrap: wrap;
 }
 
-.breadcrumb-separator {
-    color: var(--border-subtle);
-}

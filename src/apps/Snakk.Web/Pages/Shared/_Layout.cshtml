@@ -6,7 +6,7 @@
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersionProvider
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="forest">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -41,14 +41,14 @@
     @{
         var darkThemeCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dark-theme", isVendor: true));
     }
-    <script>
+    @* <script>
         (function() {
             var p = localStorage.getItem('snakk_theme_preference');
             var isDark = p === 'dark' || ((!p || p === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
             document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'lofi');
             if (isDark) { var l = document.createElement('link'); l.id = 'dark-theme-css'; l.rel = 'stylesheet'; l.href = '@Html.Raw(darkThemeCssUrl)'; document.head.appendChild(l); }
         })();
-    </script>
+    </script> *@
 
     <!-- Dark theme CSS URL for dynamic loading by theme.ts -->
     <meta name="dark-theme-css" content="@darkThemeCssUrl" />
@@ -168,9 +168,6 @@
         <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
         @RenderBody()
     </main>
-
-    <footer class="footer footer-center py-6 text-muted mt-16">
-    </footer>
 
     <!-- SignalR Client URL (lazy-loaded by realtime.ts when idle) -->
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />

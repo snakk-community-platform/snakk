@@ -2,24 +2,28 @@
 // Snakk Auth Styles (SCSS)
 // ============================================
 // Compiled to wwwroot/css/auth.css
-// Run: npm run build:css (or npm run watch:css)
 
 // ============================================
-// Variables
+// Variables — matches Snakk.Web design tokens
 // ============================================
-$snakk-purple: #667eea;
-$snakk-purple-dark: #764ba2;
-$text-primary: #374151;
-$text-muted: #6b7280;
-$text-placeholder: #9ca3af;
-$border-color: #e5e7eb;
-$border-hover: #d1d5db;
-$bg-light: #f9fafb;
-$error-bg: #fee2e2;
+$bg-page: #f5f5f5;
+$bg-card: #fff;
+$bg-input: #fafafa;
+$text-primary: #1a1a1a;
+$text-secondary: #666;
+$text-muted: #888;
+$text-placeholder: #aaa;
+$border-color: #e0e0e0;
+$border-hover: #ccc;
+$link-color: #0066cc;
+$link-hover: #004999;
+$error-bg: #fef2f2;
 $error-text: #991b1b;
 $error-border: #fecaca;
 $error-input: #f87171;
 $danger: #dc2626;
+
+$font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
 // ============================================
 // Reset & Base
@@ -31,10 +35,14 @@ $danger: #dc2626;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, $snakk-purple 0%, $snakk-purple-dark 100%);
+    font-family: $font-stack;
+    font-size: 15px;
+    line-height: 1.5;
+    color: $text-primary;
+    background: $bg-page;
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 20px;
@@ -45,14 +53,14 @@ body {
 // ============================================
 .auth-container {
     width: 100%;
-    max-width: 420px;
+    max-width: 380px;
 }
 
 .auth-card {
-    background: white;
-    border-radius: 16px;
-    padding: 40px 32px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    background: $bg-card;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    padding: 32px 28px;
 }
 
 // ============================================
@@ -60,16 +68,18 @@ body {
 // ============================================
 .auth-header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 
     h1 {
-        font-size: 48px;
-        margin-bottom: 8px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
     }
 
     p {
-        color: $text-muted;
-        font-size: 18px;
+        color: $text-secondary;
+        font-size: 14px;
     }
 }
 
@@ -77,49 +87,66 @@ body {
 // Forms
 // ============================================
 .auth-form {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 
     label {
         display: block;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: $text-primary;
-        font-size: 14px;
+        font-weight: 500;
+        font-size: 13px;
+        color: $text-secondary;
+        margin-bottom: 6px;
     }
 }
 
 .form-control {
     width: 100%;
-    padding: 12px 16px;
-    border: 2px solid $border-color;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: border-color 0.2s;
+    padding: 10px 12px;
+    background: $bg-input;
+    border: 1px solid $border-color;
+    border-radius: 6px;
+    font-family: $font-stack;
+    font-size: 14px;
+    color: $text-primary;
+    transition: border-color 0.15s;
+
+    &::placeholder {
+        color: $text-placeholder;
+    }
 
     &:focus {
         outline: none;
-        border-color: $snakk-purple;
+        border-color: $border-hover;
+        background: $bg-card;
     }
 }
 
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: $text-muted;
+}
+
 .form-group-checkbox {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     label {
         display: flex;
         align-items: center;
         cursor: pointer;
         font-weight: normal;
+        font-size: 13px;
+        color: $text-secondary;
     }
 
     input[type="checkbox"] {
         margin-right: 8px;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         cursor: pointer;
     }
 }
@@ -131,23 +158,23 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 15px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: $font-stack;
+    font-weight: 500;
+    font-size: 14px;
     text-decoration: none;
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s, border-color 0.15s;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, $snakk-purple 0%, $snakk-purple-dark 100%);
-    color: white;
+    background: $text-primary;
+    color: #fff;
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba($snakk-purple, 0.4);
+        background: #333;
     }
 }
 
@@ -156,18 +183,21 @@ body {
 }
 
 .btn-oauth {
-    background: white;
-    border: 2px solid $border-color;
+    background: $bg-card;
+    border: 1px solid $border-color;
     color: $text-primary;
+    font-size: 13px;
     gap: 8px;
 
     &:hover {
         border-color: $border-hover;
-        background: $bg-light;
+        background: $bg-input;
     }
 
     span {
-        font-size: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        color: $text-secondary;
     }
 }
 
@@ -177,9 +207,11 @@ body {
 .auth-divider {
     display: flex;
     align-items: center;
-    margin: 24px 0;
-    color: $text-placeholder;
-    font-size: 14px;
+    margin: 20px 0;
+    color: $text-muted;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 
     &::before,
     &::after {
@@ -190,7 +222,7 @@ body {
     }
 
     span {
-        padding: 0 16px;
+        padding: 0 12px;
     }
 }
 
@@ -200,7 +232,7 @@ body {
 .oauth-buttons {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 // ============================================
@@ -208,16 +240,17 @@ body {
 // ============================================
 .auth-footer {
     text-align: center;
-    margin-top: 24px;
+    margin-top: 20px;
     color: $text-muted;
-    font-size: 14px;
+    font-size: 13px;
 
     a {
-        color: $snakk-purple;
+        color: $link-color;
         text-decoration: none;
-        font-weight: 600;
+        font-weight: 500;
 
         &:hover {
+            color: $link-hover;
             text-decoration: underline;
         }
     }
@@ -227,10 +260,10 @@ body {
 // Alerts & Validation
 // ============================================
 .alert {
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 13px;
 }
 
 .alert-error {
@@ -241,7 +274,7 @@ body {
 
 .text-danger {
     color: $danger;
-    font-size: 13px;
+    font-size: 12px;
     margin-top: 4px;
     display: block;
 }
@@ -253,10 +286,10 @@ input.input-validation-error {
 .validation-summary-errors {
     background: $error-bg;
     color: $error-text;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 13px;
 
     ul {
         list-style: none;

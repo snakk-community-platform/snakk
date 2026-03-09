@@ -1308,8 +1308,8 @@ function formatPostRelativeTime(dateString: string): string {
 function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): HTMLElement {
     const article = document.createElement('article');
     article.id = `post-${post.publicId}`;
-    const mtClass = isSameAuthorAsPrevious ? 'mt-1' : 'mt-6';
-    article.className = `post-item post-article group ${post.isFirstPost ? 'first-post' : ''} ${mtClass}`;
+    const authorClass = isSameAuthorAsPrevious ? 'same-author' : 'new-author';
+    article.className = `post-item post-article post-layout group ${post.isFirstPost ? 'first-post' : ''} ${authorClass}`;
     article.dataset.authorId = post.author.publicId;
     article.dataset.postId = post.publicId;
 
@@ -1317,7 +1317,40 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     const hasReplyTo = post.replyTo != null;
     const isOwner = isAuthenticated && currentUserId === post.author.publicId;
 
-    // Build action buttons + dropdown (used in header)
+    // Build left pane (avatar + username for new author, empty for same author)
+    let authorPaneHtml = '<aside class="post-author-pane">';
+    if (!isSameAuthorAsPrevious) {
+        if (post.author.isDeleted) {
+            authorPaneHtml += `
+                <div class="post-avatar post-avatar-deleted">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+                <span class="post-author-name deleted">${escapeHtml(post.author.displayName)}</span>`;
+        } else {
+            authorPaneHtml += `
+                <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
+                     width="48" height="48" class="post-avatar" loading="lazy" />
+                <a href="/u/${post.author.publicId}" class="post-author-name"
+                   data-popup-type="user" data-popup-id="${post.author.publicId}"
+                   data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a>`;
+        }
+        // Badges
+        let badges = '';
+        if (post.author.role === 'admin') {
+            badges += '<span class="badge badge-error badge-xs">Admin</span>';
+        } else if (post.author.role === 'mod') {
+            badges += '<span class="badge badge-info badge-xs">Mod</span>';
+        }
+        if (isOP) {
+            badges += '<span class="badge badge-primary badge-xs">OP</span>';
+        }
+        authorPaneHtml += `<div class="post-author-badges">${badges}</div>`;
+    }
+    authorPaneHtml += '</aside>';
+
+    // Build action buttons
     let actionButtonsHtml = '';
     if (!isLocked && isAuthenticated) {
         actionButtonsHtml = `
@@ -1400,61 +1433,25 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
         : '';
     const reactionsContainerHtml = `<div class="flex items-center gap-2 text-xs text-muted${canReact ? ' cursor-pointer' : ''}" id="reactions-${post.publicId}" data-count-thumbsup="0" data-count-heart="0" data-count-eyes="0" data-count-crazy="0" data-my-reaction=""${canReact ? ` onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('${post.publicId}'); return false;"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
 
-    const actionsContainerHtml = isSameAuthorAsPrevious
-        ? `<div class="subtle-actions flex-1 flex justify-end gap-1">${actionButtonsHtml}${reactionsContainerHtml}${dropdownHtml}</div>`
-        : `<div class="subtle-actions flex items-center gap-1">${actionButtonsHtml}${reactionsContainerHtml}${dropdownHtml}</div>`;
+    // Build toolbar
+    const editedTag = post.editedAt ? '<span>(edited)</span>' : '';
 
-    let headerHtml = '';
-    if (!isSameAuthorAsPrevious) {
-        let badges = '';
-        if (post.author.role === 'admin') {
-            badges += '<span class="badge badge-error badge-xs">Admin</span>';
-        } else if (post.author.role === 'mod') {
-            badges += '<span class="badge badge-info badge-xs">Mod</span>';
-        }
-        if (isOP) {
-            badges += '<span class="badge badge-primary badge-xs">OP</span>';
-        }
-        const editedTag = post.editedAt ? '<span class="ml-1">(edited)</span>' : '';
-
+    // Inline author (shown on mobile, hidden on desktop via CSS)
+    let inlineAuthorHtml = '';
+    if (isSameAuthorAsPrevious) {
+        // Same-author: inline author is hidden by default, shown on mobile
         if (post.author.isDeleted) {
-            headerHtml = `
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold italic text-muted">${escapeHtml(post.author.displayName)}</span>
-                            ${badges}
-                        </div>
-                        <div class="text-xs text-muted">${formatPostRelativeTime(post.createdAt)}${editedTag}</div>
-                    </div>
-                    ${actionsContainerHtml}
-                </div>`;
+            inlineAuthorHtml = `<span class="post-author-inline hidden"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
         } else {
-            headerHtml = `
-                <div class="flex items-start gap-3">
-                    <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}" class="w-8 h-8 rounded-full flex-shrink-0" loading="lazy" />
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <a href="/u/${post.author.publicId}" class="text-sm font-semibold hover:underline" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a>
-                            ${badges}
-                        </div>
-                        <div class="text-xs text-muted">${formatPostRelativeTime(post.createdAt)}${editedTag}</div>
-                    </div>
-                    ${actionsContainerHtml}
-                </div>`;
+            inlineAuthorHtml = `<span class="post-author-inline hidden"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
         }
     } else {
-        const editedTag = post.editedAt ? '<span>(edited)</span>' : '';
-        headerHtml = `
-            <div class="flex items-center gap-2 pl-11">
-                <span class="text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">${formatPostRelativeTime(post.createdAt)}${editedTag}</span>
-                ${actionsContainerHtml}
-            </div>`;
+        // New author: inline author shown on mobile (CSS controls visibility)
+        if (post.author.isDeleted) {
+            inlineAuthorHtml = `<span class="post-author-inline"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
+        } else {
+            inlineAuthorHtml = `<span class="post-author-inline"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+        }
     }
 
     let replyToHtml = '';
@@ -1467,8 +1464,19 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     }
 
     article.innerHTML = `
-        ${headerHtml}
-        <div class="pl-11 mt-1">
+        ${authorPaneHtml}
+        <div class="post-main">
+            <div class="post-toolbar">
+                <div class="post-toolbar-left">
+                    ${inlineAuthorHtml}
+                    <span class="post-time">${formatPostRelativeTime(post.createdAt)}${editedTag}</span>
+                </div>
+                <div class="post-toolbar-right">
+                    ${actionButtonsHtml}
+                    ${reactionsContainerHtml}
+                    ${dropdownHtml}
+                </div>
+            </div>
             ${replyToHtml}
             <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}">
                 ${post.renderedContent ? sanitizeHtml(post.renderedContent) : escapeHtml(post.content)}
@@ -1631,86 +1639,6 @@ function showReportError(message: string): void {
     errorDiv?.classList.remove('hidden');
 }
 
-// ===== Sticky Sidebar =====
-function initStickySidebar(): void {
-    // Only run on desktop (lg breakpoint)
-    if (window.innerWidth < 1024) return;
-
-    const sidebar = document.getElementById('sidebar');
-    const nav = document.querySelector<HTMLElement>('nav');
-
-    if (!sidebar || !nav) return;
-
-    let sidebarOriginalTop: number | null = null;
-    let navHeight = 0;
-    let isSticky = false;
-
-    function updateMeasurements(): void {
-        if (!sidebar || !nav) return;
-        navHeight = nav.offsetHeight;
-        const sidebarRect = sidebar.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-        if (sidebarOriginalTop === null) {
-            sidebarOriginalTop = sidebarRect.top + scrollTop;
-        }
-
-        // Set max-height to viewport minus nav height
-        sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
-    }
-
-    function handleScroll(): void {
-        if (!sidebar || sidebarOriginalTop === null) return;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const triggerPoint = sidebarOriginalTop - navHeight;
-
-        if (scrollTop >= triggerPoint && !isSticky) {
-            sidebar.classList.add('sidebar-sticky');
-            sidebar.style.top = `calc(${navHeight}px + 1rem)`;
-            isSticky = true;
-        } else if (scrollTop < triggerPoint && isSticky) {
-            sidebar.classList.remove('sidebar-sticky');
-            sidebar.style.top = '';
-            isSticky = false;
-        }
-    }
-
-    // Initialize
-    updateMeasurements();
-    handleScroll();
-
-    // Listen to scroll events (throttled)
-    let scrollTimeout: number;
-    window.addEventListener('scroll', function() {
-        if (scrollTimeout) {
-            window.cancelAnimationFrame(scrollTimeout);
-        }
-        scrollTimeout = window.requestAnimationFrame(function() {
-            handleScroll();
-        });
-    }, { passive: true });
-
-    // Update measurements on resize
-    let resizeTimeout: ReturnType<typeof setTimeout>;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(function() {
-            if (!sidebar) return;
-            if (window.innerWidth >= 1024) {
-                sidebarOriginalTop = null; // Reset to recalculate
-                updateMeasurements();
-                handleScroll();
-            } else {
-                // Remove sticky on mobile
-                sidebar.classList.remove('sidebar-sticky');
-                sidebar.style.top = '';
-                sidebar.style.maxHeight = '';
-                isSticky = false;
-            }
-        }, 100);
-    });
-}
-
 // ===== Initialize Discussion Page =====
 function initDiscussionPage(config: DiscussionConfig): void {
     // Reset editor state for HTMX navigation (DOM was swapped, old editor is gone)
@@ -1771,8 +1699,6 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Setup event listeners
     setupEventListeners();
 
-    // Initialize sticky sidebar
-    initStickySidebar();
 }
 
 function setupEventListeners(): void {

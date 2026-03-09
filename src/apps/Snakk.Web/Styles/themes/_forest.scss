@@ -1,16 +1,19 @@
 // ============================================
-// Dark Forest Theme — Component Overrides
+// Forest Light Theme — Component Overrides
 // ============================================
+// These are the default (light) theme styles.
+// Scoped to :root so they apply by default.
 
-[data-theme="dark"] {
-    // Navbar
+:root,
+[data-theme="forest"] {
+    // Navbar — strong primary green with white text
     .minimal-nav {
         .brand-text {
-            color: #4CAF7D;
+            color: #FFFFFF;
         }
 
         .dropdown-content {
-            background: var(--bg-secondary);
+            background: var(--bg-tertiary);
 
             a {
                 color: var(--text-primary);
@@ -31,23 +34,23 @@
     // Buttons
     .btn-primary {
         background: #4CAF7D;
-        color: #0F1A14;
+        color: #FFFFFF;
         border-color: #4CAF7D;
 
         &:hover {
-            background: #6BC99A;
-            border-color: #6BC99A;
+            background: #145A41;
+            border-color: #145A41;
         }
     }
 
     // Badge colors
     .badge-primary-subtle {
-        background: rgba(76, 175, 125, 0.2);
-        color: #6BC99A;
+        background: rgba(76, 175, 125, 0.15);
+        color: #1F7A5A;
     }
 
     .badge-warning-subtle {
-        background: rgba(231, 111, 81, 0.2);
+        background: rgba(231, 111, 81, 0.15);
         color: #E76F51;
     }
 
@@ -59,7 +62,7 @@
 
     // Unread notification indicator
     .notification-item.unread {
-        background-color: rgba(76, 175, 125, 0.1);
+        background-color: rgba(76, 175, 125, 0.08);
 
         &::before {
             background-color: #4CAF7D;
@@ -69,18 +72,18 @@
     // Reaction pills
     .reaction-pill.active {
         border-color: #4CAF7D;
-        background: rgba(76, 175, 125, 0.2);
-        color: #6BC99A;
+        background: rgba(76, 175, 125, 0.15);
+        color: #1F7A5A;
 
         .count {
-            color: #6BC99A;
+            color: #1F7A5A;
         }
     }
 
     // Moderator highlights
     .post-article.moderator-post {
-        background: linear-gradient(90deg, rgba(76, 175, 125, 0.05) 0%, transparent 100%);
-        border-left: 3px solid rgba(76, 175, 125, 0.4);
+        background: linear-gradient(90deg, rgba(31, 122, 90, 0.05) 0%, transparent 100%);
+        border-left: 3px solid rgba(31, 122, 90, 0.4);
     }
 
     .post-article.keyboard-selected {
@@ -90,12 +93,12 @@
 
     // Hover highlights
     .preview-btn:hover {
-        background-color: rgba(76, 175, 125, 0.08);
+        background-color: rgba(31, 122, 90, 0.08);
     }
 
     .preview-btn.active {
-        background-color: rgba(76, 175, 125, 0.2);
-        color: #4CAF7D;
+        background-color: rgba(76, 175, 125, 0.15);
+        color: #1F7A5A;
     }
 
     // Focus states
@@ -107,38 +110,19 @@
     .textarea:focus,
     .select:focus {
         border-color: #4CAF7D;
-        box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.1);
+        box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.15);
     }
 
     // Sidebar callouts
     .sidebar-section {
         .stats-panel {
-            background: var(--bg-secondary);
+            background: var(--bg-tertiary);
         }
     }
 
     // Skeleton loaders
     .skeleton {
-        background: linear-gradient(90deg, #152420 25%, #1E3429 50%, #152420 75%);
+        background: linear-gradient(90deg, #E8EFE8 25%, #F0F5F0 50%, #E8EFE8 75%);
         background-size: 200% 100%;
-    }
-
-    // Popup shadows
-    .snakk-popup {
-        box-shadow:
-            0 4px 6px rgba(0, 0, 0, 0.3),
-            0 12px 28px rgba(0, 0, 0, 0.4),
-            0 20px 40px rgba(0, 0, 0, 0.3);
-        border-color: var(--border-subtle);
-    }
-
-    // Modal backdrop
-    .modal-backdrop {
-        background: rgba(0, 0, 0, 0.7);
-    }
-
-    // Search focus pane
-    .search-focus-pane {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 }

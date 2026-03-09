@@ -1,20 +1,191 @@
 // ============================================
-// Post Article
+// Post Article — Two-Column Layout
 // ============================================
 
+.post-layout {
+    display: flex;
+    gap: 0;
+
+    &.new-author {
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--border-secondary);
+        padding-top: 1rem;
+    }
+
+    &.same-author {
+        margin-top: 0.25rem;
+    }
+}
+
+// Left pane: avatar + username (desktop), just avatar (mobile)
+.post-author-pane {
+    width: 150px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-right: 1px solid var(--border-secondary);
+}
+
+.post-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.post-avatar-deleted {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.post-author-name {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    text-decoration: none;
+    word-break: break-word;
+
+    &:hover {
+        color: var(--link-primary);
+    }
+
+    &.deleted {
+        font-style: italic;
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+}
+
+.post-author-badges {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+// Right pane: toolbar + content
+.post-main {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0 0.5rem 1rem;
+}
+
+.post-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    min-height: 1.5rem;
+}
+
+.post-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    min-height: 1.96rem;
+    color: var(--text-tertiary);
+}
+
+.post-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+// Mobile-only inline author name (shown in toolbar on small screens)
+.post-author-inline {
+    display: none;
+    font-weight: 600;
+    color: var(--text-primary);
+
+    a {
+        color: var(--text-primary);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--link-primary);
+        }
+    }
+
+    &.deleted,
+    .deleted {
+        font-style: italic;
+        color: var(--text-muted);
+    }
+}
+
+.post-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+// Mobile responsive
+@media (max-width: 640px) {
+    .post-author-pane {
+        width: 48px;
+        padding: 0.5rem 0.5rem 0.5rem 0;
+    }
+
+    .post-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .post-avatar-deleted {
+        width: 32px;
+        height: 32px;
+
+        svg {
+            width: 1rem;
+            height: 1rem;
+        }
+    }
+
+    // Hide desktop author info in left pane
+    .post-author-name,
+    .post-author-badges {
+        display: none;
+    }
+
+    // Show inline author in toolbar
+    .post-author-inline {
+        display: inline;
+    }
+
+    // For same-author posts, also show the inline name on mobile
+    .same-author .post-author-inline.hidden {
+        display: inline;
+    }
+
+    .post-main {
+        padding-left: 0.5rem;
+    }
+}
+
+// Legacy overrides for new layout
 .post-article {
     &.moderator-post {
         background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
         border-left: 3px solid rgba(59, 130, 246, 0.3);
-        padding-left: 1rem;
-        margin-left: -1rem;
     }
 
     &.keyboard-selected {
         background: rgba(0, 102, 204, 0.05);
         border-left: 3px solid #0066cc;
-        padding-left: 1rem;
-        margin-left: -1rem;
         transition: background 0.2s ease, border-color 0.2s ease;
     }
 }
@@ -29,7 +200,7 @@
     100% { background-color: transparent; }
 }
 
-// Author Block
+// Author Block (legacy)
 .author-block {
     display: flex;
     align-items: center;

@@ -1,0 +1,38 @@
+@page "/setup-profile"
+@model Snakk.Auth.Pages.SetupProfileModel
+@{
+    ViewData["Title"] = "Setup Your Profile";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Set up your profile</h1>
+            <p>Choose how you want to appear.</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-error">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <form method="post" class="auth-form">
+            <div class="form-group">
+                <label asp-for="Input.DisplayName">Display Name</label>
+                <input asp-for="Input.DisplayName" class="form-control" placeholder="Choose your display name" />
+                <span asp-validation-for="Input.DisplayName" class="text-danger"></span>
+                <small class="form-hint">This is how others will see you. You can change it later.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                Continue
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

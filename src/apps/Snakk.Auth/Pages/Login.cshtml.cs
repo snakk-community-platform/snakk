@@ -1,16 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
+using Grpc.Core;
+using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages;
 
 public class LoginModel(
-    IHttpClientFactory httpClientFactory,
-    IConfiguration _configuration,
+    AuthService.AuthServiceClient authClient,
     ILogger<LoginModel> logger) : PageModel
 {
     [BindProperty]
@@ -38,53 +35,41 @@ public class LoginModel(
         public string? ReturnUrl { get; set; }
     }
 
-    public void OnGet()
+    public void OnGet(string? error)
     {
         Input.ReturnUrl = ReturnUrl;
+
+        if (!string.IsNullOrEmpty(error))
+        {
+            ErrorMessage = error switch
+            {
+                "oauth_failed" => "OAuth authentication failed. Please try again.",
+                "invalid_oauth_response" => "Invalid response from OAuth provider.",
+                "oauth_claims_missing" => "Missing required information from OAuth provider.",
+                "oauth_token_missing" => "Authentication succeeded but no token was returned.",
+                "oauth_server_error" => "A server error occurred during authentication.",
+                "oauth_error" => "An error occurred during authentication.",
+                _ => Uri.UnescapeDataString(error)
+            };
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)
-        {
             return Page();
-        }
 
         try
         {
-            var httpClient = httpClientFactory.CreateClient("SnakkApi");
-
-            // Call API login endpoint
-            var loginRequest = new
+            var response = await authClient.LoginAsync(new LoginRequest
             {
-                email = Input.Email,
-                password = Input.Password
-            };
-
-            var content = new StringContent(
-                JsonSerializer.Serialize(loginRequest),
-                Encoding.UTF8,
-                "application/json"
-            );
-
-            var response = await httpClient.PostAsync("/auth/login", content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogWarning("Login failed: {StatusCode} - {Error}", response.StatusCode, errorContent);
-
-                ErrorMessage = "Invalid email/username or password.";
-                return Page();
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var loginResponse = JsonSerializer.Deserialize<LoginResponse>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
+                Email = Input.Email,
+                Password = Input.Password,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
             });
 
-            if (loginResponse?.AccessToken is null)
+            if (string.IsNullOrEmpty(response.AccessToken))
             {
                 ErrorMessage = "Login failed. Please try again.";
                 return Page();
@@ -94,28 +79,33 @@ public class LoginModel(
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Always secure — browsers treat localhost as secure context
+                Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Expires = Input.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(8),
+                Expires = Input.RememberMe
+                    ? DateTimeOffset.UtcNow.AddDays(30)
+                    : DateTimeOffset.UtcNow.AddHours(8),
                 Path = "/"
             };
 
-            Response.Cookies.Append(".Snakk.Auth", loginResponse.AccessToken, cookieOptions);
-            if (!string.IsNullOrEmpty(loginResponse.RefreshToken))
+            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, cookieOptions);
+            if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                Response.Cookies.Append(".Snakk.Auth.Refresh", loginResponse.RefreshToken, cookieOptions);
+                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, cookieOptions);
             }
 
-            // Redirect to return URL or home
             var returnUrl = Input.ReturnUrl ?? ReturnUrl ?? "/";
-
-            // Validate return URL to prevent open redirect
             if (!Url.IsLocalUrl(returnUrl))
-            {
                 returnUrl = "/";
-            }
 
             return Redirect(returnUrl);
+        }
+        catch (RpcException ex)
+        {
+            logger.LogWarning("Login gRPC error: {Status}", ex.Status.Detail);
+            ErrorMessage = ex.StatusCode == Grpc.Core.StatusCode.Unauthenticated
+                ? "Invalid email or password."
+                : "Login failed. Please try again.";
+            return Page();
         }
         catch (Exception ex)
         {
@@ -123,12 +113,5 @@ public class LoginModel(
             ErrorMessage = "An error occurred during login. Please try again.";
             return Page();
         }
-    }
-
-    private class LoginResponse
-    {
-        public string? AccessToken { get; set; }
-        public string? RefreshToken { get; set; }
-        public DateTime ExpiresAt { get; set; }
     }
 }

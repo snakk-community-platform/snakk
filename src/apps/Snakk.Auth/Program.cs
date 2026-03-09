@@ -18,7 +18,6 @@ builder.Configuration.AddJsonFile(
 
 // Add Razor Pages
 builder.Services.AddRazorPages();
-builder.Services.AddHttpClient();
 
 // gRPC client for calling Snakk.Api
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";

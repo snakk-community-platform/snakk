@@ -16,7 +16,6 @@
         if (!config || !spaceConfig) return;
 
         loadFollowStatus();
-        initStickySidebar();
         initDiscussionPreviews();
     }
 
@@ -151,77 +150,6 @@
     }
 
     /**
-     * Sticky sidebar functionality (desktop only)
-     */
-    function initStickySidebar(): void {
-        if (window.innerWidth < 1024) return;
-
-        const sidebar = document.getElementById('sidebar');
-        const nav = document.querySelector('nav.navbar') as HTMLElement | null;
-
-        if (!sidebar || !nav) return;
-
-        let navHeight = 0;
-        let sidebarOriginalTop = 0;
-        let isSticky = false;
-        let ticking = false;
-
-        function updateDimensions() {
-            if (!nav || !sidebar) return;
-            navHeight = nav.offsetHeight;
-            const rect = sidebar.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            sidebarOriginalTop = rect.top + scrollTop;
-
-            sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
-        }
-
-        function handleScroll() {
-            if (!sidebar) return;
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    if (!sidebar) return;
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    const triggerPoint = sidebarOriginalTop - navHeight;
-
-                    if (scrollTop >= triggerPoint && !isSticky) {
-                        sidebar.classList.add('sidebar-sticky');
-                        sidebar.style.top = `${navHeight}px`;
-                        isSticky = true;
-                    } else if (scrollTop < triggerPoint && isSticky) {
-                        sidebar.classList.remove('sidebar-sticky');
-                        sidebar.style.top = '';
-                        isSticky = false;
-                    }
-
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        }
-
-        function handleResize() {
-            if (!sidebar) return;
-            if (window.innerWidth < 1024) {
-                sidebar.classList.remove('sidebar-sticky');
-                sidebar.style.top = '';
-                sidebar.style.maxHeight = '';
-                isSticky = false;
-                return;
-            }
-
-            updateDimensions();
-            handleScroll();
-        }
-
-        updateDimensions();
-        handleScroll();
-
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', handleResize);
-    }
-
-    /**
      * Discussion Preview Feature
      * Uses event delegation on #discussions-container so HTMX-loaded items work automatically.
      */
@@ -303,9 +231,9 @@
             e.preventDefault();
             const discussionId = button.dataset.discussionId;
             const wrapper = button.closest('.topic-item-wrapper');
-            const previewDiv = wrapper?.nextElementSibling as HTMLElement | null;
+            const previewDiv = wrapper?.querySelector('.discussion-preview') as HTMLElement | null;
 
-            if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
+            if (previewDiv) {
                 togglePreview(button, previewDiv, discussionId);
             }
         });

@@ -441,6 +441,9 @@ class SnakkPopup {
 
         // Close popup on HTMX navigation so it doesn't linger after page swap
         document.addEventListener('htmx:beforeRequest', () => this.dismissPopup(), false);
+
+        // Close popup on scroll so it doesn't float detached from its trigger
+        window.addEventListener('scroll', () => this.dismissPopup(), { passive: true });
     }
 
     /**

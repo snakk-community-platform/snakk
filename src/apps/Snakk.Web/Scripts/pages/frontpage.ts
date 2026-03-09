@@ -1,6 +1,6 @@
 /**
  * Frontpage (Index) JavaScript
- * Manages sticky sidebar and discussion previews
+ * Manages discussion previews
  */
 
 // ============================================================================
@@ -9,93 +9,6 @@
 
 (function(): void {
     'use strict';
-
-    /**
-     * Sticky Sidebar Feature (desktop only)
-     */
-    function initStickySidebar(): void {
-        // Only run on desktop (lg breakpoint)
-        if (window.innerWidth < 1024) return;
-
-        const sidebar = document.getElementById('sidebar');
-        const nav = document.querySelector<HTMLElement>('nav');
-
-        if (!sidebar || !nav) return;
-
-        let sidebarOriginalTop: number | null = null;
-        let navHeight = 0;
-        let isSticky = false;
-
-        function updateMeasurements(): void {
-            if (!sidebar || !nav) return;
-
-            // Batch all reads first
-            const newNavHeight = nav.offsetHeight;
-            const sidebarRect = sidebar.getBoundingClientRect();
-            const scrollTop = window.scrollY;
-
-            // Then writes
-            navHeight = newNavHeight;
-
-            if (sidebarOriginalTop === null) {
-                sidebarOriginalTop = sidebarRect.top + scrollTop;
-            }
-
-            sidebar.style.maxHeight = `calc(100vh - ${navHeight}px)`;
-        }
-
-        function handleScroll(): void {
-            if (!sidebar || sidebarOriginalTop === null) return;
-
-            const scrollTop = window.scrollY;
-            const triggerPoint = sidebarOriginalTop - navHeight;
-
-            if (scrollTop >= triggerPoint && !isSticky) {
-                sidebar.classList.add('sidebar-sticky');
-                sidebar.style.top = `calc(${navHeight}px + 1rem)`;
-                isSticky = true;
-            } else if (scrollTop < triggerPoint && isSticky) {
-                sidebar.classList.remove('sidebar-sticky');
-                sidebar.style.top = '';
-                isSticky = false;
-            }
-        }
-
-        // Initialize
-        updateMeasurements();
-        handleScroll();
-
-        // Listen to scroll events (throttled)
-        let scrollTimeout: number;
-        window.addEventListener('scroll', function() {
-            if (scrollTimeout) {
-                window.cancelAnimationFrame(scrollTimeout);
-            }
-            scrollTimeout = window.requestAnimationFrame(function() {
-                handleScroll();
-            });
-        }, { passive: true });
-
-        // Update measurements on resize
-        let resizeTimeout: ReturnType<typeof setTimeout>;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(function() {
-                if (!sidebar) return;
-                if (window.innerWidth >= 1024) {
-                    sidebarOriginalTop = null; // Reset to recalculate
-                    updateMeasurements();
-                    handleScroll();
-                } else {
-                    // Remove sticky on mobile
-                    sidebar.classList.remove('sidebar-sticky');
-                    sidebar.style.top = '';
-                    sidebar.style.maxHeight = '';
-                    isSticky = false;
-                }
-            }, 100);
-        });
-    }
 
     /**
      * Discussion Preview Feature
@@ -178,9 +91,9 @@
             e.preventDefault();
             const discussionId = button.dataset.discussionId;
             const wrapper = button.closest('.topic-item-wrapper');
-            const previewDiv = wrapper?.nextElementSibling as HTMLElement | null;
+            const previewDiv = wrapper?.querySelector('.discussion-preview') as HTMLElement | null;
 
-            if (previewDiv && previewDiv.classList.contains('discussion-preview')) {
+            if (previewDiv) {
                 togglePreview(button, previewDiv, discussionId);
             }
         });
@@ -189,11 +102,9 @@
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
-            initStickySidebar();
             initDiscussionPreviews();
         });
     } else {
-        initStickySidebar();
         initDiscussionPreviews();
     }
 })();

@@ -73,36 +73,36 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
-// Rate limiting
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = 429;
-
-    // Auth endpoints: strict per-IP (10 req/min) to prevent brute force
-    options.AddPolicy("auth-strict", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: GetClientIp(context, clientIpHeader),
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 2
-            }));
-
-    // General routes: moderate per-IP (200 req/min)
-    options.AddPolicy("general", context =>
-        RateLimitPartition.GetSlidingWindowLimiter(
-            partitionKey: GetClientIp(context, clientIpHeader),
-            factory: _ => new SlidingWindowRateLimiterOptions
-            {
-                PermitLimit = 200,
-                Window = TimeSpan.FromMinutes(1),
-                SegmentsPerWindow = 6,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 10
-            }));
-});
+// Rate limiting (disabled — re-enable before production)
+// builder.Services.AddRateLimiter(options =>
+// {
+//     options.RejectionStatusCode = 429;
+//
+//     // Auth endpoints: strict per-IP (10 req/min) to prevent brute force
+//     options.AddPolicy("auth-strict", context =>
+//         RateLimitPartition.GetFixedWindowLimiter(
+//             partitionKey: GetClientIp(context, clientIpHeader),
+//             factory: _ => new FixedWindowRateLimiterOptions
+//             {
+//                 PermitLimit = 10,
+//                 Window = TimeSpan.FromMinutes(1),
+//                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+//                 QueueLimit = 2
+//             }));
+//
+//     // General routes: moderate per-IP (200 req/min)
+//     options.AddPolicy("general", context =>
+//         RateLimitPartition.GetSlidingWindowLimiter(
+//             partitionKey: GetClientIp(context, clientIpHeader),
+//             factory: _ => new SlidingWindowRateLimiterOptions
+//             {
+//                 PermitLimit = 200,
+//                 Window = TimeSpan.FromMinutes(1),
+//                 SegmentsPerWindow = 6,
+//                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+//                 QueueLimit = 10
+//             }));
+// });
 
 // Request timeouts (configured per-route in appsettings.json)
 builder.Services.AddRequestTimeouts();
@@ -135,7 +135,7 @@ if (!app.Environment.IsProduction())
 // Middleware pipeline (order matters)
 app.UseResponseCompression();
 app.UseRouting();
-app.UseRateLimiter();
+//app.UseRateLimiter();
 app.UseRequestTimeouts();
 app.MapReverseProxy();
 

@@ -89,10 +89,34 @@
 }
 
 // Sticky sidebar
+#sticky-sidebar,
+#sidebar {
+    background: var(--sidebar-bg);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+}
+
 @media (min-width: 1024px) {
+    // Frontpage sidebar — no breadcrumb bar
     #sticky-sidebar {
+        position: sticky;
+        top: 5rem; // 4rem navbar + 1rem gap
+        min-height: calc(100vh - 6rem);
         overflow-y: auto;
-        max-height: calc(100vh - 5rem);
+        max-height: calc(100vh - 6rem);
+    }
+
+    // Other pages — below navbar + breadcrumb bar (which expands with page title)
+    #sidebar {
+        position: sticky;
+        top: 9rem; // 4rem navbar + ~4rem breadcrumb (with title) + 1rem gap
+        min-height: calc(100vh - 10rem);
+        overflow-y: auto;
+        max-height: calc(100vh - 10rem);
+    }
+
+    #sticky-sidebar,
+    #sidebar {
         scrollbar-width: thin;
         scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
 
@@ -111,11 +135,6 @@
             &:hover {
                 background-color: rgba(155, 155, 155, 0.7);
             }
-        }
-
-        &.sidebar-sticky {
-            position: sticky;
-            top: 1rem;
         }
 
         &.has-scrollbar {

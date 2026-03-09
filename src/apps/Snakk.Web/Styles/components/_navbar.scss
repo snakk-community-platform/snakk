@@ -3,16 +3,17 @@
 // ============================================
 
 .minimal-nav {
-    background: var(--bg-primary);
+    background: var(--nav-bg);
     border-bottom: 1px solid;
-    border-bottom-color: var(--border-primary);
+    border-bottom-color: var(--nav-border);
 
-    a {
-        color: var(--text-secondary);
+    a,
+    .btn-ghost {
+        color: var(--nav-text);
         transition: color 0.15s ease;
 
         &:hover {
-            color: var(--text-primary);
+            color: var(--nav-text-hover);
         }
     }
 

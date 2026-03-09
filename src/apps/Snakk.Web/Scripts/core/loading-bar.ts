@@ -58,23 +58,34 @@
         }
     });
 
-    document.addEventListener('htmx:afterSettle', (evt: Event) => {
+    document.addEventListener('htmx:afterSwap', (evt: Event) => {
         const detail = (evt as CustomEvent).detail;
         if (detail.target && detail.target.id === 'main-content') {
+            // Complete loading bar (works for both normal and history navigations)
             const b = getBar();
-            if (!b) return;
-            if (startTime) {
-                durations.push(performance.now() - startTime);
-                if (durations.length > 20) durations.shift();
+            if (b && startTime) {
+                if (startTime) {
+                    durations.push(performance.now() - startTime);
+                    if (durations.length > 20) durations.shift();
+                }
+                resetBar(b);
             }
-            resetBar(b);
+
+            // Update page title
+            const titleEl = document.getElementById('page-title');
+            if (titleEl && titleEl.dataset.title) {
+                document.title = titleEl.dataset.title;
+            }
         }
     });
 
     document.addEventListener('htmx:historyRestore', () => {
+        // Fires before double-rAF adds 'active' class, so check startTime instead
         const b = getBar();
         if (!b) return;
-        resetBar(b);
+        if (startTime) {
+            resetBar(b);
+        }
     });
 
     document.addEventListener('htmx:abort', () => {
@@ -84,15 +95,5 @@
         b.classList.remove('active', 'complete');
         b.style.transform = '';
         startTime = null;
-    });
-
-    document.addEventListener('htmx:afterSwap', (evt: Event) => {
-        const detail = (evt as CustomEvent).detail;
-        if (detail.target.id === 'main-content') {
-            const titleEl = document.getElementById('page-title');
-            if (titleEl && titleEl.dataset.title) {
-                document.title = titleEl.dataset.title;
-            }
-        }
     });
 })();

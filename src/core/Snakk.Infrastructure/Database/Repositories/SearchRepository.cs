@@ -401,15 +401,10 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.LastActivityAt < cursorDate
                 || (d.LastActivityAt == cursorDate && d.Id < cursorId));
         }
-        else if (offset > 0)
-        {
-            // Fall back to offset for backwards compatibility
-            query = query.Skip(offset);
-        }
-
         var items = await query
             .OrderByDescending(d => d.LastActivityAt)
             .ThenByDescending(d => d.Id)
+            .Skip(offset)
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,
