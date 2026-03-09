@@ -26,7 +26,7 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // Fail-fast: reject insecure default secrets in production
-if (!builder.Environment.IsDevelopment())
+if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "Testing")
 {
     var jwtKey = builder.Configuration["Jwt:SecretKey"];
 
