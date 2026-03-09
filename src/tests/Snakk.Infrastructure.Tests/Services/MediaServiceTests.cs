@@ -109,6 +109,9 @@ public class MediaServiceTests : IAsyncDisposable
     public async Task UploadAsync_DeduplicatesByHash()
     {
         // Arrange — create identical images (same pixels = same re-encoded output)
+        _fileStorage.Setup(f => f.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         using var content1 = CreateTestImage(5, 5, "png");
         var data = content1.ToArray();
 
