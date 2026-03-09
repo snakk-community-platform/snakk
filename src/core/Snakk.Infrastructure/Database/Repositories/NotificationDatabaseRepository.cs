@@ -8,7 +8,6 @@ using Snakk.Shared.Models;
 public class NotificationDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<NotificationDatabaseEntity>(context), INotificationDatabaseRepository
 {
-    private readonly SnakkDbContext _context = context;
 
     public async Task<NotificationDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet.FirstOrDefaultAsync(n => n.PublicId == publicId);

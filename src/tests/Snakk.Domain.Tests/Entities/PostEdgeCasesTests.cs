@@ -296,7 +296,7 @@ public class PostEdgeCasesTests
         var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply", replyToPostId: replyToPostId);
 
         // Assert
-        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
+        await Assert.That(post.ReplyToPostId!).IsEqualTo(replyToPostId);
     }
 
     [Test]

@@ -2,7 +2,6 @@ using Snakk.Web.Services;
 using Snakk.Web.Filters;
 using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
-using Snakk.Application.Services;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.IO.Compression;
@@ -80,9 +79,6 @@ builder.Services.AddSingleton<ICommunityDomainCacheService, CommunityDomainCache
 
 // Prefetch cache service for sidebar data (singleton - uses IMemoryCache)
 builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
-
-// Markup Parser (for rendering post content)
-builder.Services.AddSingleton<IMarkupParser, MarkupParser>();
 
 // WebOptimizer for CSS minification only (JS minification breaks TypeScript output)
 builder.Services.AddWebOptimizer(pipeline =>
@@ -283,6 +279,28 @@ app.UseStaticFiles(new StaticFileOptions
             const int oneHour = 60 * 60;
             ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={oneHour}");
         }
+    }
+});
+
+// Serve uploaded media from configured storage path (local dev only — in production, S3/R2 serves directly)
+var mediaStoragePath = Path.GetFullPath(Path.Combine(
+    builder.Configuration["FileStorage:BasePath"] ?? "storage",
+    "media"));
+Directory.CreateDirectory(mediaStoragePath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(mediaStoragePath),
+    RequestPath = "/storage/media",
+    OnPrepareResponse = ctx =>
+    {
+        // Media files are content-addressed (SHA-256 hash) — immutable
+        const int oneYear = 60 * 60 * 24 * 365;
+        ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={oneYear},immutable");
+
+        // Security: prevent MIME sniffing and force inline display (no download prompts)
+        ctx.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+        ctx.Context.Response.Headers.Append("Content-Disposition", "inline");
     }
 });
 

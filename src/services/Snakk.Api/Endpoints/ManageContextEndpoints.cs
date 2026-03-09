@@ -59,6 +59,7 @@ public static class ManageContextEndpoints
             return Results.Ok(new ManageScopeDto
             {
                 ScopeType = "Community",
+                ScopePublicId = community.PublicId,
                 ScopeName = community.Name,
                 CommunitySlug = community.Slug,
                 CommunityName = community.Name,
@@ -92,6 +93,7 @@ public static class ManageContextEndpoints
             return Results.Ok(new ManageScopeDto
             {
                 ScopeType = "Hub",
+                ScopePublicId = hub.PublicId,
                 ScopeName = hub.Name,
                 CommunitySlug = community.Slug,
                 HubSlug = hub.Slug,
@@ -124,6 +126,7 @@ public static class ManageContextEndpoints
         return Results.Ok(new ManageScopeDto
         {
             ScopeType = "Space",
+            ScopePublicId = space.PublicId,
             ScopeName = space.Name,
             CommunitySlug = community.Slug,
             HubSlug = hub.Slug,

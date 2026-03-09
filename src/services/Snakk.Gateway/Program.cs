@@ -41,6 +41,17 @@ if (!setupComplete)
     builder.Configuration["ReverseProxy:Routes:static-css-route:ClusterId"] = "setup-cluster";
     builder.Configuration["ReverseProxy:Routes:static-js-route:ClusterId"] = "setup-cluster";
     builder.Configuration["ReverseProxy:Routes:static-images-route:ClusterId"] = "setup-cluster";
+
+    // Disable health checks on clusters not used during setup
+    builder.Configuration["ReverseProxy:Clusters:auth-cluster:HealthCheck:Active:Enabled"] = "false";
+    builder.Configuration["ReverseProxy:Clusters:admin-cluster:HealthCheck:Active:Enabled"] = "false";
+    builder.Configuration["ReverseProxy:Clusters:web-cluster:HealthCheck:Active:Enabled"] = "false";
+    builder.Configuration["ReverseProxy:Clusters:realtime-cluster:HealthCheck:Active:Enabled"] = "false";
+}
+else
+{
+    // Setup app is stopped after first-run — stop polling its health endpoint
+    builder.Configuration["ReverseProxy:Clusters:setup-cluster:HealthCheck:Active:Enabled"] = "false";
 }
 
 //builder.AddSnakkDefaults();

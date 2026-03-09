@@ -28,6 +28,7 @@ public class ManageScopeServiceTests
         return new ManageScopeDto
         {
             ScopeType = scopeType,
+            ScopePublicId = Guid.NewGuid().ToString(),
             ScopeName = $"Test {scopeType}",
             CommunitySlug = communitySlug,
             HubSlug = hubSlug,

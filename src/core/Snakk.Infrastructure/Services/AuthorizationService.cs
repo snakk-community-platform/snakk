@@ -7,7 +7,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class AuthorizationService(
     SnakkDbContext context,
-    ILogger<AuthorizationService> logger) : IAuthorizationService
+    ILogger<AuthorizationService> _logger) : IAuthorizationService
 {
     public async Task<bool> UserHas2FAEnabledAsync(string userId)
     {

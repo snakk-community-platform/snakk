@@ -1,6 +1,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using static Snakk.Web.Helpers.DisplayHelper
+@using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model SpaceDiscussionListItemVM
 @{
     var discussion = Model.Discussion;
@@ -13,13 +14,18 @@
         <div class="topic-content">
             <div class="topic-title">
                 @discussion.Title
+                @if (discussion.Type != "Standard")
+                {
+                    var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
+                    <span class="discussion-type-badge @cssClass">@icon @label</span>
+                }
                 @if (discussion.IsPinned)
                 {
-                    <span class="badge badge-primary badge-xs ml-2">Pinned</span>
+                    <span class="badge badge-primary badge-xs ml-2">📌 Pinned</span>
                 }
                 @if (discussion.IsLocked)
                 {
-                    <span class="badge badge-warning badge-xs ml-2">Locked</span>
+                    <span class="badge badge-warning badge-xs ml-2">🔒 Locked</span>
                 }
                 @if (discussion.Tags != null && discussion.Tags.Count > 0)
                 {

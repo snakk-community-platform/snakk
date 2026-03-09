@@ -3,6 +3,7 @@
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
+@using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Spaces.DetailModel
 @{
     ViewData["Title"] = Model.Space?.Name ?? "Space";
@@ -33,7 +34,10 @@ else
                 <span class="breadcrumb-separator">/</span>
                 <a href="/communities">Communities</a>
                 <span class="breadcrumb-separator">/</span>
-                <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <a href="/c/@Model.Community.CommunitySlug"
+                   data-popup-type="community"
+                   data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
             }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)"
@@ -98,16 +102,120 @@ else
                         </div>
                     </div>
                 </div>
-                <div class="section-header">
+                <div class="section-header flex items-center justify-between">
                     <span class="section-title">Discussions</span>
+                    @if (Model.IsAuthenticated)
+                    {
+                        <button type="button"
+                                onclick="document.getElementById('create-discussion-form').classList.toggle('hidden')"
+                                class="btn btn-primary btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            New Discussion
+                        </button>
+                    }
                 </div>
+
+                <!-- Create Discussion Form -->
+                @if (Model.IsAuthenticated && Model.Space != null)
+                {
+                    <div id="create-discussion-form" class="@(Model.CreateError != null ? "" : "hidden") mb-6">
+                        <div class="clean-card p-4">
+                            <h3 class="font-semibold mb-4">Start a new discussion</h3>
+
+                            @if (Model.CreateError != null)
+                            {
+                                <div class="alert alert-error text-sm mb-4">@Model.CreateError</div>
+                            }
+
+                            <form method="post">
+                                <div class="form-control mb-3">
+                                    <input type="text"
+                                           name="NewTitle"
+                                           value="@Model.NewTitle"
+                                           placeholder="Discussion title"
+                                           class="input w-full"
+                                           required
+                                           maxlength="200" />
+                                </div>
+
+                                @{
+                                    var allowedTypes = Model.Space.AllowedDiscussionTypes.ToList();
+                                    var hasMultipleTypes = allowedTypes.Count > 1;
+                                }
+                                @if (hasMultipleTypes)
+                                {
+                                    <div class="form-control mb-3">
+                                        <select name="NewType" class="select w-full">
+                                            @foreach (var type in allowedTypes.OrderBy(t => t))
+                                            {
+                                                <option value="@type" selected="@(type == Model.NewType)">@GetTypeName(type)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input type="hidden" name="NewType" value="@(allowedTypes.FirstOrDefault())" />
+                                }
+
+                                <div class="form-control mb-3">
+                                    <textarea name="NewContent"
+                                              placeholder="Write your first post..."
+                                              class="textarea w-full"
+                                              rows="6"
+                                              required>@Model.NewContent</textarea>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-2">
+                                    <button type="button"
+                                            onclick="document.getElementById('create-discussion-form').classList.add('hidden')"
+                                            class="btn btn-ghost btn-sm">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        Create Discussion
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.Space!.AllowedDiscussionTypes.Count > 1)
+                {
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug)"
+                           class="btn btn-sm @(Model.TypeFilter == null ? "btn-active" : "btn-ghost")">
+                            All
+                        </a>
+                        @foreach (var type in Model.Space.AllowedDiscussionTypes.OrderBy(t => t))
+                        {
+                            var typeName = GetTypeName(type);
+                            var (icon, label, cssClass) = GetTypeBadge(typeName);
+                            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug)?typeFilter=@type"
+                               class="btn btn-sm @(Model.TypeFilter == type ? "btn-active" : "btn-ghost")">
+                                @icon @label
+                            </a>
+                        }
+                    </div>
+                }
 
                 @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
                 {
                     <div class="clean-card">
                         <div class="empty-state-simple py-12">
-                            <h3>No discussions yet</h3>
-                            <p>Be the first to start a conversation in this space!</p>
+                            @if (Model.TypeFilter.HasValue)
+                            {
+                                <h3>No @GetTypeName(Model.TypeFilter.Value).ToLower() discussions</h3>
+                                <p>No discussions of this type have been created yet.</p>
+                            }
+                            else
+                            {
+                                <h3>No discussions yet</h3>
+                                <p>Be the first to start a conversation in this space!</p>
+                            }
                         </div>
                     </div>
                 }
@@ -124,7 +232,7 @@ else
                         {
                             var nextOffset = Model.Discussions.Offset + Model.Discussions.PageSize;
 
-                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&spaceSlug=@Model.Slug&offset=@nextOffset&pageSize=20"
+                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&spaceSlug=@Model.Slug&offset=@nextOffset&pageSize=20@(Model.TypeFilter.HasValue ? $"&typeFilter={Model.TypeFilter}" : "")"
                                  hx-trigger="revealed"
                                  hx-swap="outerHTML"
                                  hx-target="this"
@@ -166,15 +274,17 @@ else
                         <div class="flex justify-center gap-2 mt-8">
                             @if (Model.Discussions.Offset > 0)
                             {
-                                <a href="@SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize))"
-                                   class="btn btn-ghost btn-sm">
+                                var prevUrl = SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize));
+                                if (Model.TypeFilter.HasValue) { prevUrl += $"&typeFilter={Model.TypeFilter}"; }
+                                <a href="@prevUrl" class="btn btn-ghost btn-sm">
                                     Previous
                                 </a>
                             }
                             @if (Model.Discussions.HasMoreItems)
                             {
-                                <a href="@SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Model.Discussions.Offset + Model.Discussions.PageSize)"
-                                   class="btn btn-ghost btn-sm">
+                                var nextUrl = SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Model.Discussions.Offset + Model.Discussions.PageSize);
+                                if (Model.TypeFilter.HasValue) { nextUrl += $"&typeFilter={Model.TypeFilter}"; }
+                                <a href="@nextUrl" class="btn btn-ghost btn-sm">
                                     Next
                                 </a>
                             }
@@ -270,7 +380,7 @@ else
     window.SnakkConfig = {
         communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
         space: {
-            publicId: '@Model.Space.PublicId',
+            publicId: '@Model.Space!.PublicId',
             hubSlug: '@Model.HubSlug',
             slug: '@Model.Slug'
         }

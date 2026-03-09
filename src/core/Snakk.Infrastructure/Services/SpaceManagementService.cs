@@ -10,7 +10,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class SpaceManagementService(
     SnakkDbContext context,
-    ILogger<SpaceManagementService> logger) : ISpaceManagementService
+    ILogger<SpaceManagementService> _logger) : ISpaceManagementService
 {
     public async Task<SpaceOverviewDto?> GetOverviewAsync(
         string spaceId,
@@ -128,6 +128,11 @@ public class SpaceManagementService(
         if (space is null)
             return null;
 
+        var allowedTypes = await context.SpaceAllowedDiscussionTypes
+            .Where(x => x.SpaceId == space.Id)
+            .Select(x => (DiscussionTypeEnum)x.DiscussionType)
+            .ToListAsync(cancellationToken);
+
         var modUserIds = await context.UserRoles
             .Where(ur =>
                 ur.RoleId == (int)UserRoleTypeEnum.SpaceMod
@@ -141,7 +146,7 @@ public class SpaceManagementService(
             Slug = space.Slug,
             Name = space.Name,
             Description = space.Description,
-            AllowedThreadTypes = ["Discussion", "Question"], // TODO: Store in database
+            AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
     }
@@ -161,7 +166,22 @@ public class SpaceManagementService(
 
         space.Name = request.Name;
         space.Description = request.Description;
-        // TODO: Store AllowedThreadTypes in database
+
+        // Update allowed discussion types
+        var existingTypes = await context.SpaceAllowedDiscussionTypes
+            .Where(x => x.SpaceId == space.Id)
+            .ToListAsync(cancellationToken);
+
+        context.SpaceAllowedDiscussionTypes.RemoveRange(existingTypes);
+
+        var newTypes = request.AllowedDiscussionTypes
+            .Select(type => new SpaceAllowedDiscussionTypeDatabaseEntity
+            {
+                SpaceId = space.Id,
+                DiscussionType = (int)type
+            });
+
+        context.SpaceAllowedDiscussionTypes.AddRange(newTypes);
 
         await context.SaveChangesAsync(cancellationToken);
 

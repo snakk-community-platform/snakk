@@ -19,7 +19,7 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -32,7 +32,7 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -59,6 +59,7 @@ public class PostRepositoryAdapter(
                 p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
+                p.HasCodeBlock,
                 p.RevisionCount))
             .ToListAsync();
 
@@ -74,7 +75,7 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -112,6 +113,7 @@ public class PostRepositoryAdapter(
                 p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
+                p.HasCodeBlock,
                 p.RevisionCount))
             .ToListAsync();
 
@@ -273,6 +275,7 @@ public class PostRepositoryAdapter(
                 p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
+                p.HasCodeBlock,
                 p.RevisionCount))
             .FirstOrDefaultAsync();
 
@@ -369,6 +372,7 @@ public class PostRepositoryAdapter(
         bool IsFirstPost,
         string? ReplyToPostPublicId,
         bool IsDeleted,
+        bool HasCodeBlock,
         int RevisionCount)
     {
         public Post ToDomain() => Post.Rehydrate(
@@ -382,6 +386,7 @@ public class PostRepositoryAdapter(
             IsFirstPost,
             ReplyToPostPublicId is not null ? PostId.From(ReplyToPostPublicId) : null,
             IsDeleted,
+            HasCodeBlock,
             RevisionCount);
     }
 }

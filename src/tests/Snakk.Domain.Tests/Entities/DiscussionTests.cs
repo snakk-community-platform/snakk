@@ -1,5 +1,6 @@
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Domain.Tests.Entities;
 
@@ -103,6 +104,7 @@ public class DiscussionTests
             authorId,
             title,
             slug,
+            DiscussionTypeEnum.Standard,
             createdAt,
             null,
             lastActivityAt,
@@ -249,6 +251,7 @@ public class DiscussionTests
             authorId,
             title,
             slug,
+            DiscussionTypeEnum.Standard,
             createdAt,
             lastActivityAt,
             isPinned,

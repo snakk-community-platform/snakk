@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Mappers;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 public static class DiscussionMapper
 {
@@ -13,6 +14,7 @@ public static class DiscussionMapper
             UserId.From(entity.CreatedByUser.PublicId),
             entity.Title,
             entity.Slug,
+            (DiscussionTypeEnum)entity.Type,
             entity.CreatedAt,
             entity.LastModifiedAt,
             entity.LastActivityAt,
@@ -28,6 +30,7 @@ public static class DiscussionMapper
             PublicId = discussion.PublicId,
             Title = discussion.Title,
             Slug = discussion.Slug,
+            Type = (int)discussion.Type,
             CreatedAt = discussion.CreatedAt,
             LastModifiedAt = discussion.LastModifiedAt,
             LastActivityAt = discussion.LastActivityAt,

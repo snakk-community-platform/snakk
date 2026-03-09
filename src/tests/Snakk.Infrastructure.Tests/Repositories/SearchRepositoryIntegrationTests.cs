@@ -219,6 +219,61 @@ public class SearchRepositoryIntegrationTests : IDisposable
         await Assert.That(items[1].Title).IsEqualTo("Normal Discussion");
     }
 
+    [Test]
+    public async Task GetDiscussionsBySpaceAsync_TypeFilter_ReturnsOnlyMatchingType()
+    {
+        // Arrange
+        var user = await _builder.CreateUserAsync();
+        var community = await _builder.CreateCommunityAsync();
+        var hub = await _builder.CreateHubAsync(community.Id);
+        var space = await _builder.CreateSpaceAsync(hub.Id);
+
+        var standard = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Standard Discussion");
+        await _builder.CreatePostAsync(standard.Id, user.Id, isFirstPost: true);
+
+        var question = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Question Discussion");
+        question.Type = 1; // Question
+        await _db.Context.SaveChangesAsync();
+        await _builder.CreatePostAsync(question.Id, user.Id, isFirstPost: true);
+
+        var poll = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Poll Discussion");
+        poll.Type = 2; // Poll
+        await _db.Context.SaveChangesAsync();
+        await _builder.CreatePostAsync(poll.Id, user.Id, isFirstPost: true);
+
+        // Act: filter by Question type
+        var result = await _repository.GetDiscussionsBySpaceAsync(space.PublicId, typeFilter: 1);
+
+        // Assert
+        await Assert.That(result.Items.Count()).IsEqualTo(1);
+        await Assert.That(result.Items.First().Title).IsEqualTo("Question Discussion");
+        await Assert.That(result.Items.First().Type).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task GetDiscussionsBySpaceAsync_NullTypeFilter_ReturnsAllTypes()
+    {
+        // Arrange
+        var user = await _builder.CreateUserAsync();
+        var community = await _builder.CreateCommunityAsync();
+        var hub = await _builder.CreateHubAsync(community.Id);
+        var space = await _builder.CreateSpaceAsync(hub.Id);
+
+        var standard = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Standard");
+        await _builder.CreatePostAsync(standard.Id, user.Id, isFirstPost: true);
+
+        var question = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Question");
+        question.Type = 1;
+        await _db.Context.SaveChangesAsync();
+        await _builder.CreatePostAsync(question.Id, user.Id, isFirstPost: true);
+
+        // Act: no type filter
+        var result = await _repository.GetDiscussionsBySpaceAsync(space.PublicId, typeFilter: null);
+
+        // Assert
+        await Assert.That(result.Items.Count()).IsEqualTo(2);
+    }
+
     #endregion
 
     #region GetHubsAsync Tests

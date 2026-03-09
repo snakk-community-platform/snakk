@@ -4,7 +4,6 @@ option csharp_namespace = "Snakk.Protos.Space";
 
 package snakk.space;
 
-import "Protos/common.proto";
 import "google/protobuf/timestamp.proto";
 
 service SpaceService {
@@ -56,6 +55,7 @@ message SpaceInfo {
   string rules_revision = 12;
   bool parent_hub_has_rules = 13;
   bool parent_community_has_rules = 14;
+  repeated int32 allowed_discussion_types = 15;
 }
 
 message LatestDiscussionRef {

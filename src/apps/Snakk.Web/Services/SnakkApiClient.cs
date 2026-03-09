@@ -152,16 +152,22 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(string spaceId, int offset = 0, int pageSize = 20)
+    public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(
+        string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null)
     {
         try
         {
-            return await discussionClient.GetDiscussionsBySpaceAsync(new GetDiscussionsBySpaceRequest
+            var request = new GetDiscussionsBySpaceRequest
             {
                 SpaceId = spaceId,
                 Offset = offset,
                 PageSize = pageSize
-            });
+            };
+
+            if (typeFilter.HasValue)
+                request.TypeFilter = typeFilter.Value;
+
+            return await discussionClient.GetDiscussionsBySpaceAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
@@ -192,15 +198,13 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<string?> CreateDiscussionAsync(string spaceId, string title, string content, IEnumerable<string>? tags = null)
+    public virtual async Task<DiscussionCreatedInfo?> CreateDiscussionAsync(string spaceId, string title, string content, int type = 0, IEnumerable<string>? tags = null)
     {
         try
         {
-            var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content };
+            var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content, Type = type };
             if (tags is not null) request.Tags.AddRange(tags);
-            var result = await discussionClient.CreateDiscussionAsync(request);
-
-            return result?.PublicId;
+            return await discussionClient.CreateDiscussionAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }

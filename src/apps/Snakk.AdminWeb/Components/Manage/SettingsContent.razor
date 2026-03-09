@@ -1,3 +1,5 @@
+@using Snakk.Application.DTOs.Management
+@using Snakk.Shared.Enums
 @inject AdminApiClientService ApiService
 
 <FluentCard>
@@ -8,6 +10,10 @@
     @if (_loading)
     {
         <FluentProgressRing />
+    }
+    else if (_loadError is not null)
+    {
+        <FluentMessageBar Title="@_loadError" Intent="MessageIntent.Error" />
     }
     else
     {
@@ -31,6 +37,24 @@
                     <FluentOption Value="@("newest")">Newest First</FluentOption>
                     <FluentOption Value="@("oldest")">Oldest First</FluentOption>
                 </FluentSelect>
+
+                <div>
+                    <FluentLabel Weight="FontWeight.Bold" Style="margin-bottom: 8px;">Allowed Discussion Types</FluentLabel>
+                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                        @foreach (var type in Enum.GetValues<DiscussionTypeEnum>())
+                        {
+                            var t = type;
+                            <FluentCheckbox
+                                Value="@(_allowedTypes.Contains(t))"
+                                ValueChanged="@(v => ToggleType(t, v))"
+                                Label="@t.ToString()" />
+                        }
+                    </FluentStack>
+                    @if (_typeError is not null)
+                    {
+                        <FluentLabel Color="Color.Error" Style="margin-top: 4px;">@_typeError</FluentLabel>
+                    }
+                </div>
             }
 
             <FluentButton Appearance="Appearance.Accent" OnClick="@SaveSettings"
@@ -42,6 +66,10 @@
             @if (_saved)
             {
                 <FluentMessageBar Title="Settings saved" Intent="MessageIntent.Success" />
+            }
+            @if (_saveError is not null)
+            {
+                <FluentMessageBar Title="@_saveError" Intent="MessageIntent.Error" />
             }
         </FluentStack>
     }
@@ -58,25 +86,83 @@
     private string _description = "";
     private string _visibility = "Public";
     private string _defaultSort = "latest";
+    private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
+    private string? _loadError;
+    private string? _saveError;
+    private string? _typeError;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
         _loading = true;
-        // TODO: Load current settings from API
-        _name = Scope.ScopeName;
-        _description = "";
+        _loadError = null;
+
+        if (Scope.ScopeType == "Space")
+        {
+            var settings = await ApiService.GetSpaceSettingsAsync(Scope.ScopePublicId);
+            if (settings is not null)
+            {
+                _name = settings.Name;
+                _description = settings.Description ?? "";
+                _allowedTypes = settings.AllowedDiscussionTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(settings.AllowedDiscussionTypes)
+                    : [DiscussionTypeEnum.Standard];
+            }
+            else
+            {
+                _loadError = "Failed to load space settings.";
+            }
+        }
+        else
+        {
+            _name = Scope.ScopeName;
+            _description = "";
+        }
+
         _loading = false;
-        await Task.CompletedTask;
+    }
+
+    private void ToggleType(DiscussionTypeEnum type, bool enabled)
+    {
+        _typeError = null;
+
+        if (enabled)
+        {
+            _allowedTypes.Add(type);
+        }
+        else if (_allowedTypes.Count > 1)
+        {
+            _allowedTypes.Remove(type);
+        }
+        else
+        {
+            _typeError = "At least one discussion type must be enabled.";
+        }
     }
 
     private async Task SaveSettings()
     {
         _saving = true;
         _saved = false;
-        // TODO: Call API to save settings
-        await Task.CompletedTask;
+        _saveError = null;
+
+        if (Scope?.ScopeType == "Space")
+        {
+            var request = new UpdateSpaceSettingsRequest
+            {
+                Name = _name,
+                Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
+                AllowedDiscussionTypes = _allowedTypes.ToList()
+            };
+
+            var success = await ApiService.UpdateSpaceSettingsAsync(Scope.ScopePublicId, request);
+
+            if (success)
+                _saved = true;
+            else
+                _saveError = "Failed to save settings. Please try again.";
+        }
+
         _saving = false;
-        _saved = true;
     }
 }

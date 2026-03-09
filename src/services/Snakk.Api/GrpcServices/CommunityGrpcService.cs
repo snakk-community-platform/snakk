@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Community;
+using Snakk.Shared.Helpers;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -87,6 +88,7 @@ public class CommunityGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Community, 0),
             HubCount = stats.HubCount,
             SpaceCount = stats.SpaceCount,
             DiscussionCount = stats.DiscussionCount,

@@ -59,6 +59,18 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<UserAchievementProgressDatabaseEntity> UserAchievementProgress { get; set; } = null!;
     public DbSet<UserMetricDatabaseEntity> UserMetrics { get; set; } = null!;
 
+    // Media
+    public DbSet<MediaDatabaseEntity> Media { get; set; } = null!;
+    public DbSet<PostMediaDatabaseEntity> PostMedia { get; set; } = null!;
+
+    // Discussion types
+    public DbSet<SpaceAllowedDiscussionTypeDatabaseEntity> SpaceAllowedDiscussionTypes { get; set; } = null!;
+    public DbSet<DiscussionLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
+    public DbSet<DiscussionMediaDatabaseEntity> DiscussionMedia { get; set; } = null!;
+    public DbSet<DiscussionPollDatabaseEntity> DiscussionPolls { get; set; } = null!;
+    public DbSet<PollOptionDatabaseEntity> PollOptions { get; set; } = null!;
+    public DbSet<PollVoteDatabaseEntity> PollVotes { get; set; } = null!;
+
     // Note: Lookup tables removed - now using enums directly (see Snakk.Shared.Enums)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -1128,5 +1140,162 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             modelBuilder.Entity<PostDatabaseEntity>()
                 .Ignore(p => p.SearchVector);
         }
+
+        // === Discussion Types Configuration ===
+
+        // SpaceAllowedDiscussionType: composite PK (link table)
+        modelBuilder.Entity<SpaceAllowedDiscussionTypeDatabaseEntity>()
+            .HasKey(x => new { x.SpaceId, x.DiscussionType });
+
+        modelBuilder.Entity<SpaceAllowedDiscussionTypeDatabaseEntity>()
+            .HasOne(x => x.Space)
+            .WithMany(s => s.AllowedDiscussionTypes)
+            .HasForeignKey(x => x.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // DiscussionLink: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+            .Property(x => x.Url)
+            .HasMaxLength(2048)
+            .IsRequired();
+
+        // DiscussionMedia: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+            .Property(x => x.Url)
+            .HasMaxLength(2048)
+            .IsRequired();
+
+        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+            .Property(x => x.MediaType)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        // DiscussionPoll: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionPollDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionPollDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // PollOption: belongs to Poll
+        modelBuilder.Entity<PollOptionDatabaseEntity>()
+            .HasOne(x => x.Poll)
+            .WithMany(p => p.Options)
+            .HasForeignKey(x => x.PollId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PollOptionDatabaseEntity>()
+            .Property(x => x.Text)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        modelBuilder.Entity<PollOptionDatabaseEntity>()
+            .HasIndex(x => new { x.PollId, x.DisplayOrder })
+            .HasDatabaseName("IX_PollOption_PollId_DisplayOrder");
+
+        // PollVote: belongs to Option and User
+        modelBuilder.Entity<PollVoteDatabaseEntity>()
+            .HasIndex(x => new { x.OptionId, x.UserId })
+            .IsUnique()
+            .HasDatabaseName("IX_PollVote_OptionId_UserId");
+
+        modelBuilder.Entity<PollVoteDatabaseEntity>()
+            .HasOne(x => x.Option)
+            .WithMany(o => o.Votes)
+            .HasForeignKey(x => x.OptionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PollVoteDatabaseEntity>()
+            .HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Discussion Type index (for filtering by type)
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.SpaceId, d.Type })
+            .HasDatabaseName("IX_Discussion_SpaceId_Type");
+
+        // === Media Configuration ===
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .HasIndex(m => m.PublicId)
+            .IsUnique()
+            .HasDatabaseName("IX_Media_PublicId");
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .HasIndex(m => m.Sha256Hash)
+            .HasDatabaseName("IX_Media_Sha256Hash");
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .HasOne(m => m.UploadedByUser)
+            .WithMany()
+            .HasForeignKey(m => m.UploadedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .Property(m => m.PublicId)
+            .HasMaxLength(36)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .Property(m => m.Sha256Hash)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .Property(m => m.ContentType)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .Property(m => m.OriginalFileName)
+            .HasMaxLength(255)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .Property(m => m.StoragePath)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        // PostMedia: composite PK (join table)
+        modelBuilder.Entity<PostMediaDatabaseEntity>()
+            .HasKey(pm => new { pm.PostId, pm.MediaId });
+
+        modelBuilder.Entity<PostMediaDatabaseEntity>()
+            .HasOne(pm => pm.Post)
+            .WithMany()
+            .HasForeignKey(pm => pm.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PostMediaDatabaseEntity>()
+            .HasOne(pm => pm.Media)
+            .WithMany()
+            .HasForeignKey(pm => pm.MediaId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

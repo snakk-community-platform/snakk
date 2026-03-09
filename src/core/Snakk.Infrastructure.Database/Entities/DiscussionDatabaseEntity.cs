@@ -15,6 +15,9 @@ public class DiscussionDatabaseEntity
     public required string Title { get; set; }
     public required DateTime CreatedAt { get; set; }
 
+    // Discussion type
+    public int Type { get; set; } // Maps to DiscussionTypeEnum
+
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }
     public bool IsDeleted { get; set; }

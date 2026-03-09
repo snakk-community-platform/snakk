@@ -4,8 +4,6 @@ option csharp_namespace = "Snakk.Protos.Auth";
 
 package snakk.auth;
 
-import "google/protobuf/wrappers.proto";
-
 // Auth service — handles login, registration, token refresh, user profile
 service AuthService {
   // Authentication

@@ -9,13 +9,15 @@
 
   <ItemGroup>
     <!-- JWT Authentication -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
 
     <!-- OAuth Providers -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.3" />
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
 
   </ItemGroup>
 

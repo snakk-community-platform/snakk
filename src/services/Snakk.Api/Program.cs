@@ -139,6 +139,7 @@ app.MapReadStateEndpoints();
 app.MapSearchEndpoints();
 app.MapModerationEndpoints();
 app.MapManageContextEndpoints();
+app.MapMediaEndpoints();
 // Sitemap moved to Snakk.Web (public-facing app)
 
 app.Run();

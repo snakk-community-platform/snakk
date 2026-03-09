@@ -10,7 +10,7 @@ namespace Snakk.Auth.Pages;
 
 public class LoginModel(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    IConfiguration _configuration,
     ILogger<LoginModel> logger) : PageModel
 {
     [BindProperty]

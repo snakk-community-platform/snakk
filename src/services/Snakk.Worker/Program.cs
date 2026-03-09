@@ -57,6 +57,7 @@ builder.Services.AddHostedService<AchievementCheckerWorker>();
 builder.Services.AddHostedService<TemporaryRoleExpirationWorker>();
 builder.Services.AddHostedService<WebhookRetryWorker>();
 builder.Services.AddHostedService<AvatarGenerationHostedService>();
+builder.Services.AddHostedService<OrphanMediaCleanupWorker>();
 
 var host = builder.Build();
 host.Run();

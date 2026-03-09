@@ -74,7 +74,7 @@ public class GrpcAuthInterceptor : Interceptor
 
             var newOptions = context.Options.WithHeaders(headers);
             var newContext = new ClientInterceptorContext<TRequest, TResponse>(
-                context.Method, context.Host, newOptions);
+                context.Method!, context.Host, newOptions);
 
             return continuation(request, newContext);
         }

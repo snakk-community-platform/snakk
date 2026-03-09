@@ -7,7 +7,6 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReactionDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReactionDatabaseEntity>(context), IReactionDatabaseRepository
 {
-    private readonly SnakkDbContext _context = context;
 
     private static readonly Func<SnakkDbContext, int, int, Task<int?>> _getUserReactionType
         = EF.CompileAsyncQuery(

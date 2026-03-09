@@ -59,7 +59,7 @@ public class UserRepositoryAdapterTests : IDisposable
         var result = (await _adapter.GetByPublicIdsAsync(
             new[] { UserId.From(user1.PublicId), UserId.From(user2.PublicId), UserId.From(user3.PublicId) })).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(3);
+        await Assert.That(result).Count().IsEqualTo(3);
 
         var displayNames = result
             .Select(u => u.DisplayName)

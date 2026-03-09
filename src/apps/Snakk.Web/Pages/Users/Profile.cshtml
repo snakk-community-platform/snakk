@@ -90,7 +90,7 @@
                         <div class="stat-title text-xs">Member for</div>
                         <div class="stat-value text-2xl">
                             @{
-                                var daysSinceJoined = (DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days;
+                                var daysSinceJoined = (DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days;
                             }
                             @daysSinceJoined days
                         </div>
@@ -261,8 +261,8 @@
     <script>
         (function() {
             function init() {
-                var totalActivity = @Model.Profile.DiscussionCount + @Model.Profile.PostCount;
-                var daysSinceJoined = @((DateTime.UtcNow - Model.Profile.JoinedAt.ToDateTime()).Days);
+                var totalActivity = @Model.Profile!.DiscussionCount + @Model.Profile.PostCount;
+                var daysSinceJoined = @((DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days);
                 var discussionCount = @Model.Profile.DiscussionCount;
                 var postCount = @Model.Profile.PostCount;
 

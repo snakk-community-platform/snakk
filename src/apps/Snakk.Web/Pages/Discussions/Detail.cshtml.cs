@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Web.Services;
 using Snakk.Web.Pages.ViewModels;
-using Snakk.Application.Services;
 using Snakk.Protos.Community;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
@@ -13,13 +12,11 @@ namespace Snakk.Web.Pages.Discussions;
 
 public class DetailModel(
     SnakkApiClient apiClient,
-    IMarkupParser markupParser,
     IConfiguration configuration,
     ICommunityContext communityContext,
     IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
-    private readonly IMarkupParser _markupParser = markupParser;
 
     public DiscussionInfo? Discussion { get; set; }
     public PagedEnrichedPostList? Posts { get; set; }
@@ -37,6 +34,9 @@ public class DetailModel(
     public string? CurrentUserDisplayName { get; set; }
     public bool PreferEndlessScroll { get; set; } = true;
 
+    // Whether any post in the initial batch contains code blocks (for Prism.js loading)
+    public bool HasCodeBlocks { get; set; }
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
 
@@ -45,8 +45,6 @@ public class DetailModel(
 
     [BindProperty]
     public string? ReplyToPostId { get; set; }
-
-    public string RenderMarkup(string content) => _markupParser.ToHtml(content);
 
     private async Task<int?> CalculateFirstUnreadPostNumberAsync(string discussionPublicId)
     {
@@ -148,6 +146,7 @@ public class DetailModel(
             Discussion = discussionResult.Value;
 
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
+            HasCodeBlocks = Posts?.HasCodeBlocks ?? false;
         }
         catch
         {
@@ -199,7 +198,7 @@ public class DetailModel(
                 PostContent,
                 string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
 
-            return RedirectToPage("/Discussions/Detail", new { hubSlug, spaceSlug, slugWithId });
+            return RedirectToPage("/Discussions/Detail", null, new { hubSlug, spaceSlug, slugWithId }, "reply-form");
         }
         catch
         {

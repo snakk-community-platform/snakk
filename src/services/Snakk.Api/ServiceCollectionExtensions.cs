@@ -171,7 +171,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.MentionService>();
         services.AddScoped<Application.Services.AchievementService>();
         services.AddScoped<Infrastructure.Services.MetricsService>();
-        services.AddSingleton<IFileStorage, Infrastructure.Services.LocalFileStorage>();
+        // File storage: S3-compatible (R2, AWS, MinIO) or local filesystem
+        var storageProvider = configuration["FileStorage:Provider"];
+        if (string.Equals(storageProvider, "S3", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IFileStorage, Infrastructure.Services.S3FileStorage>();
+        else
+            services.AddSingleton<IFileStorage, Infrastructure.Services.LocalFileStorage>();
+
+        services.AddScoped<IMediaService, Infrastructure.Services.MediaService>();
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
 
         // 2FA & Security Services

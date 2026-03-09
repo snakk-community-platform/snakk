@@ -73,7 +73,7 @@ RUN cd apps/Snakk.Auth && npm run build:css
 RUN touch core/Snakk.Sdk/Generated/SnakkApiClient.cs
 
 # --- Build the entire solution (resolves shared dependencies once) ---
-RUN dotnet build Snakk.Docker.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipBuildTailwindCSS=true
+RUN dotnet build Snakk.Docker.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipFrontendBuild=true
 
 # --- Publish all 9 projects in parallel (no compilation, just copy) ---
 RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-build --no-restore & \

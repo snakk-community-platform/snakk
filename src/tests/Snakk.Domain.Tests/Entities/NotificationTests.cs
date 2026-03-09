@@ -27,9 +27,9 @@ public class NotificationTests
         await Assert.That(notification.Title).IsEqualTo("JohnDoe mentioned you");
         await Assert.That(notification.Body).IsEqualTo("In: Test Discussion");
         await Assert.That(notification.RecipientUserId).IsEqualTo(recipientId);
-        await Assert.That(notification.ActorUserId).IsEqualTo(mentionerId);
-        await Assert.That(notification.SourcePostId).IsEqualTo(postId);
-        await Assert.That(notification.SourceDiscussionId).IsEqualTo(discussionId);
+        await Assert.That(notification.ActorUserId!).IsEqualTo(mentionerId);
+        await Assert.That(notification.SourcePostId!).IsEqualTo(postId);
+        await Assert.That(notification.SourceDiscussionId!).IsEqualTo(discussionId);
         await Assert.That((object?)notification.SourceSpaceId).IsNull();
         await Assert.That(notification.IsRead).IsFalse();
         await Assert.That(notification.ReadAt).IsNull();
@@ -137,8 +137,8 @@ public class NotificationTests
         await Assert.That(notification.Type).IsEqualTo(NotificationType.NewDiscussionInFollowedSpace);
         await Assert.That(notification.Title).IsEqualTo("Author started a discussion");
         await Assert.That(notification.Body).IsEqualTo("New Topic in General");
-        await Assert.That(notification.SourceSpaceId).IsEqualTo(spaceId);
-        await Assert.That(notification.SourceDiscussionId).IsEqualTo(discussionId);
+        await Assert.That(notification.SourceSpaceId!).IsEqualTo(spaceId);
+        await Assert.That(notification.SourceDiscussionId!).IsEqualTo(discussionId);
         await Assert.That((object?)notification.SourcePostId).IsNull();
     }
 
@@ -235,10 +235,10 @@ public class NotificationTests
         await Assert.That(notification.Type).IsEqualTo(NotificationType.Reply);
         await Assert.That(notification.Title).IsEqualTo("Test Title");
         await Assert.That(notification.Body).IsEqualTo("Test Body");
-        await Assert.That(notification.SourcePostId).IsEqualTo(postId);
-        await Assert.That(notification.SourceDiscussionId).IsEqualTo(discussionId);
-        await Assert.That(notification.SourceSpaceId).IsEqualTo(spaceId);
-        await Assert.That(notification.ActorUserId).IsEqualTo(actorId);
+        await Assert.That(notification.SourcePostId!).IsEqualTo(postId);
+        await Assert.That(notification.SourceDiscussionId!).IsEqualTo(discussionId);
+        await Assert.That(notification.SourceSpaceId!).IsEqualTo(spaceId);
+        await Assert.That(notification.ActorUserId!).IsEqualTo(actorId);
         await Assert.That(notification.IsRead).IsTrue();
         await Assert.That(notification.CreatedAt).IsEqualTo(createdAt);
         await Assert.That(notification.ReadAt).IsEqualTo(readAt);

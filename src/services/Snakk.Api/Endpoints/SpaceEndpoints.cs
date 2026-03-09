@@ -115,19 +115,21 @@ public static class SpaceEndpoints
         string spaceId,
         int offset,
         int pageSize,
+        int? typeFilter,
         Application.Repositories.ISearchRepository searchRepo)
     {
         // Clamp pagination parameters
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
 
-        var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
+        var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter);
 
         var items = result.Items.Select(d => new DiscussionBySpaceResponse(
             PublicId: d.PublicId,
             SpaceId: d.SpacePublicId,
             Title: d.Title,
             Slug: d.Slug,
+            Type: ((Snakk.Shared.Enums.DiscussionTypeEnum)d.Type).ToString(),
             CreatedAt: d.CreatedAt,
             LastActivityAt: d.LastActivityAt ?? d.CreatedAt,
             IsPinned: d.IsPinned,

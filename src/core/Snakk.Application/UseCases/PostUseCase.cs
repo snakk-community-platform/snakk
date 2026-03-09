@@ -15,6 +15,7 @@ public class PostUseCase(
     IDomainEventDispatcher eventDispatcher,
     IRealtimeNotifier realtimeNotifier,
     ICounterService counterService,
+    IMediaService mediaService,
     ReactionUseCase reactionUseCase) : UseCaseBase
 {
     public async Task<Result<Post>> CreatePostAsync(
@@ -83,6 +84,9 @@ public class PostUseCase(
         // Send realtime notification
         await realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
 
+        // Link any uploaded media to this post
+        await mediaService.LinkMediaToPostAsync(post.PublicId.Value, content);
+
         return Result<Post>.Success(post);
     }
 
@@ -126,6 +130,9 @@ public class PostUseCase(
 
             // Send realtime notification
             await realtimeNotifier.NotifyPostEditedAsync(post, user, discussion);
+
+            // Re-link media based on updated content
+            await mediaService.LinkMediaToPostAsync(post.PublicId.Value, newContent);
 
             return Result<Post>.Success(post);
         }

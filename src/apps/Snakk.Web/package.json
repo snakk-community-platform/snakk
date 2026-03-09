@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:ts && npm run build:css",
+    "build": "npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism",
     "build:ts": "tsc && node esbuild.minify.mjs",
     "build:css": "npm run build:tailwind && npm run build:tailwind-dark && npm run build:custom",
     "build:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --minify",
@@ -16,8 +16,10 @@
     "watch:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --watch",
     "watch:tailwind-dark": "tailwindcss -i ./Styles/dark-input.css -o ./wwwroot/css/vendor/dark-theme.css --watch",
     "watch:custom": "sass Styles/site.scss:wwwroot/css/dist/site.css --watch --no-source-map",
-    "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/vendor/htmx.min.js'; Copy-Item 'node_modules/htmx.org/dist/ext/head-support.js' 'wwwroot/js/vendor/htmx-head-support.js'\"",
-    "postinstall": "npm run copy:libs",
+    "build:editor": "node esbuild.editor.mjs",
+    "build:prism": "node esbuild.prism.mjs",
+    "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/vendor/htmx.min.js'; Copy-Item 'node_modules/htmx.org/dist/ext/head-support.js' 'wwwroot/js/vendor/htmx-head-support.js'; Copy-Item 'node_modules/prismjs/themes/prism-tomorrow.min.css' 'wwwroot/css/vendor/prism.css'\"",
+    "postinstall": "npm run copy:libs && npm run build:editor && npm run build:prism",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -29,9 +31,13 @@
     "@tailwindcss/cli": "^4.0.0",
     "@types/node": "^22.10.2",
     "daisyui": "^5.0.0",
+    "esbuild": "^0.25.0",
     "htmx.org": "^2.0.4",
     "sass": "^1.97.3",
-    "esbuild": "^0.25.0",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@milkdown/kit": "^7.19.0",
+    "prismjs": "^1.30.0"
   }
 }

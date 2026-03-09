@@ -21,7 +21,7 @@ public class DiscussionReadStateTests
         // Assert
         await Assert.That(readState.UserId).IsEqualTo(userId);
         await Assert.That(readState.DiscussionId).IsEqualTo(discussionId);
-        await Assert.That(readState.LastReadPostId).IsEqualTo(lastReadPostId);
+        await Assert.That(readState.LastReadPostId!).IsEqualTo(lastReadPostId);
         await Assert.That(readState.LastReadAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
@@ -56,7 +56,7 @@ public class DiscussionReadStateTests
         readState.MarkAsRead(newPostId);
 
         // Assert
-        await Assert.That(readState.LastReadPostId).IsEqualTo(newPostId);
+        await Assert.That(readState.LastReadPostId!).IsEqualTo(newPostId);
         await Assert.That(readState.LastReadAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
@@ -73,7 +73,7 @@ public class DiscussionReadStateTests
         readState.MarkAsRead(secondPostId);
 
         // Assert
-        await Assert.That(readState.LastReadPostId).IsEqualTo(secondPostId);
+        await Assert.That(readState.LastReadPostId!).IsEqualTo(secondPostId);
     }
 
     #endregion
@@ -95,7 +95,7 @@ public class DiscussionReadStateTests
         // Assert
         await Assert.That(readState.UserId).IsEqualTo(userId);
         await Assert.That(readState.DiscussionId).IsEqualTo(discussionId);
-        await Assert.That(readState.LastReadPostId).IsEqualTo(lastReadPostId);
+        await Assert.That(readState.LastReadPostId!).IsEqualTo(lastReadPostId);
         await Assert.That(readState.LastReadAt).IsEqualTo(lastReadAt);
     }
 

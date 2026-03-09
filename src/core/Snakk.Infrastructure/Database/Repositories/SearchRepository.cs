@@ -193,11 +193,16 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
     public async Task<PagedResult<DiscussionListItemDto>> GetDiscussionsBySpaceAsync(
         string spacePublicId,
         int offset = 0,
-        int pageSize = 20)
+        int pageSize = 20,
+        int? typeFilter = null)
     {
-        // Single query using navigation properties
-        var query = _context.Discussions
-            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted)
+        var baseQuery = _context.Discussions
+            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
+
+        if (typeFilter.HasValue)
+            baseQuery = baseQuery.Where(d => d.Type == typeFilter.Value);
+
+        var query = baseQuery
             .OrderByDescending(d => d.IsPinned)
             .ThenByDescending(d => d.LastActivityAt);
 
@@ -209,6 +214,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                 d.Space.PublicId,
                 d.Title,
                 d.Slug,
+                d.Type,
                 d.CreatedAt,
                 d.LastActivityAt,
                 d.IsPinned,
@@ -411,6 +417,7 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
                     d.PublicId,
                     d.Title,
                     d.Slug,
+                    d.Type,
                     d.CreatedAt,
                     d.LastActivityAt,
                     d.IsPinned,

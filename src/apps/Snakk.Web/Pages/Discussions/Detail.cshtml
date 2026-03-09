@@ -2,6 +2,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
+@using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Discussions.DetailModel
 
 @section Styles {
@@ -138,7 +139,10 @@
                     </li>
                     <li class="breadcrumb-separator" aria-hidden="true">/</li>
                     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                        <a href="/c/@Model.Community.CommunitySlug" itemprop="item">
+                        <a href="/c/@Model.Community.CommunitySlug" itemprop="item"
+                           data-popup-type="community"
+                           data-popup-id="@Model.CommunityDetail?.PublicId"
+                           data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">
                             <span itemprop="name">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</span>
                         </a>
                         <meta itemprop="position" content="3" />
@@ -192,13 +196,18 @@
                     <time datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
                         @Model.Discussion.CreatedAt.ToDateTime().ToString("MMMM d, yyyy")
                     </time>
+                    @if (Model.Discussion.Type != "Standard")
+                    {
+                        var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
+                        <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
+                    }
                     @if (Model.Discussion.IsPinned)
                     {
-                        <span class="badge badge-primary badge-sm">Pinned</span>
+                        <span class="badge badge-primary badge-sm">📌 Pinned</span>
                     }
                     @if (Model.Discussion.IsLocked)
                     {
-                        <span class="badge badge-warning badge-sm">Locked</span>
+                        <span class="badge badge-warning badge-sm">🔒 Locked</span>
                     }
                 </div>
             </div>
@@ -264,7 +273,7 @@
     }
 
     <!-- Posts Container -->
-                <div id="posts-container" class="flex flex-col gap-6">
+                <div id="posts-container" class="flex flex-col">
         @if (Model.Posts != null && Model.Posts.Items.Any())
         {
             var postList = Model.Posts.Items.ToList();
@@ -280,7 +289,7 @@
                 var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
 
                 <article id="post-@post.PostNumber"
-                         class="post-item post-article group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "")"
+                         class="post-item post-article group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(!isFirstInThread ? (isSameAuthorAsPrevious ? "mt-1" : "mt-6") : "")"
                          data-author-id="@post.Author.PublicId"
                          data-post-id="@post.PublicId"
                          data-post-number="@post.PostNumber"
@@ -587,9 +596,8 @@
                             <!-- Post Content -->
                             <div id="post-content-@post.PublicId"
                                 class="prose prose-content flex flex-col gap-4 leading-6 pr-4"
-                                 data-raw-content="@Model.EscapeForHtmlAttribute(post.Content)"
                                  data-author-name="@post.Author.DisplayName">
-                                @Html.Raw(Model.RenderMarkup(post.Content))
+                                @Html.Raw(post.RenderedContent)
                             </div>
 
                     </div>
@@ -775,50 +783,36 @@
             </div>
 
             <div class="composer-area">
-                <form method="post" id="reply-form">
+                <form method="post" id="reply-form" hx-boost="false">
                     <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
 
+                    <!-- Hidden textarea: synced by Toast UI Editor, used for form submission -->
                     <textarea name="PostContent"
                               id="post-content-input"
-                              placeholder="Share your thoughts..."
-                              oninput="autoGrow(this); updatePreviewDebounced(); notifyTyping()"
-                              onkeydown="handleEditorKeydown(event)"
-                              required></textarea>
+                              style="display:none"></textarea>
 
-                    <!-- Preview Panel (hidden by default) -->
-                    <div id="preview-panel" class="hidden border-t border-subtle pt-4 mt-4">
-                        <div id="preview-content" class="prose prose-content">
-                            <p class="text-muted italic">Nothing to preview</p>
+                    <!-- Toast UI Editor mounts here -->
+                    <div id="editor-container">
+                        <div class="editor-skeleton">
+                            <div class="editor-skeleton-toolbar">
+                                <div class="skeleton-pill"></div>
+                                <div class="skeleton-pill"></div>
+                                <div class="skeleton-pill"></div>
+                                <div class="skeleton-pill w-6"></div>
+                                <div class="skeleton-pill"></div>
+                                <div class="skeleton-pill"></div>
+                            </div>
+                            <div class="editor-skeleton-body">
+                                <div class="skeleton-line w-3/4"></div>
+                                <div class="skeleton-line w-1/2"></div>
+                                <div class="skeleton-line w-5/6"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="composer-toolbar">
-                        <div class="toolbar-buttons">
-                            <button type="button" onclick="insertMarkup('**', '**')" class="toolbar-btn font-bold" title="Bold">B</button>
-                            <button type="button" onclick="insertMarkup('*', '*')" class="toolbar-btn italic" title="Italic">I</button>
-                            <button type="button" onclick="insertMarkup('`', '`')" class="toolbar-btn font-mono text-xs" title="Code">&lt;/&gt;</button>
-                            <button type="button" onclick="insertMarkup('[', '](url)')" class="toolbar-btn" title="Link">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                            </button>
-                            <button type="button" onclick="insertLinePrefix('> ')" class="toolbar-btn" title="Quote">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                </svg>
-                            </button>
-                            <button type="button" class="toolbar-btn" onclick="document.getElementById('preview-toggle').click()" title="Preview">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </button>
-                            <input type="checkbox" id="preview-toggle" class="hidden" onchange="togglePreview(this.checked)" />
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            Post Reply
-                        </button>
-                    </div>
+                    <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
+                        Post Reply
+                    </button>
                 </form>
             </div>
         </div>
@@ -974,6 +968,8 @@ else
 <script src="@SnakkUrlHelper.Js("services/draft-manager")"></script>
 <script src="@SnakkUrlHelper.Js("services/read-state-batcher")"></script>
 
+<script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
 <script>
 @* INLINE REASON: Initialization code with extensive Razor syntax (@Model.Discussion.X, @if blocks).
@@ -992,7 +988,8 @@ else
         spaceId: '@Model.Space?.PublicId',
         preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
         postsCurrentOffset: @(Model.Posts?.Items?.Count() ?? 0),
-        postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false")
+        postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false"),
+        hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false")
     };
 
     function setupAndInit() {

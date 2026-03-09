@@ -162,6 +162,11 @@ public static class BffApiEndpoints
         group.MapGet("/moderation/reports/reasons", GetModerationReportReasonsAsync)
             .WithName("BffGetModerationReportReasons");
 
+        // Media upload
+        group.MapPost("/media/upload", UploadMediaAsync)
+            .WithName("BffUploadMedia")
+            .DisableAntiforgery();
+
         // Avatar proxy
         // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
     }
@@ -840,6 +845,38 @@ public static class BffApiEndpoints
 
     // Avatar proxy endpoints
     // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
+
+    // Media upload — proxies multipart to internal API
+    private static async Task<IResult> UploadMediaAsync(
+        IFormFile file,
+        IHttpClientFactory httpClientFactory,
+        HttpContext httpContext)
+    {
+        if (file is null || file.Length == 0)
+            return Results.BadRequest(new { error = "No file provided." });
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        using var content = new MultipartFormDataContent();
+        using var fileStream = file.OpenReadStream();
+        using var streamContent = new StreamContent(fileStream);
+        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+        content.Add(streamContent, "file", file.FileName);
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/media/upload");
+        request.Version = new Version(2, 0);
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = content;
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
 
     // Helper: map GrpcStatus to HTTP result
     private static IResult MapGrpcError(GrpcStatus status, string? error = null) => status switch

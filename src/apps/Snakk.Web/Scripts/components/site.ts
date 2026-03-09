@@ -55,14 +55,6 @@ class SnakkPopup {
     }
 
     /**
-     * Get avatar URL based on entity type
-     */
-    getAvatarUrl(type: string, publicId: string): string {
-        // All entity types use .svg extension for CDN caching
-        return `/avatars/generated/${type}/${publicId}.svg`;
-    }
-
-    /**
      * Get type display name
      */
     getTypeDisplayName(type: string): string {
@@ -85,14 +77,19 @@ class SnakkPopup {
         popup.innerHTML = `
             <div class="snakk-popup-content">
                 <div class="snakk-popup-header">
-                    <img class="snakk-popup-avatar" src="" alt="" />
+                    <div class="snakk-popup-avatar-skeleton skeleton"></div>
+                    <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
                     <div class="snakk-popup-info">
                         <div class="snakk-popup-name"></div>
                         <div class="snakk-popup-type"></div>
                     </div>
                 </div>
                 <div class="snakk-popup-stats"></div>
-                <div class="snakk-popup-loading">Loading...</div>
+                <div class="snakk-popup-stats-skeleton">
+                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+                </div>
             </div>
         `;
         popup.style.display = 'none';
@@ -245,8 +242,9 @@ class SnakkPopup {
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
         // Default: position below and aligned to the left of the trigger
-        let top = rect.bottom + scrollTop + 8;
+        let top = rect.bottom + scrollTop + 10;
         let left = rect.left + scrollLeft;
+        let isAbove = false;
 
         // Check if popup would go off the right edge
         if (left + popupRect.width > window.innerWidth) {
@@ -256,7 +254,8 @@ class SnakkPopup {
         // Check if popup would go off the bottom edge
         if (top + popupRect.height > scrollTop + window.innerHeight) {
             // Position above the trigger instead
-            top = rect.top + scrollTop - popupRect.height - 8;
+            top = rect.top + scrollTop - popupRect.height - 10;
+            isAbove = true;
         }
 
         // Ensure left is not negative
@@ -264,6 +263,14 @@ class SnakkPopup {
 
         popup.style.top = `${top}px`;
         popup.style.left = `${left}px`;
+
+        // Toggle above/below class for notch direction
+        popup.classList.toggle('snakk-popup--above', isAbove);
+
+        // Position notch to point at the trigger's horizontal center
+        const triggerCenterX = rect.left + scrollLeft + rect.width / 2;
+        const notchLeft = Math.max(16, Math.min(triggerCenterX - left, popupRect.width - 16));
+        popup.style.setProperty('--notch-left', `${notchLeft}px`);
     }
 
     /**
@@ -281,19 +288,20 @@ class SnakkPopup {
         const popup = this.getPopup();
 
         // Set initial content
+        const avatarSkeleton = popup.querySelector('.snakk-popup-avatar-skeleton') as HTMLElement;
         const avatarImg = popup.querySelector('.snakk-popup-avatar') as HTMLImageElement;
         const nameEl = popup.querySelector('.snakk-popup-name') as HTMLElement;
         const typeEl = popup.querySelector('.snakk-popup-type') as HTMLElement;
-        const loadingEl = popup.querySelector('.snakk-popup-loading') as HTMLElement;
+        const statsSkeleton = popup.querySelector('.snakk-popup-stats-skeleton') as HTMLElement;
         const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
 
-        // Set loading state
-        if (avatarImg) avatarImg.src = this.getAvatarUrl(type, publicId); // Fallback while loading
+        // Set loading state — show skeletons, hide real content
+        if (avatarSkeleton) avatarSkeleton.style.display = 'block';
+        if (avatarImg) avatarImg.style.display = 'none';
         if (nameEl) nameEl.textContent = name;
         if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
-
-        if (statsContainer) statsContainer.replaceChildren(); // Clear stats
-        if (loadingEl) loadingEl.style.display = 'block';
+        if (statsContainer) statsContainer.replaceChildren();
+        if (statsSkeleton) statsSkeleton.style.display = 'block';
 
         // Show popup
         popup.style.display = 'block';
@@ -301,14 +309,23 @@ class SnakkPopup {
 
         // Fetch and display stats
         const stats = await this.fetchStats(type, publicId);
-        if (loadingEl) loadingEl.style.display = 'none';
 
-        // Update with data from API (includes correct avatarUrl with sharding)
-        if (stats) {
-            if (avatarImg && stats.avatarUrl) avatarImg.src = stats.avatarUrl;
-            if (nameEl && (stats.name || stats.displayName || stats.title)) {
-                nameEl.textContent = stats.name || stats.displayName || stats.title || name;
-            }
+        // Guard: if popup was hidden while awaiting (e.g. navigation), bail out
+        if (this.currentTrigger !== triggerEl) return;
+
+        // Hide skeletons
+        if (statsSkeleton) statsSkeleton.style.display = 'none';
+
+        // Update avatar from API response (includes correct sharded URL)
+        if (avatarSkeleton) avatarSkeleton.style.display = 'none';
+        if (stats && stats.avatarUrl && avatarImg) {
+            avatarImg.src = stats.avatarUrl;
+            avatarImg.style.display = 'block';
+        }
+
+        // Update name from API if available
+        if (stats && (stats.name || stats.displayName || stats.title)) {
+            if (nameEl) nameEl.textContent = stats.name || stats.displayName || stats.title || name;
         }
 
         const statsElements = this.buildStatsElements(type, stats);
@@ -398,6 +415,21 @@ class SnakkPopup {
     }
 
     /**
+     * Immediately dismiss popup and clear all state
+     */
+    dismissPopup(): void {
+        if (this.showTimeout) clearTimeout(this.showTimeout);
+        if (this.hideTimeout) clearTimeout(this.hideTimeout);
+        this.showTimeout = null;
+        this.hideTimeout = null;
+        this.currentTrigger = null;
+
+        if (this.currentPopup) {
+            this.currentPopup.style.display = 'none';
+        }
+    }
+
+    /**
      * Initialize event delegation
      */
     init(): void {
@@ -406,6 +438,9 @@ class SnakkPopup {
 
         document.addEventListener('mouseover', this._mouseOverHandler, false);
         document.addEventListener('mouseout', this._mouseOutHandler, false);
+
+        // Close popup on HTMX navigation so it doesn't linger after page swap
+        document.addEventListener('htmx:beforeRequest', () => this.dismissPopup(), false);
     }
 
     /**

@@ -6,6 +6,7 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class DiscussionRepositoryAdapter(
@@ -18,7 +19,7 @@ public class DiscussionRepositoryAdapter(
             .Where(d => d.Id == id)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
-                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -30,7 +31,7 @@ public class DiscussionRepositoryAdapter(
             .Where(d => d.PublicId == publicId.Value)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
-                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -42,7 +43,7 @@ public class DiscussionRepositoryAdapter(
             .Where(d => d.Slug == slug)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
-                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -63,7 +64,7 @@ public class DiscussionRepositoryAdapter(
             .ThenByDescending(d => d.LastActivityAt)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
-                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .ToListAsync();
 
@@ -106,6 +107,7 @@ public class DiscussionRepositoryAdapter(
                     UserId.From(dto.CreatedByUserPublicId),
                     dto.Title,
                     dto.Slug,
+                    (DiscussionTypeEnum)dto.Type,
                     dto.CreatedAt,
                     dto.LastActivityAt,
                     dto.IsPinned,
@@ -124,7 +126,7 @@ public class DiscussionRepositoryAdapter(
             .Take(count)
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
-                d.Title, d.Slug, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked))
             .ToListAsync();
 
@@ -165,6 +167,7 @@ public class DiscussionRepositoryAdapter(
         // Update properties
         entity.Title = discussion.Title;
         entity.Slug = discussion.Slug;
+        entity.Type = (int)discussion.Type;
         entity.LastModifiedAt = discussion.LastModifiedAt;
         entity.LastActivityAt = discussion.LastActivityAt;
         entity.IsPinned = discussion.IsPinned;
@@ -293,6 +296,7 @@ public class DiscussionRepositoryAdapter(
         string CreatedByUserPublicId,
         string Title,
         string Slug,
+        int Type,
         DateTime CreatedAt,
         DateTime? LastModifiedAt,
         DateTime? LastActivityAt,
@@ -303,7 +307,8 @@ public class DiscussionRepositoryAdapter(
             DiscussionId.From(PublicId),
             SpaceId.From(SpacePublicId),
             UserId.From(CreatedByUserPublicId),
-            Title, Slug, CreatedAt, LastModifiedAt, LastActivityAt,
+            Title, Slug, (DiscussionTypeEnum)Type,
+            CreatedAt, LastModifiedAt, LastActivityAt,
             IsPinned, IsLocked, posts: []);
     }
 }

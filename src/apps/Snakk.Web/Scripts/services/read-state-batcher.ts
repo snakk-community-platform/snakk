@@ -45,9 +45,9 @@ class ReadStateBatcher {
     private maxAge: number;
 
     private flushTimer: ReturnType<typeof setInterval> | null = null;
+    private saveTimer: ReturnType<typeof setTimeout> | null = null;
     private pendingUpdates: PendingUpdates = {};
     private isAuthenticated: boolean = false;
-    private idleCallbackId: number | null = null;
 
     private _beforeUnloadHandler: (() => void) | null = null;
     private _visibilityChangeHandler: (() => void) | null = null;
@@ -86,11 +86,6 @@ class ReadStateBatcher {
         // Flush on visibility change (tab/window hidden)
         document.addEventListener('visibilitychange', this._visibilityChangeHandler);
 
-        // Flush periodically when idle (fallback)
-        if ('requestIdleCallback' in window) {
-            this.scheduleIdleFlush();
-        }
-
         // Dispatch init event
         this.dispatchEvent('init', { authenticated });
     }
@@ -108,11 +103,13 @@ class ReadStateBatcher {
             timestamp: Date.now()
         };
 
-        // Save to storage (in case of crash)
-        this.savePendingUpdates();
-
-        // Dispatch update event
-        this.dispatchEvent('update', { discussionId, postId });
+        // Debounce localStorage save (at most once per second)
+        if (!this.saveTimer) {
+            this.saveTimer = setTimeout(() => {
+                this.savePendingUpdates();
+                this.saveTimer = null;
+            }, 1000);
+        }
     }
 
     /**
@@ -221,6 +218,12 @@ class ReadStateBatcher {
      * Use sendBeacon for guaranteed delivery
      */
     private handleBeforeUnload(): void {
+        // Cancel pending debounced save — we'll send everything now
+        if (this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+        }
+
         if (Object.keys(this.pendingUpdates).length === 0) return;
 
         const updates = Object.values(this.pendingUpdates);
@@ -257,21 +260,6 @@ class ReadStateBatcher {
             // Page is hidden, flush immediately
             this.flush();
         }
-    }
-
-    /**
-     * Schedule idle flush using requestIdleCallback
-     */
-    private scheduleIdleFlush(): void {
-        if (!('requestIdleCallback' in window) || !window.requestIdleCallback) return;
-
-        this.idleCallbackId = window.requestIdleCallback(() => {
-            if (Object.keys(this.pendingUpdates).length > 0) {
-                this.flush();
-            }
-            // Schedule next idle flush
-            this.scheduleIdleFlush();
-        }, { timeout: 60000 }); // 1 minute timeout
     }
 
     /**
@@ -316,6 +304,14 @@ class ReadStateBatcher {
      */
     shutdown(): void {
         this.stopFlushTimer();
+
+        // Flush debounced save immediately before final flush
+        if (this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+            this.savePendingUpdates();
+        }
+
         this.flush(); // Final flush
 
         // Remove event listeners
@@ -326,14 +322,8 @@ class ReadStateBatcher {
             document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
         }
 
-        // Cancel idle callback
-        if (this.idleCallbackId !== null && 'cancelIdleCallback' in window && window.cancelIdleCallback) {
-            window.cancelIdleCallback(this.idleCallbackId);
-        }
-
         this._beforeUnloadHandler = null;
         this._visibilityChangeHandler = null;
-        this.idleCallbackId = null;
 
         this.dispatchEvent('shutdown');
     }

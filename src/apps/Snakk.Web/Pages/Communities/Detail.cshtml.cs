@@ -34,7 +34,7 @@ public class DetailModel(
         if (!communityResult.IsSuccess)
             return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
-        Community = communityResult.Value;
+        Community = communityResult.Value!;
 
         if (Community.HasRules)
             InlineCommunityRules = prefetchCache.ResolveOrPrefetch(

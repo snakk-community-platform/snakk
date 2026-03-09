@@ -42,8 +42,8 @@ public class SessionManagementService(
             .Select(t => new SessionDto
             {
                 Id = t.PublicId,
-                IpAddress = t.IpAddress,
-                UserAgent = t.UserAgent,
+                IpAddress = t.IpAddress ?? "",
+                UserAgent = t.UserAgent ?? "",
                 CreatedAt = t.CreatedAt,
                 ExpiresAt = t.ExpiresAt,
                 IsCurrent = t.TokenValue == currentRefreshToken

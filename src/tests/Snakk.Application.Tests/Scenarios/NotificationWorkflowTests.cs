@@ -52,9 +52,9 @@ public class NotificationWorkflowTests
         // Verify notification properties
         await Assert.That(notification.Type).IsEqualTo(NotificationType.NewPostInFollowedDiscussion);
         await Assert.That(notification.RecipientUserId).IsEqualTo(recipientUserId);
-        await Assert.That(notification.SourcePostId).IsEqualTo(postId);
-        await Assert.That(notification.SourceDiscussionId).IsEqualTo(discussionId);
-        await Assert.That(notification.ActorUserId).IsEqualTo(posterUserId);
+        await Assert.That(notification.SourcePostId!).IsEqualTo(postId);
+        await Assert.That(notification.SourceDiscussionId!).IsEqualTo(discussionId);
+        await Assert.That(notification.ActorUserId!).IsEqualTo(posterUserId);
         await Assert.That(notification.IsRead).IsFalse();
     }
 

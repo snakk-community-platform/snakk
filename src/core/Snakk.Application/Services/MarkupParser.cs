@@ -1,136 +1,55 @@
 namespace Snakk.Application.Services;
 
-using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
+using Markdig;
+using Markdig.Extensions.Tables;
+using Markdig.Renderers;
+using Markdig.Renderers.Html;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 
 /// <summary>
-/// Lightweight markup parser supporting:
-/// - **bold** and __bold__
-/// - *italic* and _italic_
-/// - `inline code`
-/// - ```code blocks```
-/// - [link text](url)
-/// - > blockquotes
-/// - - unordered lists
-/// - 1. ordered lists
-///
-/// All input is HTML-escaped first, preventing XSS attacks.
-/// No raw HTML is allowed.
+/// Markdown parser powered by Markdig with GFM extensions.
+/// Produces sanitized HTML — raw HTML in markdown input is escaped via DisableHtml().
+/// Links are validated to only allow http, https, and mailto schemes.
 /// </summary>
-public partial class MarkupParser : IMarkupParser
+public class MarkupParser : IMarkupParser
 {
-    // Regex patterns (compiled for performance)
-    [GeneratedRegex(@"```([\s\S]*?)```", RegexOptions.Multiline)]
-    private static partial Regex CodeBlockRegex();
-
-    [GeneratedRegex(@"`([^`\n]+)`")]
-    private static partial Regex InlineCodeRegex();
-
-    [GeneratedRegex(@"\*\*(.+?)\*\*")]
-    private static partial Regex BoldAsteriskRegex();
-
-    [GeneratedRegex(@"__(.+?)__")]
-    private static partial Regex BoldUnderscoreRegex();
-
-    [GeneratedRegex(@"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)")]
-    private static partial Regex ItalicAsteriskRegex();
-
-    [GeneratedRegex(@"(?<!_)_(?!_)(.+?)(?<!_)_(?!_)")]
-    private static partial Regex ItalicUnderscoreRegex();
-
-    [GeneratedRegex(@"\[([^\]]+)\]\(([^)]+)\)")]
-    private static partial Regex LinkRegex();
-
-    [GeneratedRegex(@"^&gt;\s*(.*)$", RegexOptions.Multiline)]
-    private static partial Regex BlockquoteRegex();
-
-    [GeneratedRegex(@"^[-*]\s+(.+)$", RegexOptions.Multiline)]
-    private static partial Regex UnorderedListItemRegex();
-
-    [GeneratedRegex(@"^\d+\.\s+(.+)$", RegexOptions.Multiline)]
-    private static partial Regex OrderedListItemRegex();
-
-    // Allowed URL schemes for links
     private static readonly HashSet<string> AllowedSchemes = new(StringComparer.OrdinalIgnoreCase)
     {
         "http", "https", "mailto"
     };
+
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .DisableHtml()
+        .Build();
+
+    private static readonly MarkdownPipeline PlainTextPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
 
     public string ToHtml(string markup)
     {
         if (string.IsNullOrEmpty(markup))
             return string.Empty;
 
-        // Step 1: HTML-escape everything first (prevents XSS)
-        var html = WebUtility.HtmlEncode(markup);
+        var document = Markdown.Parse(markup, Pipeline);
 
-        // Step 2: Extract and preserve code blocks (they shouldn't be processed further)
-        var codeBlocks = new List<string>();
-        html = CodeBlockRegex().Replace(html, match =>
-        {
-            var index = codeBlocks.Count;
-            codeBlocks.Add(match.Groups[1].Value.Trim());
+        SanitizeLinks(document);
+        CleanEmptyTables(document);
+        NormalizeCodeBlockLanguages(document);
 
-            return $"{{{{CODEBLOCK{index}}}}}";
-        });
+        using var writer = new StringWriter();
+        var renderer = new HtmlRenderer(writer);
+        Pipeline.Setup(renderer);
+        renderer.Render(document);
+        writer.Flush();
 
-        // Step 3: Extract and preserve inline code
-        var inlineCodes = new List<string>();
-        html = InlineCodeRegex().Replace(html, match =>
-        {
-            var index = inlineCodes.Count;
-            inlineCodes.Add(match.Groups[1].Value);
+        var html = writer.ToString().Trim();
 
-            return $"{{{{INLINECODE{index}}}}}";
-        });
-
-        // Step 4: Apply formatting (bold before italic to handle **bold** vs *italic*)
-        html = BoldAsteriskRegex().Replace(html, "<strong>$1</strong>");
-        html = BoldUnderscoreRegex().Replace(html, "<strong>$1</strong>");
-        html = ItalicAsteriskRegex().Replace(html, "<em>$1</em>");
-        html = ItalicUnderscoreRegex().Replace(html, "<em>$1</em>");
-
-        // Step 5: Process links (with URL validation)
-        html = LinkRegex().Replace(html, match =>
-        {
-            var text = match.Groups[1].Value;
-            var url = WebUtility.HtmlDecode(match.Groups[2].Value); // Decode the escaped URL
-
-            if (IsValidUrl(url))
-            {
-                var safeUrl = WebUtility.HtmlEncode(url);
-                return $"<a href=\"{safeUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"link link-primary\">{text}</a>";
-            }
-
-            // Invalid URL - just show as text
-            return $"[{text}]({WebUtility.HtmlEncode(url)})";
-        });
-
-        // Step 6: Process blockquotes
-        html = ProcessBlockquotes(html);
-
-        // Step 7: Process lists
-        html = ProcessLists(html);
-
-        // Step 8: Restore code blocks
-        for (var i = 0; i < codeBlocks.Count; i++)
-        {
-            html = html.Replace(
-                $"{{{{CODEBLOCK{i}}}}}",
-                $"<pre class=\"bg-base-200 p-3 rounded-lg overflow-x-auto my-2\"><code>{codeBlocks[i]}</code></pre>");
-        }
-
-        // Step 9: Restore inline code
-        for (var i = 0; i < inlineCodes.Count; i++)
-        {
-            html = html.Replace(
-                $"{{{{INLINECODE{i}}}}}",
-                $"<code class=\"bg-base-200 px-1 rounded\">{inlineCodes[i]}</code>");
-        }
-
-        // Step 10: Convert line breaks to <br> (except inside pre/code blocks)
-        html = ConvertLineBreaks(html);
+        // Wrap tables in a scrollable container
+        html = WrapTablesInScrollContainer(html);
 
         return html;
     }
@@ -140,192 +59,172 @@ public partial class MarkupParser : IMarkupParser
         if (string.IsNullOrEmpty(markup))
             return string.Empty;
 
-        var text = markup;
-
-        // Remove code blocks
-        text = CodeBlockRegex().Replace(text, "$1");
-
-        // Remove inline code markers
-        text = InlineCodeRegex().Replace(text, "$1");
-
-        // Remove bold markers
-        text = BoldAsteriskRegex().Replace(text, "$1");
-        text = BoldUnderscoreRegex().Replace(text, "$1");
-
-        // Remove italic markers
-        text = Regex.Replace(text, @"\*(.+?)\*", "$1");
-        text = Regex.Replace(text, @"_(.+?)_", "$1");
-
-        // Extract link text
-        text = LinkRegex().Replace(text, "$1");
-
-        // Remove blockquote markers
-        text = Regex.Replace(text, @"^>\s*", "", RegexOptions.Multiline);
-
-        // Remove list markers
-        text = Regex.Replace(text, @"^[-*]\s+", "", RegexOptions.Multiline);
-        text = Regex.Replace(text, @"^\d+\.\s+", "", RegexOptions.Multiline);
-
-        return text.Trim();
+        return Markdown.ToPlainText(markup, PlainTextPipeline).Trim();
     }
 
-    private static bool IsValidUrl(string url)
+    /// <summary>
+    /// Checks if raw markup content contains code blocks or inline code.
+    /// </summary>
+    public static bool ContainsCode(string content) =>
+        !string.IsNullOrEmpty(content) && content.Contains('`');
+
+    private static void SanitizeLinks(MarkdownDocument document)
+    {
+        foreach (var link in document.Descendants<LinkInline>())
+        {
+            if (!IsValidUrl(link.Url))
+            {
+                link.Url = "";
+            }
+            else
+            {
+                link.GetAttributes().AddProperty("target", "_blank");
+                link.GetAttributes().AddProperty("rel", "nofollow noopener noreferrer");
+            }
+        }
+    }
+
+    private static void CleanEmptyTables(MarkdownDocument document)
+    {
+        var tables = document.Descendants<Table>().ToList();
+
+        foreach (var table in tables)
+        {
+            var rows = table.OfType<TableRow>().ToList();
+            if (rows.Count == 0)
+            {
+                table.Parent?.Remove(table);
+                continue;
+            }
+
+            var colCount = rows.Max(r => r.Count);
+            if (colCount == 0)
+            {
+                table.Parent?.Remove(table);
+                continue;
+            }
+
+            // Identify non-empty columns (any cell in that column has content)
+            var nonEmptyCols = new HashSet<int>();
+            foreach (var row in rows)
+            {
+                for (var c = 0; c < row.Count; c++)
+                {
+                    if (row[c] is TableCell cell && CellHasContent(cell))
+                        nonEmptyCols.Add(c);
+                }
+            }
+
+            // If all columns are empty, remove the entire table
+            if (nonEmptyCols.Count == 0)
+            {
+                table.Parent?.Remove(table);
+                continue;
+            }
+
+            // Remove entirely empty data rows (keep header rows)
+            var emptyDataRows = rows
+                .Where(r => !r.IsHeader && !RowHasContent(r, nonEmptyCols))
+                .ToList();
+
+            foreach (var row in emptyDataRows)
+                table.Remove(row);
+
+            // Remove empty columns from remaining rows (iterate in reverse to preserve indices)
+            var emptyCols = Enumerable.Range(0, colCount)
+                .Where(c => !nonEmptyCols.Contains(c))
+                .OrderByDescending(c => c)
+                .ToList();
+
+            foreach (var row in table.OfType<TableRow>())
+            {
+                foreach (var c in emptyCols)
+                {
+                    if (c < row.Count)
+                        row.RemoveAt(c);
+                }
+            }
+
+            // Also remove empty column definitions
+            foreach (var c in emptyCols)
+            {
+                if (c < table.ColumnDefinitions.Count)
+                    table.ColumnDefinitions.RemoveAt(c);
+            }
+
+            // A valid table needs at least 2 rows (header + at least 1 data row)
+            var remainingRows = table.OfType<TableRow>().ToList();
+            if (remainingRows.Count < 2 || !remainingRows.Any(r => !r.IsHeader))
+            {
+                table.Parent?.Remove(table);
+            }
+        }
+    }
+
+    private static bool CellHasContent(TableCell cell)
+    {
+        foreach (var paragraph in cell.OfType<ParagraphBlock>())
+        {
+            if (paragraph.Inline is { } inline)
+            {
+                foreach (var child in inline)
+                {
+                    if (child is LiteralInline literal && !literal.Content.IsEmpty)
+                        return true;
+
+                    if (child is not LiteralInline)
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RowHasContent(TableRow row, HashSet<int> colsToCheck)
+    {
+        for (var c = 0; c < row.Count; c++)
+        {
+            if (colsToCheck.Contains(c) && row[c] is TableCell cell && CellHasContent(cell))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void NormalizeCodeBlockLanguages(MarkdownDocument document)
+    {
+        foreach (var fenced in document.Descendants<FencedCodeBlock>())
+        {
+            if (string.IsNullOrEmpty(fenced.Info))
+                continue;
+
+            var lang = fenced.Info.Trim().ToLowerInvariant();
+            var attrs = fenced.GetAttributes();
+            attrs.Classes?.Clear();
+            attrs.AddClass($"language-{lang}");
+        }
+    }
+
+    private static readonly Regex TableRegex = new(
+        @"<table\b[^>]*>.*?</table>",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static string WrapTablesInScrollContainer(string html) =>
+        TableRegex.Replace(html, match => $"<div class=\"table-scroll\">{match.Value}</div>");
+
+    private static bool IsValidUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
             return false;
 
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
             return AllowedSchemes.Contains(uri.Scheme);
-        }
 
         // Allow relative URLs starting with /
         if (url.StartsWith('/') && !url.StartsWith("//"))
             return true;
 
         return false;
-    }
-
-    private static string ProcessBlockquotes(string html)
-    {
-        var lines = html.Split('\n');
-        var result = new StringBuilder();
-        var inBlockquote = false;
-
-        foreach (var line in lines)
-        {
-            var match = BlockquoteRegex().Match(line);
-
-            if (match.Success)
-            {
-                if (!inBlockquote)
-                {
-                    result.Append("<blockquote class=\"border-l-4 border-primary pl-4 my-2 italic text-base-content/80\">");
-                    inBlockquote = true;
-                }
-
-                result.Append(match.Groups[1].Value);
-                result.Append("<br>");
-            }
-            else
-            {
-                if (inBlockquote)
-                {
-                    result.Append("</blockquote>");
-                    inBlockquote = false;
-                }
-
-                result.Append(line);
-                result.Append('\n');
-            }
-        }
-
-        if (inBlockquote)
-        {
-            result.Append("</blockquote>");
-        }
-
-        return result.ToString().TrimEnd('\n');
-    }
-
-    private static string ProcessLists(string html)
-    {
-        var lines = html.Split('\n');
-        var result = new StringBuilder();
-        var inUnorderedList = false;
-        var inOrderedList = false;
-
-        foreach (var line in lines)
-        {
-            var ulMatch = UnorderedListItemRegex().Match(line);
-            var olMatch = OrderedListItemRegex().Match(line);
-
-            if (ulMatch.Success)
-            {
-                if (inOrderedList)
-                {
-                    result.Append("</ol>");
-                    inOrderedList = false;
-                }
-
-                if (!inUnorderedList)
-                {
-                    result.Append("<ul class=\"list-disc list-inside my-2\">");
-                    inUnorderedList = true;
-                }
-
-                result.Append($"<li>{ulMatch.Groups[1].Value}</li>");
-            }
-            else if (olMatch.Success)
-            {
-                if (inUnorderedList)
-                {
-                    result.Append("</ul>");
-                    inUnorderedList = false;
-                }
-
-                if (!inOrderedList)
-                {
-                    result.Append("<ol class=\"list-decimal list-inside my-2\">");
-                    inOrderedList = true;
-                }
-
-                result.Append($"<li>{olMatch.Groups[1].Value}</li>");
-            }
-            else
-            {
-                if (inUnorderedList)
-                {
-                    result.Append("</ul>");
-                    inUnorderedList = false;
-                }
-
-                if (inOrderedList)
-                {
-                    result.Append("</ol>");
-                    inOrderedList = false;
-                }
-
-                result.Append(line);
-                result.Append('\n');
-            }
-        }
-
-        if (inUnorderedList) result.Append("</ul>");
-        if (inOrderedList) result.Append("</ol>");
-
-        return result.ToString().TrimEnd('\n');
-    }
-
-    private static string ConvertLineBreaks(string html)
-    {
-        // Don't convert line breaks inside <pre> tags
-        var parts = Regex.Split(html, @"(<pre[^>]*>[\s\S]*?</pre>)");
-        var result = new StringBuilder();
-
-        foreach (var part in parts)
-        {
-            if (part.StartsWith("<pre"))
-            {
-                result.Append(part);
-            }
-            else
-            {
-                // Convert double newlines to paragraph breaks, single to <br>
-                var processed = Regex.Replace(part, @"\n\n+", "</p><p class=\"my-2\">");
-                processed = processed.Replace("\n", "<br>");
-                result.Append(processed);
-            }
-        }
-
-        var final = result.ToString();
-
-        // Wrap in paragraph if we have content and it's not already wrapped
-        if (!string.IsNullOrWhiteSpace(final) && !final.StartsWith("<"))
-        {
-            final = $"<p class=\"my-2\">{final}</p>";
-        }
-
-        return final;
     }
 }

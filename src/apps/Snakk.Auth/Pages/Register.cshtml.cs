@@ -8,7 +8,7 @@ namespace Snakk.Auth.Pages;
 
 public class RegisterModel(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    IConfiguration _configuration,
     ILogger<RegisterModel> logger) : PageModel
 {
     [BindProperty]

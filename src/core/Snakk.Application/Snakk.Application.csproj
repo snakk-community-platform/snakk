@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.1.1" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Snakk.Domain\Snakk.Domain.csproj" />
     <ProjectReference Include="..\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>

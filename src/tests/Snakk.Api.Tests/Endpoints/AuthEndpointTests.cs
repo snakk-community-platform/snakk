@@ -124,7 +124,7 @@ public class AuthEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.GetProperty("isAuthenticated").GetBoolean()).IsEqualTo(false);
+        await Assert.That(json.RootElement.GetProperty("isAuthenticated").GetBoolean()).IsFalse();
     }
 
     [Test]
@@ -145,7 +145,7 @@ public class AuthEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.GetProperty("isAuthenticated").GetBoolean()).IsEqualTo(true);
+        await Assert.That(json.RootElement.GetProperty("isAuthenticated").GetBoolean()).IsTrue();
         await Assert.That(json.RootElement.GetProperty("publicId").GetString()).IsEqualTo("user-123");
         await Assert.That(json.RootElement.GetProperty("displayName").GetString()).IsEqualTo("Auth Test User");
     }

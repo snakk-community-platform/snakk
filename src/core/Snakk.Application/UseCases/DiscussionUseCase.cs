@@ -4,6 +4,7 @@ using Snakk.Domain;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 using Snakk.Application.Services;
 
@@ -20,7 +21,8 @@ public class DiscussionUseCase(
         UserId userId,
         string title,
         string slug,
-        string firstPostContent)
+        string firstPostContent,
+        DiscussionTypeEnum type = DiscussionTypeEnum.Standard)
     {
         // Validate space exists
         var space = await spaceRepository.GetByPublicIdAsync(spaceId);
@@ -35,7 +37,7 @@ public class DiscussionUseCase(
             return Result<Discussion>.Failure($"User '{userId}' not found");
 
         // Create discussion
-        var discussion = Discussion.Create(spaceId, userId, title, slug);
+        var discussion = Discussion.Create(spaceId, userId, title, slug, type);
 
         // Create first post
         var firstPost = Post.Create(discussion.PublicId, userId, firstPostContent, isFirstPost: true);

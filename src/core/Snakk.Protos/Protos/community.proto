@@ -4,7 +4,6 @@ option csharp_namespace = "Snakk.Protos.Community";
 
 package snakk.community;
 
-import "Protos/common.proto";
 import "google/protobuf/timestamp.proto";
 
 service CommunityService {

@@ -24,6 +24,7 @@ public record EnrichedPostResponse(
     DateTime? EditedAt,
     bool IsFirstPost,
     bool IsDeleted,
+    bool HasCodeBlock,
     string CreatedByUserId,
     AuthorRef Author,
     ReplyToRef? ReplyTo,

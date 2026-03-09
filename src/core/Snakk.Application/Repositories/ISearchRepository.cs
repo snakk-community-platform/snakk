@@ -29,7 +29,8 @@ public interface ISearchRepository
     Task<PagedResult<DiscussionListItemDto>> GetDiscussionsBySpaceAsync(
         string spacePublicId,
         int offset = 0,
-        int pageSize = 20);
+        int pageSize = 20,
+        int? typeFilter = null);
 
     /// <summary>
     /// Gets all hubs with their statistics
@@ -98,6 +99,7 @@ public record DiscussionListItemDto(
     string SpacePublicId,
     string Title,
     string Slug,
+    int Type,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
     bool IsPinned,
@@ -151,6 +153,7 @@ public record RecentDiscussionDto(
     string PublicId,
     string Title,
     string Slug,
+    int Type,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
     bool IsPinned,

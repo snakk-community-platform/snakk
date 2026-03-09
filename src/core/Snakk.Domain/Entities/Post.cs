@@ -15,6 +15,7 @@ public class Post
     public bool IsFirstPost { get; private set; }
     public PostId? ReplyToPostId { get; private set; }
     public bool IsDeleted { get; private set; }
+    public bool HasCodeBlock { get; private set; }
     public int RevisionCount { get; private set; }
 
     private readonly List<PostRevision> _revisions = [];
@@ -46,6 +47,7 @@ public class Post
         bool isFirstPost = false,
         PostId? replyToPostId = null,
         bool isDeleted = false,
+        bool hasCodeBlock = false,
         int revisionCount = 0,
         List<PostRevision>? revisions = null)
     {
@@ -59,6 +61,7 @@ public class Post
         IsFirstPost = isFirstPost;
         ReplyToPostId = replyToPostId;
         IsDeleted = isDeleted;
+        HasCodeBlock = hasCodeBlock;
         RevisionCount = revisionCount;
         _revisions = revisions ?? [];
         _unsavedRevisions = [];
@@ -82,7 +85,8 @@ public class Post
             content,
             DateTime.UtcNow,
             isFirstPost: isFirstPost,
-            replyToPostId: replyToPostId);
+            replyToPostId: replyToPostId,
+            hasCodeBlock: content.Contains('`'));
 
         post.AddDomainEvent(new PostCreatedEvent(post.PublicId, discussionId, createdByUserId));
 
@@ -100,6 +104,7 @@ public class Post
         bool isFirstPost = false,
         PostId? replyToPostId = null,
         bool isDeleted = false,
+        bool hasCodeBlock = false,
         int revisionCount = 0,
         List<PostRevision>? revisions = null) =>
         new Post(
@@ -113,6 +118,7 @@ public class Post
             isFirstPost,
             replyToPostId,
             isDeleted,
+            hasCodeBlock,
             revisionCount,
             revisions);
 
@@ -134,6 +140,7 @@ public class Post
         RevisionCount++;
 
         Content = content;
+        HasCodeBlock = content.Contains('`');
         EditedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;
 

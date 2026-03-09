@@ -5,7 +5,6 @@ option csharp_namespace = "Snakk.Protos.Statistics";
 package snakk.statistics;
 
 import "Protos/common.proto";
-import "google/protobuf/timestamp.proto";
 
 service StatisticsService {
   // Platform-level stats

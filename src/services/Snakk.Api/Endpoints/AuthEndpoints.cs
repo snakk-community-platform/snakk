@@ -107,7 +107,7 @@ public static class AuthEndpoints
             RefreshToken: refreshTokenResult.Value!.Value,
             User: new RegisterUserInfo(
                 Id: user.PublicId.Value,
-                Email: user.Email,
+                Email: user.Email ?? "",
                 DisplayName: user.DisplayName,
                 EmailVerified: user.EmailVerified)));
     }
@@ -166,7 +166,7 @@ public static class AuthEndpoints
             User = new Application.DTOs.Auth.UserInfo
             {
                 Id = user.PublicId.Value,
-                Email = user.Email,
+                Email = user.Email ?? "",
                 DisplayName = user.DisplayName,
                 EmailVerified = user.EmailVerified,
                 Roles = roles
@@ -275,7 +275,7 @@ public static class AuthEndpoints
             DisplayName = currentUser.GetCurrentUserDisplayName(),
             EmailVerified = currentUser.IsEmailVerified(),
             Role = currentUser.GetCurrentUserRole(),
-            AvatarUrl = AvatarHelper.GetAvatarUrl(userId, AvatarEntityType.User, 0)
+            AvatarUrl = AvatarHelper.GetAvatarUrl(userId ?? "", AvatarEntityType.User, 0)
         });
     }
 }

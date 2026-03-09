@@ -2,9 +2,11 @@ namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
 public class SpaceRepositoryAdapter(
@@ -98,6 +100,17 @@ public class SpaceRepositoryAdapter(
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
+
+        // Seed all discussion types as allowed for new space
+        var allowedTypes = Enum.GetValues<DiscussionTypeEnum>()
+            .Select(type => new SpaceAllowedDiscussionTypeDatabaseEntity
+            {
+                SpaceId = entity.Id,
+                DiscussionType = (int)type
+            });
+
+        context.SpaceAllowedDiscussionTypes.AddRange(allowedTypes);
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Space space)

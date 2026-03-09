@@ -168,7 +168,7 @@ public class AuthGrpcService(
             DisplayName = currentUser.GetCurrentUserDisplayName(),
             EmailVerified = currentUser.IsEmailVerified(),
             Role = currentUser.GetCurrentUserRole() ?? "",
-            AvatarUrl = AvatarHelper.GetAvatarUrl(userId, AvatarEntityType.User, 0)
+            AvatarUrl = AvatarHelper.GetAvatarUrl(userId ?? "", AvatarEntityType.User, 0)
         });
     }
 

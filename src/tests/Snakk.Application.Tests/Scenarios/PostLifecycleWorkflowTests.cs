@@ -22,6 +22,7 @@ public class PostLifecycleWorkflowTests
     private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
     private readonly Mock<IFollowRepository> _mockFollowRepository = new();
     private readonly Mock<ICounterService> _mockCounterService = new();
+    private readonly Mock<IMediaService> _mockMediaService = new();
     private Mock<ReactionUseCase> _mockReactionUseCase = null!;
     private PostUseCase _useCase = null!;
 
@@ -42,6 +43,7 @@ public class PostLifecycleWorkflowTests
             _mockEventDispatcher.Object,
             _mockRealtimeNotifier.Object,
             _mockCounterService.Object,
+            _mockMediaService.Object,
             _mockReactionUseCase.Object);
     }
 

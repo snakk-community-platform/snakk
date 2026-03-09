@@ -23,7 +23,7 @@ public class FollowTests
         await Assert.That(follow.PublicId).IsNotNull();
         await Assert.That(follow.UserId).IsEqualTo(userId);
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.Discussion);
-        await Assert.That(follow.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(follow.DiscussionId!).IsEqualTo(discussionId);
         await Assert.That((object?)follow.SpaceId).IsNull();
         await Assert.That((object?)follow.FollowedUserId).IsNull();
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
@@ -77,7 +77,7 @@ public class FollowTests
         await Assert.That(follow.PublicId).IsNotNull();
         await Assert.That(follow.UserId).IsEqualTo(userId);
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.Space);
-        await Assert.That(follow.SpaceId).IsEqualTo(spaceId);
+        await Assert.That(follow.SpaceId!).IsEqualTo(spaceId);
         await Assert.That((object?)follow.DiscussionId).IsNull();
         await Assert.That((object?)follow.FollowedUserId).IsNull();
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsOnly);
@@ -145,7 +145,7 @@ public class FollowTests
         await Assert.That(follow.PublicId).IsNotNull();
         await Assert.That(follow.UserId).IsEqualTo(userId);
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.User);
-        await Assert.That(follow.FollowedUserId).IsEqualTo(followedUserId);
+        await Assert.That(follow.FollowedUserId!).IsEqualTo(followedUserId);
         await Assert.That((object?)follow.DiscussionId).IsNull();
         await Assert.That((object?)follow.SpaceId).IsNull();
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
@@ -320,7 +320,7 @@ public class FollowTests
         await Assert.That(follow.UserId).IsEqualTo(userId);
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.Discussion);
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
-        await Assert.That(follow.DiscussionId).IsEqualTo(discussionId);
+        await Assert.That(follow.DiscussionId!).IsEqualTo(discussionId);
         await Assert.That((object?)follow.SpaceId).IsNull();
         await Assert.That((object?)follow.FollowedUserId).IsNull();
         await Assert.That(follow.CreatedAt).IsEqualTo(createdAt);
@@ -352,7 +352,7 @@ public class FollowTests
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.Space);
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsOnly);
         await Assert.That((object?)follow.DiscussionId).IsNull();
-        await Assert.That(follow.SpaceId).IsEqualTo(spaceId);
+        await Assert.That(follow.SpaceId!).IsEqualTo(spaceId);
         await Assert.That((object?)follow.FollowedUserId).IsNull();
         await Assert.That(follow.CreatedAt).IsEqualTo(createdAt);
     }
@@ -384,7 +384,7 @@ public class FollowTests
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
         await Assert.That((object?)follow.DiscussionId).IsNull();
         await Assert.That((object?)follow.SpaceId).IsNull();
-        await Assert.That(follow.FollowedUserId).IsEqualTo(followedUserId);
+        await Assert.That(follow.FollowedUserId!).IsEqualTo(followedUserId);
         await Assert.That(follow.CreatedAt).IsEqualTo(createdAt);
     }
 

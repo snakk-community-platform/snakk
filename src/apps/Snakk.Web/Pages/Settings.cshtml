@@ -38,7 +38,7 @@
             <!-- Current Avatar -->
             <div class="flex flex-col items-center gap-3">
                 <div class="avatar avatar-xl" id="current-avatar">
-                    <img src="@SnakkUrlHelper.UserAvatar(Model.UserId)"
+                    <img src="@SnakkUrlHelper.UserAvatar(Model.UserId ?? "")"
                          alt="Your avatar"
                          width="80" height="80"
                          id="avatar-preview" />

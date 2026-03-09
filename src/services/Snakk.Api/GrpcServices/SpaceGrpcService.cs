@@ -7,6 +7,7 @@ using Snakk.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Space;
+using Snakk.Shared.Helpers;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -127,6 +128,7 @@ public class SpaceGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Space, 0),
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount,
             FollowerCount = stats.FollowerCount
@@ -141,7 +143,8 @@ public class SpaceGrpcService(
                 s.HasRules,
                 s.RulesRevision,
                 s.ParentHubHasRules,
-                s.ParentCommunityHasRules })
+                s.ParentCommunityHasRules,
+                AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList() })
             .FirstOrDefaultAsync();
 
         if (data is not null)
@@ -150,6 +153,7 @@ public class SpaceGrpcService(
             info.RulesRevision = data.RulesRevision ?? "";
             info.ParentHubHasRules = data.ParentHubHasRules;
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
+            info.AllowedDiscussionTypes.AddRange(data.AllowedTypes);
         }
     }
 

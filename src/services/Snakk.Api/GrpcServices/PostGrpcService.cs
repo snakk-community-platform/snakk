@@ -45,6 +45,8 @@ public class PostGrpcService(
             HasMoreItems = data.HasMoreItems
         };
 
+        response.HasCodeBlocks = data.Posts.Any(ep => ep.Post.HasCodeBlock);
+
         foreach (var ep in data.Posts)
         {
             var post = ep.Post;
@@ -53,6 +55,7 @@ public class PostGrpcService(
                 PostNumber = ep.PostNumber,
                 PublicId = post.PublicId.Value,
                 Content = post.Content,
+                RenderedContent = post.IsDeleted ? "" : markupParser.ToHtml(post.Content),
                 CreatedAt = ToTimestamp(post.CreatedAt),
                 IsFirstPost = post.IsFirstPost,
                 IsDeleted = post.IsDeleted,
@@ -69,6 +72,7 @@ public class PostGrpcService(
                     Role = ep.Author.Role ?? "",
                     IsDeleted = ep.Author.IsDeleted
                 },
+                HasCodeBlock = post.HasCodeBlock,
                 Reactions = new PostReactions
                 {
                     Counts = new ReactionCounts

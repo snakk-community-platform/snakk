@@ -1,0 +1,14 @@
+using System.Text.Json.Serialization;
+
+namespace Snakk.Shared.Enums;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum DiscussionTypeEnum
+{
+    Standard = 0,
+    Question = 1,
+    Poll = 2,
+    Announcement = 3,
+    Link = 4,
+    Media = 5
+}

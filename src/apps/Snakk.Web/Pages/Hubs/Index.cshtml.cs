@@ -18,6 +18,7 @@ public class IndexModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public PagedHubList? Hubs { get; set; }
+    public CommunityInfo? CommunityDetail { get; set; }
     public PlatformStats? PlatformStats { get; set; }
     public CommunityStats? CommunityStats { get; set; }
     public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
@@ -51,12 +52,15 @@ public class IndexModel(
 
     public async Task OnGetAsync(int offset = 0)
     {
-        // Determine if we need to scope to a community
+        // Fetch community detail for breadcrumb popup or custom domain scoping
         string? communityId = null;
-        if (communityContext.IsCustomDomain && !string.IsNullOrEmpty(communityContext.CommunitySlug))
+        if (!string.IsNullOrEmpty(communityContext.CommunitySlug)
+            && (communityContext.IsCustomDomain || ShowCommunityInBreadcrumb))
         {
             var community = await _apiClient.GetCommunityBySlugAsync(communityContext.CommunitySlug);
-            communityId = community?.PublicId;
+            CommunityDetail = community;
+            if (communityContext.IsCustomDomain)
+                communityId = community?.PublicId;
         }
 
         // Set sidebar scope for HTMX partials

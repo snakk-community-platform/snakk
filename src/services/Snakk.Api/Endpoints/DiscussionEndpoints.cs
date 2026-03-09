@@ -68,7 +68,8 @@ public static class DiscussionEndpoints
             userId,
             request.Title,
             request.Slug,
-            request.FirstPostContent);
+            request.FirstPostContent,
+            request.Type);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -77,6 +78,7 @@ public static class DiscussionEndpoints
             PublicId: result.Value.PublicId.Value,
             Title: result.Value.Title,
             Slug: result.Value.Slug,
+            Type: result.Value.Type.ToString(),
             CreatedAt: result.Value.CreatedAt));
     }
 
@@ -93,6 +95,7 @@ public static class DiscussionEndpoints
             PublicId: result.Value!.PublicId.Value,
             Title: result.Value.Title,
             Slug: result.Value.Slug,
+            Type: result.Value.Type.ToString(),
             SpaceId: result.Value.SpaceId.Value,
             CreatedAt: result.Value.CreatedAt,
             LastActivityAt: result.Value.LastActivityAt,
@@ -148,6 +151,7 @@ public static class DiscussionEndpoints
                 PublicId: d.PublicId,
                 Title: d.Title,
                 Slug: d.Slug,
+                Type: ((Snakk.Shared.Enums.DiscussionTypeEnum)d.Type).ToString(),
                 CreatedAt: d.CreatedAt,
                 LastActivityAt: d.LastActivityAt,
                 IsPinned: d.IsPinned,
@@ -254,6 +258,7 @@ public static class DiscussionEndpoints
                 EditedAt: p.Post.EditedAt,
                 IsFirstPost: p.Post.IsFirstPost,
                 IsDeleted: p.Post.IsDeleted,
+                HasCodeBlock: p.Post.HasCodeBlock,
                 CreatedByUserId: p.Post.CreatedByUserId.Value,
                 Author: new AuthorRef(
                     PublicId: p.Post.CreatedByUserId.Value,

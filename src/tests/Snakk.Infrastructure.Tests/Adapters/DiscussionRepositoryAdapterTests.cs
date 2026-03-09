@@ -52,7 +52,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
 
         var result = (await _adapter.GetBySpaceIdAsync(SpaceId.From(space.PublicId))).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(2);
+        await Assert.That(result).Count().IsEqualTo(2);
     }
 
     [Test]
@@ -60,7 +60,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
     {
         var result = (await _adapter.GetBySpaceIdAsync(SpaceId.From("nonexistent_space_id"))).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(0);
+        await Assert.That(result).Count().IsEqualTo(0);
     }
 
     #endregion
@@ -168,7 +168,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
 
         var result = (await _adapter.GetRecentAsync(3)).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(3);
+        await Assert.That(result).Count().IsEqualTo(3);
     }
 
     #endregion

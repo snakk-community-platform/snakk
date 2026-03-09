@@ -54,6 +54,7 @@ interface DiscussionConfig {
     preferEndlessScroll: boolean;
     postsCurrentOffset: number;
     postsHasMoreItems: boolean;
+    hasCodeBlocks: boolean;
 }
 
 interface ReportReason {
@@ -77,141 +78,200 @@ interface CurrentSelection {
 
 // ===== Editor Functions =====
 
-// Auto-grow textarea
+// Auto-grow textarea (used for inline edit textareas)
 function autoGrow(element: HTMLTextAreaElement): void {
     element.style.height = 'auto';
-    element.style.height = Math.max(96, element.scrollHeight) + 'px'; // min-h-24 = 96px
+    element.style.height = Math.max(96, element.scrollHeight) + 'px';
 }
 
-// Insert markup around selection or at cursor
-function insertMarkup(before: string, after: string): void {
+// Get the active editor instance (Toast UI) for the reply form
+function getReplyEditor(): any {
+    const container = document.getElementById('editor-container');
+    return container ? (window as any).SnakkEditor?.getInstance(container) : null;
+}
+
+// Get the current reply content from either Toast UI editor or fallback textarea
+function getReplyContent(): string {
+    const editor = getReplyEditor();
+    if (editor) return editor.getMarkdown();
     const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
-    if (!textarea) return;
+    return textarea?.value || '';
+}
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selected = text.substring(start, end);
-
-    textarea.value = text.substring(0, start) + before + selected + after + text.substring(end);
-
-    // Position cursor appropriately
-    if (selected) {
-        textarea.selectionStart = start;
-        textarea.selectionEnd = start + before.length + selected.length + after.length;
+// Set reply content in either Toast UI editor or fallback textarea
+function setReplyContent(content: string): void {
+    const editor = getReplyEditor();
+    if (editor) {
+        editor.setMarkdown(content);
     } else {
-        textarea.selectionStart = textarea.selectionEnd = start + before.length;
-    }
-    textarea.focus();
-    autoGrow(textarea);
-    updatePreviewDebounced();
-}
-
-// Insert prefix at start of current line
-function insertLinePrefix(prefix: string): void {
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const text = textarea.value;
-
-    // Find start of current line
-    let lineStart = start;
-    while (lineStart > 0 && text[lineStart - 1] !== '\n') {
-        lineStart--;
-    }
-
-    textarea.value = text.substring(0, lineStart) + prefix + text.substring(lineStart);
-    textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
-    textarea.focus();
-    autoGrow(textarea);
-    updatePreviewDebounced();
-}
-
-// Handle keyboard shortcuts
-function handleEditorKeydown(event: KeyboardEvent): void {
-    const form = document.getElementById('reply-form') as HTMLFormElement | null;
-
-    // Ctrl+Enter to submit
-    if (event.ctrlKey && event.key === 'Enter') {
-        event.preventDefault();
-        form?.submit();
-        return;
-    }
-    // Ctrl+B for bold
-    if (event.ctrlKey && event.key === 'b') {
-        event.preventDefault();
-        insertMarkup('**', '**');
-        return;
-    }
-    // Ctrl+I for italic
-    if (event.ctrlKey && event.key === 'i') {
-        event.preventDefault();
-        insertMarkup('*', '*');
-        return;
-    }
-    // Ctrl+K for link
-    if (event.ctrlKey && event.key === 'k') {
-        event.preventDefault();
-        insertMarkup('[', '](url)');
-        return;
+        const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
+        if (textarea) textarea.value = content;
     }
 }
 
-// Preview toggle
-let previewVisible = false;
-function togglePreview(show: boolean): void {
-    previewVisible = show;
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
-    const previewPanel = document.getElementById('preview-panel');
-
-    if (!textarea || !previewPanel) return;
-
-    if (show) {
-        previewPanel.classList.remove('hidden');
-        textarea.style.display = 'none';
-        updatePreview();
+// Focus the reply editor
+function focusReplyEditor(): void {
+    const editor = getReplyEditor();
+    if (editor) {
+        editor.focus();
     } else {
-        previewPanel.classList.add('hidden');
-        textarea.style.display = '';
-        textarea.focus();
+        const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
+        textarea?.focus();
     }
 }
 
-// Update preview via htmx
-let previewTimeout: ReturnType<typeof setTimeout> | null = null;
-function updatePreviewDebounced(): void {
-    if (!previewVisible) return;
-    if (previewTimeout) clearTimeout(previewTimeout);
-    previewTimeout = setTimeout(updatePreview, 300);
-}
+// Initialize Toast UI editor for the reply form (deduped — safe to call multiple times)
+let editorInitPromise: Promise<void> | null = null;
+let activeDiscussionId: string | null = null;
 
-function updatePreview(): void {
-    if (!previewVisible) return;
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
-    const previewContent = document.getElementById('preview-content');
-    if (!textarea || !previewContent) return;
+function initReplyEditor(): Promise<void> {
+    if (editorInitPromise) return editorInitPromise;
 
-    const content = textarea.value;
+    editorInitPromise = (async () => {
+        const container = document.getElementById('editor-container');
+        const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
+        if (!container || !textarea) return;
+        if (!(window as any).SnakkEditor) return;
 
-    if (!content.trim()) {
-        previewContent.innerHTML = '<p class="text-base-content/50 italic">Nothing to preview</p>';
-        return;
-    }
+        const editor = await (window as any).SnakkEditor.init({
+            container,
+            textarea,
+            placeholder: 'Share your thoughts...',
+        });
 
-    fetch(`/bff/markup/preview`, {
-        method: 'POST',
-        body: content,
-        headers: { 'Content-Type': 'text/plain' },
-        credentials: 'include'
-    })
-    .then(response => response.text())
-    .then(html => {
-        previewContent.innerHTML = sanitizeHtml(html);
-    })
-    .catch(() => {
-        previewContent.innerHTML = '<p class="text-error">Preview failed</p>';
-    });
+        // Focus editor when clicking anywhere in the container (not toolbar/footer)
+        if (editor) {
+            container.addEventListener('click', (e) => {
+                if (!(e.target as HTMLElement).closest('.milkdown-toolbar, .milkdown-footer')) {
+                    editor.focus();
+                }
+            });
+
+            // Move submit button into the editor footer
+            const submitBtn = document.getElementById('reply-submit-btn');
+            const footer = container.querySelector('.milkdown-footer');
+            if (submitBtn && footer) {
+                footer.appendChild(submitBtn);
+                submitBtn.classList.remove('hidden');
+            }
+        }
+
+        // Intercept form submit to upload deferred images and sync textarea
+        const form = textarea.closest('form') as HTMLFormElement | null;
+        if (form && editor) {
+            console.log('[Editor] form submit handler attached, hx-boost=', form.getAttribute('hx-boost'));
+
+            form.addEventListener('submit', async (e) => {
+                console.log('[Submit] ========== SUBMIT START ==========');
+                console.log('[Submit] handler fired, container=', container?.id);
+                console.log('[Submit] event defaultPrevented=', e.defaultPrevented, 'type=', e.type);
+                const pending: Map<string, File> = (window as any).SnakkEditor.getPendingUploads(container);
+                const md = editor.getMarkdown();
+
+                console.log('[Submit] pending.size=', pending.size, 'md length=', md.length);
+                console.log('[Submit] md contains blob?', md.includes('blob:'));
+                console.log('[Submit] md preview=', md.substring(0, 300));
+
+                // Validate content
+                if (!md.trim()) {
+                    e.preventDefault();
+                    return;
+                }
+
+                // Clear draft immediately before submission proceeds
+                if (activeDiscussionId && (window as any).SnakkDraftManager) {
+                    const replyToPostId = (document.getElementById('reply-to-post-id') as HTMLInputElement)?.value || null;
+                    (window as any).SnakkDraftManager.clearDraftOnSuccess(activeDiscussionId, replyToPostId);
+                }
+
+                // If there are pending image uploads, handle everything via fetch
+                // to avoid HTMX boost intercepting the re-submit and causing race conditions
+                if (pending.size > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('[Submit] >>> UPLOAD BRANCH: uploading', pending.size, 'images...');
+                    console.log('[Submit] pending keys:', [...pending.keys()]);
+
+                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.dataset.originalText = submitBtn.textContent || '';
+                        submitBtn.textContent = 'Uploading images...';
+                    }
+
+                    try {
+                        let updatedMd = md;
+                        for (const [blobUrl, file] of pending) {
+                            console.log('[Submit] uploading:', file.name, 'size=', file.size);
+                            const uploadData = new FormData();
+                            uploadData.append('file', file, file.name);
+
+                            console.log('[Submit] fetching /bff/media/upload...');
+                            const response = await fetch('/bff/media/upload', {
+                                method: 'POST',
+                                body: uploadData,
+                            });
+
+                            console.log('[Submit] upload response: status=', response.status, 'ok=', response.ok);
+                            if (!response.ok) {
+                                const errText = await response.text();
+                                console.error('[Submit] Image upload failed: status=', response.status, 'body=', errText);
+                                continue;
+                            }
+
+                            const resultText = await response.text();
+                            console.log('[Submit] upload raw response:', resultText);
+                            const result = JSON.parse(resultText);
+                            console.log('[Submit] upload parsed result:', result, 'url=', result.url);
+                            updatedMd = updatedMd.split(blobUrl).join(result.url);
+                        }
+
+                        console.log('[Submit] updatedMd preview=', updatedMd.substring(0, 200));
+                        (window as any).SnakkEditor.clearPendingUploads(container);
+
+                        // Submit the form via fetch to bypass HTMX boost entirely
+                        const formData = new FormData(form);
+                        formData.set('PostContent', updatedMd);
+
+                        console.log('[Submit] posting form via fetch to:', form.action);
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        console.log('[Submit] form response: redirected=', response.redirected, 'url=', response.url, 'status=', response.status);
+                        if (response.redirected) {
+                            const url = new URL(response.url);
+                            url.hash = 'reply-form';
+                            window.location.href = url.toString();
+                        } else {
+                            window.location.reload();
+                        }
+                    } catch (err) {
+                        console.error('[Submit] Error uploading images:', err);
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = submitBtn.dataset.originalText || 'Post Reply';
+                        }
+                    }
+                    return;
+                }
+
+                // No pending uploads — just sync textarea, let form submit naturally
+                console.log('[Submit] >>> NO-UPLOAD BRANCH: syncing textarea, letting form submit');
+                console.log('[Submit] textarea.name=', textarea.name, 'form.action=', form.action);
+                textarea.value = md;
+                console.log('[Submit] ========== SUBMIT END (native) ==========');
+            });
+        }
+
+        // Restore drafts once editor is ready
+        if (activeDiscussionId) {
+            initDraftAutoSave(activeDiscussionId);
+        }
+    })();
+
+    return editorInitPromise;
 }
 
 // ===== Reply/Quote Functions =====
@@ -221,28 +281,24 @@ function replyToPost(postId: string, authorName: string): void {
     const replyToInput = document.getElementById('reply-to-post-id') as HTMLInputElement;
     const replyContext = document.getElementById('reply-context');
     const replyContextAuthor = document.getElementById('reply-context-author');
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
 
     if (replyToInput) replyToInput.value = postId;
     if (replyContext) replyContext.classList.remove('hidden');
     if (replyContextAuthor) replyContextAuthor.textContent = authorName;
-    if (textarea) {
-        textarea.focus();
-        autoGrow(textarea);
-    }
-    document.getElementById('reply-form-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Force-init editor if not loaded yet, then focus
+    initReplyEditor().then(() => {
+        focusReplyEditor();
+        document.getElementById('reply-form-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
 }
 
 // Quote a post's content (or selected text)
 function quotePost(postId: string, content: string, authorName: string): void {
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
-    if (!textarea) return;
-
     const quote = `> ${authorName} wrote:\n> ${content.split('\n').join('\n> ')}\n\n`;
-    textarea.value = quote + textarea.value;
+    const current = getReplyContent();
+    setReplyContent(quote + current);
     replyToPost(postId, authorName);
-    autoGrow(textarea);
-    updatePreviewDebounced();
 }
 
 // ===== Smart Selection Quote =====
@@ -477,28 +533,23 @@ function initDraftAutoSave(discussionId: string): void {
     const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
     if (!textarea || !(window as any).SnakkDraftManager) return;
 
-    // Restore draft if exists
     const getReplyToPostId = (): string | null => {
         const input = document.getElementById('reply-to-post-id') as HTMLInputElement;
         return input?.value || null;
     };
 
+    // Restore draft — if the editor is active, sync the restored content into it
     (window as any).SnakkDraftManager?.restoreDraft(discussionId, textarea, getReplyToPostId());
+    const editor = getReplyEditor();
+    if (editor && textarea.value) {
+        editor.setMarkdown(textarea.value);
+    }
 
-    // Start auto-save
+    // Start auto-save (DraftManager reads from the textarea, which the editor keeps synced)
     (window as any).SnakkDraftManager?.startAutoSave(discussionId, textarea, getReplyToPostId);
 
-    // Clear draft on successful post
-    const form = document.getElementById('reply-form') as HTMLFormElement;
-    if (form) {
-        form.addEventListener('submit', function() {
-            // Clear draft after a short delay (to ensure post succeeded)
-            setTimeout(() => {
-                const replyToPostId = getReplyToPostId();
-                (window as any).SnakkDraftManager?.clearDraftOnSuccess(discussionId, replyToPostId);
-            }, 1000);
-        });
-    }
+    // Draft clearing is handled in the main submit handler (initReplyEditor)
+    // to ensure it runs before HTMX swaps the page content
 }
 
 // ===== Reactions System =====
@@ -1016,9 +1067,9 @@ function initKeyboardNavigation(): void {
     });
 
     document.addEventListener('keydown', (e) => {
-        // Don't intercept if user is typing in an input/textarea
+        // Don't intercept if user is typing in an input/textarea/contenteditable
         const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
             return;
         }
 
@@ -1167,7 +1218,7 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
 
         if (!response.ok) throw new Error('Failed to load posts');
 
-        const data: { items?: Post[]; hasMoreItems: boolean } = await response.json();
+        const data: { items?: Post[]; hasMoreItems: boolean; hasCodeBlocks?: boolean } = await response.json();
         const container = document.getElementById('posts-container');
         const sentinel = document.getElementById('scroll-sentinel');
 
@@ -1180,21 +1231,21 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
                 ? existingPosts[existingPosts.length - 1]?.dataset.authorId || null
                 : null;
 
-            const newPostIds: string[] = [];
             data.items.forEach(post => {
                 const isSameAuthor = previousAuthorId === post.author.publicId;
                 const postElement = createPostElement(post, isSameAuthor, currentUserId, isAuthenticated, isLocked);
                 container.insertBefore(postElement, sentinel);
                 previousAuthorId = post.author.publicId;
-                newPostIds.push(post.publicId);
 
                 // Load reactions for this new post
                 loadReactionsForPost(post.publicId);
             });
             postsCurrentOffset += data.items.length;
 
-            // Render markdown for new posts
-            newPostIds.forEach(postId => renderPostContent(postId));
+            // Highlight code blocks in new posts if present
+            if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
+                (window as any).SnakkSyntax.highlightAll(container);
+            }
 
             // Observe new posts for read tracking
             observeNewPosts();
@@ -1237,30 +1288,6 @@ function retryLoadPosts(discussionId: string, currentUserId: string, isAuthentic
     loadMorePosts(discussionId, currentUserId, isAuthenticated, isLocked);
 }
 
-async function renderPostContent(postId: string): Promise<void> {
-    const contentDiv = document.getElementById(`post-content-${postId}`);
-    if (!contentDiv) return;
-
-    const rawContent = (contentDiv as HTMLElement).dataset.rawContent;
-    if (!rawContent) return;
-
-    try {
-        const response = await fetch(`/bff/markup/preview`, {
-            method: 'POST',
-            body: rawContent,
-            headers: { 'Content-Type': 'text/plain' },
-            credentials: 'include'
-        });
-
-        if (response.ok) {
-            const html = await response.text();
-            contentDiv.innerHTML = sanitizeHtml(html);
-        }
-    } catch (err) {
-        console.error('Failed to render post content:', err);
-    }
-}
-
 function formatPostRelativeTime(dateString: string): string {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -1281,7 +1308,8 @@ function formatPostRelativeTime(dateString: string): string {
 function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): HTMLElement {
     const article = document.createElement('article');
     article.id = `post-${post.publicId}`;
-    article.className = `post-item post-article group ${post.isFirstPost ? 'first-post' : ''}`;
+    const mtClass = isSameAuthorAsPrevious ? 'mt-1' : 'mt-6';
+    article.className = `post-item post-article group ${post.isFirstPost ? 'first-post' : ''} ${mtClass}`;
     article.dataset.authorId = post.author.publicId;
     article.dataset.postId = post.publicId;
 
@@ -1442,7 +1470,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
         ${headerHtml}
         <div class="pl-11 mt-1">
             ${replyToHtml}
-            <div id="post-content-${post.publicId}" class="prose prose-content" data-raw-content="${escapeHtml(post.content)}" data-author-name="${escapeHtml(post.author.displayName)}">
+            <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}">
                 ${post.renderedContent ? sanitizeHtml(post.renderedContent) : escapeHtml(post.content)}
             </div>
         </div>
@@ -1685,6 +1713,9 @@ function initStickySidebar(): void {
 
 // ===== Initialize Discussion Page =====
 function initDiscussionPage(config: DiscussionConfig): void {
+    // Reset editor state for HTMX navigation (DOM was swapped, old editor is gone)
+    editorInitPromise = null;
+
     // Set endless scroll state from config
     postsCurrentOffset = config.postsCurrentOffset;
     postsHasMoreItems = config.postsHasMoreItems;
@@ -1700,13 +1731,33 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Apply hidden users filter
     applyHiddenUsers();
 
+    // Store discussionId for deferred editor init
+    activeDiscussionId = config.discussionId || null;
+
+    // Lazy-load markdown editor when scrolled into view
+    const editorContainer = document.getElementById('editor-container');
+    if (editorContainer) {
+        const editorObserver = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    editorObserver.disconnect();
+                    initReplyEditor();
+                    break;
+                }
+            }
+        }, { rootMargin: '200px' });
+        editorObserver.observe(editorContainer);
+    }
+
+    // Highlight code blocks in initial page load
+    if (config.hasCodeBlocks && (window as any).SnakkSyntax) {
+        (window as any).SnakkSyntax.highlightAll();
+    }
+
     // Load follow status
     if (config.discussionId) {
         loadFollowStatus(config.discussionId);
         loadMuteStatus(config.discussionId);
-
-        // Initialize draft auto-save for reply form
-        initDraftAutoSave(config.discussionId);
     }
 
     // Initialize endless scroll if enabled
@@ -1812,26 +1863,6 @@ document.addEventListener('click', async (e) => {
     }
 
     switch (actionName) {
-        // Editor actions
-        case 'toggle-preview':
-            togglePreview(action.dataset.show === 'true');
-            break;
-        case 'insert-bold':
-            insertMarkup('**', '**');
-            break;
-        case 'insert-italic':
-            insertMarkup('*', '*');
-            break;
-        case 'insert-link':
-            insertMarkup('[', '](url)');
-            break;
-        case 'insert-code':
-            insertMarkup('`', '`');
-            break;
-        case 'insert-list':
-            insertLinePrefix('- ');
-            break;
-
         // Reply actions
         case 'reply-to-post':
             replyToPost(action.dataset.postId || '', action.dataset.authorName || '');
@@ -1929,19 +1960,11 @@ document.addEventListener('submit', async (e) => {
     }
 });
 
-// Handle textarea input for auto-grow
+// Handle textarea input for auto-grow (inline edit textareas)
 document.addEventListener('input', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches && target.matches('textarea[data-auto-grow]')) {
         autoGrow(target as HTMLTextAreaElement);
-    }
-});
-
-// Handle keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement | null;
-    if (textarea && e.target === textarea) {
-        handleEditorKeydown(e);
     }
 });
 
@@ -1955,7 +1978,6 @@ document.addEventListener('keydown', (e) => {
 // Expose legacy functions for backwards compatibility (can be removed later)
 // These are kept for any inline onclick handlers that haven't been migrated yet
 (window as any).autoGrow = autoGrow;
-(window as any).togglePreview = togglePreview;
 (window as any).replyToPost = replyToPost;
 (window as any).quotePost = quotePost;
 (window as any).editPost = editPost;

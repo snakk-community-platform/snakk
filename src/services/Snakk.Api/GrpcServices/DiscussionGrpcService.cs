@@ -33,7 +33,8 @@ public class DiscussionGrpcService(
             SpaceId = d.SpaceId.Value,
             CreatedAt = ToTimestamp(d.CreatedAt),
             IsPinned = d.IsPinned,
-            IsLocked = d.IsLocked
+            IsLocked = d.IsLocked,
+            Type = d.Type.ToString()
         };
 
         if (d.LastActivityAt.HasValue)
@@ -47,12 +48,14 @@ public class DiscussionGrpcService(
         var userId = RequireAuth();
 
         var slug = request.Title.ToLower().Replace(" ", "-");
+        var type = (Snakk.Shared.Enums.DiscussionTypeEnum)request.Type;
         var result = await discussionUseCase.CreateDiscussionAsync(
             SpaceId.From(request.SpaceId),
             userId,
             request.Title,
             slug,
-            request.Content);
+            request.Content,
+            type);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(
@@ -66,7 +69,8 @@ public class DiscussionGrpcService(
             PublicId = d.PublicId.Value,
             Title = d.Title,
             Slug = d.Slug,
-            CreatedAt = ToTimestamp(d.CreatedAt)
+            CreatedAt = ToTimestamp(d.CreatedAt),
+            Type = d.Type.ToString()
         };
     }
 
@@ -92,6 +96,7 @@ public class DiscussionGrpcService(
                 PublicId = d.PublicId,
                 Title = d.Title,
                 Slug = d.Slug,
+                Type = ((DiscussionTypeEnum)d.Type).ToString(),
                 CreatedAt = ToTimestamp(d.CreatedAt),
                 IsPinned = d.IsPinned,
                 IsLocked = d.IsLocked,
@@ -137,10 +142,13 @@ public class DiscussionGrpcService(
 
     public override async Task<PagedDiscussionBySpaceList> GetDiscussionsBySpace(GetDiscussionsBySpaceRequest request, ServerCallContext context)
     {
+        int? typeFilter = request.HasTypeFilter ? request.TypeFilter : null;
+
         var result = await searchRepository.GetDiscussionsBySpaceAsync(
             request.SpaceId,
             request.Offset,
-            request.PageSize);
+            request.PageSize,
+            typeFilter);
 
         var response = new PagedDiscussionBySpaceList
         {
@@ -157,6 +165,7 @@ public class DiscussionGrpcService(
                 SpaceId = d.SpacePublicId,
                 Title = d.Title,
                 Slug = d.Slug,
+                Type = ((DiscussionTypeEnum)d.Type).ToString(),
                 CreatedAt = ToTimestamp(d.CreatedAt),
                 IsPinned = d.IsPinned,
                 IsLocked = d.IsLocked,

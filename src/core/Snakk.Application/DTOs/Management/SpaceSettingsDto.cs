@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Application.DTOs.Management;
 
@@ -13,13 +14,13 @@ public class SpaceSettingsDto
     [StringLength(500)]
     public string? Description { get; set; }
 
-    public List<string> AllowedThreadTypes { get; set; } = new(); // e.g., "Discussion", "Question", "Announcement"
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     public bool RequireApproval { get; set; }
 
     public bool AllowAnonymous { get; set; }
 
-    public List<string> ModeratorUserIds { get; set; } = new();
+    public List<string> ModeratorUserIds { get; set; } = [];
 }
 
 public class UpdateSpaceSettingsRequest
@@ -31,7 +32,7 @@ public class UpdateSpaceSettingsRequest
     [StringLength(500)]
     public string? Description { get; set; }
 
-    public List<string> AllowedThreadTypes { get; set; } = new();
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     public bool RequireApproval { get; set; }
 

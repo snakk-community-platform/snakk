@@ -1,6 +1,7 @@
 using Snakk.Domain.Entities;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Domain.Tests.Entities;
 
@@ -317,6 +318,7 @@ public class DiscussionEdgeCasesTests
         var discussion = Discussion.RehydrateForList(
             publicId, spaceId, userId,
             "List Discussion", "list-discussion",
+            DiscussionTypeEnum.Standard,
             createdAt, lastActivityAt,
             isPinned: true, isLocked: false);
 
@@ -338,7 +340,8 @@ public class DiscussionEdgeCasesTests
         // Arrange & Act
         var discussion = Discussion.RehydrateForList(
             DiscussionId.New(), SpaceId.New(), UserId.New(),
-            "Test", "test", DateTime.UtcNow, DateTime.UtcNow,
+            "Test", "test", DiscussionTypeEnum.Standard,
+            DateTime.UtcNow, DateTime.UtcNow,
             false, false);
 
         // Assert
@@ -351,7 +354,8 @@ public class DiscussionEdgeCasesTests
         // Arrange & Act
         var discussion = Discussion.RehydrateForList(
             DiscussionId.New(), SpaceId.New(), UserId.New(),
-            "Test", "test", DateTime.UtcNow, DateTime.UtcNow,
+            "Test", "test", DiscussionTypeEnum.Standard,
+            DateTime.UtcNow, DateTime.UtcNow,
             false, false);
 
         // Assert
@@ -364,7 +368,8 @@ public class DiscussionEdgeCasesTests
         // Arrange & Act
         var discussion = Discussion.RehydrateForList(
             DiscussionId.New(), SpaceId.New(), UserId.New(),
-            "Test", "test", DateTime.UtcNow,
+            "Test", "test", DiscussionTypeEnum.Standard,
+            DateTime.UtcNow,
             lastActivityAt: null,
             isPinned: false, isLocked: false);
 

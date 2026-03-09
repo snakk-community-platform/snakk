@@ -10,7 +10,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class HubManagementService(
     SnakkDbContext context,
-    ILogger<HubManagementService> logger) : IHubManagementService
+    ILogger<HubManagementService> _logger) : IHubManagementService
 {
     public async Task<HubOverviewDto?> GetOverviewAsync(
         string hubId,

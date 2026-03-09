@@ -44,6 +44,7 @@
     "node_modules",
     "wwwroot",
     "bin",
-    "obj"
+    "obj",
+    "Scripts/components/markdown-editor.ts"
   ]
 }

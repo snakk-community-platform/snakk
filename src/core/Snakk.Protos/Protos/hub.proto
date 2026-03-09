@@ -4,7 +4,6 @@ option csharp_namespace = "Snakk.Protos.Hub";
 
 package snakk.hub;
 
-import "Protos/common.proto";
 import "google/protobuf/timestamp.proto";
 
 service HubService {

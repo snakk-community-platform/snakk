@@ -44,4 +44,5 @@ public class SpaceDatabaseEntity
     // One-to-many relationships
     public virtual ICollection<DiscussionDatabaseEntity> Discussions { get; set; } = [];
     public virtual ICollection<SpaceRuleDatabaseEntity> Rules { get; set; } = [];
+    public virtual ICollection<SpaceAllowedDiscussionTypeDatabaseEntity> AllowedDiscussionTypes { get; set; } = [];
 }

@@ -79,7 +79,7 @@ public class PostTests
         var post = Post.Create(discussionId, userId, "reply content", replyToPostId: replyToPostId);
 
         // Assert
-        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
+        await Assert.That(post.ReplyToPostId!).IsEqualTo(replyToPostId);
     }
 
     [Test]
@@ -486,6 +486,7 @@ public class PostTests
             isFirstPost: true,
             replyToPostId,
             isDeleted: true,
+            hasCodeBlock: false,
             revisionCount: 3,
             revisions);
 
@@ -498,7 +499,7 @@ public class PostTests
         await Assert.That(post.LastModifiedAt).IsEqualTo(lastModifiedAt);
         await Assert.That(post.EditedAt).IsEqualTo(editedAt);
         await Assert.That(post.IsFirstPost).IsTrue();
-        await Assert.That(post.ReplyToPostId).IsEqualTo(replyToPostId);
+        await Assert.That(post.ReplyToPostId!).IsEqualTo(replyToPostId);
         await Assert.That(post.IsDeleted).IsTrue();
         await Assert.That(post.RevisionCount).IsEqualTo(3);
         await Assert.That(post.DomainEvents).IsEmpty(); // Rehydrated posts have no events

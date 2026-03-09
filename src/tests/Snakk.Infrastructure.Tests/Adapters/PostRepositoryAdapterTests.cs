@@ -53,7 +53,7 @@ public class PostRepositoryAdapterTests : IDisposable
 
         var result = (await _adapter.GetByDiscussionIdAsync(DiscussionId.From(discussion.PublicId))).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(3);
+        await Assert.That(result).Count().IsEqualTo(3);
     }
 
     [Test]
@@ -61,7 +61,7 @@ public class PostRepositoryAdapterTests : IDisposable
     {
         var result = (await _adapter.GetByDiscussionIdAsync(DiscussionId.From("nonexistent_discussion_id"))).ToList();
 
-        await Assert.That(result).HasCount().EqualTo(0);
+        await Assert.That(result).Count().IsEqualTo(0);
     }
 
     #endregion

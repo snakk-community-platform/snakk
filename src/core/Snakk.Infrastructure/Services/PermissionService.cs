@@ -267,7 +267,7 @@ public class PermissionService(
             .Distinct()
             .Select(p => new PermissionDto
             {
-                PublicId = p.PublicId,
+                PublicId = p!.PublicId,
                 Name = p.Name,
                 Category = p.Category,
                 Description = p.Description,
@@ -284,7 +284,7 @@ public class PermissionService(
             .Where(rp => rp.RoleId == roleId)
             .Select(rp => new PermissionDto
             {
-                PublicId = rp.Permission.PublicId,
+                PublicId = rp.Permission!.PublicId,
                 Name = rp.Permission.Name,
                 Category = rp.Permission.Category,
                 Description = rp.Permission.Description,
@@ -510,7 +510,7 @@ public class PermissionService(
         await context.SaveChangesAsync();
 
         // Invalidate user's permission cache
-        await cache.RemoveAsync($"user_permissions_{elevation.User.PublicId}");
+        await cache.RemoveAsync($"user_permissions_{elevation.User!.PublicId}");
 
         // Log audit event
         await securityService.LogAuditAsync(

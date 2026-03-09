@@ -56,8 +56,8 @@ public class AdminUserService(
             {
                 UserId = b.User.PublicId,
                 UserDisplayName = b.User.DisplayName,
-                Reason = b.Reason,
-                BannedBy = b.BannedByUser.DisplayName,
+                Reason = b.Reason ?? "",
+                BannedBy = b.BannedByUser!.DisplayName ?? "",
                 BannedAt = b.BannedAt,
                 ExpiresAt = b.ExpiresAt
             })

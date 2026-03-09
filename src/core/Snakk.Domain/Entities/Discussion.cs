@@ -2,6 +2,7 @@ namespace Snakk.Domain.Entities;
 
 using Snakk.Domain.ValueObjects;
 using Snakk.Domain.Events;
+using Snakk.Shared.Enums;
 
 public class Discussion
 {
@@ -10,6 +11,7 @@ public class Discussion
     public UserId CreatedByUserId { get; private set; }
     public string Title { get; private set; }
     public string Slug { get; private set; }
+    public DiscussionTypeEnum Type { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastActivityAt { get; private set; }
@@ -36,6 +38,7 @@ public class Discussion
         UserId createdByUserId,
         string title,
         string slug,
+        DiscussionTypeEnum type,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastActivityAt = null,
@@ -48,6 +51,7 @@ public class Discussion
         CreatedByUserId = createdByUserId;
         Title = title;
         Slug = slug;
+        Type = type;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastActivityAt = lastActivityAt;
@@ -61,7 +65,8 @@ public class Discussion
         SpaceId spaceId,
         UserId createdByUserId,
         string title,
-        string slug)
+        string slug,
+        DiscussionTypeEnum type = DiscussionTypeEnum.Standard)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Discussion title cannot be empty", nameof(title));
@@ -75,6 +80,7 @@ public class Discussion
             createdByUserId,
             title,
             slug,
+            type,
             DateTime.UtcNow,
             lastActivityAt: DateTime.UtcNow);
 
@@ -89,6 +95,7 @@ public class Discussion
         UserId createdByUserId,
         string title,
         string slug,
+        DiscussionTypeEnum type,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? lastActivityAt = null,
@@ -101,6 +108,7 @@ public class Discussion
             createdByUserId,
             title,
             slug,
+            type,
             createdAt,
             lastModifiedAt,
             lastActivityAt,
@@ -114,6 +122,7 @@ public class Discussion
         UserId createdByUserId,
         string title,
         string slug,
+        DiscussionTypeEnum type,
         DateTime createdAt,
         DateTime? lastActivityAt,
         bool isPinned,
@@ -124,6 +133,7 @@ public class Discussion
             createdByUserId,
             title,
             slug,
+            type,
             createdAt,
             lastModifiedAt: null,
             lastActivityAt,

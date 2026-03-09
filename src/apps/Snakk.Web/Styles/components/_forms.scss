@@ -15,42 +15,52 @@
     }
 }
 
-// Composer area
+// Composer area (Milkdown editor provides its own frame)
 .composer-area {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 8px;
-    padding: 1rem;
     margin-top: 1.5rem;
-
-    textarea {
-        width: 100%;
-        border: none;
-        background: transparent;
-        font-family: inherit;
-        font-size: 0.9375rem;
-        line-height: 1.6;
-        resize: none;
-        min-height: 100px;
-        color: var(--text-primary);
-
-        &:focus {
-            outline: none;
-        }
-
-        &::placeholder {
-            color: var(--text-muted);
-        }
-    }
 }
 
-.composer-toolbar {
+// Editor skeleton (shown while Milkdown editor lazy-loads)
+.editor-skeleton {
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.editor-skeleton-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-secondary);
-    margin-top: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border-secondary);
+    background: var(--bg-secondary);
+}
+
+.skeleton-pill {
+    width: 2rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    background: var(--bg-tertiary);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.editor-skeleton-body {
+    padding: 1rem;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.skeleton-line {
+    height: 0.75rem;
+    border-radius: 0.25rem;
+    background: var(--bg-tertiary);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
 }
 
 // Focus states (accessibility)

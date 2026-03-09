@@ -111,7 +111,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.UserId == userId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Space
             && f.Space != null)
-        .Select(f => f.Space.PublicId)
+        .Select(f => f.Space!.PublicId)
         .ToListAsync();
 
     public async Task<IEnumerable<string>> GetFollowedDiscussionPublicIdsByUserAsync(int userId) => await _dbSet
@@ -119,7 +119,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.UserId == userId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion
             && f.Discussion != null)
-        .Select(f => f.Discussion.PublicId)
+        .Select(f => f.Discussion!.PublicId)
         .ToListAsync();
 
     public async Task<IEnumerable<string>> GetFollowedUserPublicIdsByUserAsync(int userId) => await _dbSet
@@ -127,6 +127,6 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.UserId == userId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.User
             && f.FollowedUser != null)
-        .Select(f => f.FollowedUser.PublicId)
+        .Select(f => f.FollowedUser!.PublicId)
         .ToListAsync();
 }

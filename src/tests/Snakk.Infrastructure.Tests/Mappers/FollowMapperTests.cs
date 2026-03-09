@@ -92,7 +92,7 @@ public class FollowMapperTests
         var follow = entity.FromPersistence();
 
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.Space);
-        await Assert.That(follow.SpaceId).IsNotNull();
+        await Assert.That(follow.SpaceId!).IsNotNull();
         await Assert.That(follow.SpaceId!.Value).IsEqualTo(spacePublicId);
         await Assert.That((object?)follow.DiscussionId).IsNull();
         await Assert.That((object?)follow.FollowedUserId).IsNull();
@@ -136,7 +136,7 @@ public class FollowMapperTests
         var follow = entity.FromPersistence();
 
         await Assert.That(follow.TargetType).IsEqualTo(FollowTargetType.User);
-        await Assert.That(follow.FollowedUserId).IsNotNull();
+        await Assert.That(follow.FollowedUserId!).IsNotNull();
         await Assert.That(follow.FollowedUserId!.Value).IsEqualTo(followedPublicId);
         await Assert.That((object?)follow.DiscussionId).IsNull();
         await Assert.That((object?)follow.SpaceId).IsNull();

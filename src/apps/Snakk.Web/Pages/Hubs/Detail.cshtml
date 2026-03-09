@@ -33,7 +33,10 @@ else
                 <span class="breadcrumb-separator">/</span>
                 <a href="/communities">Communities</a>
                 <span class="breadcrumb-separator">/</span>
-                <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <a href="/c/@Model.Community.CommunitySlug"
+                   data-popup-type="community"
+                   data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
             }
         </nav>
     </div>

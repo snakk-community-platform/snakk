@@ -10,7 +10,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class CommunityManagementService(
     SnakkDbContext context,
-    ILogger<CommunityManagementService> logger) : ICommunityManagementService
+    ILogger<CommunityManagementService> _logger) : ICommunityManagementService
 {
     public async Task<CommunityOverviewDto?> GetOverviewAsync(
         string communityId,

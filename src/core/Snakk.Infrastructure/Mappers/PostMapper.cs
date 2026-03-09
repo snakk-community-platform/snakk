@@ -19,6 +19,7 @@ public static class PostMapper
             entity.IsFirstPost,
             entity.ReplyToPostId is not null ? PostId.From(entity.ReplyToPost!.PublicId) : null,
             entity.IsDeleted,
+            entity.HasCodeBlock,
             entity.RevisionCount);
 
     public static PostDatabaseEntity ToPersistence(this Post post) =>
@@ -32,6 +33,7 @@ public static class PostMapper
             EditedAt = post.EditedAt,
             IsFirstPost = post.IsFirstPost,
             IsDeleted = post.IsDeleted,
+            HasCodeBlock = post.HasCodeBlock,
             RevisionCount = post.RevisionCount
             // DiscussionId, CreatedByUserId, ReplyToPostId will be set by repository adapter
         };

@@ -4,6 +4,7 @@ public record DiscussionResponse(
     string PublicId,
     string Title,
     string Slug,
+    string Type,
     string SpaceId,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
@@ -14,12 +15,14 @@ public record DiscussionCreatedResponse(
     string PublicId,
     string Title,
     string Slug,
+    string Type,
     DateTime CreatedAt);
 
 public record RecentDiscussionResponse(
     string PublicId,
     string Title,
     string Slug,
+    string Type,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
     bool IsPinned,
@@ -37,6 +40,7 @@ public record DiscussionBySpaceResponse(
     string SpaceId,
     string Title,
     string Slug,
+    string Type,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
     bool IsPinned,

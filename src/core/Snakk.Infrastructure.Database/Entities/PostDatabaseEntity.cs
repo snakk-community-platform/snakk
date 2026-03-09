@@ -20,6 +20,7 @@ public class PostDatabaseEntity
     public DateTime? DeletedAt { get; set; }
     public DateTime? EditedAt { get; set; }
     public bool IsFirstPost { get; set; }
+    public bool HasCodeBlock { get; set; }
     public int RevisionCount { get; set; }
 
     // Many-to-one relationships

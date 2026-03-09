@@ -9,6 +9,7 @@ using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Hub;
 using Snakk.Shared.Enums;
+using Snakk.Shared.Helpers;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -112,6 +113,7 @@ public class HubGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Hub, 0),
             SpaceCount = stats.SpaceCount,
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount

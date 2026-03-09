@@ -5,6 +5,7 @@ namespace Snakk.Application.DTOs.Management;
 public class ManageScopeDto
 {
     public required string ScopeType { get; set; } // "Community", "Hub", "Space"
+    public required string ScopePublicId { get; set; }
     public required string ScopeName { get; set; }
     public string? ScopeAvatarUrl { get; set; }
 

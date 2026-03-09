@@ -178,7 +178,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         {
             Name = "Updated Space Name",
             Description = "Updated description",
-            AllowedThreadTypes = new[] { "Discussion", "Question" },
+            AllowedDiscussionTypes = new[] { "Standard", "Question" },
             RequireApproval = false,
             AllowAnonymous = false
         };
@@ -205,7 +205,7 @@ public class SpaceManagementEndpointTests : IAsyncDisposable
         {
             Name = "Updated Space Name",
             Description = "Updated description",
-            AllowedThreadTypes = new[] { "Discussion" },
+            AllowedDiscussionTypes = new[] { "Standard" },
             RequireApproval = false,
             AllowAnonymous = false
         };

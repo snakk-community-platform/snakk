@@ -15,6 +15,7 @@
     <PackageReference Include="Npgsql" Version="10.0.1" />
     <!-- JWT generation for auto-login -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>
 
   <!-- Build Tailwind CSS before build (skip in Docker where CSS is pre-built) -->

@@ -45,7 +45,12 @@ builder.Services.AddScoped(sp =>
     return apiClient;
 });
 
-builder.Services.AddScoped<AdminApiClientService>();
+builder.Services.AddScoped(sp =>
+{
+    var sdkClient = sp.GetRequiredService<SnakkApiClient>();
+    var httpClient = CreateAuthenticatedClient(sp);
+    return new AdminApiClientService(sdkClient, httpClient);
+});
 
 builder.Services.AddScoped(sp =>
 {
@@ -110,7 +115,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.All;
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 

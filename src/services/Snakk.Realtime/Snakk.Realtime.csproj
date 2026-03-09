@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
   </ItemGroup>
 

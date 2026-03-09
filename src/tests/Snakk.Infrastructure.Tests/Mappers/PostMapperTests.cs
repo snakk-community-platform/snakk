@@ -96,7 +96,7 @@ public class PostMapperTests
             isFirstPost: true,
             null,
             false,
-            0);
+            false);
 
         // Act
         var entity = post.ToPersistence();
@@ -206,7 +206,7 @@ public class PostMapperTests
         var post = entity.FromPersistence();
 
         // Assert
-        await Assert.That(post.ReplyToPostId).IsNotNull();
+        await Assert.That(post.ReplyToPostId!).IsNotNull();
         await Assert.That(post.ReplyToPostId!.Value).IsEqualTo(replyToPostPublicId);
     }
 
@@ -452,8 +452,8 @@ public class PostMapperTests
         var reconstructedPost = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reconstructedPost.ReplyToPostId).IsNotNull();
-        await Assert.That(reconstructedPost.ReplyToPostId).IsEqualTo(replyToPostId);
+        await Assert.That(reconstructedPost.ReplyToPostId!).IsNotNull();
+        await Assert.That(reconstructedPost.ReplyToPostId!).IsEqualTo(replyToPostId);
     }
 
     [Test]

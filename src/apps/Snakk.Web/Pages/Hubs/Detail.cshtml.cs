@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
+using Snakk.Protos.Community;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 
@@ -18,6 +19,7 @@ public class DetailModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public HubInfo? Hub { get; set; }
+    public CommunityInfo? CommunityDetail { get; set; }
     public PagedSpaceByHubList? Spaces { get; set; }
     public HubStats? HubStats { get; set; }
     public string Slug { get; set; } = string.Empty;
@@ -51,7 +53,7 @@ public class DetailModel(
         if (!hubResult.IsSuccess)
             return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
-        Hub = hubResult.Value;
+        Hub = hubResult.Value!;
 
         SidebarScopeId = Hub.PublicId;
 
@@ -60,11 +62,15 @@ public class DetailModel(
 
         var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, offset, 20);
         var statsTask = _apiClient.GetHubStatsAsync(Hub.PublicId);
+        var communityTask = !string.IsNullOrEmpty(communityContext.CommunitySlug)
+            ? _apiClient.GetCommunityBySlugAsync(communityContext.CommunitySlug)
+            : Task.FromResult<CommunityInfo?>(null);
 
-        await Task.WhenAll(spacesTask, statsTask);
+        await Task.WhenAll(spacesTask, statsTask, communityTask);
 
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
         HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
+        CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
         return Page();
     }

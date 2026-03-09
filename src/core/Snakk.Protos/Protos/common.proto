@@ -4,9 +4,6 @@ option csharp_namespace = "Snakk.Protos";
 
 package snakk;
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
-
 // Generic paged result wrapper
 message PagedResult {
   int32 offset = 1;

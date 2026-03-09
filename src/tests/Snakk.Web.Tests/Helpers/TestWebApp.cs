@@ -60,8 +60,8 @@ public class TestWebApp : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Skip Tailwind CSS npm build in test mode
-        builder.UseSetting("SkipBuildTailwindCSS", "true");
+        // Skip frontend npm build in test mode
+        builder.UseSetting("SkipFrontendBuild", "true");
 
         // Ensure the setup wizard thinks setup is complete so it doesn't redirect
         var tempStorage = Path.Combine(Path.GetTempPath(), "snakk-tests-" + Guid.NewGuid().ToString("N"));
