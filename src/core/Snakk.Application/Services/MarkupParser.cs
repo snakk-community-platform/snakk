@@ -218,12 +218,13 @@ public class MarkupParser : IMarkupParser
         if (string.IsNullOrWhiteSpace(url))
             return false;
 
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return AllowedSchemes.Contains(uri.Scheme);
-
-        // Allow relative URLs starting with /
+        // Allow relative URLs starting with / (but not protocol-relative //)
+        // Must check before Uri.TryCreate because Unix treats /path as file:// URI
         if (url.StartsWith('/') && !url.StartsWith("//"))
             return true;
+
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return AllowedSchemes.Contains(uri.Scheme);
 
         return false;
     }
