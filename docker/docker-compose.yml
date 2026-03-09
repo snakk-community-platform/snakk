@@ -1,3 +1,5 @@
+# Development compose — builds from source.
+# Production installs use pre-built images from ghcr.io (see snakk-installer).
 services:
   postgres:
     image: postgres:17-alpine
