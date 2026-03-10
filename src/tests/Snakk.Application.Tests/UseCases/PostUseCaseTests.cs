@@ -20,6 +20,7 @@ public class PostUseCaseTests
     private readonly Mock<IFollowRepository> _mockFollowRepository = new();
     private readonly Mock<ICounterService> _mockCounterService = new();
     private readonly Mock<IMediaService> _mockMediaService = new();
+    private readonly Mock<IMarkupParser> _mockMarkupParser = new();
     private Mock<ReactionUseCase> _mockReactionUseCase = null!;
     private PostUseCase _useCase = null!;
 
@@ -33,6 +34,9 @@ public class PostUseCaseTests
             Mock.Of<IRealtimeNotifier>(),
             Mock.Of<ICounterService>());
 
+        _mockMarkupParser.Setup(m => m.ToHtml(It.IsAny<string>()))
+            .Returns((string s) => $"<p>{s}</p>");
+
         _useCase = new PostUseCase(
             _mockPostRepository.Object,
             _mockDiscussionRepository.Object,
@@ -42,6 +46,7 @@ public class PostUseCaseTests
             _mockRealtimeNotifier.Object,
             _mockCounterService.Object,
             _mockMediaService.Object,
+            _mockMarkupParser.Object,
             _mockReactionUseCase.Object);
     }
 
@@ -181,7 +186,7 @@ public class PostUseCaseTests
 
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        var replyToPost = Post.Create(discussionId, UserId.New(), "Original post");
+        var replyToPost = Post.Create(discussionId, UserId.New(), "Original post", "<p>Original post</p>");
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);
@@ -209,7 +214,7 @@ public class PostUseCaseTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "Original content");
+        var post = Post.Create(discussionId, userId, "Original content", "<p>Original content</p>");
         const string newContent = "Updated content";
 
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -262,7 +267,7 @@ public class PostUseCaseTests
         var authorId = UserId.New();
         var differentUserId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, authorId, "Original content");
+        var post = Post.Create(discussionId, authorId, "Original content", "<p>Original content</p>");
 
         var user = User.CreateWithEmail("DifferentUser", "different@example.com", "hash", "token");
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
@@ -288,7 +293,7 @@ public class PostUseCaseTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "Original content");
+        var post = Post.Create(discussionId, userId, "Original content", "<p>Original content</p>");
         post.SoftDelete(userId); // Delete the post
 
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -319,7 +324,7 @@ public class PostUseCaseTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "Test content");
+        var post = Post.Create(discussionId, userId, "Test content", "<p>Test content</p>");
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);
@@ -342,7 +347,7 @@ public class PostUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Test content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Test content", "<p>Test content</p>", sixMinutesAgo);
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);
@@ -365,7 +370,7 @@ public class PostUseCaseTests
         var authorId = UserId.New();
         var differentUserId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, authorId, "Test content");
+        var post = Post.Create(discussionId, authorId, "Test content", "<p>Test content</p>");
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);
@@ -407,7 +412,7 @@ public class PostUseCaseTests
     public async Task GetPostAsync_WithExistingPost_ReturnsPost()
     {
         // Arrange
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "Test content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "Test content", "<p>Test content</p>");
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);
@@ -449,8 +454,8 @@ public class PostUseCaseTests
         var discussionId = DiscussionId.New();
         var posts = new List<Post>
         {
-            Post.Create(discussionId, UserId.New(), "Post 1"),
-            Post.Create(discussionId, UserId.New(), "Post 2")
+            Post.Create(discussionId, UserId.New(), "Post 1", "<p>Post 1</p>"),
+            Post.Create(discussionId, UserId.New(), "Post 2", "<p>Post 2</p>")
         };
 
         var pagedResult = new PagedResult<Post> { Items = posts, Offset = 0, PageSize = 20, HasMoreItems = false };
@@ -530,7 +535,7 @@ public class PostUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
         var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
-        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Test content", fiveMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Test content", "<p>Test content</p>", fiveMinutesAgo);
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);

@@ -379,12 +379,18 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int offset,
         int pageSize,
         string? communityId = null,
+        string? hubId = null,
         string? cursor = null)
     {
         var query = _context.Discussions.AsQueryable();
 
+        // Filter by hub if specified (more specific than community)
+        if (!string.IsNullOrEmpty(hubId))
+        {
+            query = query.Where(d => d.Space.Hub.PublicId == hubId);
+        }
         // Filter by community if specified
-        if (!string.IsNullOrEmpty(communityId))
+        else if (!string.IsNullOrEmpty(communityId))
         {
             query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
         }

@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
+using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Community;
+using Snakk.Protos.Discussion;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 
@@ -14,31 +15,27 @@ public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache) : PageModel
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public HubInfo? Hub { get; set; }
     public CommunityInfo? CommunityDetail { get; set; }
     public PagedSpaceByHubList? Spaces { get; set; }
-    public HubStats? HubStats { get; set; }
+    public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public string Slug { get; set; } = string.Empty;
-    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
-    public ICommunityContext Community => communityContext;
+    public bool PreferEndlessScroll { get; set; } = true;
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "hub";
     public string SidebarScopeId { get; set; } = string.Empty;
 
     // Trending settings
-    public bool ShowTrendingDiscussions => configuration.GetValue("Trending:SpaceList:ShowDiscussions", true);
-    public bool ShowTrendingContributors => configuration.GetValue("Trending:SpaceList:ShowContributors", true);
+    public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:SpaceList:ShowDiscussions", true);
+    public bool ShowTrendingContributors => Configuration.GetValue("Trending:SpaceList:ShowContributors", true);
 
-    // Whether to show community in breadcrumb (multi-community enabled, non-default community, not on custom domain)
-    public bool ShowCommunityInBreadcrumb =>
-        configuration.GetValue<bool>("Features:MultiCommunityEnabled")
-        && !communityContext.IsDefaultCommunity
-        && !communityContext.IsCustomDomain;
+    // Announcements (bubble-down: hub + community)
+    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
@@ -48,29 +45,31 @@ public class DetailModel(
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
         Slug = slug;
+        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         var hubResult = await _apiClient.GetHubBySlugResultAsync(slug);
         if (!hubResult.IsSuccess)
             return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Hub = hubResult.Value!;
-
         SidebarScopeId = Hub.PublicId;
 
         // Check cache for sidebar data — inline if warm, prefetch if cold
         ResolveSidebarData();
 
-        var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, offset, 20);
-        var statsTask = _apiClient.GetHubStatsAsync(Hub.PublicId);
-        var communityTask = !string.IsNullOrEmpty(communityContext.CommunitySlug)
-            ? _apiClient.GetCommunityBySlugAsync(communityContext.CommunitySlug)
+        var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, 0, 50);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, hubId: Hub.PublicId);
+        var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
+            ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
+        var announcementsTask = _apiClient.GetActiveAnnouncementsForHubAsync(Hub.PublicId);
 
-        await Task.WhenAll(spacesTask, statsTask, communityTask);
+        await Task.WhenAll(spacesTask, discussionsTask, communityTask, announcementsTask);
 
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
-        HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
+        RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
+        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         return Page();
     }
@@ -81,13 +80,13 @@ public class DetailModel(
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
                 $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
                 () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId),
-                d => new SidebarTrendingDiscussionsVM(d, communityContext, "cache"));
+                d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingContributors)
             InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
                 $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
                 () => _apiClient.GetTopContributorsTodayAsync(Hub!.PublicId),
-                d => new SidebarTrendingContributorsVM(d, communityContext, "cache"));
+                d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
 
         if (Hub!.HasRules)
             InlineHubRules = prefetchCache.ResolveOrPrefetch(
@@ -95,8 +94,8 @@ public class DetailModel(
                 () => _apiClient.GetHubRulesAsync(SidebarScopeId),
                 d => new SidebarHubRulesVM(
                     d,
-                    communityContext,
-                    communityContext.CommunitySlug ?? "",
+                    CommunityContext,
+                    CommunityContext.CommunitySlug ?? "",
                     Hub.ParentCommunityHasRules,
                     "cache"));
     }

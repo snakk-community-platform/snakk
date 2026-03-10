@@ -1,14 +1,14 @@
 @page "/h/{slug}"
 @using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Hubs.DetailModel
-@inject IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Hub?.Name ?? "Hub";
     ViewData["Description"] = Model.Hub != null
         ? $"{Model.Hub.Name} — browse spaces and discussions in this hub on Snakk."
         : null;
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 @if (Model.Hub == null)
@@ -40,10 +40,12 @@ else
             }
         </nav>
     </div>
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="max-w-[90rem] mx-auto px-4 py-8">
+        <partial name="_AnnouncementBanners" model="Model.Announcements?.Announcements" />
+
         <!-- Two Column Layout -->
         <div class="flex flex-col lg:flex-row gap-3">
-            <!-- Left Column: Spaces -->
+            <!-- Left Column: Spaces + Discussions -->
             <div class="flex-1 min-w-0">
                 <!-- Hub Header -->
                 <div class="page-header">
@@ -70,13 +72,15 @@ else
                         </div>
                     </div>
                 </div>
+
+                <!-- Spaces -->
                 <div class="section-header">
                     <span class="section-title">Spaces</span>
                 </div>
 
                 @if (Model.Spaces?.Items == null || !Model.Spaces.Items.Any())
                 {
-                    <div class="clean-card">
+                    <div class="clean-card mb-6">
                         <div class="empty-state-simple py-12">
                             <h3>No spaces yet</h3>
                             <p>This hub doesn't have any spaces. Check back soon!</p>
@@ -85,77 +89,103 @@ else
                 }
                 else
                 {
-                    <div class="flex flex-col gap-4" id="spaces-container">
+                    <div class="grid gap-4 md:grid-cols-2 mb-6" id="spaces-container">
                         @foreach (var space in Model.Spaces.Items)
                         {
-                            <div class="category-card-wrapper">
-                                <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="category-card">
-                                    <div class="flex items-start gap-3">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
-                                        <div class="flex-1 min-w-0">
-                                            <h3 class="category-title">@space.Name</h3>
-                                            @if (!string.IsNullOrEmpty(space.Description))
-                                            {
-                                                <p class="category-description line-clamp-2">@space.Description</p>
-                                            }
-                                            <div class="entity-stats mt-2">
-                                                <span>@space.DiscussionCount discussions</span>
-                                                <span class="entity-stats-separator">·</span>
-                                                <span>@space.ReplyCount replies</span>
-                                            </div>
-                                        </div>
+                            <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="category-card">
+                                <div class="flex items-start gap-3">
+                                    <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                    <div class="flex-1 min-w-0">
+                                        <h2 class="category-title"
+                                            data-popup-type="space"
+                                            data-popup-id="@space.PublicId"
+                                            data-popup-name="@space.Name">@space.Name</h2>
+                                        @if (!string.IsNullOrEmpty(space.Description))
+                                        {
+                                            <p class="category-description line-clamp-2">@space.Description</p>
+                                        }
                                     </div>
-                                </a>
-                                @if (space.LatestDiscussion != null)
-                                {
-                                    var baseDiscussionUrl = SnakkUrlHelper.Discussion(
-                                        Model.Community,
-                                        Model.Slug,
-                                        space.Slug,
-                                        $"{space.LatestDiscussion.Slug}~{space.LatestDiscussion.PublicId}");
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
 
-                                    var unreadUrl = $"{baseDiscussionUrl}?gotoUnread=true";
+                <!-- Recent Discussions -->
+                <div class="section-header">
+                    <span class="section-title">Recent Discussions</span>
+                </div>
 
-                                    <div class="space-latest-discussion">
-                                        <div class="avatar avatar-xs mr-2 flex-shrink-0">
-                                            <img src="@SnakkUrlHelper.UserAvatar(space.LatestDiscussion.AuthorPublicId)"
-                                                 alt="@space.LatestDiscussion.AuthorDisplayName"
-                                                 width="24" height="24" />
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <a href="@baseDiscussionUrl" class="space-latest-link">
-                                                <span class="space-latest-title">@space.LatestDiscussion.Title</span>
-                                            </a>
-                                            <div class="space-latest-meta">
-                                                <span>@space.LatestDiscussion.AuthorDisplayName</span>
-                                                <span>·</span>
-                                                <span>@((DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalMinutes < 1 ? "just now" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalHours < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalMinutes}m ago" : (DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalDays < 1 ? $"{(int)(DateTime.UtcNow - space.LatestDiscussion.LastActivityAt.ToDateTime()).TotalHours}h ago" : space.LatestDiscussion.LastActivityAt.ToDateTime().ToString("MMM d"))</span>
-                                            </div>
-                                        </div>
-                                        <a href="@unreadUrl" class="space-latest-goto" title="Jump to first unread post">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="9 18 15 12 9 6"></polyline>
-                                            </svg>
-                                        </a>
+                @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
+                {
+                    <div class="clean-card">
+                        <div class="empty-state-simple py-12">
+                            <h3>No discussions yet</h3>
+                            <p>This hub doesn't have any discussions yet.</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="topic-list" id="discussions-container">
+                        @foreach (var discussion in Model.RecentDiscussions.Items)
+                        {
+                            <partial name="Shared/_DiscussionListItem"
+                                     model="new DiscussionListItemVM(discussion, false, Model.Community, ShowHub: false)" />
+                        }
+
+                        @if (Model.PreferEndlessScroll && Model.RecentDiscussions.HasMoreItems)
+                        {
+                            var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
+
+                            <div hx-get="/partials/discussions?offset=@nextOffset&pageSize=20&hubId=@Model.Hub.PublicId&hideCommunity=true&hideHub=true"
+                                 hx-trigger="revealed"
+                                 hx-swap="outerHTML"
+                                 hx-target="this"
+                                 hx-push-url="false"
+                                 class="py-1">
+                                <div class="topic-item-wrapper">
+                                    <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                    <div class="topic-item flex-1">
+                                        <div class="skeleton h-4 w-3/4 mb-2"></div>
+                                        <div class="skeleton h-3 w-1/2"></div>
                                     </div>
-                                }
+                                </div>
+                                <div class="topic-item-wrapper">
+                                    <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                    <div class="topic-item flex-1">
+                                        <div class="skeleton h-4 w-2/3 mb-2"></div>
+                                        <div class="skeleton h-3 w-2/5"></div>
+                                    </div>
+                                </div>
+                                <div class="topic-item-wrapper">
+                                    <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                    <div class="topic-item flex-1">
+                                        <div class="skeleton h-4 w-4/5 mb-2"></div>
+                                        <div class="skeleton h-3 w-1/3"></div>
+                                    </div>
+                                </div>
                             </div>
+                        }
+                        else if (Model.PreferEndlessScroll)
+                        {
+                            <partial name="Shared/_EndOfScroll" />
                         }
                     </div>
 
-                    @if (Model.Spaces.Offset > 0 || Model.Spaces.HasMoreItems)
+                    @if (!Model.PreferEndlessScroll && (Model.RecentDiscussions.Offset > 0 || Model.RecentDiscussions.HasMoreItems))
                     {
-                        <div class="flex justify-center gap-2 mt-8">
-                            @if (Model.Spaces.Offset > 0)
+                        <div class="flex justify-center gap-2 mt-6">
+                            @if (Model.RecentDiscussions.Offset > 0)
                             {
-                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Math.Max(0, Model.Spaces.Offset - Model.Spaces.PageSize))"
+                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Math.Max(0, Model.RecentDiscussions.Offset - Model.RecentDiscussions.PageSize))"
                                    class="btn btn-ghost btn-sm">
                                     Previous
                                 </a>
                             }
-                            @if (Model.Spaces.HasMoreItems)
+                            @if (Model.RecentDiscussions.HasMoreItems)
                             {
-                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Model.Spaces.Offset + Model.Spaces.PageSize)"
+                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize)"
                                    class="btn btn-ghost btn-sm">
                                     Next
                                 </a>
@@ -166,7 +196,7 @@ else
             </div>
 
             <!-- Right Column: Sidebar -->
-            <aside id="sticky-sidebar" class="w-full lg:w-80 flex-shrink-0" hx-boost="false">
+            <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
                 @if (Model.Hub.HasRules)
                 {
                     <div class="sidebar-section">
@@ -217,4 +247,8 @@ else
             </aside>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
 }

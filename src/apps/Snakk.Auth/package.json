@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:css": "sass Styles/auth.scss:wwwroot/css/auth.css --style=compressed --no-source-map",
-    "watch:css": "sass Styles/auth.scss:wwwroot/css/auth.css --watch --no-source-map"
+    "build": "npm run build:css",
+    "build:css": "npx @tailwindcss/cli -i Styles/input.css -o wwwroot/css/auth.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i Styles/input.css -o wwwroot/css/auth.css --watch"
   },
   "devDependencies": {
-    "sass": "^1.97.3"
+    "@tailwindcss/cli": "^4.0.0",
+    "daisyui": "^5.0.0"
   }
 }

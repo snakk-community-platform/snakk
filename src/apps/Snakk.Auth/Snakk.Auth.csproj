@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Configurations>Debug;Release</Configurations>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,5 +29,14 @@
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>
+
+  <!-- Build frontend CSS (Tailwind + daisyUI) -->
+  <Target Name="NpmInstall" BeforeTargets="BuildFrontend" Condition="'$(SkipFrontendBuild)' != 'true' And !Exists('$(ProjectDir)node_modules')">
+    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+  <Target Name="BuildFrontend" BeforeTargets="Build" Condition="'$(SkipFrontendBuild)' != 'true'">
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)" />
+  </Target>
 
 </Project>

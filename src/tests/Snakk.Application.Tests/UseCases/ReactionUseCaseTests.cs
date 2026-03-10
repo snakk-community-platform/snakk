@@ -36,7 +36,7 @@ public class ReactionUseCaseTests
         var discussionId = DiscussionId.New();
         var type = ReactionType.Heart;
 
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
         var reactionCounts = new Dictionary<ReactionType, int> { { ReactionType.Heart, 1 } };
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
@@ -68,7 +68,7 @@ public class ReactionUseCaseTests
         var discussionId = DiscussionId.New();
         var type = ReactionType.ThumbsUp;
 
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
         var existingReaction = Reaction.Create(postId, userId, type);
         var reactionCounts = new Dictionary<ReactionType, int>();
 
@@ -102,7 +102,7 @@ public class ReactionUseCaseTests
         var oldType = ReactionType.ThumbsUp;
         var newType = ReactionType.Heart;
 
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
         var existingReaction = Reaction.Create(postId, userId, oldType);
         var reactionCounts = new Dictionary<ReactionType, int> { { ReactionType.Heart, 1 } };
 
@@ -153,7 +153,7 @@ public class ReactionUseCaseTests
         var postId = PostId.New();
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
@@ -313,7 +313,7 @@ public class ReactionUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
         var type = ReactionType.Heart;
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
@@ -354,7 +354,7 @@ public class ReactionUseCaseTests
         var postId = PostId.New();
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, UserId.New(), "Test content");
+        var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
 
         var thumbsUpReaction = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
 

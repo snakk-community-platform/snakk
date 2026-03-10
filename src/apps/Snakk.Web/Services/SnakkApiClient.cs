@@ -49,6 +49,7 @@ public class SnakkApiClient(
     ReadStateClient readStateClient,
     MarkupService.MarkupServiceClient markupClient,
     AuthService.AuthServiceClient authClient,
+    Snakk.Protos.Announcement.AnnouncementService.AnnouncementServiceClient announcementClient,
     ILogger<SnakkApiClient> logger)
 {
     private void LogGrpcError(Exception ex, [CallerMemberName] string? caller = null)
@@ -209,12 +210,14 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(int offset = 0, int pageSize = 20, string? communityId = null)
+    public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null)
     {
         try
         {
             var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
             if (communityId is not null) request.CommunityId = communityId;
+            if (hubId is not null) request.HubId = hubId;
 
             return await discussionClient.GetRecentDiscussionsAsync(request);
         }
@@ -1119,6 +1122,50 @@ public class SnakkApiClient(
         l.SpacePublicId, l.SpaceName,
         l.Details, l.Reason,
         l.CreatedAt.ToDateTime());
+
+    // ==================== Announcements ====================
+
+    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForCommunityAsync(string communityPublicId)
+    {
+        try
+        {
+            return await announcementClient.GetActiveForCommunityAsync(
+                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = communityPublicId });
+        }
+        catch (RpcException ex)
+        {
+            LogGrpcError(ex);
+            return null;
+        }
+    }
+
+    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForHubAsync(string hubPublicId)
+    {
+        try
+        {
+            return await announcementClient.GetActiveForHubAsync(
+                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = hubPublicId });
+        }
+        catch (RpcException ex)
+        {
+            LogGrpcError(ex);
+            return null;
+        }
+    }
+
+    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForSpaceAsync(string spacePublicId)
+    {
+        try
+        {
+            return await announcementClient.GetActiveForSpaceAsync(
+                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = spacePublicId });
+        }
+        catch (RpcException ex)
+        {
+            LogGrpcError(ex);
+            return null;
+        }
+    }
 }
 
 // Paged result for moderation responses

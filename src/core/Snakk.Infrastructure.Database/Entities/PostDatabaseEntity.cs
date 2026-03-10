@@ -12,6 +12,7 @@ public class PostDatabaseEntity
 
     // Required attributes
     public required string Content { get; set; }
+    public string RenderedContent { get; set; } = "";
     public required DateTime CreatedAt { get; set; }
 
     // Other attributes

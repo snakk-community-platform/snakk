@@ -6,7 +6,9 @@ namespace Snakk.Web.Pages.ViewModels;
 public record DiscussionListItemVM(
     RecentDiscussionInfo Discussion,
     bool ShowCommunity,
-    ICommunityContext Community);
+    ICommunityContext Community,
+    bool ShowHub = true,
+    bool ShowSpace = true);
 
 public record SpaceDiscussionListItemVM(
     DiscussionBySpaceInfo Discussion,

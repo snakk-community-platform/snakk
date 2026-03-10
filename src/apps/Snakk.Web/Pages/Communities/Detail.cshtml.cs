@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Community;
+using Snakk.Protos.Discussion;
 using Snakk.Protos.Hub;
 
 namespace Snakk.Web.Pages.Communities;
@@ -11,39 +12,98 @@ public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache) : PageModel
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
-    private readonly IConfiguration _configuration = configuration;
 
-    public CommunityInfo? Community { get; set; }
+    public CommunityInfo? CommunityDetail { get; set; }
     public PagedHubList? Hubs { get; set; }
-    public ICommunityContext CommunityContext => communityContext;
+    public PagedRecentDiscussionList? RecentDiscussions { get; set; }
+    public bool PreferEndlessScroll { get; set; } = true;
+
+    // Sidebar scope for HTMX partials
+    public string SidebarScopeType { get; set; } = "community";
+    public string SidebarScopeId { get; set; } = string.Empty;
+
+    // Trending settings
+    public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:CommunityPage:ShowDiscussions", true);
+    public bool ShowTrendingSpaces => Configuration.GetValue("Trending:CommunityPage:ShowSpaces", true);
+    public bool ShowTrendingContributors => Configuration.GetValue("Trending:CommunityPage:ShowContributors", true);
+
+    // Announcements (community-level only)
+    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
+
+    // Inline sidebar data (populated from cache, null = HTMX fallback)
+    public SidebarPlatformStatsVM? InlineCommunityStats { get; set; }
+    public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
+    public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
+    public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
     public SidebarCommunityRulesVM? InlineCommunityRules { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
-        var multiCommunityEnabled = _configuration.GetValue<bool>("Features:MultiCommunityEnabled");
+        var multiCommunityEnabled = Configuration.GetValue<bool>("Features:MultiCommunityEnabled");
         if (!multiCommunityEnabled)
-        {
             return RedirectToPage("/Index");
-        }
+
+        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 
         if (!communityResult.IsSuccess)
             return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
-        Community = communityResult.Value!;
+        CommunityDetail = communityResult.Value!;
+        SidebarScopeId = CommunityDetail.PublicId;
 
-        if (Community.HasRules)
+        if (CommunityDetail.HasRules)
             InlineCommunityRules = prefetchCache.ResolveOrPrefetch(
-                $"community-rules:{Community.PublicId}",
-                () => _apiClient.GetCommunityRulesAsync(Community.PublicId),
+                $"community-rules:{CommunityDetail.PublicId}",
+                () => _apiClient.GetCommunityRulesAsync(CommunityDetail.PublicId),
                 d => new SidebarCommunityRulesVM(d, "cache"));
 
-        Hubs = await _apiClient.GetHubsByCommunityAsync(Community.PublicId, offset, 20);
+        // Check cache for sidebar data — inline if warm, prefetch if cold
+        ResolveSidebarData();
+
+        var hubsTask = _apiClient.GetHubsByCommunityAsync(CommunityDetail.PublicId, 0, 50);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId: CommunityDetail.PublicId);
+        var announcementsTask = _apiClient.GetActiveAnnouncementsForCommunityAsync(CommunityDetail.PublicId);
+
+        await Task.WhenAll(hubsTask, discussionsTask, announcementsTask);
+
+        Hubs = hubsTask.IsCompletedSuccessfully ? hubsTask.Result : null;
+        RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
+        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         return Page();
+    }
+
+    private void ResolveSidebarData()
+    {
+        var communityId = CommunityDetail!.PublicId;
+
+        var statsData = prefetchCache.ResolveOrPrefetch(
+            $"platform-stats:community:{communityId}",
+            () => _apiClient.GetCommunityStatsAsync(communityId));
+        if (statsData is not null)
+            InlineCommunityStats = new(statsData.SpaceCount, statsData.DiscussionCount, statsData.ReplyCount, "cache");
+
+        if (ShowTrendingDiscussions)
+            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId),
+                d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
+
+        if (ShowTrendingSpaces)
+            InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch(
+                $"trending-spaces:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId),
+                d => new SidebarTrendingSpacesVM(d, CommunityContext, "cache"));
+
+        if (ShowTrendingContributors)
+            InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
+                $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(communityId: communityId),
+                d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
     }
 }

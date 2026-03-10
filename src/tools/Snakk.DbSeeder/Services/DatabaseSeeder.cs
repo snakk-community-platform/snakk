@@ -11,11 +11,13 @@ public class DatabaseSeeder(
     SnakkDbContext context,
     IPasswordHasher passwordHasher,
     IAvatarGenerationService avatarService,
+    IMarkupParser markupParser,
     Microsoft.Extensions.Configuration.IConfiguration configuration)
 {
     private readonly SnakkDbContext _context = context;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly IAvatarGenerationService _avatarService = avatarService;
+    private readonly IMarkupParser _markupParser = markupParser;
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration = configuration;
 
     // Fixed seed for reproducibility
@@ -67,6 +69,9 @@ public class DatabaseSeeder(
         var test4Community = await CreateTest4CommunityAsync(users);
         var test5Community = await CreateTest5CommunityAsync(users);
 
+        // Seed announcements across different scopes
+        await SeedAnnouncementsAsync(snakkCommunity, users);
+
         Console.WriteLine("Database seeding completed successfully.");
 
         // Separate avatar generation phase
@@ -76,6 +81,7 @@ public class DatabaseSeeder(
     private async Task ClearExistingDataAsync()
     {
         // Delete in correct order due to foreign keys
+        _context.Announcements.RemoveRange(_context.Announcements);
         _context.Posts.RemoveRange(_context.Posts);
         _context.Discussions.RemoveRange(_context.Discussions);
         _context.Spaces.RemoveRange(_context.Spaces);
@@ -627,6 +633,7 @@ public class DatabaseSeeder(
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
                 Content = firstPostContent,
+                RenderedContent = _markupParser.ToHtml(firstPostContent),
                 CreatedByUserId = author.Id,
                 CreatedAt = discussion.CreatedAt,
                 IsFirstPost = true,
@@ -653,11 +660,13 @@ public class DatabaseSeeder(
                 if (replyCreatedAt >= latestAllowed)
                     replyCreatedAt = latestAllowed.AddMinutes(-_faker.Random.Int(1, 60));
 
+                var replyContent = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
-                    Content = GeneratePostContent(isOpeningPost: false),
+                    Content = replyContent,
+                    RenderedContent = _markupParser.ToHtml(replyContent),
                     CreatedByUserId = replyAuthor.Id,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
@@ -850,5 +859,94 @@ public class DatabaseSeeder(
         // Add short random suffix for uniqueness
         slug += "-" + Guid.NewGuid().ToString("N")[..6];
         return slug;
+    }
+
+    private async Task SeedAnnouncementsAsync(
+        CommunityDatabaseEntity community,
+        List<UserDatabaseEntity> users)
+    {
+        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
+
+        // Get the first hub and space for hub/space-level announcements
+        var hub = await _context.Hubs
+            .Where(h => h.CommunityId == community.Id)
+            .FirstAsync();
+
+        var space = await _context.Spaces
+            .Where(s => s.HubId == hub.Id)
+            .FirstAsync();
+
+        // Community-level: Welcome announcement (Info, permanent)
+        var welcomeContent = "Welcome to the community! Please read the rules and be respectful to other members.";
+        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            Title = "Welcome to the community!",
+            Content = welcomeContent,
+            RenderedContent = _markupParser.ToHtml(welcomeContent),
+            TypeId = (int)AnnouncementTypeEnum.Info,
+            ScopeId = (int)AnnouncementScopeEnum.Community,
+            ScopeEntityId = community.PublicId,
+            IsDismissible = true,
+            SortOrder = 0,
+            CreatedByUserId = adminUser.Id,
+            CreatedAt = EarliestDate.AddDays(1)
+        });
+
+        // Community-level: Maintenance warning (Warning, time-limited)
+        var maintenanceContent = "**Scheduled maintenance** on Saturday at 02:00 UTC. The platform may be briefly unavailable.";
+        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            Title = "Upcoming Maintenance",
+            Content = maintenanceContent,
+            RenderedContent = _markupParser.ToHtml(maintenanceContent),
+            TypeId = (int)AnnouncementTypeEnum.Warning,
+            ScopeId = (int)AnnouncementScopeEnum.Community,
+            ScopeEntityId = community.PublicId,
+            VisibleFrom = Now.AddDays(-1),
+            VisibleUntil = Now.AddDays(7),
+            IsDismissible = true,
+            SortOrder = 1,
+            CreatedByUserId = adminUser.Id,
+            CreatedAt = Now.AddDays(-1)
+        });
+
+        // Hub-level: New rules announcement (Info)
+        var rulesContent = "New community guidelines are now in effect for this hub. Please review the updated rules in the sidebar.";
+        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            Title = "Updated Hub Guidelines",
+            Content = rulesContent,
+            RenderedContent = _markupParser.ToHtml(rulesContent),
+            TypeId = (int)AnnouncementTypeEnum.Info,
+            ScopeId = (int)AnnouncementScopeEnum.Hub,
+            ScopeEntityId = hub.PublicId,
+            IsDismissible = true,
+            SortOrder = 0,
+            CreatedByUserId = adminUser.Id,
+            CreatedAt = EarliestDate.AddDays(10)
+        });
+
+        // Space-level: Under review (Critical, non-dismissible)
+        var reviewContent = "This space is currently under moderation review. Some features may be temporarily restricted.";
+        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            Title = "Space Under Review",
+            Content = reviewContent,
+            RenderedContent = _markupParser.ToHtml(reviewContent),
+            TypeId = (int)AnnouncementTypeEnum.Critical,
+            ScopeId = (int)AnnouncementScopeEnum.Space,
+            ScopeEntityId = space.PublicId,
+            IsDismissible = false,
+            SortOrder = 0,
+            CreatedByUserId = adminUser.Id,
+            CreatedAt = Now.AddDays(-3)
+        });
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine("Created 4 seed announcements (2 community, 1 hub, 1 space).");
     }
 }

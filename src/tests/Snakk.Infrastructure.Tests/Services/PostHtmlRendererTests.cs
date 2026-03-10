@@ -1,5 +1,3 @@
-using Moq;
-using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Services;
@@ -8,21 +6,15 @@ namespace Snakk.Infrastructure.Tests.Services;
 
 public class PostHtmlRendererTests
 {
-    private readonly Mock<IMarkupParser> _mockParser;
-    private readonly PostHtmlRenderer _renderer;
+    private readonly PostHtmlRenderer _renderer = new();
 
-    public PostHtmlRendererTests()
-    {
-        _mockParser = new Mock<IMarkupParser>();
-        _mockParser.Setup(p => p.ToHtml(It.IsAny<string>())).Returns<string>(s => $"<p>{s}</p>");
-        _renderer = new PostHtmlRenderer(_mockParser.Object);
-    }
 
     #region Helper Methods
 
     private static Post CreatePost(
         string publicId = "post_123",
         string content = "Hello world",
+        string? renderedContent = null,
         DateTime? editedAt = null,
         bool isFirstPost = false)
     {
@@ -31,6 +23,7 @@ public class PostHtmlRendererTests
             DiscussionId.From("disc_1"),
             UserId.From("user_1"),
             content,
+            renderedContent ?? $"<p>{content}</p>",
             new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc),
             lastModifiedAt: null,
             editedAt: editedAt,

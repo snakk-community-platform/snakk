@@ -17,7 +17,7 @@ public class PostRepositoryAdapter(
             .Where(p => p.Id == id)
             .Select(p => new PostProjection(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
-                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .FirstOrDefaultAsync();
@@ -30,7 +30,7 @@ public class PostRepositoryAdapter(
             .Where(p => p.PublicId == publicId.Value)
             .Select(p => new PostProjection(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
-                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .FirstOrDefaultAsync();
@@ -53,6 +53,7 @@ public class PostRepositoryAdapter(
                 p.Discussion.PublicId,
                 p.CreatedByUser.PublicId,
                 p.Content,
+                p.RenderedContent,
                 p.CreatedAt,
                 p.LastModifiedAt,
                 p.EditedAt,
@@ -73,7 +74,7 @@ public class PostRepositoryAdapter(
             .OrderBy(p => p.CreatedAt)
             .Select(p => new PostProjection(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
-                p.Content, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
+                p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
             .ToListAsync();
@@ -107,6 +108,7 @@ public class PostRepositoryAdapter(
                 p.Discussion.PublicId,
                 p.CreatedByUser.PublicId,
                 p.Content,
+                p.RenderedContent,
                 p.CreatedAt,
                 p.LastModifiedAt,
                 p.EditedAt,
@@ -172,6 +174,7 @@ public class PostRepositoryAdapter(
             throw new InvalidOperationException($"Post with PublicId '{post.PublicId}' not found");
 
         entity.Content = post.Content;
+        entity.RenderedContent = post.RenderedContent;
         entity.LastModifiedAt = post.LastModifiedAt;
         entity.EditedAt = post.EditedAt;
         entity.IsDeleted = post.IsDeleted;
@@ -269,6 +272,7 @@ public class PostRepositoryAdapter(
                 p.Discussion.PublicId,
                 p.CreatedByUser.PublicId,
                 p.Content,
+                p.RenderedContent,
                 p.CreatedAt,
                 p.LastModifiedAt,
                 p.EditedAt,
@@ -366,6 +370,7 @@ public class PostRepositoryAdapter(
         string DiscussionPublicId,
         string CreatedByUserPublicId,
         string Content,
+        string RenderedContent,
         DateTime CreatedAt,
         DateTime? LastModifiedAt,
         DateTime? EditedAt,
@@ -380,6 +385,7 @@ public class PostRepositoryAdapter(
             DiscussionId.From(DiscussionPublicId),
             UserId.From(CreatedByUserPublicId),
             Content,
+            RenderedContent,
             CreatedAt,
             LastModifiedAt,
             EditedAt,

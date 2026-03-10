@@ -13,6 +13,7 @@ public static class PostMapper
             DiscussionId.From(entity.Discussion.PublicId),
             UserId.From(entity.CreatedByUser.PublicId),
             entity.Content,
+            entity.RenderedContent,
             entity.CreatedAt,
             entity.LastModifiedAt,
             entity.EditedAt,
@@ -28,6 +29,7 @@ public static class PostMapper
         {
             PublicId = post.PublicId,
             Content = post.Content,
+            RenderedContent = post.RenderedContent,
             CreatedAt = post.CreatedAt,
             LastModifiedAt = post.LastModifiedAt,
             EditedAt = post.EditedAt,

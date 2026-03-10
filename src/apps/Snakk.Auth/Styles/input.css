@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@source "../Pages";
+
+@theme {
+    --color-*: initial;
+    --drop-shadow-*: initial;
+    --blur-*: initial;
+}
+
+@plugin "daisyui" {
+    themes: lofi --default;
+}
+
+/* Forest theme overrides — matches Snakk.Web */
+@layer base {
+    body {
+        background: #F1FAF5;
+        color: #1B2B24;
+    }
+}
+
+@layer components {
+    .card {
+        border-color: #DDE5DD;
+    }
+    .btn-neutral {
+        background: #4CAF7D;
+        color: #FFFFFF;
+        border-color: #4CAF7D;
+
+        &:hover {
+            background: #145A41;
+            border-color: #145A41;
+        }
+    }
+
+    .btn-outline {
+        border-color: #4CAF7D;
+        color: #4CAF7D;
+
+        &:hover {
+            background: #4CAF7D;
+            color: #FFFFFF;
+            border-color: #4CAF7D;
+        }
+    }
+
+    .input:focus,
+    .checkbox:checked {
+        border-color: #4CAF7D;
+        box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.15);
+    }
+
+    .checkbox:checked {
+        background-color: #4CAF7D;
+    }
+
+    .link {
+        color: #4CAF7D;
+
+        &:hover {
+            color: #145A41;
+        }
+    }
+}

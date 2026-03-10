@@ -17,7 +17,7 @@ public class PostTests
         const string content = "This is a test post";
 
         // Act
-        var post = Post.Create(discussionId, userId, content);
+        var post = Post.Create(discussionId, userId, content, "<p>This is a test post</p>");
 
         // Assert
         await Assert.That(post).IsNotNull();
@@ -41,7 +41,7 @@ public class PostTests
         var userId = UserId.New();
 
         // Act
-        var post = Post.Create(discussionId, userId, "content");
+        var post = Post.Create(discussionId, userId, "content", "<p>content</p>");
 
         // Assert
         await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
@@ -61,7 +61,7 @@ public class PostTests
         var userId = UserId.New();
 
         // Act
-        var post = Post.Create(discussionId, userId, "content", isFirstPost: true);
+        var post = Post.Create(discussionId, userId, "content", "<p>content</p>", isFirstPost: true);
 
         // Assert
         await Assert.That(post.IsFirstPost).IsTrue();
@@ -76,7 +76,7 @@ public class PostTests
         var replyToPostId = PostId.New();
 
         // Act
-        var post = Post.Create(discussionId, userId, "reply content", replyToPostId: replyToPostId);
+        var post = Post.Create(discussionId, userId, "reply content", "<p>reply content</p>", replyToPostId: replyToPostId);
 
         // Assert
         await Assert.That(post.ReplyToPostId!).IsEqualTo(replyToPostId);
@@ -93,7 +93,7 @@ public class PostTests
         var userId = UserId.New();
 
         // Act & Assert
-        await Assert.That(() => Post.Create(discussionId, userId, emptyContent!)).Throws<ArgumentException>();
+        await Assert.That(() => Post.Create(discussionId, userId, emptyContent!, "")).Throws<ArgumentException>();
     }
 
     #endregion
@@ -104,12 +104,12 @@ public class PostTests
     public async Task UpdateContent_WithValidContent_UpdatesContentAndCreatesRevision()
     {
         // Arrange
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "original content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "original content", "<p>original content</p>");
         var editorUserId = post.CreatedByUserId; // Same user
         post.ClearDomainEvents(); // Clear creation event
 
         // Act
-        post.UpdateContent("updated content", editorUserId);
+        post.UpdateContent("updated content", "<p>updated content</p>", editorUserId);
 
         // Assert
         await Assert.That(post.Content).IsEqualTo("updated content");
@@ -126,11 +126,11 @@ public class PostTests
         // Arrange
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
-        var post = Post.Create(discussionId, userId, "original content");
+        var post = Post.Create(discussionId, userId, "original content", "<p>original content</p>");
         post.ClearDomainEvents();
 
         // Act
-        post.UpdateContent("updated content", userId);
+        post.UpdateContent("updated content", "<p>updated content</p>", userId);
 
         // Assert
         await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
@@ -146,12 +146,12 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "original");
+        var post = Post.Create(DiscussionId.New(), userId, "original", "<p>original</p>");
 
         // Act
-        post.UpdateContent("edit1", userId);
-        post.UpdateContent("edit2", userId);
-        post.UpdateContent("edit3", userId);
+        post.UpdateContent("edit1", "<p>edit1</p>", userId);
+        post.UpdateContent("edit2", "<p>edit2</p>", userId);
+        post.UpdateContent("edit3", "<p>edit3</p>", userId);
 
         // Assert
         await Assert.That(post.Content).IsEqualTo("edit3");
@@ -167,11 +167,11 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
         post.SoftDelete(userId);
 
         // Act & Assert
-        await Assert.That(() => post.UpdateContent("new content", userId)).Throws<InvalidOperationException>();
+        await Assert.That(() => post.UpdateContent("new content", "<p>new content</p>", userId)).Throws<InvalidOperationException>();
     }
 
     [Test]
@@ -180,10 +180,10 @@ public class PostTests
         // Arrange
         var originalUserId = UserId.New();
         var differentUserId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), originalUserId, "content");
+        var post = Post.Create(DiscussionId.New(), originalUserId, "content", "<p>content</p>");
 
         // Act & Assert
-        await Assert.That(() => post.UpdateContent("new content", differentUserId)).Throws<InvalidOperationException>();
+        await Assert.That(() => post.UpdateContent("new content", "<p>new content</p>", differentUserId)).Throws<InvalidOperationException>();
     }
 
     [Test]
@@ -194,10 +194,10 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "original");
+        var post = Post.Create(DiscussionId.New(), userId, "original", "<p>original</p>");
 
         // Act & Assert
-        await Assert.That(() => post.UpdateContent(emptyContent!, userId)).Throws<ArgumentException>();
+        await Assert.That(() => post.UpdateContent(emptyContent!, "", userId)).Throws<ArgumentException>();
     }
 
     #endregion
@@ -210,7 +210,7 @@ public class PostTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "content");
+        var post = Post.Create(discussionId, userId, "content", "<p>content</p>");
         post.ClearDomainEvents();
 
         // Act
@@ -227,7 +227,7 @@ public class PostTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "content");
+        var post = Post.Create(discussionId, userId, "content", "<p>content</p>");
         post.ClearDomainEvents();
 
         // Act
@@ -249,7 +249,7 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
         post.SoftDelete(userId);
 
         // Act & Assert
@@ -266,7 +266,7 @@ public class PostTests
         // Arrange
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
-        var post = Post.Create(discussionId, userId, "content");
+        var post = Post.Create(discussionId, userId, "content", "<p>content</p>");
         post.ClearDomainEvents();
 
         // Act
@@ -288,7 +288,7 @@ public class PostTests
     public async Task CanHardDelete_WithinFiveMinutes_ReturnsTrue()
     {
         // Arrange - Create post (will have current time)
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "content", "<p>content</p>");
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -307,6 +307,7 @@ public class PostTests
             DiscussionId.New(),
             UserId.New(),
             "content",
+            "<p>content</p>",
             fiveMinutesAgo);
 
         // Act
@@ -326,6 +327,7 @@ public class PostTests
             DiscussionId.New(),
             UserId.New(),
             "content",
+            "<p>content</p>",
             tenMinutesAgo);
 
         // Act
@@ -345,6 +347,7 @@ public class PostTests
             DiscussionId.New(),
             UserId.New(),
             "content",
+            "<p>content</p>",
             almostFiveMinutesAgo);
 
         // Act
@@ -364,6 +367,7 @@ public class PostTests
             DiscussionId.New(),
             UserId.New(),
             "content",
+            "<p>content</p>",
             oneHourAgo);
 
         // Act
@@ -382,7 +386,7 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
 
         // Act
         var canEdit = post.CanEdit(userId);
@@ -397,7 +401,7 @@ public class PostTests
         // Arrange
         var authorId = UserId.New();
         var otherId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), authorId, "content");
+        var post = Post.Create(DiscussionId.New(), authorId, "content", "<p>content</p>");
 
         // Act
         var canEdit = post.CanEdit(otherId);
@@ -415,7 +419,7 @@ public class PostTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
 
         // Act
         var canDelete = post.CanDelete(userId);
@@ -430,7 +434,7 @@ public class PostTests
         // Arrange
         var authorId = UserId.New();
         var otherId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), authorId, "content");
+        var post = Post.Create(DiscussionId.New(), authorId, "content", "<p>content</p>");
 
         // Act
         var canDelete = post.CanDelete(otherId);
@@ -447,7 +451,7 @@ public class PostTests
     public async Task ClearDomainEvents_RemovesAllEvents()
     {
         // Arrange
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "content", "<p>content</p>");
         await Assert.That(post.DomainEvents).Count().IsEqualTo(1);
 
         // Act
@@ -480,6 +484,7 @@ public class PostTests
             discussionId,
             userId,
             "content",
+            "<p>content</p>",
             createdAt,
             lastModifiedAt,
             editedAt,

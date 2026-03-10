@@ -45,6 +45,9 @@ public class DetailModel(
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:DiscussionList:ShowDiscussions", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:DiscussionList:ShowContributors", true);
 
+    // Announcements (bubble-down: space + hub + community)
+    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
@@ -82,14 +85,16 @@ public class DetailModel(
         // Check cache for sidebar data — inline if warm, prefetch if cold
         ResolveSidebarData();
 
-        // Fetch discussions and stats in parallel
+        // Fetch discussions, stats, and announcements in parallel
         var discussionsTask = _apiClient.GetDiscussionsBySpaceAsync(Space.PublicId, offset, 20, TypeFilter);
         var statsTask = _apiClient.GetSpaceStatsAsync(Space.PublicId);
+        var announcementsTask = _apiClient.GetActiveAnnouncementsForSpaceAsync(Space.PublicId);
 
-        await Task.WhenAll(discussionsTask, statsTask);
+        await Task.WhenAll(discussionsTask, statsTask, announcementsTask);
 
         Discussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         SpaceStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
+        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         return Page();
     }

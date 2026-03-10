@@ -67,7 +67,7 @@
                     previewDiv.classList.remove('hidden');
                     button.classList.add('active');
                 } else {
-                    previewContent.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
+                    previewContent.innerHTML = '<div class="skeleton h-3 w-full rounded"></div><div class="skeleton h-3 w-3/4 rounded mt-2"></div>';
                     previewDiv.classList.remove('hidden');
                     button.classList.add('active');
 

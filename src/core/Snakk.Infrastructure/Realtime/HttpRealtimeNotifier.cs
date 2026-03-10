@@ -13,7 +13,6 @@ namespace Snakk.Infrastructure.Realtime;
 /// </summary>
 public class HttpRealtimeNotifier(
     IHttpClientFactory httpClientFactory,
-    IMarkupParser markupParser,
     ILogger<HttpRealtimeNotifier> logger) : IRealtimeNotifier
 {
     private readonly HttpClient _httpClient = httpClientFactory.CreateClient("RealtimeService");
@@ -148,8 +147,7 @@ public class HttpRealtimeNotifier(
 
     private string RenderPostHtml(Post post, User author)
     {
-        // Parse markdown to HTML
-        var contentHtml = markupParser.ToHtml(post.Content);
+        var contentHtml = post.RenderedContent;
 
         // Generate post HTML (this matches your existing post card structure)
         return $@"

@@ -4,32 +4,34 @@
     ViewData["Title"] = "Setup Your Profile";
 }
 
-<div class="auth-container">
-    <div class="auth-card">
-        <div class="auth-header">
-            <h1>Set up your profile</h1>
-            <p>Choose how you want to appear.</p>
+<div class="w-full max-w-xl mx-auto">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body p-8">
+            <div class="text-center mb-6">
+                <h1 class="text-xl font-bold tracking-tight">Set up your profile</h1>
+                <p class="text-sm text-base-content/60 mt-1">Choose how you want to appear.</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div role="alert" class="alert alert-error text-sm mb-4">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <form method="post" class="space-y-4">
+                <div>
+                    <label class="label" asp-for="Input.DisplayName">Display Name</label>
+                    <input asp-for="Input.DisplayName" class="input input-bordered w-full" placeholder="Choose your display name" />
+                    <span asp-validation-for="Input.DisplayName" class="text-error text-xs mt-1 block"></span>
+                    <p class="text-xs text-base-content/50 mt-1">This is how others will see you. You can change it later.</p>
+                </div>
+
+                <button type="submit" class="btn btn-neutral w-full">
+                    Continue
+                </button>
+            </form>
         </div>
-
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-error">
-                @Model.ErrorMessage
-            </div>
-        }
-
-        <form method="post" class="auth-form">
-            <div class="form-group">
-                <label asp-for="Input.DisplayName">Display Name</label>
-                <input asp-for="Input.DisplayName" class="form-control" placeholder="Choose your display name" />
-                <span asp-validation-for="Input.DisplayName" class="text-danger"></span>
-                <small class="form-hint">This is how others will see you. You can change it later.</small>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block">
-                Continue
-            </button>
-        </form>
     </div>
 </div>
 

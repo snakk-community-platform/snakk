@@ -80,6 +80,7 @@ public class DiscussionGrpcService(
             request.Offset,
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
+            request.HasHubId ? request.HubId : null,
             null);
 
         var response = new PagedRecentDiscussionList

@@ -55,7 +55,7 @@ public class PostGrpcService(
                 PostNumber = ep.PostNumber,
                 PublicId = post.PublicId.Value,
                 Content = post.Content,
-                RenderedContent = post.IsDeleted ? "" : markupParser.ToHtml(post.Content),
+                RenderedContent = post.IsDeleted ? "" : post.RenderedContent,
                 CreatedAt = ToTimestamp(post.CreatedAt),
                 IsFirstPost = post.IsFirstPost,
                 IsDeleted = post.IsDeleted,
@@ -149,11 +149,10 @@ public class PostGrpcService(
                 result.Error ?? "Failed to edit post"));
 
         var post = result.Value;
-        var renderedHtml = markupParser.ToHtml(post.Content);
 
         return new EditPostResponse
         {
-            RenderedHtml = renderedHtml
+            RenderedHtml = post.RenderedContent
         };
     }
 

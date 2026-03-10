@@ -61,6 +61,7 @@ builder.Services.AddScoped<Snakk.Domain.Repositories.IHubRepository, HubReposito
 builder.Services.AddScoped<Snakk.Domain.Repositories.ISpaceRepository, SpaceRepositoryAdapter>();
 
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
+builder.Services.AddSingleton<IMarkupParser, MarkupParser>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
 var host = builder.Build();

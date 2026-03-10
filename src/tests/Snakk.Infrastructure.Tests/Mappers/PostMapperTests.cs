@@ -13,7 +13,7 @@ public class PostMapperTests
     public async Task ToPersistence_WithNewPost_MapsAllProperties()
     {
         // Arrange
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "Test content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "Test content", "<p>Test content</p>");
 
         // Act
         var entity = post.ToPersistence();
@@ -36,7 +36,7 @@ public class PostMapperTests
     {
         // Arrange
         var replyToPostId = PostId.New();
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply content", replyToPostId: replyToPostId);
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply content", "<p>Reply content</p>", replyToPostId: replyToPostId);
 
         // Act
         var entity = post.ToPersistence();
@@ -51,8 +51,8 @@ public class PostMapperTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Original content");
-        post.UpdateContent("Updated content", userId);
+        var post = Post.Create(DiscussionId.New(), userId, "Original content", "<p>Original content</p>");
+        post.UpdateContent("Updated content", "<p>Updated content</p>", userId);
 
         // Act
         var entity = post.ToPersistence();
@@ -71,7 +71,7 @@ public class PostMapperTests
         var userId = UserId.New();
         // Create old post (> 5 minutes ago) so it will be soft deleted
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "Content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "Content", "<p>Content</p>", sixMinutesAgo);
         post.SoftDelete(userId);
 
         // Act
@@ -90,6 +90,7 @@ public class PostMapperTests
             DiscussionId.New(),
             UserId.New(),
             "Content",
+            "<p>Content</p>",
             DateTime.UtcNow,
             DateTime.UtcNow,
             null,
@@ -382,7 +383,7 @@ public class PostMapperTests
         // Arrange
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
-        var originalPost = Post.Create(discussionId, userId, "Test content");
+        var originalPost = Post.Create(discussionId, userId, "Test content", "<p>Test content</p>");
 
         // Act
         var entity = originalPost.ToPersistence();
@@ -422,7 +423,7 @@ public class PostMapperTests
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
         var replyToPostId = PostId.New();
-        var originalPost = Post.Create(discussionId, userId, "Reply content", replyToPostId: replyToPostId);
+        var originalPost = Post.Create(discussionId, userId, "Reply content", "<p>Reply content</p>", replyToPostId: replyToPostId);
 
         // Act
         var entity = originalPost.ToPersistence();
@@ -462,8 +463,8 @@ public class PostMapperTests
         // Arrange
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
-        var originalPost = Post.Create(discussionId, userId, "Original content");
-        originalPost.UpdateContent("Updated content", userId);
+        var originalPost = Post.Create(discussionId, userId, "Original content", "<p>Original content</p>");
+        originalPost.UpdateContent("Updated content", "<p>Updated content</p>", userId);
 
         // Act
         var entity = originalPost.ToPersistence();
@@ -497,7 +498,7 @@ public class PostMapperTests
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var originalPost = Post.Rehydrate(PostId.New(), discussionId, userId, "Content", sixMinutesAgo);
+        var originalPost = Post.Rehydrate(PostId.New(), discussionId, userId, "Content", "<p>Content</p>", sixMinutesAgo);
         originalPost.SoftDelete(userId);
 
         // Act
@@ -537,6 +538,7 @@ public class PostMapperTests
             DiscussionId.New(),
             UserId.New(),
             "Content",
+            "<p>Content</p>",
             specificTime);
 
         // Act

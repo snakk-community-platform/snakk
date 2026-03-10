@@ -63,6 +63,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<MediaDatabaseEntity> Media { get; set; } = null!;
     public DbSet<PostMediaDatabaseEntity> PostMedia { get; set; } = null!;
 
+    // Announcements
+    public DbSet<AnnouncementDatabaseEntity> Announcements { get; set; } = null!;
+
     // Discussion types
     public DbSet<SpaceAllowedDiscussionTypeDatabaseEntity> SpaceAllowedDiscussionTypes { get; set; } = null!;
     public DbSet<DiscussionLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
@@ -1297,5 +1300,20 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany()
             .HasForeignKey(pm => pm.MediaId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // === Announcement Configuration ===
+
+        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+            .HasIndex(a => a.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+            .HasIndex(a => new { a.ScopeId, a.ScopeEntityId });
+
+        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+            .HasOne(a => a.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

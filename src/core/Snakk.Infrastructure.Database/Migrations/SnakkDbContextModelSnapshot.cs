@@ -18,7 +18,7 @@ namespace Snakk.Infrastructure.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -93,6 +93,73 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_Achievement_IsActive_DisplayOrder");
 
                     b.ToTable("Achievement");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AnnouncementDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDismissible")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RenderedContent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ScopeEntityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ScopeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("VisibleFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VisibleUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("ScopeId", "ScopeEntityId");
+
+                    b.ToTable("Announcement");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AuditLogDatabaseEntity", b =>
@@ -1148,6 +1215,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RenderedContent")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -2373,6 +2444,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_WebhookDeliveryLog_WebhookId_CreatedAt_Desc");
 
                     b.ToTable("WebhookDeliveryLogs");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AnnouncementDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AuditLogDatabaseEntity", b =>

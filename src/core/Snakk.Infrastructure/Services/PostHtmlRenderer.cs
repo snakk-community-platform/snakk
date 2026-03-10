@@ -1,15 +1,13 @@
 namespace Snakk.Infrastructure.Services;
 
-using System.Net;
 using System.Text;
 using Snakk.Domain.Entities;
-using Snakk.Application.Services;
 
 /// <summary>
 /// Renders Post entities to HTML fragments for realtime updates.
 /// Matches the structure in Detail.cshtml to ensure consistency.
 /// </summary>
-public class PostHtmlRenderer(IMarkupParser markupParser) : IPostHtmlRenderer
+public class PostHtmlRenderer : IPostHtmlRenderer
 {
     public string RenderPostCard(
         Post post,
@@ -20,7 +18,7 @@ public class PostHtmlRenderer(IMarkupParser markupParser) : IPostHtmlRenderer
         string tempUserId)
     {
         var sb = new StringBuilder();
-        var renderedContent = markupParser.ToHtml(post.Content);
+        var renderedContent = post.RenderedContent;
         var editedIndicator = post.EditedAt.HasValue ? "<span class=\"ml-2\">(edited)</span>" : "";
         var firstPostBadge = post.IsFirstPost ? "<div class=\"badge badge-info mb-2\">Original Post</div>" : "";
         var slugWithId = $"{discussionSlug}~{post.PublicId.Value}";
@@ -56,7 +54,7 @@ public class PostHtmlRenderer(IMarkupParser markupParser) : IPostHtmlRenderer
 
     public string RenderPostContent(Post post)
     {
-        var renderedContent = markupParser.ToHtml(post.Content);
+        var renderedContent = post.RenderedContent;
         var editedIndicator = post.EditedAt.HasValue ? "<span class=\"ml-2\">(edited)</span>" : "";
 
         return $@"

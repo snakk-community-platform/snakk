@@ -15,7 +15,7 @@ public class PostEdgeCasesTests
     {
         // Arrange - 4 minutes 59 seconds ago (just under 5 minutes)
         var createdAt = DateTime.UtcNow.AddSeconds(-299);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", createdAt);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", "<p>content</p>", createdAt);
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -29,7 +29,7 @@ public class PostEdgeCasesTests
     {
         // Arrange - Exactly 5 minutes (300 seconds) ago
         var createdAt = DateTime.UtcNow.AddSeconds(-300);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", createdAt);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", "<p>content</p>", createdAt);
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -43,7 +43,7 @@ public class PostEdgeCasesTests
     {
         // Arrange - 5 minutes 1 second ago (just over 5 minutes)
         var createdAt = DateTime.UtcNow.AddSeconds(-301);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", createdAt);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", "<p>content</p>", createdAt);
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -57,7 +57,7 @@ public class PostEdgeCasesTests
     {
         // Arrange - Very recently created post
         var createdAt = DateTime.UtcNow.AddSeconds(-1);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", createdAt);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), UserId.New(), "content", "<p>content</p>", createdAt);
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -70,7 +70,7 @@ public class PostEdgeCasesTests
     public async Task CanHardDelete_JustCreated_ReturnsTrue()
     {
         // Arrange - Post created right now
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "content");
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "content", "<p>content</p>");
 
         // Act
         var canHardDelete = post.CanHardDelete();
@@ -90,7 +90,7 @@ public class PostEdgeCasesTests
         var longContent = new string('a', 10000);
 
         // Act
-        var post = Post.Create(DiscussionId.New(), UserId.New(), longContent);
+        var post = Post.Create(DiscussionId.New(), UserId.New(), longContent, "<p>content</p>");
 
         // Assert
         await Assert.That(post.Content).Length().IsEqualTo(10000);
@@ -101,10 +101,10 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Original content");
+        var post = Post.Create(DiscussionId.New(), userId, "Original content", "<p>Original content</p>");
 
         // Act & Assert
-        await Assert.That(() => post.UpdateContent("", userId)).Throws<ArgumentException>();
+        await Assert.That(() => post.UpdateContent("", "", userId)).Throws<ArgumentException>();
     }
 
     [Test]
@@ -112,10 +112,10 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Original content");
+        var post = Post.Create(DiscussionId.New(), userId, "Original content", "<p>Original content</p>");
 
         // Act & Assert
-        await Assert.That(() => post.UpdateContent("   ", userId)).Throws<ArgumentException>();
+        await Assert.That(() => post.UpdateContent("   ", "", userId)).Throws<ArgumentException>();
     }
 
     [Test]
@@ -123,12 +123,12 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Original");
+        var post = Post.Create(DiscussionId.New(), userId, "Original", "<p>Original</p>");
 
         // Act
-        post.UpdateContent("Edit 1", userId);
-        post.UpdateContent("Edit 2", userId);
-        post.UpdateContent("Edit 3", userId);
+        post.UpdateContent("Edit 1", "<p>Edit 1</p>", userId);
+        post.UpdateContent("Edit 2", "<p>Edit 2</p>", userId);
+        post.UpdateContent("Edit 3", "<p>Edit 3</p>", userId);
 
         // Assert
         await Assert.That(post.Content).IsEqualTo("Edit 3");
@@ -146,7 +146,7 @@ public class PostEdgeCasesTests
         // Arrange
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", "<p>content</p>", sixMinutesAgo);
         post.SoftDelete(userId);
 
         // Act
@@ -161,7 +161,7 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
 
         // Act
         var canEdit = post.CanEdit(userId);
@@ -175,7 +175,7 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
 
         // Act
         var canDelete = post.CanDelete(userId);
@@ -190,7 +190,7 @@ public class PostEdgeCasesTests
         // Arrange
         var authorId = UserId.New();
         var differentUserId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), authorId, "content");
+        var post = Post.Create(DiscussionId.New(), authorId, "content", "<p>content</p>");
 
         // Act
         var canDelete = post.CanDelete(differentUserId);
@@ -208,11 +208,11 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Version 1");
+        var post = Post.Create(DiscussionId.New(), userId, "Version 1", "<p>Version 1</p>");
 
         // Act
-        post.UpdateContent("Version 2", userId);
-        post.UpdateContent("Version 3", userId);
+        post.UpdateContent("Version 2", "<p>Version 2</p>", userId);
+        post.UpdateContent("Version 3", "<p>Version 3</p>", userId);
 
         // Assert
         await Assert.That(post.Revisions).Count().IsEqualTo(2);
@@ -225,10 +225,10 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "Same content");
+        var post = Post.Create(DiscussionId.New(), userId, "Same content", "<p>Same content</p>");
 
         // Act
-        post.UpdateContent("Same content", userId);
+        post.UpdateContent("Same content", "<p>Same content</p>", userId);
 
         // Assert
         await Assert.That(post.RevisionCount).IsEqualTo(1);
@@ -245,7 +245,7 @@ public class PostEdgeCasesTests
         // Arrange
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", "<p>content</p>", sixMinutesAgo);
         post.SoftDelete(userId);
 
         // Act & Assert
@@ -257,7 +257,7 @@ public class PostEdgeCasesTests
     {
         // Arrange
         var userId = UserId.New();
-        var post = Post.Create(DiscussionId.New(), userId, "content");
+        var post = Post.Create(DiscussionId.New(), userId, "content", "<p>content</p>");
         post.ClearDomainEvents(); // Clear creation event
 
         // Act
@@ -273,7 +273,7 @@ public class PostEdgeCasesTests
         // Arrange
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), DiscussionId.New(), userId, "content", "<p>content</p>", sixMinutesAgo);
 
         // Act
         post.SoftDelete(userId);
@@ -293,7 +293,7 @@ public class PostEdgeCasesTests
         var replyToPostId = PostId.New();
 
         // Act
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply", replyToPostId: replyToPostId);
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "Reply", "<p>Reply</p>", replyToPostId: replyToPostId);
 
         // Assert
         await Assert.That(post.ReplyToPostId!).IsEqualTo(replyToPostId);
@@ -303,7 +303,7 @@ public class PostEdgeCasesTests
     public async Task Create_WithNullReplyToPostId_SetsReplyToPostIdToNull()
     {
         // Act
-        var post = Post.Create(DiscussionId.New(), UserId.New(), "Post", replyToPostId: null);
+        var post = Post.Create(DiscussionId.New(), UserId.New(), "Post", "<p>Post</p>", replyToPostId: null);
 
         // Assert
         await Assert.That((object?)post.ReplyToPostId).IsNull();

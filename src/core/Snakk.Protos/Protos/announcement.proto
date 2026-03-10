@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Announcement";
+
+package snakk.announcement;
+
+import "google/protobuf/timestamp.proto";
+
+service AnnouncementService {
+  rpc GetActiveForCommunity (GetActiveAnnouncementsRequest) returns (AnnouncementList);
+  rpc GetActiveForHub (GetActiveAnnouncementsRequest) returns (AnnouncementList);
+  rpc GetActiveForSpace (GetActiveAnnouncementsRequest) returns (AnnouncementList);
+}
+
+// --- Requests ---
+
+message GetActiveAnnouncementsRequest {
+  string entity_id = 1;
+}
+
+// --- Responses ---
+
+message AnnouncementInfo {
+  string public_id = 1;
+  string title = 2;
+  string rendered_content = 3;
+  string type = 4;     // "Info", "Warning", "Critical"
+  string scope = 5;    // "Community", "Hub", "Space"
+  bool is_dismissible = 6;
+  int32 sort_order = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message AnnouncementList {
+  repeated AnnouncementInfo announcements = 1;
+}

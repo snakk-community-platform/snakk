@@ -34,6 +34,7 @@ message GetRecentDiscussionsRequest {
   int32 offset = 1;
   int32 page_size = 2;
   optional string community_id = 3;
+  optional string hub_id = 4;
 }
 
 message GetDiscussionsBySpaceRequest {

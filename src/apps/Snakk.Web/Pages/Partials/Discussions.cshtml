@@ -8,12 +8,12 @@
 @foreach (var discussion in Model.Items)
 {
     <partial name="Shared/_DiscussionListItem"
-             model="new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community)" />
+             model="new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace)" />
 }
 
 @if (Model.HasMoreItems && Model.NextOffset < Model.MaxOffset)
 {
-    <div hx-get="/partials/discussions?offset=@Model.NextOffset&pageSize=20@(Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "")"
+    <div hx-get="/partials/discussions?offset=@Model.NextOffset&pageSize=20@(Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "")@(Model.HubId != null ? $"&hubId={Model.HubId}" : "")@(Model.HideCommunity ? "&hideCommunity=true" : "")@(Model.HideHub ? "&hideHub=true" : "")"
          hx-trigger="revealed"
          hx-swap="outerHTML"
          hx-target="this"

@@ -46,7 +46,9 @@ else
                data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
         </nav>
     </div>
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="max-w-[90rem] mx-auto px-4 py-8">
+        <partial name="_AnnouncementBanners" model="Model.Announcements?.Announcements" />
+
         <!-- Two Column Layout -->
         <div class="flex flex-col lg:flex-row gap-3">
             <!-- Left Column: Discussions -->
@@ -294,7 +296,7 @@ else
             </div>
 
             <!-- Right Column: Sidebar -->
-            <aside id="sticky-sidebar" class="w-full lg:w-80 flex-shrink-0" hx-boost="false">
+            <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
                 <!-- Space Info -->
                 @if (Model.Space != null)
                 {

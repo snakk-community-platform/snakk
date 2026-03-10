@@ -100,6 +100,7 @@ public class PostRepositoryAdapterTests : IDisposable
             DiscussionId.From(discussion.PublicId),
             UserId.From(user.PublicId),
             "This is a reply",
+            "<p>This is a reply</p>",
             isFirstPost: false,
             replyToPostId: PostId.From(firstPost.PublicId));
 

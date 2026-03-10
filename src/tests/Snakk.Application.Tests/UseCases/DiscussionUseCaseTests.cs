@@ -18,18 +18,23 @@ public class DiscussionUseCaseTests
     private readonly Mock<IPostRepository> _mockPostRepository = new();
     private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
     private readonly Mock<ICounterService> _mockCounterService = new();
+    private readonly Mock<IMarkupParser> _mockMarkupParser = new();
     private DiscussionUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
+        _mockMarkupParser.Setup(m => m.ToHtml(It.IsAny<string>()))
+            .Returns((string s) => $"<p>{s}</p>");
+
         _useCase = new DiscussionUseCase(
             _mockDiscussionRepository.Object,
             _mockSpaceRepository.Object,
             _mockUserRepository.Object,
             _mockPostRepository.Object,
             _mockEventDispatcher.Object,
-            _mockCounterService.Object);
+            _mockCounterService.Object,
+            _mockMarkupParser.Object);
     }
 
     #region CreateDiscussionAsync Tests
@@ -449,7 +454,7 @@ public class DiscussionUseCaseTests
         var discussionId = DiscussionId.New();
         var postId = PostId.New();
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
-        var post = Post.Create(discussion.PublicId, UserId.New(), "Post content");
+        var post = Post.Create(discussion.PublicId, UserId.New(), "Post content", "<p>Post content</p>");
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);
@@ -459,11 +464,11 @@ public class DiscussionUseCaseTests
             .ReturnsAsync(3);
 
         // We need the post's DiscussionId to match. Let's use the discussion's PublicId.
-        var matchingPost = Post.Create(discussionId, UserId.New(), "Post content");
+        var matchingPost = Post.Create(discussionId, UserId.New(), "Post content", "<p>Post content</p>");
         // But the post returned from repo must have DiscussionId == discussion.PublicId
         // Since we're using Moq, we need proper setup:
         var realDiscussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
-        var realPost = Post.Create(realDiscussion.PublicId, UserId.New(), "content");
+        var realPost = Post.Create(realDiscussion.PublicId, UserId.New(), "content", "<p>content</p>");
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(realDiscussion.PublicId))
             .ReturnsAsync(realDiscussion);
@@ -524,7 +529,7 @@ public class DiscussionUseCaseTests
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Discussion 1", "discussion-1");
         var otherDiscussion = Discussion.Create(SpaceId.New(), UserId.New(), "Discussion 2", "discussion-2");
-        var post = Post.Create(otherDiscussion.PublicId, UserId.New(), "Post in other discussion");
+        var post = Post.Create(otherDiscussion.PublicId, UserId.New(), "Post in other discussion", "<p>Post in other discussion</p>");
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
             .ReturnsAsync(discussion);
@@ -548,7 +553,7 @@ public class DiscussionUseCaseTests
     {
         // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
-        var firstPost = Post.Create(discussion.PublicId, UserId.New(), "This is the first post content", isFirstPost: true);
+        var firstPost = Post.Create(discussion.PublicId, UserId.New(), "This is the first post content", "<p>This is the first post content</p>", isFirstPost: true);
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
             .ReturnsAsync(discussion);

@@ -14,7 +14,8 @@ public class DiscussionUseCase(
     IUserRepository userRepository,
     IPostRepository postRepository,
     IDomainEventDispatcher eventDispatcher,
-    ICounterService counterService) : UseCaseBase
+    ICounterService counterService,
+    IMarkupParser markupParser) : UseCaseBase
 {
     public async Task<Result<Discussion>> CreateDiscussionAsync(
         SpaceId spaceId,
@@ -40,7 +41,8 @@ public class DiscussionUseCase(
         var discussion = Discussion.Create(spaceId, userId, title, slug, type);
 
         // Create first post
-        var firstPost = Post.Create(discussion.PublicId, userId, firstPostContent, isFirstPost: true);
+        var renderedFirstPost = markupParser.ToHtml(firstPostContent);
+        var firstPost = Post.Create(discussion.PublicId, userId, firstPostContent, renderedFirstPost, isFirstPost: true);
 
         // Persist
         await discussionRepository.AddAsync(discussion);

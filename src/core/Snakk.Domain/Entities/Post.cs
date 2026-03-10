@@ -15,6 +15,7 @@ public class Post
     public bool IsFirstPost { get; private set; }
     public PostId? ReplyToPostId { get; private set; }
     public bool IsDeleted { get; private set; }
+    public string RenderedContent { get; private set; }
     public bool HasCodeBlock { get; private set; }
     public int RevisionCount { get; private set; }
 
@@ -41,6 +42,7 @@ public class Post
         DiscussionId discussionId,
         UserId createdByUserId,
         string content,
+        string renderedContent,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? editedAt = null,
@@ -55,6 +57,7 @@ public class Post
         DiscussionId = discussionId;
         CreatedByUserId = createdByUserId;
         Content = content;
+        RenderedContent = renderedContent;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         EditedAt = editedAt;
@@ -72,6 +75,7 @@ public class Post
         DiscussionId discussionId,
         UserId createdByUserId,
         string content,
+        string renderedContent,
         bool isFirstPost = false,
         PostId? replyToPostId = null)
     {
@@ -83,6 +87,7 @@ public class Post
             discussionId,
             createdByUserId,
             content,
+            renderedContent,
             DateTime.UtcNow,
             isFirstPost: isFirstPost,
             replyToPostId: replyToPostId,
@@ -98,6 +103,7 @@ public class Post
         DiscussionId discussionId,
         UserId createdByUserId,
         string content,
+        string renderedContent,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         DateTime? editedAt = null,
@@ -112,6 +118,7 @@ public class Post
             discussionId,
             createdByUserId,
             content,
+            renderedContent,
             createdAt,
             lastModifiedAt,
             editedAt,
@@ -122,7 +129,7 @@ public class Post
             revisionCount,
             revisions);
 
-    public void UpdateContent(string content, UserId editorUserId)
+    public void UpdateContent(string content, string renderedContent, UserId editorUserId)
     {
         if (IsDeleted)
             throw new InvalidOperationException("Cannot edit a deleted post");
@@ -140,6 +147,7 @@ public class Post
         RevisionCount++;
 
         Content = content;
+        RenderedContent = renderedContent;
         HasCodeBlock = content.Contains('`');
         EditedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;

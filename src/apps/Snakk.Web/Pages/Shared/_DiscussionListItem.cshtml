@@ -40,9 +40,12 @@
                        data-popup-type="community"
                        data-popup-id="@discussion.Community.PublicId"
                        data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
+                    @if (Model.ShowHub || Model.ShowSpace)
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    }
                 }
                 @{
                     var hubUrl = Model.ShowCommunity
@@ -52,20 +55,32 @@
                         ? SnakkUrlHelper.Space(discussion.Community.Slug, Model.Community, discussion.Hub.Slug, discussion.Space.Slug)
                         : SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug);
                 }
-                <a href="@hubUrl"
-                   class="topic-meta-link"
-                   data-popup-type="hub"
-                   data-popup-id="@discussion.Hub.PublicId"
-                   data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                <a href="@spaceUrl"
-                   class="topic-meta-link"
-                   data-popup-type="space"
-                   data-popup-id="@discussion.Space.PublicId"
-                   data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
-                <span class="topic-meta-separator">&middot;</span>
+                @if (Model.ShowHub)
+                {
+                    <a href="@hubUrl"
+                       class="topic-meta-link"
+                       data-popup-type="hub"
+                       data-popup-id="@discussion.Hub.PublicId"
+                       data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+                    @if (Model.ShowSpace)
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    }
+                }
+                @if (Model.ShowSpace)
+                {
+                    <a href="@spaceUrl"
+                       class="topic-meta-link"
+                       data-popup-type="space"
+                       data-popup-id="@discussion.Space.PublicId"
+                       data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+                }
+                @if (Model.ShowCommunity || Model.ShowHub || Model.ShowSpace)
+                {
+                    <span class="topic-meta-separator">&middot;</span>
+                }
                 <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
             </div>
         </div>

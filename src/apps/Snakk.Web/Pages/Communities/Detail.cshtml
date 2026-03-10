@@ -1,14 +1,14 @@
 @page "/c/{slug}"
 @using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.DetailModel
-@inject IConfiguration Configuration
 @{
-    ViewData["Title"] = Model.Community?.Name ?? "Community";
-    ViewData["Description"] = Model.Community != null
-        ? $"{Model.Community.Name} — {(Model.Community.Description ?? "a community on Snakk")}"
+    ViewData["Title"] = Model.CommunityDetail?.Name ?? "Community";
+    ViewData["Description"] = Model.CommunityDetail != null
+        ? $"{Model.CommunityDetail.Name} — {(Model.CommunityDetail.Description ?? "a community on Snakk")}"
         : null;
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 <div class="breadcrumb-bar">
@@ -18,105 +18,237 @@
         <a href="/communities">Communities</a>
     </nav>
 </div>
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Community Header -->
-    <div class="page-header">
-        <div class="flex items-start gap-4">
-            @if (Model.Community != null)
-            {
-                <img src="@SnakkUrlHelper.CommunityAvatar(Model.Community.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
-            }
-            <div class="flex-1">
-                <div class="flex items-center gap-2">
-                    <h1>@Model.Community?.Name</h1>
-                    @if (User.Identity?.IsAuthenticated == true && Model.Community != null)
+<div class="max-w-[90rem] mx-auto px-4 py-8">
+    <partial name="_AnnouncementBanners" model="Model.Announcements?.Announcements" />
+
+    <!-- Two Column Layout -->
+    <div class="flex flex-col lg:flex-row gap-3">
+        <!-- Left Column: Hub Cards + Discussion List -->
+        <div class="flex-1 min-w-0">
+            <!-- Community Header -->
+            <div class="page-header">
+                <div class="flex items-start gap-4">
+                    @if (Model.CommunityDetail != null)
                     {
-                        <a href="@SnakkUrlHelper.ManageCommunity(Model.CommunityContext)"
-                           class="btn btn-ghost btn-sm ml-2" title="Manage community">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
+                        <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
+                    }
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h1>@Model.CommunityDetail?.Name</h1>
+                            @if (User.Identity?.IsAuthenticated == true && Model.CommunityDetail != null)
+                            {
+                                <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)"
+                                   class="btn btn-ghost btn-sm" title="Manage community">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </a>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.CommunityDetail?.Description))
+                        {
+                            <p>@Model.CommunityDetail.Description</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hubs in this Community -->
+            @if (Model.Hubs?.Items != null && Model.Hubs.Items.Any())
+            {
+                <div class="section-header">
+                    <span class="section-title">Hubs</span>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2 mb-6">
+                    @foreach (var hub in Model.Hubs.Items)
+                    {
+                        <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="category-card">
+                            <div class="flex items-start gap-3">
+                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
+                                <div class="flex-1 min-w-0">
+                                    <h2 class="category-title"
+                                        data-popup-type="hub"
+                                        data-popup-id="@hub.PublicId"
+                                        data-popup-name="@hub.Name">@hub.Name</h2>
+                                    @if (!string.IsNullOrEmpty(hub.Description))
+                                    {
+                                        <p class="category-description line-clamp-2">@hub.Description</p>
+                                    }
+                                </div>
+                            </div>
                         </a>
                     }
                 </div>
-                @if (!string.IsNullOrEmpty(Model.Community?.Description))
-                {
-                    <p>@Model.Community.Description</p>
-                }
+            }
+
+            <!-- Recent Discussions -->
+            <div class="section-header">
+                <span class="section-title">Recent Discussions</span>
             </div>
-        </div>
-    </div>
 
-    @if (Model.Community?.HasRules == true)
-    {
-        <div class="sidebar-section mb-6 max-w-xl">
-            <h3 class="sidebar-title">Community Rules</h3>
-            <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
-                             model="Model.InlineCommunityRules"
-                             htmx-url="/partials/community-rules?communityId=@Model.Community.PublicId&rev=@Model.Community.RulesRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="skeleton h-4 w-full"></div>
-                    <div class="skeleton h-4 w-5/6"></div>
-                    <div class="skeleton h-4 w-4/6"></div>
-                </div>
-            </inline-or-htmx>
-        </div>
-    }
-
-    <!-- Hubs in this Community -->
-    <h2 class="text-xl font-semibold mb-4">Hubs</h2>
-
-    @if (Model.Hubs?.Items == null || !Model.Hubs.Items.Any())
-    {
-        <div class="clean-card">
-            <div class="empty-state-simple">
-                <h3>No hubs yet</h3>
-                <p>This community doesn't have any hubs yet.</p>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="grid gap-4 md:grid-cols-2">
-            @foreach (var hub in Model.Hubs.Items)
+            @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
             {
-                <a href="@SnakkUrlHelper.Hub(Model.CommunityContext, hub.Slug)" class="category-card">
-                    <div class="flex items-start gap-3">
-                        <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
-                        <div class="flex-1 min-w-0">
-                            <h2 class="category-title"
-                                data-popup-type="hub"
-                                data-popup-id="@hub.PublicId"
-                                data-popup-name="@hub.Name">@hub.Name</h2>
-                            @if (!string.IsNullOrEmpty(hub.Description))
-                            {
-                                <p class="category-description line-clamp-2">@hub.Description</p>
-                            }
-                        </div>
+                <div class="clean-card">
+                    <div class="empty-state-simple py-12">
+                        <h3>No discussions yet</h3>
+                        <p>This community doesn't have any discussions yet.</p>
                     </div>
-                </a>
+                </div>
+            }
+            else
+            {
+                <div class="topic-list" id="discussions-container">
+                    @foreach (var discussion in Model.RecentDiscussions.Items)
+                    {
+                        <partial name="Shared/_DiscussionListItem"
+                                 model="new DiscussionListItemVM(discussion, false, Model.Community)" />
+                    }
+
+                    @if (Model.PreferEndlessScroll && Model.RecentDiscussions.HasMoreItems)
+                    {
+                        var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
+
+                        <div hx-get="/partials/discussions?offset=@nextOffset&pageSize=20&communityId=@Model.CommunityDetail!.PublicId&hideCommunity=true"
+                             hx-trigger="revealed"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false"
+                             class="py-1">
+                            <div class="topic-item-wrapper">
+                                <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                <div class="topic-item flex-1">
+                                    <div class="skeleton h-4 w-3/4 mb-2"></div>
+                                    <div class="skeleton h-3 w-1/2"></div>
+                                </div>
+                            </div>
+                            <div class="topic-item-wrapper">
+                                <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                <div class="topic-item flex-1">
+                                    <div class="skeleton h-4 w-2/3 mb-2"></div>
+                                    <div class="skeleton h-3 w-2/5"></div>
+                                </div>
+                            </div>
+                            <div class="topic-item-wrapper">
+                                <div class="skeleton w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block"></div>
+                                <div class="topic-item flex-1">
+                                    <div class="skeleton h-4 w-4/5 mb-2"></div>
+                                    <div class="skeleton h-3 w-1/3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.PreferEndlessScroll)
+                    {
+                        <partial name="Shared/_EndOfScroll" />
+                    }
+                </div>
+
+                @if (!Model.PreferEndlessScroll && (Model.RecentDiscussions.Offset > 0 || Model.RecentDiscussions.HasMoreItems))
+                {
+                    <div class="flex justify-center gap-2 mt-6">
+                        @if (Model.RecentDiscussions.Offset > 0)
+                        {
+                            <a href="/c/@Model.CommunityDetail?.Slug?offset=@(Math.Max(0, Model.RecentDiscussions.Offset - Model.RecentDiscussions.PageSize))"
+                               class="btn btn-ghost btn-sm">
+                                Previous
+                            </a>
+                        }
+                        @if (Model.RecentDiscussions.HasMoreItems)
+                        {
+                            <a href="/c/@Model.CommunityDetail?.Slug?offset=@(Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize)"
+                               class="btn btn-ghost btn-sm">
+                                Next
+                            </a>
+                        }
+                    </div>
+                }
             }
         </div>
 
-        @if (Model.Hubs.Offset > 0 || Model.Hubs.HasMoreItems)
-        {
-            <div class="flex justify-center gap-2 mt-8">
-                @if (Model.Hubs.Offset > 0)
-                {
-                    <a href="/c/@Model.Community?.Slug?offset=@(Math.Max(0, Model.Hubs.Offset - Model.Hubs.PageSize))"
-                       class="btn btn-ghost btn-sm">
-                        Previous
-                    </a>
-                }
-                @if (Model.Hubs.HasMoreItems)
-                {
-                    <a href="/c/@Model.Community?.Slug?offset=@(Model.Hubs.Offset + Model.Hubs.PageSize)"
-                       class="btn btn-ghost btn-sm">
-                        Next
-                    </a>
-                }
+        <!-- Right Column: Sidebar -->
+        <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+            <div class="sidebar-section">
+                <div class="stats-panel">
+                    <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
+                                     model="Model.InlineCommunityStats"
+                                     htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="stats-grid">
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
             </div>
-        }
-    }
+
+            @if (Model.CommunityDetail?.HasRules == true)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Community Rules</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
+                                     model="Model.InlineCommunityRules"
+                                     htmx-url="/partials/community-rules?communityId=@Model.CommunityDetail.PublicId&rev=@Model.CommunityDetail.RulesRevision">
+                        <div class="flex flex-col gap-2">
+                            <div class="skeleton h-4 w-full"></div>
+                            <div class="skeleton h-4 w-5/6"></div>
+                            <div class="skeleton h-4 w-4/6"></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.ShowTrendingDiscussions)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Discussions</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
+                                     model="Model.InlineTrendingDiscussions"
+                                     htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.ShowTrendingSpaces)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Spaces</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
+                                     model="Model.InlineTrendingSpaces"
+                                     htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.ShowTrendingContributors)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Contributors</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
+                                     model="Model.InlineTrendingContributors"
+                                     htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+        </aside>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
+}

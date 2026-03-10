@@ -59,6 +59,7 @@ public interface ISearchRepository
         int offset,
         int pageSize,
         string? communityId = null,
+        string? hubId = null,
         string? cursor = null);
 }
 

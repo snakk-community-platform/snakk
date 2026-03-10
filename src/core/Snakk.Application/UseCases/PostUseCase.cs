@@ -16,6 +16,7 @@ public class PostUseCase(
     IRealtimeNotifier realtimeNotifier,
     ICounterService counterService,
     IMediaService mediaService,
+    IMarkupParser markupParser,
     ReactionUseCase reactionUseCase) : UseCaseBase
 {
     public async Task<Result<Post>> CreatePostAsync(
@@ -49,8 +50,9 @@ public class PostUseCase(
                 return Result<Post>.Failure($"Reply-to post '{replyToPostId}' not found");
         }
 
-        // Create post
-        var post = Post.Create(discussionId, userId, content, replyToPostId: replyToPostId);
+        // Create post with pre-rendered HTML
+        var renderedContent = markupParser.ToHtml(content);
+        var post = Post.Create(discussionId, userId, content, renderedContent, replyToPostId: replyToPostId);
 
         // Auto-follow discussion if user has the preference enabled
         if (user.AutoFollowOnReply)
@@ -113,7 +115,8 @@ public class PostUseCase(
 
         try
         {
-            post.UpdateContent(newContent, userId);
+            var renderedContent = markupParser.ToHtml(newContent);
+            post.UpdateContent(newContent, renderedContent, userId);
             await postRepository.UpdateAsync(post);
 
             // Save only new/unsaved revisions

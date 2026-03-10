@@ -23,6 +23,7 @@ public class PostLifecycleWorkflowTests
     private readonly Mock<IFollowRepository> _mockFollowRepository = new();
     private readonly Mock<ICounterService> _mockCounterService = new();
     private readonly Mock<IMediaService> _mockMediaService = new();
+    private readonly Mock<IMarkupParser> _mockMarkupParser = new();
     private Mock<ReactionUseCase> _mockReactionUseCase = null!;
     private PostUseCase _useCase = null!;
 
@@ -35,6 +36,9 @@ public class PostLifecycleWorkflowTests
             Mock.Of<IRealtimeNotifier>(),
             Mock.Of<ICounterService>());
 
+        _mockMarkupParser.Setup(m => m.ToHtml(It.IsAny<string>()))
+            .Returns((string s) => $"<p>{s}</p>");
+
         _useCase = new PostUseCase(
             _mockPostRepository.Object,
             _mockDiscussionRepository.Object,
@@ -44,6 +48,7 @@ public class PostLifecycleWorkflowTests
             _mockRealtimeNotifier.Object,
             _mockCounterService.Object,
             _mockMediaService.Object,
+            _mockMarkupParser.Object,
             _mockReactionUseCase.Object);
     }
 
@@ -145,7 +150,7 @@ public class PostLifecycleWorkflowTests
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var oldPost = Post.Rehydrate(PostId.New(), discussionId, userId, "Old content", sixMinutesAgo);
+        var oldPost = Post.Rehydrate(PostId.New(), discussionId, userId, "Old content", "<p>Old content</p>", sixMinutesAgo);
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(oldPost.PublicId))
             .ReturnsAsync(oldPost);
@@ -229,7 +234,7 @@ public class PostLifecycleWorkflowTests
         var discussionId = DiscussionId.New();
         var userId = UserId.New();
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Content", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Content", "<p>Content</p>", sixMinutesAgo);
         post.SoftDelete(userId); // Delete the post
 
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
@@ -259,7 +264,7 @@ public class PostLifecycleWorkflowTests
         var authorId = UserId.New();
         var otherUserId = UserId.New();
 
-        var post = Post.Create(discussionId, authorId, "Original content");
+        var post = Post.Create(discussionId, authorId, "Original content", "<p>Original content</p>");
         var otherUser = User.CreateWithEmail("OtherUser", "other@example.com", "hash", "token");
         var discussion = Discussion.Create(SpaceId.New(), authorId, "Test Discussion", "test-discussion");
 
@@ -312,10 +317,10 @@ public class PostLifecycleWorkflowTests
 
         // Create post 6 minutes ago
         var sixMinutesAgo = DateTime.UtcNow.AddMinutes(-6);
-        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Original", sixMinutesAgo);
+        var post = Post.Rehydrate(PostId.New(), discussionId, userId, "Original", "<p>Original</p>", sixMinutesAgo);
 
         // Edit it (still old)
-        post.UpdateContent("Edited", userId);
+        post.UpdateContent("Edited", "<p>Edited</p>", userId);
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
             .ReturnsAsync(post);
