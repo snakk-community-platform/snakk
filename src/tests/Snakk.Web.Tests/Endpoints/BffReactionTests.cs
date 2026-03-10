@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Moq;
-using Snakk.Protos.Reaction;
 using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.Endpoints;
@@ -22,12 +21,11 @@ public class BffReactionTests
         await using var app = new TestWebApp();
         app.MockApiClient
             .Setup(c => c.GetPostReactionsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new Snakk.Protos.ReactionCounts
+            .ReturnsAsync(new Dictionary<string, int>
             {
-                ThumbsUp = 5,
-                Heart = 3,
-                Eyes = 1,
-                Crazy = 0
+                { "Agree", 5 },
+                { "Love", 3 },
+                { "Watching", 1 }
             });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -39,10 +37,10 @@ public class BffReactionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("thumbsUp").GetInt32()).IsEqualTo(5);
-        await Assert.That(body.GetProperty("heart").GetInt32()).IsEqualTo(3);
-        await Assert.That(body.GetProperty("eyes").GetInt32()).IsEqualTo(1);
-        await Assert.That(body.GetProperty("crazy").GetInt32()).IsEqualTo(0);
+        var counts = body.GetProperty("counts");
+        await Assert.That(counts.GetProperty("Agree").GetInt32()).IsEqualTo(5);
+        await Assert.That(counts.GetProperty("Love").GetInt32()).IsEqualTo(3);
+        await Assert.That(counts.GetProperty("Watching").GetInt32()).IsEqualTo(1);
     }
 
     [Test]
@@ -50,10 +48,10 @@ public class BffReactionTests
     {
         // Arrange
         await using var app = new TestWebApp();
-        // When API returns null, BFF endpoint defaults all counts to 0
+        // When API returns null, BFF endpoint defaults all counts to empty
         app.MockApiClient
             .Setup(c => c.GetPostReactionsAsync(It.IsAny<string>()))
-            .ReturnsAsync((Snakk.Protos.ReactionCounts?)null);
+            .ReturnsAsync((Dictionary<string, int>?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -64,20 +62,18 @@ public class BffReactionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("thumbsUp").GetInt32()).IsEqualTo(0);
-        await Assert.That(body.GetProperty("heart").GetInt32()).IsEqualTo(0);
-        await Assert.That(body.GetProperty("eyes").GetInt32()).IsEqualTo(0);
-        await Assert.That(body.GetProperty("crazy").GetInt32()).IsEqualTo(0);
+        var counts = body.GetProperty("counts");
+        await Assert.That(counts.EnumerateObject().Count()).IsEqualTo(0);
     }
 
     [Test]
-    public async Task GetMyPostReaction_ReturnsCurrentUserReaction()
+    public async Task GetMyPostReactions_ReturnsCurrentUserReactions()
     {
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetMyPostReactionAsync(It.IsAny<string>()))
-            .ReturnsAsync(new UserReactionResponse { Reaction = "heart" });
+            .Setup(c => c.GetMyPostReactionsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<string> { "Love" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -88,18 +84,19 @@ public class BffReactionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("reaction").GetString()).IsEqualTo("heart");
+        var reactions = body.GetProperty("reactions");
+        await Assert.That(reactions.GetArrayLength()).IsEqualTo(1);
+        await Assert.That(reactions[0].GetString()).IsEqualTo("Love");
     }
 
     [Test]
-    public async Task GetMyPostReaction_WhenNoReaction_ReturnsNull()
+    public async Task GetMyPostReactions_WhenNoReaction_ReturnsEmptyList()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // UserReactionResponse with empty/unset Reaction field maps to null in BFF response
         app.MockApiClient
-            .Setup(c => c.GetMyPostReactionAsync(It.IsAny<string>()))
-            .ReturnsAsync(new UserReactionResponse());
+            .Setup(c => c.GetMyPostReactionsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<string>());
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -110,7 +107,8 @@ public class BffReactionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("reaction").ValueKind).IsEqualTo(JsonValueKind.Null);
+        var reactions = body.GetProperty("reactions");
+        await Assert.That(reactions.GetArrayLength()).IsEqualTo(0);
     }
 
     [Test]
@@ -123,7 +121,7 @@ public class BffReactionTests
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
-        var request = new { type = 1 }; // 1 = thumbsUp
+        var request = new { type = 1 }; // 1 = agree
 
         // Act
         var response = await client.PostAsJsonAsync("/bff/posts/post-001/reactions", request);
@@ -148,7 +146,7 @@ public class BffReactionTests
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
-        // Test with "heart" reaction type (2)
+        // Test with "love" reaction type (2)
         var request = new { type = 2 };
 
         // Act

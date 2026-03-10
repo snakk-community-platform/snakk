@@ -33,28 +33,26 @@ public class ReactionGrpcService(
     {
         var counts = await reactionUseCase.GetReactionCountsAsync(PostId.From(request.PostId));
 
-        return new ReactionCounts
-        {
-            ThumbsUp = counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-            Heart = counts.GetValueOrDefault(ReactionType.Heart, 0),
-            Eyes = counts.GetValueOrDefault(ReactionType.Eyes, 0),
-            Crazy = counts.GetValueOrDefault(ReactionType.Crazy, 0)
-        };
+        var response = new ReactionCounts();
+
+        foreach (var kvp in counts)
+            response.Counts[kvp.Key.ToString()] = kvp.Value;
+
+        return response;
     }
 
-    public override async Task<UserReactionResponse> GetMyReaction(GetMyReactionRequest request, ServerCallContext context)
+    public override async Task<UserReactions> GetMyReactions(GetMyReactionsRequest request, ServerCallContext context)
     {
         var userId = TryGetAuthUserId();
 
         if (userId is null)
-            return new UserReactionResponse();
+            return new UserReactions();
 
-        var reaction = await reactionUseCase.GetUserReactionAsync(PostId.From(request.PostId), userId);
+        var reactions = await reactionUseCase.GetUserReactionsAsync(
+            PostId.From(request.PostId), userId);
 
-        var response = new UserReactionResponse();
-
-        if (reaction.HasValue)
-            response.Reaction = reaction.Value.ToString();
+        var response = new UserReactions();
+        response.Reactions.AddRange(reactions.Select(r => r.ToString()));
 
         return response;
     }

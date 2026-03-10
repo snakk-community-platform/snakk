@@ -56,10 +56,12 @@ message ReplyToRef {
   string content_snippet = 2;
 }
 
-// Reaction counts (thumbs up, heart, eyes, crazy)
+// Reaction counts (dictionary of type name → count)
 message ReactionCounts {
-  int32 thumbs_up = 1;
-  int32 heart = 2;
-  int32 eyes = 3;
-  int32 crazy = 4;
+  map<string, int32> counts = 1;
+}
+
+// User's active reactions on a post
+message UserReactions {
+  repeated string reactions = 1;
 }

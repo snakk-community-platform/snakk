@@ -288,7 +288,15 @@
                 var hasReplyTo = post.ReplyTo != null;
                 var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
 
-                var hasReactions = (post.Reactions?.Counts?.ThumbsUp > 0) || (post.Reactions?.Counts?.Heart > 0) || (post.Reactions?.Counts?.Eyes > 0) || (post.Reactions?.Counts?.Crazy > 0);
+                var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
+                var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
+                var reactionEmojis = new Dictionary<string, string>
+                {
+                    ["Agree"] = "👍", ["Love"] = "❤️", ["Funny"] = "😂",
+                    ["Thinking"] = "🤔", ["Watching"] = "👀", ["Fire"] = "🔥",
+                    ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
+                };
+                var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
                 <article id="post-@post.PostNumber"
                          class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "")"
                          data-author-id="@post.Author.PublicId"
@@ -407,33 +415,20 @@
                                     </button>
                                     </div>
                                 }
-                                <div class="flex items-center gap-2 text-xs text-muted @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
+                                <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
                                      id="reactions-@post.PublicId"
-                                     data-count-thumbsup="@(post.Reactions?.Counts?.ThumbsUp ?? 0)"
-                                     data-count-heart="@(post.Reactions?.Counts?.Heart ?? 0)"
-                                     data-count-eyes="@(post.Reactions?.Counts?.Eyes ?? 0)"
-                                     data-count-crazy="@(post.Reactions?.Counts?.Crazy ?? 0)"
-                                     data-my-reaction=""
+                                     data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
+                                     data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
                                      @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
                                      {
                                          <text>onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"</text>
                                      }
                                      aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
-                                    @if (post.Reactions?.Counts?.ThumbsUp > 0)
+                                    @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
                                     {
-                                        <span data-type="ThumbsUp">👍 @post.Reactions.Counts.ThumbsUp</span>
-                                    }
-                                    @if (post.Reactions?.Counts?.Heart > 0)
-                                    {
-                                        <span data-type="Heart">❤️ @post.Reactions.Counts.Heart</span>
-                                    }
-                                    @if (post.Reactions?.Counts?.Eyes > 0)
-                                    {
-                                        <span data-type="Eyes">👀 @post.Reactions.Counts.Eyes</span>
-                                    }
-                                    @if (post.Reactions?.Counts?.Crazy > 0)
-                                    {
-                                        <span data-type="Crazy">🤯 @post.Reactions.Counts.Crazy</span>
+                                        var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
+                                        var isActive = myReactions.Contains(kvp.Key);
+                                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")">@emoji @kvp.Value</span>
                                     }
                                     @if (!hasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
                                     {
@@ -859,11 +854,16 @@ else
 
 <!-- Reaction Picker -->
 <div id="reaction-picker" class="hidden fixed z-50 bg-base-100 border border-subtle rounded-lg shadow-lg p-2" data-post-id="">
-    <div class="flex gap-1">
-        <button type="button" class="reaction-pill" data-reaction-type="ThumbsUp" title="Thumbs Up">👍</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Heart" title="Heart">❤️</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Eyes" title="Eyes">👀</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Crazy" title="Crazy">🤯</button>
+    <div class="flex gap-1 flex-wrap">
+        <button type="button" class="reaction-pill" data-reaction-type="Agree" title="Agree">👍</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Love" title="Love">❤️</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Funny" title="Funny">😂</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Thinking" title="Thinking">🤔</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Watching" title="Watching">👀</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Fire" title="Fire">🔥</button>
+        <button type="button" class="reaction-pill" data-reaction-type="Thanks" title="Thanks">🙏</button>
+        <button type="button" class="reaction-pill" data-reaction-type="MindBlown" title="Mind Blown">🤯</button>
+        <button type="button" class="reaction-pill" data-reaction-type="ShipIt" title="Ship It">🚀</button>
     </div>
 </div>
 

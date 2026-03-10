@@ -80,26 +80,26 @@ public class CounterServiceTests : IDisposable
 
     #endregion
 
-    #region IncrementUniqueReactorCountAsync Tests
+    #region IncrementReactionCountAsync Tests
 
     [Test]
-    public async Task IncrementUniqueReactorCountAsync_NonexistentDiscussion_ReturnsWithoutError()
+    public async Task IncrementReactionCountAsync_NonexistentDiscussion_ReturnsWithoutError()
     {
-        var act = async () => await _service.IncrementUniqueReactorCountAsync(
-            DiscussionId.From("nonexistent"), UserId.From("user1"));
+        var act = async () => await _service.IncrementReactionCountAsync(
+            PostId.From("nonexistent"), DiscussionId.From("nonexistent"));
 
         await Assert.That(act).ThrowsNothing();
     }
 
     #endregion
 
-    #region DecrementUniqueReactorCountAsync Tests
+    #region DecrementReactionCountAsync Tests
 
     [Test]
-    public async Task DecrementUniqueReactorCountAsync_NonexistentDiscussion_ReturnsWithoutError()
+    public async Task DecrementReactionCountAsync_NonexistentDiscussion_ReturnsWithoutError()
     {
-        var act = async () => await _service.DecrementUniqueReactorCountAsync(
-            DiscussionId.From("nonexistent"), UserId.From("user1"));
+        var act = async () => await _service.DecrementReactionCountAsync(
+            PostId.From("nonexistent"), DiscussionId.From("nonexistent"));
 
         await Assert.That(act).ThrowsNothing();
     }

@@ -36,6 +36,7 @@ public class SpaceDatabaseEntity
     // Denormalized counts for performance
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
+    public int ReactionCount { get; set; }
 
     // Many-to-one relationships
     public int HubId { get; set; }

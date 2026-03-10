@@ -63,7 +63,7 @@ message EnrichedPostInfo {
 
 message PostReactions {
   snakk.ReactionCounts counts = 1;
-  optional string user_reaction = 2;
+  snakk.UserReactions user_reactions = 2;
 }
 
 message PagedEnrichedPostList {

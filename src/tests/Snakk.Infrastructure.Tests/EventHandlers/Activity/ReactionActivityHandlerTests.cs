@@ -108,7 +108,7 @@ public class ReactionActivityHandlerTests : IDisposable
             ReactionId.From("nonexistent"),
             PostId.From("nonexistent"),
             UserId.From("nonexistent"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
@@ -118,14 +118,14 @@ public class ReactionActivityHandlerTests : IDisposable
     }
 
     [Test]
-    public async Task HandleAsync_ThumbsUpReaction_BroadcastsCorrectReactionType()
+    public async Task HandleAsync_AgreeReaction_BroadcastsCorrectReactionType()
     {
         var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
 
         var reaction = new ReactionDatabaseEntity
         {
-            PublicId = "react_thumbsup",
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            PublicId = "react_agree",
+            TypeId = (int)ReactionTypeEnum.Agree,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -135,31 +135,31 @@ public class ReactionActivityHandlerTests : IDisposable
 
         var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
         var @event = new ReactionAddedEvent(
-            ReactionId.From("react_thumbsup"),
+            ReactionId.From("react_agree"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
         _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
             "user_react",
             "ReactUser",
-            "ThumbsUp",
+            "Agree",
             "post",
             "post_react",
             "Reaction Discussion"), Times.Once);
     }
 
     [Test]
-    public async Task HandleAsync_HeartReaction_BroadcastsCorrectReactionType()
+    public async Task HandleAsync_LoveReaction_BroadcastsCorrectReactionType()
     {
         var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
 
         var reaction = new ReactionDatabaseEntity
         {
-            PublicId = "react_heart",
-            TypeId = (int)ReactionTypeEnum.Heart,
+            PublicId = "react_love",
+            TypeId = (int)ReactionTypeEnum.Love,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -169,17 +169,17 @@ public class ReactionActivityHandlerTests : IDisposable
 
         var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
         var @event = new ReactionAddedEvent(
-            ReactionId.From("react_heart"),
+            ReactionId.From("react_love"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.Heart);
+            ReactionType.Love);
 
         await handler.HandleAsync(@event);
 
         _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
             "user_react",
             "ReactUser",
-            "Heart",
+            "Love",
             "post",
             "post_react",
             "Reaction Discussion"), Times.Once);
@@ -193,7 +193,7 @@ public class ReactionActivityHandlerTests : IDisposable
         var reaction = new ReactionDatabaseEntity
         {
             PublicId = "react_target",
-            TypeId = (int)ReactionTypeEnum.Eyes,
+            TypeId = (int)ReactionTypeEnum.Watching,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -206,7 +206,7 @@ public class ReactionActivityHandlerTests : IDisposable
             ReactionId.From("react_target"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
@@ -227,7 +227,7 @@ public class ReactionActivityHandlerTests : IDisposable
         var reaction = new ReactionDatabaseEntity
         {
             PublicId = "react_userid",
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            TypeId = (int)ReactionTypeEnum.Agree,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -240,7 +240,7 @@ public class ReactionActivityHandlerTests : IDisposable
             ReactionId.From("react_userid"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
@@ -262,7 +262,7 @@ public class ReactionActivityHandlerTests : IDisposable
         var reaction = new ReactionDatabaseEntity
         {
             PublicId = "react_display",
-            TypeId = (int)ReactionTypeEnum.Crazy,
+            TypeId = (int)ReactionTypeEnum.MindBlown,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -275,7 +275,7 @@ public class ReactionActivityHandlerTests : IDisposable
             ReactionId.From("react_display"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
@@ -297,7 +297,7 @@ public class ReactionActivityHandlerTests : IDisposable
         var reaction = new ReactionDatabaseEntity
         {
             PublicId = "react_title",
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            TypeId = (int)ReactionTypeEnum.Agree,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -310,7 +310,7 @@ public class ReactionActivityHandlerTests : IDisposable
             ReactionId.From("react_title"),
             PostId.From("post_react"),
             UserId.From("user_react"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 

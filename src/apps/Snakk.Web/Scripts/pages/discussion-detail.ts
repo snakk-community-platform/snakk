@@ -32,15 +32,12 @@ interface Post {
     replyTo?: PostReplyTo;
 }
 
-interface ReactionCounts {
-    thumbsUp?: number;
-    heart?: number;
-    eyes?: number;
-    crazy?: number;
+interface ReactionCountsResponse {
+    counts: Record<string, number>;
 }
 
-interface MyReaction {
-    reaction: string | null;
+interface MyReactionsResponse {
+    reactions: string[];
 }
 
 interface FollowStatus {
@@ -554,40 +551,55 @@ function initDraftAutoSave(discussionId: string): void {
 
 // ===== Reactions System =====
 let currentReactionPostId: string | null = null;
-const reactionEmojis: Record<string, string> = { ThumbsUp: '👍', Heart: '❤️', Eyes: '👀', Crazy: '🤯' };
-const reactionTypeValues: Record<string, number> = { ThumbsUp: 1, Heart: 2, Eyes: 3, Crazy: 4 };
-// Maps PascalCase type names to data-count-* attribute suffixes
-const reactionDataKeys: Record<string, string> = { ThumbsUp: 'thumbsup', Heart: 'heart', Eyes: 'eyes', Crazy: 'crazy' };
+const reactionEmojis: Record<string, string> = {
+    Agree: '👍', Love: '❤️', Funny: '😂',
+    Thinking: '🤔', Watching: '👀', Fire: '🔥',
+    Thanks: '🙏', MindBlown: '🤯', ShipIt: '🚀'
+};
+const reactionTypeValues: Record<string, number> = {
+    Agree: 1, Love: 2, Funny: 3, Thinking: 4, Watching: 5,
+    Fire: 6, Thanks: 7, MindBlown: 8, ShipIt: 9
+};
 let reactionPickerHideTimer: ReturnType<typeof setTimeout> | null = null;
 
 const smileyPlaceholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
 
-// Read all reaction counts from data-attributes
-function getReactionCountsFromAttrs(el: HTMLElement): Record<string, number> {
-    const counts: Record<string, number> = {};
-    for (const [type, dataKey] of Object.entries(reactionDataKeys)) {
-        counts[type] = parseInt(el.dataset[`count${dataKey.charAt(0).toUpperCase()}${dataKey.slice(1)}`] || el.getAttribute(`data-count-${dataKey}`) || '0', 10) || 0;
+// Read reaction counts from JSON data-attribute
+function getReactionCounts(el: HTMLElement): Record<string, number> {
+    try {
+        return JSON.parse(el.dataset.reactionCounts || '{}');
+    } catch {
+        return {};
     }
-    return counts;
 }
 
-// Write reaction counts to data-attributes
-function setReactionCountAttrs(el: HTMLElement, counts: Record<string, number>): void {
-    for (const [type, dataKey] of Object.entries(reactionDataKeys)) {
-        el.setAttribute(`data-count-${dataKey}`, String(counts[type] || 0));
+// Read user's own reactions from JSON data-attribute
+function getMyReactions(el: HTMLElement): string[] {
+    try {
+        return JSON.parse(el.dataset.myReactions || '[]');
+    } catch {
+        return [];
     }
+}
+
+// Write reaction counts and user reactions to data-attributes
+function setReactionData(el: HTMLElement, counts: Record<string, number>, myReactions: string[]): void {
+    el.dataset.reactionCounts = JSON.stringify(counts);
+    el.dataset.myReactions = JSON.stringify(myReactions);
 }
 
 // Render reaction spans from data-attributes
 function renderReactionCounts(reactionsBar: HTMLElement): void {
-    const counts = getReactionCountsFromAttrs(reactionsBar);
+    const counts = getReactionCounts(reactionsBar);
+    const myReactions = getMyReactions(reactionsBar);
     let html = '';
     let hasAny = false;
 
     for (const [type, emoji] of Object.entries(reactionEmojis)) {
         const count = counts[type] || 0;
         if (count > 0) {
-            html += `<span data-type="${type}">${emoji} ${count}</span>`;
+            const isActive = myReactions.includes(type);
+            html += `<span data-type="${type}" class="${isActive ? 'active' : ''}">${emoji} ${count}</span>`;
             hasAny = true;
         }
     }
@@ -719,30 +731,27 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
     const reactionsBar = document.getElementById(`reactions-${postId}`);
     if (!reactionsBar) return;
 
-    // Snapshot data-attrs for revert on error
-    const snapshotCounts = getReactionCountsFromAttrs(reactionsBar);
-    const snapshotMyReaction = reactionsBar.dataset.myReaction || '';
+    // Snapshot for revert on error
+    const snapshotCounts = getReactionCounts(reactionsBar);
+    const snapshotMyReactions = getMyReactions(reactionsBar);
 
-    // Compute optimistic counts
+    // Compute optimistic state
     const newCounts = { ...snapshotCounts };
-    const myReaction = snapshotMyReaction;
+    const newMyReactions = [...snapshotMyReactions];
+    const existingIndex = newMyReactions.indexOf(reactionType);
 
-    if (myReaction === reactionType) {
-        // Toggle off: user clicks the same reaction they already gave
+    if (existingIndex >= 0) {
+        // Toggle off: user already has this reaction type
         newCounts[reactionType] = Math.max(0, (newCounts[reactionType] || 0) - 1);
-        reactionsBar.dataset.myReaction = '';
+        newMyReactions.splice(existingIndex, 1);
     } else {
-        if (myReaction) {
-            // Change: decrement old reaction, increment new
-            newCounts[myReaction] = Math.max(0, (newCounts[myReaction] || 0) - 1);
-        }
-        // Add new reaction
+        // Toggle on: add new reaction type (multi-select)
         newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
-        reactionsBar.dataset.myReaction = reactionType;
+        newMyReactions.push(reactionType);
     }
 
-    // Write optimistic counts and render immediately
-    setReactionCountAttrs(reactionsBar, newCounts);
+    // Write optimistic state and render immediately
+    setReactionData(reactionsBar, newCounts, newMyReactions);
     renderReactionCounts(reactionsBar);
 
     try {
@@ -754,9 +763,7 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
         });
 
         if (!response.ok) {
-            // Revert to snapshot on error
-            setReactionCountAttrs(reactionsBar, snapshotCounts);
-            reactionsBar.dataset.myReaction = snapshotMyReaction;
+            setReactionData(reactionsBar, snapshotCounts, snapshotMyReactions);
             renderReactionCounts(reactionsBar);
             const errorText = await response.text();
             console.error('Failed to toggle reaction:', response.status, errorText);
@@ -767,9 +774,7 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
         // Refresh from server to get accurate counts
         await loadReactionsForPost(postId);
     } catch (err) {
-        // Revert to snapshot on error
-        setReactionCountAttrs(reactionsBar, snapshotCounts);
-        reactionsBar.dataset.myReaction = snapshotMyReaction;
+        setReactionData(reactionsBar, snapshotCounts, snapshotMyReactions);
         renderReactionCounts(reactionsBar);
         console.error('Error toggling reaction:', err);
         showToast('Network error. Please check your connection.', 'error');
@@ -781,19 +786,15 @@ async function loadReactionsForPost(postId: string): Promise<void> {
     if (!reactionsBar) return;
 
     try {
-        const countsResponse = await fetch(`/bff/posts/${postId}/reactions`);
-        const counts: ReactionCounts = await countsResponse.json();
+        const [countsResponse, myResponse] = await Promise.all([
+            fetch(`/bff/posts/${postId}/reactions`),
+            fetch(`/bff/posts/${postId}/reactions/me`)
+        ]);
 
-        // API returns camelCase keys — map to PascalCase for data-attrs
-        const keyMap: Record<string, keyof ReactionCounts> = { ThumbsUp: 'thumbsUp', Heart: 'heart', Eyes: 'eyes', Crazy: 'crazy' };
-        const serverCounts: Record<string, number> = {};
-        for (const [type] of Object.entries(reactionEmojis)) {
-            const key = keyMap[type];
-            serverCounts[type] = key ? (counts[key] || 0) : 0;
-        }
+        const countsData: ReactionCountsResponse = await countsResponse.json();
+        const myData: MyReactionsResponse = await myResponse.json();
 
-        // Update data-attrs with server truth (preserves data-my-reaction)
-        setReactionCountAttrs(reactionsBar, serverCounts);
+        setReactionData(reactionsBar, countsData.counts || {}, myData.reactions || []);
         renderReactionCounts(reactionsBar);
     } catch (err) {
         console.error('Error loading reactions:', err);
@@ -1431,7 +1432,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     const smileyPlaceholderHtml = canReact
         ? `<span class="hidden group-hover:inline" data-reaction-placeholder>${smileyPlaceholderSvg}</span>`
         : '';
-    const reactionsContainerHtml = `<div class="flex items-center gap-2 text-xs text-muted${canReact ? ' cursor-pointer' : ''}" id="reactions-${post.publicId}" data-count-thumbsup="0" data-count-heart="0" data-count-eyes="0" data-count-crazy="0" data-my-reaction=""${canReact ? ` onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('${post.publicId}'); return false;"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
+    const reactionsContainerHtml = `<div class="flex items-center gap-2 text-base text-muted${canReact ? ' cursor-pointer' : ''}" id="reactions-${post.publicId}" data-reaction-counts="{}" data-my-reactions="[]"${canReact ? ` onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('${post.publicId}'); return false;"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
 
     // Build toolbar
     const editedTag = post.editedAt ? '<span>(edited)</span>' : '';

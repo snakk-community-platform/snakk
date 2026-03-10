@@ -2,6 +2,6 @@ namespace Snakk.Application.DTOs.Responses;
 
 public record ToggleReactionResponse(bool Added);
 
-public record GetReactionCountsResponse(int ThumbsUp, int Heart, int Eyes, int Crazy);
+public record GetReactionCountsResponse(Dictionary<string, int> Counts);
 
-public record UserReactionResponse(string? Reaction);
+public record UserReactionsResponse(List<string> Reactions);

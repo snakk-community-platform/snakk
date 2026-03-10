@@ -270,12 +270,8 @@ public static class DiscussionEndpoints
                     AuthorName: p.ReplyTo.AuthorName,
                     ContentSnippet: p.ReplyTo.ContentSnippet) : null,
                 Reactions: new PostReactionsResponse(
-                    Counts: new ReactionCountsResponse(
-                        ThumbsUp: p.ReactionCounts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-                        Heart: p.ReactionCounts.GetValueOrDefault(ReactionType.Heart, 0),
-                        Eyes: p.ReactionCounts.GetValueOrDefault(ReactionType.Eyes, 0),
-                        Crazy: p.ReactionCounts.GetValueOrDefault(ReactionType.Crazy, 0)),
-                    UserReaction: p.UserReaction?.ToString()))),
+                    Counts: p.ReactionCounts.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value),
+                    UserReactions: p.UserReactions.Select(r => r.ToString()).ToList()))),
             Offset: data.Offset,
             PageSize: data.PageSize,
             HasMoreItems: data.HasMoreItems));

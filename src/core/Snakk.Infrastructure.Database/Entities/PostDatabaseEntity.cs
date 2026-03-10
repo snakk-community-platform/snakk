@@ -23,6 +23,7 @@ public class PostDatabaseEntity
     public bool IsFirstPost { get; set; }
     public bool HasCodeBlock { get; set; }
     public int RevisionCount { get; set; }
+    public int ReactionCount { get; set; }
 
     // Many-to-one relationships
     public int DiscussionId { get; set; }

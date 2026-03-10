@@ -39,6 +39,7 @@ public class HubDatabaseEntity
     public int SpaceCount { get; set; }
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
+    public int ReactionCount { get; set; }
 
     // Navigation properties
     public virtual CommunityDatabaseEntity Community { get; set; } = null!;

@@ -23,9 +23,9 @@ public static class ReactionEndpoints
             .WithName("GetReactionCounts")
             .Produces<GetReactionCountsResponse>();
 
-        group.MapGet("/me", GetMyReactionAsync)
-            .WithName("GetMyReaction")
-            .Produces<UserReactionResponse>();
+        group.MapGet("/me", GetMyReactionsAsync)
+            .WithName("GetMyReactions")
+            .Produces<UserReactionsResponse>();
     }
 
     private static async Task<IResult> ToggleReactionAsync(
@@ -59,30 +59,31 @@ public static class ReactionEndpoints
     {
         var counts = await reactionUseCase.GetReactionCountsAsync(PostId.From(postId));
 
-        return TypedResults.Ok(new GetReactionCountsResponse(
-            counts.GetValueOrDefault(ReactionType.ThumbsUp, 0),
-            counts.GetValueOrDefault(ReactionType.Heart, 0),
-            counts.GetValueOrDefault(ReactionType.Eyes, 0),
-            counts.GetValueOrDefault(ReactionType.Crazy, 0)));
+        var dictCounts = counts.ToDictionary(
+            kvp => kvp.Key.ToString(),
+            kvp => kvp.Value);
+
+        return TypedResults.Ok(new GetReactionCountsResponse(dictCounts));
     }
 
-    private static async Task<IResult> GetMyReactionAsync(
+    private static async Task<IResult> GetMyReactionsAsync(
         string postId,
         HttpContext httpContext,
         ReactionUseCase reactionUseCase)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
-            return TypedResults.Ok(new UserReactionResponse(null));
+            return TypedResults.Ok(new UserReactionsResponse([]));
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
         if (userIdClaim is null)
-            return TypedResults.Ok(new UserReactionResponse(null));
+            return TypedResults.Ok(new UserReactionsResponse([]));
 
-        var reaction = await reactionUseCase.GetUserReactionAsync(
+        var reactions = await reactionUseCase.GetUserReactionsAsync(
             PostId.From(postId),
             UserId.From(userIdClaim.Value));
 
-        return TypedResults.Ok(new UserReactionResponse(reaction?.ToString()));
+        return TypedResults.Ok(new UserReactionsResponse(
+            reactions.Select(r => r.ToString()).ToList()));
     }
 }

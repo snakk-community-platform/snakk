@@ -73,17 +73,7 @@ public class PostGrpcService(
                     IsDeleted = ep.Author.IsDeleted
                 },
                 HasCodeBlock = post.HasCodeBlock,
-                Reactions = new PostReactions
-                {
-                    Counts = new ReactionCounts
-                    {
-                        ThumbsUp = ep.ReactionCounts.GetValueOrDefault(Snakk.Domain.ValueObjects.ReactionType.ThumbsUp, 0),
-                        Heart = ep.ReactionCounts.GetValueOrDefault(Snakk.Domain.ValueObjects.ReactionType.Heart, 0),
-                        Eyes = ep.ReactionCounts.GetValueOrDefault(Snakk.Domain.ValueObjects.ReactionType.Eyes, 0),
-                        Crazy = ep.ReactionCounts.GetValueOrDefault(Snakk.Domain.ValueObjects.ReactionType.Crazy, 0)
-                    },
-                    UserReaction = ep.UserReaction?.ToString() ?? ""
-                }
+                Reactions = BuildPostReactions(ep.ReactionCounts, ep.UserReactions)
             };
 
             if (post.EditedAt.HasValue)
@@ -198,6 +188,23 @@ public class PostGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);
+    }
+
+    private static PostReactions BuildPostReactions(
+        Dictionary<Snakk.Domain.ValueObjects.ReactionType, int> reactionCounts,
+        List<Snakk.Domain.ValueObjects.ReactionType> userReactions)
+    {
+        var counts = new ReactionCounts();
+
+        foreach (var kvp in reactionCounts)
+            counts.Counts[kvp.Key.ToString()] = kvp.Value;
+
+        var reactions = new PostReactions { Counts = counts };
+        var ur = new UserReactions();
+        ur.Reactions.AddRange(userReactions.Select(r => r.ToString()));
+        reactions.UserReactions = ur;
+
+        return reactions;
     }
 
     private static Timestamp ToTimestamp(DateTime dt) =>

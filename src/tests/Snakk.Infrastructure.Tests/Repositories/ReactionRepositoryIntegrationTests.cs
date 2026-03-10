@@ -39,15 +39,15 @@ public class ReactionRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetByUserAndPostAsync Tests
+    #region GetByUserPostAndTypeAsync Tests
 
     [Test]
-    public async Task GetByUserAndPostAsync_ExistingReaction_ReturnsEntity()
+    public async Task GetByUserPostAndTypeAsync_ExistingReaction_ReturnsEntity()
     {
         var (user, _, _, _, discussion, post) = await _builder.CreateFullHierarchyAsync();
         await CreateReactionAsync(user.Id, post.Id, typeId: 1);
 
-        var result = await _repository.GetByUserAndPostAsync(user.Id, post.Id);
+        var result = await _repository.GetByUserPostAndTypeAsync(user.Id, post.Id, 1);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.UserId).IsEqualTo(user.Id);
@@ -56,22 +56,33 @@ public class ReactionRepositoryIntegrationTests : IDisposable
     }
 
     [Test]
-    public async Task GetByUserAndPostAsync_NoReaction_ReturnsNull()
+    public async Task GetByUserPostAndTypeAsync_NoReaction_ReturnsNull()
     {
         var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
 
-        var result = await _repository.GetByUserAndPostAsync(user.Id, post.Id);
+        var result = await _repository.GetByUserPostAndTypeAsync(user.Id, post.Id, 1);
 
         await Assert.That(result).IsNull();
     }
 
     [Test]
-    public async Task GetByUserAndPostAsync_IncludesNavigationProperties()
+    public async Task GetByUserPostAndTypeAsync_DifferentType_ReturnsNull()
+    {
+        var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
+        await CreateReactionAsync(user.Id, post.Id, typeId: 1);
+
+        var result = await _repository.GetByUserPostAndTypeAsync(user.Id, post.Id, 2);
+
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task GetByUserPostAndTypeAsync_IncludesNavigationProperties()
     {
         var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
         await CreateReactionAsync(user.Id, post.Id);
 
-        var result = await _repository.GetByUserAndPostAsync(user.Id, post.Id);
+        var result = await _repository.GetByUserPostAndTypeAsync(user.Id, post.Id, 1);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.User).IsNotNull();
@@ -163,41 +174,43 @@ public class ReactionRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetUserReactionTypeForPostAsync Tests
+    #region GetUserReactionTypesForPostAsync Tests
 
     [Test]
-    public async Task GetUserReactionTypeForPostAsync_UserHasReacted_ReturnsTypeId()
+    public async Task GetUserReactionTypesForPostAsync_UserHasReacted_ReturnsTypeIds()
     {
         var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
         await CreateReactionAsync(user.Id, post.Id, typeId: 2);
+        await CreateReactionAsync(user.Id, post.Id, typeId: 5);
 
-        var result = await _repository.GetUserReactionTypeForPostAsync(user.Id, post.Id);
+        var result = await _repository.GetUserReactionTypesForPostAsync(user.Id, post.Id);
 
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.Value).IsEqualTo(2);
+        await Assert.That(result).Count().IsEqualTo(2);
+        await Assert.That(result).Contains(2);
+        await Assert.That(result).Contains(5);
     }
 
     [Test]
-    public async Task GetUserReactionTypeForPostAsync_UserHasNotReacted_ReturnsNull()
+    public async Task GetUserReactionTypesForPostAsync_UserHasNotReacted_ReturnsEmptyList()
     {
         var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
 
-        var result = await _repository.GetUserReactionTypeForPostAsync(user.Id, post.Id);
+        var result = await _repository.GetUserReactionTypesForPostAsync(user.Id, post.Id);
 
-        await Assert.That(result).IsNull();
+        await Assert.That(result).IsEmpty();
     }
 
     [Test]
-    public async Task GetUserReactionTypeForPostAsync_OtherUserReaction_ReturnsNull()
+    public async Task GetUserReactionTypesForPostAsync_OtherUserReaction_ReturnsEmptyList()
     {
         var (user1, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
         var user2 = await _builder.CreateUserAsync("OtherUser");
 
         await CreateReactionAsync(user2.Id, post.Id, typeId: 1);
 
-        var result = await _repository.GetUserReactionTypeForPostAsync(user1.Id, post.Id);
+        var result = await _repository.GetUserReactionTypesForPostAsync(user1.Id, post.Id);
 
-        await Assert.That(result).IsNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion

@@ -9,64 +9,64 @@ public class EnumConversionExtensionsTests
     #region ReactionType Round-Trip Tests
 
     [Test]
-    public async Task ReactionType_ThumbsUp_ToShared_ReturnsCorrectValue()
+    public async Task ReactionType_Agree_ToShared_ReturnsCorrectValue()
     {
-        var result = ReactionType.ThumbsUp.ToShared();
-        await Assert.That(result).IsEqualTo(ReactionTypeEnum.ThumbsUp);
+        var result = ReactionType.Agree.ToShared();
+        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Agree);
     }
 
     [Test]
-    public async Task ReactionType_Heart_ToShared_ReturnsCorrectValue()
+    public async Task ReactionType_Love_ToShared_ReturnsCorrectValue()
     {
-        var result = ReactionType.Heart.ToShared();
-        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Heart);
+        var result = ReactionType.Love.ToShared();
+        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Love);
     }
 
     [Test]
-    public async Task ReactionType_Eyes_ToShared_ReturnsCorrectValue()
+    public async Task ReactionType_Watching_ToShared_ReturnsCorrectValue()
     {
-        var result = ReactionType.Eyes.ToShared();
-        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Eyes);
+        var result = ReactionType.Watching.ToShared();
+        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Watching);
     }
 
     [Test]
-    public async Task ReactionType_Crazy_ToShared_ReturnsCorrectValue()
+    public async Task ReactionType_MindBlown_ToShared_ReturnsCorrectValue()
     {
-        var result = ReactionType.Crazy.ToShared();
-        await Assert.That(result).IsEqualTo(ReactionTypeEnum.Crazy);
+        var result = ReactionType.MindBlown.ToShared();
+        await Assert.That(result).IsEqualTo(ReactionTypeEnum.MindBlown);
     }
 
     [Test]
-    public async Task ReactionType_ThumbsUp_RoundTrips()
+    public async Task ReactionType_Agree_RoundTrips()
     {
-        var original = ReactionType.ThumbsUp;
+        var original = ReactionType.Agree;
         var shared = original.ToShared();
         var roundTripped = shared.ToDomain();
         await Assert.That(roundTripped).IsEqualTo(original);
     }
 
     [Test]
-    public async Task ReactionType_Heart_RoundTrips()
+    public async Task ReactionType_Love_RoundTrips()
     {
-        var original = ReactionType.Heart;
+        var original = ReactionType.Love;
         var shared = original.ToShared();
         var roundTripped = shared.ToDomain();
         await Assert.That(roundTripped).IsEqualTo(original);
     }
 
     [Test]
-    public async Task ReactionType_Eyes_RoundTrips()
+    public async Task ReactionType_Watching_RoundTrips()
     {
-        var original = ReactionType.Eyes;
+        var original = ReactionType.Watching;
         var shared = original.ToShared();
         var roundTripped = shared.ToDomain();
         await Assert.That(roundTripped).IsEqualTo(original);
     }
 
     [Test]
-    public async Task ReactionType_Crazy_RoundTrips()
+    public async Task ReactionType_MindBlown_RoundTrips()
     {
-        var original = ReactionType.Crazy;
+        var original = ReactionType.MindBlown;
         var shared = original.ToShared();
         var roundTripped = shared.ToDomain();
         await Assert.That(roundTripped).IsEqualTo(original);

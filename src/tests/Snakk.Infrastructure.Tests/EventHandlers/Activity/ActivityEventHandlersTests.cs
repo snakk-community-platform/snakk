@@ -297,7 +297,7 @@ public class ActivityEventHandlersTests : IDisposable
         var reaction = new ReactionDatabaseEntity
         {
             PublicId = "react_act",
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            TypeId = (int)ReactionTypeEnum.Agree,
             PostId = post.Id,
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
@@ -310,14 +310,14 @@ public class ActivityEventHandlersTests : IDisposable
             ReactionId.From("react_act"),
             PostId.From("post_react_act"),
             UserId.From("user_activity"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 
         _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
             "user_activity",
             "ActivityUser",
-            "ThumbsUp",
+            "Agree",
             "post",
             "post_react_act",
             "Reaction Discussion"), Times.Once);
@@ -331,7 +331,7 @@ public class ActivityEventHandlersTests : IDisposable
             ReactionId.From("nonexistent"),
             PostId.From("nonexistent"),
             UserId.From("nonexistent"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         await handler.HandleAsync(@event);
 

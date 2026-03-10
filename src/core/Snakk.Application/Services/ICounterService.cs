@@ -33,18 +33,16 @@ public interface ICounterService
     Task DecrementPostCountAsync(DiscussionId discussionId);
 
     /// <summary>
-    /// Increment unique reactor count when a user reacts to a discussion for the first time.
-    /// Only increments if this is the user's first reaction to any post in the discussion.
-    /// Increments: Discussion.ReactionCount
+    /// Increment reaction counts across the hierarchy.
+    /// Increments: Post.ReactionCount, Discussion.ReactionCount, Space.ReactionCount, Hub.ReactionCount, Community.ReactionCount
     /// </summary>
-    Task IncrementUniqueReactorCountAsync(DiscussionId discussionId, UserId userId);
+    Task IncrementReactionCountAsync(PostId postId, DiscussionId discussionId);
 
     /// <summary>
-    /// Decrement unique reactor count when a user removes their last reaction from a discussion.
-    /// Only decrements if the user has no more reactions to any post in the discussion.
-    /// Decrements: Discussion.ReactionCount
+    /// Decrement reaction counts across the hierarchy.
+    /// Decrements: Post.ReactionCount, Discussion.ReactionCount, Space.ReactionCount, Hub.ReactionCount, Community.ReactionCount
     /// </summary>
-    Task DecrementUniqueReactorCountAsync(DiscussionId discussionId, UserId userId);
+    Task DecrementReactionCountAsync(PostId postId, DiscussionId discussionId);
 
     // --- User-level counters ---
 

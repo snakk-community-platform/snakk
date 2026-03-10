@@ -6,15 +6,9 @@ public record PostCreatedResponse(
     DateTime CreatedAt,
     string DiscussionId);
 
-public record ReactionCountsResponse(
-    int ThumbsUp,
-    int Heart,
-    int Eyes,
-    int Crazy);
-
 public record PostReactionsResponse(
-    ReactionCountsResponse Counts,
-    string? UserReaction);
+    Dictionary<string, int> Counts,
+    List<string> UserReactions);
 
 public record EnrichedPostResponse(
     int PostNumber,

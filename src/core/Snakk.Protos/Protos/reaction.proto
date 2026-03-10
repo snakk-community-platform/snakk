@@ -9,7 +9,7 @@ import "Protos/common.proto";
 service ReactionService {
   rpc ToggleReaction (ToggleReactionRequest) returns (ToggleReactionResponse);
   rpc GetReactionCounts (GetReactionCountsRequest) returns (snakk.ReactionCounts);
-  rpc GetMyReaction (GetMyReactionRequest) returns (UserReactionResponse);
+  rpc GetMyReactions (GetMyReactionsRequest) returns (snakk.UserReactions);
 }
 
 // --- Requests ---
@@ -23,7 +23,7 @@ message GetReactionCountsRequest {
   string post_id = 1;
 }
 
-message GetMyReactionRequest {
+message GetMyReactionsRequest {
   string post_id = 1;
 }
 
@@ -31,8 +31,4 @@ message GetMyReactionRequest {
 
 message ToggleReactionResponse {
   bool added = 1;
-}
-
-message UserReactionResponse {
-  optional string reaction = 1;
 }

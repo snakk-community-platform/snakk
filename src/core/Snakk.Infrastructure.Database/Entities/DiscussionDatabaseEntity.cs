@@ -26,7 +26,7 @@ public class DiscussionDatabaseEntity
     public bool IsPinned { get; set; }
     public bool IsLocked { get; set; }
     public int PostCount { get; set; }
-    public int ReactionCount { get; set; } // Unique users who reacted to any post in discussion
+    public int ReactionCount { get; set; } // Total reactions across all posts in discussion
     public int FollowerCount { get; set; }
 
     // Tags (comma-separated for simplicity, e.g. "feature,bug,help")

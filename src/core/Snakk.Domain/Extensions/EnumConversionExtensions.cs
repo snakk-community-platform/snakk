@@ -13,20 +13,30 @@ public static class EnumConversionExtensions
     public static ReactionTypeEnum ToShared(this ReactionType domainEnum) =>
         domainEnum switch
         {
-            ReactionType.ThumbsUp => ReactionTypeEnum.ThumbsUp,
-            ReactionType.Heart => ReactionTypeEnum.Heart,
-            ReactionType.Eyes => ReactionTypeEnum.Eyes,
-            ReactionType.Crazy => ReactionTypeEnum.Crazy,
+            ReactionType.Agree => ReactionTypeEnum.Agree,
+            ReactionType.Love => ReactionTypeEnum.Love,
+            ReactionType.Funny => ReactionTypeEnum.Funny,
+            ReactionType.Thinking => ReactionTypeEnum.Thinking,
+            ReactionType.Watching => ReactionTypeEnum.Watching,
+            ReactionType.Fire => ReactionTypeEnum.Fire,
+            ReactionType.Thanks => ReactionTypeEnum.Thanks,
+            ReactionType.MindBlown => ReactionTypeEnum.MindBlown,
+            ReactionType.ShipIt => ReactionTypeEnum.ShipIt,
             _ => throw new ArgumentOutOfRangeException(nameof(domainEnum), domainEnum, "Unknown ReactionType")
         };
 
     public static ReactionType ToDomain(this ReactionTypeEnum sharedEnum) =>
         sharedEnum switch
         {
-            ReactionTypeEnum.ThumbsUp => ReactionType.ThumbsUp,
-            ReactionTypeEnum.Heart => ReactionType.Heart,
-            ReactionTypeEnum.Eyes => ReactionType.Eyes,
-            ReactionTypeEnum.Crazy => ReactionType.Crazy,
+            ReactionTypeEnum.Agree => ReactionType.Agree,
+            ReactionTypeEnum.Love => ReactionType.Love,
+            ReactionTypeEnum.Funny => ReactionType.Funny,
+            ReactionTypeEnum.Thinking => ReactionType.Thinking,
+            ReactionTypeEnum.Watching => ReactionType.Watching,
+            ReactionTypeEnum.Fire => ReactionType.Fire,
+            ReactionTypeEnum.Thanks => ReactionType.Thanks,
+            ReactionTypeEnum.MindBlown => ReactionType.MindBlown,
+            ReactionTypeEnum.ShipIt => ReactionType.ShipIt,
             _ => throw new ArgumentOutOfRangeException(nameof(sharedEnum), sharedEnum, "Unknown ReactionTypeEnum")
         };
 

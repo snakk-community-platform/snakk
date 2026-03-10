@@ -16,7 +16,7 @@ public class ReactionEndpointTests : IAsyncDisposable
     {
         // Arrange
         var client = _server.CreateClient();
-        var body = new { type = "ThumbsUp" };
+        var body = new { type = "Agree" };
 
         // Act
         var response = await client.PostAsJsonAsync("/posts/some-post-id/reactions/", body);
@@ -30,7 +30,7 @@ public class ReactionEndpointTests : IAsyncDisposable
     {
         // Arrange
         var client = _server.CreateAuthenticatedClient();
-        var body = new { type = "ThumbsUp" };
+        var body = new { type = "Agree" };
 
         // Act
         var response = await client.PostAsJsonAsync("/posts/some-post-id/reactions/", body);
@@ -70,16 +70,13 @@ public class ReactionEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.TryGetProperty("thumbsUp", out _)).IsTrue();
-        await Assert.That(json.RootElement.TryGetProperty("heart", out _)).IsTrue();
-        await Assert.That(json.RootElement.TryGetProperty("eyes", out _)).IsTrue();
-        await Assert.That(json.RootElement.TryGetProperty("crazy", out _)).IsTrue();
+        await Assert.That(json.RootElement.TryGetProperty("counts", out _)).IsTrue();
     }
 
     [Test]
-    public async Task GetReactionCounts_ForNonExistentPost_Returns_ZeroCounts()
+    public async Task GetReactionCounts_ForNonExistentPost_Returns_EmptyCounts()
     {
-        // Arrange — non-existent post should return all zeros
+        // Arrange — non-existent post should return empty counts dictionary
         var client = _server.CreateClient();
 
         // Act
@@ -91,18 +88,16 @@ public class ReactionEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.GetProperty("thumbsUp").GetInt32()).IsEqualTo(0);
-        await Assert.That(json.RootElement.GetProperty("heart").GetInt32()).IsEqualTo(0);
-        await Assert.That(json.RootElement.GetProperty("eyes").GetInt32()).IsEqualTo(0);
-        await Assert.That(json.RootElement.GetProperty("crazy").GetInt32()).IsEqualTo(0);
+        var counts = json.RootElement.GetProperty("counts");
+        await Assert.That(counts.ValueKind).IsEqualTo(JsonValueKind.Object);
     }
 
-    // ── Get my reaction (GET, auth-aware) ────────────────────────────
+    // ── Get my reactions (GET, auth-aware) ────────────────────────────
 
     [Test]
-    public async Task GetMyReaction_WithoutAuth_Returns_Ok_NullReaction()
+    public async Task GetMyReactions_WithoutAuth_Returns_Ok_EmptyReactions()
     {
-        // Arrange — returns { reaction: null } for unauthenticated users
+        // Arrange — returns { reactions: [] } for unauthenticated users
         var client = _server.CreateClient();
 
         // Act
@@ -114,11 +109,12 @@ public class ReactionEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.GetProperty("reaction").ValueKind).IsEqualTo(JsonValueKind.Null);
+        await Assert.That(json.RootElement.TryGetProperty("reactions", out _)).IsTrue();
+        await Assert.That(json.RootElement.GetProperty("reactions").GetArrayLength()).IsEqualTo(0);
     }
 
     [Test]
-    public async Task GetMyReaction_WithAuth_Returns_Ok()
+    public async Task GetMyReactions_WithAuth_Returns_Ok()
     {
         // Arrange
         var client = _server.CreateAuthenticatedClient();
@@ -132,7 +128,7 @@ public class ReactionEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.TryGetProperty("reaction", out _)).IsTrue();
+        await Assert.That(json.RootElement.TryGetProperty("reactions", out _)).IsTrue();
     }
 
     public async ValueTask DisposeAsync()

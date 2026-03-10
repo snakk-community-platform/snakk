@@ -36,6 +36,7 @@ public class CommunityDatabaseEntity
     public int SpaceCount { get; set; }
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
+    public int ReactionCount { get; set; }
 
     // One-to-many relationships
     public virtual ICollection<HubDatabaseEntity> Hubs { get; set; } = [];

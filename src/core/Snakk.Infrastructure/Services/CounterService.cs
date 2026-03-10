@@ -157,58 +157,92 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
                 x => x.PostCount - 1));
     }
 
-    public async Task IncrementUniqueReactorCountAsync(DiscussionId discussionId, UserId userId)
+    public async Task IncrementReactionCountAsync(PostId postId, DiscussionId discussionId)
     {
-        // Get discussion entity
         var discussion = await dbContext.Discussions
             .Where(d => d.PublicId == discussionId.Value)
-            .Select(d => new { d.Id })
+            .Select(d => new {
+                d.Id,
+                d.SpaceId,
+                d.Space.HubId,
+                d.Space.Hub.CommunityId })
             .FirstOrDefaultAsync();
 
         if (discussion is null) return;
 
-        // Check if user has ANY existing reactions in this discussion
-        var hasExistingReaction = await dbContext.Reactions
-            .AnyAsync(r =>
-                r.Post.DiscussionId == discussion.Id
-                && r.User.PublicId == userId.Value);
+        await dbContext.Posts
+            .Where(p => p.PublicId == postId.Value)
+            .ExecuteUpdateAsync(p => p.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount + 1));
 
-        // Only increment if this is their FIRST reaction in the discussion
-        if (!hasExistingReaction)
-        {
-            await dbContext.Discussions
-                .Where(d => d.Id == discussion.Id)
-                .ExecuteUpdateAsync(d => d.SetProperty(
-                    x => x.ReactionCount,
-                    x => x.ReactionCount + 1));
-        }
+        await dbContext.Discussions
+            .Where(d => d.Id == discussion.Id)
+            .ExecuteUpdateAsync(d => d.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount + 1));
+
+        await dbContext.Spaces
+            .Where(s => s.Id == discussion.SpaceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount + 1));
+
+        await dbContext.Hubs
+            .Where(h => h.Id == discussion.HubId)
+            .ExecuteUpdateAsync(h => h.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount + 1));
+
+        await dbContext.Communities
+            .Where(c => c.Id == discussion.CommunityId)
+            .ExecuteUpdateAsync(c => c.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount + 1));
     }
 
-    public async Task DecrementUniqueReactorCountAsync(DiscussionId discussionId, UserId userId)
+    public async Task DecrementReactionCountAsync(PostId postId, DiscussionId discussionId)
     {
-        // Get discussion entity
         var discussion = await dbContext.Discussions
             .Where(d => d.PublicId == discussionId.Value)
-            .Select(d => new { d.Id })
+            .Select(d => new {
+                d.Id,
+                d.SpaceId,
+                d.Space.HubId,
+                d.Space.Hub.CommunityId })
             .FirstOrDefaultAsync();
 
         if (discussion is null) return;
 
-        // Check if user has ANY remaining reactions in this discussion
-        var hasRemainingReactions = await dbContext.Reactions
-            .AnyAsync(r =>
-                r.Post.DiscussionId == discussion.Id
-                && r.User.PublicId == userId.Value);
+        await dbContext.Posts
+            .Where(p => p.PublicId == postId.Value)
+            .ExecuteUpdateAsync(p => p.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount - 1));
 
-        // Only decrement if they have NO MORE reactions in the discussion
-        if (!hasRemainingReactions)
-        {
-            await dbContext.Discussions
-                .Where(d => d.Id == discussion.Id)
-                .ExecuteUpdateAsync(d => d.SetProperty(
-                    x => x.ReactionCount,
-                    x => x.ReactionCount - 1));
-        }
+        await dbContext.Discussions
+            .Where(d => d.Id == discussion.Id)
+            .ExecuteUpdateAsync(d => d.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount - 1));
+
+        await dbContext.Spaces
+            .Where(s => s.Id == discussion.SpaceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount - 1));
+
+        await dbContext.Hubs
+            .Where(h => h.Id == discussion.HubId)
+            .ExecuteUpdateAsync(h => h.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount - 1));
+
+        await dbContext.Communities
+            .Where(c => c.Id == discussion.CommunityId)
+            .ExecuteUpdateAsync(c => c.SetProperty(
+                x => x.ReactionCount,
+                x => x.ReactionCount - 1));
     }
 
     // --- User-level counters ---

@@ -13,8 +13,8 @@ public class ReactionUseCase(
     ICounterService counterService)
 {
     /// <summary>
-    /// Toggle a reaction on a post. If the user already has the same reaction, remove it.
-    /// If the user has a different reaction, update it. If no reaction, add it.
+    /// Toggle a reaction on a post. Users can have multiple different reaction types per post.
+    /// If the user already has the same reaction type, remove it. Otherwise, add it.
     /// </summary>
     /// <returns>True if reaction was added, false if removed</returns>
     public async Task<Result<bool>> ToggleReactionAsync(PostId postId, UserId userId, ReactionType type)
@@ -24,41 +24,26 @@ public class ReactionUseCase(
         if (post is null)
             return Result<bool>.Failure("Post not found");
 
-        var existingReaction = await reactionRepository.GetByUserAndPostAsync(userId, postId);
+        var existingReaction = await reactionRepository.GetByUserPostAndTypeAsync(userId, postId, type);
 
         if (existingReaction is not null)
         {
-            if (existingReaction.Type == type)
-            {
-                // Same reaction - remove it
-                existingReaction.MarkForRemoval();
-                await reactionRepository.DeleteAsync(existingReaction);
+            // Same reaction type exists - remove it
+            existingReaction.MarkForRemoval();
+            await reactionRepository.DeleteAsync(existingReaction);
+            await counterService.DecrementReactionCountAsync(postId, post.DiscussionId);
 
-                // Update denormalized unique reactor count
-                await counterService.DecrementUniqueReactorCountAsync(post.DiscussionId, userId);
+            var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
+            await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
 
-                // Notify real-time update
-                var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
-                await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
-
-                return Result<bool>.Success(false);
-            }
-            else
-            {
-                // Different reaction - remove old and add new
-                existingReaction.MarkForRemoval();
-                await reactionRepository.DeleteAsync(existingReaction);
-            }
+            return Result<bool>.Success(false);
         }
 
-        // Add new reaction
+        // New reaction type - add it
         var reaction = Reaction.Create(postId, userId, type);
         await reactionRepository.AddAsync(reaction);
+        await counterService.IncrementReactionCountAsync(postId, post.DiscussionId);
 
-        // Update denormalized unique reactor count
-        await counterService.IncrementUniqueReactorCountAsync(post.DiscussionId, userId);
-
-        // Notify real-time update
         var updatedCounts = await reactionRepository.GetCountsByPostIdAsync(postId);
         await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, updatedCounts);
 
@@ -68,13 +53,13 @@ public class ReactionUseCase(
     public async Task<Dictionary<ReactionType, int>> GetReactionCountsAsync(PostId postId) =>
         await reactionRepository.GetCountsByPostIdAsync(postId);
 
-    public async Task<ReactionType?> GetUserReactionAsync(PostId postId, UserId userId) =>
-        await reactionRepository.GetUserReactionForPostAsync(userId, postId);
+    public async Task<List<ReactionType>> GetUserReactionsAsync(PostId postId, UserId userId) =>
+        await reactionRepository.GetUserReactionsForPostAsync(userId, postId);
 
     // Batch methods for efficient loading
     public async Task<Dictionary<string, Dictionary<ReactionType, int>>> GetReactionCountsBatchAsync(IEnumerable<PostId> postIds) =>
         await reactionRepository.GetCountsByPostIdsAsync(postIds);
 
-    public async Task<Dictionary<string, ReactionType>> GetUserReactionsBatchAsync(UserId userId, IEnumerable<PostId> postIds) =>
+    public async Task<Dictionary<string, List<ReactionType>>> GetUserReactionsBatchAsync(UserId userId, IEnumerable<PostId> postIds) =>
         await reactionRepository.GetUserReactionsForPostsAsync(userId, postIds);
 }

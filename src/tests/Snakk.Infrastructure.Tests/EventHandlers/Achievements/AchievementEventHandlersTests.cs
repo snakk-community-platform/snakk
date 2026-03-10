@@ -264,7 +264,7 @@ public class AchievementEventHandlersTests : IDisposable
             ReactionId.From("react_nopost"),
             PostId.From("nonexistent"),
             UserId.From("user1"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         // Should return gracefully when post is not found
         await Assert.That(async () => await handler.HandleAsync(@event)).ThrowsNothing();
@@ -302,7 +302,7 @@ public class AchievementEventHandlersTests : IDisposable
             ReactionId.From("react_ach_1"),
             PostId.From("post_react_ach"),
             UserId.From("user_ach"),
-            ReactionType.Heart);
+            ReactionType.Love);
 
         // The handler should find the post context and attempt REACTION_GIVEN metric.
         // Raw SQL throws on InMemory, proving the post lookup succeeded.
@@ -355,7 +355,7 @@ public class AchievementEventHandlersTests : IDisposable
             ReactionId.From("react_recv_1"),
             PostId.From("post_react_recv"),
             UserId.From("user_reactor"),
-            ReactionType.ThumbsUp);
+            ReactionType.Agree);
 
         // The handler finds the post, resolves the author PublicId ("user_ach"),
         // and since reactor != author, it attempts REACTION_GIVEN metric first.
@@ -402,7 +402,7 @@ public class AchievementEventHandlersTests : IDisposable
             ReactionId.From("react_self"),
             PostId.From("post_self_react"),
             UserId.From("user_ach"),
-            ReactionType.Heart);
+            ReactionType.Love);
 
         // Still throws because REACTION_GIVEN is always called,
         // but the code path for self-reaction skip is exercised

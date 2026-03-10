@@ -69,8 +69,8 @@ public static class BffApiEndpoints
         group.MapGet("/posts/{postId}/reactions", GetPostReactionsAsync)
             .WithName("BffGetPostReactions");
 
-        group.MapGet("/posts/{postId}/reactions/me", GetMyPostReactionAsync)
-            .WithName("BffGetMyPostReaction");
+        group.MapGet("/posts/{postId}/reactions/me", GetMyPostReactionsAsync)
+            .WithName("BffGetMyPostReactions");
 
         group.MapPost("/posts/{postId}/reactions", TogglePostReactionAsync)
             .WithName("BffTogglePostReaction");
@@ -355,24 +355,21 @@ public static class BffApiEndpoints
 
         var bffResponse = new Models.Bff.BffReactionsResponse
         {
-            ThumbsUp = apiResult?.ThumbsUp ?? 0,
-            Heart = apiResult?.Heart ?? 0,
-            Eyes = apiResult?.Eyes ?? 0,
-            Crazy = apiResult?.Crazy ?? 0
+            Counts = apiResult ?? new Dictionary<string, int>()
         };
 
         return Results.Ok(bffResponse);
     }
 
-    private static async Task<IResult> GetMyPostReactionAsync(
+    private static async Task<IResult> GetMyPostReactionsAsync(
         string postId,
         SnakkApiClient apiClient)
     {
-        var apiResult = await apiClient.GetMyPostReactionAsync(postId);
+        var apiResult = await apiClient.GetMyPostReactionsAsync(postId);
 
-        var bffResponse = new Models.Bff.BffMyReactionResponse
+        var bffResponse = new Models.Bff.BffMyReactionsResponse
         {
-            Reaction = string.IsNullOrEmpty(apiResult?.Reaction) ? null : apiResult.Reaction
+            Reactions = apiResult ?? []
         };
 
         return Results.Ok(bffResponse);

@@ -14,12 +14,14 @@ public class ReactionRepositoryAdapter(
     IReactionDatabaseRepository databaseRepository,
     SnakkDbContext context) : IReactionRepository
 {
-    public async Task<Reaction?> GetByUserAndPostAsync(UserId userId, PostId postId)
+    public async Task<Reaction?> GetByUserPostAndTypeAsync(UserId userId, PostId postId, ReactionType type)
     {
+        var typeId = (int)type.ToShared();
         var projection = await context.Reactions
             .Where(r =>
                 r.User.PublicId == userId.Value
-                && r.Post.PublicId == postId.Value)
+                && r.Post.PublicId == postId.Value
+                && r.TypeId == typeId)
             .Select(r => new ReactionProjection(
                 r.PublicId, r.Post.PublicId, r.User.PublicId,
                 r.TypeId, r.CreatedAt))
@@ -52,18 +54,18 @@ public class ReactionRepositoryAdapter(
             kvp => kvp.Value);
     }
 
-    public async Task<ReactionType?> GetUserReactionForPostAsync(UserId userId, PostId postId)
+    public async Task<List<ReactionType>> GetUserReactionsForPostAsync(UserId userId, PostId postId)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
         var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == postId.Value);
 
-        if (user is null || post is null) return null;
+        if (user is null || post is null) return [];
 
-        var typeId = await databaseRepository.GetUserReactionTypeForPostAsync(user.Id, post.Id);
+        var typeIds = await databaseRepository.GetUserReactionTypesForPostAsync(user.Id, post.Id);
 
-        if (typeId is null) return null;
-
-        return ((ReactionTypeEnum)typeId.Value).ToDomain();
+        return typeIds
+            .Select(id => ((ReactionTypeEnum)id).ToDomain())
+            .ToList();
     }
 
     public async Task AddAsync(Reaction reaction)
@@ -93,7 +95,8 @@ public class ReactionRepositoryAdapter(
 
         if (user is null || post is null) return;
 
-        var entity = await databaseRepository.GetByUserAndPostAsync(user.Id, post.Id);
+        var typeId = (int)reaction.Type.ToShared();
+        var entity = await databaseRepository.GetByUserPostAndTypeAsync(user.Id, post.Id, typeId);
 
         if (entity is null) return;
 
@@ -150,13 +153,13 @@ public class ReactionRepositoryAdapter(
         return result;
     }
 
-    public async Task<Dictionary<string, ReactionType>> GetUserReactionsForPostsAsync(
+    public async Task<Dictionary<string, List<ReactionType>>> GetUserReactionsForPostsAsync(
         UserId userId,
         IEnumerable<PostId> postIds)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 
-        if (user is null) return new Dictionary<string, ReactionType>();
+        if (user is null) return new Dictionary<string, List<ReactionType>>();
 
         var publicIds = postIds
             .Select(p => p.Value)
@@ -183,13 +186,16 @@ public class ReactionRepositoryAdapter(
                 r.TypeId })
             .ToListAsync();
 
-        var result = new Dictionary<string, ReactionType>();
+        var result = new Dictionary<string, List<ReactionType>>();
 
         foreach (var r in userReactions)
         {
             if (postIdMap.TryGetValue(r.PostId, out var publicId))
             {
-                result[publicId] = ((ReactionTypeEnum)r.TypeId).ToDomain();
+                if (!result.ContainsKey(publicId))
+                    result[publicId] = [];
+
+                result[publicId].Add(((ReactionTypeEnum)r.TypeId).ToDomain());
             }
         }
 

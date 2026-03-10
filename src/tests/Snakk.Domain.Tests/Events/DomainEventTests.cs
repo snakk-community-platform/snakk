@@ -115,7 +115,7 @@ public class DomainEventTests
     [Test]
     public async Task ReactionAddedEvent_HasCorrectOccurredAt()
     {
-        var evt = new ReactionAddedEvent(ReactionId.New(), PostId.New(), UserId.New(), ReactionType.Heart);
+        var evt = new ReactionAddedEvent(ReactionId.New(), PostId.New(), UserId.New(), ReactionType.Love);
         await Assert.That(evt.OccurredAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
@@ -126,12 +126,12 @@ public class DomainEventTests
         var postId = PostId.New();
         var userId = UserId.New();
 
-        var evt = new ReactionAddedEvent(reactionId, postId, userId, ReactionType.ThumbsUp);
+        var evt = new ReactionAddedEvent(reactionId, postId, userId, ReactionType.Agree);
 
         await Assert.That(evt.ReactionId).IsEqualTo(reactionId);
         await Assert.That(evt.PostId).IsEqualTo(postId);
         await Assert.That(evt.UserId).IsEqualTo(userId);
-        await Assert.That(evt.Type).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(evt.Type).IsEqualTo(ReactionType.Agree);
     }
 
     #endregion
@@ -141,7 +141,7 @@ public class DomainEventTests
     [Test]
     public async Task ReactionRemovedEvent_HasCorrectOccurredAt()
     {
-        var evt = new ReactionRemovedEvent(ReactionId.New(), PostId.New(), UserId.New(), ReactionType.Eyes);
+        var evt = new ReactionRemovedEvent(ReactionId.New(), PostId.New(), UserId.New(), ReactionType.Watching);
         await Assert.That(evt.OccurredAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
@@ -152,12 +152,12 @@ public class DomainEventTests
         var postId = PostId.New();
         var userId = UserId.New();
 
-        var evt = new ReactionRemovedEvent(reactionId, postId, userId, ReactionType.Crazy);
+        var evt = new ReactionRemovedEvent(reactionId, postId, userId, ReactionType.MindBlown);
 
         await Assert.That(evt.ReactionId).IsEqualTo(reactionId);
         await Assert.That(evt.PostId).IsEqualTo(postId);
         await Assert.That(evt.UserId).IsEqualTo(userId);
-        await Assert.That(evt.Type).IsEqualTo(ReactionType.Crazy);
+        await Assert.That(evt.Type).IsEqualTo(ReactionType.MindBlown);
     }
 
     #endregion

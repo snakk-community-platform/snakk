@@ -311,7 +311,7 @@ public class PostUseCase(
         var reactionCounts = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
 
         // 5. Fetch current user's reactions if authenticated
-        var userReactions = new Dictionary<string, ReactionType>();
+        var userReactions = new Dictionary<string, List<ReactionType>>();
 
         if (currentUserId is not null)
             userReactions = await reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds);
@@ -326,7 +326,7 @@ public class PostUseCase(
                     ? replyToPosts[p.ReplyToPostId.Value]
                     : null,
                 ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
-                UserReaction: userReactions.TryGetValue(p.PublicId.Value, out var ur) ? ur : null))
+                UserReactions: userReactions.GetValueOrDefault(p.PublicId.Value, [])))
             .ToList();
 
         return Result<EnrichedPostsResult>.Success(new EnrichedPostsResult(
@@ -350,7 +350,7 @@ public record EnrichedPost(
     AuthorInfo Author,
     ReplyToInfo? ReplyTo,
     Dictionary<ReactionType, int> ReactionCounts,
-    ReactionType? UserReaction);
+    List<ReactionType> UserReactions);
 
 public record AuthorInfo(
     string DisplayName,

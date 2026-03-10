@@ -586,16 +586,24 @@ public class SnakkApiClient(
 
     // ==================== Reactions ====================
 
-    public virtual async Task<Snakk.Protos.ReactionCounts?> GetPostReactionsAsync(string postId)
+    public virtual async Task<Dictionary<string, int>?> GetPostReactionsAsync(string postId)
     {
-        try { return await reactionClient.GetReactionCountsAsync(new GetReactionCountsRequest { PostId = postId }); }
-        catch (RpcException ex) { LogGrpcError(ex); return new Snakk.Protos.ReactionCounts(); }
+        try
+        {
+            var result = await reactionClient.GetReactionCountsAsync(new GetReactionCountsRequest { PostId = postId });
+            return result?.Counts?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, int>();
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return new Dictionary<string, int>(); }
     }
 
-    public virtual async Task<UserReactionResponse?> GetMyPostReactionAsync(string postId)
+    public virtual async Task<List<string>?> GetMyPostReactionsAsync(string postId)
     {
-        try { return await reactionClient.GetMyReactionAsync(new GetMyReactionRequest { PostId = postId }); }
-        catch (RpcException ex) { LogGrpcError(ex); return new UserReactionResponse(); }
+        try
+        {
+            var result = await reactionClient.GetMyReactionsAsync(new GetMyReactionsRequest { PostId = postId });
+            return result?.Reactions?.ToList() ?? [];
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return []; }
     }
 
     public virtual async Task TogglePostReactionAsync(string postId, int type)

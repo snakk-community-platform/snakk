@@ -12,7 +12,7 @@ public class ReactionTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.ThumbsUp;
+        var type = ReactionType.Agree;
 
         // Act
         var reaction = Reaction.Create(postId, userId, type);
@@ -27,48 +27,48 @@ public class ReactionTests
     }
 
     [Test]
-    public async Task Create_WithThumbsUpType_CreatesThumbsUpReaction()
+    public async Task Create_WithAgreeType_CreatesAgreeReaction()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.ThumbsUp;
+        var type = ReactionType.Agree;
 
         // Act
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Agree);
     }
 
     [Test]
-    public async Task Create_WithHeartType_CreatesHeartReaction()
+    public async Task Create_WithLoveType_CreatesLoveReaction()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Heart;
+        var type = ReactionType.Love;
 
         // Act
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Heart);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Love);
     }
 
     [Test]
-    public async Task Create_WithEyesType_CreatesEyesReaction()
+    public async Task Create_WithWatchingType_CreatesWatchingReaction()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Eyes;
+        var type = ReactionType.Watching;
 
         // Act
         var reaction = Reaction.Create(postId, userId, type);
 
         // Assert
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Eyes);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Watching);
     }
 
     [Test]
@@ -77,7 +77,7 @@ public class ReactionTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Heart;
+        var type = ReactionType.Love;
 
         // Act
         var reaction = Reaction.Create(postId, userId, type);
@@ -100,7 +100,7 @@ public class ReactionTests
         var reactionId = ReactionId.New();
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Eyes;
+        var type = ReactionType.Watching;
         var createdAt = DateTime.UtcNow.AddHours(-1);
 
         // Act
@@ -121,7 +121,7 @@ public class ReactionTests
         var reactionId = ReactionId.New();
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.ThumbsUp;
+        var type = ReactionType.Agree;
         var createdAt = DateTime.UtcNow.AddHours(-1);
 
         // Act
@@ -137,7 +137,7 @@ public class ReactionTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var reaction = Reaction.Create(postId, userId, ReactionType.Heart);
+        var reaction = Reaction.Create(postId, userId, ReactionType.Love);
         reaction.ClearDomainEvents(); // Clear creation event
 
         // Act
@@ -160,7 +160,7 @@ public class ReactionTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var reaction = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
+        var reaction = Reaction.Create(postId, userId, ReactionType.Agree);
         reaction.ClearDomainEvents();
 
         // Act
@@ -178,7 +178,7 @@ public class ReactionTests
         var postId = PostId.New();
         var userId1 = UserId.New();
         var userId2 = UserId.New();
-        var type = ReactionType.Heart;
+        var type = ReactionType.Love;
 
         // Act
         var reaction1 = Reaction.Create(postId, userId1, type);
@@ -199,7 +199,7 @@ public class ReactionTests
         var postId1 = PostId.New();
         var postId2 = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Eyes;
+        var type = ReactionType.Watching;
 
         // Act
         var reaction1 = Reaction.Create(postId1, userId, type);
@@ -221,16 +221,16 @@ public class ReactionTests
         var userId = UserId.New();
 
         // Act
-        var thumbsUp = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
-        var heart = Reaction.Create(postId, userId, ReactionType.Heart);
-        var eyes = Reaction.Create(postId, userId, ReactionType.Eyes);
+        var agree = Reaction.Create(postId, userId, ReactionType.Agree);
+        var love = Reaction.Create(postId, userId, ReactionType.Love);
+        var watching = Reaction.Create(postId, userId, ReactionType.Watching);
 
         // Assert
-        await Assert.That(thumbsUp.PublicId).IsNotEqualTo(heart.PublicId);
-        await Assert.That(heart.PublicId).IsNotEqualTo(eyes.PublicId);
-        await Assert.That(thumbsUp.Type).IsEqualTo(ReactionType.ThumbsUp);
-        await Assert.That(heart.Type).IsEqualTo(ReactionType.Heart);
-        await Assert.That(eyes.Type).IsEqualTo(ReactionType.Eyes);
+        await Assert.That(agree.PublicId).IsNotEqualTo(love.PublicId);
+        await Assert.That(love.PublicId).IsNotEqualTo(watching.PublicId);
+        await Assert.That(agree.Type).IsEqualTo(ReactionType.Agree);
+        await Assert.That(love.Type).IsEqualTo(ReactionType.Love);
+        await Assert.That(watching.Type).IsEqualTo(ReactionType.Watching);
     }
 
     [Test]
@@ -240,7 +240,7 @@ public class ReactionTests
         var reactionId = ReactionId.New();
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.Heart;
+        var type = ReactionType.Love;
         var createdAt = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc);
 
         // Act
@@ -260,7 +260,7 @@ public class ReactionTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var type = ReactionType.ThumbsUp;
+        var type = ReactionType.Agree;
 
         // Act
         var reaction1 = Reaction.Create(postId, userId, type);
@@ -280,7 +280,7 @@ public class ReactionTests
         var reactionId = ReactionId.New();
         var postId = PostId.New();
         var userId = UserId.New();
-        var reaction = Reaction.Rehydrate(reactionId, postId, userId, ReactionType.Heart, DateTime.UtcNow);
+        var reaction = Reaction.Rehydrate(reactionId, postId, userId, ReactionType.Love, DateTime.UtcNow);
 
         // Act
         reaction.MarkForRemoval();
@@ -298,13 +298,13 @@ public class ReactionTests
         var userId = UserId.New();
 
         // Act & Assert - All enum values should be creatable
-        var thumbsUp = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
-        await Assert.That(thumbsUp.Type).IsEqualTo(ReactionType.ThumbsUp);
+        var agree = Reaction.Create(postId, userId, ReactionType.Agree);
+        await Assert.That(agree.Type).IsEqualTo(ReactionType.Agree);
 
-        var heart = Reaction.Create(postId, userId, ReactionType.Heart);
-        await Assert.That(heart.Type).IsEqualTo(ReactionType.Heart);
+        var love = Reaction.Create(postId, userId, ReactionType.Love);
+        await Assert.That(love.Type).IsEqualTo(ReactionType.Love);
 
-        var eyes = Reaction.Create(postId, userId, ReactionType.Eyes);
-        await Assert.That(eyes.Type).IsEqualTo(ReactionType.Eyes);
+        var watching = Reaction.Create(postId, userId, ReactionType.Watching);
+        await Assert.That(watching.Type).IsEqualTo(ReactionType.Watching);
     }
 }

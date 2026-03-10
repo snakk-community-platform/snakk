@@ -11,10 +11,10 @@ public class ReactionMapperTests
     #region ToPersistence Tests
 
     [Test]
-    public async Task ToPersistence_WithThumbsUpReaction_MapsToCorrectTypeId()
+    public async Task ToPersistence_WithAgreeReaction_MapsToCorrectTypeId()
     {
         // Arrange
-        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.ThumbsUp);
+        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.Agree);
 
         // Act
         var entity = reaction.ToPersistence();
@@ -22,34 +22,34 @@ public class ReactionMapperTests
         // Assert
         await Assert.That(entity).IsNotNull();
         await Assert.That(entity.PublicId).IsEqualTo(reaction.PublicId);
-        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.ThumbsUp);
+        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Agree);
         await Assert.That((DateTime.UtcNow - entity.CreatedAt).TotalSeconds).IsLessThan(1);
     }
 
     [Test]
-    public async Task ToPersistence_WithHeartReaction_MapsToCorrectTypeId()
+    public async Task ToPersistence_WithLoveReaction_MapsToCorrectTypeId()
     {
         // Arrange
-        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.Heart);
+        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.Love);
 
         // Act
         var entity = reaction.ToPersistence();
 
         // Assert
-        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Heart);
+        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Love);
     }
 
     [Test]
-    public async Task ToPersistence_WithEyesReaction_MapsToCorrectTypeId()
+    public async Task ToPersistence_WithWatchingReaction_MapsToCorrectTypeId()
     {
         // Arrange
-        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.Eyes);
+        var reaction = Reaction.Create(PostId.New(), UserId.New(), ReactionType.Watching);
 
         // Act
         var entity = reaction.ToPersistence();
 
         // Assert
-        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Eyes);
+        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Watching);
     }
 
     [Test]
@@ -58,14 +58,14 @@ public class ReactionMapperTests
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var reaction = Reaction.Create(postId, userId, ReactionType.Heart);
+        var reaction = Reaction.Create(postId, userId, ReactionType.Love);
 
         // Act
         var entity = reaction.ToPersistence();
 
         // Assert
         await Assert.That(entity.PublicId).IsEqualTo(reaction.PublicId);
-        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Heart);
+        await Assert.That(entity.TypeId).IsEqualTo((int)ReactionTypeEnum.Love);
         await Assert.That(entity.CreatedAt).IsEqualTo(reaction.CreatedAt);
     }
 
@@ -74,7 +74,7 @@ public class ReactionMapperTests
     #region FromPersistence Tests
 
     [Test]
-    public async Task FromPersistence_WithThumbsUpTypeId_ReconstructsThumbsUpReaction()
+    public async Task FromPersistence_WithAgreeTypeId_ReconstructsAgreeReaction()
     {
         // Arrange
         var postPublicId = Guid.NewGuid().ToString();
@@ -82,7 +82,7 @@ public class ReactionMapperTests
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            TypeId = (int)ReactionTypeEnum.Agree,
             CreatedAt = DateTime.UtcNow.AddHours(-1),
             Post = new PostDatabaseEntity
             {
@@ -107,20 +107,20 @@ public class ReactionMapperTests
         // Assert
         await Assert.That(reaction).IsNotNull();
         await Assert.That(reaction.PublicId.Value).IsEqualTo(entity.PublicId);
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Agree);
         await Assert.That(reaction.PostId.Value).IsEqualTo(postPublicId);
         await Assert.That(reaction.UserId.Value).IsEqualTo(userPublicId);
         await Assert.That(reaction.CreatedAt).IsEqualTo(entity.CreatedAt);
     }
 
     [Test]
-    public async Task FromPersistence_WithHeartTypeId_ReconstructsHeartReaction()
+    public async Task FromPersistence_WithLoveTypeId_ReconstructsLoveReaction()
     {
         // Arrange
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.Heart,
+            TypeId = (int)ReactionTypeEnum.Love,
             CreatedAt = DateTime.UtcNow,
             Post = new PostDatabaseEntity
             {
@@ -143,17 +143,17 @@ public class ReactionMapperTests
         var reaction = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Heart);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Love);
     }
 
     [Test]
-    public async Task FromPersistence_WithEyesTypeId_ReconstructsEyesReaction()
+    public async Task FromPersistence_WithWatchingTypeId_ReconstructsWatchingReaction()
     {
         // Arrange
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.Eyes,
+            TypeId = (int)ReactionTypeEnum.Watching,
             CreatedAt = DateTime.UtcNow,
             Post = new PostDatabaseEntity
             {
@@ -176,7 +176,7 @@ public class ReactionMapperTests
         var reaction = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Eyes);
+        await Assert.That(reaction.Type).IsEqualTo(ReactionType.Watching);
     }
 
     [Test]
@@ -187,7 +187,7 @@ public class ReactionMapperTests
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.ThumbsUp,
+            TypeId = (int)ReactionTypeEnum.Agree,
             CreatedAt = DateTime.UtcNow,
             Post = new PostDatabaseEntity
             {
@@ -221,7 +221,7 @@ public class ReactionMapperTests
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.Heart,
+            TypeId = (int)ReactionTypeEnum.Love,
             CreatedAt = DateTime.UtcNow,
             Post = new PostDatabaseEntity
             {
@@ -252,12 +252,12 @@ public class ReactionMapperTests
     #region Round-Trip Tests
 
     [Test]
-    public async Task RoundTrip_WithThumbsUpReaction_PreservesType()
+    public async Task RoundTrip_WithAgreeReaction_PreservesType()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var originalReaction = Reaction.Create(postId, userId, ReactionType.ThumbsUp);
+        var originalReaction = Reaction.Create(postId, userId, ReactionType.Agree);
 
         // Act
         var entity = originalReaction.ToPersistence();
@@ -279,17 +279,17 @@ public class ReactionMapperTests
         var reconstructedReaction = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.ThumbsUp);
+        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.Agree);
         await Assert.That(reconstructedReaction.PublicId).IsEqualTo(originalReaction.PublicId);
     }
 
     [Test]
-    public async Task RoundTrip_WithHeartReaction_PreservesType()
+    public async Task RoundTrip_WithLoveReaction_PreservesType()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var originalReaction = Reaction.Create(postId, userId, ReactionType.Heart);
+        var originalReaction = Reaction.Create(postId, userId, ReactionType.Love);
 
         // Act
         var entity = originalReaction.ToPersistence();
@@ -311,16 +311,16 @@ public class ReactionMapperTests
         var reconstructedReaction = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.Heart);
+        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.Love);
     }
 
     [Test]
-    public async Task RoundTrip_WithEyesReaction_PreservesType()
+    public async Task RoundTrip_WithWatchingReaction_PreservesType()
     {
         // Arrange
         var postId = PostId.New();
         var userId = UserId.New();
-        var originalReaction = Reaction.Create(postId, userId, ReactionType.Eyes);
+        var originalReaction = Reaction.Create(postId, userId, ReactionType.Watching);
 
         // Act
         var entity = originalReaction.ToPersistence();
@@ -342,14 +342,14 @@ public class ReactionMapperTests
         var reconstructedReaction = entity.FromPersistence();
 
         // Assert
-        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.Eyes);
+        await Assert.That(reconstructedReaction.Type).IsEqualTo(ReactionType.Watching);
     }
 
     [Test]
     public async Task RoundTrip_AllReactionTypes_PreserveAllData()
     {
         // Test all reaction types in a single test
-        var reactionTypes = new[] { ReactionType.ThumbsUp, ReactionType.Heart, ReactionType.Eyes };
+        var reactionTypes = new[] { ReactionType.Agree, ReactionType.Love, ReactionType.Watching };
 
         foreach (var type in reactionTypes)
         {
@@ -399,7 +399,7 @@ public class ReactionMapperTests
             ReactionId.New(),
             PostId.New(),
             UserId.New(),
-            ReactionType.Heart,
+            ReactionType.Love,
             specificTime);
 
         // Act
@@ -417,7 +417,7 @@ public class ReactionMapperTests
         var entity = new ReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
-            TypeId = (int)ReactionTypeEnum.Eyes,
+            TypeId = (int)ReactionTypeEnum.Watching,
             CreatedAt = specificTime,
             Post = new PostDatabaseEntity
             {
