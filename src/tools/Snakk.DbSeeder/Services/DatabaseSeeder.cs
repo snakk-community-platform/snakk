@@ -235,6 +235,11 @@ public class DatabaseSeeder(
         if (testUser is not null)
             users.Add(testUser);
 
+        // Get the admin user (created by EnsureDefaultAdminExistsAsync)
+        var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == "01JJQP0000000000000ADMIN");
+        if (adminUser is not null)
+            users.Add(adminUser);
+
         // Generate 150 users with Bogus
         var userFaker = new Faker<UserDatabaseEntity>("en")
             .UseSeed(Seed)
