@@ -190,6 +190,12 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
             .Select(u => u.ReplyCount + u.DiscussionCount)
             .FirstOrDefaultAsync();
 
+    public async Task<int> GetDiscussionPostCountAsync(string discussionPublicId) =>
+        await _context.Discussions
+            .Where(d => d.PublicId == discussionPublicId)
+            .Select(d => d.PostCount)
+            .FirstOrDefaultAsync();
+
     public async Task<PagedResult<DiscussionListItemDto>> GetDiscussionsBySpaceAsync(
         string spacePublicId,
         int offset = 0,

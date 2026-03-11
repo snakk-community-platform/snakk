@@ -22,6 +22,7 @@ public interface ISearchRepository
 
     Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId);
     Task<int> GetPostCountByAuthorAsync(string authorPublicId);
+    Task<int> GetDiscussionPostCountAsync(string discussionPublicId);
 
     /// <summary>
     /// Gets discussions by space with enriched author and count data

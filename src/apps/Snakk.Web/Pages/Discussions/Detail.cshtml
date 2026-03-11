@@ -27,6 +27,8 @@
         var url = $"{scheme}://{host}{path}";
         var authorAvatar = firstPost?.Author?.PublicId != null ? SnakkUrlHelper.UserAvatar(firstPost.Author.PublicId) : null;
         var baseUrl = $"{scheme}://{host}";
+        var authorName = firstPost?.Author?.DisplayName ?? "Anonymous";
+        ViewData["CanonicalUrl"] = url;
 
         <meta name="description" content="@description" />
 
@@ -38,9 +40,14 @@
         @if (!string.IsNullOrEmpty(authorAvatar))
         {
             <meta property="og:image" content="@($"{baseUrl}{authorAvatar}")" />
+            <meta property="og:image:alt" content="@authorName" />
         }
         <meta property="article:published_time" content="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")" />
-        <meta property="article:author" content="@(firstPost?.Author?.DisplayName ?? "Anonymous")" />
+        <meta property="article:author" content="@authorName" />
+        @if (Model.Discussion.LastActivityAt is not null)
+        {
+            <meta property="article:modified_time" content="@Model.Discussion.LastActivityAt.ToDateTime().ToString("O")" />
+        }
 
         <!-- Twitter Card -->
         <meta name="twitter:card" content="summary" />
@@ -74,6 +81,11 @@
             }
         }
         </script>
+
+        <!-- oEmbed Discovery -->
+        <link rel="alternate" type="application/json+oembed"
+              href="/oembed?url=@Uri.EscapeDataString(url)"
+              title="@Html.Encode(Model.Discussion.Title)" />
 
         <!-- Breadcrumb Schema -->
         <script type="application/ld+json">
@@ -181,6 +193,35 @@
         </button>
     </div>
 
+    @if (Model.PreferEndlessScroll && Model.Discussion != null && Model.Discussion.PostCount > 1)
+    {
+        <!-- Thread Navigation Bar -->
+        <div id="thread-nav" class="thread-nav hidden">
+            <div class="thread-nav-progress-track">
+                <div id="thread-nav-progress" class="thread-nav-progress-bar"></div>
+            </div>
+            <div class="thread-nav-controls">
+                <button class="thread-nav-btn" data-nav="first" title="First post" aria-label="Jump to first post">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                </button>
+                <button class="thread-nav-btn" data-nav="prev" title="Back 20 posts" aria-label="Back 20 posts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <div class="thread-nav-position">
+                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="Current post" />
+                    <span class="thread-nav-separator">/</span>
+                    <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
+                </div>
+                <button class="thread-nav-btn" data-nav="next" title="Forward 20 posts" aria-label="Forward 20 posts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button class="thread-nav-btn" data-nav="last" title="Last post" aria-label="Jump to last post">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                </button>
+            </div>
+        </div>
+    }
+
     <!-- Two Column Layout -->
     <div class="max-w-[90rem] mx-auto px-4 py-8">
     <div class="flex flex-col lg:flex-row gap-3">
@@ -237,9 +278,50 @@
                     }
                 </div>
             </div>
-            @if (Model.IsAuthenticated)
-            {
-                <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
+                <!-- Share dropdown (visible to all users) -->
+                @{
+                    var xShareUrl = $"https://x.com/intent/tweet?url={Uri.EscapeDataString(Model.CanonicalUrl)}&text={Uri.EscapeDataString(Model.Discussion.Title)}";
+                    var redditShareUrl = $"https://www.reddit.com/submit?url={Uri.EscapeDataString(Model.CanonicalUrl)}&title={Uri.EscapeDataString(Model.Discussion.Title)}";
+                }
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0" class="btn btn-sm btn-ghost gap-1" aria-label="Share discussion">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span class="hidden sm:inline">Share</span>
+                    </button>
+                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-52 z-20">
+                        <li>
+                            <button class="text-sm"
+                                    data-action="copy-discussion-link"
+                                    data-discussion-url="@Model.CanonicalUrl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy link
+                            </button>
+                        </li>
+                        <li>
+                            <a href="@xShareUrl" target="_blank" rel="noopener noreferrer" class="text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zM17.083 20.25l-11.54-15.5H4.834l11.54 15.5h.709z" />
+                                </svg>
+                                Share on X
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@redditShareUrl" target="_blank" rel="noopener noreferrer" class="text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+                                </svg>
+                                Share on Reddit
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                @if (Model.IsAuthenticated)
+                {
                     <button id="follow-btn"
                             onclick="toggleFollowDiscussion('@Model.Discussion.PublicId')"
                             class="btn btn-ghost btn-sm follow-btn"
@@ -276,8 +358,8 @@
                             </li>
                         </ul>
                     </div>
-                </div>
-            }
+                }
+            </div>
         </div>
     </header>
 
@@ -300,6 +382,15 @@
 
     <!-- Posts Container -->
                 <div id="posts-container" class="flex flex-col">
+        @if (Model.PreferEndlessScroll)
+        {
+            <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
+            <div id="load-up-sentinel" class="hidden">
+                <div id="load-up-indicator" class="hidden py-4 flex justify-center">
+                    <span class="loading loading-spinner loading-sm text-muted"></span>
+                </div>
+            </div>
+        }
         @if (Model.Posts != null && Model.Posts.Items.Any())
         {
             var postList = Model.Posts.Items.ToList();
@@ -927,7 +1018,8 @@ else
         preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
         postsCurrentOffset: @(Model.Posts?.Items?.Count() ?? 0),
         postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false"),
-        hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false")
+        hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false"),
+        postCount: @(Model.Discussion?.PostCount ?? 0)
     };
 
     function setupAndInit() {

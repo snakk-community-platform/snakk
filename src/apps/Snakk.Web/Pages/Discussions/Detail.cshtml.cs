@@ -37,6 +37,9 @@ public class DetailModel(
     // Whether any post in the initial batch contains code blocks (for Prism.js loading)
     public bool HasCodeBlocks { get; set; }
 
+    // Absolute canonical URL for this discussion (used for share/oEmbed)
+    public string CanonicalUrl { get; private set; } = string.Empty;
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
 
@@ -144,6 +147,7 @@ public class DetailModel(
                 return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
             Discussion = discussionResult.Value;
+            CanonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}";
 
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
             HasCodeBlocks = Posts?.HasCodeBlocks ?? false;

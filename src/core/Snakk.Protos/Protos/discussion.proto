@@ -64,6 +64,7 @@ message DiscussionInfo {
   bool is_pinned = 7;
   bool is_locked = 8;
   string type = 9;
+  int32 post_count = 10;
 }
 
 message DiscussionCreatedInfo {

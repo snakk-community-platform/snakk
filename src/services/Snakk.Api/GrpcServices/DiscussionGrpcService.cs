@@ -25,6 +25,7 @@ public class DiscussionGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var d = result.Value;
+        var postCount = await searchRepository.GetDiscussionPostCountAsync(d.PublicId.Value);
         var info = new DiscussionInfo
         {
             PublicId = d.PublicId.Value,
@@ -34,7 +35,8 @@ public class DiscussionGrpcService(
             CreatedAt = ToTimestamp(d.CreatedAt),
             IsPinned = d.IsPinned,
             IsLocked = d.IsLocked,
-            Type = d.Type.ToString()
+            Type = d.Type.ToString(),
+            PostCount = postCount
         };
 
         if (d.LastActivityAt.HasValue)

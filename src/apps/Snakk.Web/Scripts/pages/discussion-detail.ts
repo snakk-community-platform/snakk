@@ -22,6 +22,7 @@ interface PostReplyTo {
 }
 
 interface Post {
+    postNumber: number;
     publicId: string;
     content: string;
     renderedContent?: string;
@@ -47,11 +48,13 @@ interface FollowStatus {
 interface DiscussionConfig {
     discussionId: string;
     isAuthenticated: boolean;
+    currentUserId: string;
     isLocked: boolean;
     preferEndlessScroll: boolean;
     postsCurrentOffset: number;
     postsHasMoreItems: boolean;
     hasCodeBlocks: boolean;
+    postCount: number;
 }
 
 interface ReportReason {
@@ -364,7 +367,7 @@ function clearReplyContext(): void {
 
 // Highlight a referenced post when clicking quote
 function highlightPost(postId: string): void {
-    const post = document.getElementById('post-' + postId);
+    const post = document.querySelector<HTMLElement>(`[data-post-id="${postId}"]`);
     if (post) {
         post.classList.add('post-highlight');
         setTimeout(() => post.classList.remove('post-highlight'), 2000);
@@ -1182,6 +1185,18 @@ let postsIsLoading = false;
 const postsPageSize = 20;
 let postsScrollObserver: IntersectionObserver | null = null;
 
+// Load-up (earlier posts) state
+let postsStartOffset = 0;
+let postsIsLoadingEarlier = false;
+let loadUpObserver: IntersectionObserver | null = null;
+
+// Fragment tracking state
+let fragmentRafId: number | null = null;
+let suppressFragmentUpdate = false;
+
+// Thread nav state
+let totalPostCount = 0;
+
 function initPostsEndlessScroll(): void {
     const sentinel = document.getElementById('scroll-sentinel');
     if (!sentinel) return;
@@ -1313,11 +1328,12 @@ function formatPostRelativeTime(dateString: string): string {
 
 function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): HTMLElement {
     const article = document.createElement('article');
-    article.id = `post-${post.publicId}`;
+    article.id = `post-${post.postNumber}`;
     const authorClass = isSameAuthorAsPrevious ? 'same-author' : 'new-author';
     article.className = `post-item post-article post-layout group ${post.isFirstPost ? 'first-post' : ''} ${authorClass}`;
     article.dataset.authorId = post.author.publicId;
     article.dataset.postId = post.publicId;
+    article.dataset.postNumber = String(post.postNumber);
 
     const isOP = post.isFirstPost;
     const hasReplyTo = post.replyTo != null;
@@ -1647,6 +1663,327 @@ function showReportError(message: string): void {
     errorDiv?.classList.remove('hidden');
 }
 
+// ===== Fragment-Based Navigation =====
+
+function initFragmentTracking(): void {
+    window.addEventListener('scroll', onScrollUpdateFragment, { passive: true });
+}
+
+function onScrollUpdateFragment(): void {
+    if (fragmentRafId !== null || suppressFragmentUpdate) return;
+    fragmentRafId = requestAnimationFrame(() => {
+        fragmentRafId = null;
+        const posts = document.querySelectorAll<HTMLElement>('.post-item[data-post-number]');
+        if (!posts.length) return;
+
+        // Find the last post whose top is at or above the sticky-header threshold
+        let topPost: HTMLElement | null = null;
+        for (const post of posts) {
+            if (post.getBoundingClientRect().top <= 80) {
+                topPost = post;
+            } else {
+                break;
+            }
+        }
+        if (!topPost) topPost = posts[0] ?? null;
+        if (!topPost) return;
+
+        const postNumber = parseInt(topPost.dataset.postNumber || '0', 10);
+        const newHash = postNumber <= 1 ? '' : `#post-${postNumber}`;
+        if ((window.location.hash || '') !== newHash) {
+            history.replaceState(null, '', location.pathname + newHash);
+        }
+    });
+}
+
+async function handleFragmentEntry(
+    discussionId: string,
+    currentUserId: string,
+    isAuthenticated: boolean,
+    isLocked: boolean
+): Promise<void> {
+    const hash = window.location.hash;
+    if (!hash || !hash.startsWith('#post-')) return;
+
+    const postNumber = parseInt(hash.slice(6), 10); // '#post-'.length === 6
+    if (isNaN(postNumber) || postNumber <= 1) return;
+
+    // Post already in DOM (SSR rendered it) — just scroll
+    const existingEl = document.getElementById(`post-${postNumber}`);
+    if (existingEl) {
+        suppressFragmentUpdate = true;
+        existingEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+        setTimeout(() => { suppressFragmentUpdate = false; }, 200);
+        return;
+    }
+
+    // Need to load the page containing this post
+    const targetOffset = Math.floor((postNumber - 1) / postsPageSize) * postsPageSize;
+    const container = document.getElementById('posts-container');
+    const scrollSentinel = document.getElementById('scroll-sentinel');
+    if (!container || !scrollSentinel) return;
+
+    // Block scroll-down observer during load
+    postsIsLoading = true;
+
+    // Clear server-rendered posts
+    Array.from(container.querySelectorAll('.post-item')).forEach(p => p.remove());
+
+    const loadingIndicator = document.getElementById('loading-indicator');
+    loadingIndicator?.classList.remove('hidden');
+
+    postsStartOffset = targetOffset;
+    postsCurrentOffset = targetOffset;
+
+    try {
+        const response = await fetch(
+            `/bff/discussions/${discussionId}/posts?offset=${targetOffset}&pageSize=${postsPageSize}`,
+            { credentials: 'include' }
+        );
+        if (!response.ok) throw new Error('Failed to load posts for fragment');
+
+        const data: { items?: Post[]; hasMoreItems: boolean; hasCodeBlocks?: boolean } = await response.json();
+
+        if (data.items && data.items.length > 0) {
+            let previousAuthorId: string | null = null;
+            data.items.forEach(post => {
+                const el = createPostElement(post, previousAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked);
+                container.insertBefore(el, scrollSentinel);
+                previousAuthorId = post.author.publicId;
+            });
+            postsCurrentOffset = targetOffset + data.items.length;
+
+            if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
+                (window as any).SnakkSyntax.highlightAll(container);
+            }
+            observeNewPosts();
+            data.items.forEach(post => loadReactionsForPost(post.publicId));
+        }
+
+        postsHasMoreItems = data.hasMoreItems;
+        if (!postsHasMoreItems) {
+            document.getElementById('end-message')?.classList.remove('hidden');
+        }
+
+        // Show load-up sentinel and start watching for upward scroll
+        if (postsStartOffset > 0) {
+            document.getElementById('load-up-sentinel')?.classList.remove('hidden');
+            initLoadUpObserver(discussionId, currentUserId, isAuthenticated, isLocked);
+        }
+
+        // Scroll to target post
+        const targetEl = document.getElementById(`post-${postNumber}`);
+        if (targetEl) {
+            suppressFragmentUpdate = true;
+            requestAnimationFrame(() => {
+                targetEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+                setTimeout(() => { suppressFragmentUpdate = false; }, 200);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load posts for fragment:', err);
+    } finally {
+        loadingIndicator?.classList.add('hidden');
+        postsIsLoading = false;
+        // Re-check if scroll sentinel needs to trigger more loading
+        if (postsHasMoreItems) initPostsEndlessScroll();
+    }
+}
+
+function initLoadUpObserver(
+    discussionId: string,
+    currentUserId: string,
+    isAuthenticated: boolean,
+    isLocked: boolean
+): void {
+    const sentinel = document.getElementById('load-up-sentinel');
+    if (!sentinel) return;
+
+    loadUpObserver?.disconnect();
+    loadUpObserver = new IntersectionObserver((entries) => {
+        if (entries[0]?.isIntersecting && postsStartOffset > 0 && !postsIsLoadingEarlier) {
+            loadEarlierPosts(discussionId, currentUserId, isAuthenticated, isLocked);
+        }
+    }, { rootMargin: '200px' });
+    loadUpObserver.observe(sentinel);
+}
+
+async function loadEarlierPosts(
+    discussionId: string,
+    currentUserId: string,
+    isAuthenticated: boolean,
+    isLocked: boolean
+): Promise<void> {
+    if (postsIsLoadingEarlier || postsStartOffset <= 0) return;
+    postsIsLoadingEarlier = true;
+
+    const loadOffset = Math.max(0, postsStartOffset - postsPageSize);
+    const indicator = document.getElementById('load-up-indicator');
+    indicator?.classList.remove('hidden');
+
+    try {
+        const response = await fetch(
+            `/bff/discussions/${discussionId}/posts?offset=${loadOffset}&pageSize=${postsPageSize}`,
+            { credentials: 'include' }
+        );
+        if (!response.ok) throw new Error('Failed to load earlier posts');
+
+        const data: { items?: Post[]; hasMoreItems: boolean; hasCodeBlocks?: boolean } = await response.json();
+
+        if (data.items && data.items.length > 0) {
+            const container = document.getElementById('posts-container');
+            if (!container) return;
+
+            // Scroll anchor: record the position of the first currently-loaded post
+            const firstCurrentPost = container.querySelector<HTMLElement>('.post-item');
+            const anchorTop = firstCurrentPost?.getBoundingClientRect().top ?? 0;
+
+            // Build and insert new elements just after the load-up sentinel
+            const loadUpSentinel = document.getElementById('load-up-sentinel');
+            const insertBefore = loadUpSentinel?.nextSibling ?? firstCurrentPost;
+            let previousAuthorId: string | null = null;
+            data.items.forEach(post => {
+                const el = createPostElement(post, previousAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked);
+                if (insertBefore) container.insertBefore(el, insertBefore);
+                previousAuthorId = post.author.publicId;
+            });
+
+            // Restore scroll position to cancel the layout shift from prepended content
+            if (firstCurrentPost) {
+                window.scrollBy(0, firstCurrentPost.getBoundingClientRect().top - anchorTop);
+            }
+
+            postsStartOffset = loadOffset;
+
+            if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
+                (window as any).SnakkSyntax.highlightAll(container);
+            }
+            observeNewPosts();
+            data.items.forEach(post => loadReactionsForPost(post.publicId));
+        }
+
+        // Hide sentinel once we've loaded all the way back to the beginning
+        if (postsStartOffset <= 0) {
+            document.getElementById('load-up-sentinel')?.classList.add('hidden');
+            loadUpObserver?.disconnect();
+            loadUpObserver = null;
+        }
+    } catch (err) {
+        console.error('Failed to load earlier posts:', err);
+    } finally {
+        postsIsLoadingEarlier = false;
+        indicator?.classList.add('hidden');
+    }
+}
+
+// ===== Thread Navigation Bar =====
+
+function initThreadNav(config: DiscussionConfig): void {
+    const pane = document.getElementById('thread-nav');
+    if (!pane) return;
+
+    totalPostCount = config.postCount || 0;
+    if (totalPostCount <= 1) {
+        pane.classList.add('hidden');
+        return;
+    }
+
+    pane.classList.remove('hidden');
+
+    const progressBar = document.getElementById('thread-nav-progress') as HTMLElement | null;
+    const input = document.getElementById('thread-nav-input') as HTMLInputElement | null;
+    const totalEl = document.getElementById('thread-nav-total');
+
+    if (totalEl) totalEl.textContent = String(totalPostCount);
+
+    function getCurrentPostNumber(): number {
+        const posts = document.querySelectorAll<HTMLElement>('.post-item[data-post-number]');
+        let current = 1;
+        for (const post of posts) {
+            if (post.getBoundingClientRect().top <= 80) {
+                current = parseInt(post.dataset.postNumber || '1', 10);
+            } else {
+                break;
+            }
+        }
+        return current;
+    }
+
+    function updateNav(postNumber: number): void {
+        const n = Math.max(1, Math.min(postNumber, totalPostCount));
+        if (input && document.activeElement !== input) {
+            input.value = String(n);
+        }
+        if (progressBar) {
+            progressBar.style.width = `${(n / totalPostCount) * 100}%`;
+        }
+    }
+
+    // Sync nav with scroll
+    window.addEventListener('scroll', () => {
+        if (suppressFragmentUpdate) return;
+        requestAnimationFrame(() => {
+            updateNav(getCurrentPostNumber());
+        });
+    }, { passive: true });
+
+    // Initial state
+    const hash = window.location.hash;
+    const initialPost = hash?.startsWith('#post-') ? parseInt(hash.slice(6), 10) : 1;
+    updateNav(isNaN(initialPost) ? 1 : initialPost);
+
+    // Navigation buttons
+    pane.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-nav]');
+        if (!btn) return;
+        const action = btn.dataset.nav!;
+        const current = getCurrentPostNumber();
+        let target: number;
+        if (action === 'first') target = 1;
+        else if (action === 'prev') target = Math.max(1, current - postsPageSize);
+        else if (action === 'next') target = Math.min(totalPostCount, current + postsPageSize);
+        else if (action === 'last') target = totalPostCount;
+        else return;
+
+        navigateToPostNumber(target, config);
+    });
+
+    // Input: jump to post on Enter or blur
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const n = parseInt(input.value, 10);
+                if (!isNaN(n)) navigateToPostNumber(n, config);
+                input.blur();
+            }
+        });
+        input.addEventListener('blur', () => {
+            const n = parseInt(input.value, 10);
+            if (!isNaN(n)) navigateToPostNumber(n, config);
+        });
+        input.addEventListener('focus', () => input.select());
+    }
+}
+
+function navigateToPostNumber(postNumber: number, config: DiscussionConfig): void {
+    const n = Math.max(1, Math.min(postNumber, totalPostCount));
+
+    // Check if already in DOM
+    const el = document.getElementById(`post-${n}`);
+    if (el) {
+        suppressFragmentUpdate = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const newHash = n <= 1 ? '' : `#post-${n}`;
+        history.replaceState(null, '', location.pathname + newHash);
+        setTimeout(() => { suppressFragmentUpdate = false; }, 500);
+        return;
+    }
+
+    // Need to load — use fragment entry mechanism
+    history.replaceState(null, '', location.pathname + `#post-${n}`);
+    handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+}
+
 // ===== Initialize Discussion Page =====
 function initDiscussionPage(config: DiscussionConfig): void {
     // Reset editor state for HTMX navigation (DOM was swapped, old editor is gone)
@@ -1655,6 +1992,20 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Set endless scroll state from config
     postsCurrentOffset = config.postsCurrentOffset;
     postsHasMoreItems = config.postsHasMoreItems;
+
+    // Reset fragment/load-up state
+    postsStartOffset = 0;
+    postsIsLoadingEarlier = false;
+    suppressFragmentUpdate = false;
+    fragmentRafId = null;
+    loadUpObserver?.disconnect();
+    loadUpObserver = null;
+    totalPostCount = 0;
+
+    // Expose config values on body dataset so IntersectionObserver closures can read them
+    document.body.dataset.currentUserId = config.currentUserId || '';
+    document.body.dataset.isAuthenticated = String(config.isAuthenticated);
+    document.body.dataset.isLocked = String(config.isLocked);
 
     // Initialize read state batcher
     if (window.SnakkReadStateBatcher) {
@@ -1699,6 +2050,11 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Initialize endless scroll if enabled
     if (config.preferEndlessScroll) {
         initPostsEndlessScroll();
+        // Fragment navigation: load correct page when entering via #post-N link
+        handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+        initFragmentTracking();
+        // Thread navigation bar (osu-style pagination)
+        initThreadNav(config);
     }
 
     // Initialize keyboard navigation
@@ -1837,6 +2193,21 @@ document.addEventListener('click', async (e) => {
         case 'toggle-reaction':
             await toggleReaction(action.dataset.postId || '', action.dataset.reactionType || '');
             break;
+
+        // Share actions
+        case 'copy-discussion-link': {
+            const discussionUrl = action.dataset.discussionUrl || '';
+            if (!discussionUrl) break;
+            try {
+                await navigator.clipboard.writeText(discussionUrl);
+                const originalHtml = action.innerHTML;
+                action.textContent = 'Copied!';
+                setTimeout(() => { action.innerHTML = originalHtml; }, 1500);
+            } catch {
+                // Clipboard API unavailable — silently ignore
+            }
+            break;
+        }
 
         // Discussion actions
         case 'toggle-follow-discussion':

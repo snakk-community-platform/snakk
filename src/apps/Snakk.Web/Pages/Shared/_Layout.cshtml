@@ -13,14 +13,15 @@
     <title>@ViewData["Title"] - Snakk</title>
 
     <!-- SEO Meta Tags -->
+    <meta property="og:site_name" content="Snakk" />
     @await RenderSectionAsync("Meta", required: false)
     @if (ViewData["Description"] != null)
     {
         <meta name="description" content="@ViewData["Description"]" />
     }
 
-    <!-- Canonical URL -->
-    <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}{Context.Request.QueryString}")" />
+    <!-- Canonical URL (pages can override via ViewData["CanonicalUrl"]) -->
+    <link rel="canonical" href="@(ViewData["CanonicalUrl"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
 
     <!-- Realtime WebSocket connects same-origin through the gateway — no preconnect needed -->
 
@@ -164,7 +165,7 @@
     <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/search-focus")" asp-append-version="true" defer></script>
 
-    <main id="main-content">
+    <main id="main-content" class="pb-12">
         <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
         @RenderBody()
     </main>

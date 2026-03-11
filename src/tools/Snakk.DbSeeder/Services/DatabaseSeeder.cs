@@ -78,6 +78,9 @@ public class DatabaseSeeder(
         // Seed reactions (one per user per post)
         await SeedReactionsAsync(users);
 
+        // Seed high-volume threads for pagination debugging
+        await SeedHighVolumeDiscussionsAsync(users);
+
         Console.WriteLine("Database seeding completed successfully.");
 
         // Separate avatar generation phase
@@ -835,6 +838,110 @@ public class DatabaseSeeder(
         }
         // Long reply (8%): 5-10 paragraphs — someone really got into it
         return _faker.Lorem.Paragraphs(_faker.Random.Int(5, 10), "\n\n");
+    }
+
+    private async Task SeedHighVolumeDiscussionsAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding high-volume discussions for pagination debugging...");
+
+        // Find the Web Development space in the Snakk community
+        var space = await _context.Spaces.FirstOrDefaultAsync(s => s.Slug == "web-dev");
+        if (space is null)
+        {
+            Console.WriteLine("  Could not find web-dev space, skipping high-volume seed.");
+            return;
+        }
+
+        var latestAllowed = Now.AddHours(-1);
+        var spaceCreated = space.CreatedAt;
+
+        var threads = new[]
+        {
+            ("The Mega Thread: Everything Web Development 2025", 247),
+            ("Ask Me Anything: Senior Dev Career Q&A", 183),
+            ("Framework Wars: React vs Vue vs Svelte vs HTMX", 312),
+        };
+
+        foreach (var (title, postCount) in threads)
+        {
+            var author = _faker.PickRandom(users);
+            var slug = GenerateSlug(title);
+            var createdAt = spaceCreated.AddDays(_faker.Random.Int(1, 10));
+
+            var discussion = new DiscussionDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                SpaceId = space.Id,
+                Title = title,
+                Slug = slug,
+                CreatedByUserId = author.Id,
+                CreatedAt = createdAt,
+                LastActivityAt = createdAt,
+                IsPinned = true
+            };
+            _context.Discussions.Add(discussion);
+            await _context.SaveChangesAsync();
+
+            var posts = new List<PostDatabaseEntity>();
+            var lastActivityAt = createdAt;
+            var replyTimeWindow = (latestAllowed - createdAt).TotalMinutes;
+            var replyCount = postCount - 1; // first post counts as 1
+
+            // First post
+            var firstPostContent = GeneratePostContent(isOpeningPost: true);
+            posts.Add(new PostDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                DiscussionId = discussion.Id,
+                Content = firstPostContent,
+                RenderedContent = _markupParser.ToHtml(firstPostContent),
+                CreatedByUserId = author.Id,
+                CreatedAt = createdAt,
+                IsFirstPost = true,
+                RevisionCount = 0
+            });
+
+            for (var j = 0; j < replyCount; j++)
+            {
+                var replyAuthor = _faker.PickRandom(users);
+                var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
+                var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 12));
+                var replyCreatedAt = lastActivityAt.AddMinutes(delay);
+
+                if (replyCreatedAt >= latestAllowed)
+                {
+                    var minutesAfterDiscussion = (latestAllowed - createdAt).TotalMinutes;
+                    replyCreatedAt = createdAt.AddMinutes(minutesAfterDiscussion > 1
+                        ? _faker.Random.Double(1, minutesAfterDiscussion)
+                        : 1);
+                }
+
+                var replyContent = GeneratePostContent(isOpeningPost: false);
+                posts.Add(new PostDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    DiscussionId = discussion.Id,
+                    Content = replyContent,
+                    RenderedContent = _markupParser.ToHtml(replyContent),
+                    CreatedByUserId = replyAuthor.Id,
+                    CreatedAt = replyCreatedAt,
+                    IsFirstPost = false,
+                    RevisionCount = 0
+                });
+
+                if (replyCreatedAt > lastActivityAt)
+                    lastActivityAt = replyCreatedAt;
+            }
+
+            discussion.LastActivityAt = lastActivityAt;
+            discussion.PostCount = postCount;
+            discussion.ReactionCount = 0;
+
+            _context.Posts.AddRange(posts);
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"  Seeded \"{title}\" with {postCount} posts.");
+        }
     }
 
     private int GetSkewedReplyCount()
