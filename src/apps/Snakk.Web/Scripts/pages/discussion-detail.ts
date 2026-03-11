@@ -1767,6 +1767,14 @@ function setupEventListeners(): void {
         }
     });
 
+    // Toggle spoiler reveal on click
+    document.addEventListener('click', (event) => {
+        const spoiler = (event.target as HTMLElement).closest('.spoiler') as HTMLElement | null;
+        if (spoiler) {
+            spoiler.classList.toggle('revealed');
+        }
+    });
+
     // Show reason description when selected
     document.getElementById('report-reason')?.addEventListener('change', function(this: HTMLSelectElement) {
         const selectedOption = this.options[this.selectedIndex];

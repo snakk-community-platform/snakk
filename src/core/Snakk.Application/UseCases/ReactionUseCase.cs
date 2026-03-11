@@ -13,12 +13,11 @@ public class ReactionUseCase(
     ICounterService counterService)
 {
     /// <summary>
-    /// Toggle a reaction on a post. Each user may have at most one reaction per post.
-    /// If the user already has the same reaction type, remove it (toggle off).
-    /// If the user has a different reaction type, remove the old one and add the new one (switch).
-    /// If the user has no reaction, add the new one.
+    /// Toggle a reaction on a post. Each user may have multiple reaction types per post (one per type).
+    /// If the user already has this specific reaction type, remove it (toggle off).
+    /// If not, add it — other reaction types from the same user are unaffected.
     /// </summary>
-    /// <returns>True if a reaction was added (new or switched), false if removed</returns>
+    /// <returns>True if the reaction was added, false if removed</returns>
     public async Task<Result<bool>> ToggleReactionAsync(PostId postId, UserId userId, ReactionType type)
     {
         var post = await postRepository.GetByPublicIdAsync(postId);
@@ -26,25 +25,19 @@ public class ReactionUseCase(
         if (post is null)
             return Result<bool>.Failure("Post not found");
 
-        var existingReaction = await reactionRepository.GetByUserAndPostAsync(userId, postId);
+        var existingReaction = await reactionRepository.GetByUserPostAndTypeAsync(userId, postId, type);
 
         if (existingReaction is not null)
         {
-            // Remove the existing reaction
             existingReaction.MarkForRemoval();
             await reactionRepository.DeleteAsync(existingReaction);
             await counterService.DecrementReactionCountAsync(postId, post.DiscussionId);
 
-            if (existingReaction.Type == type)
-            {
-                // Same type — toggle off, we're done
-                var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
-                await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
-                return Result<bool>.Success(false);
-            }
+            var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
+            await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
+            return Result<bool>.Success(false);
         }
 
-        // Add the new reaction (either first reaction or switching type)
         var reaction = Reaction.Create(postId, userId, type);
         await reactionRepository.AddAsync(reaction);
         await counterService.IncrementReactionCountAsync(postId, post.DiscussionId);

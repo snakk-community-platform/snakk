@@ -107,6 +107,22 @@ h1, h2, h3, h4, h5, h6 {
         text-underline-offset: 2px;
     }
 
+    .spoiler {
+        background: #2a2a2a;
+        color: transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        user-select: none;
+        padding: 0.0625rem 0.25rem;
+        transition: color 0.15s ease, background 0.15s ease;
+
+        &.revealed {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            user-select: auto;
+        }
+    }
+
     // Task list (Markdig renders: li.task-list-item > input[type="checkbox"])
     .task-list-item {
         list-style: none;

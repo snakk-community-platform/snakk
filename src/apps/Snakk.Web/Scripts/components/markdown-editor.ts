@@ -128,6 +128,7 @@ interface EmphasisExtraDef {
     mdastType: string;
     delimiter: string;
     inputRegex: RegExp;
+    htmlClass?: string;
 }
 
 const EMPHASIS_EXTRAS: EmphasisExtraDef[] = [
@@ -151,6 +152,12 @@ const EMPHASIS_EXTRAS: EmphasisExtraDef[] = [
         delimiter: '==',
         inputRegex: /==([^\n]+?)==/,
     },
+    {
+        id: 'spoiler', tag: 'span', mdastType: 'spoiler',
+        delimiter: '||',
+        inputRegex: /\|\|([^\n]+?)\|\|/,
+        htmlClass: 'spoiler',
+    },
 ];
 
 // -- Mark attributes --
@@ -158,14 +165,19 @@ const subscriptAttr = $markAttr('subscript');
 const superscriptAttr = $markAttr('superscript');
 const insertedAttr = $markAttr('inserted');
 const markedAttr = $markAttr('marked');
+const spoilerAttr = $markAttr('spoiler');
 
-const markAttrs = [subscriptAttr, superscriptAttr, insertedAttr, markedAttr];
+const markAttrs = [subscriptAttr, superscriptAttr, insertedAttr, markedAttr, spoilerAttr];
 
 // -- Mark schemas --
 function buildMarkSchemaFor(def: EmphasisExtraDef, attr: ReturnType<typeof $markAttr>) {
     return $markSchema(def.id, (ctx) => ({
-        parseDOM: [{ tag: def.tag }],
-        toDOM: (mark) => [def.tag, ctx.get(attr.key)(mark), 0],
+        parseDOM: def.htmlClass
+            ? [{ tag: `${def.tag}[class="${def.htmlClass}"]` }]
+            : [{ tag: def.tag }],
+        toDOM: (mark) => def.htmlClass
+            ? [def.tag, { class: def.htmlClass }, 0]
+            : [def.tag, ctx.get(attr.key)(mark), 0],
         parseMarkdown: {
             match: (node) => node.type === def.mdastType,
             runner: (state, node, markType) => {
@@ -187,8 +199,9 @@ const subscriptSchema = buildMarkSchemaFor(EMPHASIS_EXTRAS[0]!, subscriptAttr);
 const superscriptSchema = buildMarkSchemaFor(EMPHASIS_EXTRAS[1]!, superscriptAttr);
 const insertedSchema = buildMarkSchemaFor(EMPHASIS_EXTRAS[2]!, insertedAttr);
 const markedSchema = buildMarkSchemaFor(EMPHASIS_EXTRAS[3]!, markedAttr);
+const spoilerSchema = buildMarkSchemaFor(EMPHASIS_EXTRAS[4]!, spoilerAttr);
 
-const markSchemas = [subscriptSchema, superscriptSchema, insertedSchema, markedSchema];
+const markSchemas = [subscriptSchema, superscriptSchema, insertedSchema, markedSchema, spoilerSchema];
 
 // -- Input rules (consume delimiters, apply mark) --
 const subscriptInputRule = $inputRule((ctx) =>
@@ -199,8 +212,10 @@ const insertedInputRule = $inputRule((ctx) =>
     markRule(EMPHASIS_EXTRAS[2]!.inputRegex, insertedSchema.type(ctx)));
 const markedInputRule = $inputRule((ctx) =>
     markRule(EMPHASIS_EXTRAS[3]!.inputRegex, markedSchema.type(ctx)));
+const spoilerInputRule = $inputRule((ctx) =>
+    markRule(EMPHASIS_EXTRAS[4]!.inputRegex, spoilerSchema.type(ctx)));
 
-const markInputRules = [subscriptInputRule, superscriptInputRule, insertedInputRule, markedInputRule];
+const markInputRules = [subscriptInputRule, superscriptInputRule, insertedInputRule, markedInputRule, spoilerInputRule];
 
 // -- Toggle commands (for toolbar buttons) --
 const toggleSubscriptCommand = $command('ToggleSubscript', (ctx) => () =>
@@ -211,8 +226,10 @@ const toggleInsertedCommand = $command('ToggleInserted', (ctx) => () =>
     toggleMark(insertedSchema.type(ctx)));
 const toggleMarkedCommand = $command('ToggleMarked', (ctx) => () =>
     toggleMark(markedSchema.type(ctx)));
+const toggleSpoilerCommand = $command('ToggleSpoiler', (ctx) => () =>
+    toggleMark(spoilerSchema.type(ctx)));
 
-const markCommands = [toggleSubscriptCommand, toggleSuperscriptCommand, toggleInsertedCommand, toggleMarkedCommand];
+const markCommands = [toggleSubscriptCommand, toggleSuperscriptCommand, toggleInsertedCommand, toggleMarkedCommand, toggleSpoilerCommand];
 
 // ============================================================================
 // Custom Remark Plugin for Emphasis Extras
@@ -249,6 +266,7 @@ function emphasisExtrasRemarkPluginFn(this: any) {
         unsafe: [
             { character: '~', inConstruct: 'phrasing' },
             { character: '^', inConstruct: 'phrasing' },
+            { character: '|', inConstruct: 'phrasing' },
         ],
     });
 
@@ -282,6 +300,7 @@ function splitTextNode(text: string): any[] {
     const patterns = [
         { regex: /\+\+(.+?)\+\+/, type: 'inserted' },
         { regex: /==(.+?)==/, type: 'marked' },
+        { regex: /\|\|(.+?)\|\|/, type: 'spoiler' },
         { regex: /(?<!\~)\~([^\~]+?)\~(?!\~)/, type: 'subscript' },
         { regex: /(?<!\^)\^([^\^]+?)\^(?!\^)/, type: 'superscript' },
     ];
@@ -347,6 +366,10 @@ function buildToolbarItems(): ToolbarEntry[] {
                 {
                     icon: 'mark', title: 'Highlight', className: 'toolbar-marked', allowInTable: true,
                     action: (e) => e.action(callCommand(toggleMarkedCommand.key)),
+                },
+                {
+                    icon: '||', title: 'Spoiler', className: 'toolbar-spoiler', allowInTable: true,
+                    action: (e) => e.action(callCommand(toggleSpoilerCommand.key)),
                 },
             ],
         },

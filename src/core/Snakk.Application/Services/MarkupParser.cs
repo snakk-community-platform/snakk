@@ -3,6 +3,8 @@ namespace Snakk.Application.Services;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.Tables;
+using Markdig.Helpers;
+using Markdig.Parsers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
@@ -23,6 +25,7 @@ public class MarkupParser : IMarkupParser
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .DisableHtml()
+        .Use(new SpoilerExtension())
         .Build();
 
     private static readonly MarkdownPipeline PlainTextPipeline = new MarkdownPipelineBuilder()
@@ -227,5 +230,65 @@ public class MarkupParser : IMarkupParser
             return AllowedSchemes.Contains(uri.Scheme);
 
         return false;
+    }
+
+    // =========================================================================
+    // Spoiler extension — renders ||text|| as <span class="spoiler">text</span>
+    // =========================================================================
+
+    private sealed class SpoilerInline : ContainerInline { }
+
+    private sealed class SpoilerParser : InlineParser
+    {
+        public SpoilerParser()
+        {
+            OpeningCharacters = ['|'];
+        }
+
+        public override bool Match(InlineProcessor processor, ref StringSlice slice)
+        {
+            if (slice.CurrentChar != '|' || slice.PeekChar(1) != '|')
+                return false;
+
+            var text = slice.Text;
+            var contentStart = slice.Start + 2;
+            var closeIdx = text.IndexOf("||", contentStart, StringComparison.Ordinal);
+
+            if (closeIdx < 0 || closeIdx == contentStart)
+                return false;
+
+            var content = text.Substring(contentStart, closeIdx - contentStart);
+
+            if (content.Contains('\n') || content.Contains('\r'))
+                return false;
+
+            var inline = new SpoilerInline();
+            inline.AppendChild(new LiteralInline(content));
+            processor.Inline = inline;
+            slice.Start = closeIdx + 2;
+            return true;
+        }
+    }
+
+    private sealed class SpoilerRenderer : HtmlObjectRenderer<SpoilerInline>
+    {
+        protected override void Write(HtmlRenderer renderer, SpoilerInline obj)
+        {
+            renderer.Write("<span class=\"spoiler\">");
+            renderer.WriteChildren(obj);
+            renderer.Write("</span>");
+        }
+    }
+
+    private sealed class SpoilerExtension : IMarkdownExtension
+    {
+        public void Setup(MarkdownPipelineBuilder pipeline) =>
+            pipeline.InlineParsers.AddIfNotAlready<SpoilerParser>();
+
+        public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
+        {
+            if (renderer is HtmlRenderer htmlRenderer)
+                htmlRenderer.ObjectRenderers.AddIfNotAlready<SpoilerRenderer>();
+        }
     }
 }
