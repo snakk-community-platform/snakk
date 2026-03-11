@@ -28,7 +28,7 @@
         "DebugTarget": "Proxied Debug"
       },
       {
-        "Path": "apps\\Snakk.AdminWeb\\Snakk.AdminWeb.csproj",
+        "Path": "apps\\Snakk.Admin\\Snakk.Admin.csproj",
         "Action": "Start",
         "DebugTarget": "Proxied Debug"
       }
@@ -58,7 +58,7 @@
         "DebugTarget": "https"
       },
       {
-        "Path": "apps\\Snakk.AdminWeb\\Snakk.AdminWeb.csproj",
+        "Path": "apps\\Snakk.Admin\\Snakk.Admin.csproj",
         "Action": "Start",
         "DebugTarget": "https"
       }

@@ -1,0 +1,14 @@
+@page "/c/{CommunitySlug}/webhooks"
+@page "/c/{CommunitySlug}/h/{HubSlug}/webhooks"
+@page "/c/{CommunitySlug}/h/{HubSlug}/s/{SpaceSlug}/webhooks"
+@layout ManageLayout
+
+<ManagePage CommunitySlug="@CommunitySlug" HubSlug="@HubSlug" SpaceSlug="@SpaceSlug">
+    <WebhooksContent />
+</ManagePage>
+
+@code {
+    [Parameter] public string CommunitySlug { get; set; } = "";
+    [Parameter] public string? HubSlug { get; set; }
+    [Parameter] public string? SpaceSlug { get; set; }
+}

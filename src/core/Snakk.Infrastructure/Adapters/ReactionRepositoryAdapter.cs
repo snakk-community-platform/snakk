@@ -29,6 +29,19 @@ public class ReactionRepositoryAdapter(
         return projection?.ToDomain();
     }
 
+    public async Task<Reaction?> GetByUserAndPostAsync(UserId userId, PostId postId)
+    {
+        var projection = await context.Reactions
+            .Where(r =>
+                r.User.PublicId == userId.Value
+                && r.Post.PublicId == postId.Value)
+            .Select(r => new ReactionProjection(
+                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.TypeId, r.CreatedAt))
+            .FirstOrDefaultAsync();
+        return projection?.ToDomain();
+    }
+
     public async Task<IEnumerable<Reaction>> GetByPostIdAsync(PostId postId)
     {
         var projections = await context.Reactions

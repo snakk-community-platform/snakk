@@ -1,0 +1,164 @@
+@page "/communities"
+@attribute [Authorize(Roles = "GlobalAdmin,CommunityAdmin")]
+@inject NavigationManager Navigation
+
+<PageTitle>Communities - Snakk Admin</PageTitle>
+
+<MudStack Spacing="6">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">Communities</MudText>
+            <MudText Typo="Typo.body1" Style="opacity: 0.7;">Manage all communities on the platform</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/communities/create"))">
+            Create Community
+        </MudButton>
+    </MudStack>
+
+    <MudPaper Class="pa-4">
+        <MudStack Spacing="4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">All Communities (@communities.Count())</MudText>
+                <MudTextField @bind-Value="searchText" @bind-Value:after="FilterCommunities"
+                              Placeholder="Search communities..." Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width: 300px;" />
+            </MudStack>
+
+            @if (isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else if (filteredCommunities.Any())
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                    <thead>
+                        <tr><th>Name</th><th>Slug</th><th>Description</th><th>Members</th><th>Posts</th><th>Created</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in filteredCommunities)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.Slug</td>
+                                <td>@TruncateText(c.Description, 40)</td>
+                                <td>@FormatNumber(c.MemberCount)</td>
+                                <td>@FormatNumber(c.PostCount)</td>
+                                <td>@c.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="@(c.IsActive ? Color.Primary : Color.Default)">
+                                        @(c.IsActive ? "Active" : "Inactive")
+                                    </MudChip>
+                                </td>
+                                <td>
+                                    <MudStack Row="true" Spacing="2">
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility"
+                                                   OnClick="@(() => Navigation.NavigateTo($"/communities/details/{c.Slug}"))">
+                                            View
+                                        </MudButton>
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                                                   OnClick="@(() => Navigation.NavigateTo($"/communities/edit/{c.Slug}"))">
+                                            Edit
+                                        </MudButton>
+                                    </MudStack>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudStack AlignItems="AlignItems.Center" Style="padding: 48px;">
+                    <MudText Style="opacity: 0.7;">
+                        No communities found.
+                        <MudLink Href="/communities/create">Create one</MudLink>
+                    </MudText>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+</MudStack>
+
+@code {
+    private List<CommunityListItem> communities = new();
+    private List<CommunityListItem> filteredCommunities = new();
+    private bool isLoading = true;
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCommunitiesAsync();
+    }
+
+    private async Task LoadCommunitiesAsync()
+    {
+        isLoading = true;
+
+        // TODO: Fetch from API
+        communities = new List<CommunityListItem>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(), Name = "Technology", Slug = "technology",
+                Description = "All things tech - programming, gadgets, innovation",
+                MemberCount = 15420, PostCount = 3421,
+                CreatedAt = DateTime.UtcNow.AddMonths(-6), IsActive = true
+            },
+            new()
+            {
+                Id = Guid.NewGuid(), Name = "Gaming", Slug = "gaming",
+                Description = "Discussion about video games, esports, and gaming culture",
+                MemberCount = 23100, PostCount = 8934,
+                CreatedAt = DateTime.UtcNow.AddMonths(-12), IsActive = true
+            },
+            new()
+            {
+                Id = Guid.NewGuid(), Name = "Science", Slug = "science",
+                Description = "Scientific discussions, research, and discoveries",
+                MemberCount = 8750, PostCount = 2156,
+                CreatedAt = DateTime.UtcNow.AddMonths(-3), IsActive = true
+            }
+        };
+
+        FilterCommunities();
+        isLoading = false;
+    }
+
+    private void FilterCommunities()
+    {
+        var filtered = communities.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            filtered = filtered.Where(c =>
+                c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                c.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                c.Slug.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+        }
+
+        filteredCommunities = filtered.ToList();
+    }
+
+    private string TruncateText(string text, int maxLength) =>
+        string.IsNullOrEmpty(text) || text.Length <= maxLength ? text : text[..maxLength] + "...";
+
+    private string FormatNumber(int number) => number switch
+    {
+        >= 1000000 => $"{number / 1000000.0:F1}M",
+        >= 1000 => $"{number / 1000.0:F1}K",
+        _ => number.ToString()
+    };
+
+    public record CommunityListItem
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string Slug { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
+        public int MemberCount { get; init; }
+        public int PostCount { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public bool IsActive { get; init; }
+    }
+}

@@ -100,7 +100,7 @@ src/
 ├── apps/
 │   ├── Snakk.Web/                  # Main platform — Razor Pages + HTMX (port 17110)
 │   ├── Snakk.Auth/                 # Authentication service (port 17111)
-│   ├── Snakk.AdminWeb/             # Admin panel — Blazor Server + Fluent UI (port 17112)
+│   ├── Snakk.Admin/             # Admin panel — Blazor Server + Fluent UI (port 17112)
 │   └── Snakk.Setup/                # First-run setup wizard
 │
 ├── tests/
@@ -261,7 +261,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 | Snakk.Realtime | 17101 | SignalR WebSocket hub |
 | Snakk.Web | 17110 | Main platform |
 | Snakk.Auth | 17111 | Authentication service |
-| Snakk.AdminWeb | 17112 | Admin panel |
+| Snakk.Admin | 17112 | Admin panel |
 
 ## Contributing
 

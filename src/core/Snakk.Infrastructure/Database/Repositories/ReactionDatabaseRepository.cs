@@ -13,6 +13,11 @@ public class ReactionDatabaseRepository(SnakkDbContext context)
             && r.PostId == postId
             && r.TypeId == typeId);
 
+    public async Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId) =>
+        await _dbSet.FirstOrDefaultAsync(r =>
+            r.UserId == userId
+            && r.PostId == postId);
+
     public async Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId) =>
         await _dbSet
             .Where(r => r.PostId == postId)

@@ -28,7 +28,7 @@ var auth = builder.AddProject<Projects.Snakk_Auth>("snakk-auth")
     .WithEnvironment("ApiBaseUrl", api.GetEndpoint("https"))
     .WaitFor(api);
 
-var admin = builder.AddProject<Projects.Snakk_AdminWeb>("snakk-admin")
+var admin = builder.AddProject<Projects.Snakk_Admin>("snakk-admin")
     .WithEndpoint("https", e => { e.Port = 17112; })
     .WithEnvironment("SnakkApi__BaseUrl", api.GetEndpoint("https"))
     .WaitFor(api);

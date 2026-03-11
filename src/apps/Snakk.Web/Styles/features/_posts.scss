@@ -13,7 +13,10 @@
     }
 
     &.same-author {
-        margin-top: 0.25rem;
+        .post-main {
+            padding-left: 2.5rem;
+            padding-top: 0;
+        }
     }
 }
 
@@ -173,6 +176,13 @@
 
     .post-main {
         padding-left: 0.5rem;
+    }
+}
+
+// First post (OP) — full-width, no aside
+.first-post {
+    .post-main {
+        padding-left: 0;
     }
 }
 
@@ -902,7 +912,7 @@
     }
 
     // Placeholder when empty (ProseMirror always has a <p><br></p> so we detect via :has)
-    .ProseMirror:not(:focus) > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
+    #{'.ProseMirror:not(:focus) > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before'} {
         content: var(--editor-placeholder, "");
         color: var(--text-tertiary);
         pointer-events: none;

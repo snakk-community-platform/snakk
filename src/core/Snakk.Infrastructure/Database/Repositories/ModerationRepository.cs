@@ -779,27 +779,34 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         if (!string.IsNullOrEmpty(reportedPostPublicId))
         {
             var post = await _context.Posts
-                .Include(p => p.Discussion)
-                    .ThenInclude(d => d.Space)
-                        .ThenInclude(s => s.Hub)
-                .FirstOrDefaultAsync(p => p.PublicId == reportedPostPublicId)
+                .Where(p => p.PublicId == reportedPostPublicId)
+                .Select(p => new {
+                    PostId = p.Id,
+                    SpaceId = p.Discussion.SpaceId,
+                    HubId = p.Discussion.Space.HubId,
+                    CommunityId = p.Discussion.Space.Hub.CommunityId })
+                .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException("Reported post not found");
-            reportedPostId = post.Id;
-            spaceId = post.Discussion.SpaceId;
-            hubId = post.Discussion.Space.HubId;
-            communityId = post.Discussion.Space.Hub.CommunityId;
+            reportedPostId = post.PostId;
+            spaceId = post.SpaceId;
+            hubId = post.HubId;
+            communityId = post.CommunityId;
         }
         else if (!string.IsNullOrEmpty(reportedDiscussionPublicId))
         {
             var discussion = await _context.Discussions
-                .Include(d => d.Space)
-                    .ThenInclude(s => s.Hub)
-                .FirstOrDefaultAsync(d => d.PublicId == reportedDiscussionPublicId)
+                .Where(d => d.PublicId == reportedDiscussionPublicId)
+                .Select(d => new {
+                    DiscussionId = d.Id,
+                    SpaceId = d.SpaceId,
+                    HubId = d.Space.HubId,
+                    CommunityId = d.Space.Hub.CommunityId })
+                .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException("Reported discussion not found");
-            reportedDiscussionId = discussion.Id;
+            reportedDiscussionId = discussion.DiscussionId;
             spaceId = discussion.SpaceId;
-            hubId = discussion.Space.HubId;
-            communityId = discussion.Space.Hub.CommunityId;
+            hubId = discussion.HubId;
+            communityId = discussion.CommunityId;
         }
         else if (!string.IsNullOrEmpty(reportedUserPublicId))
         {
@@ -957,6 +964,252 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             null, null, null,
             rr.DisplayOrder))
         .ToListAsync();
+
+    // ==================== Scope-Based Queries ====================
+
+    public async Task<IEnumerable<UserBanDto>> GetActiveBansForScopeAsync(
+        string scopeType, string scopePublicId)
+    {
+        var now = DateTime.UtcNow;
+
+        var query = scopeType switch
+        {
+            "Community" => _context.UserBans
+                .Where(ub => ub.Community != null && ub.Community.PublicId == scopePublicId),
+            "Hub" => _context.UserBans
+                .Where(ub => ub.Hub != null && ub.Hub.PublicId == scopePublicId),
+            "Space" => _context.UserBans
+                .Where(ub => ub.Space != null && ub.Space.PublicId == scopePublicId),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        return await query
+            .Where(ub => ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
+            .OrderByDescending(ub => ub.BannedAt)
+            .Select(ub => new UserBanDto(
+                ub.PublicId,
+                ub.User.PublicId,
+                ub.User.DisplayName,
+                ((BanTypeEnum)ub.BanTypeId).ToString(),
+                ub.Community != null ? ub.Community.PublicId : null,
+                ub.Community != null ? ub.Community.Name : null,
+                ub.Hub != null ? ub.Hub.PublicId : null,
+                ub.Hub != null ? ub.Hub.Name : null,
+                ub.Space != null ? ub.Space.PublicId : null,
+                ub.Space != null ? ub.Space.Name : null,
+                ub.Reason,
+                ub.BannedAt,
+                ub.ExpiresAt,
+                ub.BannedByUser.PublicId,
+                ub.BannedByUser.DisplayName,
+                ub.UnbannedAt,
+                null, null))
+            .ToListAsync();
+    }
+
+    public async Task<int> GetActiveBanCountForScopeAsync(string scopeType, string scopePublicId)
+    {
+        var now = DateTime.UtcNow;
+
+        var query = scopeType switch
+        {
+            "Community" => _context.UserBans
+                .Where(ub => ub.Community != null && ub.Community.PublicId == scopePublicId),
+            "Hub" => _context.UserBans
+                .Where(ub => ub.Hub != null && ub.Hub.PublicId == scopePublicId),
+            "Space" => _context.UserBans
+                .Where(ub => ub.Space != null && ub.Space.PublicId == scopePublicId),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        return await query
+            .Where(ub => ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
+            .CountAsync();
+    }
+
+    public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForScopeAsync(
+        string scopeType, string scopePublicId)
+    {
+        var query = scopeType switch
+        {
+            "Community" => _context.UserRoles
+                .Where(ur => ur.Community != null && ur.Community.PublicId == scopePublicId && ur.RevokedAt == null),
+            "Hub" => _context.UserRoles
+                .Where(ur => ur.Hub != null && ur.Hub.PublicId == scopePublicId && ur.RevokedAt == null),
+            "Space" => _context.UserRoles
+                .Where(ur => ur.Space != null && ur.Space.PublicId == scopePublicId && ur.RevokedAt == null),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        return await query
+            .Select(ur => new UserRoleDto(
+                ur.PublicId,
+                ur.User.PublicId,
+                ur.User.DisplayName,
+                ((UserRoleTypeEnum)ur.RoleId).ToString(),
+                ur.Community != null ? ur.Community.PublicId : null,
+                ur.Community != null ? ur.Community.Name : null,
+                ur.Hub != null ? ur.Hub.PublicId : null,
+                ur.Hub != null ? ur.Hub.Name : null,
+                ur.Space != null ? ur.Space.PublicId : null,
+                ur.Space != null ? ur.Space.Name : null,
+                ur.AssignedByUser.PublicId,
+                ur.AssignedByUser.DisplayName,
+                ur.AssignedAt,
+                ur.RevokedAt))
+            .ToListAsync();
+    }
+
+    public async Task<PagedResult<ReportListDto>> GetReportsForScopeAsync(
+        string scopeType, string scopePublicId, int? statusId, int offset, int pageSize)
+    {
+        return scopeType switch
+        {
+            "Community" => await GetReportsForCommunityAsync(scopePublicId, statusId, offset, pageSize),
+            "Hub" => await GetReportsForHubAsync(scopePublicId, statusId, offset, pageSize),
+            "Space" => await GetReportsForSpaceAsync(scopePublicId, statusId, offset, pageSize),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+    }
+
+    public async Task<int> GetOpenReportCountForScopeAsync(string scopeType, string scopePublicId)
+    {
+        var result = await GetReportsForScopeAsync(scopeType, scopePublicId,
+            (int)ReportStatusEnum.Pending, 0, 1);
+        // We need count, not items — use a simpler query
+        var query = scopeType switch
+        {
+            "Community" => _context.Reports
+                .Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
+            "Hub" => _context.Reports
+                .Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId)
+                            || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
+            "Space" => _context.Reports
+                .Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        return await query.Where(r => r.StatusId == (int)ReportStatusEnum.Pending).CountAsync();
+    }
+
+    public async Task<PagedResult<ModerationLogDto>> GetModerationLogForScopeAsync(
+        string scopeType, string scopePublicId, int offset, int pageSize)
+    {
+        return scopeType switch
+        {
+            "Community" => await GetModerationLogForCommunityAsync(scopePublicId, offset, pageSize),
+            "Hub" => await GetModerationLogForHubAsync(scopePublicId, offset, pageSize),
+            "Space" => await GetModerationLogForSpaceAsync(scopePublicId, offset, pageSize),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+    }
+
+    public async Task<IEnumerable<ReportReasonDto>> GetReportReasonsForExactScopeAsync(
+        string scopeType, string scopePublicId)
+    {
+        var query = scopeType switch
+        {
+            "Community" => _context.ReportReasons
+                .Where(rr => rr.Community != null && rr.Community.PublicId == scopePublicId
+                             && rr.HubId == null && rr.SpaceId == null),
+            "Hub" => _context.ReportReasons
+                .Where(rr => rr.Hub != null && rr.Hub.PublicId == scopePublicId
+                             && rr.SpaceId == null),
+            "Space" => _context.ReportReasons
+                .Where(rr => rr.Space != null && rr.Space.PublicId == scopePublicId),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        return await query
+            .OrderBy(rr => rr.DisplayOrder)
+            .ThenBy(rr => rr.Name)
+            .Select(rr => new ReportReasonDto(
+                rr.PublicId, rr.Name, rr.Description,
+                rr.Community != null ? rr.Community.PublicId : null,
+                rr.Hub != null ? rr.Hub.PublicId : null,
+                rr.Space != null ? rr.Space.PublicId : null,
+                rr.DisplayOrder))
+            .ToListAsync();
+    }
+
+    public async Task ReplaceReportReasonsForScopeAsync(
+        string scopeType, string scopePublicId, string userPublicId,
+        IEnumerable<(string Name, string? Description, int DisplayOrder)> reasons)
+    {
+        // Soft-delete existing reasons at this exact scope
+        var existing = scopeType switch
+        {
+            "Community" => await _context.ReportReasons
+                .Where(rr => rr.Community != null && rr.Community.PublicId == scopePublicId
+                             && rr.HubId == null && rr.SpaceId == null)
+                .ToListAsync(),
+            "Hub" => await _context.ReportReasons
+                .Where(rr => rr.Hub != null && rr.Hub.PublicId == scopePublicId
+                             && rr.SpaceId == null)
+                .ToListAsync(),
+            "Space" => await _context.ReportReasons
+                .Where(rr => rr.Space != null && rr.Space.PublicId == scopePublicId)
+                .ToListAsync(),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        var now = DateTime.UtcNow;
+
+        foreach (var reason in existing)
+        {
+            reason.IsDeleted = true;
+            reason.DeletedAt = now;
+        }
+
+        // Resolve scope entity ID and user ID
+        int? communityId = null, hubId = null, spaceId = null;
+
+        switch (scopeType)
+        {
+            case "Community":
+                communityId = await _context.Communities
+                    .Where(c => c.PublicId == scopePublicId)
+                    .Select(c => (int?)c.Id)
+                    .FirstOrDefaultAsync();
+                break;
+            case "Hub":
+                hubId = await _context.Hubs
+                    .Where(h => h.PublicId == scopePublicId)
+                    .Select(h => (int?)h.Id)
+                    .FirstOrDefaultAsync();
+                break;
+            case "Space":
+                spaceId = await _context.Spaces
+                    .Where(s => s.PublicId == scopePublicId)
+                    .Select(s => (int?)s.Id)
+                    .FirstOrDefaultAsync();
+                break;
+        }
+
+        var userId = await _context.Users
+            .Where(u => u.PublicId == userPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
+
+        // Insert new reasons
+        foreach (var r in reasons)
+        {
+            _context.ReportReasons.Add(new ReportReasonDatabaseEntity
+            {
+                PublicId = Guid.NewGuid().ToString(),
+                Name = r.Name,
+                Description = r.Description,
+                CommunityId = communityId,
+                HubId = hubId,
+                SpaceId = spaceId,
+                CreatedByUserId = userId,
+                CreatedAt = now,
+                DisplayOrder = r.DisplayOrder
+            });
+        }
+
+        await _context.SaveChangesAsync();
+    }
 
     // ==================== Moderation Log ====================
 

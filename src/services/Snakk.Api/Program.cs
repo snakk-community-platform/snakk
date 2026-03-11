@@ -109,6 +109,7 @@ app.MapGrpcService<Snakk.Api.GrpcServices.UserGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ReadStateGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.MarkupGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.AnnouncementGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.ManageGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();

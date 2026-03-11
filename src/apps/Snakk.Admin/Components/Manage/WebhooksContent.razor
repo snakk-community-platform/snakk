@@ -1,0 +1,20 @@
+@using Snakk.Protos.Manage
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">Webhooks</MudText>
+</MudPaper>
+
+<MudPaper Class="pa-12" Style="text-align: center;">
+    <MudIcon Icon="@Icons.Material.Filled.Webhook" Size="Size.Large" Color="Color.Default" />
+    <MudText Typo="Typo.h6" Class="mt-4">Coming Soon</MudText>
+    <MudText Style="opacity: 0.7;">
+        Outgoing webhooks will allow you to integrate with external services.
+        You'll be able to configure webhook endpoints for events like new posts,
+        reports, and moderation actions.
+    </MudText>
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+}

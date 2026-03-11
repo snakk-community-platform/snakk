@@ -320,14 +320,9 @@ public class AuthGrpcService(
     }
 
     // Shared helper to fetch roles for a user
-    private async Task<List<string>> GetUserRolesAsync(string publicId)
-    {
-        var userDbEntity = await context.Users
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.PublicId == publicId);
-
-        return userDbEntity?.Roles
+    private async Task<List<string>> GetUserRolesAsync(string publicId) =>
+        await context.UserRoles
+            .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? [];
-    }
+            .ToListAsync();
 }

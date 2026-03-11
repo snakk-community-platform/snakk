@@ -6,6 +6,7 @@ using Snakk.Domain.ValueObjects;
 public interface IReactionRepository
 {
     Task<Reaction?> GetByUserPostAndTypeAsync(UserId userId, PostId postId, ReactionType type);
+    Task<Reaction?> GetByUserAndPostAsync(UserId userId, PostId postId);
     Task<IEnumerable<Reaction>> GetByPostIdAsync(PostId postId);
     Task<Dictionary<ReactionType, int>> GetCountsByPostIdAsync(PostId postId);
     Task<List<ReactionType>> GetUserReactionsForPostAsync(UserId userId, PostId postId);

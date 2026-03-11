@@ -33,7 +33,7 @@ COPY src/services/Snakk.Worker/Snakk.Worker.csproj services/Snakk.Worker/
 COPY src/apps/Snakk.Setup/Snakk.Setup.csproj apps/Snakk.Setup/
 COPY src/apps/Snakk.Web/Snakk.Web.csproj apps/Snakk.Web/
 COPY src/apps/Snakk.Auth/Snakk.Auth.csproj apps/Snakk.Auth/
-COPY src/apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj apps/Snakk.AdminWeb/
+COPY src/apps/Snakk.Admin/Snakk.Admin.csproj apps/Snakk.Admin/
 COPY src/tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj tools/Snakk.DbSeeder/
 RUN dotnet restore Snakk.Docker.slnx
 
@@ -81,7 +81,7 @@ RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /pu
     dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-build --no-restore & \
     dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-build --no-restore & \
     dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-build --no-restore & \
-    dotnet publish apps/Snakk.AdminWeb/Snakk.AdminWeb.csproj -c Release -o /publish/admin --no-build --no-restore & \
+    dotnet publish apps/Snakk.Admin/Snakk.Admin.csproj -c Release -o /publish/admin --no-build --no-restore & \
     dotnet publish apps/Snakk.Setup/Snakk.Setup.csproj -c Release -o /publish/setup --no-build --no-restore & \
     dotnet publish tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj -c Release -o /publish/dbseeder --no-build --no-restore & \
     dotnet publish apps/Snakk.Web/Snakk.Web.csproj -c Release -o /publish/web --no-build --no-restore & \

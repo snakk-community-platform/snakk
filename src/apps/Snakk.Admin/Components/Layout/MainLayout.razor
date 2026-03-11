@@ -1,0 +1,69 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudLayout Style="--mud-appbar-height: 48px;">
+    <MudAppBar Elevation="1" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h5" Class="ml-3">Snakk Admin</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudText Class="mr-3">@context.User.Identity?.Name</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@Logout">Logout</MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        <AuthorizeView>
+            <Authorized>
+                <MudNavMenu>
+                    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">
+                        Dashboard
+                    </MudNavLink>
+
+                    <MudNavGroup Title="Content Management" Icon="@Icons.Material.Filled.Folder" Expanded="true">
+                        <MudNavLink Href="/communities" Icon="@Icons.Material.Filled.People">
+                            Communities
+                        </MudNavLink>
+                        <MudNavLink Href="/hubs" Icon="@Icons.Material.Filled.GridView">
+                            Hubs
+                        </MudNavLink>
+                        <MudNavLink Href="/spaces" Icon="@Icons.Material.Filled.Forum">
+                            Spaces
+                        </MudNavLink>
+                    </MudNavGroup>
+
+                    <MudNavGroup Title="User Management" Icon="@Icons.Material.Filled.Groups">
+                        <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Person">
+                            Users
+                        </MudNavLink>
+                    </MudNavGroup>
+
+                    <MudNavGroup Title="Moderation" Icon="@Icons.Material.Filled.Shield">
+                        <MudNavLink Href="/moderation/reports" Icon="@Icons.Material.Filled.Warning">
+                            Reports
+                        </MudNavLink>
+                    </MudNavGroup>
+                </MudNavMenu>
+            </Authorized>
+        </AuthorizeView>
+    </MudDrawer>
+
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("Auth/Logout", true);
+    }
+}

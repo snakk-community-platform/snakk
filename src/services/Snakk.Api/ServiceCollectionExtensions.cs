@@ -149,6 +149,9 @@ public static class ServiceCollectionExtensions
         // Stats Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IStatsRepository, Infrastructure.Database.Repositories.StatsRepository>();
 
+        // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
+        services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();

@@ -23,8 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\apps\Snakk.Web\Snakk.Web.csproj" />
-    <ProjectReference Include="..\..\apps\Snakk.AdminWeb\Snakk.AdminWeb.csproj">
-      <Aliases>AdminWeb</Aliases>
+    <ProjectReference Include="..\..\apps\Snakk.Admin\Snakk.Admin.csproj">
+      <Aliases>Admin</Aliases>
     </ProjectReference>
   </ItemGroup>
 

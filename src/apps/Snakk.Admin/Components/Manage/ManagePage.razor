@@ -1,0 +1,58 @@
+@inject ManageScopeService ScopeService
+@inject ManageScopeState ScopeState
+@inject NavigationManager Navigation
+@inject ILogger<ManagePage> Logger
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_scope == null)
+{
+    <MudPaper Class="pa-6">
+        <h2>Access Denied</h2>
+        <p>You do not have permission to manage this resource, or it does not exist.</p>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("", true))">
+            Go Home
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <CascadingValue Value="_scope">
+        @ChildContent
+    </CascadingValue>
+}
+
+@code {
+    [Parameter] public string CommunitySlug { get; set; } = "";
+    [Parameter] public string? HubSlug { get; set; }
+    [Parameter] public string? SpaceSlug { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ManageScopeDto? _scope;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Logger.LogInformation("ManagePage.OnParametersSetAsync: community={Community}, hub={Hub}, space={Space}",
+            CommunitySlug, HubSlug, SpaceSlug);
+
+        _loading = true;
+
+        try
+        {
+            _scope = await ScopeService.ResolveScopeAsync(CommunitySlug, HubSlug, SpaceSlug);
+            ScopeState.SetScope(_scope);
+            Logger.LogInformation("ManagePage: scope resolved, type={Type}, name={Name}",
+                _scope?.ScopeType, _scope?.ScopeName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ManagePage: unhandled exception in ResolveScopeAsync");
+            _scope = null;
+        }
+
+        _loading = false;
+    }
+}

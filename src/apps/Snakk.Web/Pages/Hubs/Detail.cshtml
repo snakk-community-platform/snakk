@@ -41,8 +41,6 @@ else
         </nav>
     </div>
     <div class="max-w-[90rem] mx-auto px-4 py-8">
-        <partial name="_AnnouncementBanners" model="Model.Announcements?.Announcements" />
-
         <!-- Two Column Layout -->
         <div class="flex flex-col lg:flex-row gap-3">
             <!-- Left Column: Spaces + Discussions -->
@@ -50,28 +48,29 @@ else
                 <!-- Hub Header -->
                 <div class="page-header">
                     <div class="flex items-start gap-4">
-                        <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full flex-shrink-0" />
+                        <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full shrink-0" />
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h1>@Model.Hub.Name</h1>
-                                @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                                {
-                                    <a href="@SnakkUrlHelper.ManageHub(Model.Community, Model.Hub.Slug)"
-                                       class="btn btn-ghost btn-sm" title="Manage hub">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </a>
-                                }
-                            </div>
+                            <h1>@Model.Hub.Name</h1>
                             @if (!string.IsNullOrEmpty(Model.Hub.Description))
                             {
                                 <p>@Model.Hub.Description</p>
                             }
                         </div>
+                        @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
+                        {
+                            <a href="@SnakkUrlHelper.ManageHub(Model.Community, Model.Hub.Slug)"
+                               class="btn btn-primary btn-sm shrink-0" hx-boost="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Manage
+                            </a>
+                        }
                     </div>
                 </div>
+
+                <partial name="_AnnouncementBanners" model="Model.Announcements?.Announcements" />
 
                 <!-- Spaces -->
                 <div class="section-header">

@@ -187,15 +187,16 @@
     <!-- Left Column: Posts + Reply -->
     <div class="flex-1 min-w-0">
 
+    @{
+        var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
+    }
+
     <!-- Thread Header -->
     <header class="discussion-header">
         <div class="flex items-start justify-between">
             <div>
                 <h1 class="title">@Model.Discussion.Title</h1>
-                <div class="meta flex items-center gap-2">
-                    <time datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
-                        @Model.Discussion.CreatedAt.ToDateTime().ToString("MMMM d, yyyy")
-                    </time>
+                <div class="discussion-author">
                     @if (Model.Discussion.Type != "Standard")
                     {
                         var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
@@ -208,6 +209,31 @@
                     @if (Model.Discussion.IsLocked)
                     {
                         <span class="badge badge-warning badge-sm">🔒 Locked</span>
+                    }
+                    @if (firstPostItem != null)
+                    {
+                        @if (!firstPostItem.Author.IsDeleted)
+                        {
+                            <img src="@SnakkUrlHelper.UserAvatar(firstPostItem.Author.PublicId)"
+                                 alt="@firstPostItem.Author.DisplayName"
+                                 width="20" height="20" />
+                            <a href="/u/@firstPostItem.Author.PublicId"
+                               data-popup-type="user"
+                               data-popup-id="@firstPostItem.Author.PublicId"
+                               data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
+                        }
+                        else
+                        {
+                            <span class="deleted">@firstPostItem.Author.DisplayName</span>
+                        }
+                        @if (firstPostItem.Author.Role == "admin")
+                        {
+                            <span class="badge badge-error badge-xs">Admin</span>
+                        }
+                        else if (firstPostItem.Author.Role == "mod")
+                        {
+                            <span class="badge badge-info badge-xs">Mod</span>
+                        }
                     }
                 </div>
             </div>
@@ -305,6 +331,8 @@
                          role="article"
                          aria-label="Post @post.PostNumber by @post.Author.DisplayName">
 
+                    @if (!isOP)
+                    {
                     <!-- Left Pane: Avatar + Username -->
                     <aside class="post-author-pane">
                         @if (!isSameAuthorAsPrevious)
@@ -347,43 +375,47 @@
                             </div>
                         }
                     </aside>
+                    }
 
                     <!-- Right Pane: Toolbar + Content -->
                     <div class="post-main">
                         <!-- Post Toolbar -->
                         <div class="post-toolbar">
                             <div class="post-toolbar-left">
-                                @if (isSameAuthorAsPrevious)
+                                @if (!isOP)
                                 {
-                                    <span class="post-author-inline hidden">
-                                        @if (post.Author.IsDeleted)
-                                        {
-                                            <span class="deleted">@post.Author.DisplayName</span>
-                                        }
-                                        else
-                                        {
-                                            <a href="/u/@post.Author.PublicId"
-                                               data-popup-type="user"
-                                               data-popup-id="@post.Author.PublicId"
-                                               data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
-                                        }
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="post-author-inline">
-                                        @if (post.Author.IsDeleted)
-                                        {
-                                            <span class="deleted">@post.Author.DisplayName</span>
-                                        }
-                                        else
-                                        {
-                                            <a href="/u/@post.Author.PublicId"
-                                               data-popup-type="user"
-                                               data-popup-id="@post.Author.PublicId"
-                                               data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
-                                        }
-                                    </span>
+                                    @if (isSameAuthorAsPrevious)
+                                    {
+                                        <span class="post-author-inline hidden">
+                                            @if (post.Author.IsDeleted)
+                                            {
+                                                <span class="deleted">@post.Author.DisplayName</span>
+                                            }
+                                            else
+                                            {
+                                                <a href="/u/@post.Author.PublicId"
+                                                   data-popup-type="user"
+                                                   data-popup-id="@post.Author.PublicId"
+                                                   data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="post-author-inline">
+                                            @if (post.Author.IsDeleted)
+                                            {
+                                                <span class="deleted">@post.Author.DisplayName</span>
+                                            }
+                                            else
+                                            {
+                                                <a href="/u/@post.Author.PublicId"
+                                                   data-popup-type="user"
+                                                   data-popup-id="@post.Author.PublicId"
+                                                   data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                            }
+                                        </span>
+                                    }
                                 }
                                 <span class="post-time">
                                     @Model.FormatRelativeTime(post.CreatedAt.ToDateTime())
@@ -854,16 +886,16 @@ else
 
 <!-- Reaction Picker -->
 <div id="reaction-picker" class="hidden fixed z-50 bg-base-100 border border-subtle rounded-lg shadow-lg p-2" data-post-id="">
-    <div class="flex gap-1 flex-wrap">
-        <button type="button" class="reaction-pill" data-reaction-type="Agree" title="Agree">👍</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Love" title="Love">❤️</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Funny" title="Funny">😂</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Thinking" title="Thinking">🤔</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Watching" title="Watching">👀</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Fire" title="Fire">🔥</button>
-        <button type="button" class="reaction-pill" data-reaction-type="Thanks" title="Thanks">🙏</button>
-        <button type="button" class="reaction-pill" data-reaction-type="MindBlown" title="Mind Blown">🤯</button>
-        <button type="button" class="reaction-pill" data-reaction-type="ShipIt" title="Ship It">🚀</button>
+    <div class="grid grid-cols-3 gap-1">
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Agree" title="Agree">👍</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Love" title="Love">❤️</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Funny" title="Funny">😂</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Thinking" title="Thinking">🤔</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Watching" title="Watching">👀</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Fire" title="Fire">🔥</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Thanks" title="Thanks">🙏</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="MindBlown" title="Mind Blown">🤯</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="ShipIt" title="Ship It">🚀</button>
     </div>
 </div>
 

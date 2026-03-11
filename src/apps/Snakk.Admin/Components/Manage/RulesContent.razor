@@ -1,0 +1,212 @@
+@using Snakk.Protos.Manage
+@inject ManageService.ManageServiceClient ManageClient
+
+<MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h5">@(Scope?.ScopeType) Rules</MudText>
+        <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+            Rules bubble down the hierarchy: Community → Hub → Space.
+            Users see a combined list of all applicable rules.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => _showAdd = true)" Disabled="@_saving">
+        Add Rule
+    </MudButton>
+</MudPaper>
+
+@* Inherited rules (read-only) *@
+@foreach (var group in _inheritedGroups)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6">Inherited from @group.SourceScopeType: @group.SourceScopeName</MudText>
+        <MudText Typo="Typo.body2" Style="opacity: 0.7;" Class="mb-2">
+            These rules are inherited from a parent scope and cannot be edited here.
+        </MudText>
+        @for (var i = 0; i < group.Rules.Count; i++)
+        {
+            var rule = group.Rules[i];
+            <MudPaper Class="pa-3 mb-2" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudChip T="string" Size="Size.Small">@(i + 1)</MudChip>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.subtitle2">@rule.Title</MudText>
+                        <MudText Typo="Typo.body2" Style="opacity: 0.7;">@rule.Description</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+    </MudPaper>
+}
+
+@* Add rule form *@
+@if (_showAdd)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Add New Rule</MudText>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_newRuleTitle" Label="Rule Title" Placeholder="e.g., Be respectful" />
+            <MudTextField @bind-Value="_newRuleDescription" Label="Description" Lines="3"
+                          Placeholder="Describe the rule in detail..." />
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@AddRule" Disabled="@_saving">Add</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="@(() => _showAdd = false)">Cancel</MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+}
+
+@* Custom rules for this scope *@
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Custom Rules (This @Scope?.ScopeType)</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_rules.Count == 0)
+    {
+        <MudText>No rules defined for this @Scope?.ScopeType?.ToLower() yet.</MudText>
+    }
+    else
+    {
+        @for (var i = 0; i < _rules.Count; i++)
+        {
+            var rule = _rules[i];
+            var index = i;
+            <MudPaper Class="pa-3 mb-2 d-flex justify-space-between align-center" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@(index + 1)</MudChip>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.subtitle2">@rule.Title</MudText>
+                        <MudText Typo="Typo.body2" Style="opacity: 0.7;">@rule.Description</MudText>
+                    </MudStack>
+                </MudStack>
+                <MudStack Row="true" Spacing="1">
+                    @if (index > 0)
+                    {
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.ArrowUpward"
+                                       OnClick="@(() => MoveUp(index))" Disabled="@_saving" />
+                    }
+                    @if (index < _rules.Count - 1)
+                    {
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.ArrowDownward"
+                                       OnClick="@(() => MoveDown(index))" Disabled="@_saving" />
+                    }
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   OnClick="@(() => DeleteRule(index))" Disabled="@_saving" />
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showAdd;
+    private string _newRuleTitle = "";
+    private string _newRuleDescription = "";
+    private List<RuleItem> _rules = new();
+    private List<InheritedRuleGroup> _inheritedGroups = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        await LoadRules();
+    }
+
+    private async Task LoadRules()
+    {
+        _loading = true;
+
+        try
+        {
+            var response = await ManageClient.GetRulesAsync(new GetRulesRequest
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId
+            }, deadline: DateTime.UtcNow.AddSeconds(10));
+
+            _rules = response.Rules.ToList();
+            _inheritedGroups = response.InheritedGroups.ToList();
+        }
+        catch
+        {
+            _rules = new();
+            _inheritedGroups = new();
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveRules()
+    {
+        _saving = true;
+
+        try
+        {
+            var request = new UpdateRulesRequest
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId
+            };
+
+            for (var i = 0; i < _rules.Count; i++)
+            {
+                request.Rules.Add(new RuleItem
+                {
+                    Title = _rules[i].Title,
+                    Description = _rules[i].Description,
+                    Order = i + 1
+                });
+            }
+
+            await ManageClient.UpdateRulesAsync(request, deadline: DateTime.UtcNow.AddSeconds(10));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task AddRule()
+    {
+        if (string.IsNullOrWhiteSpace(_newRuleTitle)) return;
+
+        _rules.Add(new RuleItem
+        {
+            Title = _newRuleTitle.Trim(),
+            Description = _newRuleDescription.Trim(),
+            Order = _rules.Count + 1
+        });
+
+        _showAdd = false;
+        _newRuleTitle = "";
+        _newRuleDescription = "";
+        await SaveRules();
+    }
+
+    private async Task MoveUp(int index)
+    {
+        if (index <= 0) return;
+        (_rules[index], _rules[index - 1]) = (_rules[index - 1], _rules[index]);
+        await SaveRules();
+    }
+
+    private async Task MoveDown(int index)
+    {
+        if (index >= _rules.Count - 1) return;
+        (_rules[index], _rules[index + 1]) = (_rules[index + 1], _rules[index]);
+        await SaveRules();
+    }
+
+    private async Task DeleteRule(int index)
+    {
+        _rules.RemoveAt(index);
+        await SaveRules();
+    }
+}

@@ -1,0 +1,166 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ManageScopeState ScopeState
+@inject NavigationManager Navigation
+
+<MudLayout Style="--mud-appbar-height: 48px;">
+    <MudAppBar Elevation="1" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        @if (Scope != null)
+        {
+            <MudText Typo="Typo.h6" Class="ml-3">Manage: @Scope.ScopeName</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@Scope.ScopeType</MudChip>
+        }
+        else
+        {
+            <MudText Typo="Typo.h6" Class="ml-3">Manage</MudText>
+        }
+        <MudSpacer />
+        @if (Scope != null)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                       Href="@ManageScopeService.GetSiteUrl(Scope)" Target="_self">
+                Back to Site
+            </MudButton>
+        }
+        <AuthorizeView>
+            <Authorized>
+                <MudText Class="mr-3">@context.User.Identity?.Name</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@Logout">Logout</MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        @if (Scope != null)
+        {
+            <MudNavMenu>
+                <div style="padding: 8px 16px; font-size: 12px; opacity: 0.7;">
+                    <a href="c/@Scope.CommunitySlug" style="text-decoration: none; color: inherit;">@Scope.CommunityName</a>
+                    @if (Scope.HubName != null)
+                    {
+                        <span> / </span>
+                        <a href="c/@Scope.CommunitySlug/h/@Scope.HubSlug" style="text-decoration: none; color: inherit;">@Scope.HubName</a>
+                    }
+                    @if (Scope.SpaceName != null)
+                    {
+                        <span> / </span>
+                        <a href="c/@Scope.CommunitySlug/h/@Scope.HubSlug/s/@Scope.SpaceSlug" style="text-decoration: none; color: inherit;">@Scope.SpaceName</a>
+                    }
+                </div>
+                <MudDivider Class="my-1" />
+
+                @if (HasPermission(ManagePermissionEnum.ViewDashboard))
+                {
+                    <MudNavLink Href="@BaseUrl" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">
+                        Dashboard
+                    </MudNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageContent))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/content")" Icon="@Icons.Material.Filled.Description">
+                        Content Moderation
+                    </MudNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageReports))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/reports")" Icon="@Icons.Material.Filled.Warning">
+                        Reports
+                    </MudNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageBans))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/bans")" Icon="@Icons.Material.Filled.PersonOff">
+                        Bans
+                    </MudNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ViewDashboard))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/log")" Icon="@Icons.Material.Filled.History">
+                        Moderation Log
+                    </MudNavLink>
+                }
+
+                <MudDivider Class="my-1" />
+
+                @if (HasPermission(ManagePermissionEnum.ManageSettings))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/settings")" Icon="@Icons.Material.Filled.Settings">
+                        Settings
+                    </MudNavLink>
+
+                    <MudNavLink Href="@($"{BaseUrl}/report-reasons")" Icon="@Icons.Material.Filled.ListAlt">
+                        Report Reasons
+                    </MudNavLink>
+
+                    <MudNavLink Href="@($"{BaseUrl}/announcements")" Icon="@Icons.Material.Filled.Campaign">
+                        Announcements
+                    </MudNavLink>
+
+                    @if (Scope.ScopeType == "Space")
+                    {
+                        <MudNavLink Href="@($"{BaseUrl}/rules")" Icon="@Icons.Material.Filled.MenuBook">
+                            Rules
+                        </MudNavLink>
+                    }
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageTeam))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/team")" Icon="@Icons.Material.Filled.Groups">
+                        Team
+                    </MudNavLink>
+                }
+
+                @if (HasPermission(ManagePermissionEnum.ManageWebhooks))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/webhooks")" Icon="@Icons.Material.Filled.Webhook">
+                        Webhooks
+                    </MudNavLink>
+                }
+            </MudNavMenu>
+        }
+        else
+        {
+            <MudNavMenu>
+                <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">
+                    Loading...
+                </MudNavLink>
+            </MudNavMenu>
+        }
+    </MudDrawer>
+
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private ManageScopeDto? Scope => ScopeState.Scope;
+    private string BaseUrl => Scope != null ? ManageScopeService.GetManageUrl(Scope) : "";
+
+    protected override void OnInitialized()
+    {
+        ScopeState.OnChange += HandleScopeChanged;
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void HandleScopeChanged() => InvokeAsync(StateHasChanged);
+
+    private bool HasPermission(ManagePermissionEnum permission) =>
+        Scope?.Permissions.Contains(permission) ?? false;
+
+    private void Logout() => Navigation.NavigateTo("Auth/Logout", true);
+
+    public void Dispose()
+    {
+        ScopeState.OnChange -= HandleScopeChanged;
+    }
+}

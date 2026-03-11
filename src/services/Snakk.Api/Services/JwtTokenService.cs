@@ -33,7 +33,7 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         if (!string.IsNullOrEmpty(role))
             claims.Add(new(ClaimTypes.Role, role));
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
@@ -65,7 +65,7 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
+                IssuerSigningKey = new SymmetricSecurityKey(key) { KeyId = "snakk-hmac" },
                 ValidateIssuer = true,
                 ValidIssuer = _issuer,
                 ValidateAudience = true,

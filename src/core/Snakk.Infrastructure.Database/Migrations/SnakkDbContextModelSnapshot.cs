@@ -335,6 +335,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("ReactionCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RulesRevision")
                         .HasColumnType("text");
 
@@ -768,6 +771,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("ReactionCount")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("RequireEmailConfirmation")
                         .HasColumnType("boolean");
@@ -1217,6 +1223,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("ReactionCount")
+                        .HasColumnType("integer");
 
                     b.Property<string>("RenderedContent")
                         .IsRequired()
@@ -1716,6 +1725,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("ReactionCount")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("RequireEmailConfirmation")
                         .HasColumnType("boolean");

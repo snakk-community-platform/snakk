@@ -50,3 +50,22 @@
         }
     }
 }
+
+.reaction-picker-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.25rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background 0.1s ease, transform 0.1s ease;
+
+    &:hover {
+        background: var(--bg-subtle);
+        transform: scale(1.2);
+    }
+}

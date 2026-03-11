@@ -1,0 +1,298 @@
+@using Snakk.Protos.Manage
+@inject ManageService.ManageServiceClient ManageClient
+
+<MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Announcements</MudText>
+        <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+            Manage banner announcements shown to users visiting this @Scope?.ScopeType?.ToLower().
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@StartCreate" Disabled="@_saving">
+        New Announcement
+    </MudButton>
+</MudPaper>
+
+@* Create / Edit form *@
+@if (_showForm)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@(_editingPublicId == null ? "Create Announcement" : "Edit Announcement")</MudText>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_formTitle" Label="Title" Placeholder="Announcement title..." />
+            <MudTextField @bind-Value="_formContent" Label="Content (Markdown)" Lines="4"
+                          Placeholder="Write your announcement content..." />
+            <MudSelect @bind-Value="_formType" T="string" Label="Type">
+                <MudSelectItem Value="@("Info")">Info (blue)</MudSelectItem>
+                <MudSelectItem Value="@("Warning")">Warning (yellow)</MudSelectItem>
+                <MudSelectItem Value="@("Critical")">Critical (red)</MudSelectItem>
+            </MudSelect>
+            <MudCheckBox @bind-Value="_formDismissible" T="bool" Label="Dismissible (users can close it)" />
+            <MudNumericField @bind-Value="_formSortOrder" Label="Sort Order" Min="0" Max="999" />
+            <MudStack Row="true" Spacing="3">
+                <MudDatePicker @bind-Date="_formVisibleFrom" Label="Visible From (optional)" />
+                <MudDatePicker @bind-Date="_formVisibleUntil" Label="Visible Until (optional)" />
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveAnnouncement" Disabled="@_saving">
+                    @(_editingPublicId == null ? "Create" : "Save")
+                </MudButton>
+                <MudButton Variant="Variant.Text" OnClick="@CancelForm">Cancel</MudButton>
+            </MudStack>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudText Color="Color.Error">@_errorMessage</MudText>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+@* Announcement list *@
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Current Announcements</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_announcements.Count == 0)
+    {
+        <MudText>No announcements for this @Scope?.ScopeType?.ToLower() yet.</MudText>
+    }
+    else
+    {
+        @foreach (var announcement in _announcements.OrderBy(a => a.SortOrder))
+        {
+            var a = announcement;
+            var typeColor = a.Type switch
+            {
+                "Critical" => Color.Error,
+                "Warning" => Color.Warning,
+                _ => Color.Info
+            };
+
+            <MudPaper Class="pa-3 mb-2 d-flex justify-space-between align-center" Outlined="true">
+                <MudStack Spacing="1" Style="flex: 1;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudChip T="string" Size="Size.Small">@a.SortOrder</MudChip>
+                        <MudText Typo="Typo.subtitle2">@a.Title</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="typeColor">@a.Type</MudChip>
+                        @if (a.IsDismissible)
+                        {
+                            <MudChip T="string" Size="Size.Small">Dismissible</MudChip>
+                        }
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+                        @TruncateContent(a.Content, 120)
+                    </MudText>
+                    @if (a.HasVisibleFromTicks || a.HasVisibleUntilTicks)
+                    {
+                        <MudText Typo="Typo.caption" Style="opacity: 0.6;">
+                            @if (a.HasVisibleFromTicks)
+                            {
+                                <span>From: @(new DateTime(a.VisibleFromTicks, DateTimeKind.Utc).ToString("g"))</span>
+                            }
+                            @if (a.HasVisibleUntilTicks)
+                            {
+                                <span> Until: @(new DateTime(a.VisibleUntilTicks, DateTimeKind.Utc).ToString("g"))</span>
+                            }
+                        </MudText>
+                    }
+                </MudStack>
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => StartEdit(a))" Disabled="@_saving" />
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   OnClick="@(() => DeleteAnnouncement(a.PublicId))" Disabled="@_saving" />
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showForm;
+    private string? _editingPublicId;
+    private string? _errorMessage;
+    private List<AnnouncementItem> _announcements = new();
+
+    private string _formTitle = "";
+    private string _formContent = "";
+    private string _formType = "Info";
+    private bool _formDismissible = true;
+    private int _formSortOrder;
+    private DateTime? _formVisibleFrom;
+    private DateTime? _formVisibleUntil;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        await LoadAnnouncements();
+    }
+
+    private async Task LoadAnnouncements()
+    {
+        _loading = true;
+
+        try
+        {
+            var response = await ManageClient.GetAnnouncementsAsync(new GetAnnouncementsRequest
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId
+            }, deadline: DateTime.UtcNow.AddSeconds(10));
+
+            _announcements = response.Announcements.ToList();
+        }
+        catch
+        {
+            _announcements = new();
+        }
+
+        _loading = false;
+    }
+
+    private void StartCreate()
+    {
+        _editingPublicId = null;
+        _formTitle = "";
+        _formContent = "";
+        _formType = "Info";
+        _formDismissible = true;
+        _formSortOrder = _announcements.Count > 0
+            ? _announcements.Max(a => a.SortOrder) + 1
+            : 0;
+        _formVisibleFrom = null;
+        _formVisibleUntil = null;
+        _errorMessage = null;
+        _showForm = true;
+    }
+
+    private void StartEdit(AnnouncementItem a)
+    {
+        _editingPublicId = a.PublicId;
+        _formTitle = a.Title;
+        _formContent = a.Content;
+        _formType = a.Type;
+        _formDismissible = a.IsDismissible;
+        _formSortOrder = a.SortOrder;
+        _formVisibleFrom = a.HasVisibleFromTicks
+            ? new DateTime(a.VisibleFromTicks, DateTimeKind.Utc) : null;
+        _formVisibleUntil = a.HasVisibleUntilTicks
+            ? new DateTime(a.VisibleUntilTicks, DateTimeKind.Utc) : null;
+        _errorMessage = null;
+        _showForm = true;
+    }
+
+    private void CancelForm()
+    {
+        _showForm = false;
+        _errorMessage = null;
+    }
+
+    private async Task SaveAnnouncement()
+    {
+        if (string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent))
+        {
+            _errorMessage = "Title and content are required.";
+            return;
+        }
+
+        _saving = true;
+        _errorMessage = null;
+
+        try
+        {
+            if (_editingPublicId == null)
+            {
+                var request = new CreateAnnouncementGrpcRequest
+                {
+                    ScopeType = Scope!.ScopeType,
+                    ScopePublicId = Scope.ScopePublicId,
+                    Title = _formTitle.Trim(),
+                    Content = _formContent.Trim(),
+                    Type = _formType,
+                    IsDismissible = _formDismissible,
+                    SortOrder = _formSortOrder
+                };
+
+                if (_formVisibleFrom.HasValue)
+                    request.VisibleFromTicks = _formVisibleFrom.Value.ToUniversalTime().Ticks;
+                if (_formVisibleUntil.HasValue)
+                    request.VisibleUntilTicks = _formVisibleUntil.Value.ToUniversalTime().Ticks;
+
+                var result = await ManageClient.CreateAnnouncementAsync(request,
+                    deadline: DateTime.UtcNow.AddSeconds(10));
+
+                if (!result.Success)
+                {
+                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to create announcement";
+                    _saving = false;
+                    return;
+                }
+            }
+            else
+            {
+                var request = new UpdateAnnouncementGrpcRequest
+                {
+                    PublicId = _editingPublicId,
+                    Title = _formTitle.Trim(),
+                    Content = _formContent.Trim(),
+                    Type = _formType,
+                    IsDismissible = _formDismissible,
+                    SortOrder = _formSortOrder
+                };
+
+                if (_formVisibleFrom.HasValue)
+                    request.VisibleFromTicks = _formVisibleFrom.Value.ToUniversalTime().Ticks;
+                if (_formVisibleUntil.HasValue)
+                    request.VisibleUntilTicks = _formVisibleUntil.Value.ToUniversalTime().Ticks;
+
+                var result = await ManageClient.UpdateAnnouncementAsync(request,
+                    deadline: DateTime.UtcNow.AddSeconds(10));
+
+                if (!result.Success)
+                {
+                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to update announcement";
+                    _saving = false;
+                    return;
+                }
+            }
+
+            _showForm = false;
+            await LoadAnnouncements();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteAnnouncement(string publicId)
+    {
+        _saving = true;
+
+        try
+        {
+            await ManageClient.DeleteAnnouncementAsync(new DeleteAnnouncementRequest
+            {
+                PublicId = publicId
+            }, deadline: DateTime.UtcNow.AddSeconds(10));
+
+            await LoadAnnouncements();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string TruncateContent(string content, int maxLength) =>
+        content.Length <= maxLength ? content : content[..maxLength] + "...";
+}

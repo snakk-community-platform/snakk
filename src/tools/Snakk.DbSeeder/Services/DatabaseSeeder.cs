@@ -72,6 +72,12 @@ public class DatabaseSeeder(
         // Seed announcements across different scopes
         await SeedAnnouncementsAsync(snakkCommunity, users);
 
+        // Seed moderators, bans, and custom report reasons
+        await SeedModerationDataAsync(users);
+
+        // Seed reactions (one per user per post)
+        await SeedReactionsAsync(users);
+
         Console.WriteLine("Database seeding completed successfully.");
 
         // Separate avatar generation phase
@@ -81,6 +87,9 @@ public class DatabaseSeeder(
     private async Task ClearExistingDataAsync()
     {
         // Delete in correct order due to foreign keys
+        _context.Reactions.RemoveRange(_context.Reactions);
+        _context.UserBans.RemoveRange(_context.UserBans);
+        _context.ReportReasons.RemoveRange(_context.ReportReasons);
         _context.Announcements.RemoveRange(_context.Announcements);
         _context.Posts.RemoveRange(_context.Posts);
         _context.Discussions.RemoveRange(_context.Discussions);
@@ -661,9 +670,15 @@ public class DatabaseSeeder(
                 var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 24 * 3)); // Up to 3 days, capped
                 var replyCreatedAt = lastActivityAt.AddMinutes(delay);
 
-                // Hard cap: never exceed 1 hour ago
+                // Hard cap: never exceed 1 hour ago, but always after the discussion's first post
                 if (replyCreatedAt >= latestAllowed)
-                    replyCreatedAt = latestAllowed.AddMinutes(-_faker.Random.Int(1, 60));
+                {
+                    var minutesAfterDiscussion = (latestAllowed - discussion.CreatedAt).TotalMinutes;
+                    var clampedDelay = minutesAfterDiscussion > 1
+                        ? _faker.Random.Double(1, minutesAfterDiscussion)
+                        : 1;
+                    replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
+                }
 
                 var replyContent = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
@@ -839,6 +854,92 @@ public class DatabaseSeeder(
         };
     }
 
+    private async Task SeedReactionsAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding reactions...");
+
+        var allReactionTypes = Enum.GetValues<ReactionTypeEnum>();
+
+        // Load all posts (id, discussion id, created at) in one query
+        var posts = await _context.Posts
+            .Select(p => new { p.Id, p.DiscussionId, p.CreatedAt })
+            .ToListAsync();
+
+        Console.WriteLine($"  Distributing reactions across {posts.Count} posts...");
+
+        var reactions = new List<ReactionDatabaseEntity>();
+
+        // Track reaction counts for denormalized updates: postId -> count, discussionId -> count
+        var postReactionCounts = new Dictionary<int, int>();
+        var discussionReactionCounts = new Dictionary<int, int>();
+
+        foreach (var post in posts)
+        {
+            // Distribution: 20% no reactions, 40% 1-5, 25% 6-15, 10% 16-30, 5% 31-50
+            var roll = _faker.Random.Int(0, 99);
+            var reactorCount = roll switch
+            {
+                < 20 => 0,
+                < 60 => _faker.Random.Int(1, 5),
+                < 85 => _faker.Random.Int(6, 15),
+                < 95 => _faker.Random.Int(16, 30),
+                _    => _faker.Random.Int(31, Math.Min(50, users.Count))
+            };
+
+            if (reactorCount == 0) continue;
+
+            reactorCount = Math.Min(reactorCount, users.Count);
+
+            // Pick unique reactors (shuffle + take)
+            var reactors = users
+                .OrderBy(_ => _faker.Random.Int())
+                .Take(reactorCount);
+
+            foreach (var user in reactors)
+            {
+                reactions.Add(new ReactionDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    PostId = post.Id,
+                    UserId = user.Id,
+                    TypeId = (int)_faker.PickRandom(allReactionTypes),
+                    CreatedAt = post.CreatedAt.AddMinutes(_faker.Random.Double(1, 60 * 24))
+                });
+
+                postReactionCounts[post.Id] = postReactionCounts.GetValueOrDefault(post.Id) + 1;
+                discussionReactionCounts[post.DiscussionId] = discussionReactionCounts.GetValueOrDefault(post.DiscussionId) + 1;
+            }
+        }
+
+        // Batch insert in chunks of 1000 to avoid memory issues
+        const int chunkSize = 1000;
+        for (var i = 0; i < reactions.Count; i += chunkSize)
+        {
+            _context.Reactions.AddRange(reactions.Skip(i).Take(chunkSize));
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"  Inserted reactions {Math.Min(i + chunkSize, reactions.Count)}/{reactions.Count}");
+        }
+
+        // Update denormalized reaction counts on posts and discussions
+        var postsToUpdate = await _context.Posts
+            .Where(p => postReactionCounts.Keys.Contains(p.Id))
+            .ToListAsync();
+
+        foreach (var post in postsToUpdate)
+            post.ReactionCount = postReactionCounts.GetValueOrDefault(post.Id);
+
+        var discussionsToUpdate = await _context.Discussions
+            .Where(d => discussionReactionCounts.Keys.Contains(d.Id))
+            .ToListAsync();
+
+        foreach (var discussion in discussionsToUpdate)
+            discussion.ReactionCount = discussionReactionCounts.GetValueOrDefault(discussion.Id);
+
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Seeded {reactions.Count} reactions across {postReactionCounts.Count} posts.");
+    }
+
     private string GenerateSlug(string title)
     {
         var slug = title.ToLowerInvariant()
@@ -953,5 +1054,272 @@ public class DatabaseSeeder(
 
         await _context.SaveChangesAsync();
         Console.WriteLine("Created 4 seed announcements (2 community, 1 hub, 1 space).");
+    }
+
+    private async Task SeedModerationDataAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding moderation data (roles, bans, report reasons)...");
+
+        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
+        var regularUsers = users.Where(u => u.PublicId != "01JJQP0000000000000ADMIN").ToList();
+
+        var communities = await _context.Communities.ToListAsync();
+        var hubs = await _context.Hubs.Include(h => h.Community).ToListAsync();
+        var spaces = await _context.Spaces.Include(s => s.Hub).ToListAsync();
+
+        var banReasons = new[]
+        {
+            "Repeated spam and self-promotion",
+            "Harassment of other members",
+            "Toxic behavior in discussions",
+            "Posting inappropriate content",
+            "Trolling and bad-faith arguments",
+            "Doxxing or sharing personal information",
+            "Evading previous ban",
+            "Repeatedly violating community rules",
+            "Hate speech",
+            "Impersonating another user"
+        };
+
+        var reportReasonPool = new (string Name, string Description)[]
+        {
+            ("Low-effort content", "Posts that don't contribute meaningfully to the discussion"),
+            ("Self-promotion", "Excessive promotion of personal projects or products"),
+            ("Misinformation", "Spreading false or misleading information"),
+            ("Off-topic", "Content that doesn't belong in this space"),
+            ("Duplicate post", "Content that has already been posted recently"),
+            ("Untagged spoilers", "Spoilers shared without proper spoiler tags"),
+            ("Unsolicited advice", "Giving advice when none was asked for"),
+            ("Clickbait", "Misleading titles designed to attract clicks"),
+            ("AI-generated spam", "Low-quality AI-generated content posted en masse"),
+            ("Piracy or illegal content", "Sharing or linking to pirated or illegal material")
+        };
+
+        var usedModUserIds = new HashSet<int>();
+        var totalRoles = 0;
+        var totalBans = 0;
+        var totalReportReasons = 0;
+
+        foreach (var community in communities)
+        {
+            // 1 CommunityAdmin + 2 CommunityMods per community
+            var communityMods = _faker.PickRandom(regularUsers, 3).ToList();
+            foreach (var mod in communityMods)
+                usedModUserIds.Add(mod.Id);
+
+            _context.UserRoles.Add(new UserRoleDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                UserId = communityMods[0].Id,
+                RoleId = (int)UserRoleTypeEnum.CommunityAdmin,
+                CommunityId = community.Id,
+                AssignedByUserId = adminUser.Id,
+                AssignedAt = community.CreatedAt.AddHours(_faker.Random.Int(1, 48))
+            });
+
+            for (var i = 1; i < communityMods.Count; i++)
+            {
+                _context.UserRoles.Add(new UserRoleDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = communityMods[i].Id,
+                    RoleId = (int)UserRoleTypeEnum.CommunityMod,
+                    CommunityId = community.Id,
+                    AssignedByUserId = adminUser.Id,
+                    AssignedAt = community.CreatedAt.AddDays(_faker.Random.Int(1, 10))
+                });
+            }
+
+            totalRoles += 3;
+
+            // 0-3 bans per community
+            var communityBanCount = _faker.Random.Int(0, 3);
+            var bannableUsers = regularUsers.Where(u => !usedModUserIds.Contains(u.Id)).ToList();
+            var bannedUsers = _faker.PickRandom(bannableUsers, Math.Min(communityBanCount, bannableUsers.Count)).ToList();
+
+            foreach (var banned in bannedUsers)
+            {
+                var bannedAt = community.CreatedAt.AddDays(_faker.Random.Int(5, 60));
+                var isPermanent = _faker.Random.Bool(0.4f);
+                var isExpired = !isPermanent && _faker.Random.Bool(0.3f);
+
+                _context.UserBans.Add(new UserBanDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = banned.Id,
+                    BanTypeId = (int)_faker.PickRandom<BanTypeEnum>(),
+                    CommunityId = community.Id,
+                    Reason = _faker.PickRandom(banReasons),
+                    BannedAt = bannedAt,
+                    ExpiresAt = isPermanent ? null : bannedAt.AddDays(_faker.Random.Int(7, 90)),
+                    BannedByUserId = communityMods[0].Id,
+                    UnbannedAt = isExpired ? bannedAt.AddDays(_faker.Random.Int(3, 14)) : null,
+                    UnbannedByUserId = isExpired ? communityMods[0].Id : null
+                });
+            }
+
+            totalBans += bannedUsers.Count;
+
+            // 0-3 custom report reasons per community
+            var communityReasonCount = _faker.Random.Int(0, 3);
+            var pickedReasons = _faker.PickRandom(reportReasonPool, Math.Min(communityReasonCount, reportReasonPool.Length)).ToList();
+
+            for (var i = 0; i < pickedReasons.Count; i++)
+            {
+                _context.ReportReasons.Add(new ReportReasonDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    Name = pickedReasons[i].Name,
+                    Description = pickedReasons[i].Description,
+                    CommunityId = community.Id,
+                    CreatedByUserId = communityMods[0].Id,
+                    CreatedAt = community.CreatedAt.AddDays(_faker.Random.Int(2, 20)),
+                    DisplayOrder = i + 1
+                });
+            }
+
+            totalReportReasons += pickedReasons.Count;
+        }
+
+        foreach (var hub in hubs)
+        {
+            // 1-3 HubMods per hub
+            var hubModCount = _faker.Random.Int(1, 3);
+            var availableUsers = regularUsers.Where(u => !usedModUserIds.Contains(u.Id)).ToList();
+            var hubMods = _faker.PickRandom(availableUsers, Math.Min(hubModCount, availableUsers.Count)).ToList();
+
+            foreach (var mod in hubMods)
+            {
+                usedModUserIds.Add(mod.Id);
+                _context.UserRoles.Add(new UserRoleDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = mod.Id,
+                    RoleId = (int)UserRoleTypeEnum.HubMod,
+                    HubId = hub.Id,
+                    AssignedByUserId = adminUser.Id,
+                    AssignedAt = hub.CreatedAt.AddDays(_faker.Random.Int(1, 14))
+                });
+            }
+
+            totalRoles += hubMods.Count;
+
+            // 0-3 bans per hub
+            var hubBanCount = _faker.Random.Int(0, 3);
+            var bannableUsers = regularUsers.Where(u => !usedModUserIds.Contains(u.Id)).ToList();
+            var bannedUsers = _faker.PickRandom(bannableUsers, Math.Min(hubBanCount, bannableUsers.Count)).ToList();
+
+            foreach (var banned in bannedUsers)
+            {
+                var bannedAt = hub.CreatedAt.AddDays(_faker.Random.Int(5, 50));
+                var isPermanent = _faker.Random.Bool(0.3f);
+
+                _context.UserBans.Add(new UserBanDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = banned.Id,
+                    BanTypeId = (int)_faker.PickRandom<BanTypeEnum>(),
+                    HubId = hub.Id,
+                    Reason = _faker.PickRandom(banReasons),
+                    BannedAt = bannedAt,
+                    ExpiresAt = isPermanent ? null : bannedAt.AddDays(_faker.Random.Int(3, 60)),
+                    BannedByUserId = hubMods.Count > 0 ? hubMods[0].Id : adminUser.Id
+                });
+            }
+
+            totalBans += bannedUsers.Count;
+
+            // 0-3 custom report reasons per hub
+            var hubReasonCount = _faker.Random.Int(0, 3);
+            var pickedReasons = _faker.PickRandom(reportReasonPool, Math.Min(hubReasonCount, reportReasonPool.Length)).ToList();
+
+            for (var i = 0; i < pickedReasons.Count; i++)
+            {
+                _context.ReportReasons.Add(new ReportReasonDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    Name = pickedReasons[i].Name,
+                    Description = pickedReasons[i].Description,
+                    HubId = hub.Id,
+                    CreatedByUserId = hubMods.Count > 0 ? hubMods[0].Id : adminUser.Id,
+                    CreatedAt = hub.CreatedAt.AddDays(_faker.Random.Int(3, 15)),
+                    DisplayOrder = i + 1
+                });
+            }
+
+            totalReportReasons += pickedReasons.Count;
+        }
+
+        foreach (var space in spaces)
+        {
+            // 1-2 SpaceMods per space
+            var spaceModCount = _faker.Random.Int(1, 2);
+            var availableUsers = regularUsers.Where(u => !usedModUserIds.Contains(u.Id)).ToList();
+            var spaceMods = _faker.PickRandom(availableUsers, Math.Min(spaceModCount, availableUsers.Count)).ToList();
+
+            foreach (var mod in spaceMods)
+            {
+                usedModUserIds.Add(mod.Id);
+                _context.UserRoles.Add(new UserRoleDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = mod.Id,
+                    RoleId = (int)UserRoleTypeEnum.SpaceMod,
+                    SpaceId = space.Id,
+                    AssignedByUserId = adminUser.Id,
+                    AssignedAt = space.CreatedAt.AddDays(_faker.Random.Int(1, 10))
+                });
+            }
+
+            totalRoles += spaceMods.Count;
+
+            // 0-3 bans per space
+            var spaceBanCount = _faker.Random.Int(0, 3);
+            var bannableUsers = regularUsers.Where(u => !usedModUserIds.Contains(u.Id)).ToList();
+            var bannedUsers = _faker.PickRandom(bannableUsers, Math.Min(spaceBanCount, bannableUsers.Count)).ToList();
+
+            foreach (var banned in bannedUsers)
+            {
+                var bannedAt = space.CreatedAt.AddDays(_faker.Random.Int(3, 40));
+                var isPermanent = _faker.Random.Bool(0.25f);
+
+                _context.UserBans.Add(new UserBanDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = banned.Id,
+                    BanTypeId = (int)_faker.PickRandom<BanTypeEnum>(),
+                    SpaceId = space.Id,
+                    Reason = _faker.PickRandom(banReasons),
+                    BannedAt = bannedAt,
+                    ExpiresAt = isPermanent ? null : bannedAt.AddDays(_faker.Random.Int(1, 30)),
+                    BannedByUserId = spaceMods.Count > 0 ? spaceMods[0].Id : adminUser.Id
+                });
+            }
+
+            totalBans += bannedUsers.Count;
+
+            // 0-3 custom report reasons per space
+            var spaceReasonCount = _faker.Random.Int(0, 3);
+            var pickedReasons = _faker.PickRandom(reportReasonPool, Math.Min(spaceReasonCount, reportReasonPool.Length)).ToList();
+
+            for (var i = 0; i < pickedReasons.Count; i++)
+            {
+                _context.ReportReasons.Add(new ReportReasonDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    Name = pickedReasons[i].Name,
+                    Description = pickedReasons[i].Description,
+                    SpaceId = space.Id,
+                    CreatedByUserId = spaceMods.Count > 0 ? spaceMods[0].Id : adminUser.Id,
+                    CreatedAt = space.CreatedAt.AddDays(_faker.Random.Int(2, 12)),
+                    DisplayOrder = i + 1
+                });
+            }
+
+            totalReportReasons += pickedReasons.Count;
+        }
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Created {totalRoles} moderator roles, {totalBans} bans, {totalReportReasons} custom report reasons.");
     }
 }

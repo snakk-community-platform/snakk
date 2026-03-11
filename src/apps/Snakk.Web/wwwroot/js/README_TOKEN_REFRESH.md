@@ -2,7 +2,7 @@
 
 ## Overview
 
-Snakk.Web now has automatic token refresh functionality, ported from AdminWeb's auth-check system. This ensures users stay logged in seamlessly without interruption.
+Snakk.Web now has automatic token refresh functionality, ported from Admin's auth-check system. This ensures users stay logged in seamlessly without interruption.
 
 ## How It Works
 
@@ -95,9 +95,9 @@ T+8:00    User interacts with page
 | `Endpoints/BffApiEndpoints.cs` | BFF refresh endpoint |
 | `Scripts/core/auth.ts` | Provides refreshTokens() function |
 
-## Comparison with AdminWeb
+## Comparison with Admin
 
-| Feature | AdminWeb | Snakk.Web |
+| Feature | Admin | Snakk.Web |
 |---------|----------|-----------|
 | **Storage** | HttpOnly cookies | localStorage |
 | **Language** | Vanilla JS | TypeScript → JS |
@@ -108,9 +108,9 @@ T+8:00    User interacts with page
 
 ## Security Notes
 
-⚠️ **Important Differences from AdminWeb:**
+⚠️ **Important Differences from Admin:**
 
-- **AdminWeb**: Tokens in HttpOnly cookies (JavaScript can't access)
+- **Admin**: Tokens in HttpOnly cookies (JavaScript can't access)
 - **Snakk.Web**: Tokens in localStorage (JavaScript can access)
 
 While localStorage is less secure than HttpOnly cookies, it's necessary for Snakk.Web's client-side rendering architecture. The BFF pattern provides some security by:

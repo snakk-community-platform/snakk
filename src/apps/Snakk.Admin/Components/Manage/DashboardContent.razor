@@ -1,0 +1,519 @@
+@using Snakk.Protos.Manage
+@using Snakk.Shared.Enums
+@using ApexCharts
+@inject ManageService.ManageServiceClient ManageClient
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">@Scope?.ScopeType Dashboard</MudText>
+    <MudText>Managing: <strong>@Scope?.ScopeName</strong></MudText>
+</MudPaper>
+
+<MudGrid Class="mb-4">
+    @if (HasPermission(ManagePermissionEnum.ManageReports))
+    {
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="MudBlazor.Color.Warning" />
+                <MudText Typo="Typo.h6" Class="mt-2">Open Reports</MudText>
+                <MudText Typo="Typo.h3">@_stats.OpenReports</MudText>
+            </MudPaper>
+        </MudItem>
+    }
+
+    @if (HasPermission(ManagePermissionEnum.ManageBans))
+    {
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.PersonOff" Color="MudBlazor.Color.Error" />
+                <MudText Typo="Typo.h6" Class="mt-2">Active Bans</MudText>
+                <MudText Typo="Typo.h3">@_stats.ActiveBans</MudText>
+            </MudPaper>
+        </MudItem>
+    }
+
+    @if (HasPermission(ManagePermissionEnum.ManageTeam))
+    {
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Color="MudBlazor.Color.Primary" />
+                <MudText Typo="Typo.h6" Class="mt-2">Team Members</MudText>
+                <MudText Typo="Typo.h3">@_stats.TeamMembers</MudText>
+            </MudPaper>
+        </MudItem>
+    }
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.History" Color="MudBlazor.Color.Default" />
+            <MudText Typo="Typo.h6" Class="mt-2">Recent Actions</MudText>
+            <MudText Typo="Typo.h3">@_stats.RecentActions</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* Charts Section *@
+@if (HasPermission(ManagePermissionEnum.ViewDashboard))
+{
+    @* Row 1: Activity + Moderation *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Activity (Last 30 Days)</MudText>
+                @if (_chartsLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_activityData.Count > 0)
+                {
+                    <ApexChart TItem="ActivityChartItem"
+                               Options="_activityChartOptions"
+                               Height="300">
+
+                        <ApexPointSeries TItem="ActivityChartItem"
+                                         Items="_activityData"
+                                         SeriesType="SeriesType.Area"
+                                         Name="Posts"
+                                         XValue="@(item => item.DateLabel)"
+                                         YValue="@(item => item.Posts)"
+                                         OrderBy="@(item => item.X)" />
+
+                        <ApexPointSeries TItem="ActivityChartItem"
+                                         Items="_activityData"
+                                         SeriesType="SeriesType.Area"
+                                         Name="Discussions"
+                                         XValue="@(item => item.DateLabel)"
+                                         YValue="@(item => item.Discussions)"
+                                         OrderBy="@(item => item.X)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>No activity data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Moderation (Weekly)</MudText>
+                @if (_chartsLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_moderationData.Count > 0)
+                {
+                    <ApexChart TItem="ModerationChartItem"
+                               Options="_moderationChartOptions"
+                               Height="300">
+
+                        <ApexPointSeries TItem="ModerationChartItem"
+                                         Items="_moderationData"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Opened"
+                                         XValue="@(item => item.WeekLabel)"
+                                         YValue="@(item => item.Opened)"
+                                         OrderBy="@(item => item.X)" />
+
+                        <ApexPointSeries TItem="ModerationChartItem"
+                                         Items="_moderationData"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Resolved"
+                                         XValue="@(item => item.WeekLabel)"
+                                         YValue="@(item => item.Resolved)"
+                                         OrderBy="@(item => item.X)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>No moderation data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Row 2: Engagement over time + Reaction Breakdown *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Reactions Over Time (Last 30 Days)</MudText>
+                @if (_charts2Loading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_engagementData.Count > 0)
+                {
+                    <ApexChart TItem="EngagementChartItem"
+                               Options="_engagementChartOptions"
+                               Height="300">
+                        <ApexPointSeries TItem="EngagementChartItem"
+                                         Items="_engagementData"
+                                         SeriesType="SeriesType.Area"
+                                         Name="Reactions"
+                                         XValue="@(item => item.DateLabel)"
+                                         YValue="@(item => item.Reactions)"
+                                         OrderBy="@(item => item.X)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>No engagement data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Reaction Breakdown</MudText>
+                @if (_charts2Loading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_reactionData.Count > 0)
+                {
+                    <ApexChart TItem="PieChartItem"
+                               Options="_reactionChartOptions"
+                               Height="300">
+                        <ApexPointSeries TItem="PieChartItem"
+                                         Items="_reactionData"
+                                         SeriesType="SeriesType.Donut"
+                                         Name="Reactions"
+                                         XValue="@(item => item.Label)"
+                                         YValue="@(item => item.Count)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>No reaction data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Row 3: Content Types + Top Discussions *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Content Types</MudText>
+                @if (_charts2Loading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_contentTypeData.Count > 0)
+                {
+                    <ApexChart TItem="PieChartItem"
+                               Options="_contentTypeChartOptions"
+                               Height="300">
+                        <ApexPointSeries TItem="PieChartItem"
+                                         Items="_contentTypeData"
+                                         SeriesType="SeriesType.Donut"
+                                         Name="Discussions"
+                                         XValue="@(item => item.Label)"
+                                         YValue="@(item => item.Count)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>No content type data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Top Discussions (Last 30 Days)</MudText>
+                @if (_charts2Loading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_topDiscussions.Count > 0)
+                {
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th style="text-align: right;">Posts</th>
+                                <th style="text-align: right;">Reactions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var d in _topDiscussions)
+                            {
+                                <tr>
+                                    <td>
+                                        <MudText Typo="Typo.body2" Style="max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            @d.Title
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">@d.SpaceSlug / @d.Slug</MudText>
+                                    </td>
+                                    <td style="text-align: right;">@d.PostCount</td>
+                                    <td style="text-align: right;">@d.ReactionCount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+                else
+                {
+                    <MudText>No discussion data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@if (HasPermission(ManagePermissionEnum.ViewDashboard))
+{
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-2">Recent Moderation Activity</MudText>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_stats.RecentLog.Count == 0)
+        {
+            <MudText>No recent moderation activity.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>By</th>
+                        <th>Target</th>
+                        <th>Reason</th>
+                        <th>When</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _stats.RecentLog)
+                    {
+                        <tr>
+                            <td>@entry.ActionType</td>
+                            <td>@entry.ActorDisplayName</td>
+                            <td>@entry.TargetName</td>
+                            <td>@entry.Reason</td>
+                            <td>@(new DateTime(entry.CreatedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _chartsLoading = true;
+    private bool _charts2Loading = true;
+    private GetDashboardStatsResponse _stats = new();
+
+    // Chart 1 & 2
+    private List<ActivityChartItem> _activityData = [];
+    private List<ModerationChartItem> _moderationData = [];
+
+    // Chart 3-6
+    private List<EngagementChartItem> _engagementData = [];
+    private List<PieChartItem> _reactionData = [];
+    private List<PieChartItem> _contentTypeData = [];
+    private List<TopDiscussionPoint> _topDiscussions = [];
+
+    private static readonly ApexChartOptions<ActivityChartItem> _activityChartOptions = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar = new Toolbar { Show = false }
+        },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Fill = new Fill { Opacity = new Opacity(0.15) },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels { RotateAlways = true, Rotate = -45 }
+        },
+        Yaxis = [new YAxis { Min = 0, ForceNiceScale = true }],
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#4ade80", "#60a5fa"]
+    };
+
+    private static readonly ApexChartOptions<ModerationChartItem> _moderationChartOptions = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar = new Toolbar { Show = false }
+        },
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar { ColumnWidth = "60%" }
+        },
+        Yaxis = [new YAxis { Min = 0, ForceNiceScale = true }],
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#f87171", "#4ade80"]
+    };
+
+    private static readonly ApexChartOptions<EngagementChartItem> _engagementChartOptions = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar = new Toolbar { Show = false }
+        },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Fill = new Fill { Opacity = new Opacity(0.15) },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels { RotateAlways = true, Rotate = -45 }
+        },
+        Yaxis = [new YAxis { Min = 0, ForceNiceScale = true }],
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#f59e0b"]
+    };
+
+    private static readonly ApexChartOptions<PieChartItem> _reactionChartOptions = new()
+    {
+        Chart = new Chart { Background = "transparent" },
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#4ade80", "#f87171", "#fbbf24", "#60a5fa", "#a78bfa", "#fb923c", "#34d399", "#e879f9", "#38bdf8"]
+    };
+
+    private static readonly ApexChartOptions<PieChartItem> _contentTypeChartOptions = new()
+    {
+        Chart = new Chart { Background = "transparent" },
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#60a5fa", "#4ade80", "#fbbf24", "#f87171", "#a78bfa", "#fb923c"]
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        await Task.WhenAll(LoadStats(), LoadCharts(), LoadCharts2());
+    }
+
+    private async Task LoadStats()
+    {
+        _loading = true;
+
+        try
+        {
+            _stats = await ManageClient.GetDashboardStatsAsync(new GetDashboardStatsRequest
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId
+            }, deadline: DateTime.UtcNow.AddSeconds(15));
+        }
+        catch
+        {
+            _stats = new();
+        }
+
+        _loading = false;
+    }
+
+    private async Task LoadCharts()
+    {
+        _chartsLoading = true;
+
+        try
+        {
+            var charts = await ManageClient.GetDashboardChartsAsync(new GetDashboardChartsRequest
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId,
+                Days = 30
+            }, deadline: DateTime.UtcNow.AddSeconds(15));
+
+            _activityData = charts.ActivitySeries
+                .Select(a =>
+                {
+                    var date = new DateTime(a.DateTicks, DateTimeKind.Utc);
+                    return new ActivityChartItem(date, date.ToString("MMM d"), a.Posts, a.Discussions);
+                })
+                .ToList();
+
+            _moderationData = charts.ModerationSeries
+                .Select(m =>
+                {
+                    var weekStart = new DateTime(m.WeekStartTicks, DateTimeKind.Utc);
+                    return new ModerationChartItem(weekStart, weekStart.ToString("MMM d"), m.ReportsOpened, m.ReportsResolved);
+                })
+                .ToList();
+        }
+        catch
+        {
+            _activityData = [];
+            _moderationData = [];
+        }
+
+        _chartsLoading = false;
+    }
+
+    private async Task LoadCharts2()
+    {
+        _charts2Loading = true;
+
+        try
+        {
+            var charts = await ManageClient.GetDashboardCharts2Async(new GetDashboardCharts2Request
+            {
+                ScopeType = Scope!.ScopeType,
+                ScopePublicId = Scope.ScopePublicId,
+                Days = 30
+            }, deadline: DateTime.UtcNow.AddSeconds(15));
+
+            _reactionData = charts.ReactionBreakdown
+                .Select(r => new PieChartItem(ReactionLabel(r.ReactionType), r.Count))
+                .ToList();
+
+            _contentTypeData = charts.ContentTypeBreakdown
+                .Select(c => new PieChartItem(c.DiscussionType, c.Count))
+                .ToList();
+
+            _engagementData = charts.EngagementSeries
+                .Select(e =>
+                {
+                    var date = new DateTime(e.DateTicks, DateTimeKind.Utc);
+                    return new EngagementChartItem(date, date.ToString("MMM d"), e.Reactions);
+                })
+                .ToList();
+
+            _topDiscussions = [.. charts.TopDiscussions];
+        }
+        catch
+        {
+            _reactionData = [];
+            _contentTypeData = [];
+            _engagementData = [];
+            _topDiscussions = [];
+        }
+
+        _charts2Loading = false;
+    }
+
+    private static string ReactionLabel(string type) => type switch
+    {
+        "Agree"     => "👍 Agree",
+        "Love"      => "❤️ Love",
+        "Funny"     => "😂 Funny",
+        "Thinking"  => "🤔 Thinking",
+        "Watching"  => "👀 Watching",
+        "Fire"      => "🔥 Fire",
+        "Thanks"    => "🙏 Thanks",
+        "MindBlown" => "🤯 Mind Blown",
+        "ShipIt"    => "🚀 Ship It",
+        _           => type
+    };
+
+    private bool HasPermission(ManagePermissionEnum permission) =>
+        Scope?.Permissions.Contains(permission) ?? false;
+
+    public record ActivityChartItem(DateTime X, string DateLabel, decimal Posts, decimal Discussions);
+    public record ModerationChartItem(DateTime X, string WeekLabel, decimal Opened, decimal Resolved);
+    public record EngagementChartItem(DateTime X, string DateLabel, decimal Reactions);
+    public record PieChartItem(string Label, decimal Count);
+}

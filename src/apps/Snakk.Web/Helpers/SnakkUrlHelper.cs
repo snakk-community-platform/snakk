@@ -98,13 +98,13 @@ public static class SnakkUrlHelper
     // ===== Manage URL methods =====
 
     public static string ManageCommunity(ICommunityContext community)
-        => $"{GetCommunityPrefix(community)}/manage";
+        => $"/admin{GetCommunityPrefix(community)}";
 
     public static string ManageHub(ICommunityContext community, string hubSlug)
-        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/manage";
+        => $"/admin{GetCommunityPrefix(community)}/h/{hubSlug}";
 
     public static string ManageSpace(ICommunityContext community, string hubSlug, string spaceSlug)
-        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/s/{spaceSlug}/manage";
+        => $"/admin{GetCommunityPrefix(community)}/h/{hubSlug}/s/{spaceSlug}";
 
     public static string HubAvatar(string publicId, int revision = 0)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Hub, revision);

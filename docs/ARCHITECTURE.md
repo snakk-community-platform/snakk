@@ -29,7 +29,7 @@ Snakk is a hierarchical community discussion platform built on .NET 10 with a mi
 | **Snakk.Realtime** | .NET 9 + SignalR | 17101 | Public | WebSocket hub for real-time updates |
 | **Snakk.Web** | .NET 10 + Razor Pages | 17110 | Public | Main platform + BFF layer |
 | **Snakk.Auth** | .NET 10 + Razor Pages | 17111 | Public | Authentication (login, register, OAuth) |
-| **Snakk.AdminWeb** | .NET 10 + Blazor Server | 17112 | Internal | Admin dashboard |
+| **Snakk.Admin** | .NET 10 + Blazor Server | 17112 | Internal | Admin dashboard |
 | **Snakk.Setup** | .NET 10 + Razor Pages | — | Local | First-run setup wizard |
 | **Snakk.Worker** | .NET 10 | — | Internal | Background job processor |
 
@@ -44,7 +44,7 @@ Snakk is a hierarchical community discussion platform built on .NET 10 with a mi
                │                │                  │
                ▼                ▼                  ▼
     ┌──────────────────┐  ┌───────────┐  ┌─────────────────┐
-    │  Snakk.Gateway   │  │ Snakk.    │  │  Snakk.AdminWeb │
+    │  Snakk.Gateway   │  │ Snakk.    │  │  Snakk.Admin │
     │  (YARP Proxy)    │  │ Realtime  │  │   (Blazor)      │
     │  Port 17000      │  │ (SignalR) │  │  Port 17112     │
     └───────┬──────────┘  │ Port 17101│  └────────┬────────┘
@@ -116,7 +116,7 @@ Run `dotnet run` in `Snakk.AppHost` to start everything with the Aspire dashboar
 - **Razor Pages** — Server-side rendering
 - **SCSS** — Custom styles compiled with Dart Sass (no Tailwind, no daisyUI)
 
-### Admin Panel (Snakk.AdminWeb)
+### Admin Panel (Snakk.Admin)
 - **Blazor Server** — .NET UI framework
 - **Microsoft Fluent UI** — Component library
 - **Cookie Authentication** — Admin session management
@@ -365,7 +365,7 @@ src/apps/
 │   ├── Styles/                      # SCSS source (auth.scss)
 │   └── wwwroot/css/                 # Compiled auth.css
 │
-├── Snakk.AdminWeb/                  # Admin panel (Blazor Server)
+├── Snakk.Admin/                  # Admin panel (Blazor Server)
 │   ├── Pages/                       # Razor Pages (Dashboard, Auth)
 │   ├── Components/                  # Blazor components (Fluent UI)
 │   ├── Services/                    # AdminApiClientService
@@ -490,7 +490,7 @@ src/tools/
 
 **Cookie Authentication (Admin Panel):**
 ```
-1. Admin logs in via Snakk.AdminWeb
+1. Admin logs in via Snakk.Admin
 2. Blazor validates credentials via Snakk.Sdk HTTP client
 3. Sets authentication cookie
 4. Cookie automatically sent with each request

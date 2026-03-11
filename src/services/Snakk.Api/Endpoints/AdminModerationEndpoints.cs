@@ -297,34 +297,30 @@ public static class AdminModerationEndpoints
         SnakkDbContext context)
     {
         var report = await context.Reports
-            .Include(r => r.ReporterUser)
-            .Include(r => r.ReportedUser)
-            .Include(r => r.ReportedPost)
-            .Include(r => r.ReportedDiscussion)
-            .Include(r => r.Reason)
-            .Include(r => r.ResolvedByUser)
-            .FirstOrDefaultAsync(r => r.PublicId == id);
+            .Where(r => r.PublicId == id)
+            .Select(r => new AdminReportDetailResponse(
+                Id: r.PublicId,
+                ReporterId: r.ReporterUser.PublicId,
+                ReporterUsername: r.ReporterUser.DisplayName,
+                ReportedUserId: r.ReportedUser != null ? r.ReportedUser.PublicId : null,
+                ReportedUsername: r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
+                PostId: r.ReportedPost != null ? r.ReportedPost.PublicId : null,
+                DiscussionId: r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
+                Reason: r.Reason != null ? r.Reason.Name : null,
+                ReasonDescription: r.Reason != null ? r.Reason.Description : null,
+                Details: r.Details,
+                Status: ((Snakk.Shared.Enums.ReportStatusEnum)r.StatusId).ToString(),
+                CreatedAt: r.CreatedAt,
+                ResolvedAt: r.ResolvedAt,
+                ResolverId: r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
+                ResolverUsername: r.ResolvedByUser != null ? r.ResolvedByUser.DisplayName : null,
+                ResolutionNote: r.ResolutionNote))
+            .FirstOrDefaultAsync();
 
         if (report is null)
             return Results.NotFound(new { error = "Report not found" });
 
-        return TypedResults.Ok(new AdminReportDetailResponse(
-            Id: report.PublicId,
-            ReporterId: report.ReporterUser.PublicId,
-            ReporterUsername: report.ReporterUser.DisplayName,
-            ReportedUserId: report.ReportedUser?.PublicId,
-            ReportedUsername: report.ReportedUser?.DisplayName,
-            PostId: report.ReportedPost?.PublicId,
-            DiscussionId: report.ReportedDiscussion?.PublicId,
-            Reason: report.Reason?.Name,
-            ReasonDescription: report.Reason?.Description,
-            Details: report.Details,
-            Status: ((Snakk.Shared.Enums.ReportStatusEnum)report.StatusId).ToString(),
-            CreatedAt: report.CreatedAt,
-            ResolvedAt: report.ResolvedAt,
-            ResolverId: report.ResolvedByUser?.PublicId,
-            ResolverUsername: report.ResolvedByUser?.DisplayName,
-            ResolutionNote: report.ResolutionNote));
+        return TypedResults.Ok(report);
     }
 
     private static async Task<IResult> ResolveReportAsync(

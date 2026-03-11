@@ -1,0 +1,180 @@
+@using Snakk.Application.DTOs.Management
+@using Snakk.Shared.Enums
+@using Snakk.Protos.Manage
+@inject ManageService.ManageServiceClient ManageClient
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">@Scope?.ScopeType Settings</MudText>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_loadError is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_loadError</MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4" Style="max-width: 600px;">
+            <MudTextField @bind-Value="_name" Label="Name" />
+            <MudTextField @bind-Value="_description" Label="Description" Lines="4" />
+
+            @if (Scope?.ScopeType == "Community")
+            {
+                <MudSelect @bind-Value="_visibility" T="string" Label="Visibility">
+                    <MudSelectItem Value="@("Public")">Public</MudSelectItem>
+                    <MudSelectItem Value="@("Private")">Private</MudSelectItem>
+                    <MudSelectItem Value="@("Unlisted")">Unlisted</MudSelectItem>
+                </MudSelect>
+            }
+
+            @if (Scope?.ScopeType == "Space")
+            {
+                <MudSelect @bind-Value="_defaultSort" T="string" Label="Default Sort">
+                    <MudSelectItem Value="@("latest")">Latest Activity</MudSelectItem>
+                    <MudSelectItem Value="@("newest")">Newest First</MudSelectItem>
+                    <MudSelectItem Value="@("oldest")">Oldest First</MudSelectItem>
+                </MudSelect>
+
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Allowed Discussion Types</MudText>
+                    <MudStack Spacing="2">
+                        @foreach (var type in Enum.GetValues<DiscussionTypeEnum>())
+                        {
+                            var t = type;
+                            <MudCheckBox T="bool"
+                                Value="@(_allowedTypes.Contains(t))"
+                                ValueChanged="@(v => ToggleType(t, v))"
+                                Label="@t.ToString()" />
+                        }
+                    </MudStack>
+                    @if (_typeError is not null)
+                    {
+                        <MudText Color="Color.Error" Class="mt-1">@_typeError</MudText>
+                    }
+                </div>
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveSettings"
+                       Disabled="@_saving">
+                @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Save Settings
+            </MudButton>
+
+            @if (_saved)
+            {
+                <MudAlert Severity="Severity.Success">Settings saved</MudAlert>
+            }
+            @if (_saveError is not null)
+            {
+                <MudAlert Severity="Severity.Error">@_saveError</MudAlert>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+    private string _name = "";
+    private string _description = "";
+    private string _visibility = "Public";
+    private string _defaultSort = "latest";
+    private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
+    private string? _loadError;
+    private string? _saveError;
+    private string? _typeError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope == null) return;
+        _loading = true;
+        _loadError = null;
+
+        if (Scope.ScopeType == "Space")
+        {
+            try
+            {
+                var response = await ManageClient.GetSpaceSettingsAsync(
+                    new GetSpaceSettingsRequest { SpacePublicId = Scope.ScopePublicId });
+
+                _name = response.Name;
+                _description = response.HasDescription ? response.Description : "";
+                _allowedTypes = response.AllowedDiscussionTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
+                    : [DiscussionTypeEnum.Standard];
+            }
+            catch
+            {
+                _loadError = "Failed to load space settings.";
+            }
+        }
+        else
+        {
+            _name = Scope.ScopeName;
+            _description = "";
+        }
+
+        _loading = false;
+    }
+
+    private void ToggleType(DiscussionTypeEnum type, bool enabled)
+    {
+        _typeError = null;
+
+        if (enabled)
+        {
+            _allowedTypes.Add(type);
+        }
+        else if (_allowedTypes.Count > 1)
+        {
+            _allowedTypes.Remove(type);
+        }
+        else
+        {
+            _typeError = "At least one discussion type must be enabled.";
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        _saving = true;
+        _saved = false;
+        _saveError = null;
+
+        if (Scope?.ScopeType == "Space")
+        {
+            try
+            {
+                var request = new Snakk.Protos.Manage.UpdateSpaceSettingsRequest
+                {
+                    SpacePublicId = Scope.ScopePublicId,
+                    Name = _name,
+                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description
+                };
+
+                request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
+
+                var response = await ManageClient.UpdateSpaceSettingsAsync(request);
+
+                if (response.Success)
+                    _saved = true;
+                else
+                    _saveError = response.HasErrorMessage ? response.ErrorMessage : "Failed to save settings. Please try again.";
+            }
+            catch
+            {
+                _saveError = "Failed to save settings. Please try again.";
+            }
+        }
+
+        _saving = false;
+    }
+}

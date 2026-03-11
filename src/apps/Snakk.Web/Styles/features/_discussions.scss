@@ -3,7 +3,6 @@
 // ============================================
 
 .discussion-header {
-    margin-bottom: 1.5rem;
 
     .title {
         font-size: 1.5rem;
@@ -23,6 +22,38 @@
         padding: 0.125rem 0.5rem;
         border-radius: 4px;
         font-weight: 500;
+    }
+
+    .discussion-author {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+
+        img {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        a {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+
+            &:hover {
+                color: var(--link-primary);
+            }
+        }
+
+        .deleted {
+            font-size: 0.8125rem;
+            font-style: italic;
+            color: var(--text-muted);
+        }
     }
 }
 

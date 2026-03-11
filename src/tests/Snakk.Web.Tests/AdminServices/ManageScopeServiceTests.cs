@@ -1,12 +1,12 @@
-extern alias AdminWeb;
+extern alias Admin;
 
-using System.Net;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Moq;
-using AdminWeb::Snakk.AdminWeb.Services;
+using Admin::Snakk.Admin.Services;
 using Snakk.Application.DTOs.Management;
+using Snakk.Protos.Manage;
 using Snakk.Shared.Enums;
-using Snakk.Web.Tests.Helpers;
 
 namespace Snakk.Web.Tests.AdminServices;
 
@@ -40,16 +40,6 @@ public class ManageScopeServiceTests
         };
     }
 
-    private static (ManageScopeService Service, MockApiHandler Handler) CreateService()
-    {
-        var handler = new MockApiHandler();
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
-        var logger = new Mock<ILogger<ManageScopeService>>();
-        var service = new ManageScopeService(httpClient, logger.Object);
-
-        return (service, handler);
-    }
-
     // ===== GetManageUrl Tests =====
 
     [Test]
@@ -59,7 +49,7 @@ public class ManageScopeServiceTests
 
         var result = ManageScopeService.GetManageUrl(scope);
 
-        await Assert.That(result).IsEqualTo("/c/gaming/manage");
+        await Assert.That(result).IsEqualTo("c/gaming");
     }
 
     [Test]
@@ -69,7 +59,7 @@ public class ManageScopeServiceTests
 
         var result = ManageScopeService.GetManageUrl(scope);
 
-        await Assert.That(result).IsEqualTo("/c/gaming/h/fps/manage");
+        await Assert.That(result).IsEqualTo("c/gaming/h/fps");
     }
 
     [Test]
@@ -79,7 +69,7 @@ public class ManageScopeServiceTests
 
         var result = ManageScopeService.GetManageUrl(scope);
 
-        await Assert.That(result).IsEqualTo("/c/gaming/h/fps/s/valorant/manage");
+        await Assert.That(result).IsEqualTo("c/gaming/h/fps/s/valorant");
     }
 
     // ===== GetSiteUrl Tests =====
@@ -141,61 +131,5 @@ public class ManageScopeServiceTests
         var result = ManageScopeService.HasPermission(scope, ManagePermissionEnum.ManageTeam);
 
         await Assert.That(result).IsFalse();
-    }
-
-    // ===== ResolveScopeAsync Tests =====
-
-    [Test]
-    public async Task ResolveScopeAsync_NotFound_ReturnsNull()
-    {
-        var (service, handler) = CreateService();
-        handler.SetupResponse("/manage/resolve", HttpStatusCode.NotFound);
-
-        var result = await service.ResolveScopeAsync("nonexistent");
-
-        await Assert.That(result).IsNull();
-    }
-
-    [Test]
-    public async Task ResolveScopeAsync_Forbidden_ReturnsNull()
-    {
-        var (service, handler) = CreateService();
-        handler.SetupResponse("/manage/resolve", HttpStatusCode.Forbidden);
-
-        var result = await service.ResolveScopeAsync("restricted");
-
-        await Assert.That(result).IsNull();
-    }
-
-    [Test]
-    public async Task ResolveScopeAsync_HttpRequestException_ReturnsNull()
-    {
-        var (service, handler) = CreateService();
-        handler.SetupResponse("/manage/resolve", _ =>
-            throw new HttpRequestException("Connection refused"));
-
-        var result = await service.ResolveScopeAsync("gaming");
-
-        await Assert.That(result).IsNull();
-    }
-
-    [Test]
-    public async Task ResolveScopeAsync_Success_ReturnsDeserializedScope()
-    {
-        var (service, handler) = CreateService();
-        var expectedScope = CreateScope("Community", communitySlug: "gaming", permissions:
-        [
-            ManagePermissionEnum.ViewDashboard,
-            ManagePermissionEnum.ManageContent
-        ]);
-
-        handler.SetupJsonResponse("/manage/resolve", expectedScope);
-
-        var result = await service.ResolveScopeAsync("gaming");
-
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.ScopeType).IsEqualTo("Community");
-        await Assert.That(result.CommunitySlug).IsEqualTo("gaming");
-        await Assert.That(result.ScopeName).IsEqualTo("Test Community");
     }
 }

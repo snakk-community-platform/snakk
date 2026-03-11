@@ -1,0 +1,62 @@
+@using Snakk.Admin.Services
+@using Snakk.Admin.Theme
+@inject CircuitTokenProvider TokenProvider
+
+<MudThemeProvider Theme="ForestTheme.Instance" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <p role="alert">You are not authorized to access this resource.</p>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudPaper Class="pa-6">
+                    <h1>404 - Page Not Found</h1>
+                    <p>The page you requested could not be found.</p>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Dashboard</MudButton>
+                </MudPaper>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    [Parameter] public string? InitialToken { get; set; }
+    [Parameter] public string? InitialRefreshToken { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(InitialToken))
+            TokenProvider.Token = InitialToken;
+
+        if (!string.IsNullOrEmpty(InitialRefreshToken))
+            TokenProvider.RefreshToken = InitialRefreshToken;
+    }
+
+    private class RedirectToLogin : ComponentBase
+    {
+        [Inject] protected NavigationManager Navigation { get; set; } = default!;
+
+        protected override void OnInitialized()
+        {
+            Navigation.NavigateTo($"Auth/Login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}", true);
+        }
+    }
+}

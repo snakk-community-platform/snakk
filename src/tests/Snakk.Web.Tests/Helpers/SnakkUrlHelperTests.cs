@@ -163,7 +163,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "main", isDefault: true);
         var result = SnakkUrlHelper.ManageCommunity(context);
-        await Assert.That(result).IsEqualTo("/manage");
+        await Assert.That(result).IsEqualTo("/admin");
     }
 
     [Test]
@@ -171,7 +171,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "test-community", isDefault: false);
         var result = SnakkUrlHelper.ManageCommunity(context);
-        await Assert.That(result).IsEqualTo("/c/test-community/manage");
+        await Assert.That(result).IsEqualTo("/admin/c/test-community");
     }
 
     [Test]
@@ -179,7 +179,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "main", isDefault: true);
         var result = SnakkUrlHelper.ManageHub(context, "my-hub");
-        await Assert.That(result).IsEqualTo("/h/my-hub/manage");
+        await Assert.That(result).IsEqualTo("/admin/h/my-hub");
     }
 
     [Test]
@@ -187,7 +187,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "test-community", isDefault: false);
         var result = SnakkUrlHelper.ManageHub(context, "my-hub");
-        await Assert.That(result).IsEqualTo("/c/test-community/h/my-hub/manage");
+        await Assert.That(result).IsEqualTo("/admin/c/test-community/h/my-hub");
     }
 
     [Test]
@@ -195,7 +195,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "main", isDefault: true);
         var result = SnakkUrlHelper.ManageSpace(context, "my-hub", "my-space");
-        await Assert.That(result).IsEqualTo("/h/my-hub/s/my-space/manage");
+        await Assert.That(result).IsEqualTo("/admin/h/my-hub/s/my-space");
     }
 
     [Test]
@@ -203,7 +203,7 @@ public class SnakkUrlHelperTests
     {
         var context = CreateContext(slug: "test-community", isDefault: false);
         var result = SnakkUrlHelper.ManageSpace(context, "my-hub", "my-space");
-        await Assert.That(result).IsEqualTo("/c/test-community/h/my-hub/s/my-space/manage");
+        await Assert.That(result).IsEqualTo("/admin/c/test-community/h/my-hub/s/my-space");
     }
 
     // ===== Community URL Tests =====

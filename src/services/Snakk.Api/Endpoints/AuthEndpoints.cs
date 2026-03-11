@@ -76,13 +76,10 @@ public static class AuthEndpoints
         var user = result.Value!;
 
         // Fetch user roles from UserRoles table (new users typically have no roles)
-        var userDbEntity = await context.Users
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
-
-        var roles = userDbEntity?.Roles
+        var roles = await context.UserRoles
+            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? [];
+            .ToListAsync();
 
         // Generate JWT for immediate login
         var jwt = jwtService.GenerateToken(
@@ -134,13 +131,10 @@ public static class AuthEndpoints
         var user = result.Value!;
 
         // Fetch user roles from UserRoles table
-        var userDbEntity = await context.Users
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
-
-        var roles = userDbEntity?.Roles
+        var roles = await context.UserRoles
+            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? [];
+            .ToListAsync();
 
         // Generate JWT with roles (using first role for backward compatibility with single-role JWT service)
         var jwt = jwtService.GenerateToken(
@@ -210,13 +204,10 @@ public static class AuthEndpoints
         var (user, newRefreshToken) = result.Value;
 
         // Fetch user roles from UserRoles table
-        var userDbEntity = await context.Users
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
-
-        var roles = userDbEntity?.Roles
+        var roles = await context.UserRoles
+            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToList() ?? [];
+            .ToListAsync();
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,

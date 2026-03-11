@@ -96,7 +96,28 @@ public interface IModerationRepository
         string? hubPublicId = null,
         string? spacePublicId = null);
     Task<IEnumerable<ReportReasonDto>> GetGlobalReportReasonsAsync();
-    
+
+    Task<IEnumerable<ReportReasonDto>> GetReportReasonsForExactScopeAsync(
+        string scopeType, string scopePublicId);
+
+    Task ReplaceReportReasonsForScopeAsync(
+        string scopeType, string scopePublicId, string userPublicId,
+        IEnumerable<(string Name, string? Description, int DisplayOrder)> reasons);
+
+    // ==================== Scope-Based Queries ====================
+
+    Task<IEnumerable<UserBanDto>> GetActiveBansForScopeAsync(string scopeType, string scopePublicId);
+    Task<int> GetActiveBanCountForScopeAsync(string scopeType, string scopePublicId);
+    Task<IEnumerable<UserRoleDto>> GetActiveRolesForScopeAsync(string scopeType, string scopePublicId);
+
+    Task<PagedResult<ReportListDto>> GetReportsForScopeAsync(
+        string scopeType, string scopePublicId, int? statusId, int offset, int pageSize);
+
+    Task<int> GetOpenReportCountForScopeAsync(string scopeType, string scopePublicId);
+
+    Task<PagedResult<ModerationLogDto>> GetModerationLogForScopeAsync(
+        string scopeType, string scopePublicId, int offset, int pageSize);
+
     // ==================== Moderation Log ====================
     
     Task<PagedResult<ModerationLogDto>> GetModerationLogForCommunityAsync(string communityPublicId, int offset, int pageSize);

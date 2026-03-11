@@ -745,7 +745,12 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
         newCounts[reactionType] = Math.max(0, (newCounts[reactionType] || 0) - 1);
         newMyReactions.splice(existingIndex, 1);
     } else {
-        // Toggle on: add new reaction type (multi-select)
+        // Switch: remove any existing reaction first, then add new one
+        if (newMyReactions.length > 0) {
+            const oldType = newMyReactions[0] as string;
+            newCounts[oldType] = Math.max(0, (newCounts[oldType] || 0) - 1);
+            newMyReactions.splice(0, newMyReactions.length);
+        }
         newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
         newMyReactions.push(reactionType);
     }
@@ -1318,38 +1323,38 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     const hasReplyTo = post.replyTo != null;
     const isOwner = isAuthenticated && currentUserId === post.author.publicId;
 
-    // Build left pane (avatar + username for new author, empty for same author)
-    let authorPaneHtml = '<aside class="post-author-pane">';
-    if (!isSameAuthorAsPrevious) {
-        if (post.author.isDeleted) {
-            authorPaneHtml += `
-                <div class="post-avatar post-avatar-deleted">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                </div>
-                <span class="post-author-name deleted">${escapeHtml(post.author.displayName)}</span>`;
-        } else {
-            authorPaneHtml += `
-                <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
-                     width="48" height="48" class="post-avatar" loading="lazy" />
-                <a href="/u/${post.author.publicId}" class="post-author-name"
-                   data-popup-type="user" data-popup-id="${post.author.publicId}"
-                   data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a>`;
+    // Build left pane (skip for first post — author is in header)
+    let authorPaneHtml = '';
+    if (!isOP) {
+        authorPaneHtml = '<aside class="post-author-pane">';
+        if (!isSameAuthorAsPrevious) {
+            if (post.author.isDeleted) {
+                authorPaneHtml += `
+                    <div class="post-avatar post-avatar-deleted">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <span class="post-author-name deleted">${escapeHtml(post.author.displayName)}</span>`;
+            } else {
+                authorPaneHtml += `
+                    <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
+                         width="48" height="48" class="post-avatar" loading="lazy" />
+                    <a href="/u/${post.author.publicId}" class="post-author-name"
+                       data-popup-type="user" data-popup-id="${post.author.publicId}"
+                       data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a>`;
+            }
+            // Badges
+            let badges = '';
+            if (post.author.role === 'admin') {
+                badges += '<span class="badge badge-error badge-xs">Admin</span>';
+            } else if (post.author.role === 'mod') {
+                badges += '<span class="badge badge-info badge-xs">Mod</span>';
+            }
+            authorPaneHtml += `<div class="post-author-badges">${badges}</div>`;
         }
-        // Badges
-        let badges = '';
-        if (post.author.role === 'admin') {
-            badges += '<span class="badge badge-error badge-xs">Admin</span>';
-        } else if (post.author.role === 'mod') {
-            badges += '<span class="badge badge-info badge-xs">Mod</span>';
-        }
-        if (isOP) {
-            badges += '<span class="badge badge-primary badge-xs">OP</span>';
-        }
-        authorPaneHtml += `<div class="post-author-badges">${badges}</div>`;
+        authorPaneHtml += '</aside>';
     }
-    authorPaneHtml += '</aside>';
 
     // Build action buttons
     let actionButtonsHtml = '';
@@ -1437,21 +1442,23 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     // Build toolbar
     const editedTag = post.editedAt ? '<span>(edited)</span>' : '';
 
-    // Inline author (shown on mobile, hidden on desktop via CSS)
+    // Inline author (shown on mobile, hidden on desktop via CSS; skip for first post)
     let inlineAuthorHtml = '';
-    if (isSameAuthorAsPrevious) {
-        // Same-author: inline author is hidden by default, shown on mobile
-        if (post.author.isDeleted) {
-            inlineAuthorHtml = `<span class="post-author-inline hidden"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
+    if (!isOP) {
+        if (isSameAuthorAsPrevious) {
+            // Same-author: inline author is hidden by default, shown on mobile
+            if (post.author.isDeleted) {
+                inlineAuthorHtml = `<span class="post-author-inline hidden"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
+            } else {
+                inlineAuthorHtml = `<span class="post-author-inline hidden"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+            }
         } else {
-            inlineAuthorHtml = `<span class="post-author-inline hidden"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
-        }
-    } else {
-        // New author: inline author shown on mobile (CSS controls visibility)
-        if (post.author.isDeleted) {
-            inlineAuthorHtml = `<span class="post-author-inline"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
-        } else {
-            inlineAuthorHtml = `<span class="post-author-inline"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+            // New author: inline author shown on mobile (CSS controls visibility)
+            if (post.author.isDeleted) {
+                inlineAuthorHtml = `<span class="post-author-inline"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
+            } else {
+                inlineAuthorHtml = `<span class="post-author-inline"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+            }
         }
     }
 

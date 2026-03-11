@@ -1,0 +1,500 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Manage";
+
+package snakk.manage;
+
+service ManageService {
+  rpc ResolveScope (ResolveScopeRequest) returns (ResolveScopeResponse);
+  rpc GetSpaceSettings (GetSpaceSettingsRequest) returns (SpaceSettingsResponse);
+  rpc UpdateSpaceSettings (UpdateSpaceSettingsRequest) returns (UpdateSpaceSettingsResponse);
+  rpc GetRules (GetRulesRequest) returns (GetRulesResponse);
+  rpc UpdateRules (UpdateRulesRequest) returns (UpdateRulesResponse);
+  rpc GetReportReasons (GetReportReasonsRequest) returns (GetReportReasonsResponse);
+  rpc UpdateReportReasons (UpdateReportReasonsRequest) returns (UpdateReportReasonsResponse);
+  rpc GetBans (GetBansRequest) returns (GetBansResponse);
+  rpc CreateBan (CreateBanRequest) returns (CreateBanResponse);
+  rpc RevokeBan (RevokeBanRequest) returns (RevokeBanResponse);
+  rpc GetTeam (GetTeamRequest) returns (GetTeamResponse);
+  rpc AddTeamMember (AddTeamMemberRequest) returns (AddTeamMemberResponse);
+  rpc RemoveTeamMember (RemoveTeamMemberRequest) returns (RemoveTeamMemberResponse);
+  rpc GetReports (GetReportsRequest) returns (GetReportsResponse);
+  rpc ResolveReport (ResolveReportRequest) returns (ResolveReportResponse);
+  rpc GetModerationLog (GetModerationLogRequest) returns (GetModerationLogResponse);
+  rpc GetFlaggedContent (GetFlaggedContentRequest) returns (GetFlaggedContentResponse);
+  rpc ModerateContent (ModerateContentRequest) returns (ModerateContentResponse);
+  rpc GetDashboardStats (GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
+  rpc GetDashboardCharts (GetDashboardChartsRequest) returns (GetDashboardChartsResponse);
+  rpc GetDashboardCharts2 (GetDashboardCharts2Request) returns (GetDashboardCharts2Response);
+  rpc GetAnnouncements (GetAnnouncementsRequest) returns (GetAnnouncementsResponse);
+  rpc CreateAnnouncement (CreateAnnouncementGrpcRequest) returns (CreateAnnouncementResponse);
+  rpc UpdateAnnouncement (UpdateAnnouncementGrpcRequest) returns (UpdateAnnouncementResponse);
+  rpc DeleteAnnouncement (DeleteAnnouncementRequest) returns (DeleteAnnouncementResponse);
+}
+
+// --- Requests ---
+
+message ResolveScopeRequest {
+  string community_slug = 1;
+  optional string hub_slug = 2;
+  optional string space_slug = 3;
+}
+
+message GetSpaceSettingsRequest {
+  string space_public_id = 1;
+}
+
+message UpdateSpaceSettingsRequest {
+  string space_public_id = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated int32 allowed_discussion_types = 4;
+  bool require_approval = 5;
+  bool allow_anonymous = 6;
+}
+
+// --- Responses ---
+
+message ResolveScopeResponse {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  string scope_name = 3;
+  optional string scope_avatar_url = 4;
+
+  string community_slug = 5;
+  optional string hub_slug = 6;
+  optional string space_slug = 7;
+
+  string community_name = 8;
+  optional string hub_name = 9;
+  optional string space_name = 10;
+
+  repeated int32 permissions = 11;
+}
+
+message SpaceSettingsResponse {
+  string slug = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated int32 allowed_discussion_types = 4;
+  bool require_approval = 5;
+  bool allow_anonymous = 6;
+  repeated string moderator_user_ids = 7;
+}
+
+message UpdateSpaceSettingsResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Rules ---
+
+message GetRulesRequest {
+  string scope_type = 1;      // "Community", "Hub", or "Space"
+  string scope_public_id = 2;
+}
+
+message GetRulesResponse {
+  repeated RuleItem rules = 1;
+  repeated InheritedRuleGroup inherited_groups = 2;
+}
+
+message RuleItem {
+  string title = 1;
+  string description = 2;
+  int32 order = 3;
+}
+
+message InheritedRuleGroup {
+  string source_scope_type = 1;  // "Community" or "Hub"
+  string source_scope_name = 2;
+  repeated RuleItem rules = 3;
+}
+
+message UpdateRulesRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  repeated RuleItem rules = 3;
+}
+
+message UpdateRulesResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Report Reasons ---
+
+message GetReportReasonsRequest {
+  string scope_type = 1;      // "Community", "Hub", or "Space"
+  string scope_public_id = 2;
+}
+
+message GetReportReasonsResponse {
+  repeated ReportReasonItem reasons = 1;
+  repeated InheritedReportReasonGroup inherited_groups = 2;
+}
+
+message ReportReasonItem {
+  string name = 1;
+  string description = 2;
+  int32 display_order = 3;
+}
+
+message InheritedReportReasonGroup {
+  string source_scope_type = 1;  // "Global", "Community", or "Hub"
+  string source_scope_name = 2;
+  repeated ReportReasonItem reasons = 3;
+}
+
+message UpdateReportReasonsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  repeated ReportReasonItem reasons = 3;
+}
+
+message UpdateReportReasonsResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Bans ---
+
+message GetBansRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+}
+
+message GetBansResponse {
+  repeated BanItem bans = 1;
+  repeated InheritedBanGroup inherited_groups = 2;
+}
+
+message InheritedBanGroup {
+  string source_scope_type = 1;  // "Community" or "Hub"
+  string source_scope_name = 2;
+  repeated BanItem bans = 3;
+}
+
+message BanItem {
+  string public_id = 1;
+  string user_display_name = 2;
+  string ban_type = 3;            // "WriteOnly" or "ReadWrite"
+  string reason = 4;
+  string banned_by_display_name = 5;
+  int64 banned_at_ticks = 6;
+  optional int64 expires_at_ticks = 7;
+}
+
+message CreateBanRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  string target_username = 3;
+  string ban_type = 4;
+  string reason = 5;
+  optional int64 expires_at_ticks = 6;
+}
+
+message CreateBanResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+message RevokeBanRequest {
+  string ban_public_id = 1;
+}
+
+message RevokeBanResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Team ---
+
+message GetTeamRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+}
+
+message GetTeamResponse {
+  repeated TeamMemberItem members = 1;
+  repeated InheritedTeamGroup inherited_groups = 2;
+}
+
+message InheritedTeamGroup {
+  string source_scope_type = 1;  // "Community" or "Hub"
+  string source_scope_name = 2;
+  repeated TeamMemberItem members = 3;
+}
+
+message TeamMemberItem {
+  string role_public_id = 1;
+  string user_display_name = 2;
+  string role_type = 3;
+  int64 assigned_at_ticks = 4;
+}
+
+message AddTeamMemberRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  string target_username = 3;
+  string role_type = 4;          // "CommunityAdmin", "CommunityMod", "HubMod", "SpaceMod"
+}
+
+message AddTeamMemberResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+message RemoveTeamMemberRequest {
+  string role_public_id = 1;
+}
+
+message RemoveTeamMemberResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Reports ---
+
+message GetReportsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  optional int32 status_filter = 3;   // ReportStatusEnum value, or omit for all
+  int32 offset = 4;
+  int32 page_size = 5;
+}
+
+message GetReportsResponse {
+  repeated ReportItem reports = 1;
+  bool has_more = 2;
+}
+
+message ReportItem {
+  string public_id = 1;
+  string status = 2;
+  string target_type = 3;           // "Post", "Discussion", or "User"
+  string target_title = 4;
+  string reason_name = 5;
+  optional string details = 6;
+  string reporter_display_name = 7;
+  int64 created_at_ticks = 8;
+  optional string resolved_by_display_name = 9;
+  optional int64 resolved_at_ticks = 10;
+}
+
+message ResolveReportRequest {
+  string report_public_id = 1;
+  bool dismiss = 2;
+  optional string resolution_note = 3;
+}
+
+message ResolveReportResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Moderation Log ---
+
+message GetModerationLogRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  optional string action_filter = 3;
+  int32 offset = 4;
+  int32 page_size = 5;
+}
+
+message GetModerationLogResponse {
+  repeated ModerationLogItem entries = 1;
+  bool has_more = 2;
+}
+
+message ModerationLogItem {
+  string action_type = 1;
+  string actor_display_name = 2;
+  string target_name = 3;
+  optional string reason = 4;
+  optional string details = 5;
+  int64 created_at_ticks = 6;
+}
+
+// --- Content Moderation (Flagged Content) ---
+
+message GetFlaggedContentRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  int32 offset = 3;
+  int32 page_size = 4;
+}
+
+message GetFlaggedContentResponse {
+  repeated FlaggedContentItem items = 1;
+  bool has_more = 2;
+}
+
+message FlaggedContentItem {
+  string public_id = 1;
+  string content_type = 2;         // "Post" or "Discussion"
+  string author_display_name = 3;
+  string preview = 4;
+  int32 report_count = 5;
+  int64 created_at_ticks = 6;
+  bool is_locked = 7;
+}
+
+message ModerateContentRequest {
+  string target_public_id = 1;
+  string content_type = 2;         // "Post" or "Discussion"
+  string action = 3;               // "Delete", "Lock", "Unlock"
+  optional string reason = 4;
+}
+
+message ModerateContentResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Dashboard Stats ---
+
+message GetDashboardStatsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+}
+
+message GetDashboardStatsResponse {
+  int32 open_reports = 1;
+  int32 active_bans = 2;
+  int32 team_members = 3;
+  int32 recent_actions = 4;
+  repeated ModerationLogItem recent_log = 5;
+}
+
+// --- Dashboard Charts ---
+
+message GetDashboardChartsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  int32 days = 3;             // number of days to look back (default 30)
+}
+
+message GetDashboardChartsResponse {
+  repeated DailyActivityPoint activity_series = 1;
+  repeated WeeklyModerationPoint moderation_series = 2;
+}
+
+message DailyActivityPoint {
+  int64 date_ticks = 1;       // UTC date (start of day)
+  int32 discussions = 2;
+  int32 posts = 3;
+}
+
+message WeeklyModerationPoint {
+  int64 week_start_ticks = 1; // UTC Monday of the week
+  int32 reports_opened = 2;
+  int32 reports_resolved = 3;
+}
+
+// --- Dashboard Charts 2 (reactions, content types, engagement, top discussions) ---
+
+message GetDashboardCharts2Request {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  int32 days = 3;             // number of days to look back (default 30)
+}
+
+message GetDashboardCharts2Response {
+  repeated ReactionBreakdownPoint reaction_breakdown = 1;
+  repeated ContentTypePoint content_type_breakdown = 2;
+  repeated DailyEngagementPoint engagement_series = 3;
+  repeated TopDiscussionPoint top_discussions = 4;
+}
+
+message ReactionBreakdownPoint {
+  string reaction_type = 1;   // "Agree", "Love", "Funny", etc.
+  int32 count = 2;
+}
+
+message ContentTypePoint {
+  string discussion_type = 1; // "Standard", "Question", "Poll", etc.
+  int32 count = 2;
+}
+
+message DailyEngagementPoint {
+  int64 date_ticks = 1;       // UTC date (start of day)
+  int32 reactions = 2;
+}
+
+message TopDiscussionPoint {
+  string title = 1;
+  string slug = 2;
+  string space_slug = 3;
+  int32 post_count = 4;
+  int32 reaction_count = 5;
+}
+
+// --- Announcements ---
+
+message GetAnnouncementsRequest {
+  string scope_type = 1;      // "Community", "Hub", or "Space"
+  string scope_public_id = 2;
+}
+
+message GetAnnouncementsResponse {
+  repeated AnnouncementItem announcements = 1;
+}
+
+message AnnouncementItem {
+  string public_id = 1;
+  string title = 2;
+  string content = 3;           // raw markdown
+  string rendered_content = 4;  // rendered HTML
+  string type = 5;              // "Info", "Warning", "Critical"
+  bool is_dismissible = 6;
+  int32 sort_order = 7;
+  optional int64 visible_from_ticks = 8;
+  optional int64 visible_until_ticks = 9;
+  int64 created_at_ticks = 10;
+  optional int64 last_modified_at_ticks = 11;
+}
+
+message CreateAnnouncementGrpcRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  string title = 3;
+  string content = 4;           // raw markdown
+  string type = 5;              // "Info", "Warning", "Critical"
+  bool is_dismissible = 6;
+  int32 sort_order = 7;
+  optional int64 visible_from_ticks = 8;
+  optional int64 visible_until_ticks = 9;
+}
+
+message CreateAnnouncementResponse {
+  bool success = 1;
+  optional string error_message = 2;
+  optional string public_id = 3;
+}
+
+message UpdateAnnouncementGrpcRequest {
+  string public_id = 1;
+  string title = 2;
+  string content = 3;
+  string type = 4;
+  bool is_dismissible = 5;
+  int32 sort_order = 6;
+  optional int64 visible_from_ticks = 7;
+  optional int64 visible_until_ticks = 8;
+}
+
+message UpdateAnnouncementResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+message DeleteAnnouncementRequest {
+  string public_id = 1;
+}
+
+message DeleteAnnouncementResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
