@@ -24,7 +24,6 @@ COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
 COPY src/core/Snakk.Infrastructure/Snakk.Infrastructure.csproj core/Snakk.Infrastructure/
 COPY src/core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj core/Snakk.Infrastructure.Database/
 COPY src/core/Snakk.Protos/Snakk.Protos.csproj core/Snakk.Protos/
-COPY src/core/Snakk.Sdk/Snakk.Sdk.csproj core/Snakk.Sdk/
 COPY src/core/Snakk.Shared/Snakk.Shared.csproj core/Snakk.Shared/
 COPY src/services/Snakk.Api/Snakk.Api.csproj services/Snakk.Api/
 COPY src/services/Snakk.Gateway/Snakk.Gateway.csproj services/Snakk.Gateway/
@@ -67,10 +66,6 @@ RUN cd apps/Snakk.Setup && npm run build:css
 
 # Build Snakk.Auth CSS (Sass)
 RUN cd apps/Snakk.Auth && npm run build:css
-
-# Prevent NSwag from regenerating the committed SDK client
-# (Docker COPY resets timestamps, which makes MSBuild think the output is stale)
-RUN touch core/Snakk.Sdk/Generated/SnakkApiClient.cs
 
 # --- Build the entire solution (resolves shared dependencies once) ---
 RUN dotnet build Snakk.Docker.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipFrontendBuild=true

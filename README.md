@@ -89,7 +89,6 @@ src/
 │   ├── Snakk.Infrastructure.Database/  # EF Core DbContext, migrations
 │   ├── Snakk.Protos/               # Protobuf definitions for gRPC
 │   ├── Snakk.Shared/               # Enums, utilities
-│   └── Snakk.Sdk/                  # Auto-generated API client (NSwag)
 │
 ├── services/
 │   ├── Snakk.Api/                  # Internal gRPC + REST API (port 17100)

@@ -53,13 +53,13 @@ Snakk is a hierarchical community discussion platform built on .NET 10 with a mi
      │      │       │          │                  │
      ▼      ▼       ▼          │                  │
   ┌─────┐┌─────┐┌──────┐      │                  │
-  │ Web ││Auth ││Setup │      │            Snakk.Sdk
-  │17110││17111││      │      │                  │
-  └──┬──┘└──┬──┘└──┬───┘      │                  │
-     │      │      │           │                  │
-     └──────┼──────┘           │                  │
-            │ gRPC             │ gRPC             │ HTTP
-            ▼                  ▼                  ▼
+  │ Web ││Auth ││Setup │      │
+  │17110││17111││      │      │
+  └──┬──┘└──┬──┘└──┬───┘      │
+     │      │      │           │
+     └──────┼──────┘           │
+            │ gRPC             │ gRPC
+            ▼                  ▼
     ┌──────────────────────────────────────────────┐
     │               Snakk.Api                      │
     │         (Internal gRPC + REST API)           │
@@ -120,8 +120,6 @@ Run `dotnet run` in `Snakk.AppHost` to start everything with the Aspire dashboar
 - **Blazor Server** — .NET UI framework
 - **Microsoft Fluent UI** — Component library
 - **Cookie Authentication** — Admin session management
-- **Snakk.Sdk** — Auto-generated API client (NSwag from OpenAPI spec)
-
 ### Database & Storage
 - **PostgreSQL** — Primary database with trigram indexes for full-text search
 - **Local File Storage** — Avatar storage with XxHash32 sharding (256 folders)
@@ -301,11 +299,6 @@ src/core/
 ├── Snakk.Shared/                    # Shared utilities
 │   ├── Enums/                       # UserRoleTypeEnum, NotificationType
 │   └── Extensions/                  # String extensions, etc.
-│
-└── Snakk.Sdk/                       # Auto-generated client SDK
-    ├── openapi.json                 # OpenAPI spec from Snakk.Api
-    ├── nswag.json                   # NSwag generation config
-    └── Generated/SnakkApiClient.cs  # Generated HTTP client
 ```
 
 ### Services
@@ -491,7 +484,7 @@ src/tools/
 **Cookie Authentication (Admin Panel):**
 ```
 1. Admin logs in via Snakk.Admin
-2. Blazor validates credentials via Snakk.Sdk HTTP client
+2. Blazor validates credentials via gRPC ManageService
 3. Sets authentication cookie
 4. Cookie automatically sent with each request
 ```
@@ -570,22 +563,6 @@ Use .NET Aspire for local development:
 cd src/aspire/Snakk.AppHost
 dotnet run
 ```
-
-### SDK Regeneration
-
-When API endpoints change, regenerate the SDK:
-```bash
-# 1. Start Snakk.Api
-dotnet run --project src/services/Snakk.Api
-
-# 2. Fetch updated OpenAPI spec
-curl -k https://localhost:17100/openapi/v1.json -o src/core/Snakk.Sdk/openapi.json
-
-# 3. Rebuild SDK
-dotnet build src/core/Snakk.Sdk
-```
-
-Both `openapi.json` and `Generated/SnakkApiClient.cs` are committed for reproducible builds without needing the API running.
 
 ---
 
