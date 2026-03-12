@@ -66,7 +66,14 @@ interface SnakkUtilsAPI {
         if (diffMins < 60) return diffMins + 'm ago';
         if (diffHours < 24) return diffHours + 'h ago';
         if (diffDays < 7) return diffDays + 'd ago';
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const tz = (window as any).snakkTimezone || 'UTC';
+        try {
+            if (diffDays < 365) return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
+        } catch {
+            if (diffDays < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
     }
 
     /**

@@ -17,6 +17,7 @@ public class AuthGrpcService(
     IJwtTokenService jwtService,
     ICurrentUserService currentUser,
     SnakkDbContext context,
+    ISettingsService settingsService,
     ILogger<AuthGrpcService> logger) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
@@ -198,7 +199,9 @@ public class AuthGrpcService(
             Email = user.Email,
             EmailVerified = user.EmailVerified,
             OauthProvider = user.OAuthProvider ?? "",
-            PreferEndlessScroll = user.PreferEndlessScroll
+            PreferEndlessScroll = user.PreferEndlessScroll,
+            AutoFollowOnReply = user.AutoFollowOnReply,
+            Timezone = user.Timezone ?? ""
         };
     }
 
@@ -258,8 +261,9 @@ public class AuthGrpcService(
 
         bool? preferEndlessScroll = request.HasPreferEndlessScroll ? request.PreferEndlessScroll : null;
         bool? autoFollowOnReply = request.HasAutoFollowOnReply ? request.AutoFollowOnReply : null;
+        string? timezone = request.HasTimezone ? request.Timezone : null;
 
-        var result = await authUseCase.UpdatePreferencesAsync(userId, preferEndlessScroll, autoFollowOnReply);
+        var result = await authUseCase.UpdatePreferencesAsync(userId, preferEndlessScroll, autoFollowOnReply, timezone);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
@@ -316,6 +320,17 @@ public class AuthGrpcService(
                 EmailVerified = user.EmailVerified,
                 Roles = { roles }
             }
+        };
+    }
+
+    public override async Task<PublicSettingsResponse> GetPublicSettings(
+        GetPublicSettingsRequest request, ServerCallContext context)
+    {
+        var siteInfo = await settingsService.GetSiteInfoAsync();
+        return new PublicSettingsResponse
+        {
+            Timezone = siteInfo.Timezone,
+            SiteName = siteInfo.SiteName
         };
     }
 

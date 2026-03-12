@@ -13,11 +13,12 @@ public class ReactionUseCase(
     ICounterService counterService)
 {
     /// <summary>
-    /// Toggle a reaction on a post. Each user may have multiple reaction types per post (one per type).
-    /// If the user already has this specific reaction type, remove it (toggle off).
-    /// If not, add it — other reaction types from the same user are unaffected.
+    /// Toggle a reaction on a post. Each user may have at most one reaction per post.
+    /// - Same type as existing → remove (toggle off), decrement counter
+    /// - Different type → replace (delete old, add new), counter unchanged
+    /// - No existing reaction → add, increment counter
     /// </summary>
-    /// <returns>True if the reaction was added, false if removed</returns>
+    /// <returns>True if a reaction is now active, false if removed</returns>
     public async Task<Result<bool>> ToggleReactionAsync(PostId postId, UserId userId, ReactionType type)
     {
         var post = await postRepository.GetByPublicIdAsync(postId);
@@ -25,17 +26,28 @@ public class ReactionUseCase(
         if (post is null)
             return Result<bool>.Failure("Post not found");
 
-        var existingReaction = await reactionRepository.GetByUserPostAndTypeAsync(userId, postId, type);
+        var existingReaction = await reactionRepository.GetByUserAndPostAsync(userId, postId);
 
         if (existingReaction is not null)
         {
             existingReaction.MarkForRemoval();
             await reactionRepository.DeleteAsync(existingReaction);
-            await counterService.DecrementReactionCountAsync(postId, post.DiscussionId);
 
-            var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
-            await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
-            return Result<bool>.Success(false);
+            if (existingReaction.Type == type)
+            {
+                // Toggle off — same type clicked again
+                await counterService.DecrementReactionCountAsync(postId, post.DiscussionId);
+                var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
+                await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
+                return Result<bool>.Success(false);
+            }
+
+            // Replace with new type — counter stays the same
+            var replacement = Reaction.Create(postId, userId, type);
+            await reactionRepository.AddAsync(replacement);
+            var replacedCounts = await reactionRepository.GetCountsByPostIdAsync(postId);
+            await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, replacedCounts);
+            return Result<bool>.Success(true);
         }
 
         var reaction = Reaction.Create(postId, userId, type);

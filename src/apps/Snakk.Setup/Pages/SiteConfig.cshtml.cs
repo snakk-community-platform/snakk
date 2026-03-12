@@ -8,6 +8,7 @@ public class SiteConfigModel : SetupPageBase
     [BindProperty] public string SiteName { get; set; } = "Snakk";
     [BindProperty] public string DefaultCommunitySlug { get; set; } = "main";
     [BindProperty] public bool MultiCommunityEnabled { get; set; }
+    [BindProperty] public string Timezone { get; set; } = "UTC";
 
     public void OnGet()
     {
@@ -17,6 +18,7 @@ public class SiteConfigModel : SetupPageBase
         SiteName = state.SiteName;
         DefaultCommunitySlug = state.DefaultCommunitySlug;
         MultiCommunityEnabled = state.MultiCommunityEnabled;
+        Timezone = state.Timezone;
     }
 
     public IActionResult OnPost()
@@ -33,6 +35,7 @@ public class SiteConfigModel : SetupPageBase
         state.SiteName = SiteName.Trim();
         state.DefaultCommunitySlug = DefaultCommunitySlug.Trim().ToLowerInvariant();
         state.MultiCommunityEnabled = MultiCommunityEnabled;
+        state.Timezone = string.IsNullOrWhiteSpace(Timezone) ? "UTC" : Timezone;
         SaveState(state);
 
         return RedirectToPage("Storage");

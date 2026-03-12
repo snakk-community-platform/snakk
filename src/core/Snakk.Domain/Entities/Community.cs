@@ -8,6 +8,7 @@ public class Community
     public string Name { get; private set; }
     public string Slug { get; private set; }
     public string? Description { get; private set; }
+    public string? Timezone { get; private set; }
     public CommunityVisibility Visibility { get; private set; }
     public bool ExposeToPlatformFeed { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -32,12 +33,14 @@ public class Community
         bool exposeToPlatformFeed,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Hub>? hubs = null)
+        List<Hub>? hubs = null,
+        string? timezone = null)
     {
         PublicId = publicId;
         Name = name;
         Slug = slug;
         Description = description;
+        Timezone = timezone;
         Visibility = visibility;
         ExposeToPlatformFeed = exposeToPlatformFeed;
         CreatedAt = createdAt;
@@ -77,7 +80,8 @@ public class Community
         bool exposeToPlatformFeed,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Hub>? hubs = null) =>
+        List<Hub>? hubs = null,
+        string? timezone = null) =>
         new Community(
             publicId,
             name,
@@ -87,7 +91,8 @@ public class Community
             exposeToPlatformFeed,
             createdAt,
             lastModifiedAt,
-            hubs);
+            hubs,
+            timezone);
 
     public static Community RehydrateForList(
         CommunityId publicId,

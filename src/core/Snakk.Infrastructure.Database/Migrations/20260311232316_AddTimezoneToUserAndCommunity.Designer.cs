@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using Snakk.Infrastructure.Database;
 namespace Snakk.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(SnakkDbContext))]
-    partial class SnakkDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311232316_AddTimezoneToUserAndCommunity")]
+    partial class AddTimezoneToUserAndCommunity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1218,21 +1221,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsFirstPost")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsMilestone")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsNecro")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsOp")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsUsersFirstPostInDiscussion")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsUsersFirstPostInSpace")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModifiedAt")

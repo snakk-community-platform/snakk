@@ -63,7 +63,12 @@ interface ActivityDataPoint {
         if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
         if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
 
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const tz = (window as any).snakkTimezone || 'UTC';
+        try {
+            return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
+        } catch {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
     };
 
     /**
@@ -316,9 +321,12 @@ interface ActivityDataPoint {
                 const discussionsPercent = day.total > 0 ? (day.discussions / day.total) * 100 : 0;
                 const postsPercent = day.total > 0 ? (day.posts / day.total) * 100 : 0;
 
+                const tz = (window as any).snakkTimezone || 'UTC';
+                const dateOpts: Intl.DateTimeFormatOptions = { timeZone: tz, month: 'short', day: 'numeric' };
+                const fmtDate = (d: string) => { try { return new Date(d).toLocaleDateString('en-US', dateOpts); } catch { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } };
                 const dateLabel = shouldGroupByWeek
-                    ? `Week of ${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                    : new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    ? `Week of ${fmtDate(day.date)}`
+                    : fmtDate(day.date);
 
                 return `
                     <div class="activity-chart-bar-wrapper">

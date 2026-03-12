@@ -158,6 +158,10 @@
         </div>
     </nav>
 
+    @{
+        var _tz = Context.Request.Cookies[".Snakk.Pref.Timezone"];
+    }
+    <script>window.snakkTimezone = '@(_tz ?? "UTC")';</script>
     @if (User.Identity?.IsAuthenticated == true)
     {
         <script>window.currentUserId = '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';</script>

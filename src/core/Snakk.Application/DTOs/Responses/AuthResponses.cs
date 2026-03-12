@@ -19,7 +19,8 @@ public record CurrentUserResponse(
     bool EmailVerified,
     string? OAuthProvider,
     bool PreferEndlessScroll,
-    bool AutoFollowOnReply);
+    bool AutoFollowOnReply,
+    string? Timezone = null);
 
 public record UpdateProfileResponse(string Message, string? Token = null);
 

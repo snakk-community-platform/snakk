@@ -17,6 +17,7 @@ public class SetupState
     public string SiteName { get; set; } = "Snakk";
     public string DefaultCommunitySlug { get; set; } = "main";
     public bool MultiCommunityEnabled { get; set; }
+    public string Timezone { get; set; } = "UTC";
 
     // Step 4: Storage
     public string AvatarStoragePath { get; set; } = "/app/storage";

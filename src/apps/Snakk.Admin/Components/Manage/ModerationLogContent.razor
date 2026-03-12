@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h5">Moderation Log</MudText>
@@ -41,7 +43,7 @@
                         <td>@entry.ActorDisplayName</td>
                         <td>@entry.TargetName</td>
                         <td>@entry.Reason</td>
-                        <td>@(new DateTime(entry.CreatedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
+                        <td>@Tz.FormatDateTime(entry.CreatedAtTicks)</td>
                     </tr>
                 }
             </tbody>
@@ -60,6 +62,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await LoadLog();
     }
 

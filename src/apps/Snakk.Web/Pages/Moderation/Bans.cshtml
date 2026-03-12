@@ -112,11 +112,11 @@
                                             }
                                             <div>
                                                 <span class="text-muted">Banned by:</span> @ban.BannedByUserDisplayName
-                                                <span class="text-muted">on</span> @ban.BannedAt.ToString("MMM d, yyyy")
+                                                <span class="text-muted">on</span> @Model.FormatRelativeTime(ban.BannedAt)
                                             </div>
                                             @if (ban.ExpiresAt.HasValue)
                                             {
-                                                <div><span class="text-muted">Expires:</span> @ban.ExpiresAt.Value.ToString("MMM d, yyyy 'at' h:mm tt")</div>
+                                                <div><span class="text-muted">Expires:</span> @Model.FormatRelativeTime(ban.ExpiresAt.Value)</div>
                                             }
                                             else
                                             {
@@ -126,7 +126,7 @@
                                             {
                                                 <div>
                                                     <span class="text-muted">Unbanned by:</span> @ban.UnbannedByUserDisplayName
-                                                    <span class="text-muted">on</span> @ban.UnbannedAt.Value.ToString("MMM d, yyyy")
+                                                    <span class="text-muted">on</span> @Model.FormatRelativeTime(ban.UnbannedAt.Value)
                                                 </div>
                                             }
                                         </div>

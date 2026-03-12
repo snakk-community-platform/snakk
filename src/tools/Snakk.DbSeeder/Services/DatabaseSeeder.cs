@@ -33,8 +33,43 @@ public class DatabaseSeeder(
     /// </summary>
     public async Task SetupOnlyAsync()
     {
+        await EnsureSystemSettingsAsync();
         await EnsureDefaultAdminExistsAsync();
         await GenerateAllAvatarsAsync();
+    }
+
+    private async Task EnsureSystemSettingsAsync()
+    {
+        var timezone = _configuration["Snakk:SiteTimezone"] ?? "UTC";
+        await UpsertSystemSettingAsync("General", "Timezone", timezone, "String");
+    }
+
+    private async Task UpsertSystemSettingAsync(string category, string key, string value, string valueType)
+    {
+        var serialized = $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
+
+        if (existing is null)
+        {
+            _context.SystemSettings.Add(new SystemSettingDatabaseEntity
+            {
+                PublicId = Guid.NewGuid().ToString(),
+                Category = category,
+                Key = key,
+                Value = serialized,
+                ValueType = valueType,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existing.Value = serialized;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     /// <summary>
@@ -638,12 +673,22 @@ public class DatabaseSeeder(
 
         await _context.SaveChangesAsync();
 
+        // Track which users have posted in this space (for IsUsersFirstPostInSpace)
+        var usersWhoPostedInSpace = new HashSet<int>();
+        var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
+        var necroDays = 30;
+
         // Now create posts for each discussion
         foreach (var discussion in discussions)
         {
             var author = users.First(u => u.Id == discussion.CreatedByUserId);
+            var usersWhoPostedInDiscussion = new HashSet<int>();
+            var postNumber = 0;
 
             // First post (opening post) — usually longer
+            postNumber++;
+            var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
+            usersWhoPostedInDiscussion.Add(author.Id);
             var firstPostContent = GeneratePostContent(isOpeningPost: true);
             posts.Add(new PostDatabaseEntity
             {
@@ -654,7 +699,12 @@ public class DatabaseSeeder(
                 CreatedByUserId = author.Id,
                 CreatedAt = discussion.CreatedAt,
                 IsFirstPost = true,
-                RevisionCount = 0
+                RevisionCount = 0,
+                IsOp = true,
+                IsUsersFirstPostInDiscussion = true,
+                IsUsersFirstPostInSpace = isFirstInSpace,
+                IsNecro = false,
+                IsMilestone = milestoneThresholds.Contains(postNumber)
             });
 
             // Variable number of replies
@@ -667,6 +717,7 @@ public class DatabaseSeeder(
             for (var j = 0; j < replyCount; j++)
             {
                 var replyAuthor = _faker.PickRandom(users);
+                postNumber++;
 
                 // Each reply is some time after the last, but capped to not exceed Now
                 var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
@@ -683,6 +734,10 @@ public class DatabaseSeeder(
                     replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
                 }
 
+                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
+                var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
+
                 var replyContent = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
                 {
@@ -693,7 +748,12 @@ public class DatabaseSeeder(
                     CreatedByUserId = replyAuthor.Id,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
-                    RevisionCount = 0
+                    RevisionCount = 0,
+                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
+                    IsNecro = isNecro,
+                    IsMilestone = milestoneThresholds.Contains(postNumber)
                 });
 
                 if (replyCreatedAt > lastActivityAt)
@@ -853,7 +913,7 @@ public class DatabaseSeeder(
         }
 
         var latestAllowed = Now.AddHours(-1);
-        var spaceCreated = space.CreatedAt;
+        var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
 
         var threads = new[]
         {
@@ -866,7 +926,7 @@ public class DatabaseSeeder(
         {
             var author = _faker.PickRandom(users);
             var slug = GenerateSlug(title);
-            var createdAt = spaceCreated.AddDays(_faker.Random.Int(1, 10));
+            var createdAt = Now.AddHours(-6); // Recent so it's easy to find
 
             var discussion = new DiscussionDatabaseEntity
             {
@@ -886,8 +946,12 @@ public class DatabaseSeeder(
             var lastActivityAt = createdAt;
             var replyTimeWindow = (latestAllowed - createdAt).TotalMinutes;
             var replyCount = postCount - 1; // first post counts as 1
+            var usersWhoPostedInDiscussion = new HashSet<int>();
+            var postNumber = 0;
 
             // First post
+            postNumber++;
+            usersWhoPostedInDiscussion.Add(author.Id);
             var firstPostContent = GeneratePostContent(isOpeningPost: true);
             posts.Add(new PostDatabaseEntity
             {
@@ -898,12 +962,18 @@ public class DatabaseSeeder(
                 CreatedByUserId = author.Id,
                 CreatedAt = createdAt,
                 IsFirstPost = true,
-                RevisionCount = 0
+                RevisionCount = 0,
+                IsOp = true,
+                IsUsersFirstPostInDiscussion = true,
+                IsUsersFirstPostInSpace = false,
+                IsNecro = false,
+                IsMilestone = false
             });
 
             for (var j = 0; j < replyCount; j++)
             {
                 var replyAuthor = _faker.PickRandom(users);
+                postNumber++;
                 var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
                 var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 12));
                 var replyCreatedAt = lastActivityAt.AddMinutes(delay);
@@ -916,6 +986,8 @@ public class DatabaseSeeder(
                         : 1);
                 }
 
+                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+
                 var replyContent = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
                 {
@@ -926,7 +998,12 @@ public class DatabaseSeeder(
                     CreatedByUserId = replyAuthor.Id,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
-                    RevisionCount = 0
+                    RevisionCount = 0,
+                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                    IsUsersFirstPostInSpace = false,
+                    IsNecro = false,
+                    IsMilestone = milestoneThresholds.Contains(postNumber)
                 });
 
                 if (replyCreatedAt > lastActivityAt)
@@ -941,6 +1018,138 @@ public class DatabaseSeeder(
             await _context.SaveChangesAsync();
 
             Console.WriteLine($"  Seeded \"{title}\" with {postCount} posts.");
+        }
+
+        // Seed necro discussions (threads with 30+ day gaps between posts)
+        await SeedNecroDiscussionsAsync(space, users);
+    }
+
+    private async Task SeedNecroDiscussionsAsync(SpaceDatabaseEntity space, List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("  Seeding necro discussions (30+ day gaps)...");
+
+        var necroThreads = new[]
+        {
+            (Title: "Old Bug Report: Memory Leak in Production", GapDays: 45, RepliesBefore: 5, RepliesAfter: 3),
+            (Title: "Anyone Still Using This Library?", GapDays: 120, RepliesBefore: 8, RepliesAfter: 2),
+            (Title: "Throwback: The State of CSS in 2024", GapDays: 200, RepliesBefore: 12, RepliesAfter: 4),
+        };
+
+        foreach (var thread in necroThreads)
+        {
+            var author = _faker.PickRandom(users);
+            var slug = GenerateSlug(thread.Title);
+            var createdAt = Now.AddDays(-(thread.GapDays + 14)); // Start well before the gap
+
+            var discussion = new DiscussionDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                SpaceId = space.Id,
+                Title = thread.Title,
+                Slug = slug,
+                CreatedByUserId = author.Id,
+                CreatedAt = createdAt,
+                LastActivityAt = createdAt
+            };
+            _context.Discussions.Add(discussion);
+            await _context.SaveChangesAsync();
+
+            var posts = new List<PostDatabaseEntity>();
+            var usersWhoPostedInDiscussion = new HashSet<int>();
+            var postNumber = 0;
+            var lastPostDate = createdAt;
+
+            // First post (OP)
+            postNumber++;
+            usersWhoPostedInDiscussion.Add(author.Id);
+            var firstContent = GeneratePostContent(isOpeningPost: true);
+            posts.Add(new PostDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                DiscussionId = discussion.Id,
+                Content = firstContent,
+                RenderedContent = _markupParser.ToHtml(firstContent),
+                CreatedByUserId = author.Id,
+                CreatedAt = createdAt,
+                IsFirstPost = true,
+                RevisionCount = 0,
+                IsOp = true,
+                IsUsersFirstPostInDiscussion = true,
+                IsUsersFirstPostInSpace = false,
+                IsNecro = false,
+                IsMilestone = false
+            });
+            lastPostDate = createdAt;
+
+            // Replies BEFORE the gap (normal cadence, hours apart)
+            for (var j = 0; j < thread.RepliesBefore; j++)
+            {
+                var replyAuthor = _faker.PickRandom(users);
+                postNumber++;
+                var delay = _faker.Random.Double(30, 60 * 24 * 2); // 30 min to 2 days
+                var replyDate = lastPostDate.AddMinutes(delay);
+                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+
+                var content = GeneratePostContent(isOpeningPost: false);
+                posts.Add(new PostDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    DiscussionId = discussion.Id,
+                    Content = content,
+                    RenderedContent = _markupParser.ToHtml(content),
+                    CreatedByUserId = replyAuthor.Id,
+                    CreatedAt = replyDate,
+                    IsFirstPost = false,
+                    RevisionCount = 0,
+                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                    IsUsersFirstPostInSpace = false,
+                    IsNecro = false,
+                    IsMilestone = false
+                });
+                lastPostDate = replyDate;
+            }
+
+            // THE NECRO GAP — jump forward by gapDays
+            var necroDate = lastPostDate.AddDays(thread.GapDays);
+
+            // Replies AFTER the gap (the necro revival)
+            for (var j = 0; j < thread.RepliesAfter; j++)
+            {
+                var replyAuthor = _faker.PickRandom(users);
+                postNumber++;
+                var isNecro = j == 0; // Only the first post after the gap is necro
+                var replyDate = j == 0 ? necroDate : necroDate.AddMinutes(_faker.Random.Double(10, 60 * 8));
+                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+
+                var content = GeneratePostContent(isOpeningPost: false);
+                posts.Add(new PostDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    DiscussionId = discussion.Id,
+                    Content = content,
+                    RenderedContent = _markupParser.ToHtml(content),
+                    CreatedByUserId = replyAuthor.Id,
+                    CreatedAt = replyDate,
+                    IsFirstPost = false,
+                    RevisionCount = 0,
+                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                    IsUsersFirstPostInSpace = false,
+                    IsNecro = isNecro,
+                    IsMilestone = false
+                });
+                if (replyDate > necroDate) necroDate = replyDate;
+            }
+
+            discussion.LastActivityAt = necroDate;
+            discussion.PostCount = postNumber;
+            discussion.ReactionCount = 0;
+
+            _context.Posts.AddRange(posts);
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"  Seeded necro \"{thread.Title}\" ({thread.RepliesBefore} posts, {thread.GapDays}d gap, {thread.RepliesAfter} necro replies).");
         }
     }
 
@@ -982,15 +1191,14 @@ public class DatabaseSeeder(
 
         foreach (var post in posts)
         {
-            // Distribution: 20% no reactions, 40% 1-5, 25% 6-15, 10% 16-30, 5% 31-50
+            // Distribution: 70% no reactions, 20% 1-2, 7% 3-4, 3% exactly 5
             var roll = _faker.Random.Int(0, 99);
             var reactorCount = roll switch
             {
-                < 20 => 0,
-                < 60 => _faker.Random.Int(1, 5),
-                < 85 => _faker.Random.Int(6, 15),
-                < 95 => _faker.Random.Int(16, 30),
-                _    => _faker.Random.Int(31, Math.Min(50, users.Count))
+                < 70 => 0,
+                < 90 => _faker.Random.Int(1, 2),
+                < 97 => _faker.Random.Int(3, 4),
+                _    => 5
             };
 
             if (reactorCount == 0) continue;

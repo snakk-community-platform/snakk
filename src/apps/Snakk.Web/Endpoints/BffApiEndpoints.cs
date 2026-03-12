@@ -138,6 +138,12 @@ public static class BffApiEndpoints
         group.MapPost("/posts/{postId}/edit", EditPostAsync)
             .WithName("BffEditPost");
 
+        group.MapDelete("/posts/{postId}", DeletePostAsync)
+            .WithName("BffDeletePost");
+
+        group.MapGet("/posts/{postId}/history", GetPostHistoryAsync)
+            .WithName("BffGetPostHistory");
+
         // Discussion preview
         group.MapGet("/discussions/{discussionId}/preview", GetDiscussionPreviewAsync)
             .WithName("BffGetDiscussionPreview");
@@ -546,6 +552,10 @@ public static class BffApiEndpoints
         // Sync preference cookie so server-side pages can read it without an API call
         AuthCookieHelper.SetPreferenceCookies(httpContext, apiResult.PreferEndlessScroll);
 
+        // Sync timezone cookie for server-side rendering
+        var timezone = apiResult.HasTimezone ? apiResult.Timezone : null;
+        AuthCookieHelper.SetTimezoneCookie(httpContext, timezone);
+
         return Results.Ok(new
         {
             publicId = apiResult.PublicId,
@@ -554,7 +564,8 @@ public static class BffApiEndpoints
             emailVerified = apiResult.EmailVerified,
             oAuthProvider = apiResult.OauthProvider,
             preferEndlessScroll = apiResult.PreferEndlessScroll,
-            autoFollowOnReply = apiResult.AutoFollowOnReply
+            autoFollowOnReply = apiResult.AutoFollowOnReply,
+            timezone = timezone
         });
     }
 
@@ -571,12 +582,16 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient,
         HttpContext httpContext)
     {
-        var success = await apiClient.UpdatePreferencesAsync(request.PreferEndlessScroll, request.AutoFollowOnReply);
+        var success = await apiClient.UpdatePreferencesAsync(request.PreferEndlessScroll, request.AutoFollowOnReply, request.Timezone);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
 
         // Update preference cookie
         if (request.PreferEndlessScroll.HasValue)
             AuthCookieHelper.SetPreferenceCookies(httpContext, request.PreferEndlessScroll.Value);
+
+        // Update timezone cookie
+        if (request.Timezone is not null)
+            AuthCookieHelper.SetTimezoneCookie(httpContext, string.IsNullOrEmpty(request.Timezone) ? null : request.Timezone);
 
         return Results.Ok();
     }
@@ -701,7 +716,57 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, pageSize);
-        return result is not null ? Results.Ok(result) : Results.NotFound();
+        if (result is null) return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            items = result.Items.Select(p => new
+            {
+                postNumber = p.PostNumber,
+                publicId = p.PublicId,
+                content = p.Content,
+                renderedContent = p.RenderedContent,
+                createdAt = p.CreatedAt.ToDateTime().ToString("O"),
+                editedAt = p.EditedAt?.ToDateTime().ToString("O"),
+                isFirstPost = p.IsFirstPost,
+                isDeleted = p.IsDeleted,
+                hasCodeBlock = p.HasCodeBlock,
+                isUsersFirstPostInDiscussion = p.IsUsersFirstPostInDiscussion,
+                isUsersFirstPostInSpace = p.IsUsersFirstPostInSpace,
+                isOp = p.IsOp,
+                isNecro = p.IsNecro,
+                isMilestone = p.IsMilestone,
+                createdByUserId = p.CreatedByUserId,
+                author = p.Author is null ? null : new
+                {
+                    publicId = p.Author.PublicId,
+                    displayName = p.Author.DisplayName,
+                    avatarUrl = p.Author.AvatarUrl,
+                    role = p.Author.Role,
+                    isDeleted = p.Author.IsDeleted,
+                    joinedAt = p.Author.JoinedAt?.ToDateTime().ToString("O"),
+                    discussionCount = p.Author.DiscussionCount,
+                    replyCount = p.Author.ReplyCount
+                },
+                replyTo = p.ReplyTo is null ? null : new
+                {
+                    authorName = p.ReplyTo.AuthorName,
+                    contentSnippet = p.ReplyTo.ContentSnippet
+                },
+                reactions = new
+                {
+                    counts = p.Reactions?.Counts?.Counts
+                        .ToDictionary(kvp => kvp.Key, kvp => (int)kvp.Value)
+                        ?? new Dictionary<string, int>(),
+                    userReactions = p.Reactions?.UserReactions?.Reactions.ToList()
+                        ?? new List<string>()
+                }
+            }),
+            offset = result.Offset,
+            pageSize = result.PageSize,
+            hasMoreItems = result.HasMoreItems,
+            hasCodeBlocks = result.HasCodeBlocks
+        });
     }
 
     private static async Task<IResult> EditPostAsync(
@@ -716,6 +781,46 @@ public static class BffApiEndpoints
             return MapGrpcError(result.Status, result.Error);
 
         return Results.Ok();
+    }
+
+    private static async Task<IResult> DeletePostAsync(
+        string postId,
+        SnakkApiClient apiClient)
+    {
+        var success = await apiClient.DeletePostAsync(postId);
+
+        if (!success)
+            return Results.Content("<div class='alert alert-error'>Failed to delete post.</div>", "text/html");
+
+        // Return tombstone HTML for HTMX swap
+        return Results.Content(
+            $@"<div id='post-{postId}' class='card bg-base-200 shadow-md mb-4 opacity-50'>
+                <div class='card-body'>
+                    <p class='italic text-base-content/60'>[This post has been deleted]</p>
+                </div>
+            </div>",
+            "text/html");
+    }
+
+    private static async Task<IResult> GetPostHistoryAsync(
+        string postId,
+        IHttpClientFactory httpClientFactory,
+        HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/posts/{postId}/history");
+        request.Version = new Version(2, 0);
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+
+        return Results.Content(body, "text/html", statusCode: (int)response.StatusCode);
     }
 
     // Discussion preview endpoint
@@ -892,4 +997,4 @@ public record BffCreateReportRequest(string EntityType, string EntityId, string 
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName);
-public record UpdatePreferencesRequestDto(bool? PreferEndlessScroll, bool? AutoFollowOnReply);
+public record UpdatePreferencesRequestDto(bool? PreferEndlessScroll, bool? AutoFollowOnReply, string? Timezone = null);

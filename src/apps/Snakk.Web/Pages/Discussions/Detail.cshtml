@@ -395,12 +395,14 @@
         {
             var postList = Model.Posts.Items.ToList();
             string? previousAuthorId = null;
+            DateTime? previousCreatedAt = null;
 
             @for (int i = 0; i < postList.Count; i++)
             {
                 var post = postList[i];
                 var isFirstInThread = i == 0;
-                var isSameAuthorAsPrevious = previousAuthorId == post.Author.PublicId && !isFirstInThread;
+                var isNecro = post.IsNecro;
+                var isSameAuthorAsPrevious = !isNecro && previousAuthorId == post.Author.PublicId && !isFirstInThread;
                 var isOP = post.IsFirstPost;
                 var hasReplyTo = post.ReplyTo != null;
                 var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
@@ -414,11 +416,30 @@
                     ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
                 };
                 var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
+
+                @if (isNecro && previousCreatedAt.HasValue)
+                {
+                    <ul class="timeline timeline-vertical my-4">
+                        <li>
+                            <hr class="bg-base-content/20" />
+                            <div class="timeline-middle">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-base-content/40">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                                @FormatTimeBetween(previousCreatedAt.Value, post.CreatedAt.ToDateTime())
+                            </div>
+                            <hr class="bg-base-content/20" />
+                        </li>
+                    </ul>
+                }
                 <article id="post-@post.PostNumber"
                          class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "")"
                          data-author-id="@post.Author.PublicId"
                          data-post-id="@post.PublicId"
                          data-post-number="@post.PostNumber"
+                         data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
                          role="article"
                          aria-label="Post @post.PostNumber by @post.Author.DisplayName">
 
@@ -459,9 +480,17 @@
                                 {
                                     <span class="badge badge-info badge-xs">Mod</span>
                                 }
-                                @if (isOP)
+                                @if (post.IsOp)
                                 {
-                                    <span class="badge badge-primary badge-xs">OP</span>
+                                    <span class="badge badge-primary badge-xs post-badge-op">OP</span>
+                                }
+                                @if (post.IsUsersFirstPostInSpace)
+                                {
+                                    <span class="badge badge-success badge-xs post-badge-new">New</span>
+                                }
+                                @if (post.IsMilestone)
+                                {
+                                    <span class="badge badge-warning badge-xs post-badge-milestone" title="Milestone post">&#9733;</span>
                                 }
                             </div>
                         }
@@ -509,10 +538,9 @@
                                     }
                                 }
                                 <span class="post-time">
-                                    @Model.FormatRelativeTime(post.CreatedAt.ToDateTime())
-                                    @if (post.EditedAt != null)
+                                    <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
                                     {
-                                        <span>(edited)</span>
+                                        <span class="post-edited"> (edited)</span>
                                     }
                                 </span>
                             </div>
@@ -629,6 +657,7 @@
                 </article>
 
                 previousAuthorId = post.Author.PublicId;
+                previousCreatedAt = post.CreatedAt.ToDateTime();
             }
 
             <!-- Endless scroll or Pagination -->

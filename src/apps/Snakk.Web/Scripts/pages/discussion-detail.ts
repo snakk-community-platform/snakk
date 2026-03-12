@@ -13,6 +13,9 @@ interface PostAuthor {
     avatarUrl?: string;
     role?: 'admin' | 'mod' | 'user';
     isDeleted?: boolean;
+    joinedAt?: string;
+    discussionCount?: number;
+    replyCount?: number;
 }
 
 interface PostReplyTo {
@@ -30,6 +33,11 @@ interface Post {
     createdAt: string;
     editedAt?: string;
     isFirstPost: boolean;
+    isNecro?: boolean;
+    isOp?: boolean;
+    isMilestone?: boolean;
+    isUsersFirstPostInDiscussion?: boolean;
+    isUsersFirstPostInSpace?: boolean;
     replyTo?: PostReplyTo;
 }
 
@@ -1246,17 +1254,24 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
         if (!container || !sentinel) return;
 
         if (data.items && data.items.length > 0) {
-            // Track previous author for grouping
+            // Track previous author for grouping + previous createdAt for necro
             const existingPosts = container.querySelectorAll<HTMLElement>('.post-item');
             let previousAuthorId: string | null = existingPosts.length > 0
                 ? existingPosts[existingPosts.length - 1]?.dataset.authorId || null
                 : null;
+            let previousCreatedAt: string | null = existingPosts.length > 0
+                ? existingPosts[existingPosts.length - 1]?.dataset.createdAt || null
+                : null;
 
             data.items.forEach(post => {
+                if (post.isNecro && previousCreatedAt) {
+                    container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), sentinel);
+                }
                 const isSameAuthor = previousAuthorId === post.author.publicId;
-                const postElement = createPostElement(post, isSameAuthor, currentUserId, isAuthenticated, isLocked);
+                const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
                 container.insertBefore(postElement, sentinel);
                 previousAuthorId = post.author.publicId;
+                previousCreatedAt = post.createdAt;
 
                 // Load reactions for this new post
                 loadReactionsForPost(post.publicId);
@@ -1322,13 +1337,63 @@ function formatPostRelativeTime(dateString: string): string {
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    if (days < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const tz = window.snakkTimezone || 'UTC';
+    try {
+        if (days < 365) return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
+        return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+        if (days < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+}
+
+function formatTimeBetween(dateA: string, dateB: string): string {
+    const a = new Date(dateA).getTime();
+    const b = new Date(dateB).getTime();
+    const diffMs = Math.abs(b - a);
+    const days = Math.floor(diffMs / 86400000);
+
+    if (days < 1) return 'less than a day later';
+    if (days === 1) return '1 day later';
+    if (days < 7) return `${days} days later`;
+
+    const weeks = Math.floor(days / 7);
+    if (days < 30) return weeks === 1 ? '1 week later' : `${weeks} weeks later`;
+
+    const months = Math.floor(days / 30);
+    if (days < 365) return months === 1 ? '1 month later' : `${months} months later`;
+
+    const years = Math.floor(days / 365);
+    const remainingMonths = Math.floor((days % 365) / 30);
+    if (remainingMonths === 0) return years === 1 ? '1 year later' : `${years} years later`;
+    return years === 1
+        ? `1 year, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} later`
+        : `${years} years, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} later`;
+}
+
+function createNecroSeparator(previousCreatedAt: string, necroCreatedAt: string): HTMLElement {
+    const label = formatTimeBetween(previousCreatedAt, necroCreatedAt);
+    const el = document.createElement('ul');
+    el.className = 'timeline timeline-vertical my-4';
+    el.innerHTML = `
+        <li>
+            <hr class="bg-base-content/20" />
+            <div class="timeline-middle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-base-content/40">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">${escapeHtml(label)}</div>
+            <hr class="bg-base-content/20" />
+        </li>`;
+    return el;
 }
 
 function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): HTMLElement {
     const article = document.createElement('article');
     article.id = `post-${post.postNumber}`;
+    article.dataset.createdAt = post.createdAt;
     const authorClass = isSameAuthorAsPrevious ? 'same-author' : 'new-author';
     article.className = `post-item post-article post-layout group ${post.isFirstPost ? 'first-post' : ''} ${authorClass}`;
     article.dataset.authorId = post.author.publicId;
@@ -1367,6 +1432,15 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
             } else if (post.author.role === 'mod') {
                 badges += '<span class="badge badge-info badge-xs">Mod</span>';
             }
+            if (post.isOp) {
+                badges += '<span class="badge badge-primary badge-xs post-badge-op">OP</span>';
+            }
+            if (post.isUsersFirstPostInSpace) {
+                badges += '<span class="badge badge-success badge-xs post-badge-new">New</span>';
+            }
+            if (post.isMilestone) {
+                badges += '<span class="badge badge-warning badge-xs post-badge-milestone" title="Milestone post">\u2605</span>';
+            }
             authorPaneHtml += `<div class="post-author-badges">${badges}</div>`;
         }
         authorPaneHtml += '</aside>';
@@ -1402,7 +1476,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
         ownerItems = `
             <li><button onclick="editPost('${post.publicId}', '${currentUserId}')" class="text-sm">Edit</button></li>
             <li>
-                <button hx-delete="/api/posts/${post.publicId}?userId=${currentUserId}"
+                <button hx-delete="/bff/posts/${post.publicId}"
                         hx-target="#post-${post.publicId}"
                         hx-swap="outerHTML"
                         hx-confirm="Are you sure you want to delete this post?"
@@ -1436,7 +1510,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
             </button>
             <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
                 <li>
-                    <button hx-get="/api/posts/${post.publicId}/history"
+                    <button hx-get="/bff/posts/${post.publicId}/history"
                             hx-target="#history-modal-content"
                             hx-swap="innerHTML"
                             onclick="history_modal.showModal()"
@@ -1493,7 +1567,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
             <div class="post-toolbar">
                 <div class="post-toolbar-left">
                     ${inlineAuthorHtml}
-                    <span class="post-time">${formatPostRelativeTime(post.createdAt)}${editedTag}</span>
+                    <span class="post-time"><time data-timestamp="${post.createdAt}">${formatPostRelativeTime(post.createdAt)}</time>${editedTag}</span>
                 </div>
                 <div class="post-toolbar-right">
                     ${actionButtonsHtml}
@@ -1746,10 +1820,16 @@ async function handleFragmentEntry(
 
         if (data.items && data.items.length > 0) {
             let previousAuthorId: string | null = null;
+            let previousCreatedAt: string | null = null;
             data.items.forEach(post => {
-                const el = createPostElement(post, previousAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked);
+                if (post.isNecro && previousCreatedAt) {
+                    container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), scrollSentinel);
+                }
+                const isSameAuthor = previousAuthorId === post.author.publicId;
+                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
                 container.insertBefore(el, scrollSentinel);
                 previousAuthorId = post.author.publicId;
+                previousCreatedAt = post.createdAt;
             });
             postsCurrentOffset = targetOffset + data.items.length;
 
@@ -1842,10 +1922,16 @@ async function loadEarlierPosts(
             const loadUpSentinel = document.getElementById('load-up-sentinel');
             const insertBefore = loadUpSentinel?.nextSibling ?? firstCurrentPost;
             let previousAuthorId: string | null = null;
+            let previousCreatedAt: string | null = null;
             data.items.forEach(post => {
-                const el = createPostElement(post, previousAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked);
+                if (post.isNecro && previousCreatedAt) {
+                    if (insertBefore) container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), insertBefore);
+                }
+                const isSameAuthor = previousAuthorId === post.author.publicId;
+                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
                 if (insertBefore) container.insertBefore(el, insertBefore);
                 previousAuthorId = post.author.publicId;
+                previousCreatedAt = post.createdAt;
             });
 
             // Restore scroll position to cancel the layout shift from prepended content
@@ -1909,8 +1995,11 @@ function initThreadNav(config: DiscussionConfig): void {
         return current;
     }
 
+    let displayedPostNumber = 1;
+
     function updateNav(postNumber: number): void {
         const n = Math.max(1, Math.min(postNumber, totalPostCount));
+        displayedPostNumber = n;
         if (input && document.activeElement !== input) {
             input.value = String(n);
         }
@@ -1937,14 +2026,14 @@ function initThreadNav(config: DiscussionConfig): void {
         const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-nav]');
         if (!btn) return;
         const action = btn.dataset.nav!;
-        const current = getCurrentPostNumber();
         let target: number;
         if (action === 'first') target = 1;
-        else if (action === 'prev') target = Math.max(1, current - postsPageSize);
-        else if (action === 'next') target = Math.min(totalPostCount, current + postsPageSize);
+        else if (action === 'prev') target = Math.max(1, displayedPostNumber - postsPageSize);
+        else if (action === 'next') target = Math.min(totalPostCount, displayedPostNumber + postsPageSize);
         else if (action === 'last') target = totalPostCount;
         else return;
 
+        updateNav(target);
         navigateToPostNumber(target, config);
     });
 
@@ -1982,6 +2071,23 @@ function navigateToPostNumber(postNumber: number, config: DiscussionConfig): voi
     // Need to load — use fragment entry mechanism
     history.replaceState(null, '', location.pathname + `#post-${n}`);
     handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+}
+
+// ===== Relative Timestamp Ticker =====
+
+let timestampTickerInterval: ReturnType<typeof setInterval> | null = null;
+
+function updateAllTimestamps(): void {
+    document.querySelectorAll<HTMLElement>('time[data-timestamp]').forEach(el => {
+        const formatted = formatPostRelativeTime(el.dataset.timestamp!);
+        if (formatted) el.textContent = formatted;
+    });
+}
+
+function initTimestampTicker(): void {
+    updateAllTimestamps();
+    if (timestampTickerInterval) clearInterval(timestampTickerInterval);
+    timestampTickerInterval = setInterval(updateAllTimestamps, 30_000);
 }
 
 // ===== Initialize Discussion Page =====
@@ -2059,6 +2165,9 @@ function initDiscussionPage(config: DiscussionConfig): void {
 
     // Initialize keyboard navigation
     initKeyboardNavigation();
+
+    // Start relative-time ticker (updates all data-timestamp elements every 30s)
+    initTimestampTicker();
 
     // Setup event listeners
     setupEventListeners();

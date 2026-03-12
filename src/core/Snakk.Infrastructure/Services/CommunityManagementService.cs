@@ -157,6 +157,7 @@ public class CommunityManagementService(
             Slug = community.Slug,
             Name = community.Name,
             Description = community.Description,
+            Timezone = community.Timezone,
             OwnerId = string.Empty, // TODO: Add owner tracking
             AdminUserIds = adminUserIds,
             ModeratorUserIds = modUserIds
@@ -178,6 +179,7 @@ public class CommunityManagementService(
 
         community.Name = request.Name;
         community.Description = request.Description;
+        community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
 
         await context.SaveChangesAsync(cancellationToken);
 

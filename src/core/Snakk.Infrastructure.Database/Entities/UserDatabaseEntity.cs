@@ -35,6 +35,7 @@ public class UserDatabaseEntity
     // User preferences
     public bool PreferEndlessScroll { get; set; } = true;
     public bool AutoFollowOnReply { get; set; } = true;
+    public string? Timezone { get; set; }
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }

@@ -42,7 +42,8 @@ public class CommunityResolutionMiddleware
                 isCustomDomain: true,
                 name: domainLookup.CommunityName,
                 isMultiCommunity: _isMultiCommunity,
-                defaultCommunitySlug: _defaultCommunitySlug);
+                defaultCommunitySlug: _defaultCommunitySlug,
+                timezone: domainLookup.Timezone);
 
             // No path rewriting needed for custom domains
             await _next(context);

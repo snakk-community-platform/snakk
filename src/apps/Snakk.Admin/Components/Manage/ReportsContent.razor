@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h5">Reports</MudText>
@@ -36,7 +38,7 @@
                         <td>@report.ReasonName</td>
                         <td>@report.ReporterDisplayName</td>
                         <td>@report.Status</td>
-                        <td>@(new DateTime(report.CreatedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
+                        <td>@Tz.FormatDateTime(report.CreatedAtTicks)</td>
                         <td>
                             @if (report.Status == "Pending")
                             {
@@ -71,6 +73,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await LoadReports();
     }
 

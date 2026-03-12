@@ -66,7 +66,8 @@ public class SetupService(IConfiguration configuration)
                 ["Domain"] = state.Domain,
                 ["SiteName"] = state.SiteName,
                 ["DefaultCommunitySlug"] = state.DefaultCommunitySlug,
-                ["PrimaryDomains"] = new[] { state.Domain }
+                ["PrimaryDomains"] = new[] { state.Domain },
+                ["SiteTimezone"] = state.Timezone
             },
             ["Features"] = new Dictionary<string, object>
             {
@@ -159,7 +160,8 @@ public class SetupService(IConfiguration configuration)
                 ["FileStorage__BasePath"] = state.AvatarStoragePath,
                 ["Setup__AdminEmail"] = state.AdminEmail,
                 ["Setup__AdminPassword"] = state.AdminPassword,
-                ["Setup__AdminDisplayName"] = state.AdminDisplayName
+                ["Setup__AdminDisplayName"] = state.AdminDisplayName,
+                ["Snakk__SiteTimezone"] = state.Timezone
             }
         };
 

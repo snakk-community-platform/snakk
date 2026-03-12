@@ -29,6 +29,43 @@
                     <MudSelectItem Value="@("Private")">Private</MudSelectItem>
                     <MudSelectItem Value="@("Unlisted")">Unlisted</MudSelectItem>
                 </MudSelect>
+
+                <MudSelect @bind-Value="_timezone" T="string" Label="Community Timezone"
+                           HelperText="Controls how dates and times display for members of this community">
+                    <MudSelectItem Value="@("UTC")">UTC</MudSelectItem>
+                    <MudSelectItem Disabled="true" Value="@("---americas")">─── Americas ───</MudSelectItem>
+                    <MudSelectItem Value="@("America/New_York")">Eastern Time (New York)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Chicago")">Central Time (Chicago)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Denver")">Mountain Time (Denver)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Los_Angeles")">Pacific Time (Los Angeles)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Anchorage")">Alaska Time (Anchorage)</MudSelectItem>
+                    <MudSelectItem Value="@("Pacific/Honolulu")">Hawaii (Honolulu)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Toronto")">Eastern Time (Toronto)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Vancouver")">Pacific Time (Vancouver)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Sao_Paulo")">Brasília (São Paulo)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Argentina/Buenos_Aires")">Argentina (Buenos Aires)</MudSelectItem>
+                    <MudSelectItem Value="@("America/Mexico_City")">Central Time (Mexico City)</MudSelectItem>
+                    <MudSelectItem Disabled="true" Value="@("---europe")">─── Europe ───</MudSelectItem>
+                    <MudSelectItem Value="@("Europe/London")">GMT/BST (London)</MudSelectItem>
+                    <MudSelectItem Value="@("Europe/Paris")">CET (Paris, Berlin, Rome)</MudSelectItem>
+                    <MudSelectItem Value="@("Europe/Helsinki")">EET (Helsinki, Kyiv)</MudSelectItem>
+                    <MudSelectItem Value="@("Europe/Moscow")">Moscow Time</MudSelectItem>
+                    <MudSelectItem Value="@("Europe/Oslo")">CET (Oslo, Stockholm, Copenhagen)</MudSelectItem>
+                    <MudSelectItem Disabled="true" Value="@("---asia")">─── Asia &amp; Pacific ───</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Dubai")">GST (Dubai)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Kolkata")">IST (India)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Bangkok")">ICT (Bangkok, Jakarta)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Singapore")">SGT (Singapore, Kuala Lumpur)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Shanghai")">CST (China, Hong Kong)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Tokyo")">JST (Tokyo)</MudSelectItem>
+                    <MudSelectItem Value="@("Asia/Seoul")">KST (Seoul)</MudSelectItem>
+                    <MudSelectItem Value="@("Australia/Sydney")">AEDT (Sydney)</MudSelectItem>
+                    <MudSelectItem Value="@("Pacific/Auckland")">NZDT (Auckland)</MudSelectItem>
+                    <MudSelectItem Disabled="true" Value="@("---africa")">─── Africa ───</MudSelectItem>
+                    <MudSelectItem Value="@("Africa/Johannesburg")">SAST (Johannesburg)</MudSelectItem>
+                    <MudSelectItem Value="@("Africa/Cairo")">EET (Cairo)</MudSelectItem>
+                    <MudSelectItem Value="@("Africa/Lagos")">WAT (Lagos)</MudSelectItem>
+                </MudSelect>
             }
 
             @if (Scope?.ScopeType == "Space")
@@ -87,6 +124,7 @@
     private string _description = "";
     private string _visibility = "Public";
     private string _defaultSort = "latest";
+    private string _timezone = "UTC";
     private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
     private string? _loadError;
     private string? _saveError;
@@ -114,6 +152,22 @@
             catch
             {
                 _loadError = "Failed to load space settings.";
+            }
+        }
+        else if (Scope.ScopeType == "Community")
+        {
+            try
+            {
+                var response = await ManageClient.GetCommunitySettingsAsync(
+                    new GetCommunitySettingsRequest { CommunityPublicId = Scope.ScopePublicId });
+
+                _name = response.Name;
+                _description = response.HasDescription ? response.Description : "";
+                _timezone = response.HasTimezone ? response.Timezone : "UTC";
+            }
+            catch
+            {
+                _loadError = "Failed to load community settings.";
             }
         }
         else
@@ -163,6 +217,30 @@
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
 
                 var response = await ManageClient.UpdateSpaceSettingsAsync(request);
+
+                if (response.Success)
+                    _saved = true;
+                else
+                    _saveError = response.HasErrorMessage ? response.ErrorMessage : "Failed to save settings. Please try again.";
+            }
+            catch
+            {
+                _saveError = "Failed to save settings. Please try again.";
+            }
+        }
+        else if (Scope?.ScopeType == "Community")
+        {
+            try
+            {
+                var request = new Snakk.Protos.Manage.UpdateCommunitySettingsRequest
+                {
+                    CommunityPublicId = Scope.ScopePublicId,
+                    Name = _name,
+                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
+                    Timezone = string.IsNullOrWhiteSpace(_timezone) ? null : _timezone
+                };
+
+                var response = await ManageClient.UpdateCommunitySettingsAsync(request);
 
                 if (response.Success)
                     _saved = true;

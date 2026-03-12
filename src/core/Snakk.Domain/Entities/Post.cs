@@ -17,6 +17,11 @@ public class Post
     public bool IsDeleted { get; private set; }
     public string RenderedContent { get; private set; }
     public bool HasCodeBlock { get; private set; }
+    public bool IsUsersFirstPostInDiscussion { get; private set; }
+    public bool IsUsersFirstPostInSpace { get; private set; }
+    public bool IsOp { get; private set; }
+    public bool IsNecro { get; private set; }
+    public bool IsMilestone { get; private set; }
     public int RevisionCount { get; private set; }
 
     private readonly List<PostRevision> _revisions = [];
@@ -50,6 +55,11 @@ public class Post
         PostId? replyToPostId = null,
         bool isDeleted = false,
         bool hasCodeBlock = false,
+        bool isUsersFirstPostInDiscussion = false,
+        bool isUsersFirstPostInSpace = false,
+        bool isOp = false,
+        bool isNecro = false,
+        bool isMilestone = false,
         int revisionCount = 0,
         List<PostRevision>? revisions = null)
     {
@@ -65,6 +75,11 @@ public class Post
         ReplyToPostId = replyToPostId;
         IsDeleted = isDeleted;
         HasCodeBlock = hasCodeBlock;
+        IsUsersFirstPostInDiscussion = isUsersFirstPostInDiscussion;
+        IsUsersFirstPostInSpace = isUsersFirstPostInSpace;
+        IsOp = isOp;
+        IsNecro = isNecro;
+        IsMilestone = isMilestone;
         RevisionCount = revisionCount;
         _revisions = revisions ?? [];
         _unsavedRevisions = [];
@@ -111,6 +126,11 @@ public class Post
         PostId? replyToPostId = null,
         bool isDeleted = false,
         bool hasCodeBlock = false,
+        bool isUsersFirstPostInDiscussion = false,
+        bool isUsersFirstPostInSpace = false,
+        bool isOp = false,
+        bool isNecro = false,
+        bool isMilestone = false,
         int revisionCount = 0,
         List<PostRevision>? revisions = null) =>
         new Post(
@@ -126,6 +146,11 @@ public class Post
             replyToPostId,
             isDeleted,
             hasCodeBlock,
+            isUsersFirstPostInDiscussion,
+            isUsersFirstPostInSpace,
+            isOp,
+            isNecro,
+            isMilestone,
             revisionCount,
             revisions);
 

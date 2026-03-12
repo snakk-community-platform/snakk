@@ -194,7 +194,7 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
-    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll, bool? autoFollowOnReply)
+    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll, bool? autoFollowOnReply, string? timezone = null)
     {
         var user = await userRepository.GetByPublicIdAsync(userId);
 
@@ -206,6 +206,9 @@ public class AuthenticationUseCase(
 
         if (autoFollowOnReply.HasValue)
             user.SetAutoFollowOnReply(autoFollowOnReply.Value);
+
+        if (timezone is not null)
+            user.SetTimezone(timezone == "" ? null : timezone);
 
         await userRepository.UpdateAsync(user);
 

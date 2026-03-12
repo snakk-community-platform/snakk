@@ -470,13 +470,14 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
-    public virtual async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null, string? timezone = null)
     {
         try
         {
             var request = new UpdatePreferencesRequest();
             if (preferEndlessScroll.HasValue) request.PreferEndlessScroll = preferEndlessScroll.Value;
             if (autoFollowOnReply.HasValue) request.AutoFollowOnReply = autoFollowOnReply.Value;
+            if (timezone is not null) request.Timezone = timezone;
             await authClient.UpdatePreferencesAsync(request);
 
             return true;
@@ -488,6 +489,16 @@ public class SnakkApiClient(
     {
         try { await authClient.LogoutAsync(new LogoutRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); }
+    }
+
+    public virtual async Task<string?> GetSiteTimezoneAsync()
+    {
+        try
+        {
+            var response = await authClient.GetPublicSettingsAsync(new GetPublicSettingsRequest());
+            return string.IsNullOrEmpty(response.Timezone) ? null : response.Timezone;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     public virtual async Task<bool> IsHealthyAsync()

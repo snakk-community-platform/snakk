@@ -60,6 +60,7 @@ AddGrpcClient<ManageService.ManageServiceClient>(builder.Services);
 // ManageScopeService (scoped — uses gRPC client)
 builder.Services.AddScoped<ManageScopeService>();
 builder.Services.AddScoped<ManageScopeState>();
+builder.Services.AddScoped<AdminTimezoneService>();
 
 // JWT-based authentication from SSO service
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT secret key not configured");

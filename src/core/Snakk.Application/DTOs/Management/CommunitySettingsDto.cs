@@ -23,6 +23,8 @@ public class CommunitySettingsDto
 
     public bool AllowMemberInvites { get; set; } = true;
 
+    public string? Timezone { get; set; }
+
     // Owner and team
     public string OwnerId { get; set; } = string.Empty;
     public List<string> AdminUserIds { get; set; } = new();
@@ -47,4 +49,6 @@ public class UpdateCommunitySettingsRequest
     public bool RequireApproval { get; set; }
 
     public bool AllowMemberInvites { get; set; } = true;
+
+    public string? Timezone { get; set; }
 }

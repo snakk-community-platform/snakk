@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h5">Bans</MudText>
@@ -73,8 +75,8 @@ else
                             <td>@ban.BanType</td>
                             <td>@ban.Reason</td>
                             <td>@ban.BannedByDisplayName</td>
-                            <td>@(new DateTime(ban.BannedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
-                            <td>@(ban.HasExpiresAtTicks ? new DateTime(ban.ExpiresAtTicks, DateTimeKind.Utc).ToString("g") : "Permanent")</td>
+                            <td>@Tz.FormatDateTime(ban.BannedAtTicks)</td>
+                            <td>@Tz.FormatDateTime(ban.HasExpiresAtTicks ? ban.ExpiresAtTicks : null)</td>
                         </tr>
                     }
                 </tbody>
@@ -110,8 +112,8 @@ else
                             <td>@ban.BanType</td>
                             <td>@ban.Reason</td>
                             <td>@ban.BannedByDisplayName</td>
-                            <td>@(new DateTime(ban.BannedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
-                            <td>@(ban.HasExpiresAtTicks ? new DateTime(ban.ExpiresAtTicks, DateTimeKind.Utc).ToString("g") : "Permanent")</td>
+                            <td>@Tz.FormatDateTime(ban.BannedAtTicks)</td>
+                            <td>@Tz.FormatDateTime(ban.HasExpiresAtTicks ? ban.ExpiresAtTicks : null)</td>
                             <td>
                                 <MudButton Size="Size.Small" Variant="Variant.Text"
                                            OnClick="@(() => RevokeBan(ban.PublicId))" Disabled="@_saving">
@@ -144,6 +146,7 @@ else
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await LoadBans();
     }
 

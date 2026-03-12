@@ -27,6 +27,9 @@ public class CommunityDatabaseEntity
     // Avatar revision number (incremented when avatar changes)
     public int AvatarRevision { get; set; } = 0;
 
+    // Timezone (IANA timezone ID, e.g. "Europe/London"; null = use site-wide setting)
+    public string? Timezone { get; set; }
+
     // Rules denormalization
     public bool HasRules { get; set; }
     public string? RulesRevision { get; set; }

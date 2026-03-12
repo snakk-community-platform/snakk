@@ -27,7 +27,8 @@ public class ManageGrpcService(
     ISpaceManagementService spaceManagementService,
     IModerationRepository moderationRepository,
     IDashboardChartRepository dashboardChartRepository,
-    AnnouncementUseCase announcementUseCase) : ManageService.ManageServiceBase
+    AnnouncementUseCase announcementUseCase,
+    ISettingsService settingsService) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -723,6 +724,113 @@ public class ManageGrpcService(
         }
 
         return response;
+    }
+
+    public override async Task<CommunitySettingsResponse> GetCommunitySettings(
+        GetCommunitySettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Community", request.CommunityPublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var settings = await communityManagementService.GetSettingsAsync(request.CommunityPublicId);
+        if (settings is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
+
+        var response = new CommunitySettingsResponse
+        {
+            Name = settings.Name,
+            Slug = settings.Slug
+        };
+        if (settings.Description is not null) response.Description = settings.Description;
+        if (settings.Timezone is not null) response.Timezone = settings.Timezone;
+        return response;
+    }
+
+    public override async Task<UpdateCommunitySettingsResponse> UpdateCommunitySettings(
+        UpdateCommunitySettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Community", request.CommunityPublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var updateRequest = new Snakk.Application.DTOs.Management.UpdateCommunitySettingsRequest
+        {
+            Name = request.Name,
+            Description = request.HasDescription ? request.Description : null,
+            Timezone = request.HasTimezone ? request.Timezone : null
+        };
+
+        var result = await communityManagementService.UpdateSettingsAsync(
+            request.CommunityPublicId, updateRequest);
+
+        return result is null
+            ? new UpdateCommunitySettingsResponse { Success = false, ErrorMessage = "Community not found" }
+            : new UpdateCommunitySettingsResponse { Success = true };
+    }
+
+    public override async Task<SiteSettingsGrpcResponse> GetSiteSettings(
+        GetSiteSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        // Global admin only
+        var user = await dbContext.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new { u.Roles })
+            .FirstOrDefaultAsync();
+        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        if (!isGlobalAdmin)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
+
+        var siteInfo = await settingsService.GetSiteInfoAsync();
+        var response = new SiteSettingsGrpcResponse
+        {
+            SiteName = siteInfo.SiteName,
+            Timezone = siteInfo.Timezone
+        };
+        if (!string.IsNullOrEmpty(siteInfo.SiteDescription)) response.SiteDescription = siteInfo.SiteDescription;
+        return response;
+    }
+
+    public override async Task<UpdateSiteSettingsResponse> UpdateSiteSettings(
+        UpdateSiteSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var user = await dbContext.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new { u.Roles })
+            .FirstOrDefaultAsync();
+        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        if (!isGlobalAdmin)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
+
+        var dto = new Snakk.Application.DTOs.Settings.SiteInfoDto
+        {
+            SiteName = request.SiteName,
+            SiteDescription = request.HasSiteDescription ? request.SiteDescription : string.Empty,
+            Timezone = request.Timezone,
+            LogoUrl = string.Empty,
+            Language = "en"
+        };
+
+        await settingsService.UpdateSiteInfoAsync(dto, userId);
+        return new UpdateSiteSettingsResponse { Success = true };
     }
 
     private static IEnumerable<TeamMemberItem> MapTeamItems(IEnumerable<UserRoleDto> roles) =>

@@ -14,6 +14,7 @@ public record UpdateProfileRequest(
 
 public record UpdatePreferencesRequest(
     bool? PreferEndlessScroll,
-    bool? AutoFollowOnReply);
+    bool? AutoFollowOnReply,
+    string? Timezone = null);
 
 public record RefreshTokenRequest(string RefreshToken);

@@ -41,7 +41,7 @@ public class ReactionUseCaseTests
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, type))
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
             .ReturnsAsync((Reaction?)null);
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(reactionCounts);
@@ -74,7 +74,7 @@ public class ReactionUseCaseTests
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, type))
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
             .ReturnsAsync(existingReaction);
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(reactionCounts);
@@ -93,22 +93,23 @@ public class ReactionUseCaseTests
     }
 
     [Test]
-    public async Task ToggleReactionAsync_AddingDifferentType_IncrementsBoth()
+    public async Task ToggleReactionAsync_AddingDifferentType_ReplacesExisting()
     {
-        // Arrange - user already has Agree, now adding Love
+        // Arrange - user already has Agree, now adding Love → Love replaces Agree, counter unchanged
         var postId = PostId.New();
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
+        var existingType = ReactionType.Agree;
         var newType = ReactionType.Love;
 
         var post = Post.Create(discussionId, UserId.New(), "Test content", "<p>Test content</p>");
+        var existingReaction = Reaction.Create(postId, userId, existingType);
         var reactionCounts = new Dictionary<ReactionType, int> { { ReactionType.Love, 1 } };
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
-        // No existing reaction of this specific type
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, newType))
-            .ReturnsAsync((Reaction?)null);
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
+            .ReturnsAsync(existingReaction);
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(reactionCounts);
 
@@ -119,8 +120,12 @@ public class ReactionUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsTrue();
 
+        _mockReactionRepository.Verify(r => r.DeleteAsync(existingReaction), Times.Once);
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Once);
-        _mockCounterService.Verify(c => c.IncrementReactionCountAsync(postId, discussionId), Times.Once);
+        // Counter does not change on replace — no increment or decrement
+        _mockCounterService.Verify(c => c.IncrementReactionCountAsync(postId, discussionId), Times.Never);
+        _mockCounterService.Verify(c => c.DecrementReactionCountAsync(postId, discussionId), Times.Never);
+        _mockRealtimeNotifier.Verify(n => n.NotifyReactionUpdatedAsync(postId, discussionId, reactionCounts), Times.Once);
     }
 
     [Test]
@@ -154,7 +159,7 @@ public class ReactionUseCaseTests
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, It.IsAny<ReactionType>()))
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
             .ReturnsAsync((Reaction?)null);
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(new Dictionary<ReactionType, int>());
@@ -316,8 +321,8 @@ public class ReactionUseCaseTests
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(new Dictionary<ReactionType, int>());
 
-        // First call - no existing reaction of this type
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, type))
+        // First call - no existing reaction
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
             .ReturnsAsync((Reaction?)null);
 
         // Act - First toggle (add)
@@ -327,9 +332,9 @@ public class ReactionUseCaseTests
         await Assert.That(firstResult.IsSuccess).IsTrue();
         await Assert.That(firstResult.Value).IsTrue();
 
-        // Arrange - Second call - now there's an existing reaction of this type
+        // Arrange - Second call - now there's an existing reaction
         var addedReaction = Reaction.Create(postId, userId, type);
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, type))
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
             .ReturnsAsync(addedReaction);
 
         // Act - Second toggle (remove)
@@ -344,9 +349,9 @@ public class ReactionUseCaseTests
     }
 
     [Test]
-    public async Task ToggleReactionAsync_MultipleTypes_AllAddedIndependently()
+    public async Task ToggleReactionAsync_DifferentType_ReplacesExistingReaction()
     {
-        // Arrange
+        // Arrange - first add Agree (no existing), then add Love (Agree exists → Love replaces Agree)
         var postId = PostId.New();
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
@@ -354,13 +359,20 @@ public class ReactionUseCaseTests
 
         _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
             .ReturnsAsync(post);
-        _mockReactionRepository.Setup(r => r.GetByUserPostAndTypeAsync(userId, postId, It.IsAny<ReactionType>()))
-            .ReturnsAsync((Reaction?)null);
         _mockReactionRepository.Setup(r => r.GetCountsByPostIdAsync(postId))
             .ReturnsAsync(new Dictionary<ReactionType, int>());
 
-        // Act - Add Agree and Love (both should be added, not replace each other)
+        // First call - no existing reaction
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
+            .ReturnsAsync((Reaction?)null);
+
         var agreeResult = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Agree);
+
+        // Second call - Agree exists, Love should replace it
+        var agreeReaction = Reaction.Create(postId, userId, ReactionType.Agree);
+        _mockReactionRepository.Setup(r => r.GetByUserAndPostAsync(userId, postId))
+            .ReturnsAsync(agreeReaction);
+
         var loveResult = await _useCase.ToggleReactionAsync(postId, userId, ReactionType.Love);
 
         // Assert
@@ -369,8 +381,12 @@ public class ReactionUseCaseTests
         await Assert.That(loveResult.IsSuccess).IsTrue();
         await Assert.That(loveResult.Value).IsTrue();
 
+        // 2 adds (Agree + Love), 1 delete (Agree removed on replace)
         _mockReactionRepository.Verify(r => r.AddAsync(It.IsAny<Reaction>()), Times.Exactly(2));
-        _mockCounterService.Verify(c => c.IncrementReactionCountAsync(postId, discussionId), Times.Exactly(2));
+        _mockReactionRepository.Verify(r => r.DeleteAsync(It.IsAny<Reaction>()), Times.Once);
+        // Only the first add increments the counter; the replace keeps it unchanged
+        _mockCounterService.Verify(c => c.IncrementReactionCountAsync(postId, discussionId), Times.Once);
+        _mockCounterService.Verify(c => c.DecrementReactionCountAsync(postId, discussionId), Times.Never);
     }
 
     #endregion

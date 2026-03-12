@@ -53,7 +53,8 @@ public static class MeEndpoints
             EmailVerified: result.Value.EmailVerified,
             OAuthProvider: result.Value.OAuthProvider,
             PreferEndlessScroll: result.Value.PreferEndlessScroll,
-            AutoFollowOnReply: result.Value.AutoFollowOnReply));
+            AutoFollowOnReply: result.Value.AutoFollowOnReply,
+            Timezone: result.Value.Timezone));
     }
 
     private static async Task<IResult> UpdateProfileAsync(
@@ -117,7 +118,8 @@ public static class MeEndpoints
         var result = await authUseCase.UpdatePreferencesAsync(
             userId,
             request.PreferEndlessScroll,
-            request.AutoFollowOnReply);
+            request.AutoFollowOnReply,
+            request.Timezone);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });

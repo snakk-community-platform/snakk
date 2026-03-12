@@ -137,6 +137,7 @@ interface Window {
     // Runtime configuration
     realtimeServiceUrl?: string;
     currentUserId?: string;
+    snakkTimezone?: string;
     snakkRealtime: any;
 
     // Page-specific exports

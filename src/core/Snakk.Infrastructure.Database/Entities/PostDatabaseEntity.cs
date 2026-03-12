@@ -25,6 +25,13 @@ public class PostDatabaseEntity
     public int RevisionCount { get; set; }
     public int ReactionCount { get; set; }
 
+    // Denormalized post flags (computed at write time)
+    public bool IsUsersFirstPostInDiscussion { get; set; }
+    public bool IsUsersFirstPostInSpace { get; set; }
+    public bool IsOp { get; set; }
+    public bool IsNecro { get; set; }
+    public bool IsMilestone { get; set; }
+
     // Many-to-one relationships
     public int DiscussionId { get; set; }
     public virtual DiscussionDatabaseEntity Discussion { get; set; } = null!;

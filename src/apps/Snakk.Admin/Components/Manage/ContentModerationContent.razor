@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h5">Content Moderation</MudText>
@@ -28,7 +30,7 @@
                         <td>@item.ContentType</td>
                         <td>@item.Preview</td>
                         <td>@item.ReportCount</td>
-                        <td>@(new DateTime(item.CreatedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
+                        <td>@Tz.FormatDateTime(item.CreatedAtTicks)</td>
                         <td>
                             <MudStack Row="true" Spacing="1">
                                 <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
@@ -62,6 +64,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await LoadContent();
     }
 

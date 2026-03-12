@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h5">Team</MudText>
@@ -67,7 +69,7 @@ else
                         <tr>
                             <td>@member.UserDisplayName</td>
                             <td>@member.RoleType</td>
-                            <td>@(new DateTime(member.AssignedAtTicks, DateTimeKind.Utc).ToString("d"))</td>
+                            <td>@Tz.FormatDate(member.AssignedAtTicks)</td>
                         </tr>
                     }
                 </tbody>
@@ -93,7 +95,7 @@ else
                         <tr>
                             <td>@member.UserDisplayName</td>
                             <td>@member.RoleType</td>
-                            <td>@(new DateTime(member.AssignedAtTicks, DateTimeKind.Utc).ToString("d"))</td>
+                            <td>@Tz.FormatDate(member.AssignedAtTicks)</td>
                             <td>
                                 <MudButton Size="Size.Small" Variant="Variant.Text"
                                            OnClick="@(() => RemoveModerator(member.RolePublicId))" Disabled="@_saving">
@@ -124,6 +126,8 @@ else
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+
+        await Tz.EnsureInitializedAsync();
 
         _newModRoleType = Scope.ScopeType switch
         {

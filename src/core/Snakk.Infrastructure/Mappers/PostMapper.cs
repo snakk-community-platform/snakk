@@ -21,10 +21,15 @@ public static class PostMapper
             entity.ReplyToPostId is not null ? PostId.From(entity.ReplyToPost!.PublicId) : null,
             entity.IsDeleted,
             entity.HasCodeBlock,
+            entity.IsUsersFirstPostInDiscussion,
+            entity.IsUsersFirstPostInSpace,
+            entity.IsOp,
+            entity.IsNecro,
+            entity.IsMilestone,
             entity.RevisionCount);
 
     public static PostDatabaseEntity ToPersistence(this Post post) =>
-        // Note: Navigation properties must be set separately in repository adapter
+        // Note: Navigation properties and post flags will be set by repository adapter
         new()
         {
             PublicId = post.PublicId,
@@ -37,6 +42,6 @@ public static class PostMapper
             IsDeleted = post.IsDeleted,
             HasCodeBlock = post.HasCodeBlock,
             RevisionCount = post.RevisionCount
-            // DiscussionId, CreatedByUserId, ReplyToPostId will be set by repository adapter
+            // DiscussionId, CreatedByUserId, ReplyToPostId, and post flags will be set by repository adapter
         };
 }

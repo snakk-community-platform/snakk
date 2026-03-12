@@ -260,10 +260,13 @@ public class PostUseCase(
                     user.Role,
                     user.AvatarFileName,
                     user.AvatarRevision,
-                    false);
+                    false,
+                    user.CreatedAt,
+                    user.DiscussionCount,
+                    user.ReplyCount);
             }
             else
-                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true);
+                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true, DateTime.MinValue, 0, 0);
         }
 
         // 3. Batch fetch reply-to posts
@@ -357,7 +360,10 @@ public record AuthorInfo(
     string? Role,
     string? AvatarFileName,
     int AvatarRevision,
-    bool IsDeleted);
+    bool IsDeleted,
+    DateTime JoinedAt,
+    int DiscussionCount,
+    int ReplyCount);
 
 public record ReplyToInfo(
     string AuthorName,

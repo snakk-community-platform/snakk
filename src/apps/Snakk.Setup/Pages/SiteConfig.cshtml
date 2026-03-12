@@ -32,6 +32,50 @@
         <label class="label"><span class="label-text-alt text-base-content/50">Allow multiple independent communities on this instance</span></label>
     </div>
 
+    <div class="form-control">
+        <label class="label"><span class="label-text">Site Timezone</span></label>
+        <select asp-for="Timezone" class="select w-full">
+            <option value="UTC">UTC</option>
+            <optgroup label="Americas">
+                <option value="America/New_York">Eastern Time (New York)</option>
+                <option value="America/Chicago">Central Time (Chicago)</option>
+                <option value="America/Denver">Mountain Time (Denver)</option>
+                <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                <option value="America/Anchorage">Alaska Time (Anchorage)</option>
+                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                <option value="America/Toronto">Eastern Time (Toronto)</option>
+                <option value="America/Vancouver">Pacific Time (Vancouver)</option>
+                <option value="America/Sao_Paulo">Brasília (São Paulo)</option>
+                <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                <option value="America/Mexico_City">Central Time (Mexico City)</option>
+            </optgroup>
+            <optgroup label="Europe">
+                <option value="Europe/London">GMT/BST (London)</option>
+                <option value="Europe/Paris">CET (Paris, Berlin, Rome)</option>
+                <option value="Europe/Helsinki">EET (Helsinki, Kyiv)</option>
+                <option value="Europe/Moscow">Moscow Time</option>
+                <option value="Europe/Oslo">CET (Oslo, Stockholm, Copenhagen)</option>
+            </optgroup>
+            <optgroup label="Asia &amp; Pacific">
+                <option value="Asia/Dubai">GST (Dubai)</option>
+                <option value="Asia/Kolkata">IST (India)</option>
+                <option value="Asia/Bangkok">ICT (Bangkok, Jakarta)</option>
+                <option value="Asia/Singapore">SGT (Singapore, Kuala Lumpur)</option>
+                <option value="Asia/Shanghai">CST (China, Hong Kong)</option>
+                <option value="Asia/Tokyo">JST (Tokyo)</option>
+                <option value="Asia/Seoul">KST (Seoul)</option>
+                <option value="Australia/Sydney">AEDT (Sydney)</option>
+                <option value="Pacific/Auckland">NZDT (Auckland)</option>
+            </optgroup>
+            <optgroup label="Africa">
+                <option value="Africa/Johannesburg">SAST (Johannesburg)</option>
+                <option value="Africa/Cairo">EET (Cairo)</option>
+                <option value="Africa/Lagos">WAT (Lagos)</option>
+            </optgroup>
+        </select>
+        <label class="label"><span class="label-text-alt text-base-content/50">Default timezone for date display across the site</span></label>
+    </div>
+
     <div class="divider"></div>
 
     <div class="flex justify-between">

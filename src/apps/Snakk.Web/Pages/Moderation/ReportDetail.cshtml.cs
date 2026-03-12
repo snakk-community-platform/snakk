@@ -29,7 +29,7 @@ public class ReportDetailModel(
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
         if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
         if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
-        return dateTime.ToString("MMM d, yyyy 'at' h:mm tt");
+        return FormatRelativeTime(dateTime);
     }
 
     public string GetStatusBadgeClass(string status) => status switch

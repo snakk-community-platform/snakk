@@ -23,6 +23,31 @@ public static class DisplayHelper
         return dateTime.Value.ToString("MMM d, yyyy");
     }
 
+    /// <summary>
+    /// Formats the gap between two dates into a human-readable string like "2 months later".
+    /// </summary>
+    public static string FormatTimeBetween(DateTime a, DateTime b)
+    {
+        var days = (int)Math.Abs((b - a).TotalDays);
+
+        if (days < 1) return "less than a day later";
+        if (days == 1) return "1 day later";
+        if (days < 7) return $"{days} days later";
+
+        var weeks = days / 7;
+        if (days < 30) return weeks == 1 ? "1 week later" : $"{weeks} weeks later";
+
+        var months = days / 30;
+        if (days < 365) return months == 1 ? "1 month later" : $"{months} months later";
+
+        var years = days / 365;
+        var remainingMonths = (days % 365) / 30;
+        if (remainingMonths == 0) return years == 1 ? "1 year later" : $"{years} years later";
+        return years == 1
+            ? $"1 year, {remainingMonths} month{(remainingMonths > 1 ? "s" : "")} later"
+            : $"{years} years, {remainingMonths} month{(remainingMonths > 1 ? "s" : "")} later";
+    }
+
     public static string FormatCount(int count) =>
         count switch
         {

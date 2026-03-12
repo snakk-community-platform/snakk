@@ -18,7 +18,8 @@ public static class CommunityMapper
             entity.ExposeToPlatformFeed,
             entity.CreatedAt,
             entity.LastModifiedAt,
-            hubs: []);
+            hubs: [],
+            timezone: entity.Timezone);
 
     public static CommunityDatabaseEntity ToPersistence(this Community community) =>
         new()

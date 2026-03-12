@@ -9,7 +9,7 @@
     <Project Path="core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj" />
     <Project Path="core/Snakk.Infrastructure/Snakk.Infrastructure.csproj" />
     <Project Path="core/Snakk.Protos/Snakk.Protos.csproj" />
-    <Project Path="core/Snakk.Sdk/Snakk.Sdk.csproj" />
+
     <Project Path="core/Snakk.Shared/Snakk.Shared.csproj" />
   </Folder>
   <Folder Name="/services/">

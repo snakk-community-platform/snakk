@@ -20,19 +20,7 @@ public class ProfileModel(
     public string FormatDate(DateTimeOffset? dateTime)
     {
         if (!dateTime.HasValue) return "Unknown";
-        return dateTime.Value.ToString("MMMM d, yyyy");
-    }
-
-    public new string GetRelativeTime(DateTimeOffset? dateTime)
-    {
-        if (!dateTime.HasValue) return "Never";
-        var diff = DateTimeOffset.UtcNow - dateTime.Value;
-        if (diff.TotalMinutes < 1) return "just now";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} minutes ago";
-        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} hours ago";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} days ago";
-        if (diff.TotalDays < 30) return $"{(int)(diff.TotalDays / 7)} weeks ago";
-        return dateTime.Value.ToString("MMM d, yyyy");
+        return FormatRelativeTime(dateTime.Value);
     }
 
     public async Task<IActionResult> OnGetAsync(string publicId)

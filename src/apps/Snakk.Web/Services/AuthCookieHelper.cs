@@ -33,6 +33,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Delete(AccessCookieName, new CookieOptions { Path = "/" });
         ctx.Response.Cookies.Delete(RefreshCookieName, new CookieOptions { Path = "/" });
         ctx.Response.Cookies.Delete(PreferEndlessScrollCookieName, new CookieOptions { Path = "/" });
+        ctx.Response.Cookies.Delete(TimezoneCookieName, new CookieOptions { Path = "/" });
     }
 
     // User preference cookies (non-httponly, long-lived)
@@ -55,5 +56,33 @@ public static class AuthCookieHelper
     {
         var value = ctx.Request.Cookies[PreferEndlessScrollCookieName];
         return value != "0"; // Default to true
+    }
+
+    // Timezone cookie (non-httponly, long-lived)
+    public const string TimezoneCookieName = ".Snakk.Pref.Timezone";
+
+    public static void SetTimezoneCookie(HttpContext ctx, string? timezone)
+    {
+        if (string.IsNullOrWhiteSpace(timezone))
+        {
+            ctx.Response.Cookies.Delete(TimezoneCookieName, new CookieOptions { Path = "/" });
+            return;
+        }
+
+        var options = new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(365)
+        };
+        ctx.Response.Cookies.Append(TimezoneCookieName, timezone, options);
+    }
+
+    public static string? GetTimezone(HttpContext ctx)
+    {
+        var value = ctx.Request.Cookies[TimezoneCookieName];
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 }

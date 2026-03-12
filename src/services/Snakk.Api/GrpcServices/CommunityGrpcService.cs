@@ -147,6 +147,9 @@ public class CommunityGrpcService(
         if (c.Description is not null)
             info.Description = c.Description;
 
+        if (c.Timezone is not null)
+            info.Timezone = c.Timezone;
+
         return info;
     }
 }

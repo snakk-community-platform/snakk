@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
@@ -9,7 +10,8 @@ using Snakk.Shared.Models;
 
 public class PostRepositoryAdapter(
     Infrastructure.Database.Repositories.IPostRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.IPostRepository
+    SnakkDbContext context,
+    IConfiguration configuration) : Domain.Repositories.IPostRepository
 {
     public async Task<Post?> GetByIdAsync(int id)
     {
@@ -19,7 +21,9 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
+                p.RevisionCount))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -32,7 +36,9 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
+                p.RevisionCount))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -61,6 +67,11 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
                 p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion,
+                p.IsUsersFirstPostInSpace,
+                p.IsOp,
+                p.IsNecro,
+                p.IsMilestone,
                 p.RevisionCount))
             .ToListAsync();
 
@@ -76,7 +87,9 @@ public class PostRepositoryAdapter(
                 p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.HasCodeBlock, p.RevisionCount))
+                p.IsDeleted, p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
+                p.RevisionCount))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -116,6 +129,11 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
                 p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion,
+                p.IsUsersFirstPostInSpace,
+                p.IsOp,
+                p.IsNecro,
+                p.IsMilestone,
                 p.RevisionCount))
             .ToListAsync();
 
@@ -161,6 +179,38 @@ public class PostRepositoryAdapter(
                 entity.ReplyToPostId = replyToPost.Id;
             }
         }
+
+        // Compute denormalized post flags
+        entity.IsOp = discussion.CreatedByUserId == user.Id;
+
+        entity.IsUsersFirstPostInDiscussion = !await context.Posts
+            .AnyAsync(p => p.DiscussionId == discussion.Id && p.CreatedByUserId == user.Id);
+
+        entity.IsUsersFirstPostInSpace = !await context.Posts
+            .AnyAsync(p => p.Discussion.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id);
+
+        // IsNecro: last post in discussion is older than configured threshold
+        var necroDays = configuration.GetValue("PostFlags:NecroDays", 30);
+        var lastPostDate = await context.Posts
+            .Where(p => p.DiscussionId == discussion.Id && !p.IsDeleted)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => (DateTime?)p.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        entity.IsNecro = lastPostDate.HasValue
+            && (DateTime.UtcNow - lastPostDate.Value).TotalDays >= necroDays;
+
+        // IsMilestone: post number matches configured thresholds
+        var postCount = await context.Posts
+            .Where(p => p.DiscussionId == discussion.Id)
+            .CountAsync();
+        var postNumber = postCount + 1; // This will be the Nth post
+
+        var milestoneThresholds = configuration
+            .GetSection("PostFlags:MilestoneThresholds")
+            .Get<int[]>() ?? [100, 500, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000];
+
+        entity.IsMilestone = milestoneThresholds.Contains(postNumber);
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -280,6 +330,11 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted,
                 p.HasCodeBlock,
+                p.IsUsersFirstPostInDiscussion,
+                p.IsUsersFirstPostInSpace,
+                p.IsOp,
+                p.IsNecro,
+                p.IsMilestone,
                 p.RevisionCount))
             .FirstOrDefaultAsync();
 
@@ -378,6 +433,11 @@ public class PostRepositoryAdapter(
         string? ReplyToPostPublicId,
         bool IsDeleted,
         bool HasCodeBlock,
+        bool IsUsersFirstPostInDiscussion,
+        bool IsUsersFirstPostInSpace,
+        bool IsOp,
+        bool IsNecro,
+        bool IsMilestone,
         int RevisionCount)
     {
         public Post ToDomain() => Post.Rehydrate(
@@ -393,6 +453,11 @@ public class PostRepositoryAdapter(
             ReplyToPostPublicId is not null ? PostId.From(ReplyToPostPublicId) : null,
             IsDeleted,
             HasCodeBlock,
+            IsUsersFirstPostInDiscussion,
+            IsUsersFirstPostInSpace,
+            IsOp,
+            IsNecro,
+            IsMilestone,
             RevisionCount);
     }
 }

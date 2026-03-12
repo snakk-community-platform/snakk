@@ -1,7 +1,9 @@
 @using Snakk.Protos.Manage
 @using Snakk.Shared.Enums
 @using ApexCharts
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h5">@Scope?.ScopeType Dashboard</MudText>
@@ -293,7 +295,7 @@
                             <td>@entry.ActorDisplayName</td>
                             <td>@entry.TargetName</td>
                             <td>@entry.Reason</td>
-                            <td>@(new DateTime(entry.CreatedAtTicks, DateTimeKind.Utc).ToString("g"))</td>
+                            <td>@Tz.FormatDateTime(entry.CreatedAtTicks)</td>
                         </tr>
                     }
                 </tbody>
@@ -392,6 +394,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await Task.WhenAll(LoadStats(), LoadCharts(), LoadCharts2());
     }
 
@@ -429,19 +432,19 @@
             }, deadline: DateTime.UtcNow.AddSeconds(15));
 
             _activityData = charts.ActivitySeries
-                .Select(a =>
-                {
-                    var date = new DateTime(a.DateTicks, DateTimeKind.Utc);
-                    return new ActivityChartItem(date, date.ToString("MMM d"), a.Posts, a.Discussions);
-                })
+                .Select(a => new ActivityChartItem(
+                    new DateTime(a.DateTicks, DateTimeKind.Utc),
+                    Tz.FormatDateLabel(a.DateTicks),
+                    a.Posts,
+                    a.Discussions))
                 .ToList();
 
             _moderationData = charts.ModerationSeries
-                .Select(m =>
-                {
-                    var weekStart = new DateTime(m.WeekStartTicks, DateTimeKind.Utc);
-                    return new ModerationChartItem(weekStart, weekStart.ToString("MMM d"), m.ReportsOpened, m.ReportsResolved);
-                })
+                .Select(m => new ModerationChartItem(
+                    new DateTime(m.WeekStartTicks, DateTimeKind.Utc),
+                    Tz.FormatDateLabel(m.WeekStartTicks),
+                    m.ReportsOpened,
+                    m.ReportsResolved))
                 .ToList();
         }
         catch
@@ -475,11 +478,10 @@
                 .ToList();
 
             _engagementData = charts.EngagementSeries
-                .Select(e =>
-                {
-                    var date = new DateTime(e.DateTicks, DateTimeKind.Utc);
-                    return new EngagementChartItem(date, date.ToString("MMM d"), e.Reactions);
-                })
+                .Select(e => new EngagementChartItem(
+                    new DateTime(e.DateTicks, DateTimeKind.Utc),
+                    Tz.FormatDateLabel(e.DateTicks),
+                    e.Reactions))
                 .ToList();
 
             _topDiscussions = [.. charts.TopDiscussions];

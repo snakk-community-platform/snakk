@@ -180,7 +180,12 @@ interface NotificationsResponse {
         if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
         if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString();
+        const tz = (window as any).snakkTimezone || 'UTC';
+        try {
+            return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
+        } catch {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
     }
 
     function escapeHtml(text: string): string {

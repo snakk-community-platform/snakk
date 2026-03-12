@@ -1,5 +1,7 @@
 @using Snakk.Protos.Manage
+@using Snakk.Admin.Services
 @inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <div>
@@ -91,11 +93,11 @@
                         <MudText Typo="Typo.caption" Style="opacity: 0.6;">
                             @if (a.HasVisibleFromTicks)
                             {
-                                <span>From: @(new DateTime(a.VisibleFromTicks, DateTimeKind.Utc).ToString("g"))</span>
+                                <span>From: @Tz.FormatDateTime(a.VisibleFromTicks)</span>
                             }
                             @if (a.HasVisibleUntilTicks)
                             {
-                                <span> Until: @(new DateTime(a.VisibleUntilTicks, DateTimeKind.Utc).ToString("g"))</span>
+                                <span> Until: @Tz.FormatDateTime(a.VisibleUntilTicks)</span>
                             }
                         </MudText>
                     }
@@ -133,6 +135,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
+        await Tz.EnsureInitializedAsync();
         await LoadAnnouncements();
     }
 

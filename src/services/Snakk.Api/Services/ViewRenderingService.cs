@@ -23,9 +23,9 @@ public class ViewRenderingService : IViewRenderingService
                         <div class='dropdown dropdown-end'>
                             <button tabindex='0' class='btn btn-ghost btn-sm'>⋮</button>
                             <ul tabindex='0' class='dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52'>
-                                <li><button hx-get='/api/posts/{post.PublicId.Value}/history' hx-target='#history-modal-content' hx-swap='innerHTML' onclick='history_modal.showModal()'>View History</button></li>
+                                <li><button hx-get='/bff/posts/{post.PublicId.Value}/history' hx-target='#history-modal-content' hx-swap='innerHTML' onclick='history_modal.showModal()'>View History</button></li>
                                 <li><button onclick='editPost(""{post.PublicId.Value}"", ""{userId}"")'>Edit</button></li>
-                                <li><button hx-delete='/api/posts/{post.PublicId.Value}?userId={userId}' hx-target='#post-{post.PublicId.Value}' hx-swap='outerHTML' hx-confirm='Are you sure you want to delete this post?'>Delete</button></li>
+                                <li><button hx-delete='/bff/posts/{post.PublicId.Value}' hx-target='#post-{post.PublicId.Value}' hx-swap='outerHTML' hx-confirm='Are you sure you want to delete this post?'>Delete</button></li>
                             </ul>
                         </div>
                     </div>

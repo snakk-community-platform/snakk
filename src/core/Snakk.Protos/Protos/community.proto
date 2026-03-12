@@ -51,6 +51,7 @@ message CommunityInfo {
   optional google.protobuf.Timestamp last_modified_at = 8;
   bool has_rules = 9;
   string rules_revision = 10;
+  optional string timezone = 11;
 }
 
 message GetCommunityRulesRequest {

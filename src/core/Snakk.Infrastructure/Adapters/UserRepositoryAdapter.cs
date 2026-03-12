@@ -108,6 +108,9 @@ public class UserRepositoryAdapter(
 
         entity.DisplayName = user.DisplayName;
         entity.Email = user.Email;
+        entity.PreferEndlessScroll = user.PreferEndlessScroll;
+        entity.AutoFollowOnReply = user.AutoFollowOnReply;
+        entity.Timezone = user.Timezone;
         entity.LastModifiedAt = user.LastModifiedAt;
         entity.LastSeenAt = user.LastSeenAt;
 
@@ -130,11 +133,14 @@ public class UserRepositoryAdapter(
         public int AvatarRevision { get; init; }
         public bool PreferEndlessScroll { get; init; }
         public bool AutoFollowOnReply { get; init; }
+        public string? Timezone { get; init; }
         public DateTime CreatedAt { get; init; }
         public DateTime? LastModifiedAt { get; init; }
         public DateTime? LastSeenAt { get; init; }
         public DateTime? LastLoginAt { get; init; }
         public bool NeedsProfileSetup { get; init; }
+        public int DiscussionCount { get; init; }
+        public int ReplyCount { get; init; }
 
         public UserProjection(Database.Entities.UserDatabaseEntity u)
         {
@@ -153,11 +159,14 @@ public class UserRepositoryAdapter(
             AvatarRevision = u.AvatarRevision;
             PreferEndlessScroll = u.PreferEndlessScroll;
             AutoFollowOnReply = u.AutoFollowOnReply;
+            Timezone = u.Timezone;
             CreatedAt = u.CreatedAt;
             LastModifiedAt = u.LastModifiedAt;
             LastSeenAt = u.LastSeenAt;
             LastLoginAt = u.LastLoginAt;
             NeedsProfileSetup = u.NeedsProfileSetup;
+            DiscussionCount = u.DiscussionCount;
+            ReplyCount = u.ReplyCount;
         }
 
         public User ToDomain() => User.Rehydrate(
@@ -169,6 +178,7 @@ public class UserRepositoryAdapter(
             AvatarFileName, AvatarRevision,
             PreferEndlessScroll, AutoFollowOnReply,
             CreatedAt, LastModifiedAt, LastSeenAt, LastLoginAt,
-            NeedsProfileSetup);
+            NeedsProfileSetup, Timezone,
+            DiscussionCount, ReplyCount);
     }
 }

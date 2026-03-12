@@ -4,6 +4,8 @@ option csharp_namespace = "Snakk.Protos";
 
 package snakk;
 
+import "google/protobuf/timestamp.proto";
+
 // Generic paged result wrapper
 message PagedResult {
   int32 offset = 1;
@@ -48,6 +50,9 @@ message AuthorRef {
   optional string avatar_url = 3;
   optional string role = 4;
   bool is_deleted = 5;
+  optional google.protobuf.Timestamp joined_at = 6;
+  int32 discussion_count = 7;
+  int32 reply_count = 8;
 }
 
 // Reference to a post being replied to

@@ -140,6 +140,10 @@ AddGrpcClient<Snakk.Protos.Announcement.AnnouncementService.AnnouncementServiceC
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
 
+// Site settings cache (background service — refreshes site timezone every 10 min)
+builder.Services.AddSingleton<SiteSettingsCacheService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteSettingsCacheService>());
+
 // JWT-based authentication from SSO service
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException(

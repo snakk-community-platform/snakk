@@ -8,7 +8,8 @@ using Microsoft.Extensions.Caching.Memory;
 public record CommunityDomainLookupResult(
     bool Found,
     string? CommunitySlug,
-    string? CommunityName = null);
+    string? CommunityName = null,
+    string? Timezone = null);
 
 /// <summary>
 /// Service that caches domain -> community slug mappings using IMemoryCache.
@@ -93,7 +94,7 @@ public class CommunityDomainCacheService : ICommunityDomainCacheService
 
             if (community is not null)
             {
-                var result = new CommunityDomainLookupResult(true, community.Slug, community.Name);
+                var result = new CommunityDomainLookupResult(true, community.Slug, community.Name, community.HasTimezone ? community.Timezone : null);
 
                 // Cache the result
                 var cacheOptions = new MemoryCacheEntryOptions()

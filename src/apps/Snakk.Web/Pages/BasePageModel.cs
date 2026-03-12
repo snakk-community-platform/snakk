@@ -40,6 +40,21 @@ public abstract class BasePageModel : PageModel
         return dateTime.Value.ToString("MMM d, yyyy");
     }
 
+    // Site settings cache — injected via [FromServices] (no change to derived class constructors)
+    [Microsoft.AspNetCore.Mvc.FromServices]
+    public SiteSettingsCacheService? SiteSettingsCache { get; set; }
+
+    /// <summary>
+    /// The effective timezone for this request.
+    /// Cascade: user cookie → community timezone → site timezone (DB, cached) → site timezone (config) → UTC
+    /// </summary>
+    public string EffectiveTimezone =>
+        AuthCookieHelper.GetTimezone(HttpContext)
+        ?? CommunityContext.CommunityTimezone
+        ?? SiteSettingsCache?.CachedTimezone
+        ?? Configuration["Snakk:SiteTimezone"]
+        ?? "UTC";
+
     public string FormatRelativeTime(DateTime dateTime)
     {
         var now = DateTime.UtcNow;
@@ -48,12 +63,21 @@ public abstract class BasePageModel : PageModel
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
         if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
         if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
-        if (diff.TotalDays < 365) return dateTime.ToString("MMM d");
-        return dateTime.ToString("MMM d, yyyy");
+
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(EffectiveTimezone);
+            var local = TimeZoneInfo.ConvertTimeFromUtc(dateTime, tz);
+            return diff.TotalDays < 365 ? local.ToString("MMM d") : local.ToString("MMM d, yyyy");
+        }
+        catch
+        {
+            return diff.TotalDays < 365 ? dateTime.ToString("MMM d") : dateTime.ToString("MMM d, yyyy");
+        }
     }
 
     public string FormatRelativeTime(DateTimeOffset dateTime)
-        => FormatRelativeTime(dateTime.DateTime);
+        => FormatRelativeTime(dateTime.UtcDateTime);
 
     public string GetInitials(string name)
     {

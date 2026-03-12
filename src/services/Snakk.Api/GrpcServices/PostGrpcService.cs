@@ -70,9 +70,17 @@ public class PostGrpcService(
                         AvatarEntityType.User,
                         ep.Author.AvatarRevision),
                     Role = ep.Author.Role ?? "",
-                    IsDeleted = ep.Author.IsDeleted
+                    IsDeleted = ep.Author.IsDeleted,
+                    JoinedAt = ToTimestamp(ep.Author.JoinedAt),
+                    DiscussionCount = ep.Author.DiscussionCount,
+                    ReplyCount = ep.Author.ReplyCount
                 },
                 HasCodeBlock = post.HasCodeBlock,
+                IsUsersFirstPostInDiscussion = post.IsUsersFirstPostInDiscussion,
+                IsUsersFirstPostInSpace = post.IsUsersFirstPostInSpace,
+                IsOp = post.IsOp,
+                IsNecro = post.IsNecro,
+                IsMilestone = post.IsMilestone,
                 Reactions = BuildPostReactions(ep.ReactionCounts, ep.UserReactions)
             };
 

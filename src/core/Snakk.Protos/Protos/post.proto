@@ -59,6 +59,11 @@ message EnrichedPostInfo {
   PostReactions reactions = 11;
   bool has_code_block = 12;
   string rendered_content = 13;
+  bool is_users_first_post_in_discussion = 14;
+  bool is_users_first_post_in_space = 15;
+  bool is_op = 16;
+  bool is_necro = 17;
+  bool is_milestone = 18;
 }
 
 message PostReactions {

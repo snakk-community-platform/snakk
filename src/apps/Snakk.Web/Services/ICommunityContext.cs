@@ -41,6 +41,11 @@ public interface ICommunityContext
     string DefaultCommunitySlug { get; }
 
     /// <summary>
+    /// The IANA timezone of the current community. Null if not set or not resolved from custom domain.
+    /// </summary>
+    string? CommunityTimezone { get; }
+
+    /// <summary>
     /// Sets the current community context.
     /// </summary>
     void SetCommunity(
@@ -49,7 +54,8 @@ public interface ICommunityContext
         bool isCustomDomain = false,
         string? name = null,
         bool isMultiCommunity = false,
-        string? defaultCommunitySlug = null);
+        string? defaultCommunitySlug = null,
+        string? timezone = null);
 }
 
 /// <summary>
@@ -63,6 +69,7 @@ public class CommunityContext : ICommunityContext
     public bool IsCustomDomain { get; private set; }
     public bool IsMultiCommunityEnabled { get; private set; }
     public string DefaultCommunitySlug { get; private set; } = "main";
+    public string? CommunityTimezone { get; private set; }
 
     public void SetCommunity(
         string slug,
@@ -70,13 +77,15 @@ public class CommunityContext : ICommunityContext
         bool isCustomDomain = false,
         string? name = null,
         bool isMultiCommunity = false,
-        string? defaultCommunitySlug = null)
+        string? defaultCommunitySlug = null,
+        string? timezone = null)
     {
         CommunitySlug = slug;
         CommunityName = name;
         IsDefaultCommunity = isDefault;
         IsCustomDomain = isCustomDomain;
         IsMultiCommunityEnabled = isMultiCommunity;
+        CommunityTimezone = timezone;
         if (defaultCommunitySlug is not null)
             DefaultCommunitySlug = defaultCommunitySlug;
     }

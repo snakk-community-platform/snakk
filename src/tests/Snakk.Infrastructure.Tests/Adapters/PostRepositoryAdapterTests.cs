@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Infrastructure.Adapters;
 using Snakk.Infrastructure.Database.Repositories;
@@ -17,7 +18,15 @@ public class PostRepositoryAdapterTests : IDisposable
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
         var databaseRepo = new PostRepository(_db.Context);
-        _adapter = new PostRepositoryAdapter(databaseRepo, _db.Context);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["PostFlags:NecroDays"] = "30",
+                ["PostFlags:MilestoneThresholds:0"] = "100",
+                ["PostFlags:MilestoneThresholds:1"] = "500"
+            })
+            .Build();
+        _adapter = new PostRepositoryAdapter(databaseRepo, _db.Context, configuration);
     }
 
     public void Dispose() => _db.Dispose();

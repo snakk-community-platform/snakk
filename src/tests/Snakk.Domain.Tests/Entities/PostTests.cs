@@ -493,7 +493,7 @@ public class PostTests
             isDeleted: true,
             hasCodeBlock: false,
             revisionCount: 3,
-            revisions);
+            revisions: revisions);
 
         // Assert
         await Assert.That(post.PublicId).IsEqualTo(postId);

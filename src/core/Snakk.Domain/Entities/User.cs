@@ -18,7 +18,10 @@ public class User
     public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
     public bool PreferEndlessScroll { get; private set; } = true; // User preference for endless scroll vs pagination
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
+    public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
+    public int DiscussionCount { get; private set; }
+    public int ReplyCount { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
@@ -51,7 +54,10 @@ public class User
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
         DateTime? lastLoginAt = null,
-        bool needsProfileSetup = false)
+        bool needsProfileSetup = false,
+        string? timezone = null,
+        int discussionCount = 0,
+        int replyCount = 0)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -66,7 +72,10 @@ public class User
         AvatarRevision = avatarRevision;
         PreferEndlessScroll = preferEndlessScroll;
         AutoFollowOnReply = autoFollowOnReply;
+        Timezone = timezone;
         NeedsProfileSetup = needsProfileSetup;
+        DiscussionCount = discussionCount;
+        ReplyCount = replyCount;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -186,7 +195,10 @@ public class User
         DateTime? lastModifiedAt = null,
         DateTime? lastSeenAt = null,
         DateTime? lastLoginAt = null,
-        bool needsProfileSetup = false) =>
+        bool needsProfileSetup = false,
+        string? timezone = null,
+        int discussionCount = 0,
+        int replyCount = 0) =>
         new User(
             publicId,
             displayName,
@@ -205,7 +217,10 @@ public class User
             lastModifiedAt,
             lastSeenAt,
             lastLoginAt,
-            needsProfileSetup);
+            needsProfileSetup,
+            timezone,
+            discussionCount,
+            replyCount);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -285,6 +300,12 @@ public class User
     public void SetAutoFollowOnReply(bool autoFollow)
     {
         AutoFollowOnReply = autoFollow;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetTimezone(string? timezone)
+    {
+        Timezone = timezone;
         LastModifiedAt = DateTime.UtcNow;
     }
 
