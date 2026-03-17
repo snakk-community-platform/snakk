@@ -102,12 +102,9 @@
                         Announcements
                     </MudNavLink>
 
-                    @if (Scope.ScopeType == "Space")
-                    {
-                        <MudNavLink Href="@($"{BaseUrl}/rules")" Icon="@Icons.Material.Filled.MenuBook">
-                            Rules
-                        </MudNavLink>
-                    }
+                    <MudNavLink Href="@($"{BaseUrl}/rules")" Icon="@Icons.Material.Filled.MenuBook">
+                        Rules
+                    </MudNavLink>
                 }
 
                 @if (HasPermission(ManagePermissionEnum.ManageTeam))
@@ -135,7 +132,7 @@
         }
     </MudDrawer>
 
-    <MudMainContent Class="pa-4">
+    <MudMainContent Class="pa-4 mt-8">
         @Body
     </MudMainContent>
 </MudLayout>

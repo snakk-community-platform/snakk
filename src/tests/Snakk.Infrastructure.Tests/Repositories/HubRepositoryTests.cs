@@ -147,10 +147,10 @@ public class HubRepositoryTests : IDisposable
     [Test]
     public async Task GetBySlugAsync_ExistingHub_ReturnsEntity()
     {
-        var community = await _builder.CreateCommunityAsync();
+        var community = await _builder.CreateCommunityAsync("Test Community", "test-community");
         var hub = await _builder.CreateHubAsync(community.Id, "Slug Hub", "slug-hub");
 
-        var result = await _repository.GetBySlugAsync("slug-hub");
+        var result = await _repository.GetBySlugAsync("slug-hub", "test-community");
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Slug).IsEqualTo("slug-hub");
@@ -161,7 +161,7 @@ public class HubRepositoryTests : IDisposable
     [Test]
     public async Task GetBySlugAsync_NonExistent_ReturnsNull()
     {
-        var result = await _repository.GetBySlugAsync("nonexistent-slug");
+        var result = await _repository.GetBySlugAsync("nonexistent-slug", "nonexistent-community");
 
         await Assert.That(result).IsNull();
     }

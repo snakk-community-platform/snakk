@@ -146,4 +146,26 @@ public class SignalRRealtimeNotifier(
         await hubContext.Clients
             .Group($"user:{userId.Value}")
             .SendAsync("ReceiveNotificationCount", new { unreadCount = count });
+
+    public async Task NotifyDiscussionLockedAsync(DiscussionId discussionId) =>
+        await hubContext.Clients
+            .Group($"discussion:{discussionId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                eventType = "discussion-locked",
+                targetId = "discussion-lock-banner",
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDiscussionUnlockedAsync(DiscussionId discussionId) =>
+        await hubContext.Clients
+            .Group($"discussion:{discussionId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                eventType = "discussion-unlocked",
+                targetId = "discussion-lock-banner",
+                htmlContent = "",
+                swapStrategy = ""
+            });
 }

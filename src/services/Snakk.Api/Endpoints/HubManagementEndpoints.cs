@@ -77,10 +77,10 @@ public static class HubManagementEndpoints
         // Rules - Get
         group.MapGet("/rules", async (
             [FromRoute] string hubId,
-            [FromServices] IHubManagementService service,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.GetRulesAsync(hubId, cancellationToken);
+            var rules = await ruleService.GetRulesAsync("Hub", hubId, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireHubModerator("hubId")
@@ -89,11 +89,11 @@ public static class HubManagementEndpoints
         // Rules - Update
         group.MapPut("/rules", async (
             [FromRoute] string hubId,
-            [FromBody] UpdateHubRulesRequest request,
-            [FromServices] IHubManagementService service,
+            [FromBody] UpdateRulesRequest request,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.UpdateRulesAsync(hubId, request, cancellationToken);
+            var rules = await ruleService.UpdateRulesAsync("Hub", hubId, request, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireHubModerator("hubId")

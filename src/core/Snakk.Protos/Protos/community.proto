@@ -13,6 +13,7 @@ service CommunityService {
   rpc ListCommunities (ListCommunitiesRequest) returns (PagedCommunityList);
   rpc GetCommunityStats (GetCommunityStatsRequest) returns (CommunityStats);
   rpc GetCommunityRules (GetCommunityRulesRequest) returns (CommunityRulesResponse);
+  rpc GetSiteRules (GetSiteRulesRequest) returns (SiteRulesResponse);
 }
 
 // --- Requests ---
@@ -52,6 +53,7 @@ message CommunityInfo {
   bool has_rules = 9;
   string rules_revision = 10;
   optional string timezone = 11;
+  string team_revision = 12;
 }
 
 message GetCommunityRulesRequest {
@@ -63,6 +65,20 @@ message CommunityRulesResponse {
 }
 
 message CommunityRule {
+  int32 id = 1;
+  string title = 2;
+  string description = 3;
+  int32 order = 4;
+}
+
+message GetSiteRulesRequest {}
+
+message SiteRulesResponse {
+  repeated SiteRule rules = 1;
+  string revision = 2;
+}
+
+message SiteRule {
   int32 id = 1;
   string title = 2;
   string description = 3;

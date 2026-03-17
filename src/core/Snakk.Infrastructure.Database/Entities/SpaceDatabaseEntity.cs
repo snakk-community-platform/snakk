@@ -33,6 +33,9 @@ public class SpaceDatabaseEntity
     public bool ParentHubHasRules { get; set; }
     public bool ParentCommunityHasRules { get; set; }
 
+    // Team revision for moderator list cache-busting
+    public string? TeamRevision { get; set; }
+
     // Denormalized counts for performance
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
@@ -44,6 +47,6 @@ public class SpaceDatabaseEntity
 
     // One-to-many relationships
     public virtual ICollection<DiscussionDatabaseEntity> Discussions { get; set; } = [];
-    public virtual ICollection<SpaceRuleDatabaseEntity> Rules { get; set; } = [];
+    public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
     public virtual ICollection<SpaceAllowedDiscussionTypeDatabaseEntity> AllowedDiscussionTypes { get; set; } = [];
 }

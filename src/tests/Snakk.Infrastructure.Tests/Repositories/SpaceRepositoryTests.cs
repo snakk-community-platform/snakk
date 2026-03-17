@@ -152,7 +152,7 @@ public class SpaceRepositoryIntegrationTests : IDisposable
     {
         var (_, _, hub, space, _, _) = await _builder.CreateFullHierarchyAsync();
 
-        var result = await _repository.GetBySlugAsync(space.Slug);
+        var result = await _repository.GetBySlugAsync(space.Slug, hub.Slug);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Slug).IsEqualTo(space.Slug);
@@ -164,7 +164,7 @@ public class SpaceRepositoryIntegrationTests : IDisposable
     [Test]
     public async Task GetBySlugAsync_NonExistentSlug_ReturnsNull()
     {
-        var result = await _repository.GetBySlugAsync("nonexistent-slug");
+        var result = await _repository.GetBySlugAsync("nonexistent-slug", "nonexistent-hub");
 
         await Assert.That(result).IsNull();
     }

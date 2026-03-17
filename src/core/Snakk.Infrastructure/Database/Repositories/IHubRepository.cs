@@ -8,7 +8,7 @@ public interface IHubRepository : IGenericDatabaseRepository<HubDatabaseEntity>
     Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId);
     Task<HubDetailDto?> GetForDisplayAsync(string publicId);
     Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<HubDatabaseEntity?> GetBySlugAsync(string slug);
+    Task<HubDatabaseEntity?> GetBySlugAsync(string slug, string communitySlug);
     Task<PagedResult<HubRepository.HubListDto>> GetFilteredForDisplayAsync(int offset, int pageSize);
     Task<PagedResult<HubRepository.HubListDto>> GetByCommunityAsync(int communityId, int offset, int pageSize);
     Task<int?> GetCommunityDbIdAsync(string communityPublicId);

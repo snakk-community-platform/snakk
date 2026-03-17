@@ -159,6 +159,19 @@
                     </inline-or-htmx>
                 </div>
             }
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Site Rules</h3>
+                <inline-or-htmx partial="Shared/Sidebar/_SiteRules"
+                                 model="Model.InlineSiteRules"
+                                 htmx-url="/partials/site-rules?rev=@Model.SiteRulesRevision">
+                    <div class="flex flex-col gap-2">
+                        <div class="skeleton h-3 w-3/4"></div>
+                        <div class="skeleton h-3 w-2/3"></div>
+                        <div class="skeleton h-3 w-1/2"></div>
+                    </div>
+                </inline-or-htmx>
+            </div>
         </aside>
     </div>
 </div>

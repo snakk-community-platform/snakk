@@ -1,5 +1,6 @@
 using Snakk.Protos.Community;
 using Snakk.Protos.Hub;
+using Snakk.Protos.Moderation;
 using Snakk.Protos.Space;
 using Snakk.Protos.Statistics;
 using Snakk.Web.Services;
@@ -45,4 +46,13 @@ public record SidebarHubRulesVM(
 
 public record SidebarCommunityRulesVM(
     CommunityRulesResponse? Rules,
+    string CacheSource);
+
+public record SidebarSiteRulesVM(
+    SiteRulesResponse? Rules,
+    string CacheSource);
+
+public record SidebarModeratorsVM(
+    GetModeratorsResponse? Moderators,
+    string ModeratorsPageUrl,
     string CacheSource);

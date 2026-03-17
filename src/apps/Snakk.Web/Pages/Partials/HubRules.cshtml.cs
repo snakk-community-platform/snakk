@@ -17,7 +17,7 @@ public class HubRulesModel(
 
     public async Task OnGetAsync(string hubId, string communitySlug = "", bool parentCommunityHasRules = false, string rev = "")
     {
-        Response.Headers.CacheControl = "public, max-age=86400";
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         CommunitySlug = communitySlug;
         ParentCommunityHasRules = parentCommunityHasRules;

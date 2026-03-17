@@ -19,6 +19,7 @@ public class DiscussionUseCaseTests
     private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
     private readonly Mock<ICounterService> _mockCounterService = new();
     private readonly Mock<IMarkupParser> _mockMarkupParser = new();
+    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
     private DiscussionUseCase _useCase = null!;
 
     [Before(Test)]
@@ -34,7 +35,8 @@ public class DiscussionUseCaseTests
             _mockPostRepository.Object,
             _mockEventDispatcher.Object,
             _mockCounterService.Object,
-            _mockMarkupParser.Object);
+            _mockMarkupParser.Object,
+            _mockRealtimeNotifier.Object);
     }
 
     #region CreateDiscussionAsync Tests

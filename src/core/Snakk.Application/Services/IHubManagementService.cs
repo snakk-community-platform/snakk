@@ -16,8 +16,4 @@ public interface IHubManagementService
     Task<HubModerationDto> GetModerationDataAsync(string hubId, CancellationToken cancellationToken = default);
 
     Task<HubSpacesDto> GetSpacesAsync(string hubId, CancellationToken cancellationToken = default);
-
-    Task<HubRulesDto> GetRulesAsync(string hubId, CancellationToken cancellationToken = default);
-
-    Task<HubRulesDto> UpdateRulesAsync(string hubId, UpdateHubRulesRequest request, CancellationToken cancellationToken = default);
 }

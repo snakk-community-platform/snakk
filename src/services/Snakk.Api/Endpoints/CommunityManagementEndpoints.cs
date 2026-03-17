@@ -109,10 +109,10 @@ public static class CommunityManagementEndpoints
         // Rules - Get
         group.MapGet("/rules", async (
             [FromRoute] string communityId,
-            [FromServices] ICommunityManagementService service,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.GetRulesAsync(communityId, cancellationToken);
+            var rules = await ruleService.GetRulesAsync("Community", communityId, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireCommunityAdmin("communityId")
@@ -121,11 +121,11 @@ public static class CommunityManagementEndpoints
         // Rules - Update
         group.MapPut("/rules", async (
             [FromRoute] string communityId,
-            [FromBody] UpdateCommunityRulesRequest request,
-            [FromServices] ICommunityManagementService service,
+            [FromBody] UpdateRulesRequest request,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.UpdateRulesAsync(communityId, request, cancellationToken);
+            var rules = await ruleService.UpdateRulesAsync("Community", communityId, request, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireCommunityAdmin("communityId")

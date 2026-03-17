@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Snakk.Realtime.Hubs;
@@ -9,6 +10,12 @@ namespace Snakk.Realtime.Hubs;
 /// </summary>
 public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
 {
+    // Viewer count tracking: discussionId → count
+    private static readonly ConcurrentDictionary<string, int> ViewerCounts = new();
+
+    // Connection → discussion mapping for cleanup on disconnect
+    private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
+
     /// <summary>
     /// Subscribe to global updates
     /// </summary>
@@ -23,7 +30,20 @@ public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
     /// </summary>
     public async Task SubscribeToDiscussion(string discussionId)
     {
+        // Track previous discussion for this connection (unsubscribe if switching)
+        if (ConnectionDiscussions.TryGetValue(Context.ConnectionId, out var previousId) && previousId != discussionId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{previousId}");
+            DecrementViewerCount(previousId);
+            await BroadcastViewerCount(previousId);
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
+        ConnectionDiscussions[Context.ConnectionId] = discussionId;
+
+        IncrementViewerCount(discussionId);
+        await BroadcastViewerCount(discussionId);
+
         logger.LogInformation(
             "Client {ConnectionId} subscribed to discussion {DiscussionId}",
             Context.ConnectionId,
@@ -36,6 +56,11 @@ public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
     public async Task UnsubscribeFromDiscussion(string discussionId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
+        ConnectionDiscussions.TryRemove(Context.ConnectionId, out _);
+
+        DecrementViewerCount(discussionId);
+        await BroadcastViewerCount(discussionId);
+
         logger.LogInformation(
             "Client {ConnectionId} unsubscribed from discussion {DiscussionId}",
             Context.ConnectionId,
@@ -104,6 +129,28 @@ public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
             userId);
     }
 
+    // ==================== Typing Indicators ====================
+
+    /// <summary>
+    /// Notify others that this user is typing in a discussion
+    /// </summary>
+    public async Task StartTyping(string discussionId, string displayName)
+    {
+        await Clients.OthersInGroup($"discussion:{discussionId}")
+            .SendAsync("ReceiveTyping", new { displayName, isTyping = true });
+    }
+
+    /// <summary>
+    /// Notify others that this user stopped typing
+    /// </summary>
+    public async Task StopTyping(string discussionId, string displayName)
+    {
+        await Clients.OthersInGroup($"discussion:{discussionId}")
+            .SendAsync("ReceiveTyping", new { displayName, isTyping = false });
+    }
+
+    // ==================== Lifecycle ====================
+
     public override async Task OnConnectedAsync()
     {
         logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
@@ -112,6 +159,13 @@ public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        // Clean up viewer count for this connection's discussion
+        if (ConnectionDiscussions.TryRemove(Context.ConnectionId, out var discussionId))
+        {
+            DecrementViewerCount(discussionId);
+            await BroadcastViewerCount(discussionId);
+        }
+
         if (exception is not null)
         {
             logger.LogWarning(exception, "Client disconnected with error: {ConnectionId}", Context.ConnectionId);
@@ -122,5 +176,20 @@ public class RealtimeHub(ILogger<RealtimeHub> logger) : Hub
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    // ==================== Viewer Count Helpers ====================
+
+    private static void IncrementViewerCount(string discussionId) =>
+        ViewerCounts.AddOrUpdate(discussionId, 1, (_, count) => count + 1);
+
+    private static void DecrementViewerCount(string discussionId) =>
+        ViewerCounts.AddOrUpdate(discussionId, 0, (_, count) => Math.Max(0, count - 1));
+
+    private async Task BroadcastViewerCount(string discussionId)
+    {
+        var count = ViewerCounts.GetValueOrDefault(discussionId, 0);
+        await Clients.Group($"discussion:{discussionId}")
+            .SendAsync("ReceiveViewerCount", new { count });
     }
 }

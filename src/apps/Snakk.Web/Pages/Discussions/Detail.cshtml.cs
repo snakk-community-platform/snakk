@@ -122,8 +122,8 @@ public class DetailModel(
             }
 
             // Load hub, space, community, discussion, and posts
-            var hubTask = _apiClient.GetHubBySlugAsync(hubSlug);
-            var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug);
+            var hubTask = _apiClient.GetHubBySlugAsync(hubSlug, CommunityContext.CommunitySlug!);
+            var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug, hubSlug);
             var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
                 ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
                 : Task.FromResult<CommunityInfo?>(null);

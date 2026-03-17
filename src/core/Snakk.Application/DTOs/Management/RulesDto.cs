@@ -2,12 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Snakk.Application.DTOs.Management;
 
-public class CommunityRulesDto
+public class RulesDto
 {
-    public List<CommunityRuleDto> Rules { get; set; } = new();
+    public List<RuleDto> Rules { get; set; } = new();
 }
 
-public class CommunityRuleDto
+public class RuleDto
 {
     [Required]
     [StringLength(100)]
@@ -20,7 +20,7 @@ public class CommunityRuleDto
     public int Order { get; set; }
 }
 
-public class UpdateCommunityRulesRequest
+public class UpdateRulesRequest
 {
-    public List<CommunityRuleDto> Rules { get; set; } = new();
+    public List<RuleDto> Rules { get; set; } = new();
 }

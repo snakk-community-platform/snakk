@@ -65,10 +65,10 @@ public static class SpaceManagementEndpoints
         // Rules - Get
         group.MapGet("/rules", async (
             [FromRoute] string spaceId,
-            [FromServices] ISpaceManagementService service,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.GetRulesAsync(spaceId, cancellationToken);
+            var rules = await ruleService.GetRulesAsync("Space", spaceId, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireSpaceModerator("spaceId")
@@ -77,11 +77,11 @@ public static class SpaceManagementEndpoints
         // Rules - Update
         group.MapPut("/rules", async (
             [FromRoute] string spaceId,
-            [FromBody] UpdateSpaceRulesRequest request,
-            [FromServices] ISpaceManagementService service,
+            [FromBody] UpdateRulesRequest request,
+            [FromServices] IRuleService ruleService,
             CancellationToken cancellationToken) =>
         {
-            var rules = await service.UpdateRulesAsync(spaceId, request, cancellationToken);
+            var rules = await ruleService.UpdateRulesAsync("Space", spaceId, request, cancellationToken);
             return Results.Ok(rules);
         })
         .RequireSpaceModerator("spaceId")

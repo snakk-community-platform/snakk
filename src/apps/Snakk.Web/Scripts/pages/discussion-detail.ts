@@ -63,7 +63,10 @@ interface DiscussionConfig {
     postsHasMoreItems: boolean;
     hasCodeBlocks: boolean;
     postCount: number;
+    displayName: string;
 }
+
+let discussionConfig: DiscussionConfig | null = null;
 
 interface ReportReason {
     publicId: string;
@@ -162,6 +165,14 @@ function initReplyEditor(): Promise<void> {
                 footer.appendChild(submitBtn);
                 submitBtn.classList.remove('hidden');
             }
+
+            // Typing indicator: notify on keystrokes in editor
+            container.addEventListener('keydown', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('.milkdown-editor, .ProseMirror')) {
+                    notifyTyping();
+                }
+            });
         }
 
         // Intercept form submit to upload deferred images and sync textarea
@@ -1034,44 +1045,24 @@ function applyHiddenUsers(): void {
 }
 
 // ===== Typing Indicator =====
-// let typingTimeout: ReturnType<typeof setTimeout> | null = null;
-// let isTyping = false;
+let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+let isTyping = false;
 
-// Commented out - not currently used but may be needed in the future
-// function notifyTyping(): void {
-//     if (!isTyping) {
-//         isTyping = true;
-//         // TODO: Send typing start notification via SignalR
-//         // connection.invoke('StartTyping', discussionId);
-//     }
-//
-//     if (typingTimeout) clearTimeout(typingTimeout);
-//     typingTimeout = setTimeout(() => {
-//         isTyping = false;
-//         // TODO: Send typing stop notification via SignalR
-//         // connection.invoke('StopTyping', discussionId);
-//     }, 2000);
-// }
+function notifyTyping(): void {
+    const realtime = (window as any).SnakkRealtime;
+    if (!realtime || !discussionConfig?.discussionId || !discussionConfig?.displayName) return;
 
-// function showTypingIndicator(users: string[]): void {
-//     const indicator = document.getElementById('typing-indicator');
-//     const usersSpan = document.getElementById('typing-users');
-//
-//     if (!indicator || !usersSpan) return;
-//
-//     if (users && users.length > 0) {
-//         if (users.length === 1) {
-//             usersSpan.textContent = `${users[0]} is typing...`;
-//         } else if (users.length === 2) {
-//             usersSpan.textContent = `${users[0]} and ${users[1]} are typing...`;
-//         } else {
-//             usersSpan.textContent = `${users.length} people are typing...`;
-//         }
-//         indicator.classList.remove('hidden');
-//     } else {
-//         indicator.classList.add('hidden');
-//     }
-// }
+    if (!isTyping) {
+        isTyping = true;
+        realtime.startTyping(discussionConfig.discussionId, discussionConfig.displayName);
+    }
+
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+        realtime.stopTyping(discussionConfig!.discussionId, discussionConfig!.displayName);
+    }, 2000);
+}
 
 // ===== Keyboard Navigation =====
 let currentPostIndex = -1;
@@ -1263,12 +1254,13 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
                 ? existingPosts[existingPosts.length - 1]?.dataset.createdAt || null
                 : null;
 
-            data.items.forEach(post => {
+            data.items.forEach((post, idx) => {
                 if (post.isNecro && previousCreatedAt) {
                     container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), sentinel);
                 }
                 const isSameAuthor = previousAuthorId === post.author.publicId;
-                const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
+                const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
                 container.insertBefore(postElement, sentinel);
                 previousAuthorId = post.author.publicId;
                 previousCreatedAt = post.createdAt;
@@ -1390,7 +1382,7 @@ function createNecroSeparator(previousCreatedAt: string, necroCreatedAt: string)
     return el;
 }
 
-function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): HTMLElement {
+function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean, isLastPost: boolean = false): HTMLElement {
     const article = document.createElement('article');
     article.id = `post-${post.postNumber}`;
     article.dataset.createdAt = post.createdAt;
@@ -1446,9 +1438,11 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
         authorPaneHtml += '</aside>';
     }
 
-    // Build action buttons
+    // Build action buttons (hide reply/quote on own posts that are last or in same-author block)
+    const isOwnPost = post.author.publicId === currentUserId;
+    const hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
     let actionButtonsHtml = '';
-    if (!isLocked && isAuthenticated) {
+    if (!isLocked && isAuthenticated && !hideReplyQuote) {
         actionButtonsHtml = `
             <div class="hidden group-hover:flex items-center gap-1">
             <button onclick="replyToPost('${post.publicId}', '${escapeHtml(post.author.displayName)}')"
@@ -1821,12 +1815,13 @@ async function handleFragmentEntry(
         if (data.items && data.items.length > 0) {
             let previousAuthorId: string | null = null;
             let previousCreatedAt: string | null = null;
-            data.items.forEach(post => {
+            data.items.forEach((post, idx) => {
                 if (post.isNecro && previousCreatedAt) {
                     container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), scrollSentinel);
                 }
                 const isSameAuthor = previousAuthorId === post.author.publicId;
-                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
+                const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
                 container.insertBefore(el, scrollSentinel);
                 previousAuthorId = post.author.publicId;
                 previousCreatedAt = post.createdAt;
@@ -2092,6 +2087,8 @@ function initTimestampTicker(): void {
 
 // ===== Initialize Discussion Page =====
 function initDiscussionPage(config: DiscussionConfig): void {
+    discussionConfig = config;
+
     // Reset editor state for HTMX navigation (DOM was swapped, old editor is gone)
     editorInitPromise = null;
 

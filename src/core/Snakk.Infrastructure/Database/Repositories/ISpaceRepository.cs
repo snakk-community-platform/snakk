@@ -8,7 +8,7 @@ public interface ISpaceRepository : IGenericDatabaseRepository<SpaceDatabaseEnti
     Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId);
     Task<SpaceDetailDto?> GetForDisplayAsync(string publicId);
     Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug);
+    Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug);
     Task<PagedResult<SpaceRepository.SpaceListDto>> GetFilteredForDisplayAsync(string hubPublicId, int offset, int pageSize);
 }
 

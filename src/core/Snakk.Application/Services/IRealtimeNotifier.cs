@@ -38,4 +38,14 @@ public interface IRealtimeNotifier
     /// Notify user when their unread notification count changes
     /// </summary>
     Task NotifyUnreadCountUpdatedAsync(UserId userId, int count);
+
+    /// <summary>
+    /// Notify subscribers when a discussion is locked
+    /// </summary>
+    Task NotifyDiscussionLockedAsync(DiscussionId discussionId);
+
+    /// <summary>
+    /// Notify subscribers when a discussion is unlocked
+    /// </summary>
+    Task NotifyDiscussionUnlockedAsync(DiscussionId discussionId);
 }

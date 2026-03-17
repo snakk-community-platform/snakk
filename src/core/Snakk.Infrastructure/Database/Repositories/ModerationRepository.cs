@@ -185,6 +185,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         _context.UserRoles.Add(role);
         await _context.SaveChangesAsync();
 
+        // Bump TeamRevision on affected scope
+        await BumpTeamRevisionAsync(communityPublicId, hubPublicId, spacePublicId);
+
         // Log the action
         await LogModerationActionAsync(
             assignedByUserPublicId,
@@ -229,6 +232,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         role.RevokedByUserId = revoker.Id;
 
         await _context.SaveChangesAsync();
+
+        // Bump TeamRevision on affected scope
+        await BumpTeamRevisionAsync(role.Community?.PublicId, role.Hub?.PublicId, role.Space?.PublicId);
 
         await LogModerationActionAsync(
             revokedByUserPublicId,
@@ -1296,6 +1302,33 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             PageSize = pageSize,
             HasMoreItems = offset + items.Count < totalCount
         };
+    }
+
+    private async Task BumpTeamRevisionAsync(
+        string? communityPublicId,
+        string? hubPublicId,
+        string? spacePublicId)
+    {
+        var newRevision = Guid.NewGuid().ToString("N")[..8];
+
+        if (!string.IsNullOrEmpty(spacePublicId))
+        {
+            await _context.Spaces
+                .Where(s => s.PublicId == spacePublicId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.TeamRevision, newRevision));
+        }
+        else if (!string.IsNullOrEmpty(hubPublicId))
+        {
+            await _context.Hubs
+                .Where(h => h.PublicId == hubPublicId)
+                .ExecuteUpdateAsync(h => h.SetProperty(x => x.TeamRevision, newRevision));
+        }
+        else if (!string.IsNullOrEmpty(communityPublicId))
+        {
+            await _context.Communities
+                .Where(c => c.PublicId == communityPublicId)
+                .ExecuteUpdateAsync(c => c.SetProperty(x => x.TeamRevision, newRevision));
+        }
     }
 
     public async Task LogModerationActionAsync(

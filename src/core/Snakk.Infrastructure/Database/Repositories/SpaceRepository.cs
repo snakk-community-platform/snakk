@@ -47,8 +47,8 @@ public class SpaceRepository(SnakkDbContext context)
     public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet.FirstOrDefaultAsync(s => s.PublicId == publicId);
 
-    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug) =>
-        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug);
+    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug && s.Hub.Slug == hubSlug);
 
     public async Task<PagedResult<SpaceListDto>> GetFilteredForDisplayAsync(
         string hubPublicId,

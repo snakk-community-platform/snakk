@@ -1,8 +1,10 @@
 using Grpc.Core;
+using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
+using Snakk.Infrastructure.Database;
 using Snakk.Protos.Moderation;
 using Snakk.Shared.Enums;
 
@@ -10,7 +12,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class ModerationGrpcService(
     ModerationUseCase moderationUseCase,
-    ICurrentUserService currentUser) : ModerationService.ModerationServiceBase
+    ICurrentUserService currentUser,
+    SnakkDbContext dbContext) : ModerationService.ModerationServiceBase
 {
     // ==================== Permission Checks ====================
 
@@ -503,6 +506,137 @@ public class ModerationGrpcService(
         }
 
         return response;
+    }
+
+    // ==================== Public Moderator List ====================
+
+    public override async Task<GetModeratorsResponse> GetModerators(GetModeratorsRequest request, ServerCallContext context)
+    {
+        var response = new GetModeratorsResponse();
+        var groups = new List<ModeratorGroup>();
+
+        int? communityId = null;
+        int? hubId = null;
+        string? communityName = null;
+        string? hubName = null;
+
+        if (request.ScopeType == "Space")
+        {
+            var space = await dbContext.Spaces
+                .Include(s => s.Hub).ThenInclude(h => h.Community)
+                .Where(s => s.PublicId == request.ScopePublicId)
+                .FirstOrDefaultAsync();
+
+            if (space is null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
+
+            hubId = space.HubId;
+            hubName = space.Hub.Name;
+            communityId = space.Hub.CommunityId;
+            communityName = space.Hub.Community.Name;
+
+            var spaceMods = await GetActiveRolesAsync(spaceId: space.Id);
+            if (spaceMods.Count > 0)
+                groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = space.Name, Moderators = { spaceMods } });
+        }
+        else if (request.ScopeType == "Hub")
+        {
+            var hub = await dbContext.Hubs
+                .Include(h => h.Community)
+                .Where(h => h.PublicId == request.ScopePublicId)
+                .FirstOrDefaultAsync();
+
+            if (hub is null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
+
+            hubId = hub.Id;
+            hubName = hub.Name;
+            communityId = hub.CommunityId;
+            communityName = hub.Community.Name;
+        }
+        else if (request.ScopeType == "Community")
+        {
+            var community = await dbContext.Communities
+                .Where(c => c.PublicId == request.ScopePublicId)
+                .FirstOrDefaultAsync();
+
+            if (community is null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
+
+            communityId = community.Id;
+            communityName = community.Name;
+        }
+
+        // Hub moderators (if scope is Space or Hub)
+        if (hubId.HasValue)
+        {
+            var hubMods = await GetActiveRolesAsync(hubId: hubId.Value);
+            if (hubMods.Count > 0)
+                groups.Add(new ModeratorGroup { Level = "Hub Moderators", ScopeName = hubName ?? "", Moderators = { hubMods } });
+        }
+
+        // Community admins/mods
+        if (communityId.HasValue)
+        {
+            var communityMods = await GetActiveRolesAsync(communityId: communityId.Value);
+            if (communityMods.Count > 0)
+                groups.Add(new ModeratorGroup { Level = "Community Team", ScopeName = communityName ?? "", Moderators = { communityMods } });
+        }
+
+        // Global admins
+        var globalAdmins = await GetActiveRolesAsync(globalOnly: true);
+        if (globalAdmins.Count > 0)
+            groups.Add(new ModeratorGroup { Level = "Global Admins", ScopeName = "", Moderators = { globalAdmins } });
+
+        response.Groups.AddRange(groups);
+        response.TotalCount = groups.Sum(g => g.Moderators.Count);
+
+        return response;
+    }
+
+    private async Task<List<ModeratorInfo>> GetActiveRolesAsync(
+        int? communityId = null,
+        int? hubId = null,
+        int? spaceId = null,
+        bool globalOnly = false)
+    {
+        var query = dbContext.UserRoles
+            .Where(ur => ur.RevokedAt == null);
+
+        if (globalOnly)
+        {
+            query = query.Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin);
+        }
+        else if (spaceId.HasValue)
+        {
+            query = query.Where(ur =>
+                ur.SpaceId == spaceId.Value
+                && ur.RoleId == (int)UserRoleTypeEnum.SpaceMod);
+        }
+        else if (hubId.HasValue)
+        {
+            query = query.Where(ur =>
+                ur.HubId == hubId.Value
+                && ur.RoleId == (int)UserRoleTypeEnum.HubMod);
+        }
+        else if (communityId.HasValue)
+        {
+            query = query.Where(ur =>
+                ur.CommunityId == communityId.Value
+                && (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
+                    || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod));
+        }
+
+        return await query
+            .OrderBy(ur => ur.RoleId)
+            .ThenBy(ur => ur.AssignedAt)
+            .Select(ur => new ModeratorInfo
+            {
+                UserPublicId = ur.User.PublicId,
+                DisplayName = ur.User.DisplayName,
+                Role = ((UserRoleTypeEnum)ur.RoleId).ToString()
+            })
+            .ToListAsync();
     }
 
     // ==================== Helpers ====================

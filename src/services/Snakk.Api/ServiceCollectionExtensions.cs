@@ -278,6 +278,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.ICommunityManagementService, Infrastructure.Services.CommunityManagementService>();
         services.AddScoped<Application.Services.IHubManagementService, Infrastructure.Services.HubManagementService>();
         services.AddScoped<Application.Services.ISpaceManagementService, Infrastructure.Services.SpaceManagementService>();
+        services.AddScoped<Application.Services.IRuleService, Infrastructure.Services.RuleService>();
 
         // Webhook Services
         services.AddHttpClient(); // Required for WebhookService HTTP calls

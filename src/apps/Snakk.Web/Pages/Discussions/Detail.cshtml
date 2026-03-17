@@ -251,6 +251,7 @@
                     {
                         <span class="badge badge-warning badge-sm">🔒 Locked</span>
                     }
+                    <span id="viewer-count" class="badge badge-ghost badge-sm hidden"></span>
                     @if (firstPostItem != null)
                     {
                         @if (!firstPostItem.Author.IsDeleted)
@@ -406,6 +407,9 @@
                 var isOP = post.IsFirstPost;
                 var hasReplyTo = post.ReplyTo != null;
                 var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
+                var isLastPost = i == postList.Count - 1;
+                var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
+                var hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
 
                 var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
                 var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
@@ -545,7 +549,7 @@
                                 </span>
                             </div>
                             <div class="post-toolbar-right">
-                                @if (!Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                @if (!Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                 {
                                     <div class="hidden group-hover:flex items-center gap-1">
                                     <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
@@ -757,6 +761,14 @@
     </div>
 
     <!-- Reply Form -->
+    <!-- Realtime lock banner (shown dynamically via SignalR when discussion is locked while viewing) -->
+    <div id="discussion-lock-banner" class="mt-8 hidden">
+        <div class="clean-card p-6 text-center">
+            <h3 class="font-semibold mb-1">Discussion Locked</h3>
+            <p class="text-sm text-muted">This discussion has been locked. No new replies can be added.</p>
+        </div>
+    </div>
+
     @if (Model.Discussion.IsLocked)
     {
         <div class="mt-8">
@@ -833,6 +845,11 @@
                 <button type="button" onclick="clearReplyContext()" class="subtle-btn">
                     Cancel
                 </button>
+            </div>
+
+            <!-- Typing indicator -->
+            <div id="typing-indicator" class="hidden text-sm text-base-content/50 mb-2">
+                <span id="typing-users"></span>
             </div>
 
             <div class="composer-area">
@@ -1048,7 +1065,8 @@ else
         postsCurrentOffset: @(Model.Posts?.Items?.Count() ?? 0),
         postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false"),
         hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false"),
-        postCount: @(Model.Discussion?.PostCount ?? 0)
+        postCount: @(Model.Discussion?.PostCount ?? 0),
+        displayName: '@(Model.EscapeForJs(Model.CurrentUserDisplayName ?? ""))'
     };
 
     function setupAndInit() {

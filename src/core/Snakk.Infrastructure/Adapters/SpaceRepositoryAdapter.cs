@@ -37,10 +37,10 @@ public class SpaceRepositoryAdapter(
         return projection?.ToDomain();
     }
 
-    public async Task<Space?> GetBySlugAsync(string slug)
+    public async Task<Space?> GetBySlugAsync(string slug, string hubSlug)
     {
         var projection = await context.Spaces
-            .Where(s => s.Slug == slug)
+            .Where(s => s.Slug == slug && s.Hub.Slug == hubSlug)
             .Select(s => new SpaceProjection(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,

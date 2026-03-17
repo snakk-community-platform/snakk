@@ -117,9 +117,10 @@ public static class HubEndpoints
 
     private static async Task<IResult> GetHubBySlugAsync(
         string slug,
+        string communitySlug,
         HubUseCase useCase)
     {
-        var result = await useCase.GetHubBySlugAsync(slug);
+        var result = await useCase.GetHubBySlugAsync(slug, communitySlug);
 
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });

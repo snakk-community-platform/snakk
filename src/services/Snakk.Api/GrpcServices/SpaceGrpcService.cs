@@ -14,13 +14,13 @@ namespace Snakk.Api.GrpcServices;
 public class SpaceGrpcService(
     SpaceUseCase spaceUseCase,
     ISearchRepository searchRepository,
-    ISpaceManagementService spaceManagement,
+    IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
     SnakkDbContext dbContext) : SpaceService.SpaceServiceBase
 {
     public override async Task<SpaceInfo> GetSpaceBySlug(GetSpaceBySlugRequest request, ServerCallContext context)
     {
-        var result = await spaceUseCase.GetSpaceBySlugAsync(request.Slug);
+        var result = await spaceUseCase.GetSpaceBySlugAsync(request.Slug, request.HubSlug);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
@@ -97,7 +97,7 @@ public class SpaceGrpcService(
 
     public override async Task<SpaceRulesResponse> GetSpaceRules(GetSpaceRulesRequest request, ServerCallContext context)
     {
-        var rules = await spaceManagement.GetRulesAsync(request.SpaceId);
+        var rules = await ruleService.GetRulesAsync("Space", request.SpaceId);
 
         var response = new SpaceRulesResponse();
 
@@ -144,6 +144,7 @@ public class SpaceGrpcService(
                 s.RulesRevision,
                 s.ParentHubHasRules,
                 s.ParentCommunityHasRules,
+                s.TeamRevision,
                 AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList() })
             .FirstOrDefaultAsync();
 
@@ -153,6 +154,7 @@ public class SpaceGrpcService(
             info.RulesRevision = data.RulesRevision ?? "";
             info.ParentHubHasRules = data.ParentHubHasRules;
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
+            info.TeamRevision = data.TeamRevision ?? "";
             info.AllowedDiscussionTypes.AddRange(data.AllowedTypes);
         }
     }

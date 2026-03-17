@@ -40,9 +40,9 @@ public class HubUseCase(
         return Result<Hub>.Success(hub);
     }
 
-    public async Task<Result<Hub>> GetHubBySlugAsync(string slug)
+    public async Task<Result<Hub>> GetHubBySlugAsync(string slug, string communitySlug)
     {
-        var hub = await hubRepository.GetBySlugAsync(slug);
+        var hub = await hubRepository.GetBySlugAsync(slug, communitySlug);
 
         if (hub is null)
             return Result<Hub>.Failure($"Hub with slug '{slug}' not found");

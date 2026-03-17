@@ -147,6 +147,96 @@ interface Subscriptions {
         reactionsBar.innerHTML = html;
     }
 
+    function handleDiscussionLockChange(isLocked: boolean): void {
+        const banner = document.getElementById('discussion-lock-banner');
+        const replyForm = document.getElementById('reply-form');
+
+        if (banner) {
+            if (isLocked) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        if (replyForm) {
+            if (isLocked) {
+                replyForm.classList.add('hidden');
+            } else {
+                replyForm.classList.remove('hidden');
+            }
+        }
+    }
+
+    function handleViewerCount(data: { count: number }): void {
+        const el = document.getElementById('viewer-count');
+        if (!el) return;
+
+        if (data.count > 1) {
+            el.textContent = `${data.count} viewing`;
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    }
+
+    const typingUsers = new Map<string, ReturnType<typeof setTimeout>>();
+
+    function handleTypingIndicator(data: { displayName: string; isTyping: boolean }): void {
+        if (data.isTyping) {
+            // Clear existing timeout for this user
+            const existing = typingUsers.get(data.displayName);
+            if (existing) clearTimeout(existing);
+
+            // Auto-clear after 3 seconds
+            typingUsers.set(data.displayName, setTimeout(() => {
+                typingUsers.delete(data.displayName);
+                renderTypingIndicator();
+            }, 3000));
+        } else {
+            const existing = typingUsers.get(data.displayName);
+            if (existing) clearTimeout(existing);
+            typingUsers.delete(data.displayName);
+        }
+
+        renderTypingIndicator();
+    }
+
+    function renderTypingIndicator(): void {
+        const el = document.getElementById('typing-indicator');
+        const usersEl = document.getElementById('typing-users');
+        if (!el || !usersEl) return;
+
+        const names = Array.from(typingUsers.keys());
+
+        if (names.length === 0) {
+            el.classList.add('hidden');
+        } else if (names.length === 1) {
+            usersEl.textContent = `${names[0]} is typing...`;
+            el.classList.remove('hidden');
+        } else if (names.length === 2) {
+            usersEl.textContent = `${names[0]} and ${names[1]} are typing...`;
+            el.classList.remove('hidden');
+        } else {
+            usersEl.textContent = `${names.length} people are typing...`;
+            el.classList.remove('hidden');
+        }
+    }
+
+    // Expose typing functions for discussion-detail.ts to call
+    (window as any).SnakkRealtime = {
+        startTyping(discussionId: string, displayName: string): void {
+            if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StartTyping', discussionId, displayName).catch(() => {});
+            }
+        },
+        stopTyping(discussionId: string, displayName: string): void {
+            if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StopTyping', discussionId, displayName).catch(() => {});
+            }
+        }
+    };
+
     // Subscribe to groups based on page context
     function subscribeToGroups(): void {
         if (!connection) return;
@@ -290,6 +380,8 @@ interface Subscriptions {
                 connection.on("ReceiveUpdate", handleReceiveUpdate);
                 connection.on("ReceiveNotificationCount", handleNotificationCount);
                 connection.on("ReceiveNotification", handleNotification);
+                connection.on("ReceiveViewerCount", handleViewerCount);
+                connection.on("ReceiveTyping", handleTypingIndicator);
 
                 connection.onreconnected(() => {
                     debugLog('Reconnected');
@@ -317,6 +409,16 @@ interface Subscriptions {
 
         if (message.eventType === 'reaction-updated' && message.postId && message.counts) {
             handleReactionUpdate(message.postId, message.counts);
+            return;
+        }
+
+        if (message.eventType === 'discussion-locked') {
+            handleDiscussionLockChange(true);
+            return;
+        }
+
+        if (message.eventType === 'discussion-unlocked') {
+            handleDiscussionLockChange(false);
             return;
         }
 

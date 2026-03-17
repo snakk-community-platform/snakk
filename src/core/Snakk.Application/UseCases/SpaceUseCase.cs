@@ -40,9 +40,9 @@ public class SpaceUseCase(
         return Result<Space>.Success(space);
     }
 
-    public async Task<Result<Space>> GetSpaceBySlugAsync(string slug)
+    public async Task<Result<Space>> GetSpaceBySlugAsync(string slug, string hubSlug)
     {
-        var space = await spaceRepository.GetBySlugAsync(slug);
+        var space = await spaceRepository.GetBySlugAsync(slug, hubSlug);
 
         if (space is null)
             return Result<Space>.Failure($"Space with slug '{slug}' not found");

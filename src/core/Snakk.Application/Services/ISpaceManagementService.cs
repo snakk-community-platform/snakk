@@ -14,8 +14,4 @@ public interface ISpaceManagementService
         CancellationToken cancellationToken = default);
 
     Task<SpaceModerationDto> GetModerationDataAsync(string spaceId, CancellationToken cancellationToken = default);
-
-    Task<SpaceRulesDto> GetRulesAsync(string spaceId, CancellationToken cancellationToken = default);
-
-    Task<SpaceRulesDto> UpdateRulesAsync(string spaceId, UpdateSpaceRulesRequest request, CancellationToken cancellationToken = default);
 }

@@ -10,12 +10,8 @@ using Snakk.Protos.Manage;
 using Snakk.Shared.Enums;
 using System.Security.Claims;
 using AppUpdateRequest = Snakk.Application.DTOs.Management.UpdateSpaceSettingsRequest;
-using AppCommunityRuleDto = Snakk.Application.DTOs.Management.CommunityRuleDto;
-using AppHubRuleDto = Snakk.Application.DTOs.Management.HubRuleDto;
-using AppSpaceRuleDto = Snakk.Application.DTOs.Management.SpaceRuleDto;
-using AppUpdateCommunityRulesRequest = Snakk.Application.DTOs.Management.UpdateCommunityRulesRequest;
-using AppUpdateHubRulesRequest = Snakk.Application.DTOs.Management.UpdateHubRulesRequest;
-using AppUpdateSpaceRulesRequest = Snakk.Application.DTOs.Management.UpdateSpaceRulesRequest;
+using AppRuleDto = Snakk.Application.DTOs.Management.RuleDto;
+using AppUpdateRulesRequest = Snakk.Application.DTOs.Management.UpdateRulesRequest;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -23,12 +19,12 @@ public class ManageGrpcService(
     SnakkDbContext dbContext,
     IManagePermissionService permissionService,
     ICommunityManagementService communityManagementService,
-    IHubManagementService hubManagementService,
     ISpaceManagementService spaceManagementService,
     IModerationRepository moderationRepository,
     IDashboardChartRepository dashboardChartRepository,
     AnnouncementUseCase announcementUseCase,
-    ISettingsService settingsService) : ManageService.ManageServiceBase
+    ISettingsService settingsService,
+    IRuleService ruleService) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -187,104 +183,110 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var hasPermission = await permissionService.HasPermissionAsync(
-            userId, request.ScopeType, request.ScopePublicId, ManagePermissionEnum.ManageContent);
+        // Site scope requires global admin; other scopes use normal permission check
+        if (request.ScopeType == "Site")
+        {
+            var user = await dbContext.Users
+                .Where(u => u.PublicId == userId)
+                .Select(u => new { u.Roles })
+                .FirstOrDefaultAsync();
+            var isGlobalAdmin = user?.Roles.Any(r =>
+                r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
 
-        if (!hasPermission)
-            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+            if (!isGlobalAdmin)
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
+        }
+        else
+        {
+            var hasPermission = await permissionService.HasPermissionAsync(
+                userId, request.ScopeType, request.ScopePublicId, ManagePermissionEnum.ManageContent);
+
+            if (!hasPermission)
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+        }
 
         var response = new GetRulesResponse();
 
+        // Current scope's rules
+        var rules = await ruleService.GetRulesAsync(request.ScopeType, request.ScopePublicId);
+        response.Rules.AddRange(rules.Rules.Select(r => new RuleItem
+            { Title = r.Title, Description = r.Description, Order = r.Order }));
+
+        // Inherited rules from parent scopes (for admin panel display)
         switch (request.ScopeType)
         {
-            case "Community":
-            {
-                var rules = await communityManagementService.GetRulesAsync(request.ScopePublicId);
-                response.Rules.AddRange(rules.Rules.Select(r => new RuleItem
-                    { Title = r.Title, Description = r.Description, Order = r.Order }));
-                break;
-            }
             case "Hub":
             {
-                var rules = await hubManagementService.GetRulesAsync(request.ScopePublicId);
-                response.Rules.AddRange(rules.Rules.Select(r => new RuleItem
-                    { Title = r.Title, Description = r.Description, Order = r.Order }));
-
-                // Inherited: community rules
                 var hubParent = await dbContext.Hubs
                     .Where(h => h.PublicId == request.ScopePublicId)
-                    .Select(h => new {
+                    .Select(h => new
+                    {
                         CommunityPublicId = h.Community.PublicId,
                         CommunityName = h.Community.Name,
-                        CommunityHasRules = h.Community.HasRules })
+                        CommunityHasRules = h.Community.HasRules
+                    })
                     .FirstOrDefaultAsync();
 
                 if (hubParent is { CommunityHasRules: true })
-                {
-                    var communityRules = await communityManagementService.GetRulesAsync(hubParent.CommunityPublicId);
-                    if (communityRules.Rules.Count > 0)
-                    {
-                        var group = new InheritedRuleGroup
-                            { SourceScopeType = "Community", SourceScopeName = hubParent.CommunityName };
-                        group.Rules.AddRange(communityRules.Rules.Select(r => new RuleItem
-                            { Title = r.Title, Description = r.Description, Order = r.Order }));
-                        response.InheritedGroups.Add(group);
-                    }
-                }
+                    await AddInheritedGroup(response, "Community", hubParent.CommunityName, hubParent.CommunityPublicId);
 
                 break;
             }
             case "Space":
             {
-                var rules = await spaceManagementService.GetRulesAsync(request.ScopePublicId);
-                response.Rules.AddRange(rules.Rules.Select(r => new RuleItem
-                    { Title = r.Title, Description = r.Description, Order = r.Order }));
-
-                // Inherited: hub rules + community rules
                 var spaceParents = await dbContext.Spaces
                     .Where(s => s.PublicId == request.ScopePublicId)
-                    .Select(s => new {
+                    .Select(s => new
+                    {
                         CommunityPublicId = s.Hub.Community.PublicId,
                         CommunityName = s.Hub.Community.Name,
                         CommunityHasRules = s.Hub.Community.HasRules,
                         HubPublicId = s.Hub.PublicId,
                         HubName = s.Hub.Name,
-                        HubHasRules = s.Hub.HasRules })
+                        HubHasRules = s.Hub.HasRules
+                    })
                     .FirstOrDefaultAsync();
 
                 if (spaceParents is { CommunityHasRules: true })
-                {
-                    var communityRules = await communityManagementService.GetRulesAsync(spaceParents.CommunityPublicId);
-                    if (communityRules.Rules.Count > 0)
-                    {
-                        var group = new InheritedRuleGroup
-                            { SourceScopeType = "Community", SourceScopeName = spaceParents.CommunityName };
-                        group.Rules.AddRange(communityRules.Rules.Select(r => new RuleItem
-                            { Title = r.Title, Description = r.Description, Order = r.Order }));
-                        response.InheritedGroups.Add(group);
-                    }
-                }
+                    await AddInheritedGroup(response, "Community", spaceParents.CommunityName, spaceParents.CommunityPublicId);
 
                 if (spaceParents is { HubHasRules: true })
-                {
-                    var hubRules = await hubManagementService.GetRulesAsync(spaceParents.HubPublicId);
-                    if (hubRules.Rules.Count > 0)
-                    {
-                        var group = new InheritedRuleGroup
-                            { SourceScopeType = "Hub", SourceScopeName = spaceParents.HubName };
-                        group.Rules.AddRange(hubRules.Rules.Select(r => new RuleItem
-                            { Title = r.Title, Description = r.Description, Order = r.Order }));
-                        response.InheritedGroups.Add(group);
-                    }
-                }
+                    await AddInheritedGroup(response, "Hub", spaceParents.HubName, spaceParents.HubPublicId);
 
                 break;
             }
-            default:
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Unknown scope type: {request.ScopeType}"));
+        }
+
+        // Add inherited site rules for Community/Hub/Space scopes
+        if (request.ScopeType is "Community" or "Hub" or "Space")
+        {
+            var siteRules = await ruleService.GetRulesAsync("Site", null);
+            if (siteRules.Rules.Count > 0)
+            {
+                var group = new InheritedRuleGroup { SourceScopeType = "Site", SourceScopeName = "Site" };
+                group.Rules.AddRange(siteRules.Rules.Select(r => new RuleItem
+                    { Title = r.Title, Description = r.Description, Order = r.Order }));
+                response.InheritedGroups.Insert(0, group);
+            }
         }
 
         return response;
+    }
+
+    private async Task AddInheritedGroup(
+        GetRulesResponse response,
+        string scopeType,
+        string scopeName,
+        string scopePublicId)
+    {
+        var inherited = await ruleService.GetRulesAsync(scopeType, scopePublicId);
+        if (inherited.Rules.Count > 0)
+        {
+            var group = new InheritedRuleGroup { SourceScopeType = scopeType, SourceScopeName = scopeName };
+            group.Rules.AddRange(inherited.Rules.Select(r => new RuleItem
+                { Title = r.Title, Description = r.Description, Order = r.Order }));
+            response.InheritedGroups.Add(group);
+        }
     }
 
     public override async Task<UpdateRulesResponse> UpdateRules(
@@ -295,41 +297,36 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var hasPermission = await permissionService.HasPermissionAsync(
-            userId, request.ScopeType, request.ScopePublicId, ManagePermissionEnum.ManageContent);
-
-        if (!hasPermission)
-            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
-
-        switch (request.ScopeType)
+        // Site scope requires global admin; other scopes use normal permission check
+        if (request.ScopeType == "Site")
         {
-            case "Community":
-                await communityManagementService.UpdateRulesAsync(request.ScopePublicId,
-                    new AppUpdateCommunityRulesRequest
-                    {
-                        Rules = request.Rules.Select(r => new AppCommunityRuleDto
-                            { Title = r.Title, Description = r.Description, Order = r.Order }).ToList()
-                    });
-                break;
-            case "Hub":
-                await hubManagementService.UpdateRulesAsync(request.ScopePublicId,
-                    new AppUpdateHubRulesRequest
-                    {
-                        Rules = request.Rules.Select(r => new AppHubRuleDto
-                            { Title = r.Title, Description = r.Description, Order = r.Order }).ToList()
-                    });
-                break;
-            case "Space":
-                await spaceManagementService.UpdateRulesAsync(request.ScopePublicId,
-                    new AppUpdateSpaceRulesRequest
-                    {
-                        Rules = request.Rules.Select(r => new AppSpaceRuleDto
-                            { Title = r.Title, Description = r.Description, Order = r.Order }).ToList()
-                    });
-                break;
-            default:
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Unknown scope type: {request.ScopeType}"));
+            var user = await dbContext.Users
+                .Where(u => u.PublicId == userId)
+                .Select(u => new { u.Roles })
+                .FirstOrDefaultAsync();
+            var isGlobalAdmin = user?.Roles.Any(r =>
+                r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+
+            if (!isGlobalAdmin)
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
         }
+        else
+        {
+            var hasPermission = await permissionService.HasPermissionAsync(
+                userId, request.ScopeType, request.ScopePublicId, ManagePermissionEnum.ManageContent);
+
+            if (!hasPermission)
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+        }
+
+        await ruleService.UpdateRulesAsync(
+            request.ScopeType,
+            request.ScopePublicId,
+            new AppUpdateRulesRequest
+            {
+                Rules = request.Rules.Select(r => new AppRuleDto
+                    { Title = r.Title, Description = r.Description, Order = r.Order }).ToList()
+            });
 
         return new UpdateRulesResponse { Success = true };
     }

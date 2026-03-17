@@ -34,8 +34,12 @@ public class IndexModel(
         && CommunityContext.IsDefaultCommunity
         && !CommunityContext.IsCustomDomain;
 
+    // Site rules revision for cache-busting HTMX URL
+    public string SiteRulesRevision { get; set; } = "";
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarPlatformStatsVM? InlinePlatformStats { get; set; }
+    public SidebarSiteRulesVM? InlineSiteRules { get; set; }
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
@@ -93,6 +97,12 @@ public class IndexModel(
             if (data is not null)
                 InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
         }
+
+        InlineSiteRules = prefetchCache.ResolveOrPrefetch(
+            "site-rules",
+            () => _apiClient.GetSiteRulesAsync(),
+            d => new SidebarSiteRulesVM(d, "cache"));
+        SiteRulesRevision = InlineSiteRules?.Rules?.Revision ?? "";
 
         if (ShowTrendingDiscussions)
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(

@@ -45,8 +45,8 @@ public class HubRepository(SnakkDbContext context)
     public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet.FirstOrDefaultAsync(h => h.PublicId == publicId);
 
-    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug) =>
-        await _dbSet.FirstOrDefaultAsync(h => h.Slug == slug);
+    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug, string communitySlug) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.Slug == slug && h.Community.Slug == communitySlug);
 
     public async Task<PagedResult<HubListDto>> GetFilteredForDisplayAsync(
         int offset,

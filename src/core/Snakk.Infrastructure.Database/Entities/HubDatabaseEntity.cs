@@ -35,6 +35,9 @@ public class HubDatabaseEntity
     public string? RulesRevision { get; set; }
     public bool ParentCommunityHasRules { get; set; }
 
+    // Team revision for moderator list cache-busting
+    public string? TeamRevision { get; set; }
+
     // Denormalized counts for performance
     public int SpaceCount { get; set; }
     public int DiscussionCount { get; set; }
@@ -44,5 +47,5 @@ public class HubDatabaseEntity
     // Navigation properties
     public virtual CommunityDatabaseEntity Community { get; set; } = null!;
     public virtual ICollection<SpaceDatabaseEntity> Spaces { get; set; } = [];
-    public virtual ICollection<HubRuleDatabaseEntity> Rules { get; set; } = [];
+    public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
 }

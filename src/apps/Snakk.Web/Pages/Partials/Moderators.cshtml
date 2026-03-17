@@ -1,0 +1,9 @@
+@page "/partials/moderators"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.ModeratorsModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_Moderators"
+         model="new SidebarModeratorsVM(Model.Moderators, Model.ModeratorsPageUrl, Model.CacheSource)" />

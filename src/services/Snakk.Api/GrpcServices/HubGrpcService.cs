@@ -16,13 +16,13 @@ namespace Snakk.Api.GrpcServices;
 public class HubGrpcService(
     HubUseCase hubUseCase,
     ISearchRepository searchRepository,
-    IHubManagementService hubManagement,
+    IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
     SnakkDbContext dbContext) : HubService.HubServiceBase
 {
     public override async Task<HubInfo> GetHubBySlug(GetHubBySlugRequest request, ServerCallContext context)
     {
-        var result = await hubUseCase.GetHubBySlugAsync(request.Slug);
+        var result = await hubUseCase.GetHubBySlugAsync(request.Slug, request.CommunitySlug);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
@@ -122,7 +122,7 @@ public class HubGrpcService(
 
     public override async Task<HubRulesResponse> GetHubRules(GetHubRulesRequest request, ServerCallContext context)
     {
-        var rules = await hubManagement.GetRulesAsync(request.HubId);
+        var rules = await ruleService.GetRulesAsync("Hub", request.HubId);
 
         var response = new HubRulesResponse();
 
@@ -146,7 +146,8 @@ public class HubGrpcService(
             .Select(h => new {
                 h.HasRules,
                 h.RulesRevision,
-                h.ParentCommunityHasRules })
+                h.ParentCommunityHasRules,
+                h.TeamRevision })
             .FirstOrDefaultAsync();
 
         if (data is not null)
@@ -154,6 +155,7 @@ public class HubGrpcService(
             info.HasRules = data.HasRules;
             info.RulesRevision = data.RulesRevision ?? "";
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
+            info.TeamRevision = data.TeamRevision ?? "";
         }
     }
 

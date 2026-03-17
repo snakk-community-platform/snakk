@@ -38,7 +38,7 @@ public static class SpaceEndpoints
 
         group.MapGet("/{spaceId}/rules", GetSpaceRulesAsync)
             .WithName("GetSpaceRules")
-            .Produces<SpaceRulesDto>();
+            .Produces<RulesDto>();
 
         group.MapGet("/{publicId}/stats", GetSpaceStatsAsync)
             .WithName("GetSpaceStats")
@@ -92,9 +92,10 @@ public static class SpaceEndpoints
 
     private static async Task<IResult> GetSpaceBySlugAsync(
         string slug,
+        string hubSlug,
         SpaceUseCase useCase)
     {
-        var result = await useCase.GetSpaceBySlugAsync(slug);
+        var result = await useCase.GetSpaceBySlugAsync(slug, hubSlug);
 
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
@@ -173,10 +174,10 @@ public static class SpaceEndpoints
 
     private static async Task<IResult> GetSpaceRulesAsync(
         string spaceId,
-        ISpaceManagementService service,
+        IRuleService ruleService,
         CancellationToken cancellationToken)
     {
-        var rules = await service.GetRulesAsync(spaceId, cancellationToken);
+        var rules = await ruleService.GetRulesAsync("Space", spaceId, cancellationToken);
         return Results.Ok(rules);
     }
 

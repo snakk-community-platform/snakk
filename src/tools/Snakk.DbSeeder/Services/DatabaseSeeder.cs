@@ -113,6 +113,18 @@ public class DatabaseSeeder(
         // Seed reactions (one per user per post)
         await SeedReactionsAsync(users);
 
+        // Seed rules across all entity scopes
+        await SeedRulesAsync();
+
+        // Seed follows (users following discussions, spaces, and other users)
+        await SeedFollowsAsync(users);
+
+        // Seed reports (content reports with mod comments)
+        await SeedReportsAsync(users);
+
+        // Seed post revisions (edit history for some posts)
+        await SeedPostRevisionsAsync(users);
+
         // Seed high-volume threads for pagination debugging
         await SeedHighVolumeDiscussionsAsync(users);
 
@@ -125,6 +137,11 @@ public class DatabaseSeeder(
     private async Task ClearExistingDataAsync()
     {
         // Delete in correct order due to foreign keys
+        _context.Rules.RemoveRange(_context.Rules);
+        _context.Follows.RemoveRange(_context.Follows);
+        _context.ReportComments.RemoveRange(_context.ReportComments);
+        _context.Reports.RemoveRange(_context.Reports);
+        _context.PostRevisions.RemoveRange(_context.PostRevisions);
         _context.Reactions.RemoveRange(_context.Reactions);
         _context.UserBans.RemoveRange(_context.UserBans);
         _context.ReportReasons.RemoveRange(_context.ReportReasons);
@@ -914,6 +931,7 @@ public class DatabaseSeeder(
 
         var latestAllowed = Now.AddHours(-1);
         var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
+        var usersWhoPostedInSpace = new HashSet<int>();
 
         var threads = new[]
         {
@@ -952,6 +970,7 @@ public class DatabaseSeeder(
             // First post
             postNumber++;
             usersWhoPostedInDiscussion.Add(author.Id);
+            var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             var firstPostContent = GeneratePostContent(isOpeningPost: true);
             posts.Add(new PostDatabaseEntity
             {
@@ -965,7 +984,7 @@ public class DatabaseSeeder(
                 RevisionCount = 0,
                 IsOp = true,
                 IsUsersFirstPostInDiscussion = true,
-                IsUsersFirstPostInSpace = false,
+                IsUsersFirstPostInSpace = isFirstInSpace,
                 IsNecro = false,
                 IsMilestone = false
             });
@@ -987,6 +1006,7 @@ public class DatabaseSeeder(
                 }
 
                 var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var replyContent = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
@@ -1001,7 +1021,7 @@ public class DatabaseSeeder(
                     RevisionCount = 0,
                     IsOp = replyAuthor.Id == discussion.CreatedByUserId,
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
-                    IsUsersFirstPostInSpace = false,
+                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = false,
                     IsMilestone = milestoneThresholds.Contains(postNumber)
                 });
@@ -1021,10 +1041,10 @@ public class DatabaseSeeder(
         }
 
         // Seed necro discussions (threads with 30+ day gaps between posts)
-        await SeedNecroDiscussionsAsync(space, users);
+        await SeedNecroDiscussionsAsync(space, users, usersWhoPostedInSpace);
     }
 
-    private async Task SeedNecroDiscussionsAsync(SpaceDatabaseEntity space, List<UserDatabaseEntity> users)
+    private async Task SeedNecroDiscussionsAsync(SpaceDatabaseEntity space, List<UserDatabaseEntity> users, HashSet<int> usersWhoPostedInSpace)
     {
         Console.WriteLine("  Seeding necro discussions (30+ day gaps)...");
 
@@ -1062,6 +1082,7 @@ public class DatabaseSeeder(
             // First post (OP)
             postNumber++;
             usersWhoPostedInDiscussion.Add(author.Id);
+            var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             var firstContent = GeneratePostContent(isOpeningPost: true);
             posts.Add(new PostDatabaseEntity
             {
@@ -1075,7 +1096,7 @@ public class DatabaseSeeder(
                 RevisionCount = 0,
                 IsOp = true,
                 IsUsersFirstPostInDiscussion = true,
-                IsUsersFirstPostInSpace = false,
+                IsUsersFirstPostInSpace = isFirstInSpace,
                 IsNecro = false,
                 IsMilestone = false
             });
@@ -1089,6 +1110,7 @@ public class DatabaseSeeder(
                 var delay = _faker.Random.Double(30, 60 * 24 * 2); // 30 min to 2 days
                 var replyDate = lastPostDate.AddMinutes(delay);
                 var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var content = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
@@ -1103,7 +1125,7 @@ public class DatabaseSeeder(
                     RevisionCount = 0,
                     IsOp = replyAuthor.Id == discussion.CreatedByUserId,
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
-                    IsUsersFirstPostInSpace = false,
+                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = false,
                     IsMilestone = false
                 });
@@ -1121,6 +1143,7 @@ public class DatabaseSeeder(
                 var isNecro = j == 0; // Only the first post after the gap is necro
                 var replyDate = j == 0 ? necroDate : necroDate.AddMinutes(_faker.Random.Double(10, 60 * 8));
                 var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var content = GeneratePostContent(isOpeningPost: false);
                 posts.Add(new PostDatabaseEntity
@@ -1135,7 +1158,7 @@ public class DatabaseSeeder(
                     RevisionCount = 0,
                     IsOp = replyAuthor.Id == discussion.CreatedByUserId,
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
-                    IsUsersFirstPostInSpace = false,
+                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = isNecro,
                     IsMilestone = false
                 });
@@ -1369,6 +1392,399 @@ public class DatabaseSeeder(
 
         await _context.SaveChangesAsync();
         Console.WriteLine("Created 4 seed announcements (2 community, 1 hub, 1 space).");
+    }
+
+    private async Task SeedRulesAsync()
+    {
+        Console.WriteLine("Seeding rules...");
+
+        var rules = new List<RuleDatabaseEntity>();
+
+        // Site-wide rules (no scope — all nulls)
+        var siteRules = new[]
+        {
+            ("Be respectful", "Treat others with courtesy. No personal attacks, harassment, or hate speech of any kind."),
+            ("No spam or self-promotion", "Do not post unsolicited advertisements, referral links, or repetitive self-promotional content."),
+            ("Keep it legal", "Do not post content that violates applicable laws, including piracy, doxxing, or threats of violence.")
+        };
+
+        for (var i = 0; i < siteRules.Length; i++)
+        {
+            rules.Add(new RuleDatabaseEntity
+            {
+                Title = siteRules[i].Item1,
+                Description = siteRules[i].Item2,
+                SortOrder = i + 1,
+                CreatedAt = EarliestDate
+            });
+        }
+
+        // Community rules
+        var communityRulePool = new[]
+        {
+            ("Use descriptive titles", "Discussion titles should clearly describe the topic. Avoid vague titles like \"Help\" or \"Question\"."),
+            ("English only", "All posts and comments must be written in English to keep discussions accessible to everyone."),
+            ("No NSFW content", "This is a safe-for-work community. Do not post explicit, graphic, or sexually suggestive content."),
+            ("Cite your sources", "When making factual claims, provide links or references to credible sources."),
+            ("Stay on topic", "Keep discussions relevant to the community's purpose. Off-topic posts may be moved or removed."),
+            ("No trolling or bad faith", "Engage genuinely. Deliberately inflammatory or disingenuous posts will be removed."),
+            ("Respect privacy", "Do not share personal information about others without their consent.")
+        };
+
+        var communities = await _context.Communities.ToListAsync();
+        foreach (var community in communities)
+        {
+            var count = _faker.Random.Int(0, 3);
+            var picked = _faker.PickRandom(communityRulePool, count).ToList();
+            for (var i = 0; i < picked.Count; i++)
+            {
+                rules.Add(new RuleDatabaseEntity
+                {
+                    Title = picked[i].Item1,
+                    Description = picked[i].Item2,
+                    SortOrder = i + 1,
+                    CommunityId = community.Id,
+                    CreatedAt = community.CreatedAt.AddDays(1)
+                });
+            }
+        }
+
+        // Hub rules
+        var hubRulePool = new[]
+        {
+            ("Use appropriate flair", "Tag your posts with the correct category or flair so others can filter content easily."),
+            ("No duplicate threads", "Search before posting. If a similar discussion exists, contribute there instead of creating a new one."),
+            ("Keep titles neutral", "Avoid editorializing or sensationalizing titles. Present the topic fairly."),
+            ("Constructive feedback only", "Criticism is welcome, but it must be constructive and aimed at ideas, not people."),
+            ("No low-effort posts", "One-word replies, memes without context, and low-effort content will be removed."),
+            ("Spoiler tags required", "Use spoiler syntax when discussing plot points, leaks, or unreleased content.")
+        };
+
+        var hubs = await _context.Hubs.ToListAsync();
+        foreach (var hub in hubs)
+        {
+            var count = _faker.Random.Int(0, 3);
+            var picked = _faker.PickRandom(hubRulePool, count).ToList();
+            for (var i = 0; i < picked.Count; i++)
+            {
+                rules.Add(new RuleDatabaseEntity
+                {
+                    Title = picked[i].Item1,
+                    Description = picked[i].Item2,
+                    SortOrder = i + 1,
+                    HubId = hub.Id,
+                    CreatedAt = hub.CreatedAt.AddDays(1)
+                });
+            }
+        }
+
+        // Space rules
+        var spaceRulePool = new[]
+        {
+            ("Stay on topic for this space", "Posts must be directly related to this space's subject matter."),
+            ("No homework requests", "Do not ask others to do your assignments. Show your own effort first."),
+            ("Format code properly", "Use code blocks and syntax highlighting when sharing code snippets."),
+            ("Beginner-friendly zone", "Be patient with newcomers. Everyone starts somewhere."),
+            ("No buying or selling", "This is a discussion space, not a marketplace. No trade or sale posts."),
+            ("Credit original creators", "When sharing someone else's work, always credit the original author or source."),
+            ("Weekly threads only", "Recurring topics should go in the designated weekly thread, not as standalone posts.")
+        };
+
+        var spaces = await _context.Spaces.ToListAsync();
+        foreach (var space in spaces)
+        {
+            var count = _faker.Random.Int(0, 3);
+            var picked = _faker.PickRandom(spaceRulePool, count).ToList();
+            for (var i = 0; i < picked.Count; i++)
+            {
+                rules.Add(new RuleDatabaseEntity
+                {
+                    Title = picked[i].Item1,
+                    Description = picked[i].Item2,
+                    SortOrder = i + 1,
+                    SpaceId = space.Id,
+                    CreatedAt = space.CreatedAt.AddDays(1)
+                });
+            }
+        }
+
+        _context.Rules.AddRange(rules);
+        await _context.SaveChangesAsync();
+
+        // Set denormalized HasRules / ParentHasRules flags
+        var communityIdsWithRules = new HashSet<int>(rules.Where(r => r.CommunityId.HasValue).Select(r => r.CommunityId!.Value));
+        var hubIdsWithRules = new HashSet<int>(rules.Where(r => r.HubId.HasValue).Select(r => r.HubId!.Value));
+        var spaceIdsWithRules = new HashSet<int>(rules.Where(r => r.SpaceId.HasValue).Select(r => r.SpaceId!.Value));
+
+        foreach (var community in communities)
+        {
+            community.HasRules = communityIdsWithRules.Contains(community.Id);
+            if (community.HasRules)
+                community.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+        }
+
+        foreach (var hub in hubs)
+        {
+            hub.HasRules = hubIdsWithRules.Contains(hub.Id);
+            hub.ParentCommunityHasRules = communityIdsWithRules.Contains(hub.CommunityId);
+            if (hub.HasRules)
+                hub.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+        }
+
+        foreach (var space in spaces)
+        {
+            space.HasRules = spaceIdsWithRules.Contains(space.Id);
+            space.ParentHubHasRules = hubIdsWithRules.Contains(space.HubId);
+            var hub = hubs.First(h => h.Id == space.HubId);
+            space.ParentCommunityHasRules = communityIdsWithRules.Contains(hub.CommunityId);
+            if (space.HasRules)
+                space.RulesRevision = Guid.NewGuid().ToString("N")[..8];
+        }
+
+        // Seed SiteRulesRevision system setting
+        await UpsertSystemSettingAsync("Rules", "SiteRulesRevision", Guid.NewGuid().ToString("N")[..8], "String");
+
+        await _context.SaveChangesAsync();
+
+        var siteCount = siteRules.Length;
+        var communityCount = rules.Count(r => r.CommunityId.HasValue);
+        var hubCount = rules.Count(r => r.HubId.HasValue);
+        var spaceCount = rules.Count(r => r.SpaceId.HasValue);
+        Console.WriteLine($"Seeded {rules.Count} rules ({siteCount} site-wide, {communityCount} community, {hubCount} hub, {spaceCount} space).");
+    }
+
+    private async Task SeedFollowsAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding follows...");
+
+        var follows = new List<FollowDatabaseEntity>();
+        var discussions = await _context.Discussions.ToListAsync();
+        var spaces = await _context.Spaces.ToListAsync();
+
+        // Each user follows 0-5 discussions
+        foreach (var user in users)
+        {
+            var discussionCount = _faker.Random.Int(0, 5);
+            var pickedDiscussions = _faker.PickRandom(discussions, Math.Min(discussionCount, discussions.Count));
+            foreach (var discussion in pickedDiscussions)
+            {
+                follows.Add(new FollowDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = user.Id,
+                    TargetTypeId = (int)FollowTargetTypeEnum.Discussion,
+                    LevelId = (int)FollowLevelEnum.DiscussionsAndPosts,
+                    DiscussionId = discussion.Id,
+                    CreatedAt = _faker.Date.Between(discussion.CreatedAt, Now)
+                });
+            }
+
+            // Each user follows 0-3 spaces
+            var spaceCount = _faker.Random.Int(0, 3);
+            var pickedSpaces = _faker.PickRandom(spaces, Math.Min(spaceCount, spaces.Count));
+            foreach (var space in pickedSpaces)
+            {
+                follows.Add(new FollowDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = user.Id,
+                    TargetTypeId = (int)FollowTargetTypeEnum.Space,
+                    LevelId = _faker.PickRandom(FollowLevelEnum.DiscussionsOnly, FollowLevelEnum.DiscussionsAndPosts) == FollowLevelEnum.DiscussionsOnly
+                        ? (int)FollowLevelEnum.DiscussionsOnly
+                        : (int)FollowLevelEnum.DiscussionsAndPosts,
+                    SpaceId = space.Id,
+                    CreatedAt = _faker.Date.Between(space.CreatedAt, Now)
+                });
+            }
+
+            // Each user follows 0-3 other users
+            var userFollowCount = _faker.Random.Int(0, 3);
+            var otherUsers = users.Where(u => u.Id != user.Id).ToList();
+            var pickedUsers = _faker.PickRandom(otherUsers, Math.Min(userFollowCount, otherUsers.Count));
+            foreach (var followed in pickedUsers)
+            {
+                follows.Add(new FollowDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    UserId = user.Id,
+                    TargetTypeId = (int)FollowTargetTypeEnum.User,
+                    LevelId = (int)FollowLevelEnum.DiscussionsAndPosts,
+                    FollowedUserId = followed.Id,
+                    CreatedAt = _faker.Date.Between(followed.CreatedAt, Now)
+                });
+            }
+        }
+
+        _context.Follows.AddRange(follows);
+        await _context.SaveChangesAsync();
+
+        var discussionFollows = follows.Count(f => f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion);
+        var spaceFollows = follows.Count(f => f.TargetTypeId == (int)FollowTargetTypeEnum.Space);
+        var userFollows = follows.Count(f => f.TargetTypeId == (int)FollowTargetTypeEnum.User);
+        Console.WriteLine($"Seeded {follows.Count} follows ({discussionFollows} discussion, {spaceFollows} space, {userFollows} user).");
+    }
+
+    private async Task SeedReportsAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding reports...");
+
+        var reports = new List<ReportDatabaseEntity>();
+        var reasons = await _context.ReportReasons.Where(r => !r.IsDeleted).ToListAsync();
+        var posts = await _context.Posts
+            .Include(p => p.Discussion)
+                .ThenInclude(d => d.Space)
+                    .ThenInclude(s => s.Hub)
+            .Where(p => !p.IsDeleted && !p.IsFirstPost)
+            .OrderBy(p => Guid.NewGuid())
+            .Take(60)
+            .ToListAsync();
+
+        var detailPool = new[]
+        {
+            "This post is clearly off-topic and doesn't belong here.",
+            "User is being hostile towards other members.",
+            "This looks like spam or self-promotion.",
+            "Contains misleading information.",
+            "Repeated low-effort posts from this user.",
+            "Potentially harmful advice being given.",
+            "User is derailing the discussion on purpose.",
+            null, null, null // ~30% no details
+        };
+
+        var modCommentPool = new[]
+        {
+            "Reviewed — appears to violate community guidelines.",
+            "User has been warned previously for similar behavior.",
+            "Content has been removed. Escalating to community admin.",
+            "False positive — the post is fine in context.",
+            "Duplicate report — already handled.",
+            "Issuing a 3-day temp ban based on pattern of behavior."
+        };
+
+        // Create 30-50 reports on random posts
+        var reportCount = _faker.Random.Int(30, 50);
+        for (var i = 0; i < reportCount && i < posts.Count; i++)
+        {
+            var post = posts[i];
+            var reporter = _faker.PickRandom(users.Where(u => u.Id != post.CreatedByUserId).ToList());
+            var reason = reasons.Count > 0 ? _faker.PickRandom(reasons) : null;
+
+            // ~60% pending, ~25% resolved, ~15% dismissed
+            var roll = _faker.Random.Double();
+            var status = roll < 0.60
+                ? ReportStatusEnum.Pending
+                : roll < 0.85
+                    ? ReportStatusEnum.Resolved
+                    : ReportStatusEnum.Dismissed;
+
+            var createdAt = _faker.Date.Between(post.CreatedAt, Now);
+            var resolvedByUser = status != ReportStatusEnum.Pending
+                ? _faker.PickRandom(users)
+                : null;
+
+            var report = new ReportDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                ReporterUserId = reporter.Id,
+                ReportedPostId = post.Id,
+                ReasonId = reason?.Id,
+                Details = _faker.PickRandom(detailPool),
+                StatusId = (int)status,
+                CreatedAt = createdAt,
+                ResolvedAt = status != ReportStatusEnum.Pending
+                    ? _faker.Date.Between(createdAt, Now)
+                    : null,
+                ResolvedByUserId = resolvedByUser?.Id,
+                ResolutionNote = status != ReportStatusEnum.Pending
+                    ? _faker.PickRandom(modCommentPool)
+                    : null,
+                SpaceId = post.Discussion.SpaceId,
+                HubId = post.Discussion.Space.HubId,
+                CommunityId = post.Discussion.Space.Hub.CommunityId
+            };
+
+            reports.Add(report);
+        }
+
+        _context.Reports.AddRange(reports);
+        await _context.SaveChangesAsync();
+
+        // Add mod comments on some resolved/dismissed reports
+        var comments = new List<ReportCommentDatabaseEntity>();
+        var handledReports = reports.Where(r => r.StatusId != (int)ReportStatusEnum.Pending).ToList();
+        foreach (var report in handledReports)
+        {
+            var commentCount = _faker.Random.Int(0, 2);
+            for (var j = 0; j < commentCount; j++)
+            {
+                var mod = _faker.PickRandom(users);
+                comments.Add(new ReportCommentDatabaseEntity
+                {
+                    PublicId = Ulid.NewUlid().ToString(),
+                    ReportId = report.Id,
+                    AuthorUserId = mod.Id,
+                    Content = _faker.PickRandom(modCommentPool),
+                    CreatedAt = _faker.Date.Between(report.CreatedAt, report.ResolvedAt ?? Now)
+                });
+            }
+        }
+
+        _context.ReportComments.AddRange(comments);
+        await _context.SaveChangesAsync();
+
+        var pending = reports.Count(r => r.StatusId == (int)ReportStatusEnum.Pending);
+        var resolved = reports.Count(r => r.StatusId == (int)ReportStatusEnum.Resolved);
+        var dismissed = reports.Count(r => r.StatusId == (int)ReportStatusEnum.Dismissed);
+        Console.WriteLine($"Seeded {reports.Count} reports ({pending} pending, {resolved} resolved, {dismissed} dismissed) with {comments.Count} mod comments.");
+    }
+
+    private async Task SeedPostRevisionsAsync(List<UserDatabaseEntity> users)
+    {
+        Console.WriteLine("Seeding post revisions...");
+
+        // Pick ~10% of non-deleted posts to have edit history
+        var posts = await _context.Posts
+            .Where(p => !p.IsDeleted && !p.IsFirstPost)
+            .OrderBy(p => Guid.NewGuid())
+            .Take(80)
+            .ToListAsync();
+
+        var editedPosts = _faker.PickRandom(posts, Math.Min(posts.Count, 80)).ToList();
+        var revisions = new List<PostRevisionDatabaseEntity>();
+
+        foreach (var post in editedPosts)
+        {
+            var revisionCount = _faker.Random.Int(1, 3);
+
+            for (var r = 1; r <= revisionCount; r++)
+            {
+                // Each revision stores the content BEFORE the edit
+                var previousContent = r == 1
+                    ? post.Content // First revision = original content
+                    : GeneratePostContent(isOpeningPost: false);
+
+                revisions.Add(new PostRevisionDatabaseEntity
+                {
+                    PostId = post.Id,
+                    PostPublicId = post.PublicId,
+                    Content = previousContent,
+                    CreatedAt = _faker.Date.Between(post.CreatedAt, Now),
+                    EditedByUserId = post.CreatedByUserId,
+                    EditedByUserPublicId = users.First(u => u.Id == post.CreatedByUserId).PublicId,
+                    RevisionNumber = r
+                });
+            }
+
+            // Update the post's RevisionCount and current content
+            post.RevisionCount = revisionCount;
+            post.Content = GeneratePostContent(isOpeningPost: false);
+            post.RenderedContent = _markupParser.ToHtml(post.Content);
+        }
+
+        _context.PostRevisions.AddRange(revisions);
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Seeded {revisions.Count} revisions across {editedPosts.Count} posts.");
     }
 
     private async Task SeedModerationDataAsync(List<UserDatabaseEntity> users)

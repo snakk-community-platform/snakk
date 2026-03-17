@@ -135,13 +135,14 @@ public class HubUseCaseTests
     {
         // Arrange
         const string slug = "test-hub";
+        const string communitySlug = "main";
         var hub = Hub.Create(CommunityId.New(), "Test Hub", slug);
 
-        _mockHubRepository.Setup(r => r.GetBySlugAsync(slug))
+        _mockHubRepository.Setup(r => r.GetBySlugAsync(slug, communitySlug))
             .ReturnsAsync(hub);
 
         // Act
-        var result = await _useCase.GetHubBySlugAsync(slug);
+        var result = await _useCase.GetHubBySlugAsync(slug, communitySlug);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -153,12 +154,13 @@ public class HubUseCaseTests
     {
         // Arrange
         const string slug = "non-existent";
+        const string communitySlug = "main";
 
-        _mockHubRepository.Setup(r => r.GetBySlugAsync(slug))
+        _mockHubRepository.Setup(r => r.GetBySlugAsync(slug, communitySlug))
             .ReturnsAsync((Hub?)null);
 
         // Act
-        var result = await _useCase.GetHubBySlugAsync(slug);
+        var result = await _useCase.GetHubBySlugAsync(slug, communitySlug);
 
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();

@@ -12,7 +12,7 @@ namespace Snakk.Api.GrpcServices;
 
 public class CommunityGrpcService(
     CommunityUseCase communityUseCase,
-    ICommunityManagementService communityManagement,
+    IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
     SnakkDbContext dbContext) : CommunityService.CommunityServiceBase
 {
@@ -98,7 +98,7 @@ public class CommunityGrpcService(
 
     public override async Task<CommunityRulesResponse> GetCommunityRules(GetCommunityRulesRequest request, ServerCallContext context)
     {
-        var rules = await communityManagement.GetRulesAsync(request.CommunityId);
+        var rules = await ruleService.GetRulesAsync("Community", request.CommunityId);
 
         var response = new CommunityRulesResponse();
 
@@ -115,19 +115,41 @@ public class CommunityGrpcService(
         return response;
     }
 
+    public override async Task<SiteRulesResponse> GetSiteRules(GetSiteRulesRequest request, ServerCallContext context)
+    {
+        var rules = await ruleService.GetRulesAsync("Site", null);
+        var revision = await ruleService.GetSiteRulesRevisionAsync();
+
+        var response = new SiteRulesResponse { Revision = revision };
+
+        foreach (var r in rules.Rules)
+        {
+            response.Rules.Add(new SiteRule
+            {
+                Id = r.Order,
+                Title = r.Title,
+                Description = r.Description
+            });
+        }
+
+        return response;
+    }
+
     private async Task PopulateRulesMetadata(CommunityInfo info, string publicId)
     {
         var data = await dbContext.Communities
             .Where(c => c.PublicId == publicId)
             .Select(c => new {
                 c.HasRules,
-                c.RulesRevision })
+                c.RulesRevision,
+                c.TeamRevision })
             .FirstOrDefaultAsync();
 
         if (data is not null)
         {
             info.HasRules = data.HasRules;
             info.RulesRevision = data.RulesRevision ?? "";
+            info.TeamRevision = data.TeamRevision ?? "";
         }
     }
 

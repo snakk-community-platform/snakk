@@ -212,6 +212,20 @@ else
                     </div>
                 }
 
+                <!-- Moderators -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Moderators</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                                     model="Model.InlineModerators"
+                                     htmx-url="/partials/moderators?scopeType=Hub&scopeId=@Model.Hub.PublicId&moderatorsUrl=@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators&rev=@Model.Hub.TeamRevision">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+
                 @if (Model.ShowTrendingDiscussions)
                 {
                     <div class="sidebar-section">

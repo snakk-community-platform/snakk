@@ -25,7 +25,7 @@ public class SpaceRulesModel(
         bool parentCommunityHasRules = false,
         string rev = "")
     {
-        Response.Headers.CacheControl = "public, max-age=86400";
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         HubSlug = hubSlug;
         CommunitySlug = communitySlug;

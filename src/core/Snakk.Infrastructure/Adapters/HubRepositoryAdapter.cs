@@ -35,10 +35,10 @@ public class HubRepositoryAdapter(
         return projection?.ToDomain();
     }
 
-    public async Task<Hub?> GetBySlugAsync(string slug)
+    public async Task<Hub?> GetBySlugAsync(string slug, string communitySlug)
     {
         var projection = await context.Hubs
-            .Where(h => h.Slug == slug)
+            .Where(h => h.Slug == slug && h.Community.Slug == communitySlug)
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,

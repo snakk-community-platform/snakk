@@ -39,6 +39,7 @@ public class DetailModel(
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
     public SidebarCommunityRulesVM? InlineCommunityRules { get; set; }
+    public SidebarModeratorsVM? InlineModerators { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
@@ -105,5 +106,13 @@ public class DetailModel(
                 $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
                 () => _apiClient.GetTopContributorsTodayAsync(communityId: communityId),
                 d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache"));
+
+        InlineModerators = prefetchCache.ResolveOrPrefetch(
+            $"moderators:Community:{SidebarScopeId}",
+            () => _apiClient.GetModeratorsAsync("Community", SidebarScopeId),
+            d => new SidebarModeratorsVM(
+                d,
+                $"{Helpers.SnakkUrlHelper.Community(CommunityDetail!.Slug, CommunityContext)}/moderators",
+                "cache"));
     }
 }

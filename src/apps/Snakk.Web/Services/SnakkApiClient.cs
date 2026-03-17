@@ -125,9 +125,9 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<HubInfo?> GetHubBySlugAsync(string slug)
+    public virtual async Task<HubInfo?> GetHubBySlugAsync(string slug, string communitySlug)
     {
-        try { return await hubClient.GetHubBySlugAsync(new GetHubBySlugRequest { Slug = slug }); }
+        try { return await hubClient.GetHubBySlugAsync(new GetHubBySlugRequest { Slug = slug, CommunitySlug = communitySlug }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -147,9 +147,9 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug)
+    public virtual async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug, string hubSlug)
     {
-        try { return await spaceClient.GetSpaceBySlugAsync(new GetSpaceBySlugRequest { Slug = slug }); }
+        try { return await spaceClient.GetSpaceBySlugAsync(new GetSpaceBySlugRequest { Slug = slug, HubSlug = hubSlug }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -188,6 +188,12 @@ public class SnakkApiClient(
     public virtual async Task<CommunityRulesResponse?> GetCommunityRulesAsync(string communityId)
     {
         try { return await communityClient.GetCommunityRulesAsync(new GetCommunityRulesRequest { CommunityId = communityId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SiteRulesResponse?> GetSiteRulesAsync()
+    {
+        try { return await communityClient.GetSiteRulesAsync(new GetSiteRulesRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -791,6 +797,17 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
+    // Public moderator list
+    public virtual async Task<GetModeratorsResponse?> GetModeratorsAsync(string scopeType, string scopePublicId)
+    {
+        try
+        {
+            return await moderationClient.GetModeratorsAsync(
+                new GetModeratorsRequest { ScopeType = scopeType, ScopePublicId = scopePublicId });
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // Ban management
     public virtual async Task<IEnumerable<UserBanDto>?> GetUserBansAsync(string userId)
     {
@@ -1053,13 +1070,13 @@ public class SnakkApiClient(
         CallAsync(() => communityClient.GetCommunityBySlugAsync(
             new GetCommunityBySlugRequest { Slug = slug }).ResponseAsync);
 
-    public virtual Task<GrpcResult<HubInfo>> GetHubBySlugResultAsync(string slug) =>
+    public virtual Task<GrpcResult<HubInfo>> GetHubBySlugResultAsync(string slug, string communitySlug) =>
         CallAsync(() => hubClient.GetHubBySlugAsync(
-            new GetHubBySlugRequest { Slug = slug }).ResponseAsync);
+            new GetHubBySlugRequest { Slug = slug, CommunitySlug = communitySlug }).ResponseAsync);
 
-    public virtual Task<GrpcResult<SpaceInfo>> GetSpaceBySlugResultAsync(string slug) =>
+    public virtual Task<GrpcResult<SpaceInfo>> GetSpaceBySlugResultAsync(string slug, string hubSlug) =>
         CallAsync(() => spaceClient.GetSpaceBySlugAsync(
-            new GetSpaceBySlugRequest { Slug = slug }).ResponseAsync);
+            new GetSpaceBySlugRequest { Slug = slug, HubSlug = hubSlug }).ResponseAsync);
 
     public virtual Task<GrpcResult<DiscussionInfo>> GetDiscussionResultAsync(string publicId) =>
         CallAsync(() => discussionClient.GetDiscussionAsync(

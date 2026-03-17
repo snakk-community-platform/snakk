@@ -8,7 +8,7 @@ public interface ISpaceRepository
 {
     Task<Space?> GetByIdAsync(int id);
     Task<Space?> GetByPublicIdAsync(SpaceId publicId);
-    Task<Space?> GetBySlugAsync(string slug);
+    Task<Space?> GetBySlugAsync(string slug, string hubSlug);
     Task<IEnumerable<Space>> GetAllAsync();
     Task<PagedResult<Space>> GetFilteredForDisplayAsync(HubId hubId, int offset, int pageSize);
     Task AddAsync(Space space);

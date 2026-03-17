@@ -41,13 +41,14 @@ public class DetailModel(
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
     public SidebarHubRulesVM? InlineHubRules { get; set; }
+    public SidebarModeratorsVM? InlineModerators { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
         Slug = slug;
         PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
-        var hubResult = await _apiClient.GetHubBySlugResultAsync(slug);
+        var hubResult = await _apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
         if (!hubResult.IsSuccess)
             return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
@@ -98,5 +99,13 @@ public class DetailModel(
                     CommunityContext.CommunitySlug ?? "",
                     Hub.ParentCommunityHasRules,
                     "cache"));
+
+        InlineModerators = prefetchCache.ResolveOrPrefetch(
+            $"moderators:Hub:{SidebarScopeId}",
+            () => _apiClient.GetModeratorsAsync("Hub", SidebarScopeId),
+            d => new SidebarModeratorsVM(
+                d,
+                $"{Helpers.SnakkUrlHelper.Hub(CommunityContext, Slug)}/moderators",
+                "cache"));
     }
 }

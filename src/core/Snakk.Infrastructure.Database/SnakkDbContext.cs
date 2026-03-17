@@ -12,9 +12,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Core entities
     public DbSet<HubDatabaseEntity> Hubs { get; set; } = null!;
     public DbSet<SpaceDatabaseEntity> Spaces { get; set; } = null!;
-    public DbSet<SpaceRuleDatabaseEntity> SpaceRules { get; set; } = null!;
-    public DbSet<HubRuleDatabaseEntity> HubRules { get; set; } = null!;
-    public DbSet<CommunityRuleDatabaseEntity> CommunityRules { get; set; } = null!;
+    public DbSet<RuleDatabaseEntity> Rules { get; set; } = null!;
     public DbSet<DiscussionDatabaseEntity> Discussions { get; set; } = null!;
     public DbSet<PostDatabaseEntity> Posts { get; set; } = null!;
     public DbSet<PostRevisionDatabaseEntity> PostRevisions { get; set; } = null!;
@@ -133,65 +131,31 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(s => s.HubId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Configure Space -> Rules relationship
-        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
-            .HasOne(r => r.Space)
-            .WithMany(s => s.Rules)
-            .HasForeignKey(r => r.SpaceId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Configure unified Rule entity (nullable scope columns)
+        modelBuilder.Entity<RuleDatabaseEntity>(entity =>
+        {
+            entity.Property(r => r.Title).HasMaxLength(100).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(500).IsRequired();
 
-        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
-            .Property(r => r.Title)
-            .HasMaxLength(100)
-            .IsRequired();
+            entity.HasOne(r => r.Community)
+                .WithMany(c => c.Rules)
+                .HasForeignKey(r => r.CommunityId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
-            .Property(r => r.Description)
-            .HasMaxLength(500)
-            .IsRequired();
+            entity.HasOne(r => r.Hub)
+                .WithMany(h => h.Rules)
+                .HasForeignKey(r => r.HubId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<SpaceRuleDatabaseEntity>()
-            .HasIndex(r => r.SpaceId);
+            entity.HasOne(r => r.Space)
+                .WithMany(s => s.Rules)
+                .HasForeignKey(r => r.SpaceId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure Hub -> Rules relationship
-        modelBuilder.Entity<HubRuleDatabaseEntity>()
-            .HasOne(r => r.Hub)
-            .WithMany(h => h.Rules)
-            .HasForeignKey(r => r.HubId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<HubRuleDatabaseEntity>()
-            .Property(r => r.Title)
-            .HasMaxLength(100)
-            .IsRequired();
-
-        modelBuilder.Entity<HubRuleDatabaseEntity>()
-            .Property(r => r.Description)
-            .HasMaxLength(500)
-            .IsRequired();
-
-        modelBuilder.Entity<HubRuleDatabaseEntity>()
-            .HasIndex(r => r.HubId);
-
-        // Configure Community -> Rules relationship
-        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
-            .HasOne(r => r.Community)
-            .WithMany(c => c.Rules)
-            .HasForeignKey(r => r.CommunityId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
-            .Property(r => r.Title)
-            .HasMaxLength(100)
-            .IsRequired();
-
-        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
-            .Property(r => r.Description)
-            .HasMaxLength(500)
-            .IsRequired();
-
-        modelBuilder.Entity<CommunityRuleDatabaseEntity>()
-            .HasIndex(r => r.CommunityId);
+            entity.HasIndex(r => r.CommunityId);
+            entity.HasIndex(r => r.HubId);
+            entity.HasIndex(r => r.SpaceId);
+        });
 
         // Configure Space -> Discussions relationship
         modelBuilder.Entity<DiscussionDatabaseEntity>()
@@ -248,12 +212,14 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(d => d.PublicId)
             .IsUnique();
 
-        // Configure Slug indexes for lookups
+        // Configure Slug indexes for lookups (scoped to parent entity)
         modelBuilder.Entity<HubDatabaseEntity>()
-            .HasIndex(h => h.Slug);
+            .HasIndex(h => new { h.CommunityId, h.Slug })
+            .IsUnique();
 
         modelBuilder.Entity<SpaceDatabaseEntity>()
-            .HasIndex(s => s.Slug);
+            .HasIndex(s => new { s.HubId, s.Slug })
+            .IsUnique();
 
         modelBuilder.Entity<DiscussionDatabaseEntity>()
             .HasIndex(d => d.Slug);

@@ -145,6 +145,44 @@ public class HttpRealtimeNotifier(
         }
     }
 
+    public async Task NotifyDiscussionLockedAsync(DiscussionId discussionId)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "discussion-locked",
+                TargetGroup = $"discussion:{discussionId.Value}",
+                TargetId = "discussion-lock-banner",
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion locked: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyDiscussionUnlockedAsync(DiscussionId discussionId)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "discussion-unlocked",
+                TargetGroup = $"discussion:{discussionId.Value}",
+                TargetId = "discussion-lock-banner",
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion unlocked: {DiscussionId}", discussionId.Value);
+        }
+    }
+
     private string RenderPostHtml(Post post, User author)
     {
         var contentHtml = post.RenderedContent;

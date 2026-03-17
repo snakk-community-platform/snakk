@@ -28,11 +28,4 @@ public interface ICommunityManagementService
         CancellationToken cancellationToken = default);
 
     Task<List<HubSpaceItemDto>> GetCommunitySpacesAsync(string communityId, CancellationToken cancellationToken = default);
-
-    Task<CommunityRulesDto> GetRulesAsync(string communityId, CancellationToken cancellationToken = default);
-
-    Task<CommunityRulesDto> UpdateRulesAsync(
-        string communityId,
-        UpdateCommunityRulesRequest request,
-        CancellationToken cancellationToken = default);
 }

@@ -52,6 +52,7 @@ public class DetailModel(
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
+    public SidebarModeratorsVM? InlineModerators { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string hubSlug, string slug, int offset = 0, int? typeFilter = null)
     {
@@ -64,8 +65,8 @@ public class DetailModel(
         PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // Fetch hub, space, and community in parallel
-        var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug);
-        var spaceTask = _apiClient.GetSpaceBySlugResultAsync(slug);
+        var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug, CommunityContext.CommunitySlug!);
+        var spaceTask = _apiClient.GetSpaceBySlugResultAsync(slug, hubSlug);
         var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
@@ -116,7 +117,7 @@ public class DetailModel(
         }
 
         // Look up space to get PublicId
-        var spaceResult = await _apiClient.GetSpaceBySlugResultAsync(slug);
+        var spaceResult = await _apiClient.GetSpaceBySlugResultAsync(slug, hubSlug);
         if (!spaceResult.IsSuccess || spaceResult.Value is null)
             return NotFound();
 
@@ -149,10 +150,10 @@ public class DetailModel(
         Slug = slug;
         PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
-        var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug);
+        var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug, CommunityContext.CommunitySlug!);
         var spaceTask = Space is not null
             ? Task.FromResult(GrpcResult<SpaceInfo>.Ok(Space))
-            : _apiClient.GetSpaceBySlugResultAsync(slug);
+            : _apiClient.GetSpaceBySlugResultAsync(slug, hubSlug);
 
         await Task.WhenAll(hubTask, spaceTask);
 
@@ -194,6 +195,14 @@ public class DetailModel(
                 CommunityContext.CommunitySlug ?? "",
                 Space?.ParentHubHasRules ?? false,
                 Space?.ParentCommunityHasRules ?? false,
+                "cache"));
+
+        InlineModerators = prefetchCache.ResolveOrPrefetch(
+            $"moderators:Space:{SidebarScopeId}",
+            () => _apiClient.GetModeratorsAsync("Space", SidebarScopeId),
+            d => new SidebarModeratorsVM(
+                d,
+                $"{Helpers.SnakkUrlHelper.Space(CommunityContext, HubSlug, Slug)}/moderators",
                 "cache"));
     }
 }

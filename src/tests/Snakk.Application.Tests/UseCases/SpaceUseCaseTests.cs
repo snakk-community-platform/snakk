@@ -135,13 +135,14 @@ public class SpaceUseCaseTests
     {
         // Arrange
         const string slug = "test-space";
+        const string hubSlug = "test-hub";
         var space = Space.Create(HubId.New(), "Test Space", slug);
 
-        _mockSpaceRepository.Setup(r => r.GetBySlugAsync(slug))
+        _mockSpaceRepository.Setup(r => r.GetBySlugAsync(slug, hubSlug))
             .ReturnsAsync(space);
 
         // Act
-        var result = await _useCase.GetSpaceBySlugAsync(slug);
+        var result = await _useCase.GetSpaceBySlugAsync(slug, hubSlug);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -153,12 +154,13 @@ public class SpaceUseCaseTests
     {
         // Arrange
         const string slug = "non-existent";
+        const string hubSlug = "test-hub";
 
-        _mockSpaceRepository.Setup(r => r.GetBySlugAsync(slug))
+        _mockSpaceRepository.Setup(r => r.GetBySlugAsync(slug, hubSlug))
             .ReturnsAsync((Space?)null);
 
         // Act
-        var result = await _useCase.GetSpaceBySlugAsync(slug);
+        var result = await _useCase.GetSpaceBySlugAsync(slug, hubSlug);
 
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();

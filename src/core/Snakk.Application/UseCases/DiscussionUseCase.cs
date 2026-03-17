@@ -15,7 +15,8 @@ public class DiscussionUseCase(
     IPostRepository postRepository,
     IDomainEventDispatcher eventDispatcher,
     ICounterService counterService,
-    IMarkupParser markupParser) : UseCaseBase
+    IMarkupParser markupParser,
+    IRealtimeNotifier realtimeNotifier) : UseCaseBase
 {
     public async Task<Result<Discussion>> CreateDiscussionAsync(
         SpaceId spaceId,
@@ -133,6 +134,7 @@ public class DiscussionUseCase(
 
         discussion.Lock();
         await discussionRepository.UpdateAsync(discussion);
+        await realtimeNotifier.NotifyDiscussionLockedAsync(discussionId);
 
         return Result.Success();
     }
@@ -146,6 +148,7 @@ public class DiscussionUseCase(
 
         discussion.Unlock();
         await discussionRepository.UpdateAsync(discussion);
+        await realtimeNotifier.NotifyDiscussionUnlockedAsync(discussionId);
 
         return Result.Success();
     }

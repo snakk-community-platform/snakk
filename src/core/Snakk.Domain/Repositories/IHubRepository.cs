@@ -8,7 +8,7 @@ public interface IHubRepository
 {
     Task<Hub?> GetByIdAsync(int id);
     Task<Hub?> GetByPublicIdAsync(HubId publicId);
-    Task<Hub?> GetBySlugAsync(string slug);
+    Task<Hub?> GetBySlugAsync(string slug, string communitySlug);
     Task<IEnumerable<Hub>> GetAllAsync();
     Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize);
     Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize);

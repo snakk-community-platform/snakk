@@ -73,7 +73,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/hubs/by-slug/no-such-slug");
+        var response = await client.GetAsync("/hubs/by-slug/no-such-slug?communitySlug=main");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
@@ -122,7 +122,7 @@ public class MiscEndpointTests : IAsyncDisposable
         var client = _server.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/spaces/by-slug/no-such-slug");
+        var response = await client.GetAsync("/spaces/by-slug/no-such-slug?hubSlug=no-such-hub");
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);

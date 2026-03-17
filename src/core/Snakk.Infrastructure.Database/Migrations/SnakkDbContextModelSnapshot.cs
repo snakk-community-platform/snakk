@@ -348,6 +348,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("SpaceCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TeamRevision")
+                        .HasColumnType("text");
+
                     b.Property<string>("Timezone")
                         .HasColumnType("text");
 
@@ -404,43 +407,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("CommunityDomain");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityRuleDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommunityId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommunityId");
-
-                    b.ToTable("CommunityRule");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", b =>
@@ -791,53 +757,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("SpaceCount")
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.Property<string>("TeamRevision")
+                        .HasColumnType("text");
 
-                    b.HasIndex("CommunityId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.HasIndex("Slug");
+                    b.HasIndex("CommunityId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("Hub");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubRuleDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("HubId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HubId");
-
-                    b.ToTable("HubRule");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", b =>
@@ -1676,6 +1607,53 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("RolePermissions");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RuleDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CommunityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("HubId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SpaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId");
+
+                    b.HasIndex("HubId");
+
+                    b.HasIndex("SpaceId");
+
+                    b.ToTable("Rule");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceAllowedDiscussionTypeDatabaseEntity", b =>
                 {
                     b.Property<int>("SpaceId")
@@ -1757,53 +1735,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("Id");
+                    b.Property<string>("TeamRevision")
+                        .HasColumnType("text");
 
-                    b.HasIndex("HubId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.HasIndex("Slug");
+                    b.HasIndex("HubId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("Space");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceRuleDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SpaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SpaceId");
-
-                    b.ToTable("SpaceRule");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>
@@ -2521,17 +2464,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Community");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.CommunityRuleDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", "Community")
-                        .WithMany("Rules")
-                        .HasForeignKey("CommunityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Community");
-                });
-
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
@@ -2625,17 +2557,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Community");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubRuleDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", "Hub")
-                        .WithMany("Rules")
-                        .HasForeignKey("HubId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Hub");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", b =>
@@ -3054,6 +2975,30 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RuleDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", "Community")
+                        .WithMany("Rules")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", "Hub")
+                        .WithMany("Rules")
+                        .HasForeignKey("HubId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
+                        .WithMany("Rules")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Community");
+
+                    b.Navigation("Hub");
+
+                    b.Navigation("Space");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceAllowedDiscussionTypeDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
@@ -3074,17 +3019,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Hub");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SpaceRuleDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
-                        .WithMany("Rules")
-                        .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Space");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>

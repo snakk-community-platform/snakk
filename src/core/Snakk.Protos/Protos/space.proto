@@ -18,6 +18,7 @@ service SpaceService {
 
 message GetSpaceBySlugRequest {
   string slug = 1;
+  string hub_slug = 2;
 }
 
 message GetSpaceRequest {
@@ -56,6 +57,7 @@ message SpaceInfo {
   bool parent_hub_has_rules = 13;
   bool parent_community_has_rules = 14;
   repeated int32 allowed_discussion_types = 15;
+  string team_revision = 16;
 }
 
 message LatestDiscussionRef {

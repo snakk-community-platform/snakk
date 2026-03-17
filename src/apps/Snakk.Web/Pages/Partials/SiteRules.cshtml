@@ -1,0 +1,9 @@
+@page "/partials/site-rules"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.SiteRulesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_SiteRules"
+         model="new SidebarSiteRulesVM(Model.Rules, Model.CacheSource)" />

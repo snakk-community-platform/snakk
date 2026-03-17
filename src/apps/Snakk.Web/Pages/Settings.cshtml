@@ -180,6 +180,23 @@
                     <span class="label-text-alt text-muted">Controls how dates and times are displayed on the site</span>
                 </label>
             </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Emoji skin tone</span>
+                </label>
+                <div class="flex gap-2" id="skin-tone-picker">
+                    <button type="button" class="skin-tone-swatch active" data-tone="" title="Default">👋</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="Light">👋🏻</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="Medium-Light">👋🏼</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="Medium">👋🏽</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="Medium-Dark">👋🏾</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="Dark">👋🏿</button>
+                </div>
+                <label class="label">
+                    <span class="label-text-alt text-muted">Applies to hand and face emojis in the editor emoji picker</span>
+                </label>
+            </div>
         </div>
     </div>
 
@@ -564,7 +581,31 @@
         }
     }
 
+    function initSkinTonePicker() {
+        const picker = document.getElementById('skin-tone-picker');
+        if (!picker) return;
+
+        const stored = localStorage.getItem('snakk:skin-tone') || '';
+        const swatches = picker.querySelectorAll('.skin-tone-swatch');
+        swatches.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tone === stored);
+        });
+
+        picker.addEventListener('click', (e) => {
+            const btn = e.target.closest('.skin-tone-swatch');
+            if (!btn) return;
+
+            const tone = btn.dataset.tone;
+            localStorage.setItem('snakk:skin-tone', tone);
+
+            swatches.forEach(s => s.classList.toggle('active', s === btn));
+        });
+    }
+
     function attachEventListeners() {
+        // Skin tone picker (localStorage only, no server call)
+        initSkinTonePicker();
+
         // Avatar upload form
         const avatarForm = document.getElementById('avatar-upload-form');
         const fileInput = document.getElementById('avatar-file');

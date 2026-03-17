@@ -1101,6 +1101,23 @@ const EMOJI_DATA: Array<{ cat: string; emojis: string[] }> = [
     ]},
 ];
 
+// Emojis that support skin tone modifiers (hands, pointing, people gestures)
+const SKIN_TONE_COMPATIBLE = new Set([
+    '👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌',
+    '🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉',
+    '👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛',
+    '🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','💪',
+    '🤗','🤭','🤫','🫡','🤔','🧐',
+]);
+
+function applySkinTone(emoji: string): string {
+    const tone = localStorage.getItem('snakk:skin-tone') || '';
+    if (!tone || !SKIN_TONE_COMPATIBLE.has(emoji)) return emoji;
+    // Strip any existing skin tone modifier before applying new one
+    const base = emoji.replace(/[\u{1F3FB}-\u{1F3FF}]/u, '');
+    return base + tone;
+}
+
 let activeEmojiPicker: HTMLElement | null = null;
 
 function showEmojiPicker(editor: Editor): void {
@@ -1156,8 +1173,9 @@ function showEmojiPicker(editor: Editor): void {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'emoji-picker-item';
-            btn.textContent = emoji;
-            btn.title = emoji;
+            const toned = applySkinTone(emoji);
+            btn.textContent = toned;
+            btn.title = toned;
             grid.appendChild(btn);
         });
 

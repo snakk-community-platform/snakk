@@ -43,6 +43,9 @@ service ModerationService {
 
   // Moderation log
   rpc GetModerationLogs (GetModerationLogsRequest) returns (PagedModerationLogList);
+
+  // Public moderator list (no auth required)
+  rpc GetModerators (GetModeratorsRequest) returns (GetModeratorsResponse);
 }
 
 // --- Permission Requests ---
@@ -380,4 +383,28 @@ message PagedModerationLogList {
   int32 total = 2;
   int32 offset = 3;
   int32 page_size = 4;
+}
+
+// --- Public Moderator List ---
+
+message GetModeratorsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+}
+
+message GetModeratorsResponse {
+  repeated ModeratorGroup groups = 1;
+  int32 total_count = 2;
+}
+
+message ModeratorGroup {
+  string level = 1;
+  string scope_name = 2;
+  repeated ModeratorInfo moderators = 3;
+}
+
+message ModeratorInfo {
+  string user_public_id = 1;
+  string display_name = 2;
+  string role = 3;
 }

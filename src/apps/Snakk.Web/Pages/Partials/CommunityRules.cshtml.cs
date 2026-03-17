@@ -13,7 +13,7 @@ public class CommunityRulesModel(
 
     public async Task OnGetAsync(string communityId, string rev = "")
     {
-        Response.Headers.CacheControl = "public, max-age=86400";
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         var cacheKey = $"community-rules:{communityId}";
 
