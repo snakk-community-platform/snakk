@@ -85,10 +85,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.Space.Name,
                 d.Space.Slug,
                 d.Space.Hub.Slug,
+                d.Space.Hub.Name,
+                d.Space.Hub.Community.Slug,
                 d.CreatedAt,
                 d.LastActivityAt,
                 d.PostCount,
-                d.ReactionCount))
+                d.ReactionCount,
+                0))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
@@ -109,10 +112,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? discussionPublicId = null,
         string? spacePublicId = null,
         int offset = 0,
-        int pageSize = 20)
+        int pageSize = 20,
+        string? userId = null)
     {
         var baseQuery = _context.Posts
             .Where(p => !p.IsDeleted);
+
+        baseQuery = await WithPostAccessFilterAsync(baseQuery, userId);
 
         // Full-text search: PostgreSQL uses tsvector + websearch_to_tsquery, others fall back to LIKE
         if (!string.IsNullOrWhiteSpace(query))
@@ -166,7 +172,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 p.Discussion.Title,
                 p.Discussion.Slug,
                 p.Discussion.Space.Slug,
+                p.Discussion.Space.Name,
                 p.Discussion.Space.Hub.Slug,
+                p.Discussion.Space.Hub.Name,
+                p.Discussion.Space.Hub.Community.Slug,
                 p.CreatedAt))
             .ToListAsync();
 
@@ -419,6 +428,29 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     /// grant at each restricted level (intersection-gate model).
     /// Grant lookups are resolved via <see cref="IUserGrantsCacheService"/> (5-minute TTL).
     /// </summary>
+    private async Task<IQueryable<Database.Entities.PostDatabaseEntity>> WithPostAccessFilterAsync(
+        IQueryable<Database.Entities.PostDatabaseEntity> query, string? userId)
+    {
+        if (!await grantsCache.AnyRestrictedAsync())
+            return query;
+
+        if (userId == null)
+            return query.Where(p =>
+                !p.Discussion.Space.IsRestricted
+                && !p.Discussion.Space.Hub.IsRestricted
+                && !p.Discussion.Space.Hub.Community.IsRestricted);
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        var spaceIds = grants.SpaceIds;
+        var hubIds = grants.HubIds;
+        var communityIds = grants.CommunityIds;
+
+        return query.Where(p =>
+            (!p.Discussion.Space.IsRestricted || spaceIds.Contains(p.Discussion.SpaceId))
+            && (!p.Discussion.Space.Hub.IsRestricted || hubIds.Contains(p.Discussion.Space.HubId))
+            && (!p.Discussion.Space.Hub.Community.IsRestricted || communityIds.Contains(p.Discussion.Space.Hub.CommunityId)));
+    }
+
     private async Task<IQueryable<Database.Entities.DiscussionDatabaseEntity>> WithAccessFilterAsync(
         IQueryable<Database.Entities.DiscussionDatabaseEntity> query, string? userId)
     {

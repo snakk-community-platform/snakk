@@ -55,6 +55,7 @@ public class InlineOrHtmxTagHelper(IHtmlHelper htmlHelper) : TagHelper
             output.Attributes.SetAttribute("hx-target", "this");
             output.Attributes.SetAttribute("hx-swap", "innerHTML");
             output.Attributes.SetAttribute("hx-push-url", "false");
+            output.Attributes.SetAttribute("hx-boost", "false");
             // Child content (skeleton markup) is preserved automatically
         }
     }

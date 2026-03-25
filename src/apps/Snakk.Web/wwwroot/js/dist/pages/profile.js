@@ -1,70 +1,77 @@
-"use strict";(function(){"use strict";const p=window.SnakkUtils?.escapeHtml||function(r){if(!r)return"";const c=document.createElement("div");return c.textContent=r,c.innerHTML},$=window.SnakkUtils?.sanitizeHtml||function(r){if(!r)return"";const d=new DOMParser().parseFromString(r,"text/html");return d.querySelectorAll("script,iframe,object,embed,form,base,meta,link,style").forEach(a=>a.remove()),d.body.querySelectorAll("*").forEach(a=>{Array.from(a.attributes).forEach(u=>{u.name.startsWith("on")&&a.removeAttribute(u.name)}),["href","src","action","formaction"].forEach(u=>{const b=a.getAttribute(u);b&&b.trim().toLowerCase().startsWith("javascript:")&&a.removeAttribute(u)})}),d.body.innerHTML},g=window.SnakkUtils?.sanitizeUrl||function(r){if(!r)return"#";const c=r.trim().toLowerCase();return c.startsWith("javascript:")||c.startsWith("data:")?"#":r},y=window.SnakkUtils?.formatRelativeTime||function(r){const c=new Date(r),a=Math.floor((new Date().getTime()-c.getTime())/1e3);if(a<60)return"just now";if(a<3600)return`${Math.floor(a/60)}m ago`;if(a<86400)return`${Math.floor(a/3600)}h ago`;if(a<604800)return`${Math.floor(a/86400)}d ago`;const u=window.snakkTimezone||"UTC";try{return c.toLocaleDateString("en-US",{timeZone:u,month:"short",day:"numeric",year:"numeric"})}catch{return c.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}};function C(r,c,d){async function a(){try{const t=await(await fetch(`/bff/users/${r}/stats`)).json(),e=document.getElementById("stat-followers");e&&(e.textContent=t.followerCount||0);const s=document.getElementById("stat-replies");s&&t.replyCount!==void 0&&(s.textContent=t.replyCount)}catch(n){console.error("Error loading user stats:",n);const t=document.getElementById("stat-followers");t&&(t.textContent="0")}}async function u(n){const t=document.getElementById("recent-discussions");if(t)try{const s=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=${n}`)).json();if(!s.items||s.items.length===0){t.innerHTML=`
+"use strict";(function(){"use strict";const l=window.SnakkUtils?.escapeHtml||function(a){if(!a)return"";const c=document.createElement("div");return c.textContent=a,c.innerHTML},j=window.SnakkUtils?.sanitizeHtml||function(a){if(!a)return"";const f=new DOMParser().parseFromString(a,"text/html");return f.querySelectorAll("script,iframe,object,embed,form,base,meta,link,style").forEach(r=>r.remove()),f.body.querySelectorAll("*").forEach(r=>{Array.from(r.attributes).forEach(u=>{u.name.startsWith("on")&&r.removeAttribute(u.name)}),["href","src","action","formaction"].forEach(u=>{const k=r.getAttribute(u);k&&k.trim().toLowerCase().startsWith("javascript:")&&r.removeAttribute(u)})}),f.body.innerHTML},b=window.SnakkUtils?.sanitizeUrl||function(a){if(!a)return"#";const c=a.trim().toLowerCase();return c.startsWith("javascript:")||c.startsWith("data:")?"#":a},x=window.SnakkUtils?.formatRelativeTime||function(a){const c=new Date(a),r=Math.floor((new Date().getTime()-c.getTime())/1e3);if(r<60)return"just now";if(r<3600)return`${Math.floor(r/60)}m ago`;if(r<86400)return`${Math.floor(r/3600)}h ago`;if(r<604800)return`${Math.floor(r/86400)}d ago`;const u=window.snakkTimezone||"UTC";try{return c.toLocaleDateString("en-US",{timeZone:u,month:"short",day:"numeric",year:"numeric"})}catch{return c.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}};function H(a,c){async function f(){try{const t=await(await fetch(`/bff/users/${a}/stats`)).json(),e=document.getElementById("stat-followers");e&&(e.textContent=t.followerCount||0);const n=document.getElementById("stat-replies");n&&t.replyCount!==void 0&&(n.textContent=t.replyCount)}catch(o){console.error("Error loading user stats:",o);const t=document.getElementById("stat-followers");t&&(t.textContent="0")}}async function r(o){const t=document.getElementById("recent-discussions");if(t)try{const n=await(await fetch(`/bff/search/discussions?authorPublicId=${a}&pageSize=${o}`)).json();if(!n.items||n.items.length===0){t.innerHTML=`
                         <div class="text-center py-8 text-muted">
                             <p>No discussions yet</p>
                         </div>
-                    `;return}t.innerHTML=s.items.map(i=>`
-                    <a href="${g(i.url)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
-                        <h4 class="font-medium mb-1">${p(i.title)}</h4>
-                        <div class="flex items-center gap-4 text-sm text-muted">
-                            <span>${i.replyCount} ${i.replyCount===1?"reply":"replies"}</span>
-                            <span>${y(i.createdAt)}</span>
+                    `;return}t.innerHTML=`<div class="topic-list">${n.items.map(s=>`
+                    <div class="topic-item-wrapper">
+                        <div class="topic-item">
+                            <div class="topic-content">
+                                <div class="topic-title">
+                                    <a href="${b(s.url)}" class="topic-title-link">${l(s.title)}</a>
+                                </div>
+                                <div class="topic-meta">
+                                    <span class="font-medium">${l(s.hubName)}</span>
+                                    <span class="topic-meta-separator">/</span>
+                                    <span class="font-medium">${l(s.spaceName)}</span>
+                                    <span class="topic-meta-separator">&middot;</span>
+                                    <span>${x(s.lastActivityAt||s.createdAt)}</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats hidden sm:flex">
+                                <div class="topic-stat">
+                                    <div class="topic-stat-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="topic-stat-value">${s.reactionCount}</div>
+                                </div>
+                                <div class="topic-stat">
+                                    <div class="topic-stat-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="topic-stat-value">${s.postCount}</div>
+                                </div>
+                            </div>
+                            <a href="${b(s.url)}" class="topic-latest-link" title="Go to discussion">
+                                <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
                         </div>
-                    </a>
-                `).join("")}catch(e){console.error("Error loading discussions:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load discussions</div>'}}async function b(n){const t=document.getElementById("recent-posts");if(t)try{const s=await(await fetch(`/bff/search/posts?authorPublicId=${r}&pageSize=${n}`)).json();if(!s.items||s.items.length===0){t.innerHTML=`
+                    </div>
+                `).join("")}</div>`}catch(e){console.error("Error loading discussions:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load discussions</div>'}}async function u(o){const t=document.getElementById("recent-posts");if(t)try{const n=await(await fetch(`/bff/search/posts?authorPublicId=${a}&pageSize=${o}`)).json();if(!n.items||n.items.length===0){t.innerHTML=`
                         <div class="text-center py-8 text-muted">
                             <p>No posts yet</p>
                         </div>
-                    `;return}t.innerHTML=s.items.map(i=>`
-                    <a href="${g(i.discussionUrl)}" class="block hover:bg-base-200 p-3 rounded transition-colors">
-                        <div class="prose prose-sm max-w-none mb-2">
-                            ${$(i.contentPreview)}
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-muted">
-                            <span>in ${p(i.discussionTitle)}</span>
-                            <span>${y(i.createdAt)}</span>
-                        </div>
-                    </a>
-                `).join("")}catch(e){console.error("Error loading posts:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load posts</div>'}}async function E(){const n=document.getElementById("all-discussions");if(n)try{const e=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=20`)).json();if(!e.items||e.items.length===0){n.innerHTML=`
-                        <div class="text-center py-12">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            <h3 class="font-semibold mb-2">No discussions yet</h3>
-                            <p class="text-sm text-muted">This user hasn't started any discussions</p>
-                        </div>
-                    `;return}n.innerHTML=e.items.map(s=>`
-                    <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${g(s.url)}" class="block p-4">
-                            <h3 class="font-semibold mb-2">${p(s.title)}</h3>
-                            <div class="flex items-center gap-4 text-sm text-muted">
-                                <span>${s.replyCount} ${s.replyCount===1?"reply":"replies"}</span>
-                                <span>${y(s.createdAt)}</span>
-                                <span class="ml-auto">${p(s.spaceName)}</span>
+                    `;return}t.innerHTML=`<div class="topic-list">${n.items.map(s=>`
+                    <div class="topic-item-wrapper">
+                        <div class="topic-item">
+                            <div class="topic-content">
+                                <div class="topic-title">
+                                    <a href="${b(s.url)}" class="topic-title-link">${l(s.discussionTitle)}</a>
+                                </div>
+                                <div class="topic-meta">
+                                    <span class="font-medium">${l(s.hubName)}</span>
+                                    <span class="topic-meta-separator">/</span>
+                                    <span class="font-medium">${l(s.spaceName)}</span>
+                                    <span class="topic-meta-separator">&middot;</span>
+                                    <span>${x(s.createdAt)}</span>
+                                </div>
+                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 line-clamp-2">
+                                    ${j(s.contentPreview)}
+                                </div>
                             </div>
-                        </a>
+                            <a href="${b(s.url)}" class="topic-latest-link" title="Go to discussion">
+                                <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
+                        </div>
                     </div>
-                `).join("")}catch(t){console.error("Error loading all discussions:",t),n.innerHTML='<div class="text-center py-8 text-error">Failed to load discussions</div>'}}async function S(){const n=document.getElementById("all-posts");if(n)try{const e=await(await fetch(`/bff/search/posts?authorPublicId=${r}&pageSize=20`)).json();if(!e.items||e.items.length===0){n.innerHTML=`
-                        <div class="text-center py-12">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                            </svg>
-                            <h3 class="font-semibold mb-2">No posts yet</h3>
-                            <p class="text-sm text-muted">This user hasn't made any posts</p>
-                        </div>
-                    `;return}n.innerHTML=e.items.map(s=>`
-                    <div class="clean-card hover:shadow-md transition-shadow">
-                        <a href="${g(s.discussionUrl)}" class="block p-4">
-                            <div class="prose prose-sm max-w-none mb-3">
-                                ${$(s.contentPreview)}
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-muted">
-                                <span>in ${p(s.discussionTitle)}</span>
-                                <span>${y(s.createdAt)}</span>
-                                <span class="ml-auto">${p(s.spaceName)}</span>
-                            </div>
-                        </a>
-                    </div>
-                `).join("")}catch(t){console.error("Error loading all posts:",t),n.innerHTML='<div class="text-center py-8 text-error">Failed to load posts</div>'}}async function k(n){["14","30","90"].forEach(e=>{const s=document.getElementById(`chart-${e}`);s&&(e===n.toString()?s.classList.add("btn-active"):s.classList.remove("btn-active"))});const t=document.getElementById("activity-chart");if(t)try{const s=await(await fetch(`/bff/users/${r}/activity-history?days=${n}`)).json();j(t,s.data,n)}catch(e){console.error("Error loading activity chart:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load activity chart</div>'}}function j(n,t,e){if(!t||t.length===0){n.innerHTML=`
+                `).join("")}</div>`}catch(e){console.error("Error loading posts:",e),t.innerHTML='<div class="text-center py-8 text-error">Failed to load posts</div>'}}async function k(o){const t=document.getElementById("activity-chart-sidebar"),e=document.getElementById("activity-chart-main"),s=window.matchMedia("(min-width: 1024px)").matches?t:e;if(s)try{const m=((await(await fetch(`/bff/users/${a}/activity-history?days=${o}`)).json()).activities||[]).map(h=>({date:h.date,discussions:h.discussionCount??0,posts:h.postCount??0,total:(h.discussionCount??0)+(h.postCount??0)}));A(s,m,o)}catch(p){console.error("Error loading activity chart:",p),s.innerHTML='<div class="text-center py-8 text-error">Failed to load activity chart</div>'}}function A(o,t,e){if(!t||t.length===0){o.innerHTML=`
                     <div class="text-center py-12">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -72,27 +79,27 @@
                         <h3 class="font-semibold mb-2">No activity yet</h3>
                         <p class="text-sm text-muted">Activity will appear here once this user starts contributing</p>
                     </div>
-                `;return}const s=Math.max(...t.map(o=>o.total),1),i=150,w=e>30;let f=t;if(w){const o=[];for(let l=0;l<t.length;l+=7){const m=t.slice(l,l+7);if(m.length===0||!m[0])continue;const x={date:m[0].date,discussions:m.reduce((v,h)=>v+h.discussions,0),posts:m.reduce((v,h)=>v+h.posts,0),total:m.reduce((v,h)=>v+h.total,0),isWeek:!0};o.push(x)}f=o}const D=f.map(o=>{const l=s>0?o.total/s*100:0,m=o.total>0?o.discussions/o.total*100:0,x=o.total>0?o.posts/o.total*100:0,h={timeZone:window.snakkTimezone||"UTC",month:"short",day:"numeric"},T=H=>{try{return new Date(H).toLocaleDateString("en-US",h)}catch{return new Date(H).toLocaleDateString("en-US",{month:"short",day:"numeric"})}},U=w?`Week of ${T(o.date)}`:T(o.date);return`
+                `;return}const n=Math.max(...t.map(i=>i.total),1),s=150,p=e>30;let g=t;if(p){const i=[];for(let d=0;d<t.length;d+=7){const v=t.slice(d,d+7);if(v.length===0||!v[0])continue;const $={date:v[0].date,discussions:v.reduce((y,w)=>y+w.discussions,0),posts:v.reduce((y,w)=>y+w.posts,0),total:v.reduce((y,w)=>y+w.total,0),isWeek:!0};i.push($)}g=i}const m=g.map(i=>{const d=n>0?i.total/n*100:0,v=i.total>0?i.discussions/i.total*100:0,$=i.total>0?i.posts/i.total*100:0,w={timeZone:window.snakkTimezone||"UTC",month:"short",day:"numeric"},M=C=>{try{return new Date(C).toLocaleDateString("en-US",w)}catch{return new Date(C).toLocaleDateString("en-US",{month:"short",day:"numeric"})}},D=p?`Week of ${M(i.date)}`:M(i.date);return`
                     <div class="activity-chart-bar-wrapper">
-                        <div class="activity-chart-bar-container" style="height: ${i}px;">
+                        <div class="activity-chart-bar-container" style="height: ${s}px;">
                             <div class="activity-chart-bar"
-                                 style="height: ${o.total===0?"4px":l+"%"}; ${o.total===0?"min-height: 4px;":""}"
-                                 title="${o.total} contribution${o.total!==1?"s":""}\\n${o.discussions} discussion${o.discussions!==1?"s":""}\\n${o.posts} post${o.posts!==1?"s":""}\\n${U}">
-                                ${o.discussions>0?`<div class="activity-chart-bar-segment-primary" style="height: ${m}%;"></div>`:""}
-                                ${o.posts>0?`<div class="activity-chart-bar-segment-secondary" style="height: ${x}%;"></div>`:""}
-                                ${o.total===0?'<div class="activity-chart-bar-zero"></div>':""}
+                                 style="height: ${i.total===0?"4px":d+"%"}; ${i.total===0?"min-height: 4px;":""}"
+                                 title="${i.total} contribution${i.total!==1?"s":""}\\n${i.discussions} discussion${i.discussions!==1?"s":""}\\n${i.posts} post${i.posts!==1?"s":""}\\n${D}">
+                                ${i.discussions>0?`<div class="activity-chart-bar-segment-primary" style="height: ${v}%;"></div>`:""}
+                                ${i.posts>0?`<div class="activity-chart-bar-segment-secondary" style="height: ${$}%;"></div>`:""}
+                                ${i.total===0?'<div class="activity-chart-bar-zero"></div>':""}
                             </div>
                         </div>
                     </div>
-                `}).join(""),M=t.reduce((o,l)=>o+l.discussions,0),L=t.reduce((o,l)=>o+l.posts,0),F=M+L;n.innerHTML=`
+                `}).join(""),h=t.reduce((i,d)=>i+d.discussions,0),L=t.reduce((i,d)=>i+d.posts,0),B=h+L;o.innerHTML=`
                 <div class="space-y-4">
-                    <div class="activity-chart-wrapper" style="height: ${i+40}px;">
-                        ${D}
+                    <div class="activity-chart-wrapper" style="height: ${s+40}px;">
+                        ${m}
                     </div>
                     <div class="activity-chart-legend">
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color activity-chart-legend-color-primary"></div>
-                            <span>${M} discussions</span>
+                            <span>${h} discussions</span>
                         </div>
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color activity-chart-legend-color-secondary"></div>
@@ -100,43 +107,43 @@
                         </div>
                         <div class="activity-chart-legend-item">
                             <div class="activity-chart-legend-color bg-accent"></div>
-                            <span>${F} total</span>
+                            <span>${B} total</span>
                         </div>
                     </div>
                 </div>
-            `}async function z(){const n=document.getElementById("top-contributions");if(n)try{const e=await(await fetch(`/bff/search/discussions?authorPublicId=${r}&pageSize=3`)).json();if(!e.items||e.items.length===0){n.innerHTML=`
-                        <div class="text-center py-6 text-muted">
-                            <p>No discussions yet</p>
+            `}async function E(){const o=document.getElementById("name-history-section"),t=document.getElementById("name-history-list");if(!(!o||!t))try{const n=await(await fetch("/bff/me/display-name-history",{credentials:"include"})).json();if(!n.entries||n.entries.length===0)return;t.innerHTML=n.entries.map(s=>`
+                    <div class="flex items-center justify-between text-sm py-1.5">
+                        <div class="min-w-0">
+                            <span class="text-base-content/50 line-through">${l(s.previousName)}</span>
+                            <span class="text-base-content/40 mx-1">&rarr;</span>
+                            <span class="font-medium">${l(s.newName)}</span>
                         </div>
-                    `;return}n.innerHTML=e.items.map((s,i)=>`
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold">
-                            ${i+1}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <a href="${g(s.url)}" class="font-medium hover:underline block truncate">
-                                ${p(s.title)}
-                            </a>
-                            <div class="text-sm text-muted">
-                                ${s.replyCount} ${s.replyCount===1?"reply":"replies"}
-                            </div>
-                        </div>
+                        <span class="text-xs text-base-content/40 shrink-0 ml-2">${x(s.changedAt)}</span>
                     </div>
-                `).join("")}catch(t){console.error("Error loading top contributions:",t),n.innerHTML='<div class="text-center py-6 text-error">Failed to load</div>'}}async function A(){const n=document.getElementById("profile-actions");if(n)try{const e=await(await fetch("/bff/auth/status",{credentials:"include"})).json();if(!e.isAuthenticated){n.innerHTML="";return}if(e.publicId===r){n.innerHTML=`
+                `).join(""),o.classList.remove("hidden")}catch(e){console.error("Error loading name history:",e)}}async function T(){const o=document.getElementById("profile-actions");if(o)try{const e=await(await fetch("/bff/auth/status",{credentials:"include"})).json();if(!e.isAuthenticated){o.innerHTML="";return}if(e.publicId===a){o.innerHTML=`
                         <a href="/settings" class="btn btn-outline btn-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             Edit Profile
                         </a>
-                    `;return}const i=await(await fetch(`/bff/users/${r}/follow-status?currentUserId=${e.publicId}`,{credentials:"include"})).json();n.innerHTML=`
+                    `,E();return}const s=await(await fetch(`/bff/users/${a}/follow-status?currentUserId=${e.publicId}`,{credentials:"include"})).json();o.innerHTML=`
                     <button data-action="toggle-follow-user"
-                            data-user-id="${r}"
-                            class="btn ${i.isFollowing?"btn-outline":"btn-primary"} btn-sm"
+                            data-user-id="${a}"
+                            class="btn ${s.isFollowing?"btn-outline":"btn-primary"} btn-sm"
                             id="follow-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${i.isFollowing?"M5 13l4 4L19 7":"M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"}" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${s.isFollowing?"M5 13l4 4L19 7":"M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"}" />
                         </svg>
-                        <span id="follow-btn-text">${i.isFollowing?"Following":"Follow"}</span>
+                        <span id="follow-btn-text">${s.isFollowing?"Following":"Follow"}</span>
                     </button>
-                `}catch(t){console.error("Error loading profile actions:",t),n.innerHTML=""}}async function B(n){const t=document.getElementById("follow-btn"),e=document.getElementById("follow-btn-text");if(!(!t||!e)){t.disabled=!0;try{const s=await fetch(`/bff/users/${n}/follow`,{method:"POST",credentials:"include"});if(s.ok){const i=await s.json();e.textContent=i.isFollowing?"Following":"Follow",i.isFollowing?(t.classList.remove("btn-primary"),t.classList.add("btn-outline")):(t.classList.remove("btn-outline"),t.classList.add("btn-primary")),a()}else throw new Error("Failed to toggle follow")}catch(s){console.error("Error toggling follow:",s),alert("Failed to update follow status")}finally{t.disabled=!1}}}function P(){const n=document.getElementById("user-badges");if(!n)return;const t=[],e=d.totalActivity,s=d.daysSinceJoined,i=d.discussionCount,w=d.postCount;e>=1e3?t.push({text:"\u{1F3C6} Power User",color:"badge-warning",title:"1000+ contributions"}):e>=500?t.push({text:"\u2B50 Super Contributor",color:"badge-info",title:"500+ contributions"}):e>=100&&t.push({text:"\u2728 Active Member",color:"badge-success",title:"100+ contributions"}),i>=50&&t.push({text:"\u{1F4AC} Discussion Starter",color:"badge-primary",title:"50+ discussions"}),w>=100&&w>i*3&&t.push({text:"\u{1F5E3}\uFE0F Conversationalist",color:"badge-accent",title:"Highly engaged in discussions"}),s>=365?t.push({text:"\u{1F396}\uFE0F Veteran",color:"badge-secondary",title:"Member for over a year"}):s>=180&&t.push({text:"\u{1F4C5} Regular",color:"badge-neutral",title:"Member for 6+ months"}),t.length>0&&(n.innerHTML=t.map(f=>`<div class="badge ${f.color} badge-sm" title="${f.title}">${f.text}</div>`).join(""))}a(),A(),P(),c==="overview"?(k(30),z(),u(5),b(5)):c==="discussions"?E():c==="posts"&&S(),document.addEventListener("click",async n=>{const t=n.target;if(!t)return;const e=t.closest("[data-action]");if(!e||!e.dataset.action)return;switch(e.dataset.action){case"toggle-follow-user":n.preventDefault(),e.dataset.userId&&await B(e.dataset.userId);break;case"load-activity-chart":n.preventDefault(),e.dataset.days&&await k(parseInt(e.dataset.days,10));break}})}window.initializeProfile=C})();
+                `}catch(t){console.error("Error loading profile actions:",t),o.innerHTML=""}}async function z(o){const t=document.getElementById("follow-btn"),e=document.getElementById("follow-btn-text");if(!(!t||!e)){t.disabled=!0;try{const n=await fetch(`/bff/users/${o}/follow`,{method:"POST",credentials:"include"});if(n.ok){const s=await n.json();e.textContent=s.isFollowing?"Following":"Follow",s.isFollowing?(t.classList.remove("btn-primary"),t.classList.add("btn-outline")):(t.classList.remove("btn-outline"),t.classList.add("btn-primary")),f()}else throw new Error("Failed to toggle follow")}catch(n){console.error("Error toggling follow:",n),alert("Failed to update follow status")}finally{t.disabled=!1}}}function S(){const o=document.getElementById("achievements-section"),t=document.getElementById("achievements-grid");if(!o||!t)return;const e=[],n=c.totalActivity,s=c.daysSinceJoined,p=c.discussionCount,g=c.postCount;n>=1e3?e.push({name:"Power User",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-4.5A3.375 3.375 0 0012.75 10.875h-.75a3.375 3.375 0 00-3.375 3.375v4.5m9-9L12 3l-4.125 6.75" />',color:"text-warning",description:"1000+ contributions"}):n>=500?e.push({name:"Super Contributor",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />',color:"text-info",description:"500+ contributions"}):n>=100&&e.push({name:"Active Member",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />',color:"text-success",description:"100+ contributions"}),p>=50&&e.push({name:"Discussion Starter",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />',color:"text-primary",description:"50+ discussions"}),g>=100&&g>p*3&&e.push({name:"Conversationalist",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />',color:"text-accent",description:"Highly engaged in discussions"}),s>=365?e.push({name:"Veteran",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />',color:"text-secondary",description:"Member for over a year"}):s>=180&&e.push({name:"Regular",icon:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />',color:"text-neutral-content",description:"Member for 6+ months"}),e.length!==0&&(t.innerHTML=e.map(m=>`
+                <div class="achievement-item" title="${l(m.description)}">
+                    <div class="achievement-icon ${m.color}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            ${m.icon}
+                        </svg>
+                    </div>
+                    <span class="achievement-name">${l(m.name)}</span>
+                </div>
+            `).join(""),o.classList.remove("hidden"))}f(),T(),S(),k(30),r(5),u(5),document.addEventListener("click",async o=>{const t=o.target;if(!t)return;const e=t.closest("[data-action]");if(!e||!e.dataset.action)return;switch(e.dataset.action){case"toggle-follow-user":o.preventDefault(),e.dataset.userId&&await z(e.dataset.userId);break;case"load-activity-chart":o.preventDefault(),e.dataset.days&&await k(parseInt(e.dataset.days,10));break}})}window.initializeProfile=H})();

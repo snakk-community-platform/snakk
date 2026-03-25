@@ -2,6 +2,7 @@ using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Helpers;
 using Snakk.Api.Services;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
@@ -19,7 +20,8 @@ public class AuthGrpcService(
     SnakkDbContext context,
     ISettingsService settingsService,
     ILogger<AuthGrpcService> logger,
-    IUserGrantsCacheService grantsCache) : AuthService.AuthServiceBase
+    IUserGrantsCacheService grantsCache,
+    IDisplayNameHistoryRepository displayNameHistoryRepository) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -196,7 +198,7 @@ public class AuthGrpcService(
 
         var user = result.Value!;
 
-        return new CurrentUserResponse
+        var response = new CurrentUserResponse
         {
             IsAuthenticated = true,
             PublicId = user.PublicId.Value,
@@ -206,8 +208,16 @@ public class AuthGrpcService(
             OauthProvider = user.OAuthProvider ?? "",
             PreferEndlessScroll = user.PreferEndlessScroll,
             AutoFollowOnReply = user.AutoFollowOnReply,
-            Timezone = user.Timezone ?? ""
+            Timezone = user.Timezone ?? "",
+            IsDisplayNameLocked = user.IsDisplayNameLocked,
+            HasPassword = user.PasswordHash is not null
         };
+
+        if (user.DisplayNameChangedAt.HasValue)
+            response.DisplayNameChangedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(user.DisplayNameChangedAt.Value, DateTimeKind.Utc));
+
+        return response;
     }
 
     public override async Task<UpdateProfileResponse> UpdateProfile(UpdateProfileRequest request, ServerCallContext ctx)
@@ -221,10 +231,14 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = UserId.From(userIdValue);
-        var result = await authUseCase.UpdateDisplayNameAsync(userId, request.DisplayName);
+        var result = await authUseCase.UpdateDisplayNameAsync(
+            userId,
+            request.DisplayName,
+            request.HasPassword ? request.Password : null,
+            request.HasTurnstileToken ? request.TurnstileToken : null);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
+            return new UpdateProfileResponse { Success = false, Message = result.Error ?? "Update failed" };
 
         // Generate new JWT with updated display name
         var userResult = await authUseCase.GetUserByIdAsync(userId);
@@ -244,12 +258,13 @@ public class AuthGrpcService(
 
             return new UpdateProfileResponse
             {
-                Message = "Profile updated successfully",
+                Success = true,
+                Message = "Display name updated successfully",
                 Token = newToken
             };
         }
 
-        return new UpdateProfileResponse { Message = "Profile updated successfully" };
+        return new UpdateProfileResponse { Success = true, Message = "Display name updated successfully" };
     }
 
     public override async Task<Protos.Auth.MessageResponse> UpdatePreferences(UpdatePreferencesRequest request, ServerCallContext ctx)
@@ -337,6 +352,34 @@ public class AuthGrpcService(
             Timezone = siteInfo.Timezone,
             SiteName = siteInfo.SiteName
         };
+    }
+
+    public override async Task<DisplayNameHistoryResponse> GetDisplayNameHistory(
+        GetDisplayNameHistoryRequest request, ServerCallContext ctx)
+    {
+        if (!currentUser.IsAuthenticated())
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue is null)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var history = await displayNameHistoryRepository.GetHistoryForUserAsync(userIdValue);
+
+        var response = new DisplayNameHistoryResponse();
+        foreach (var entry in history)
+        {
+            var item = new DisplayNameHistoryEntry
+            {
+                PreviousName = entry.PreviousName,
+                NewName = entry.NewName,
+                ChangedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(entry.ChangedAt, DateTimeKind.Utc))
+            };
+            response.Entries.Add(item);
+        }
+
+        return response;
     }
 
     // Shared helper to fetch roles for a user

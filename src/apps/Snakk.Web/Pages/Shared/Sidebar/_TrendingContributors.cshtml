@@ -13,21 +13,18 @@ else
         @foreach (var contributor in Model.Contributors.Items)
         {
             <li>
-                <span class="sidebar-link">
+                <a href="@SnakkUrlHelper.UserProfile(contributor.PublicId)" class="sidebar-link">
                     <img src="@SnakkUrlHelper.UserAvatar(contributor.PublicId)"
                          alt="@contributor.DisplayName"
                          width="32" height="32"
                          class="sidebar-avatar" />
                     <span class="sidebar-link-content">
-                        <span class="sidebar-link-title"
-                              data-popup-type="user"
-                              data-popup-id="@contributor.PublicId"
-                              data-popup-name="@contributor.DisplayName">@contributor.DisplayName</span>
+                        <span class="sidebar-link-title">@contributor.DisplayName</span>
                         <span class="sidebar-link-meta">
                             <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
                         </span>
                     </span>
-                </span>
+                </a>
             </li>
         }
     </ul>

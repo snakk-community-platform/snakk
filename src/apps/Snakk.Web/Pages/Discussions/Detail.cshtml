@@ -1,4 +1,4 @@
-@page "/h/{hubSlug}/{spaceSlug}/{slugWithId}"
+@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
@@ -14,7 +14,7 @@
 }
 
 @section Meta {
-    @if (Model.Discussion != null)
+    @if (Model.Discussion != null && Model.Space is not { IsRestricted: true })
     {
         var scheme = ViewContext.HttpContext.Request.Scheme;
         var host = ViewContext.HttpContext.Request.Host.ToString();
@@ -265,7 +265,7 @@
                             <img src="@SnakkUrlHelper.UserAvatar(firstPostItem.Author.PublicId)"
                                  alt="@firstPostItem.Author.DisplayName"
                                  width="20" height="20" />
-                            <a href="/u/@firstPostItem.Author.PublicId"
+                            <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
                                data-popup-type="user"
                                data-popup-id="@firstPostItem.Author.PublicId"
                                data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
@@ -296,9 +296,11 @@
                     </button>
                     <ul tabindex="0"
                         class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-20"
-                        hx-get="/partials/share-menu?url=@Uri.EscapeDataString(Model.CanonicalUrl)&title=@Uri.EscapeDataString(Model.Discussion.Title)"
-                        hx-trigger="click from:#share-dropdown-btn once"
-                        hx-swap="innerHTML">
+                        hx-get="/partials/share-menu?url=@Uri.EscapeDataString(Model.CanonicalUrl)&title=@Uri.EscapeDataString(Model.Discussion.Title)&isPublic=@(Model.Space is not { IsRestricted: true } ? "true" : "false")"
+                        hx-trigger="load"
+                        hx-target="this"
+                        hx-swap="innerHTML"
+                        hx-push-url="false">
                     </ul>
                 </div>
                 @if (Model.IsAuthenticated)
@@ -383,6 +385,7 @@
                 var post = postList[i];
                 var isFirstInThread = i == 0;
                 var isNecro = post.IsNecro;
+                var nextIsNecro = i < postList.Count - 1 && postList[i + 1].IsNecro;
                 var isSameAuthorAsPrevious = !isNecro && previousAuthorId == post.Author.PublicId && !isFirstInThread;
                 var isOP = post.IsFirstPost;
                 var hasReplyTo = post.ReplyTo != null;
@@ -403,7 +406,7 @@
 
                 @if (isNecro && previousCreatedAt.HasValue)
                 {
-                    <ul class="timeline timeline-vertical my-4">
+                    <ul class="timeline timeline-vertical mb-4">
                         <li>
                             <hr class="bg-base-content/20" />
                             <div class="timeline-middle">
@@ -419,7 +422,7 @@
                     </ul>
                 }
                 <article id="post-@post.PostNumber"
-                         class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "")"
+                         class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "")"
                          data-author-id="@post.Author.PublicId"
                          data-post-id="@post.PublicId"
                          data-post-number="@post.PostNumber"
@@ -449,7 +452,7 @@
                                      width="48" height="48"
                                      class="post-avatar"
                                      @(i >= 10 ? "loading=\"lazy\"" : "") />
-                                <a href="/u/@post.Author.PublicId"
+                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                                    class="post-author-name"
                                    data-popup-type="user"
                                    data-popup-id="@post.Author.PublicId"
@@ -497,7 +500,7 @@
                                             }
                                             else
                                             {
-                                                <a href="/u/@post.Author.PublicId"
+                                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                                                    data-popup-type="user"
                                                    data-popup-id="@post.Author.PublicId"
                                                    data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -513,7 +516,7 @@
                                             }
                                             else
                                             {
-                                                <a href="/u/@post.Author.PublicId"
+                                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                                                    data-popup-type="user"
                                                    data-popup-id="@post.Author.PublicId"
                                                    data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -574,6 +577,8 @@
                                         </span>
                                     }
                                 </div>
+                                @if (Model.IsAuthenticated)
+                                {
                                 <div class="dropdown dropdown-end">
                                     <button tabindex="0" class="subtle-btn" aria-label="Post options">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -618,6 +623,7 @@
                                         }
                                     </ul>
                                 </div>
+                                }
                             </div>
                         </div>
 
@@ -871,7 +877,8 @@
     </div> <!-- End left column -->
 
     <!-- Right Column: Sidebar -->
-    <aside id="sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0">
+    <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+    <div id="sidebar-inner" style="max-height: calc(100vh - 12.5rem)">
         <!-- Space Info -->
         @if (Model.Space != null)
         {
@@ -898,7 +905,14 @@
         @if (Model.Space?.HasRules == true)
         {
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Rules</h3>
+                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
+                   class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                    <span>@Model.Space!.Name Rules</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </a>
                 <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                  model="Model.InlineSpaceRules"
                                  htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentHubHasRules=@(Model.Space.ParentHubHasRules)&parentCommunityHasRules=@(Model.Space.ParentCommunityHasRules)&rev=@Model.Space.RulesRevision">
@@ -915,7 +929,20 @@
         @if (Model.Space != null)
         {
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Moderators</h3>
+                <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
+                   class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                    <span>Moderators</span>
+                    <span class="flex items-center gap-1">
+                        @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                        {
+                            <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
+                        }
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </span>
+                </a>
                 <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                  model="Model.InlineModerators"
                                  htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
@@ -927,6 +954,7 @@
                 </inline-or-htmx>
             </div>
         }
+    </div>
     </aside>
     </div> <!-- End flex row -->
     </div> <!-- End max-w wrapper -->
@@ -1087,7 +1115,7 @@ else
                     hubName: '@(Model.Hub?.Name?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.HubSlug)',
                     communitySlug: '@Model.Community.CommunitySlug',
                     communityName: '@(Model.Community.CommunityName?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.Community.CommunitySlug)',
-                    isDefaultCommunity: @(Model.Community.IsDefaultCommunity ? "true" : "false"),
+                    isMultiCommunity: @(Model.Community.IsMultiCommunityEnabled ? "true" : "false"),
                     lastActivityAt: '@(Model.Discussion.LastActivityAt?.ToDateTime().ToString("O") ?? Model.Discussion.CreatedAt.ToDateTime().ToString("O"))'
                 });
             }

@@ -39,10 +39,9 @@ public class IndexModel(
     public bool ShowTrendingSpaces => configuration.GetValue("Trending:HubList:ShowSpaces", true);
     public bool ShowTrendingContributors => configuration.GetValue("Trending:HubList:ShowContributors", true);
 
-    // Whether to show community in breadcrumb (multi-community enabled, non-default community, not on custom domain)
+    // Whether to show community in breadcrumb (multi-community enabled, not on custom domain)
     public bool ShowCommunityInBreadcrumb =>
-        configuration.GetValue<bool>("Features:MultiCommunityEnabled")
-        && !communityContext.IsDefaultCommunity
+        communityContext.IsMultiCommunityEnabled
         && !communityContext.IsCustomDomain;
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)

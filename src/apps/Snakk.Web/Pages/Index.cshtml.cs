@@ -28,10 +28,10 @@ public class IndexModel(
     public bool ShowTrendingSpaces => Configuration.GetValue("Trending:FrontPage:ShowSpaces", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:FrontPage:ShowContributors", true);
 
-    // Whether to show community in discussion list (multi-community enabled, default community, not on custom domain)
+    // Whether to show community in discussion list (multi-community, no specific community scoped, not on custom domain)
     public bool ShowCommunityInDiscussionList =>
-        Configuration.GetValue<bool>("Features:MultiCommunityEnabled")
-        && CommunityContext.IsDefaultCommunity
+        CommunityContext.IsMultiCommunityEnabled
+        && string.IsNullOrEmpty(CommunityContext.CommunitySlug)
         && !CommunityContext.IsCustomDomain;
 
     // Site rules revision for cache-busting HTMX URL

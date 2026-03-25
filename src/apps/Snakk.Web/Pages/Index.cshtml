@@ -98,6 +98,7 @@
 
         <!-- Sidebar -->
         <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+        <div id="sticky-sidebar-inner">
             <div class="sidebar-section">
                 <h3 class="sidebar-title">Platform Stats</h3>
                 <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
@@ -159,7 +160,13 @@
             }
 
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Site Rules</h3>
+                <a href="/rules" class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                    <span>Site Rules</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </a>
                 <inline-or-htmx partial="Shared/Sidebar/_SiteRules"
                                  model="Model.InlineSiteRules"
                                  htmx-url="/partials/site-rules?rev=@Model.SiteRulesRevision">
@@ -170,6 +177,7 @@
                     </div>
                 </inline-or-htmx>
             </div>
+        </div>
         </aside>
     </div>
 </div>

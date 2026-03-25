@@ -37,7 +37,12 @@ public static class UserMapper
             entity.LastSeenAt,
             entity.LastLoginAt,
             entity.NeedsProfileSetup,
-            entity.Timezone);
+            entity.Timezone,
+            entity.DiscussionCount,
+            entity.ReplyCount,
+            entity.FollowerCount,
+            entity.DisplayNameChangedAt,
+            entity.IsDisplayNameLocked);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>
@@ -62,6 +67,11 @@ public static class UserMapper
             CreatedAt = user.CreatedAt,
             LastModifiedAt = user.LastModifiedAt,
             LastLoginAt = user.LastLoginAt,
-            LastSeenAt = user.LastSeenAt
+            LastSeenAt = user.LastSeenAt,
+            DiscussionCount = user.DiscussionCount,
+            ReplyCount = user.ReplyCount,
+            FollowerCount = user.FollowerCount,
+            DisplayNameChangedAt = user.DisplayNameChangedAt,
+            IsDisplayNameLocked = user.IsDisplayNameLocked
         };
 }

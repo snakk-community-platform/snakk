@@ -1,5 +1,6 @@
 namespace Snakk.Application.UseCases;
 
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Domain;
 using Snakk.Domain.Entities;
@@ -12,7 +13,9 @@ public class AuthenticationUseCase(
     IPasswordHasher passwordHasher,
     IEmailSender emailSender,
     IRefreshTokenRepository refreshTokenRepository,
-    IDomainEventDispatcher eventDispatcher) : UseCaseBase
+    IDomainEventDispatcher eventDispatcher,
+    IDisplayNameHistoryRepository displayNameHistoryRepository,
+    ITurnstileService turnstileService) : UseCaseBase
 {
     public async Task<Result<User>> RegisterWithEmailAsync(
         string email,
@@ -172,25 +175,110 @@ public class AuthenticationUseCase(
         return Result<User>.Success(user);
     }
 
-    public async Task<Result> UpdateDisplayNameAsync(UserId userId, string newDisplayName)
+    public async Task<Result> UpdateDisplayNameAsync(
+        UserId userId, string newDisplayName, string? password = null, string? turnstileToken = null)
     {
-        if (string.IsNullOrWhiteSpace(newDisplayName))
-            return Result.Failure("Display name cannot be empty");
+        var trimmed = newDisplayName?.Trim() ?? "";
+
+        // Validate format (length, characters, reserved names)
+        var (isValid, validationError) = DisplayNameValidator.Validate(trimmed);
+        if (!isValid)
+            return Result.Failure(validationError!);
 
         var user = await userRepository.GetByPublicIdAsync(userId);
-
         if (user is null)
             return Result.Failure("User not found");
 
-        // Check if display name is available
-        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(newDisplayName);
+        // Skip cooldown/password/captcha for initial profile setup
+        if (!user.NeedsProfileSetup)
+        {
+            // Check lock
+            if (user.IsDisplayNameLocked)
+                return Result.Failure("Your display name has been locked by an administrator.");
 
-        if (suggestedDisplayName != newDisplayName)
-            return Result.Failure($"Display name '{newDisplayName}' is taken. Try '{suggestedDisplayName}' instead.");
+            // Check cooldown
+            if (!user.CanChangeDisplayName())
+            {
+                var remaining = user.GetCooldownDaysRemaining();
+                return Result.Failure($"You can change your display name again in {remaining} day{(remaining == 1 ? "" : "s")}.");
+            }
 
-        user.UpdateDisplayName(newDisplayName);
+            // Verify password (required for users with a password)
+            if (user.PasswordHash is not null)
+            {
+                if (string.IsNullOrEmpty(password))
+                    return Result.Failure("Password is required to change your display name.");
+
+                if (!passwordHasher.VerifyPassword(password, user.PasswordHash))
+                    return Result.Failure("Incorrect password.");
+            }
+
+            // Verify Turnstile captcha
+            if (!await turnstileService.VerifyAsync(turnstileToken ?? ""))
+                return Result.Failure("Captcha verification failed. Please try again.");
+        }
+
+        // Check current uniqueness (among active users)
+        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(trimmed);
+        if (suggestedDisplayName != trimmed)
+            return Result.Failure($"Display name '{trimmed}' is taken. Try '{suggestedDisplayName}' instead.");
+
+        // Check historical uniqueness (name was never used by anyone)
+        if (await displayNameHistoryRepository.WasNameEverUsedAsync(trimmed))
+            return Result.Failure($"The display name '{trimmed}' was previously used and cannot be reused.");
+
+        // Record history before changing
+        var previousName = user.DisplayName;
+        user.UpdateDisplayName(trimmed);
         await userRepository.UpdateAsync(user);
+        await displayNameHistoryRepository.AddAsync(user.PublicId.Value, previousName, trimmed);
 
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Admin: force rename a user, bypassing cooldown/password/captcha.
+    /// </summary>
+    public async Task<Result> ForceRenameUserAsync(UserId targetUserId, string newDisplayName, UserId adminUserId)
+    {
+        var trimmed = newDisplayName?.Trim() ?? "";
+
+        var (isValid, validationError) = DisplayNameValidator.Validate(trimmed);
+        if (!isValid)
+            return Result.Failure(validationError!);
+
+        var user = await userRepository.GetByPublicIdAsync(targetUserId);
+        if (user is null)
+            return Result.Failure("User not found");
+
+        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(trimmed);
+        if (suggestedDisplayName != trimmed)
+            return Result.Failure($"Display name '{trimmed}' is taken.");
+
+        var previousName = user.DisplayName;
+        user.UpdateDisplayName(trimmed);
+        await userRepository.UpdateAsync(user);
+        await displayNameHistoryRepository.AddAsync(
+            user.PublicId.Value, previousName, trimmed, adminUserId.Value);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Admin: lock/unlock a user's display name.
+    /// </summary>
+    public async Task<Result> SetDisplayNameLockAsync(UserId targetUserId, bool locked)
+    {
+        var user = await userRepository.GetByPublicIdAsync(targetUserId);
+        if (user is null)
+            return Result.Failure("User not found");
+
+        if (locked)
+            user.LockDisplayName();
+        else
+            user.UnlockDisplayName();
+
+        await userRepository.UpdateAsync(user);
         return Result.Success();
     }
 

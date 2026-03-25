@@ -20,8 +20,11 @@ public class User
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
+    public DateTime? DisplayNameChangedAt { get; private set; }
+    public bool IsDisplayNameLocked { get; private set; }
     public int DiscussionCount { get; private set; }
     public int ReplyCount { get; private set; }
+    public int FollowerCount { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
@@ -57,7 +60,10 @@ public class User
         bool needsProfileSetup = false,
         string? timezone = null,
         int discussionCount = 0,
-        int replyCount = 0)
+        int replyCount = 0,
+        int followerCount = 0,
+        DateTime? displayNameChangedAt = null,
+        bool isDisplayNameLocked = false)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -76,6 +82,9 @@ public class User
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
+        FollowerCount = followerCount;
+        DisplayNameChangedAt = displayNameChangedAt;
+        IsDisplayNameLocked = isDisplayNameLocked;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -198,7 +207,10 @@ public class User
         bool needsProfileSetup = false,
         string? timezone = null,
         int discussionCount = 0,
-        int replyCount = 0) =>
+        int replyCount = 0,
+        int followerCount = 0,
+        DateTime? displayNameChangedAt = null,
+        bool isDisplayNameLocked = false) =>
         new User(
             publicId,
             displayName,
@@ -220,7 +232,10 @@ public class User
             needsProfileSetup,
             timezone,
             discussionCount,
-            replyCount);
+            replyCount,
+            followerCount,
+            displayNameChangedAt,
+            isDisplayNameLocked);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -228,9 +243,29 @@ public class User
             throw new ArgumentException("Display name cannot be empty", nameof(displayName));
 
         DisplayName = displayName;
-        NeedsProfileSetup = false; // Profile setup complete once user chooses a display name
+        DisplayNameChangedAt = DateTime.UtcNow;
+        NeedsProfileSetup = false;
         LastModifiedAt = DateTime.UtcNow;
     }
+
+    public bool CanChangeDisplayName(int cooldownDays = 30)
+    {
+        if (IsDisplayNameLocked) return false;
+        if (NeedsProfileSetup) return true; // First-time setup always allowed
+        if (DisplayNameChangedAt is null) return true;
+        return (DateTime.UtcNow - DisplayNameChangedAt.Value).TotalDays >= cooldownDays;
+    }
+
+    public int? GetCooldownDaysRemaining(int cooldownDays = 30)
+    {
+        if (DisplayNameChangedAt is null) return null;
+        var elapsed = (DateTime.UtcNow - DisplayNameChangedAt.Value).TotalDays;
+        return elapsed >= cooldownDays ? null : (int)Math.Ceiling(cooldownDays - elapsed);
+    }
+
+    public void LockDisplayName() => IsDisplayNameLocked = true;
+
+    public void UnlockDisplayName() => IsDisplayNameLocked = false;
 
     public void UpdateLastSeen()
     {

@@ -438,7 +438,7 @@ public class PermissionService(
 
         var elevation = new TemporaryRoleElevationDatabaseEntity
         {
-            PublicId = Guid.NewGuid().ToString("N"),
+            PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
             RoleType = roleType,
             Scope = scope,

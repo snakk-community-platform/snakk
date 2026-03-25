@@ -143,11 +143,11 @@ public class StatisticsUseCaseTests
             new(DiscussionId.New(), "Hot Discussion", "hot-discussion", 15,
                 "space-1", "general", "General",
                 "hub-1", "main", "Main Hub",
-                "user-1", "Author1"),
+                "user-1", "Author1", "test-community"),
             new(DiscussionId.New(), "Another Active", "another-active", 8,
                 "space-2", "off-topic", "Off Topic",
                 "hub-1", "main", "Main Hub",
-                "user-2", "Author2")
+                "user-2", "Author2", "test-community")
         };
 
         _mockDiscussionRepo.Setup(r => r.GetTopActiveDiscussionsSinceAsync(
@@ -538,8 +538,8 @@ public class StatisticsUseCaseTests
         // Arrange
         var spaces = new List<TopActiveSpaceDto>
         {
-            new("space-1", "General", "general", 20, "hub-1", "main", "Main Hub"),
-            new("space-2", "Off Topic", "off-topic", 15, "hub-1", "main", "Main Hub")
+            new("space-1", "General", "general", 20, "hub-1", "main", "Main Hub", "test-community"),
+            new("space-2", "Off Topic", "off-topic", 15, "hub-1", "main", "Main Hub", "test-community")
         };
 
         _mockStatsRepo.Setup(r => r.GetTopActiveSpacesSinceAsync(It.IsAny<DateTime>(), null, null, 5))

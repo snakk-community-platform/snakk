@@ -36,6 +36,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ReportReasonDatabaseEntity> ReportReasons { get; set; } = null!;
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
     public DbSet<AuditLogDatabaseEntity> AuditLogs { get; set; } = null!;
+    public DbSet<DisplayNameHistoryDatabaseEntity> DisplayNameHistories { get; set; } = null!;
 
     // Permissions
     public DbSet<PermissionDatabaseEntity> Permissions { get; set; } = null!;
@@ -1140,6 +1141,28 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(a => new { a.Action, a.Success, a.CreatedAt })
             .IsDescending(false, false, true)
             .HasDatabaseName("IX_AuditLog_Action_Success_CreatedAt_Desc");
+
+        // === Display Name History ===
+
+        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+            .HasOne(h => h.User)
+            .WithMany()
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+            .HasOne(h => h.ChangedByUser)
+            .WithMany()
+            .HasForeignKey(h => h.ChangedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+            .HasIndex(h => h.UserId)
+            .HasDatabaseName("IX_DisplayNameHistory_UserId");
+
+        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+            .HasIndex(h => h.NewName)
+            .HasDatabaseName("IX_DisplayNameHistory_NewName");
 
         // === Additional Discussion Indexes ===
 

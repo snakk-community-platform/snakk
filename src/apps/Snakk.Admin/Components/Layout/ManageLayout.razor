@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject ManageScopeState ScopeState
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <MudLayout Style="--mud-appbar-height: 48px;">
     <MudAppBar Elevation="1" Dense="true">
@@ -20,7 +21,7 @@
         @if (Scope != null)
         {
             <MudButton Variant="Variant.Text" Color="Color.Inherit"
-                       Href="@ManageScopeService.GetSiteUrl(Scope)" Target="_self">
+                       Href="@ManageScopeService.GetSiteUrl(Scope, Configuration.GetValue<bool>("Features:MultiCommunityEnabled"))" Target="_self">
                 Back to Site
             </MudButton>
         }

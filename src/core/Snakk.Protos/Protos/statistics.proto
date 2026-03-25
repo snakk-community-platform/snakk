@@ -70,6 +70,7 @@ message TopActiveDiscussionInfo {
   snakk.EntityRef space = 5;
   snakk.EntityRef hub = 6;
   snakk.AuthorRef author = 7;
+  string community_slug = 8;
 }
 
 message TopActiveDiscussionsList {
@@ -82,6 +83,7 @@ message TopActiveSpaceInfo {
   string slug = 3;
   int32 post_count_today = 4;
   snakk.EntityRef hub = 5;
+  string community_slug = 6;
 }
 
 message TopActiveSpacesList {

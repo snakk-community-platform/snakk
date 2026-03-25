@@ -77,14 +77,21 @@ public class ManageScopeService(
             _ => ""
         };
 
-    public static string GetSiteUrl(ManageScopeDto scope) =>
-        scope.ScopeType switch
-        {
-            "Community" => $"/c/{scope.CommunitySlug}",
-            "Hub" => $"/c/{scope.CommunitySlug}/h/{scope.HubSlug}",
-            "Space" => $"/c/{scope.CommunitySlug}/h/{scope.HubSlug}/{scope.SpaceSlug}",
-            _ => "/"
-        };
+    public static string GetSiteUrl(ManageScopeDto scope, bool isMultiCommunity) =>
+        isMultiCommunity
+            ? scope.ScopeType switch
+            {
+                "Community" => $"/c/{scope.CommunitySlug}",
+                "Hub" => $"/c/{scope.CommunitySlug}/h/{scope.HubSlug}",
+                "Space" => $"/c/{scope.CommunitySlug}/h/{scope.HubSlug}/{scope.SpaceSlug}",
+                _ => "/"
+            }
+            : scope.ScopeType switch
+            {
+                "Hub" => $"/h/{scope.HubSlug}",
+                "Space" => $"/h/{scope.HubSlug}/{scope.SpaceSlug}",
+                _ => "/"
+            };
 
     public static bool HasPermission(ManageScopeDto scope, ManagePermissionEnum permission) =>
         scope.Permissions.Contains(permission);

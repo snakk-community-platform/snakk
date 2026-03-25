@@ -66,6 +66,7 @@ public class StatisticsGrpcService(
                     Slug = d.HubSlug,
                     Name = d.HubName
                 },
+                CommunitySlug = d.CommunitySlug,
                 Author = new AuthorRef
                 {
                     PublicId = d.AuthorPublicId,
@@ -96,6 +97,7 @@ public class StatisticsGrpcService(
                 Name = s.Name,
                 Slug = s.Slug,
                 PostCountToday = s.PostCountToday,
+                CommunitySlug = s.CommunitySlug,
                 Hub = new EntityRef
                 {
                     PublicId = s.HubPublicId,

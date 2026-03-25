@@ -12,7 +12,7 @@ else
     <ul class="sidebar-list">
         @foreach (var space in Model.Spaces.Items)
         {
-            var spaceUrl = SnakkUrlHelper.Space(Model.Community, space.Hub.Slug, space.Slug);
+            var spaceUrl = SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug);
 
             <li>
                 <a href="@spaceUrl" class="sidebar-link">

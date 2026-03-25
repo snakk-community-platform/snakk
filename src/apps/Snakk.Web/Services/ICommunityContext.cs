@@ -16,12 +16,6 @@ public interface ICommunityContext
     string? CommunityName { get; }
 
     /// <summary>
-    /// Whether the current community is the default community.
-    /// When true, URLs should omit the /c/{community} prefix.
-    /// </summary>
-    bool IsDefaultCommunity { get; }
-
-    /// <summary>
     /// Whether the request came via a custom domain.
     /// When true, URLs should not include the /c/{community} prefix
     /// because the domain itself identifies the community.
@@ -30,15 +24,10 @@ public interface ICommunityContext
 
     /// <summary>
     /// Whether multi-community mode is enabled (Features:MultiCommunityEnabled).
+    /// When false, there is no community concept exposed to users — the single community IS the site.
+    /// When true, all community content lives under /c/{slug}/ and /h/ shortcuts do not exist.
     /// </summary>
     bool IsMultiCommunityEnabled { get; }
-
-    /// <summary>
-    /// The slug of the default community (from configuration).
-    /// Used by URL helpers to determine whether a given slug needs a /c/{slug} prefix.
-    /// The default community never gets a prefix — its content lives at /h/... directly.
-    /// </summary>
-    string DefaultCommunitySlug { get; }
 
     /// <summary>
     /// The IANA timezone of the current community. Null if not set or not resolved from custom domain.
@@ -50,11 +39,9 @@ public interface ICommunityContext
     /// </summary>
     void SetCommunity(
         string slug,
-        bool isDefault,
         bool isCustomDomain = false,
         string? name = null,
         bool isMultiCommunity = false,
-        string? defaultCommunitySlug = null,
         string? timezone = null);
 }
 
@@ -65,28 +52,21 @@ public class CommunityContext : ICommunityContext
 {
     public string? CommunitySlug { get; private set; }
     public string? CommunityName { get; private set; }
-    public bool IsDefaultCommunity { get; private set; } = true;
     public bool IsCustomDomain { get; private set; }
     public bool IsMultiCommunityEnabled { get; private set; }
-    public string DefaultCommunitySlug { get; private set; } = "main";
     public string? CommunityTimezone { get; private set; }
 
     public void SetCommunity(
         string slug,
-        bool isDefault,
         bool isCustomDomain = false,
         string? name = null,
         bool isMultiCommunity = false,
-        string? defaultCommunitySlug = null,
         string? timezone = null)
     {
         CommunitySlug = slug;
         CommunityName = name;
-        IsDefaultCommunity = isDefault;
         IsCustomDomain = isCustomDomain;
         IsMultiCommunityEnabled = isMultiCommunity;
         CommunityTimezone = timezone;
-        if (defaultCommunitySlug is not null)
-            DefaultCommunitySlug = defaultCommunitySlug;
     }
 }

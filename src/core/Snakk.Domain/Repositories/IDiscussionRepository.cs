@@ -48,4 +48,5 @@ public record TopActiveDiscussion(
     string HubSlug,
     string HubName,
     string AuthorPublicId,
-    string AuthorDisplayName);
+    string AuthorDisplayName,
+    string CommunitySlug);

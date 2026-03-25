@@ -19,7 +19,8 @@ public interface ISearchRepository
         string? discussionPublicId = null,
         string? spacePublicId = null,
         int offset = 0,
-        int pageSize = 20);
+        int pageSize = 20,
+        string? userId = null);
 
     Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId);
     Task<int> GetPostCountByAuthorAsync(string authorPublicId);
@@ -129,9 +130,12 @@ public record DiscussionSearchResultDto(
     string SpaceName,
     string SpaceSlug,
     string HubSlug,
+    string HubName,
+    string CommunitySlug,
     DateTime CreatedAt,
     DateTime? LastActivityAt,
     int PostCount,
+    int ReactionCount,
     int ViewCount);
 
 public record PostSearchResultDto(
@@ -144,7 +148,10 @@ public record PostSearchResultDto(
     string DiscussionTitle,
     string DiscussionSlug,
     string SpaceSlug,
+    string SpaceName,
     string HubSlug,
+    string HubName,
+    string CommunitySlug,
     DateTime CreatedAt);
 
 public record SitemapDiscussionDto(

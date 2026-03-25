@@ -25,7 +25,9 @@ public class UserGrpcService(
             DisplayName = profile.DisplayName,
             JoinedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(profile.JoinedAt, DateTimeKind.Utc)),
             DiscussionCount = profile.DiscussionCount,
-            PostCount = profile.PostCount
+            PostCount = profile.PostCount,
+            FollowerCount = profile.FollowerCount,
+            ReplyCount = profile.ReplyCount
         };
 
         if (profile.AvatarFileName is not null)

@@ -642,6 +642,44 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("DiscussionReadState");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DisplayNameHistoryDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreviousName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("NewName")
+                        .HasDatabaseName("IX_DisplayNameHistory_NewName");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_DisplayNameHistory_UserId");
+
+                    b.ToTable("DisplayNameHistory");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.FollowDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -2261,6 +2299,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("DisplayNameChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
@@ -2274,6 +2315,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDisplayNameLocked")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastLoginAt")
@@ -2661,6 +2705,24 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Discussion");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DisplayNameHistoryDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.FollowDatabaseEntity", b =>

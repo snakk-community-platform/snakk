@@ -1,4 +1,4 @@
-@page "/h/{hubSlug}/{slug}"
+@page "/c/{communitySlug}/h/{hubSlug}/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -7,9 +7,23 @@
 @model Snakk.Web.Pages.Spaces.DetailModel
 @{
     ViewData["Title"] = Model.Space?.Name ?? "Space";
-    ViewData["Description"] = Model.Space != null
+    ViewData["Description"] = Model.Space is { IsRestricted: false }
         ? $"{Model.Space.Name} — discussions and topics in this space on Snakk."
         : null;
+}
+
+@section Meta {
+    @if (Model.Space is { IsRestricted: false })
+    {
+        var scheme = ViewContext.HttpContext.Request.Scheme;
+        var host = ViewContext.HttpContext.Request.Host.ToString();
+        var path = ViewContext.HttpContext.Request.Path.ToString();
+        var url = $"{scheme}://{host}{path}";
+
+        <link rel="alternate" type="application/json+oembed"
+              href="/oembed?url=@Uri.EscapeDataString(url)"
+              title="@Html.Encode(Model.Space.Name)" />
+    }
 }
 
 @if (Model.Space == null)
@@ -302,6 +316,7 @@ else
 
             <!-- Right Column: Sidebar -->
             <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+            <div id="sidebar-inner">
                 <!-- Space Info -->
                 @if (Model.Space != null)
                 {
@@ -328,7 +343,14 @@ else
                 @if (Model.Space?.HasRules == true)
                 {
                     <div class="sidebar-section">
-                        <h3 class="sidebar-title">Rules</h3>
+                        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
+                           class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                            <span>Rules</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
                         <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                          model="Model.InlineSpaceRules"
                                          htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentHubHasRules=@Model.Space.ParentHubHasRules&parentCommunityHasRules=@Model.Space.ParentCommunityHasRules&rev=@Model.Space.RulesRevision">
@@ -343,7 +365,20 @@ else
 
                 <!-- Moderators -->
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Moderators</h3>
+                    <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators"
+                       class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                        <span>Moderators</span>
+                        <span class="flex items-center gap-1">
+                            @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                            {
+                                <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
+                            }
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </span>
+                    </a>
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                      model="Model.InlineModerators"
                                      htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space?.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators&rev=@Model.Space?.TeamRevision">
@@ -386,6 +421,7 @@ else
                         </inline-or-htmx>
                     </div>
                 }
+            </div>
             </aside>
         </div>
     </div>

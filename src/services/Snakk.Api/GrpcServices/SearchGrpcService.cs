@@ -44,6 +44,8 @@ public class SearchGrpcService(
                 Highlight = d.Title, // Use title as highlight for now
                 CreatedAt = ToTimestamp(d.CreatedAt),
                 PostCount = d.PostCount,
+                ReactionCount = d.ReactionCount,
+                CommunitySlug = d.CommunitySlug,
 
                 Space = new EntityRef
                 {
@@ -53,9 +55,9 @@ public class SearchGrpcService(
                 },
                 Hub = new EntityRef
                 {
-                    PublicId = d.HubSlug, // No hub public ID in search results, use slug
+                    PublicId = d.HubSlug,
                     Slug = d.HubSlug,
-                    Name = d.HubSlug
+                    Name = d.HubName
                 },
                 Author = new AuthorRef
                 {
@@ -84,7 +86,8 @@ public class SearchGrpcService(
             request.HasDiscussionId ? request.DiscussionId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.Offset,
-            pageSize);
+            pageSize,
+            currentUser.GetCurrentUserId());
 
         var response = new PagedPostSearchResults
         {
@@ -103,6 +106,7 @@ public class SearchGrpcService(
                 DiscussionPublicId = p.DiscussionPublicId,
                 DiscussionTitle = p.DiscussionTitle,
                 DiscussionSlug = p.DiscussionSlug,
+                CommunitySlug = p.CommunitySlug,
 
                 Author = new AuthorRef
                 {
@@ -114,13 +118,13 @@ public class SearchGrpcService(
                 {
                     PublicId = p.SpaceSlug,
                     Slug = p.SpaceSlug,
-                    Name = p.SpaceSlug
+                    Name = p.SpaceName
                 },
                 Hub = new EntityRef
                 {
                     PublicId = p.HubSlug,
                     Slug = p.HubSlug,
-                    Name = p.HubSlug
+                    Name = p.HubName
                 }
             });
         }

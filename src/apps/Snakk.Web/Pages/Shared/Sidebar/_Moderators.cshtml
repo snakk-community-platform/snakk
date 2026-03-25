@@ -19,32 +19,18 @@ else
                 if (shown >= max) break;
                 shown++;
 
-                <div class="flex items-center gap-2 py-1">
+                <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-2 py-1 hover:opacity-75 transition-opacity">
                     <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                          alt="" width="24" height="24"
                          class="w-6 h-6 rounded-full shrink-0" />
                     <span class="text-sm truncate flex-1">@mod.DisplayName</span>
                     <span class="badge badge-sm badge-ghost text-[10px]">@FormatRole(mod.Role)</span>
-                </div>
+                </a>
             }
             if (shown >= max) break;
         }
     </div>
 
-    if (Model.Moderators.TotalCount > max)
-    {
-        <div class="border-t border-base-200 mt-2 pt-2">
-            <a href="@Model.ModeratorsPageUrl"
-               class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-                <span>Show all @Model.Moderators.TotalCount moderators</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </a>
-        </div>
-    }
 }
 </div>
 

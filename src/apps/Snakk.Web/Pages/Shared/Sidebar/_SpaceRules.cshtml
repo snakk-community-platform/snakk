@@ -29,7 +29,7 @@ else
 <div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
     @if (Model.ParentHubHasRules && !string.IsNullOrEmpty(Model.HubSlug))
     {
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)/rules"
+        <a href="@SnakkUrlHelper.Hub(Model.CommunitySlug, Model.Community, Model.HubSlug)/rules"
            class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
             <span>Hub Rules</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -39,7 +39,7 @@ else
             </svg>
         </a>
     }
-    @if (Model.ParentCommunityHasRules && !string.IsNullOrEmpty(Model.CommunitySlug))
+    @if (Model.ParentCommunityHasRules && !string.IsNullOrEmpty(Model.CommunitySlug) && Model.Community.IsMultiCommunityEnabled)
     {
         <a href="/c/@Model.CommunitySlug/rules"
            class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">

@@ -32,6 +32,8 @@ message UserProfileInfo {
   optional google.protobuf.Timestamp last_seen_at = 5;
   int32 discussion_count = 6;
   int32 post_count = 7;
+  int32 follower_count = 8;
+  int32 reply_count = 9;
 }
 
 message UserSearchResultItem {

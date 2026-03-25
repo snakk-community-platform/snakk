@@ -1,11 +1,10 @@
 @page "/communities"
 @using Snakk.Web.Helpers
+@using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.IndexModel
-@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Communities";
     ViewData["Description"] = "Browse all communities on Snakk. Find and join communities that match your interests.";
-    var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 }
 
 <div class="breadcrumb-bar">
@@ -13,69 +12,156 @@
         <a href="/">Home</a>
     </nav>
 </div>
-<div class="max-w-[90rem] mx-auto px-4 py-8">
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1>Communities</h1>
-        <p>Discover communities and join discussions</p>
-    </div>
 
-    @if (Model.Communities?.Items == null || !Model.Communities.Items.Any())
-    {
-        <div class="clean-card">
-            <div class="empty-state-simple">
-                <h3>No communities yet</h3>
-                <p>Communities will appear here. Check back later!</p>
+<div class="max-w-[90rem] mx-auto px-4 py-8">
+    <div class="flex flex-col lg:flex-row gap-3">
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0">
+            <div class="page-header">
+                <h1>Communities</h1>
+                <p>Discover communities and join discussions</p>
             </div>
-        </div>
-    }
-    else
-    {
-        <div class="grid gap-4 md:grid-cols-2">
-            @foreach (var community in Model.Communities.Items)
+
+            @if (Model.Communities?.Items == null || !Model.Communities.Items.Any())
             {
-                <a href="/c/@community.Slug" class="category-card">
-                    <div class="flex items-start gap-3">
-                        <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
-                        <div class="flex-1 min-w-0">
-                            <h2 class="category-title"
-                                data-popup-type="community"
-                                data-popup-id="@community.PublicId"
-                                data-popup-name="@community.Name">@community.Name</h2>
-                            @if (!string.IsNullOrEmpty(community.Description))
-                            {
-                                <p class="category-description line-clamp-2">@community.Description</p>
-                            }
-                            <div class="mt-2 text-xs opacity-60">
-                                @if (community.Visibility == "PublicListed")
-                                {
-                                    <span class="badge badge-sm">Public</span>
-                                }
-                            </div>
-                        </div>
+                <div class="clean-card">
+                    <div class="empty-state-simple">
+                        <h3>No communities yet</h3>
+                        <p>Communities will appear here. Check back later!</p>
                     </div>
-                </a>
+                </div>
+            }
+            else
+            {
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach (var community in Model.Communities.Items)
+                    {
+                        <a href="/c/@community.Slug" class="category-card">
+                            <div class="flex items-start gap-3">
+                                <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full shrink-0" />
+                                <div class="flex-1 min-w-0">
+                                    <h2 class="category-title"
+                                        data-popup-type="community"
+                                        data-popup-id="@community.PublicId"
+                                        data-popup-name="@community.Name">@community.Name</h2>
+                                    @if (!string.IsNullOrEmpty(community.Description))
+                                    {
+                                        <p class="category-description line-clamp-2">@community.Description</p>
+                                    }
+                                    <div class="mt-2 flex items-center gap-3 text-xs text-base-content/50">
+                                        <span>@FormatCount(community.DiscussionCount) discussions</span>
+                                        <span>@FormatCount(community.ReplyCount) replies</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+
+                @if (Model.Communities.Offset > 0 || Model.Communities.HasMoreItems)
+                {
+                    <div class="flex justify-center gap-2 mt-8">
+                        @if (Model.Communities.Offset > 0)
+                        {
+                            <a href="/communities?offset=@(Math.Max(0, Model.Communities.Offset - Model.Communities.PageSize))"
+                               class="btn btn-ghost btn-sm">
+                                Previous
+                            </a>
+                        }
+                        @if (Model.Communities.HasMoreItems)
+                        {
+                            <a href="/communities?offset=@(Model.Communities.Offset + Model.Communities.PageSize)"
+                               class="btn btn-ghost btn-sm">
+                                Next
+                            </a>
+                        }
+                    </div>
+                }
             }
         </div>
 
-        @if (Model.Communities.Offset > 0 || Model.Communities.HasMoreItems)
-        {
-            <div class="flex justify-center gap-2 mt-8">
-                @if (Model.Communities.Offset > 0)
-                {
-                    <a href="/communities?offset=@(Math.Max(0, Model.Communities.Offset - Model.Communities.PageSize))"
-                       class="btn btn-ghost btn-sm">
-                        Previous
-                    </a>
-                }
-                @if (Model.Communities.HasMoreItems)
-                {
-                    <a href="/communities?offset=@(Model.Communities.Offset + Model.Communities.PageSize)"
-                       class="btn btn-ghost btn-sm">
-                        Next
-                    </a>
-                }
+        <!-- Sidebar -->
+        <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 shrink-0" hx-boost="false">
+        <div id="sidebar-inner">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Platform Stats</h3>
+                <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
+                                 model="Model.InlinePlatformStats"
+                                 htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
+                        <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-10"></div></div>
+                    </div>
+                </inline-or-htmx>
             </div>
-        }
-    }
+
+            @if (Model.ShowTrendingDiscussions)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Discussions</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
+                                     model="Model.InlineTrendingDiscussions"
+                                     htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.ShowTrendingSpaces)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Spaces</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
+                                     model="Model.InlineTrendingSpaces"
+                                     htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.ShowTrendingContributors)
+            {
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Trending Contributors</h3>
+                    <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
+                                     model="Model.InlineTrendingContributors"
+                                     htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            <div class="sidebar-section">
+                <a href="/rules" class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                    <span>Site Rules</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </a>
+                <inline-or-htmx partial="Shared/Sidebar/_SiteRules"
+                                 model="Model.InlineSiteRules"
+                                 htmx-url="/partials/site-rules?rev=@Model.SiteRulesRevision">
+                    <div class="flex flex-col gap-2">
+                        <div class="skeleton h-3 w-3/4"></div>
+                        <div class="skeleton h-3 w-2/3"></div>
+                        <div class="skeleton h-3 w-1/2"></div>
+                    </div>
+                </inline-or-htmx>
+            </div>
+        </div>
+        </aside>
+    </div>
 </div>

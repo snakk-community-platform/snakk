@@ -10,7 +10,9 @@
         <a href="/">Home</a>
     </nav>
 </div>
-<div class="max-w-2xl mx-auto px-4 py-8">
+
+<div class="max-w-[90rem] mx-auto px-4 py-8">
+    <!-- Page Header -->
     <div class="page-header">
         <h1>Profile Settings</h1>
         <p>Manage your account and preferences</p>
@@ -30,199 +32,254 @@
         </div>
     }
 
-    <!-- Avatar Section -->
-    <div class="clean-card mb-6">
-        <h2 class="text-lg font-semibold mb-4">Avatar</h2>
-
-        <div class="flex items-start gap-6">
-            <!-- Current Avatar -->
-            <div class="flex flex-col items-center gap-3">
-                <div class="avatar avatar-xl" id="current-avatar">
-                    <img src="@SnakkUrlHelper.UserAvatar(Model.UserId ?? "")"
-                         alt="Your avatar"
-                         width="80" height="80"
-                         id="avatar-preview" />
-                </div>
-                <span class="text-sm text-muted">Current avatar</span>
-            </div>
-
-            <!-- Upload Form -->
-            <div class="flex-1">
-                <p class="text-sm text-muted mb-4">
-                    Upload a custom avatar or use the auto-generated one based on your user ID.
-                    Supported formats: JPEG, PNG, GIF, WebP. Maximum size: 2MB.
-                </p>
-
-                <form id="avatar-upload-form" class="space-y-4">
-                    <div class="form-control">
-                        <input type="file"
-                               id="avatar-file"
-                               name="avatar"
-                               accept="image/jpeg,image/png,image/gif,image/webp"
-                               class="file-input w-full max-w-xs" />
+    <div class="flex flex-col lg:flex-row gap-3">
+        <!-- Sidebar: Account Info (first on small screens, right column on lg+) -->
+        <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last" hx-boost="false">
+        <div id="sidebar-inner">
+            <!-- Account Information -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Account Information</h3>
+                <dl class="space-y-3 text-sm">
+                    <div class="flex items-center gap-2" id="email-row">
+                        <dt class="text-base-content/60 w-20 shrink-0">Email</dt>
+                        <dd class="flex items-center gap-2" id="profile-email-container">
+                            <span id="profile-email" class="truncate"></span>
+                            <span id="profile-email-badge" class="badge badge-sm shrink-0"></span>
+                        </dd>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm" id="upload-btn">
-                            Upload Avatar
-                        </button>
-                        <button type="button" class="btn btn-ghost btn-sm" id="delete-avatar-btn">
-                            Use Generated Avatar
-                        </button>
+                    <div class="flex items-center gap-2" id="oauth-row" style="display: none;">
+                        <dt class="text-base-content/60 w-20 shrink-0">Sign in</dt>
+                        <dd class="capitalize" id="profile-oauth"></dd>
                     </div>
-                </form>
 
-                <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                    <div class="flex items-center gap-2">
+                        <dt class="text-base-content/60 w-20 shrink-0">User ID</dt>
+                        <dd class="font-mono text-xs truncate" id="profile-userid"></dd>
+                    </div>
+                </dl>
             </div>
         </div>
-    </div>
+        </aside>
 
-    <!-- Display Name Section -->
-    <div class="clean-card mb-6">
-        <h2 class="text-lg font-semibold mb-4">Display Name</h2>
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <!-- Avatar Section -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Avatar</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="flex items-start gap-6 p-4">
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <div class="avatar avatar-xl" id="current-avatar">
+                                    <img src="@SnakkUrlHelper.UserAvatar(Model.UserId ?? "")"
+                                         alt="Your avatar"
+                                         width="80" height="80"
+                                         id="avatar-preview" />
+                                </div>
+                                <span class="text-xs text-base-content/50">Current</span>
+                            </div>
 
-        <form id="display-name-form" asp-page-handler="UpdateDisplayName" class="space-y-4">
-            <div class="form-control">
-                <input type="text"
-                       name="displayName"
-                       value=""
-                       class="input w-full max-w-xs"
-                       required
-                       placeholder="Your display name" />
-                <label class="label">
-                    <span class="label-text-alt text-muted">This is how others will see you in discussions</span>
-                </label>
-            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-base-content/60 mb-4">
+                                    Upload a custom avatar or use the auto-generated one.
+                                    Supported: JPEG, PNG, GIF, WebP. Max 2MB.
+                                </p>
 
-            <button type="submit" class="btn btn-primary btn-sm">
-                Update Display Name
-            </button>
-        </form>
-    </div>
+                                <form id="avatar-upload-form" class="space-y-3">
+                                    <div class="form-control">
+                                        <input type="file"
+                                               id="avatar-file"
+                                               name="avatar"
+                                               accept="image/jpeg,image/png,image/gif,image/webp"
+                                               class="file-input w-full" />
+                                    </div>
 
-    <!-- Preferences Section -->
-    <div class="clean-card mb-6">
-        <h2 class="text-lg font-semibold mb-4">Preferences</h2>
+                                    <div class="flex gap-2">
+                                        <button type="submit" class="btn btn-primary btn-sm" id="upload-btn">
+                                            Upload Avatar
+                                        </button>
+                                        <button type="button" class="btn btn-ghost btn-sm" id="delete-avatar-btn">
+                                            Use Generated
+                                        </button>
+                                    </div>
+                                </form>
 
-        <div class="space-y-4">
-            <div class="form-control">
-                <label class="label cursor-pointer justify-start gap-4">
-                    <input type="checkbox"
-                           name="preferEndlessScroll"
-                           class="toggle toggle-primary" />
-                    <span class="label-text">
-                        <span class="font-medium">Endless scroll</span>
-                        <span class="block text-sm text-muted">
-                            Automatically load more content as you scroll. Disable to use traditional pagination buttons.
-                        </span>
-                    </span>
-                </label>
-            </div>
-
-            <div class="form-control">
-                <label class="label cursor-pointer justify-start gap-4">
-                    <input type="checkbox"
-                           name="autoFollowOnReply"
-                           class="toggle toggle-primary" />
-                    <span class="label-text">
-                        <span class="font-medium">Auto-follow on reply</span>
-                        <span class="block text-sm text-muted">
-                            Automatically follow discussions when you post. You'll receive notifications for activity in discussions you participate in.
-                        </span>
-                    </span>
-                </label>
-            </div>
-
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text font-medium">Timezone</span>
-                </label>
-                <select id="timezone-select" name="timezone" class="select select-bordered w-full max-w-xs">
-                    <option value="UTC">UTC</option>
-                    <optgroup label="Americas">
-                        <option value="America/New_York">Eastern Time (New York)</option>
-                        <option value="America/Chicago">Central Time (Chicago)</option>
-                        <option value="America/Denver">Mountain Time (Denver)</option>
-                        <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
-                        <option value="America/Anchorage">Alaska Time (Anchorage)</option>
-                        <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
-                        <option value="America/Toronto">Eastern Time (Toronto)</option>
-                        <option value="America/Vancouver">Pacific Time (Vancouver)</option>
-                        <option value="America/Sao_Paulo">Brasília (São Paulo)</option>
-                        <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
-                        <option value="America/Mexico_City">Central Time (Mexico City)</option>
-                    </optgroup>
-                    <optgroup label="Europe">
-                        <option value="Europe/London">GMT/BST (London)</option>
-                        <option value="Europe/Paris">CET (Paris, Berlin, Rome)</option>
-                        <option value="Europe/Helsinki">EET (Helsinki, Kyiv)</option>
-                        <option value="Europe/Moscow">Moscow Time</option>
-                        <option value="Europe/Oslo">CET (Oslo, Stockholm, Copenhagen)</option>
-                    </optgroup>
-                    <optgroup label="Asia &amp; Pacific">
-                        <option value="Asia/Dubai">GST (Dubai)</option>
-                        <option value="Asia/Kolkata">IST (India)</option>
-                        <option value="Asia/Bangkok">ICT (Bangkok, Jakarta)</option>
-                        <option value="Asia/Singapore">SGT (Singapore, Kuala Lumpur)</option>
-                        <option value="Asia/Shanghai">CST (China, Hong Kong)</option>
-                        <option value="Asia/Tokyo">JST (Tokyo)</option>
-                        <option value="Asia/Seoul">KST (Seoul)</option>
-                        <option value="Australia/Sydney">AEDT (Sydney)</option>
-                        <option value="Pacific/Auckland">NZDT (Auckland)</option>
-                    </optgroup>
-                    <optgroup label="Africa">
-                        <option value="Africa/Johannesburg">SAST (Johannesburg)</option>
-                        <option value="Africa/Cairo">EET (Cairo)</option>
-                        <option value="Africa/Lagos">WAT (Lagos)</option>
-                    </optgroup>
-                </select>
-                <label class="label">
-                    <span class="label-text-alt text-muted">Controls how dates and times are displayed on the site</span>
-                </label>
-            </div>
-
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text font-medium">Emoji skin tone</span>
-                </label>
-                <div class="flex gap-2" id="skin-tone-picker">
-                    <button type="button" class="skin-tone-swatch active" data-tone="" title="Default">👋</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="Light">👋🏻</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="Medium-Light">👋🏼</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="Medium">👋🏽</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="Medium-Dark">👋🏾</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="Dark">👋🏿</button>
+                                <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <label class="label">
-                    <span class="label-text-alt text-muted">Applies to hand and face emojis in the editor emoji picker</span>
-                </label>
+
+                <!-- Display Name Section -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Display Name</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="p-4">
+                            <div id="display-name-status" class="text-sm mb-3 hidden"></div>
+
+                            <form id="display-name-form" asp-page-handler="UpdateDisplayName" class="space-y-3">
+                                <div class="form-control">
+                                    <input type="text"
+                                           name="displayName"
+                                           value=""
+                                           class="input w-full"
+                                           required
+                                           minlength="3"
+                                           maxlength="20"
+                                           placeholder="Your display name" />
+                                    <label class="label">
+                                        <span class="label-text-alt text-base-content/50">3-20 characters. Letters, numbers, spaces, hyphens, underscores.</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-control" id="password-field">
+                                    <input type="password"
+                                           name="password"
+                                           class="input w-full"
+                                           placeholder="Current password"
+                                           autocomplete="current-password" />
+                                    <label class="label">
+                                        <span class="label-text-alt text-base-content/50">Required to change your display name</span>
+                                    </label>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
+                                {
+                                    <div id="turnstile-widget" class="cf-turnstile"
+                                         data-sitekey="@Model.TurnstileSiteKey"
+                                         data-theme="auto"
+                                         data-size="normal"></div>
+                                }
+
+                                <button type="submit" class="btn btn-primary btn-sm" id="update-name-btn">
+                                    Update Display Name
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <!-- Behavior -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Behavior</span>
+                    </div>
+                    <div class="clean-card">
+                        <div class="p-4 space-y-4">
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-4">
+                                    <input type="checkbox"
+                                           name="preferEndlessScroll"
+                                           class="toggle toggle-primary" />
+                                    <span class="label-text">
+                                        <span class="font-medium">Endless scroll</span>
+                                        <span class="block text-sm text-base-content/50">
+                                            Automatically load more content as you scroll.
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-4">
+                                    <input type="checkbox"
+                                           name="autoFollowOnReply"
+                                           class="toggle toggle-primary" />
+                                    <span class="label-text">
+                                        <span class="font-medium">Auto-follow on reply</span>
+                                        <span class="block text-sm text-base-content/50">
+                                            Automatically follow discussions when you post a reply.
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Display</span>
+                    </div>
+                    <div class="clean-card">
+                        <div class="p-4 space-y-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Timezone</span>
+                                </label>
+                                <select id="timezone-select" name="timezone" class="select w-full">
+                                    <option value="UTC">UTC</option>
+                                    <optgroup label="Americas">
+                                        <option value="America/New_York">Eastern Time (New York)</option>
+                                        <option value="America/Chicago">Central Time (Chicago)</option>
+                                        <option value="America/Denver">Mountain Time (Denver)</option>
+                                        <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                                        <option value="America/Anchorage">Alaska Time (Anchorage)</option>
+                                        <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                                        <option value="America/Toronto">Eastern Time (Toronto)</option>
+                                        <option value="America/Vancouver">Pacific Time (Vancouver)</option>
+                                        <option value="America/Sao_Paulo">Brasilia (Sao Paulo)</option>
+                                        <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                                        <option value="America/Mexico_City">Central Time (Mexico City)</option>
+                                    </optgroup>
+                                    <optgroup label="Europe">
+                                        <option value="Europe/London">GMT/BST (London)</option>
+                                        <option value="Europe/Paris">CET (Paris, Berlin, Rome)</option>
+                                        <option value="Europe/Helsinki">EET (Helsinki, Kyiv)</option>
+                                        <option value="Europe/Moscow">Moscow Time</option>
+                                        <option value="Europe/Oslo">CET (Oslo, Stockholm, Copenhagen)</option>
+                                    </optgroup>
+                                    <optgroup label="Asia &amp; Pacific">
+                                        <option value="Asia/Dubai">GST (Dubai)</option>
+                                        <option value="Asia/Kolkata">IST (India)</option>
+                                        <option value="Asia/Bangkok">ICT (Bangkok, Jakarta)</option>
+                                        <option value="Asia/Singapore">SGT (Singapore, Kuala Lumpur)</option>
+                                        <option value="Asia/Shanghai">CST (China, Hong Kong)</option>
+                                        <option value="Asia/Tokyo">JST (Tokyo)</option>
+                                        <option value="Asia/Seoul">KST (Seoul)</option>
+                                        <option value="Australia/Sydney">AEDT (Sydney)</option>
+                                        <option value="Pacific/Auckland">NZDT (Auckland)</option>
+                                    </optgroup>
+                                    <optgroup label="Africa">
+                                        <option value="Africa/Johannesburg">SAST (Johannesburg)</option>
+                                        <option value="Africa/Cairo">EET (Cairo)</option>
+                                        <option value="Africa/Lagos">WAT (Lagos)</option>
+                                    </optgroup>
+                                </select>
+                                <label class="label">
+                                    <span class="label-text-alt text-base-content/50">Controls how dates and times are displayed</span>
+                                </label>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Emoji skin tone</span>
+                                </label>
+                                <div class="flex gap-2" id="skin-tone-picker">
+                                    <button type="button" class="skin-tone-swatch active" data-tone="" title="Default">👋</button>
+                                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="Light">👋🏻</button>
+                                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="Medium-Light">👋🏼</button>
+                                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="Medium">👋🏽</button>
+                                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="Medium-Dark">👋🏾</button>
+                                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="Dark">👋🏿</button>
+                                </div>
+                                <label class="label">
+                                    <span class="label-text-alt text-base-content/50">Applies to hand and face emojis in the editor</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Account Info Section -->
-    <div class="clean-card">
-        <h2 class="text-lg font-semibold mb-4">Account Information</h2>
-
-        <dl class="space-y-3">
-            <div class="flex items-center gap-2" id="email-row">
-                <dt class="text-muted w-24">Email:</dt>
-                <dd class="flex items-center gap-2" id="profile-email-container">
-                    <span id="profile-email"></span>
-                    <span id="profile-email-badge" class="badge badge-sm"></span>
-                </dd>
-            </div>
-
-            <div class="flex items-center gap-2" id="oauth-row" style="display: none;">
-                <dt class="text-muted w-24">Sign in:</dt>
-                <dd class="capitalize" id="profile-oauth"></dd>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <dt class="text-muted w-24">User ID:</dt>
-                <dd class="font-mono text-sm" id="profile-userid"></dd>
-            </div>
-        </dl>
     </div>
 </div>
 
@@ -287,6 +344,40 @@
             timezoneSelect.value = data.timezone || 'UTC';
         }
 
+        // Display name change restrictions
+        const statusEl = document.getElementById('display-name-status');
+        const passwordField = document.getElementById('password-field');
+        const displayNameForm = document.getElementById('display-name-form');
+
+        if (data.isDisplayNameLocked) {
+            if (statusEl) {
+                statusEl.textContent = 'Your display name has been locked by an administrator.';
+                statusEl.className = 'text-sm mb-3 text-warning';
+            }
+            if (displayNameForm) {
+                displayNameForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
+            }
+        } else if (data.displayNameChangedAt) {
+            const changedAt = new Date(data.displayNameChangedAt);
+            const daysSince = Math.floor((Date.now() - changedAt.getTime()) / (1000 * 60 * 60 * 24));
+            const cooldownDays = 30;
+            if (daysSince < cooldownDays) {
+                const remaining = cooldownDays - daysSince;
+                if (statusEl) {
+                    statusEl.textContent = `You can change your display name again in ${remaining} day${remaining === 1 ? '' : 's'}.`;
+                    statusEl.className = 'text-sm mb-3 text-base-content/60';
+                }
+                if (displayNameForm) {
+                    displayNameForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        // Hide password field for OAuth-only users (no password set)
+        if (!data.passwordHash && data.oAuthProvider && passwordField) {
+            passwordField.style.display = 'none';
+        }
+
         // Update account info section
         if (data.email) {
             const emailEl = document.getElementById('profile-email');
@@ -297,8 +388,8 @@
             if (emailBadge) {
                 emailBadge.textContent = data.emailVerified ? 'Verified' : 'Not verified';
                 emailBadge.className = data.emailVerified
-                    ? 'badge badge-success badge-sm'
-                    : 'badge badge-warning badge-sm';
+                    ? 'badge badge-success badge-sm shrink-0'
+                    : 'badge badge-warning badge-sm shrink-0';
             }
             if (emailRow) emailRow.style.display = '';
         }
@@ -339,20 +430,15 @@
         const pageHeader = document.querySelector('.page-header');
         if (pageHeader) {
             pageHeader.insertAdjacentElement('afterend', alertDiv);
-            // Scroll to message
             alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
+        setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
     function refreshAvatar() {
         const avatarPreview = document.getElementById('avatar-preview');
         if (!avatarPreview || !userId) return;
-        // Add cache-busting query param
         const timestamp = new Date().getTime();
         avatarPreview.src = `/avatars/${userId}?t=${timestamp}`;
     }
@@ -364,14 +450,12 @@
 
         const file = e.target.files[0];
         if (file) {
-            // Validate file size
             if (file.size > 2 * 1024 * 1024) {
                 showStatus('File is too large. Maximum size is 2MB.', true);
                 fileInput.value = '';
                 return;
             }
 
-            // Preview
             const reader = new FileReader();
             reader.onload = function(e) {
                 avatarPreview.src = e.target.result;
@@ -414,11 +498,11 @@
                 fileInput.value = '';
             } else {
                 showStatus(result.error || 'Failed to upload avatar.', true);
-                refreshAvatar(); // Revert preview
+                refreshAvatar();
             }
         } catch (error) {
             showStatus('Network error. Please try again.', true);
-            refreshAvatar(); // Revert preview
+            refreshAvatar();
         } finally {
             uploadBtn.disabled = false;
             uploadBtn.textContent = 'Upload Avatar';
@@ -426,9 +510,7 @@
     }
 
     async function handleDeleteClick() {
-        if (!confirm('Revert to the auto-generated avatar?')) {
-            return;
-        }
+        if (!confirm('Revert to the auto-generated avatar?')) return;
 
         const deleteBtn = document.getElementById('delete-avatar-btn');
         if (!deleteBtn) return;
@@ -462,12 +544,19 @@
 
         const form = e.target;
         const displayNameInput = form.querySelector('input[name="displayName"]');
+        const passwordInput = form.querySelector('input[name="password"]');
         const displayName = displayNameInput?.value?.trim();
+        const password = passwordInput?.value || null;
 
         if (!displayName) {
             showMessage('Display name cannot be empty', true);
             return;
         }
+
+        // Get Turnstile token
+        const turnstileToken = typeof turnstile !== 'undefined'
+            ? turnstile.getResponse()
+            : null;
 
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn) {
@@ -478,17 +567,21 @@
         try {
             const response = await fetch(`/bff/me/profile`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ displayName })
+                body: JSON.stringify({ displayName, password, turnstileToken })
             });
+
+            const result = await response.json().catch(() => null);
 
             if (response.ok) {
                 showMessage('Display name updated successfully');
+                if (passwordInput) passwordInput.value = '';
+                // Reset Turnstile for next use
+                if (typeof turnstile !== 'undefined') turnstile.reset();
             } else {
-                showMessage('Failed to update display name', true);
+                showMessage(result?.error || 'Failed to update display name', true);
+                if (typeof turnstile !== 'undefined') turnstile.reset();
             }
         } catch (error) {
             console.error('[Profile Settings] Update display name error:', error);
@@ -507,24 +600,19 @@
         try {
             const response = await fetch(`/bff/me/preferences`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ preferEndlessScroll })
             });
 
             if (response.ok) {
-                showMessage('Scroll preference updated successfully');
+                showMessage('Scroll preference updated');
             } else {
-                showMessage('Failed to update scroll preference', true);
-                // Revert checkbox on error
+                showMessage('Failed to update preference', true);
                 checkbox.checked = !preferEndlessScroll;
             }
         } catch (error) {
-            console.error('[Profile Settings] Update preference error:', error);
             showMessage('Network error. Please try again.', true);
-            // Revert checkbox on error
             checkbox.checked = !preferEndlessScroll;
         }
     }
@@ -535,20 +623,17 @@
         try {
             const response = await fetch(`/bff/me/preferences`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ timezone })
             });
 
             if (response.ok) {
-                showMessage('Timezone updated successfully');
+                showMessage('Timezone updated');
             } else {
                 showMessage('Failed to update timezone', true);
             }
         } catch (error) {
-            console.error('[Profile Settings] Update timezone error:', error);
             showMessage('Network error. Please try again.', true);
         }
     }
@@ -559,24 +644,19 @@
         try {
             const response = await fetch(`/bff/me/preferences`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ autoFollowOnReply })
             });
 
             if (response.ok) {
-                showMessage('Auto-follow preference updated successfully');
+                showMessage('Auto-follow preference updated');
             } else {
-                showMessage('Failed to update auto-follow preference', true);
-                // Revert checkbox on error
+                showMessage('Failed to update preference', true);
                 checkbox.checked = !autoFollowOnReply;
             }
         } catch (error) {
-            console.error('[Profile Settings] Update preference error:', error);
             showMessage('Network error. Please try again.', true);
-            // Revert checkbox on error
             checkbox.checked = !autoFollowOnReply;
         }
     }
@@ -603,26 +683,19 @@
     }
 
     function attachEventListeners() {
-        // Skin tone picker (localStorage only, no server call)
         initSkinTonePicker();
 
-        // Avatar upload form
         const avatarForm = document.getElementById('avatar-upload-form');
         const fileInput = document.getElementById('avatar-file');
         const deleteBtn = document.getElementById('delete-avatar-btn');
 
         if (avatarForm && !avatarForm.dataset.initialized) {
             avatarForm.dataset.initialized = 'true';
-            if (fileInput) {
-                fileInput.addEventListener('change', handleFileChange);
-            }
+            if (fileInput) fileInput.addEventListener('change', handleFileChange);
             avatarForm.addEventListener('submit', handleAvatarUploadSubmit);
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', handleDeleteClick);
-            }
+            if (deleteBtn) deleteBtn.addEventListener('click', handleDeleteClick);
         }
 
-        // Display name form
         const displayNameForms = document.querySelectorAll('form[asp-page-handler="UpdateDisplayName"]');
         displayNameForms.forEach(form => {
             if (!form.dataset.initialized) {
@@ -631,54 +704,41 @@
             }
         });
 
-        // Scroll preference checkbox
         const scrollCheckbox = document.querySelector('input[name="preferEndlessScroll"][type="checkbox"]');
         if (scrollCheckbox && !scrollCheckbox.dataset.initialized) {
             scrollCheckbox.dataset.initialized = 'true';
-            scrollCheckbox.addEventListener('change', (e) => {
-                handleScrollPreferenceChange(e.target);
-            });
+            scrollCheckbox.addEventListener('change', (e) => handleScrollPreferenceChange(e.target));
         }
 
-        // Auto-follow preference checkbox
         const autoFollowCheckbox = document.querySelector('input[name="autoFollowOnReply"][type="checkbox"]');
         if (autoFollowCheckbox && !autoFollowCheckbox.dataset.initialized) {
             autoFollowCheckbox.dataset.initialized = 'true';
-            autoFollowCheckbox.addEventListener('change', (e) => {
-                handleAutoFollowPreferenceChange(e.target);
-            });
+            autoFollowCheckbox.addEventListener('change', (e) => handleAutoFollowPreferenceChange(e.target));
         }
 
-        // Timezone select
         const timezoneSelect = document.getElementById('timezone-select');
         if (timezoneSelect && !timezoneSelect.dataset.initialized) {
             timezoneSelect.dataset.initialized = 'true';
-            timezoneSelect.addEventListener('change', (e) => {
-                handleTimezoneChange(e.target);
-            });
+            timezoneSelect.addEventListener('change', (e) => handleTimezoneChange(e.target));
         }
     }
 
-    // Run on initial page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            initProfileSettings().then(() => {
-                attachEventListeners();
-            });
+            initProfileSettings().then(() => attachEventListeners());
         });
     } else {
-        initProfileSettings().then(() => {
-            attachEventListeners();
-        });
+        initProfileSettings().then(() => attachEventListeners());
     }
 
-    // Handle HTMX navigation
     document.body.addEventListener('htmx:load', function(evt) {
         if (document.getElementById('avatar-upload-form')) {
-            initProfileSettings().then(() => {
-                attachEventListeners();
-            });
+            initProfileSettings().then(() => attachEventListeners());
         }
     });
 })();
 </script>
+@if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
+{
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+}

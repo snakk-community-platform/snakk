@@ -21,6 +21,7 @@ public class SearchUseCase(ISearchRepository searchRepository) : UseCaseBase
         string? discussionPublicId = null,
         string? spacePublicId = null,
         int offset = 0,
-        int pageSize = 20) =>
-        searchRepository.SearchPostsAsync(query, authorPublicId, discussionPublicId, spacePublicId, offset, pageSize);
+        int pageSize = 20,
+        string? userId = null) =>
+        searchRepository.SearchPostsAsync(query, authorPublicId, discussionPublicId, spacePublicId, offset, pageSize, userId);
 }

@@ -4,6 +4,7 @@ using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.IO.Compression;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -192,6 +193,13 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedHost
+        | ForwardedHeaders.XForwardedProto
+});
 
 app.UseStatusCodePagesWithReExecute("/NotFound");
 

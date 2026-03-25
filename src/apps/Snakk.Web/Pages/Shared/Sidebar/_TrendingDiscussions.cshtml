@@ -13,6 +13,7 @@ else
         @foreach (var discussion in Model.Discussions.Items)
         {
             var discussionUrl = SnakkUrlHelper.Discussion(
+                discussion.CommunitySlug,
                 Model.Community,
                 discussion.Hub.Slug,
                 discussion.Space.Slug,

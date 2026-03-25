@@ -32,6 +32,12 @@
         padding-top: 1rem;
     }
 
+    &.before-necro {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-secondary);
+        margin-bottom: 1.5rem;
+    }
+
     &.same-author {
         .post-main {
             padding-left: 2.5rem;

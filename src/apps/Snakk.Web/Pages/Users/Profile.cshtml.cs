@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 using Snakk.Protos.User;
 
@@ -14,9 +15,6 @@ public class ProfileModel(
 
     public UserProfileInfo? Profile { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public string Tab { get; set; } = "overview";
-
     public string FormatDate(DateTimeOffset? dateTime)
     {
         if (!dateTime.HasValue) return "Unknown";
@@ -25,16 +23,16 @@ public class ProfileModel(
 
     public async Task<IActionResult> OnGetAsync(string publicId)
     {
-        var profileResult = await _apiClient.GetUserProfileResultAsync(publicId);
+        string decodedPublicId;
+        try { decodedPublicId = UlidBase62.Decode(publicId); }
+        catch { return NotFound(); }
+
+        var profileResult = await _apiClient.GetUserProfileResultAsync(decodedPublicId);
 
         if (!profileResult.IsSuccess)
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Profile = profileResult.Value;
-
-        // Validate tab parameter
-        if (!new[] { "overview", "discussions", "posts" }.Contains(Tab))
-            Tab = "overview";
 
         return Page();
     }

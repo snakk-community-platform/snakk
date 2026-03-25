@@ -43,6 +43,10 @@ public class UserDatabaseEntity
     public int FollowerCount { get; set; }
     public int UnreadNotificationCount { get; set; }
 
+    // Display name change tracking
+    public DateTime? DisplayNameChangedAt { get; set; }
+    public bool IsDisplayNameLocked { get; set; } = false;
+
     // Profile setup flag (true for new OAuth users until they choose a display name)
     public bool NeedsProfileSetup { get; set; } = false;
 

@@ -76,6 +76,13 @@ public class CommunityGrpcService(
     {
         var result = await communityUseCase.GetPublicCommunitiesAsync(request.Offset, request.PageSize);
 
+        // Fetch denormalized counts from database entities
+        var publicIds = result.Items.Select(c => c.PublicId.Value).ToList();
+        var counts = await dbContext.Communities
+            .Where(c => publicIds.Contains(c.PublicId))
+            .Select(c => new { c.PublicId, c.DiscussionCount, c.PostCount })
+            .ToDictionaryAsync(c => c.PublicId);
+
         var response = new PagedCommunityList
         {
             Offset = result.Offset,
@@ -85,7 +92,13 @@ public class CommunityGrpcService(
 
         foreach (var c in result.Items)
         {
-            response.Items.Add(MapToProto(c));
+            var info = MapToProto(c);
+            if (counts.TryGetValue(c.PublicId.Value, out var cnt))
+            {
+                info.DiscussionCount = cnt.DiscussionCount;
+                info.ReplyCount = cnt.PostCount;
+            }
+            response.Items.Add(info);
         }
 
         return response;

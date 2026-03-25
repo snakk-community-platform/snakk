@@ -1,6 +1,5 @@
 namespace Snakk.Application.UseCases;
 
-using Snakk.Application.Repositories;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 
@@ -11,11 +10,12 @@ public record UserProfileDto(
     DateTime JoinedAt,
     DateTime? LastSeenAt,
     int DiscussionCount,
-    int PostCount);
+    int PostCount,
+    int FollowerCount,
+    int ReplyCount);
 
 public class UserProfileUseCase(
-    IUserRepository userRepository,
-    ISearchRepository searchRepository) : UseCaseBase
+    IUserRepository userRepository) : UseCaseBase
 {
     public async Task<UserProfileDto?> GetUserProfileAsync(string publicId)
     {
@@ -24,17 +24,15 @@ public class UserProfileUseCase(
         if (user is null)
             return null;
 
-        // Get discussion and post counts (sequential to avoid DbContext concurrency issues)
-        var discussionCount = await searchRepository.GetDiscussionCountByAuthorAsync(publicId);
-        var postCount = await searchRepository.GetPostCountByAuthorAsync(publicId);
-
         return new UserProfileDto(
             user.PublicId.Value,
             user.DisplayName,
             user.AvatarFileName,
             user.CreatedAt,
             user.LastSeenAt,
-            discussionCount,
-            postCount);
+            user.DiscussionCount,
+            user.ReplyCount,
+            user.FollowerCount,
+            user.ReplyCount);
     }
 }

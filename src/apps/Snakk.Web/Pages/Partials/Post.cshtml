@@ -46,7 +46,7 @@
                  alt="@post.Author.DisplayName"
                  width="48" height="48"
                  class="post-avatar" />
-            <a href="/u/@post.Author.PublicId"
+            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                class="post-author-name"
                data-popup-type="user"
                data-popup-id="@post.Author.PublicId"

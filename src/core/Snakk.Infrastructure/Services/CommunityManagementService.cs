@@ -358,7 +358,7 @@ public class CommunityManagementService(
 
             context.UserRoles.Add(new Infrastructure.Database.Entities.UserRoleDatabaseEntity
             {
-                PublicId = Guid.NewGuid().ToString(),
+                PublicId = Ulid.NewUlid().ToString(),
                 UserId = user.Id,
                 RoleId = roleId,
                 CommunityId = community.Id,

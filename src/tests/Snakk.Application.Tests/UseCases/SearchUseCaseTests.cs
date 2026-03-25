@@ -26,11 +26,11 @@ public class SearchUseCaseTests
         var results = new List<DiscussionSearchResultDto>
         {
             new("disc-1", "Test Topic Discussion", "test-topic-discussion",
-                "user-1", "TestUser", null, "space-1", "General", "general", "main-hub",
-                DateTime.UtcNow, DateTime.UtcNow, 5, 100),
+                "user-1", "TestUser", null, "space-1", "General", "general", "main-hub", "Main Hub", "snakk",
+                DateTime.UtcNow, DateTime.UtcNow, 5, 3, 100),
             new("disc-2", "Another Test Topic", "another-test-topic",
-                "user-2", "User2", null, "space-2", "Off-Topic", "off-topic", "main-hub",
-                DateTime.UtcNow, null, 2, 50)
+                "user-2", "User2", null, "space-2", "Off-Topic", "off-topic", "main-hub", "Main Hub", "snakk",
+                DateTime.UtcNow, null, 2, 1, 50)
         };
 
         var pagedResult = new PagedResult<DiscussionSearchResultDto>
@@ -164,7 +164,7 @@ public class SearchUseCaseTests
         var results = new List<PostSearchResultDto>
         {
             new("post-1", "This contains the search term", "user-1", "TestUser", null,
-                "disc-1", "Discussion Title", "discussion-title", "general", "main-hub", DateTime.UtcNow)
+                "disc-1", "Discussion Title", "discussion-title", "general", "General", "main-hub", "Main Hub", "snakk", DateTime.UtcNow)
         };
 
         var pagedResult = new PagedResult<PostSearchResultDto>
@@ -175,7 +175,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchPostsAsync(query, null, null, null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchPostsAsync(query, null, null, null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -198,7 +198,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", "author-1", null, null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", "author-1", null, null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -220,7 +220,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, "disc-1", null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, "disc-1", null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -242,7 +242,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, null, "space-1", 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, null, "space-1", 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -264,7 +264,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, null, null, 20, 10))
+        _mockSearchRepository.Setup(r => r.SearchPostsAsync("query", null, null, null, 20, 10, null))
             .ReturnsAsync(pagedResult);
 
         // Act

@@ -149,7 +149,7 @@ public class MediaService(
         // Create database record
         var media = new MediaDatabaseEntity
         {
-            PublicId = Guid.NewGuid().ToString(),
+            PublicId = Ulid.NewUlid().ToString(),
             Sha256Hash = sha256Hash,
             OriginalFileName = Path.GetFileName(fileName),
             ContentType = contentType,

@@ -432,6 +432,8 @@ function escapeHtml(text: string): string {
     return div.innerHTML;
 }
 
+const encodeUlid = (window as any).SnakkUtils?.encodeUlid || function(s: string): string { return s; };
+
 const sanitizeHtml = (window as any).SnakkUtils?.sanitizeHtml || function(html: string): string {
     if (!html) return '';
     const parser = new DOMParser();
@@ -1413,7 +1415,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 authorPaneHtml += `
                     <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
                          width="48" height="48" class="post-avatar" loading="lazy" />
-                    <a href="/u/${post.author.publicId}" class="post-author-name"
+                    <a href="/u/${encodeUlid(post.author.publicId)}" class="post-author-name"
                        data-popup-type="user" data-popup-id="${post.author.publicId}"
                        data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a>`;
             }
@@ -1534,14 +1536,14 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
             if (post.author.isDeleted) {
                 inlineAuthorHtml = `<span class="post-author-inline hidden"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
             } else {
-                inlineAuthorHtml = `<span class="post-author-inline hidden"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+                inlineAuthorHtml = `<span class="post-author-inline hidden"><a href="/u/${encodeUlid(post.author.publicId)}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
             }
         } else {
             // New author: inline author shown on mobile (CSS controls visibility)
             if (post.author.isDeleted) {
                 inlineAuthorHtml = `<span class="post-author-inline"><span class="deleted">${escapeHtml(post.author.displayName)}</span></span>`;
             } else {
-                inlineAuthorHtml = `<span class="post-author-inline"><a href="/u/${post.author.publicId}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
+                inlineAuthorHtml = `<span class="post-author-inline"><a href="/u/${encodeUlid(post.author.publicId)}" data-popup-type="user" data-popup-id="${post.author.publicId}" data-popup-name="${escapeHtml(post.author.displayName)}">${escapeHtml(post.author.displayName)}</a></span>`;
             }
         }
     }
@@ -1768,13 +1770,18 @@ async function handleFragmentEntry(
     discussionId: string,
     currentUserId: string,
     isAuthenticated: boolean,
-    isLocked: boolean
+    isLocked: boolean,
+    targetPost?: number
 ): Promise<void> {
-    const hash = window.location.hash;
-    if (!hash || !hash.startsWith('#post-')) return;
-
-    const postNumber = parseInt(hash.slice(6), 10); // '#post-'.length === 6
-    if (isNaN(postNumber) || postNumber <= 1) return;
+    let postNumber: number;
+    if (targetPost !== undefined) {
+        postNumber = targetPost;
+    } else {
+        const hash = window.location.hash;
+        if (!hash || !hash.startsWith('#post-')) return;
+        postNumber = parseInt(hash.slice(6), 10); // '#post-'.length === 6
+        if (isNaN(postNumber) || postNumber <= 1) return;
+    }
 
     // Post already in DOM (SSR rendered it) — just scroll
     const existingEl = document.getElementById(`post-${postNumber}`);
@@ -1851,7 +1858,11 @@ async function handleFragmentEntry(
         if (targetEl) {
             suppressFragmentUpdate = true;
             requestAnimationFrame(() => {
-                targetEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+                if (postNumber === 1) {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                } else {
+                    targetEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
                 setTimeout(() => { suppressFragmentUpdate = false; }, 200);
             });
         }
@@ -1978,8 +1989,16 @@ function initThreadNav(config: DiscussionConfig): void {
     if (totalEl) totalEl.textContent = String(totalPostCount);
 
     function getCurrentPostNumber(): number {
+        // At the bottom of the page the browser can't scroll the last post to block:start,
+        // so report the total count rather than the topmost-visible post.
+        if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 10) {
+            return totalPostCount;
+        }
         const posts = document.querySelectorAll<HTMLElement>('.post-item[data-post-number]');
-        let current = 1;
+        if (!posts.length) return 1;
+        // Default to the first loaded post's number — avoids returning 1 when no post
+        // has scrolled above the sticky header threshold (e.g. after a fragment load).
+        let current = parseInt(posts[0]?.dataset.postNumber || '1', 10);
         for (const post of posts) {
             if (post.getBoundingClientRect().top <= 80) {
                 current = parseInt(post.dataset.postNumber || '1', 10);
@@ -2056,7 +2075,12 @@ function navigateToPostNumber(postNumber: number, config: DiscussionConfig): voi
     const el = document.getElementById(`post-${n}`);
     if (el) {
         suppressFragmentUpdate = true;
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // For post-1, scroll to the very top so the sticky header doesn't obscure it.
+        if (n === 1) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         const newHash = n <= 1 ? '' : `#post-${n}`;
         history.replaceState(null, '', location.pathname + newHash);
         setTimeout(() => { suppressFragmentUpdate = false; }, 500);
@@ -2064,8 +2088,14 @@ function navigateToPostNumber(postNumber: number, config: DiscussionConfig): voi
     }
 
     // Need to load — use fragment entry mechanism
-    history.replaceState(null, '', location.pathname + `#post-${n}`);
-    handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+    if (n === 1) {
+        // handleFragmentEntry skips postNumber <= 1 from hash; pass it explicitly instead
+        history.replaceState(null, '', location.pathname);
+        handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked, 1);
+    } else {
+        history.replaceState(null, '', location.pathname + `#post-${n}`);
+        handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+    }
 }
 
 // ===== Relative Timestamp Ticker =====

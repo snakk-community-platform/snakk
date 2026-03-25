@@ -74,36 +74,68 @@ public class ManageScopeServiceTests
         await Assert.That(result).IsEqualTo("c/gaming/h/fps/s/valorant");
     }
 
-    // ===== GetSiteUrl Tests =====
+    // ===== GetSiteUrl Tests (multi-community) =====
 
     [Test]
-    public async Task GetSiteUrl_CommunityScope_ReturnsCommunityUrl()
+    public async Task GetSiteUrl_MultiCommunity_CommunityScope_ReturnsCommunityUrl()
     {
         var scope = CreateScope("Community", communitySlug: "gaming");
 
-        var result = ManageScopeService.GetSiteUrl(scope);
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: true);
 
         await Assert.That(result).IsEqualTo("/c/gaming");
     }
 
     [Test]
-    public async Task GetSiteUrl_HubScope_ReturnsHubUrl()
+    public async Task GetSiteUrl_MultiCommunity_HubScope_ReturnsHubUrl()
     {
         var scope = CreateScope("Hub", communitySlug: "gaming", hubSlug: "fps");
 
-        var result = ManageScopeService.GetSiteUrl(scope);
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: true);
 
         await Assert.That(result).IsEqualTo("/c/gaming/h/fps");
     }
 
     [Test]
-    public async Task GetSiteUrl_SpaceScope_ReturnsSpaceUrl()
+    public async Task GetSiteUrl_MultiCommunity_SpaceScope_ReturnsSpaceUrl()
     {
         var scope = CreateScope("Space", communitySlug: "gaming", hubSlug: "fps", spaceSlug: "valorant");
 
-        var result = ManageScopeService.GetSiteUrl(scope);
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: true);
 
         await Assert.That(result).IsEqualTo("/c/gaming/h/fps/valorant");
+    }
+
+    // ===== GetSiteUrl Tests (single-community) =====
+
+    [Test]
+    public async Task GetSiteUrl_SingleCommunity_HubScope_ReturnsFlatHubUrl()
+    {
+        var scope = CreateScope("Hub", communitySlug: "main", hubSlug: "fps");
+
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: false);
+
+        await Assert.That(result).IsEqualTo("/h/fps");
+    }
+
+    [Test]
+    public async Task GetSiteUrl_SingleCommunity_SpaceScope_ReturnsFlatSpaceUrl()
+    {
+        var scope = CreateScope("Space", communitySlug: "main", hubSlug: "fps", spaceSlug: "valorant");
+
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: false);
+
+        await Assert.That(result).IsEqualTo("/h/fps/valorant");
+    }
+
+    [Test]
+    public async Task GetSiteUrl_SingleCommunity_CommunityScope_ReturnsRoot()
+    {
+        var scope = CreateScope("Community", communitySlug: "main");
+
+        var result = ManageScopeService.GetSiteUrl(scope, isMultiCommunity: false);
+
+        await Assert.That(result).IsEqualTo("/");
     }
 
     // ===== HasPermission Tests =====

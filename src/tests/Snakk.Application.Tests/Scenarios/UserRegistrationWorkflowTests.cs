@@ -1,4 +1,5 @@
 using Moq;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
@@ -16,17 +17,23 @@ public class UserRegistrationWorkflowTests
     private readonly Mock<IEmailSender> _mockEmailSender = new();
     private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository = new();
     private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
+    private readonly Mock<IDisplayNameHistoryRepository> _mockDisplayNameHistoryRepository = new();
+    private readonly Mock<ITurnstileService> _mockTurnstileService = new();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
+        _mockTurnstileService.Setup(t => t.VerifyAsync(It.IsAny<string>(), It.IsAny<string?>())).ReturnsAsync(true);
+
         _useCase = new AuthenticationUseCase(
             _mockUserRepository.Object,
             _mockPasswordHasher.Object,
             _mockEmailSender.Object,
             _mockRefreshTokenRepository.Object,
-            _mockEventDispatcher.Object);
+            _mockEventDispatcher.Object,
+            _mockDisplayNameHistoryRepository.Object,
+            _mockTurnstileService.Object);
     }
 
     [Test]

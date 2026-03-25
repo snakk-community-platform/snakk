@@ -99,6 +99,12 @@ public class HubGrpcService(
             request.PageSize,
             userId);
 
+        var publicIds = result.Items.Select(h => h.PublicId.Value).ToList();
+        var counts = await dbContext.Hubs
+            .Where(h => publicIds.Contains(h.PublicId))
+            .Select(h => new { h.PublicId, h.SpaceCount, h.DiscussionCount, h.PostCount })
+            .ToDictionaryAsync(h => h.PublicId);
+
         var response = new PagedHubList
         {
             Offset = result.Offset,
@@ -108,7 +114,14 @@ public class HubGrpcService(
 
         foreach (var h in result.Items)
         {
-            response.Items.Add(MapToProto(h));
+            var info = MapToProto(h);
+            if (counts.TryGetValue(h.PublicId.Value, out var cnt))
+            {
+                info.SpaceCount = cnt.SpaceCount;
+                info.DiscussionCount = cnt.DiscussionCount;
+                info.ReplyCount = cnt.PostCount - cnt.DiscussionCount;
+            }
+            response.Items.Add(info);
         }
 
         return response;

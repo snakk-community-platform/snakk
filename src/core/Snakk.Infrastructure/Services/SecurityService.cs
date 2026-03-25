@@ -237,7 +237,7 @@ public class SecurityService(SnakkDbContext context) : ISecurityService
 
         var auditLog = new AuditLogDatabaseEntity
         {
-            PublicId = Guid.NewGuid().ToString("N"),
+            PublicId = Ulid.NewUlid().ToString(),
             ActorUserId = actorUserIdInt,
             Action = action,
             Category = category,

@@ -49,7 +49,8 @@ public record TopActiveSpaceDto(
     int PostCountToday,
     string HubPublicId,
     string HubSlug,
-    string HubName);
+    string HubName,
+    string CommunitySlug);
 
 public record PlatformStatsDto(
     int HubCount,

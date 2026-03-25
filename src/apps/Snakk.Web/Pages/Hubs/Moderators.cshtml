@@ -1,4 +1,4 @@
-@page "/h/{slug}/moderators"
+@page "/c/{communitySlug}/h/{slug}/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Hubs.ModeratorsModel
@@ -9,7 +9,7 @@
 
 @if (Model.Hub == null)
 {
-    <div class="max-w-xl mx-auto">
+    <div class="max-w-xl mx-auto px-4 py-8">
         <div class="clean-card">
             <div class="empty-state-simple">
                 <h3>Hub not found</h3>
@@ -53,7 +53,7 @@ else
         {
             @foreach (var group in Model.Moderators.Groups)
             {
-                <div class="clean-card mb-4">
+                <div class="clean-card p-6 mb-4">
                     <h2 class="text-base font-semibold mb-3">
                         @group.Level
                         @if (!string.IsNullOrEmpty(group.ScopeName))
@@ -64,13 +64,13 @@ else
                     <div class="flex flex-col divide-y divide-base-200">
                         @foreach (var mod in group.Moderators)
                         {
-                            <div class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
                                 <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                                      alt="" width="32" height="32"
                                      class="w-8 h-8 rounded-full shrink-0" />
                                 <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
                                 <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
-                            </div>
+                            </a>
                         }
                     </div>
                 </div>

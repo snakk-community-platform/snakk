@@ -87,7 +87,7 @@
                                              alt="@log.ActorUserDisplayName"
                                              width="24" height="24"
                                              class="w-6 h-6 rounded-full" />
-                                        <a href="/u/@log.ActorUserPublicId" class="link link-hover text-sm">@log.ActorUserDisplayName</a>
+                                        <a href="@SnakkUrlHelper.UserProfile(log.ActorUserPublicId)" class="link link-hover text-sm">@log.ActorUserDisplayName</a>
                                     </div>
                                 </td>
                                 <td>
@@ -98,7 +98,7 @@
                                 <td class="text-sm">
                                     @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
                                     {
-                                        <a href="/u/@log.TargetUserPublicId" class="link link-hover">@log.TargetUserDisplayName</a>
+                                        <a href="@SnakkUrlHelper.UserProfile(log.TargetUserPublicId)" class="link link-hover">@log.TargetUserDisplayName</a>
                                     }
                                     else if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
                                     {

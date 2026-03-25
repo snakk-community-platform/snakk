@@ -483,14 +483,22 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<bool> UpdateProfileAsync(string displayName)
+    public virtual async Task<DisplayNameHistoryResponse?> GetDisplayNameHistoryAsync()
+    {
+        try { return await authClient.GetDisplayNameHistoryAsync(new GetDisplayNameHistoryRequest()); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<UpdateProfileResponse?> UpdateProfileAsync(string displayName, string? password = null, string? turnstileToken = null)
     {
         try
         {
-            await authClient.UpdateProfileAsync(new UpdateProfileRequest { DisplayName = displayName });
-            return true;
+            var request = new UpdateProfileRequest { DisplayName = displayName };
+            if (password is not null) request.Password = password;
+            if (turnstileToken is not null) request.TurnstileToken = turnstileToken;
+            return await authClient.UpdateProfileAsync(request);
         }
-        catch (RpcException ex) { LogGrpcError(ex); return false; }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     public virtual async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null, string? timezone = null)

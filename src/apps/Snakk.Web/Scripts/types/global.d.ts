@@ -144,7 +144,7 @@ interface Window {
     SnakkConfig: SnakkConfig;
     FrontpageDiscussions: any;
     SnakkFrontpageDiscussions: any;
-    initializeProfile: (userId: string, currentTab: string, stats: any) => void;
+    initializeProfile: (userId: string, stats: any) => void;
 
     // SignalR
     signalR: typeof signalR;

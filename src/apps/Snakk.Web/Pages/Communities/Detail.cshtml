@@ -6,9 +6,23 @@
 @model Snakk.Web.Pages.Communities.DetailModel
 @{
     ViewData["Title"] = Model.CommunityDetail?.Name ?? "Community";
-    ViewData["Description"] = Model.CommunityDetail != null
+    ViewData["Description"] = Model.CommunityDetail is { IsRestricted: false }
         ? $"{Model.CommunityDetail.Name} — {(Model.CommunityDetail.Description ?? "a community on Snakk")}"
         : null;
+}
+
+@section Meta {
+    @if (Model.CommunityDetail is { IsRestricted: false })
+    {
+        var scheme = ViewContext.HttpContext.Request.Scheme;
+        var host = ViewContext.HttpContext.Request.Host.ToString();
+        var path = ViewContext.HttpContext.Request.Path.ToString();
+        var url = $"{scheme}://{host}{path}";
+
+        <link rel="alternate" type="application/json+oembed"
+              href="/oembed?url=@Uri.EscapeDataString(url)"
+              title="@Html.Encode(Model.CommunityDetail.Name)" />
+    }
 }
 
 <div class="breadcrumb-bar">
@@ -74,6 +88,10 @@
                                     {
                                         <p class="category-description line-clamp-2">@hub.Description</p>
                                     }
+                                    <div class="mt-2 flex items-center gap-3 text-xs text-base-content/50">
+                                        <span>@FormatCount(hub.DiscussionCount) discussions</span>
+                                        <span>@FormatCount(hub.ReplyCount) replies</span>
+                                    </div>
                                 </div>
                             </div>
                         </a>
@@ -167,6 +185,7 @@
 
         <!-- Right Column: Sidebar -->
         <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+        <div id="sidebar-inner">
             <div class="sidebar-section">
                 <h3 class="sidebar-title">About this Community</h3>
                 @if (!string.IsNullOrEmpty(Model.CommunityDetail?.Description))
@@ -188,7 +207,14 @@
             @if (Model.CommunityDetail?.HasRules == true)
             {
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Community Rules</h3>
+                    <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)/rules"
+                       class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                        <span>Community Rules</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
                     <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
                                      model="Model.InlineCommunityRules"
                                      htmx-url="/partials/community-rules?communityId=@Model.CommunityDetail.PublicId&rev=@Model.CommunityDetail.RulesRevision">
@@ -203,7 +229,20 @@
 
             <!-- Moderators -->
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Moderators</h3>
+                <a href="@(SnakkUrlHelper.Community(Model.CommunityDetail!.Slug, Model.Community))/moderators"
+                   class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                    <span>Moderators</span>
+                    <span class="flex items-center gap-1">
+                        @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                        {
+                            <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
+                        }
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </span>
+                </a>
                 <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                  model="Model.InlineModerators"
                                  htmx-url="/partials/moderators?scopeType=Community&scopeId=@Model.CommunityDetail?.PublicId&moderatorsUrl=@(SnakkUrlHelper.Community(Model.CommunityDetail!.Slug, Model.Community))/moderators&rev=@Model.CommunityDetail?.TeamRevision">
@@ -262,6 +301,7 @@
                     </inline-or-htmx>
                 </div>
             }
+        </div>
         </aside>
     </div>
 </div>

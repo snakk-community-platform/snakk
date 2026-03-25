@@ -55,7 +55,7 @@ public class DatabaseSeeder(
         {
             _context.SystemSettings.Add(new SystemSettingDatabaseEntity
             {
-                PublicId = Guid.NewGuid().ToString(),
+                PublicId = Ulid.NewUlid().ToString(),
                 Category = category,
                 Key = key,
                 Value = serialized,
@@ -163,7 +163,7 @@ public class DatabaseSeeder(
         _context.Communities.RemoveRange(_context.Communities);
 
         // Keep the test user and admin user, delete others
-        var userIdsToKeep = new[] { "01JJQP0000000000000000TEST", "01JJQP0000000000000ADMIN" };
+        var userIdsToKeep = new[] { "01JJQP0000000000000000TEST", "01JJQP000000000000000ADM1N" };
         var usersToDelete = _context.Users.Where(u => !userIdsToKeep.Contains(u.PublicId)).ToList();
 
         // Delete UserRole records for users being deleted (to avoid FK constraint violation)
@@ -244,7 +244,7 @@ public class DatabaseSeeder(
         var adminEmail = _configuration["Setup:AdminEmail"] ?? "admin@snakk.local";
         var adminPassword = _configuration["Setup:AdminPassword"] ?? "admin123";
         var adminDisplayName = _configuration["Setup:AdminDisplayName"] ?? "Admin User";
-        const string adminPublicId = "01JJQP0000000000000ADMIN";
+        const string adminPublicId = "01JJQP000000000000000ADM1N";
 
         // Check if admin user already exists
         var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail || u.PublicId == adminPublicId);
@@ -309,7 +309,7 @@ public class DatabaseSeeder(
             users.Add(testUser);
 
         // Get the admin user (created by EnsureDefaultAdminExistsAsync)
-        var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == "01JJQP0000000000000ADMIN");
+        var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == "01JJQP000000000000000ADM1N");
         if (adminUser is not null)
             users.Add(adminUser);
 
@@ -1352,6 +1352,36 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
 
         Console.WriteLine($"Updated counts for {spaces.Count} spaces, {hubs.Count} hubs, {communities.Count} communities.");
+
+        // Users: count discussions, replies, and followers
+        var userDiscussionCounts = await _context.Discussions
+            .GroupBy(d => d.CreatedByUserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        var userReplyCounts = await _context.Posts
+            .Where(p => !p.IsFirstPost)
+            .GroupBy(p => p.CreatedByUserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        var userFollowerCounts = await _context.Follows
+            .Where(f => f.TargetTypeId == (int)FollowTargetTypeEnum.User)
+            .GroupBy(f => f.FollowedUserId!.Value)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        var users = await _context.Users.ToListAsync();
+        foreach (var user in users)
+        {
+            user.DiscussionCount = userDiscussionCounts.GetValueOrDefault(user.Id);
+            user.ReplyCount = userReplyCounts.GetValueOrDefault(user.Id);
+            user.FollowerCount = userFollowerCounts.GetValueOrDefault(user.Id);
+        }
+
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Updated counts for {users.Count} users.");
     }
 
     private string GenerateSlug(string title)
@@ -1383,7 +1413,7 @@ public class DatabaseSeeder(
         CommunityDatabaseEntity community,
         List<UserDatabaseEntity> users)
     {
-        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
+        var adminUser = users.First(u => u.PublicId == "01JJQP000000000000000ADM1N");
 
         // Get the first hub and space for hub/space-level announcements
         var hub = await _context.Hubs
@@ -1865,8 +1895,8 @@ public class DatabaseSeeder(
     {
         Console.WriteLine("Seeding moderation data (roles, bans, report reasons)...");
 
-        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
-        var regularUsers = users.Where(u => u.PublicId != "01JJQP0000000000000ADMIN").ToList();
+        var adminUser = users.First(u => u.PublicId == "01JJQP000000000000000ADM1N");
+        var regularUsers = users.Where(u => u.PublicId != "01JJQP000000000000000ADM1N").ToList();
 
         var communities = await _context.Communities.ToListAsync();
         var hubs = await _context.Hubs.Include(h => h.Community).ToListAsync();
@@ -2136,10 +2166,10 @@ public class DatabaseSeeder(
     {
         // Pick a set of regular users to assign to groups (skip test user and admin)
         var regularUsers = users
-            .Where(u => u.PublicId != "01JJQP0000000000000000TEST" && u.PublicId != "01JJQP0000000000000ADMIN")
+            .Where(u => u.PublicId != "01JJQP0000000000000000TEST" && u.PublicId != "01JJQP000000000000000ADM1N")
             .ToList();
 
-        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
+        var adminUser = users.First(u => u.PublicId == "01JJQP000000000000000ADM1N");
 
         // Create 3 groups for the Snakk community
         var premiumGroup = new GroupDatabaseEntity

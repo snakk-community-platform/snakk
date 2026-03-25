@@ -20,7 +20,7 @@ interface ReadHistoryEntry {
     communityPublicId: string;
     communitySlug: string;
     communityName: string;
-    isDefaultCommunity: boolean;
+    isMultiCommunity: boolean;
     lastActivityAt: string;
     visitedAt: string;
 }
@@ -87,7 +87,7 @@ interface SnakkReadHistoryAPI {
             communityPublicId: discussion.communityPublicId || '',
             communitySlug: discussion.communitySlug || '',
             communityName: discussion.communityName || '',
-            isDefaultCommunity: discussion.isDefaultCommunity || false,
+            isMultiCommunity: discussion.isMultiCommunity || false,
             lastActivityAt: discussion.lastActivityAt || '',
             visitedAt: new Date().toISOString()
         };
@@ -117,7 +117,7 @@ interface SnakkReadHistoryAPI {
     }
 
     function buildDiscussionUrl(entry: ReadHistoryEntry): string {
-        const communityPrefix = entry.isDefaultCommunity ? '' : `/c/${entry.communitySlug}`;
+        const communityPrefix = entry.isMultiCommunity ? `/c/${entry.communitySlug}` : '';
         return `${communityPrefix}/h/${entry.hubSlug}/${entry.spaceSlug}/${entry.discussionSlug}~${entry.discussionPublicId}`;
     }
 

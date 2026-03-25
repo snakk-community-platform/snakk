@@ -19,6 +19,7 @@ public class SettingsModel(SnakkApiClient apiClient, IConfiguration configuratio
     public string? SuccessMessage { get; set; }
 
     public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+    public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
 
     public IActionResult OnGetAsync()
     {

@@ -1,5 +1,4 @@
 using Moq;
-using Snakk.Application.Repositories;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -10,15 +9,13 @@ namespace Snakk.Application.Tests.UseCases;
 public class UserProfileUseCaseTests
 {
     private readonly Mock<IUserRepository> _mockUserRepository = new();
-    private readonly Mock<ISearchRepository> _mockSearchRepository = new();
     private UserProfileUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
         _useCase = new UserProfileUseCase(
-            _mockUserRepository.Object,
-            _mockSearchRepository.Object);
+            _mockUserRepository.Object);
     }
 
     #region GetUserProfileAsync Tests
@@ -31,15 +28,14 @@ public class UserProfileUseCaseTests
             UserId.New(), "TestUser", "test@example.com", "hash", true, null,
             null, null, null, "avatar.png", 1, true, true,
             DateTime.UtcNow.AddDays(-30),
-            lastSeenAt: DateTime.UtcNow);
+            lastSeenAt: DateTime.UtcNow,
+            discussionCount: 15,
+            replyCount: 120,
+            followerCount: 8);
         var publicId = user.PublicId.Value;
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
-        _mockSearchRepository.Setup(r => r.GetDiscussionCountByAuthorAsync(publicId))
-            .ReturnsAsync(15);
-        _mockSearchRepository.Setup(r => r.GetPostCountByAuthorAsync(publicId))
-            .ReturnsAsync(120);
 
         // Act
         var result = await _useCase.GetUserProfileAsync(publicId);
@@ -50,7 +46,8 @@ public class UserProfileUseCaseTests
         await Assert.That(result.DisplayName).IsEqualTo("TestUser");
         await Assert.That(result.AvatarFileName).IsEqualTo("avatar.png");
         await Assert.That(result.DiscussionCount).IsEqualTo(15);
-        await Assert.That(result.PostCount).IsEqualTo(120);
+        await Assert.That(result.ReplyCount).IsEqualTo(120);
+        await Assert.That(result.FollowerCount).IsEqualTo(8);
         await Assert.That(result.JoinedAt).IsEqualTo(user.CreatedAt);
         await Assert.That(result.LastSeenAt).IsEqualTo(user.LastSeenAt);
     }
@@ -80,10 +77,6 @@ public class UserProfileUseCaseTests
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
-        _mockSearchRepository.Setup(r => r.GetDiscussionCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
-        _mockSearchRepository.Setup(r => r.GetPostCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
 
         // Act
         var result = await _useCase.GetUserProfileAsync(publicId);
@@ -102,10 +95,6 @@ public class UserProfileUseCaseTests
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
-        _mockSearchRepository.Setup(r => r.GetDiscussionCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
-        _mockSearchRepository.Setup(r => r.GetPostCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
 
         // Act
         var result = await _useCase.GetUserProfileAsync(publicId);
@@ -113,35 +102,8 @@ public class UserProfileUseCaseTests
         // Assert
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.DiscussionCount).IsEqualTo(0);
-        await Assert.That(result.PostCount).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task GetUserProfileAsync_QueriesCountsSequentially()
-    {
-        // Arrange
-        var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        var publicId = user.PublicId.Value;
-
-        var callOrder = new List<string>();
-
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
-            .ReturnsAsync(user);
-        _mockSearchRepository.Setup(r => r.GetDiscussionCountByAuthorAsync(publicId))
-            .Callback(() => callOrder.Add("discussions"))
-            .ReturnsAsync(5);
-        _mockSearchRepository.Setup(r => r.GetPostCountByAuthorAsync(publicId))
-            .Callback(() => callOrder.Add("posts"))
-            .ReturnsAsync(10);
-
-        // Act
-        var result = await _useCase.GetUserProfileAsync(publicId);
-
-        // Assert
-        await Assert.That(result).IsNotNull();
-        // Both counts were queried
-        _mockSearchRepository.Verify(r => r.GetDiscussionCountByAuthorAsync(publicId), Times.Once);
-        _mockSearchRepository.Verify(r => r.GetPostCountByAuthorAsync(publicId), Times.Once);
+        await Assert.That(result.ReplyCount).IsEqualTo(0);
+        await Assert.That(result.FollowerCount).IsEqualTo(0);
     }
 
     [Test]
@@ -157,10 +119,6 @@ public class UserProfileUseCaseTests
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
-        _mockSearchRepository.Setup(r => r.GetDiscussionCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
-        _mockSearchRepository.Setup(r => r.GetPostCountByAuthorAsync(publicId))
-            .ReturnsAsync(0);
 
         // Act
         var result = await _useCase.GetUserProfileAsync(publicId);

@@ -229,8 +229,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new Snakk.Protos.Auth.UpdateProfileResponse { Success = true, Message = "OK" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Display Name" };
@@ -240,7 +240,7 @@ public class BffAuthTests
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        app.MockApiClient.Verify(c => c.UpdateProfileAsync("New Display Name"), Times.Once);
+        app.MockApiClient.Verify(c => c.UpdateProfileAsync("New Display Name", null, null), Times.Once);
     }
 
     [Test]
@@ -249,8 +249,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new Snakk.Protos.Auth.UpdateProfileResponse { Success = false, Message = "Failed" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Name" };

@@ -63,7 +63,7 @@
                              width="40" height="40"
                              class="w-10 h-10 rounded-full" />
                         <div>
-                            <a href="/u/@Model.Report.ReporterUserPublicId" class="font-medium hover:underline">@Model.Report.ReporterUserDisplayName</a>
+                            <a href="@SnakkUrlHelper.UserProfile(Model.Report.ReporterUserPublicId)" class="font-medium hover:underline">@Model.Report.ReporterUserDisplayName</a>
                         </div>
                     </div>
                 </div>
@@ -81,7 +81,7 @@
                                  class="w-10 h-10 rounded-full" />
                             <div>
                                 <div class="text-xs text-muted mb-1">Reported User</div>
-                                <a href="/u/@Model.Report.ReportedUserPublicId" class="font-medium hover:underline">@Model.Report.ReportedUserDisplayName</a>
+                                <a href="@SnakkUrlHelper.UserProfile(Model.Report.ReportedUserPublicId)" class="font-medium hover:underline">@Model.Report.ReportedUserDisplayName</a>
                             </div>
                         </div>
                     }
@@ -241,7 +241,7 @@
                     <div class="clean-card">
                         <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Quick Actions</h2>
                         <div class="space-y-2">
-                            <a href="/u/@Model.Report.ReportedUserPublicId" class="btn btn-sm btn-ghost w-full justify-start">
+                            <a href="@SnakkUrlHelper.UserProfile(Model.Report.ReportedUserPublicId)" class="btn btn-sm btn-ghost w-full justify-start">
                                 View User Profile
                             </a>
                             <a href="/moderation/bans?userId=@Model.Report.ReportedUserPublicId" class="btn btn-sm btn-ghost w-full justify-start">

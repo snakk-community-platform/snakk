@@ -41,6 +41,7 @@ interface SnakkUtilsAPI {
     generateId(prefix?: string): string;
     clone<T>(obj: T): T;
     dispatchEvent(name: string, detail?: any): void;
+    encodeUlid(ulid: string): string;
 }
 
 // ============================================================================
@@ -347,6 +348,27 @@ interface SnakkUtilsAPI {
         document.dispatchEvent(new CustomEvent(name, { detail }));
     }
 
+    /**
+     * Encode a 26-char ULID (Crockford Base32) to a 22-char Base62 string.
+     * Mirrors UlidBase62.Encode() in Snakk.Shared.Helpers.
+     */
+    function encodeUlid(ulid: string): string {
+        const crockford = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+        const base62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let value = BigInt(0);
+        for (const c of ulid.toUpperCase()) {
+            const index = crockford.indexOf(c);
+            if (index < 0) throw new Error(`Invalid ULID character: ${c}`);
+            value = value * BigInt(32) + BigInt(index);
+        }
+        const result = new Array(22);
+        for (let i = 21; i >= 0; i--) {
+            result[i] = base62[Number(value % BigInt(62))];
+            value = value / BigInt(62);
+        }
+        return result.join('');
+    }
+
     // Export all utilities
     const SnakkUtils: SnakkUtilsAPI = {
         formatRelativeTime,
@@ -368,7 +390,8 @@ interface SnakkUtilsAPI {
         isValidUrl,
         generateId,
         clone,
-        dispatchEvent
+        dispatchEvent,
+        encodeUlid
     };
 
     (window as any).SnakkUtils = SnakkUtils;

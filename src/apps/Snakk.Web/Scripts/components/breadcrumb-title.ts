@@ -46,6 +46,8 @@
         titleLine.appendChild(titleSpan);
         bar.appendChild(titleLine);
 
+        const sidebarInner = document.getElementById('sidebar-inner');
+
         let ticking = false;
         function checkTitle(): void {
             const barRect = bar!.getBoundingClientRect();
@@ -54,8 +56,10 @@
 
             if (titleMidpoint <= barRect.bottom) {
                 bar!.classList.add('show-title');
+                sidebarInner?.classList.add('breadcrumb-expanded');
             } else {
                 bar!.classList.remove('show-title');
+                sidebarInner?.classList.remove('breadcrumb-expanded');
             }
             ticking = false;
         }

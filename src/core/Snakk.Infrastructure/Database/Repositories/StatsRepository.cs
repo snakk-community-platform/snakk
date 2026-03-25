@@ -138,7 +138,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                     x.PostCountToday,
                     s.Hub.PublicId,
                     s.Hub.Slug,
-                    s.Hub.Name))
+                    s.Hub.Name,
+                    s.Hub.Community.Slug))
             .ToListAsync();
 
         return topSpaces;

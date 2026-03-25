@@ -46,6 +46,8 @@ message DiscussionSearchResult {
   snakk.EntityRef hub = 8;
   snakk.AuthorRef author = 9;
   int32 post_count = 10;
+  int32 reaction_count = 11;
+  string community_slug = 12;
 }
 
 message PagedDiscussionSearchResults {
@@ -65,6 +67,7 @@ message PostSearchResult {
   string discussion_slug = 7;
   snakk.EntityRef space = 8;
   snakk.EntityRef hub = 9;
+  string community_slug = 10;
 }
 
 message PagedPostSearchResults {

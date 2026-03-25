@@ -152,6 +152,9 @@ public static class ServiceCollectionExtensions
         // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();
 
+        // Display Name History Repository
+        services.AddScoped<Application.Repositories.IDisplayNameHistoryRepository, Infrastructure.Database.Repositories.DisplayNameHistoryRepository>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();
@@ -271,6 +274,7 @@ public static class ServiceCollectionExtensions
 
         // Two-Factor Authentication
         services.AddScoped<Application.Services.ITwoFactorAuthService, Infrastructure.Services.TwoFactorAuthService>();
+        services.AddScoped<Application.Services.ITurnstileService, Infrastructure.Services.TurnstileService>();
 
         // Admin Services
         services.AddScoped<Application.Services.IAdminUserService, Infrastructure.Services.AdminUserService>();

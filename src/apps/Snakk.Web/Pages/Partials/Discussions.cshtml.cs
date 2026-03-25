@@ -42,8 +42,8 @@ public class DiscussionsModel(
         MaxOffset = maxPages * pageSize;
 
         ShowCommunity = !hideCommunity
-            && configuration.GetValue<bool>("Features:MultiCommunityEnabled")
-            && communityContext.IsDefaultCommunity
+            && communityContext.IsMultiCommunityEnabled
+            && string.IsNullOrEmpty(communityContext.CommunitySlug)
             && !communityContext.IsCustomDomain;
         ShowHub = !hideHub;
 

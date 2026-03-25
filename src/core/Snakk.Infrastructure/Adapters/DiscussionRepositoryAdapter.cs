@@ -257,7 +257,8 @@ public class DiscussionRepositoryAdapter(
                 SpaceName = p.Discussion.Space.Name,
                 HubPublicId = p.Discussion.Space.Hub.PublicId,
                 HubSlug = p.Discussion.Space.Hub.Slug,
-                HubName = p.Discussion.Space.Hub.Name })
+                HubName = p.Discussion.Space.Hub.Name,
+                CommunitySlug = p.Discussion.Space.Hub.Community.Slug })
             .Select(g => new {
                 g.Key.PublicId,
                 g.Key.Title,
@@ -270,7 +271,8 @@ public class DiscussionRepositoryAdapter(
                 g.Key.HubSlug,
                 g.Key.HubName,
                 g.Key.AuthorPublicId,
-                g.Key.AuthorDisplayName })
+                g.Key.AuthorDisplayName,
+                g.Key.CommunitySlug })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
             .ToListAsync();
@@ -288,7 +290,8 @@ public class DiscussionRepositoryAdapter(
                 d.HubSlug,
                 d.HubName,
                 d.AuthorPublicId,
-                d.AuthorDisplayName))
+                d.AuthorDisplayName,
+                d.CommunitySlug))
             .ToList();
     }
 

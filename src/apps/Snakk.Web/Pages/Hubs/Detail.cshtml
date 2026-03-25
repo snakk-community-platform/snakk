@@ -1,4 +1,4 @@
-@page "/h/{slug}"
+@page "/c/{communitySlug}/h/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -6,9 +6,23 @@
 @model Snakk.Web.Pages.Hubs.DetailModel
 @{
     ViewData["Title"] = Model.Hub?.Name ?? "Hub";
-    ViewData["Description"] = Model.Hub != null
+    ViewData["Description"] = Model.Hub is { IsRestricted: false }
         ? $"{Model.Hub.Name} — browse spaces and discussions in this hub on Snakk."
         : null;
+}
+
+@section Meta {
+    @if (Model.Hub is { IsRestricted: false })
+    {
+        var scheme = ViewContext.HttpContext.Request.Scheme;
+        var host = ViewContext.HttpContext.Request.Host.ToString();
+        var path = ViewContext.HttpContext.Request.Path.ToString();
+        var url = $"{scheme}://{host}{path}";
+
+        <link rel="alternate" type="application/json+oembed"
+              href="/oembed?url=@Uri.EscapeDataString(url)"
+              title="@Html.Encode(Model.Hub.Name)" />
+    }
 }
 
 @if (Model.Hub == null)
@@ -106,6 +120,10 @@ else
                                         {
                                             <p class="category-description line-clamp-2">@space.Description</p>
                                         }
+                                        <div class="mt-2 flex items-center gap-3 text-xs text-base-content/50">
+                                            <span>@FormatCount(space.DiscussionCount) discussions</span>
+                                            <span>@FormatCount(space.ReplyCount) replies</span>
+                                        </div>
                                     </div>
                                 </div>
                             </a>
@@ -199,6 +217,7 @@ else
 
             <!-- Right Column: Sidebar -->
             <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+            <div id="sidebar-inner">
                 <!-- Hub Stats -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">About this Hub</h3>
@@ -221,7 +240,14 @@ else
                 @if (Model.Hub.HasRules)
                 {
                     <div class="sidebar-section">
-                        <h3 class="sidebar-title">Rules</h3>
+                        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)/rules"
+                           class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                            <span>Hub Rules</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
                         <inline-or-htmx partial="Shared/Sidebar/_HubRules"
                                          model="Model.InlineHubRules"
                                          htmx-url="/partials/hub-rules?hubId=@Model.Hub.PublicId&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentCommunityHasRules=@Model.Hub.ParentCommunityHasRules&rev=@Model.Hub.RulesRevision">
@@ -236,7 +262,20 @@ else
 
                 <!-- Moderators -->
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Moderators</h3>
+                    <a href="@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators"
+                       class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
+                        <span>Moderators</span>
+                        <span class="flex items-center gap-1">
+                            @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                            {
+                                <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
+                            }
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </span>
+                    </a>
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                      model="Model.InlineModerators"
                                      htmx-url="/partials/moderators?scopeType=Hub&scopeId=@Model.Hub.PublicId&moderatorsUrl=@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators&rev=@Model.Hub.TeamRevision">
@@ -279,6 +318,7 @@ else
                         </inline-or-htmx>
                     </div>
                 }
+            </div>
             </aside>
         </div>
     </div>

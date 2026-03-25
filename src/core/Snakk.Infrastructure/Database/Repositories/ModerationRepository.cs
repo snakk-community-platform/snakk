@@ -1202,7 +1202,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         {
             _context.ReportReasons.Add(new ReportReasonDatabaseEntity
             {
-                PublicId = Guid.NewGuid().ToString(),
+                PublicId = Ulid.NewUlid().ToString(),
                 Name = r.Name,
                 Description = r.Description,
                 CommunityId = communityId,

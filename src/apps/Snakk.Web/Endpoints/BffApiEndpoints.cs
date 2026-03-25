@@ -1,6 +1,8 @@
 namespace Snakk.Web.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Web.Helpers;
+using Snakk.Web.Models.Bff;
 using Snakk.Web.Services;
 
 /// <summary>
@@ -123,6 +125,9 @@ public static class BffApiEndpoints
 
         group.MapPost("/users/{userId}/follow", ToggleUserFollowAsync)
             .WithName("BffToggleUserFollow");
+
+        group.MapGet("/me/display-name-history", GetDisplayNameHistoryAsync)
+            .WithName("BffGetDisplayNameHistory");
 
         // Search operations
         group.MapGet("/search/discussions", SearchDiscussionsAsync)
@@ -565,16 +570,48 @@ public static class BffApiEndpoints
             oAuthProvider = apiResult.OauthProvider,
             preferEndlessScroll = apiResult.PreferEndlessScroll,
             autoFollowOnReply = apiResult.AutoFollowOnReply,
-            timezone = timezone
+            timezone = timezone,
+            displayNameChangedAt = apiResult.DisplayNameChangedAt != null
+                ? apiResult.DisplayNameChangedAt.ToDateTime().ToString("o")
+                : null,
+            isDisplayNameLocked = apiResult.IsDisplayNameLocked,
+            hasPassword = apiResult.HasPassword
         });
+    }
+
+    private static async Task<IResult> GetDisplayNameHistoryAsync(SnakkApiClient apiClient)
+    {
+        var result = await apiClient.GetDisplayNameHistoryAsync();
+        if (result is null)
+            return Results.Ok(new { entries = Array.Empty<object>() });
+
+        var entries = result.Entries.Select(e => new
+        {
+            previousName = e.PreviousName,
+            newName = e.NewName,
+            changedAt = e.ChangedAt?.ToDateTime().ToString("o") ?? ""
+        }).ToList();
+
+        return Results.Ok(new { entries });
     }
 
     private static async Task<IResult> UpdateProfileMeAsync(
         [FromBody] UpdateProfileRequestDto request,
         SnakkApiClient apiClient)
     {
-        var success = await apiClient.UpdateProfileAsync(request.DisplayName);
-        return success ? Results.Ok() : Results.BadRequest(new { error = "Failed to update profile" });
+        var result = await apiClient.UpdateProfileAsync(request.DisplayName, request.Password, request.TurnstileToken);
+
+        if (result is null)
+            return Results.StatusCode(503);
+
+        if (!result.Success)
+            return Results.BadRequest(new { error = result.Message });
+
+        return Results.Ok(new
+        {
+            message = result.Message,
+            token = result.HasToken ? result.Token : null
+        });
     }
 
     private static async Task<IResult> UpdatePreferencesMeAsync(
@@ -675,11 +712,12 @@ public static class BffApiEndpoints
 
     // Search endpoints
     private static async Task<IResult> SearchDiscussionsAsync(
-        [FromQuery] string? q,
-        [FromQuery] string? authorPublicId,
-        [FromQuery] int pageSize,
-        [FromQuery] int offset,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        ICommunityContext communityContext,
+        [FromQuery] string? q = null,
+        [FromQuery] string? authorPublicId = null,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int offset = 0)
     {
         var result = await apiClient.SearchDiscussionsAsync(
             query: q,
@@ -688,15 +726,43 @@ public static class BffApiEndpoints
             hubPublicId: null,
             offset: offset,
             pageSize: pageSize);
-        return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
+
+        if (result is null)
+            return Results.Ok(new BffSearchResponse<BffDiscussionSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
+
+        var items = result.Items.Select(d =>
+        {
+            var slugId = SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId);
+            var url = SnakkUrlHelper.Discussion(d.CommunitySlug, communityContext, d.Hub.Slug, d.Space.Slug, slugId);
+            return new BffDiscussionSearchItem
+            {
+                Url = url,
+                Title = d.Title,
+                HubName = d.Hub.Name,
+                SpaceName = d.Space.Name,
+                PostCount = d.PostCount,
+                ReactionCount = d.ReactionCount,
+                CreatedAt = d.CreatedAt?.ToDateTime().ToString("o") ?? "",
+                LastActivityAt = d.LastActivityAt?.ToDateTime().ToString("o")
+            };
+        }).ToList();
+
+        return Results.Ok(new BffSearchResponse<BffDiscussionSearchItem>
+        {
+            Items = items,
+            Offset = result.Offset,
+            PageSize = result.PageSize,
+            HasMoreItems = result.HasMoreItems
+        });
     }
 
     private static async Task<IResult> SearchPostsAsync(
-        [FromQuery] string? q,
-        [FromQuery] string? authorPublicId,
-        [FromQuery] int pageSize,
-        [FromQuery] int offset,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        ICommunityContext communityContext,
+        [FromQuery] string? q = null,
+        [FromQuery] string? authorPublicId = null,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int offset = 0)
     {
         var result = await apiClient.SearchPostsAsync(
             query: q,
@@ -705,7 +771,32 @@ public static class BffApiEndpoints
             spacePublicId: null,
             offset: offset,
             pageSize: pageSize);
-        return result is not null ? Results.Ok(result) : Results.Ok(new { items = Array.Empty<object>() });
+
+        if (result is null)
+            return Results.Ok(new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
+
+        var items = result.Items.Select(p =>
+        {
+            var slugId = SnakkUrlHelper.DiscussionSlugId(p.DiscussionSlug, p.DiscussionPublicId);
+            var url = SnakkUrlHelper.Discussion(p.CommunitySlug, communityContext, p.Hub.Slug, p.Space.Slug, slugId);
+            return new BffPostSearchItem
+            {
+                Url = url,
+                DiscussionTitle = p.DiscussionTitle,
+                HubName = p.Hub.Name,
+                SpaceName = p.Space.Name,
+                ContentPreview = p.ContentHighlight,
+                CreatedAt = p.CreatedAt?.ToDateTime().ToString("o") ?? ""
+            };
+        }).ToList();
+
+        return Results.Ok(new BffSearchResponse<BffPostSearchItem>
+        {
+            Items = items,
+            Offset = result.Offset,
+            PageSize = result.PageSize,
+            HasMoreItems = result.HasMoreItems
+        });
     }
 
     // Post endpoints
@@ -996,5 +1087,5 @@ public record PreviewMarkupRequest(string Content);
 public record BffCreateReportRequest(string EntityType, string EntityId, string Reason, string? Description);
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
-public record UpdateProfileRequestDto(string DisplayName);
+public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
 public record UpdatePreferencesRequestDto(bool? PreferEndlessScroll, bool? AutoFollowOnReply, string? Timezone = null);

@@ -19,7 +19,7 @@
         <p>Please follow these guidelines when participating.</p>
     </div>
 
-    <div class="clean-card">
+    <div class="clean-card p-6">
         @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
         {
             <div class="empty-state-simple">
@@ -31,18 +31,10 @@
             <div class="flex flex-col divide-y divide-base-200">
                 @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
                 {
-                    <details class="group py-3 first:pt-0 last:pb-0">
-                        <summary class="flex items-center justify-between cursor-pointer text-sm font-medium">
-                            <span>@(index + 1). @rule.Title</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                 stroke-linejoin="round"
-                                 class="flex-shrink-0 transition-transform group-open:rotate-180">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </summary>
-                        <p class="text-sm text-base-content/70 pl-4 pt-2">@rule.Description</p>
-                    </details>
+                    <div class="py-3 first:pt-0 last:pb-0">
+                        <p class="text-sm font-medium mb-1">@(index + 1). @rule.Title</p>
+                        <p class="text-sm text-base-content/70 pl-4">@rule.Description</p>
+                    </div>
                 }
             </div>
         }

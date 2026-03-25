@@ -46,7 +46,7 @@
                     <div class="topic-content">
                         <div class="topic-title">@discussion.Title</div>
                         <div class="topic-meta">
-                            <a href="/u/@discussion.Author.PublicId"
+                            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)"
                                class="hover:underline"
                                onclick="event.stopPropagation()">@discussion.Author.DisplayName</a>
                             <span class="topic-meta-separator">in</span>
@@ -127,7 +127,7 @@ else if (Model.SearchType == "post")
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 text-sm text-muted mb-2">
-                                <a href="/u/@post.Author.PublicId" class="font-medium hover:underline">@post.Author.DisplayName</a>
+                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)" class="font-medium hover:underline">@post.Author.DisplayName</a>
                                 <span>·</span>
                                 <span>@Model.GetRelativeTime(post.CreatedAt?.ToDateTime())</span>
                                 <span>·</span>
