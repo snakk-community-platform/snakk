@@ -246,9 +246,10 @@ public class UserRegistrationWorkflowTests
             .ReturnsAsync(user);
         _mockUserRepository.Setup(r => r.GetAllAsync())
             .ReturnsAsync([user]); // Only this user exists
+        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hash")).Returns(true);
 
         // Act
-        var updateResult = await _useCase.UpdateDisplayNameAsync(user.PublicId, newDisplayName);
+        var updateResult = await _useCase.UpdateDisplayNameAsync(user.PublicId, newDisplayName, "password", "token");
 
         // Assert
         await Assert.That(updateResult.IsSuccess).IsTrue();

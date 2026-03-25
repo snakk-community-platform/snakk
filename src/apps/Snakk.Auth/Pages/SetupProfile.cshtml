@@ -4,30 +4,39 @@
     ViewData["Title"] = "Setup Your Profile";
 }
 
-<div class="w-full max-w-xl mx-auto">
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
-        <div class="card-body p-8">
-            <div class="text-center mb-6">
+<div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Brand Panel -->
+    <div class="auth-brand-panel lg:w-[45%] xl:w-[50%] flex items-center justify-center px-8 py-12 lg:py-0 shrink-0">
+        <div class="auth-brand-content text-center lg:text-left">
+            <div class="auth-brand-wordmark">snakk</div>
+            <p class="auth-brand-tagline mt-3 mx-auto lg:mx-0">
+                Almost there. Pick a name and you're in.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="auth-form-panel flex-1 px-6 py-12 lg:py-0">
+        <div class="auth-form-card p-8">
+            <div class="text-center mb-8">
                 <h1 class="text-xl font-bold tracking-tight">Set up your profile</h1>
-                <p class="text-sm text-base-content/60 mt-1">Choose how you want to appear.</p>
+                <p class="text-sm text-base-content/50 mt-2">Choose how you want to appear.</p>
             </div>
 
             @if (!string.IsNullOrEmpty(Model.ErrorMessage))
             {
-                <div role="alert" class="alert alert-error text-sm mb-4">
-                    @Model.ErrorMessage
-                </div>
+                <div class="auth-alert-error mb-6">@Model.ErrorMessage</div>
             }
 
             <form method="post" class="space-y-4">
                 <div>
-                    <label class="label" asp-for="Input.DisplayName">Display Name</label>
-                    <input asp-for="Input.DisplayName" class="input input-bordered w-full" placeholder="Choose your display name" />
+                    <label class="auth-label" asp-for="Input.DisplayName">Display Name</label>
+                    <input asp-for="Input.DisplayName" class="auth-input" placeholder="Choose your display name" />
                     <span asp-validation-for="Input.DisplayName" class="text-error text-xs mt-1 block"></span>
-                    <p class="text-xs text-base-content/50 mt-1">This is how others will see you. You can change it later.</p>
+                    <p class="text-xs text-base-content/40 mt-1.5">This is how others will see you. You can change it later.</p>
                 </div>
 
-                <button type="submit" class="btn btn-neutral w-full">
+                <button type="submit" class="auth-btn-primary">
                     Continue
                 </button>
             </form>

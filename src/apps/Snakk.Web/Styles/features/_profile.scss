@@ -13,6 +13,12 @@
 .achievement-icon {
     width: 2.5rem;
     height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: var(--color-base-200);
+    padding: 0.375rem;
 
     svg {
         width: 100%;
@@ -78,7 +84,7 @@
 }
 
 .activity-chart-bar-segment-secondary {
-    background-color: var(--color-success);
+    background-color: var(--nav-bg);
 }
 
 .activity-chart-bar-zero {
@@ -112,5 +118,5 @@
 }
 
 .activity-chart-legend-color-secondary {
-    background-color: var(--color-success);
+    background-color: var(--nav-bg);
 }

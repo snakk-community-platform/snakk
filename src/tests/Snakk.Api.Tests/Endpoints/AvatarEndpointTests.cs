@@ -8,6 +8,7 @@ using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Api.Tests.Endpoints;
 
+[NotInParallel]
 public class AvatarEndpointTests : IAsyncDisposable
 {
     private readonly TestWebServer _server = new();

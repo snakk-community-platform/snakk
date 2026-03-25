@@ -11,7 +11,10 @@
     themes: lofi --default;
 }
 
-/* Forest theme overrides — matches Snakk.Web */
+/* ============================================
+   Auth Pages — Forest Theme
+   ============================================ */
+
 @layer base {
     body {
         background: #F1FAF5;
@@ -20,46 +23,214 @@
 }
 
 @layer components {
-    .card {
-        border-color: #DDE5DD;
+    /* ---- Brand Panel ---- */
+    .auth-brand-panel {
+        background: linear-gradient(135deg, #0A1F15 0%, #145A41 50%, #0E3328 100%);
+        position: relative;
+        overflow: hidden;
     }
-    .btn-neutral {
+
+    .auth-brand-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 60% 50% at 20% 80%, rgba(76, 175, 125, 0.15) 0%, transparent 70%),
+            radial-gradient(ellipse 50% 60% at 80% 20%, rgba(76, 175, 125, 0.1) 0%, transparent 70%);
+        animation: auth-glow 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes auth-glow {
+        0% {
+            opacity: 0.6;
+            transform: scale(1);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+    }
+
+    .auth-brand-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .auth-brand-wordmark {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: #FFFFFF;
+    }
+
+    .auth-brand-tagline {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        max-width: 20rem;
+    }
+
+    /* ---- Form Panel ---- */
+    .auth-form-panel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-form-card {
+        width: 100%;
+        max-width: 26rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(221, 229, 221, 0.6);
+        border-radius: 1rem;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.04),
+            0 8px 24px rgba(0, 0, 0, 0.03);
+    }
+
+    /* ---- Inputs ---- */
+    .auth-input {
+        height: 3rem;
+        font-size: 0.9375rem;
+        border-radius: 0.625rem;
+        border: 1.5px solid #DDE5DD;
+        background: rgba(255, 255, 255, 0.8);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        width: 100%;
+        padding: 0 0.875rem;
+
+        &::placeholder {
+            color: rgba(27, 43, 36, 0.35);
+        }
+
+        &:hover {
+            border-color: #B8C8B8;
+        }
+
+        &:focus {
+            outline: none;
+            border-color: #4CAF7D;
+            box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.12);
+            background: #FFFFFF;
+        }
+    }
+
+    .auth-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: rgba(27, 43, 36, 0.65);
+        margin-bottom: 0.375rem;
+    }
+
+    .auth-checkbox {
+        accent-color: #4CAF7D;
+    }
+
+    /* ---- Buttons ---- */
+    .auth-btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 3rem;
+        width: 100%;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        border-radius: 0.625rem;
+        border: none;
+        cursor: pointer;
         background: #4CAF7D;
         color: #FFFFFF;
-        border-color: #4CAF7D;
+        transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 
         &:hover {
-            background: #145A41;
-            border-color: #145A41;
+            background: #3D9A6C;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(76, 175, 125, 0.25);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: none;
         }
     }
 
-    .btn-outline {
-        border-color: #4CAF7D;
-        color: #4CAF7D;
+    .auth-btn-oauth {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.625rem;
+        height: 2.75rem;
+        width: 100%;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 0.625rem;
+        border: 1.5px solid #DDE5DD;
+        background: rgba(255, 255, 255, 0.6);
+        color: #1B2B24;
+        cursor: pointer;
+        text-decoration: none;
+        transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 
         &:hover {
-            background: #4CAF7D;
-            color: #FFFFFF;
-            border-color: #4CAF7D;
+            border-color: #B8C8B8;
+            background: #FFFFFF;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: none;
         }
     }
 
-    .input:focus,
-    .checkbox:checked {
-        border-color: #4CAF7D;
-        box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.15);
+    .auth-btn-oauth svg {
+        width: 1.125rem;
+        height: 1.125rem;
+        flex-shrink: 0;
     }
 
-    .checkbox:checked {
-        background-color: #4CAF7D;
+    /* ---- Divider ---- */
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        color: rgba(27, 43, 36, 0.35);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+
+        &::before,
+        &::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #DDE5DD;
+        }
     }
 
-    .link {
+    /* ---- Link ---- */
+    .auth-link {
         color: #4CAF7D;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.15s ease;
 
         &:hover {
             color: #145A41;
         }
+    }
+
+    /* ---- Alert ---- */
+    .auth-alert-error {
+        background: #FEF2F2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+        border-radius: 0.625rem;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
     }
 }

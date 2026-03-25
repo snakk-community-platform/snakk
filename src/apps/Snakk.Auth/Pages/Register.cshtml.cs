@@ -8,6 +8,7 @@ namespace Snakk.Auth.Pages;
 
 public class RegisterModel(
     AuthService.AuthServiceClient authClient,
+    IConfiguration configuration,
     ILogger<RegisterModel> logger) : PageModel
 {
     [BindProperty]
@@ -18,6 +19,11 @@ public class RegisterModel(
 
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
+
+    public bool HasGoogle => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
+    public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
+    public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
+    public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
 
     public class InputModel
     {

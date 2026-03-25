@@ -126,9 +126,9 @@ interface ActivityDataPoint {
                                     <a href="${sanitizeUrl(d.url)}" class="topic-title-link">${escapeHtml(d.title)}</a>
                                 </div>
                                 <div class="topic-meta">
-                                    <span class="font-medium">${escapeHtml(d.hubName)}</span>
-                                    <span class="topic-meta-separator">/</span>
-                                    <span class="font-medium">${escapeHtml(d.spaceName)}</span>
+                                    <span class="topic-meta-link">${escapeHtml(d.hubName)}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    <span class="topic-meta-link">${escapeHtml(d.spaceName)}</span>
                                     <span class="topic-meta-separator">&middot;</span>
                                     <span>${formatRelativeTime(d.lastActivityAt || d.createdAt)}</span>
                                 </div>
@@ -191,9 +191,9 @@ interface ActivityDataPoint {
                                     <a href="${sanitizeUrl(p.url)}" class="topic-title-link">${escapeHtml(p.discussionTitle)}</a>
                                 </div>
                                 <div class="topic-meta">
-                                    <span class="font-medium">${escapeHtml(p.hubName)}</span>
-                                    <span class="topic-meta-separator">/</span>
-                                    <span class="font-medium">${escapeHtml(p.spaceName)}</span>
+                                    <span class="topic-meta-link">${escapeHtml(p.hubName)}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    <span class="topic-meta-link">${escapeHtml(p.spaceName)}</span>
                                     <span class="topic-meta-separator">&middot;</span>
                                     <span>${formatRelativeTime(p.createdAt)}</span>
                                 </div>
@@ -324,10 +324,7 @@ interface ActivityDataPoint {
                             <div class="activity-chart-legend-color activity-chart-legend-color-secondary"></div>
                             <span>${totalPosts} posts</span>
                         </div>
-                        <div class="activity-chart-legend-item">
-                            <div class="activity-chart-legend-color bg-accent"></div>
-                            <span>${totalActivity} total</span>
-                        </div>
+                        <span class="text-base-content/50">(${totalActivity} total)</span>
                     </div>
                 </div>
             `;

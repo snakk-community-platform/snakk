@@ -229,23 +229,25 @@ else
            Passes render-time values to external profile.js. Must stay inline to access @@Model. *@
         <script>
             (function() {
-                function init() {
-                    var totalActivity = @Model.Profile!.DiscussionCount + @Model.Profile.ReplyCount;
-                    var daysSinceJoined = @((DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days);
-                    var discussionCount = @Model.Profile.DiscussionCount;
-                    var postCount = @Model.Profile.ReplyCount;
+                var args = ['@Model.Profile?.PublicId', {
+                    totalActivity: @Model.Profile!.DiscussionCount + @Model.Profile.ReplyCount,
+                    daysSinceJoined: @((DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days),
+                    discussionCount: @Model.Profile.DiscussionCount,
+                    postCount: @Model.Profile.ReplyCount
+                }];
 
-                    initializeProfile('@Model.Profile?.PublicId', {
-                        totalActivity: totalActivity,
-                        daysSinceJoined: daysSinceJoined,
-                        discussionCount: discussionCount,
-                        postCount: postCount
-                    });
+                function tryInit() {
+                    if (typeof initializeProfile === 'function') {
+                        initializeProfile(args[0], args[1]);
+                    } else {
+                        setTimeout(tryInit, 50);
+                    }
                 }
+
                 if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', init);
+                    document.addEventListener('DOMContentLoaded', tryInit);
                 } else {
-                    init();
+                    tryInit();
                 }
             })();
         </script>

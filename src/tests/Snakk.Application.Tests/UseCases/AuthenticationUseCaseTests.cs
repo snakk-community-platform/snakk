@@ -462,9 +462,10 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync(user);
         _mockUserRepository.Setup(r => r.GetAllAsync())
             .ReturnsAsync([user]);
+        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hash")).Returns(true);
 
         // Act
-        var result = await _useCase.UpdateDisplayNameAsync(userId, newDisplayName);
+        var result = await _useCase.UpdateDisplayNameAsync(userId, newDisplayName, "password", "token");
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -484,9 +485,10 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync(user);
         _mockUserRepository.Setup(r => r.GetAllAsync())
             .ReturnsAsync([user, otherUser]);
+        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hash")).Returns(true);
 
         // Act
-        var result = await _useCase.UpdateDisplayNameAsync(userId, "TakenName");
+        var result = await _useCase.UpdateDisplayNameAsync(userId, "TakenName", "password", "token");
 
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();

@@ -30,19 +30,19 @@ public class BffSearchTests
         };
         searchResults.Items.Add(new DiscussionSearchResult
         {
-            PublicId = "disc-001",
+            PublicId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             Title = "Test Discussion",
             Slug = "test-discussion",
             CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 10, 0, 0, DateTimeKind.Utc)),
             PostCount = 5,
             Author = new AuthorRef
             {
-                PublicId = "user-001",
+                PublicId = "01BRZ3NDEKTSV4RRFFQ69G5FAV",
                 DisplayName = "Test User"
             },
             Space = new EntityRef
             {
-                PublicId = "space-001",
+                PublicId = "01CRZ3NDEKTSV4RRFFQ69G5FAV",
                 Name = "General",
                 Slug = "general"
             },
@@ -110,35 +110,35 @@ public class BffSearchTests
         };
         searchResults.Items.Add(new PostSearchResult
         {
-            PublicId = "post-001",
+            PublicId = "01DRZ3NDEKTSV4RRFFQ69G5FAV",
             ContentHighlight = "This is a test post content",
             CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 10, 0, 0, DateTimeKind.Utc)),
             Author = new AuthorRef
             {
-                PublicId = "user-001",
+                PublicId = "01BRZ3NDEKTSV4RRFFQ69G5FAV",
                 DisplayName = "Test User"
             },
-            DiscussionPublicId = "disc-001",
+            DiscussionPublicId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             DiscussionTitle = "Test Discussion",
             DiscussionSlug = "test-discussion",
-            Space = new EntityRef { Slug = "general" },
-            Hub = new EntityRef { Slug = "main-hub" }
+            Space = new EntityRef { Slug = "general", Name = "General" },
+            Hub = new EntityRef { Slug = "main-hub", Name = "Main Hub" }
         });
         searchResults.Items.Add(new PostSearchResult
         {
-            PublicId = "post-002",
+            PublicId = "01ERZ3NDEKTSV4RRFFQ69G5FAV",
             ContentHighlight = "Another post matching the search",
             CreatedAt = Timestamp.FromDateTime(new DateTime(2026, 2, 25, 11, 0, 0, DateTimeKind.Utc)),
             Author = new AuthorRef
             {
-                PublicId = "user-001",
+                PublicId = "01BRZ3NDEKTSV4RRFFQ69G5FAV",
                 DisplayName = "Test User"
             },
-            DiscussionPublicId = "disc-002",
+            DiscussionPublicId = "01FRZ3NDEKTSV4RRFFQ69G5FAV",
             DiscussionTitle = "Another Discussion",
             DiscussionSlug = "another-discussion",
-            Space = new EntityRef { Slug = "general" },
-            Hub = new EntityRef { Slug = "main-hub" }
+            Space = new EntityRef { Slug = "general", Name = "General" },
+            Hub = new EntityRef { Slug = "main-hub", Name = "Main Hub" }
         });
 
         app.MockApiClient
@@ -158,8 +158,8 @@ public class BffSearchTests
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         var items = body.GetProperty("items");
         await Assert.That(items.GetArrayLength()).IsEqualTo(2);
-        await Assert.That(items[0].GetProperty("publicId").GetString()).IsEqualTo("post-001");
-        await Assert.That(items[1].GetProperty("publicId").GetString()).IsEqualTo("post-002");
+        await Assert.That(items[0].GetProperty("discussionTitle").GetString()).IsEqualTo("Test Discussion");
+        await Assert.That(items[1].GetProperty("discussionTitle").GetString()).IsEqualTo("Another Discussion");
     }
 
     [Test]
