@@ -48,4 +48,44 @@ public interface IRealtimeNotifier
     /// Notify subscribers when a discussion is unlocked
     /// </summary>
     Task NotifyDiscussionUnlockedAsync(DiscussionId discussionId);
+
+    /// <summary>
+    /// Notify space subscribers when a new discussion is created
+    /// </summary>
+    Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author);
+
+    /// <summary>
+    /// Broadcast a message to all connected clients (global announcements, maintenance alerts)
+    /// </summary>
+    Task NotifyGlobalAsync(string eventType, string message);
+
+    /// <summary>
+    /// Notify space subscribers when a discussion is pinned or unpinned
+    /// </summary>
+    Task NotifyDiscussionPinnedAsync(DiscussionId discussionId, SpaceId spaceId, bool isPinned);
+
+    /// <summary>
+    /// Notify space subscribers when a discussion is deleted
+    /// </summary>
+    Task NotifyDiscussionDeletedAsync(DiscussionId discussionId, SpaceId spaceId);
+
+    /// <summary>
+    /// Notify discussion subscribers when the discussion title changes
+    /// </summary>
+    Task NotifyDiscussionTitleUpdatedAsync(DiscussionId discussionId, string newTitle);
+
+    /// <summary>
+    /// Notify scope subscribers when an announcement is published, updated, or deleted
+    /// </summary>
+    Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId);
+
+    /// <summary>
+    /// Notify a user's other tabs when a discussion read state is updated
+    /// </summary>
+    Task NotifyReadStateUpdatedAsync(UserId userId, string discussionId, string postId);
+
+    /// <summary>
+    /// Notify space subscribers when a new post is created, with the updated post count for the discussion
+    /// </summary>
+    Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta);
 }

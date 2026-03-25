@@ -1,0 +1,438 @@
+@using Snakk.Protos.Manage
+@inject ManageService.ManageServiceClient ManageClient
+
+@if (Scope?.ScopeType != "Community")
+{
+    <MudAlert Severity="Severity.Info">Groups are only available at the community level.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h5">Groups</MudText>
+            <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+                Manage community groups and their members.
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@ShowAddForm" Disabled="@_saving">
+            Add Group
+        </MudButton>
+    </MudPaper>
+
+    @* Add / Edit form *@
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-3">@(_editingGroupId is null ? "Add Group" : "Edit Group")</MudText>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_formName" Label="Name" Placeholder="e.g., Premium Members"
+                              Immediate="true" OnInput="@OnNameInput" />
+                <MudTextField @bind-Value="_formSlug" Label="Slug" Placeholder="auto-generated from name"
+                              HelperText="Used internally. Lowercase letters, numbers, and hyphens only." />
+                <MudTextField @bind-Value="_formDescription" Label="Description" Lines="2"
+                              Placeholder="Optional description..." />
+                <MudSwitch @bind-Value="_formIsPublic" Label="Public group (visible to members)" Color="Color.Primary" />
+                <MudNumericField @bind-Value="_formSortOrder" Label="Sort Order" Min="0" />
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@SaveGroup" Disabled="@(_saving || string.IsNullOrWhiteSpace(_formName))">
+                        @(_editingGroupId is null ? "Create" : "Save")
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="@CancelForm">Cancel</MudButton>
+                </MudStack>
+                @if (!string.IsNullOrEmpty(_formError))
+                {
+                    <MudText Color="Color.Error">@_formError</MudText>
+                }
+            </MudStack>
+        </MudPaper>
+    }
+
+    @* Group list *@
+    <MudPaper Class="pa-4 mb-4">
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_groups.Count == 0)
+        {
+            <MudText>No groups yet. Create one to get started.</MudText>
+        }
+        else
+        {
+            @foreach (var g in _groups)
+            {
+                var isSelected = _selectedGroupId == g.PublicId;
+                <MudPaper Class="pa-3 mb-2" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Spacing="0">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudText Typo="Typo.subtitle2">@g.Name</MudText>
+                                @if (g.IsPublic)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Public</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">Private</MudChip>
+                                }
+                                <MudChip T="string" Size="Size.Small">@g.MemberCount member@(g.MemberCount == 1 ? "" : "s")</MudChip>
+                            </MudStack>
+                            @if (!string.IsNullOrEmpty(g.Description))
+                            {
+                                <MudText Typo="Typo.body2" Style="opacity: 0.7;">@g.Description</MudText>
+                            }
+                            <MudText Typo="Typo.caption" Style="opacity: 0.5;">slug: @g.Slug</MudText>
+                        </MudStack>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                       OnClick="@(() => ToggleMembers(g.PublicId))">
+                                @(isSelected ? "Hide Members" : "Members")
+                            </MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                          OnClick="@(() => EditGroup(g))" Disabled="@_saving" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                          Color="Color.Error" OnClick="@(() => DeleteGroup(g.PublicId))"
+                                          Disabled="@_saving" />
+                        </MudStack>
+                    </MudStack>
+
+                    @* Inline member panel *@
+                    @if (isSelected)
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Members</MudText>
+
+                        <MudStack Row="true" Spacing="2" Class="mb-3">
+                            <MudTextField @bind-Value="_addMemberPublicId" Label="User Public ID"
+                                          Placeholder="Paste user public ID..." Style="flex: 1" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@AddMember" Disabled="@(_saving || string.IsNullOrWhiteSpace(_addMemberPublicId))">
+                                Add
+                            </MudButton>
+                        </MudStack>
+
+                        @if (!string.IsNullOrEmpty(_memberError))
+                        {
+                            <MudText Color="Color.Error" Class="mb-2">@_memberError</MudText>
+                        }
+
+                        @if (_membersLoading)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        }
+                        else if (_members.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">No members in this group yet.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var m in _members)
+                            {
+                                <MudPaper Class="pa-2 mb-1 d-flex justify-space-between align-center" Outlined="true">
+                                    <MudText Typo="Typo.body2">@m.DisplayName</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.PersonRemove" Size="Size.Small"
+                                                  Color="Color.Error"
+                                                  OnClick="@(() => RemoveMember(m.UserPublicId))"
+                                                  Disabled="@_saving" />
+                                </MudPaper>
+                            }
+
+                            @if (_memberTotal > _members.Count)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           OnClick="@LoadMoreMembers" Disabled="@_membersLoading">
+                                    Load more (@(_memberTotal - _members.Count) remaining)
+                                </MudButton>
+                            }
+                        }
+                    }
+                </MudPaper>
+            }
+        }
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+
+    // Form state
+    private bool _showForm;
+    private string? _editingGroupId;
+    private string _formName = "";
+    private string _formSlug = "";
+    private string? _formDescription;
+    private bool _formIsPublic = true;
+    private int _formSortOrder;
+    private string? _formError;
+
+    // Group list
+    private List<CommunityGroupItem> _groups = new();
+
+    // Member panel state
+    private string? _selectedGroupId;
+    private bool _membersLoading;
+    private List<CommunityGroupMemberItem> _members = new();
+    private int _memberTotal;
+    private int _memberPage = 1;
+    private string _addMemberPublicId = "";
+    private string? _memberError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope?.ScopeType != "Community") return;
+        await LoadGroups();
+    }
+
+    private async Task LoadGroups()
+    {
+        _loading = true;
+        try
+        {
+            var response = await ManageClient.GetCommunityGroupsAsync(
+                new GetCommunityGroupsRequest { CommunityId = Scope!.ScopePublicId },
+                deadline: DateTime.UtcNow.AddSeconds(10));
+            _groups = response.Groups.ToList();
+        }
+        catch
+        {
+            _groups = new();
+        }
+        _loading = false;
+    }
+
+    private void ShowAddForm()
+    {
+        _editingGroupId = null;
+        _formName = "";
+        _formSlug = "";
+        _formDescription = null;
+        _formIsPublic = true;
+        _formSortOrder = _groups.Count;
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void EditGroup(CommunityGroupItem g)
+    {
+        _editingGroupId = g.PublicId;
+        _formName = g.Name;
+        _formSlug = g.Slug;
+        _formDescription = g.Description;
+        _formIsPublic = g.IsPublic;
+        _formSortOrder = g.SortOrder;
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void CancelForm()
+    {
+        _showForm = false;
+        _editingGroupId = null;
+        _formError = null;
+    }
+
+    private void OnNameInput(ChangeEventArgs e)
+    {
+        if (_editingGroupId is null && string.IsNullOrWhiteSpace(_formSlug))
+            _formSlug = GenerateSlug(e.Value?.ToString() ?? "");
+    }
+
+    private async Task SaveGroup()
+    {
+        _saving = true;
+        _formError = null;
+
+        try
+        {
+            if (_editingGroupId is null)
+            {
+                var req = new CreateCommunityGroupRequest
+                {
+                    CommunityId = Scope!.ScopePublicId,
+                    Name = _formName.Trim(),
+                    IsPublic = _formIsPublic,
+                    SortOrder = _formSortOrder
+                };
+                if (!string.IsNullOrWhiteSpace(_formSlug)) req.Slug = _formSlug.Trim();
+                if (!string.IsNullOrWhiteSpace(_formDescription)) req.Description = _formDescription.Trim();
+
+                await ManageClient.CreateCommunityGroupAsync(req, deadline: DateTime.UtcNow.AddSeconds(10));
+            }
+            else
+            {
+                var req = new UpdateCommunityGroupRequest
+                {
+                    CommunityId = Scope!.ScopePublicId,
+                    GroupId = _editingGroupId,
+                    Name = _formName.Trim(),
+                    IsPublic = _formIsPublic,
+                    SortOrder = _formSortOrder
+                };
+                if (!string.IsNullOrWhiteSpace(_formDescription)) req.Description = _formDescription.Trim();
+
+                await ManageClient.UpdateCommunityGroupAsync(req, deadline: DateTime.UtcNow.AddSeconds(10));
+            }
+
+            _showForm = false;
+            _editingGroupId = null;
+            await LoadGroups();
+        }
+        catch (Exception ex)
+        {
+            _formError = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteGroup(string groupId)
+    {
+        _saving = true;
+        try
+        {
+            await ManageClient.DeleteCommunityGroupAsync(
+                new DeleteCommunityGroupRequest { CommunityId = Scope!.ScopePublicId, GroupId = groupId },
+                deadline: DateTime.UtcNow.AddSeconds(10));
+
+            if (_selectedGroupId == groupId)
+                _selectedGroupId = null;
+
+            await LoadGroups();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task ToggleMembers(string groupId)
+    {
+        if (_selectedGroupId == groupId)
+        {
+            _selectedGroupId = null;
+            return;
+        }
+
+        _selectedGroupId = groupId;
+        _memberPage = 1;
+        _members = new();
+        _addMemberPublicId = "";
+        _memberError = null;
+        await LoadMembers();
+    }
+
+    private async Task LoadMembers()
+    {
+        _membersLoading = true;
+        try
+        {
+            var response = await ManageClient.GetCommunityGroupMembersAsync(
+                new GetCommunityGroupMembersRequest
+                {
+                    CommunityId = Scope!.ScopePublicId,
+                    GroupId = _selectedGroupId!,
+                    Page = _memberPage,
+                    PageSize = 50
+                },
+                deadline: DateTime.UtcNow.AddSeconds(10));
+
+            _members.AddRange(response.Members);
+            _memberTotal = response.Total;
+        }
+        catch
+        {
+            _memberError = "Failed to load members.";
+        }
+        finally
+        {
+            _membersLoading = false;
+        }
+    }
+
+    private async Task LoadMoreMembers()
+    {
+        _memberPage++;
+        await LoadMembers();
+    }
+
+    private async Task AddMember()
+    {
+        _saving = true;
+        _memberError = null;
+        try
+        {
+            var response = await ManageClient.AddCommunityGroupMemberAsync(
+                new AddCommunityGroupMemberRequest
+                {
+                    CommunityId = Scope!.ScopePublicId,
+                    GroupId = _selectedGroupId!,
+                    UserPublicId = _addMemberPublicId.Trim()
+                },
+                deadline: DateTime.UtcNow.AddSeconds(10));
+
+            if (response.Success)
+            {
+                _addMemberPublicId = "";
+                _memberPage = 1;
+                _members = new();
+                await LoadMembers();
+                await LoadGroups();
+            }
+            else
+            {
+                _memberError = response.ErrorMessage ?? "Failed to add member.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _memberError = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task RemoveMember(string userPublicId)
+    {
+        _saving = true;
+        _memberError = null;
+        try
+        {
+            await ManageClient.RemoveCommunityGroupMemberAsync(
+                new RemoveCommunityGroupMemberRequest
+                {
+                    CommunityId = Scope!.ScopePublicId,
+                    GroupId = _selectedGroupId!,
+                    UserPublicId = userPublicId
+                },
+                deadline: DateTime.UtcNow.AddSeconds(10));
+
+            _members.RemoveAll(m => m.UserPublicId == userPublicId);
+            _memberTotal = Math.Max(0, _memberTotal - 1);
+            await LoadGroups();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string GenerateSlug(string name) =>
+        new string(
+            name.Trim()
+                .ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("_", "-")
+                .Where(c => char.IsLetterOrDigit(c) || c == '-')
+                .ToArray())
+        .Trim('-');
+}

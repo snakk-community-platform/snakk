@@ -28,6 +28,26 @@ public class DiscussionUseCaseTests
         _mockMarkupParser.Setup(m => m.ToHtml(It.IsAny<string>()))
             .Returns((string s) => $"<p>{s}</p>");
 
+        _mockRealtimeNotifier
+            .Setup(n => n.NotifyDiscussionCreatedAsync(It.IsAny<DiscussionId>(), It.IsAny<SpaceId>(), It.IsAny<User>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRealtimeNotifier
+            .Setup(n => n.NotifyDiscussionLockedAsync(It.IsAny<DiscussionId>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRealtimeNotifier
+            .Setup(n => n.NotifyDiscussionUnlockedAsync(It.IsAny<DiscussionId>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRealtimeNotifier
+            .Setup(n => n.NotifyDiscussionPinnedAsync(It.IsAny<DiscussionId>(), It.IsAny<SpaceId>(), It.IsAny<bool>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRealtimeNotifier
+            .Setup(n => n.NotifyDiscussionTitleUpdatedAsync(It.IsAny<DiscussionId>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
         _useCase = new DiscussionUseCase(
             _mockDiscussionRepository.Object,
             _mockSpaceRepository.Object,

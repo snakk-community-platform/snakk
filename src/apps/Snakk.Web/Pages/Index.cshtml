@@ -99,17 +99,15 @@
         <!-- Sidebar -->
         <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
             <div class="sidebar-section">
-                <div class="stats-panel">
-                    <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
-                                     model="Model.InlinePlatformStats"
-                                     htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
-                        <div class="stats-grid">
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                        </div>
-                    </inline-or-htmx>
-                </div>
+                <h3 class="sidebar-title">Platform Stats</h3>
+                <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
+                                 model="Model.InlinePlatformStats"
+                                 htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
+                        <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-10"></div></div>
+                    </div>
+                </inline-or-htmx>
             </div>
 
             @if (Model.ShowTrendingDiscussions)

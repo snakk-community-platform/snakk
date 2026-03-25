@@ -85,6 +85,7 @@ public class PostUseCase(
 
         // Send realtime notification
         await realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
+        await realtimeNotifier.NotifyPostCountUpdatedAsync(discussion.PublicId, discussion.SpaceId, 1);
 
         // Link any uploaded media to this post
         await mediaService.LinkMediaToPostAsync(post.PublicId.Value, content);

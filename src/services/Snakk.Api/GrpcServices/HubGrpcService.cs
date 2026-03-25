@@ -1,10 +1,12 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Snakk.Api.Helpers;
+using Snakk.Api.Services;
 using Snakk.Application.Repositories;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Hub;
@@ -18,13 +20,20 @@ public class HubGrpcService(
     ISearchRepository searchRepository,
     IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
-    SnakkDbContext dbContext) : HubService.HubServiceBase
+    SnakkDbContext dbContext,
+    ICurrentUserService currentUser,
+    IUserGrantsCacheService grantsCache,
+    IEntityHierarchyCacheService hierarchyCache,
+    HybridCache cache) : HubService.HubServiceBase
 {
     public override async Task<HubInfo> GetHubBySlug(GetHubBySlugRequest request, ServerCallContext context)
     {
         var result = await hubUseCase.GetHubBySlugAsync(request.Slug, request.CommunitySlug);
 
         if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
+
+        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var info = MapToProto(result.Value);
@@ -40,6 +49,9 @@ public class HubGrpcService(
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
+        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+            throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
+
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
 
@@ -48,7 +60,8 @@ public class HubGrpcService(
 
     public override async Task<PagedHubList> ListHubs(ListHubsRequest request, ServerCallContext context)
     {
-        var result = await searchRepository.GetHubsAsync(request.Offset, request.PageSize);
+        var userId = currentUser.GetCurrentUserId();
+        var result = await searchRepository.GetHubsAsync(request.Offset, request.PageSize, userId);
 
         var response = new PagedHubList
         {
@@ -79,10 +92,12 @@ public class HubGrpcService(
 
     public override async Task<PagedHubList> ListHubsByCommunity(ListHubsByCommunityRequest request, ServerCallContext context)
     {
+        var userId = currentUser.GetCurrentUserId();
         var result = await hubUseCase.GetHubsByCommunityAsync(
             CommunityId.From(request.CommunityId),
             request.Offset,
-            request.PageSize);
+            request.PageSize,
+            userId);
 
         var response = new PagedHubList
         {
@@ -139,16 +154,42 @@ public class HubGrpcService(
         return response;
     }
 
+    private async Task<bool> IsHubAccessibleAsync(string hubPublicId, string? userId)
+    {
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        if (restricted.IsEmpty) return true;
+
+        var h = await hierarchyCache.GetHubHierarchyAsync(hubPublicId);
+
+        if (h is null) return false;
+
+        var hubGate = restricted.HubIds.Contains(h.Id);
+        var communityGate = restricted.CommunityIds.Contains(h.CommunityId);
+
+        if (!hubGate && !communityGate) return true;
+        if (userId is null) return false;
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        return (!hubGate || grants.HubIds.Contains(h.Id))
+            && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
+    }
+
+    private sealed record HubMeta(bool HasRules, string? RulesRevision, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted);
+    private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
     private async Task PopulateRulesMetadata(HubInfo info, string publicId)
     {
-        var data = await dbContext.Hubs
-            .Where(h => h.PublicId == publicId)
-            .Select(h => new {
-                h.HasRules,
-                h.RulesRevision,
-                h.ParentCommunityHasRules,
-                h.TeamRevision })
-            .FirstOrDefaultAsync();
+        var data = await cache.GetOrCreateAsync<HubMeta?>(
+            $"hub-meta:{publicId}",
+            async cancel =>
+            {
+                var raw = await dbContext.Hubs
+                    .Where(h => h.PublicId == publicId)
+                    .Select(h => new { h.HasRules, h.RulesRevision, h.ParentCommunityHasRules, h.TeamRevision, h.IsRestricted })
+                    .FirstOrDefaultAsync(cancel);
+                return raw is null ? null : new HubMeta(raw.HasRules, raw.RulesRevision, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted);
+            },
+            MetaCacheOptions);
 
         if (data is not null)
         {
@@ -156,6 +197,7 @@ public class HubGrpcService(
             info.RulesRevision = data.RulesRevision ?? "";
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
             info.TeamRevision = data.TeamRevision ?? "";
+            info.IsRestricted = data.IsRestricted;
         }
     }
 

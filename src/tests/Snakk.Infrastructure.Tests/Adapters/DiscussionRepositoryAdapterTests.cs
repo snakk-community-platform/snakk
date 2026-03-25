@@ -1,3 +1,5 @@
+using Moq;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Infrastructure.Adapters;
 using Snakk.Infrastructure.Database.Repositories;
@@ -17,7 +19,10 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
         var databaseRepo = new DiscussionRepository(_db.Context);
-        _adapter = new DiscussionRepositoryAdapter(databaseRepo, _db.Context);
+        var mockGrants = new Mock<IUserGrantsCacheService>();
+        mockGrants.Setup(g => g.GetGrantsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UserGrants([], [], []));
+        _adapter = new DiscussionRepositoryAdapter(databaseRepo, _db.Context, mockGrants.Object);
     }
 
     public void Dispose() => _db.Dispose();

@@ -31,13 +31,14 @@ public class ManagePermissionSet
     public bool ManageSettings { get; set; }
     public bool ManageTeam { get; set; }
     public bool ManageWebhooks { get; set; }
+    public bool ManageGroups { get; set; }
 
     /// <summary>
     /// Returns true if the user has at least one permission (can access manage pages at all).
     /// </summary>
     public bool HasAnyPermission =>
         ViewDashboard || ManageContent || ManageReports || ManageBans
-        || ManageSettings || ManageTeam || ManageWebhooks;
+        || ManageSettings || ManageTeam || ManageWebhooks || ManageGroups;
 
     /// <summary>
     /// Check a specific permission by enum value.
@@ -51,6 +52,7 @@ public class ManagePermissionSet
         ManagePermissionEnum.ManageSettings => ManageSettings,
         ManagePermissionEnum.ManageTeam => ManageTeam,
         ManagePermissionEnum.ManageWebhooks => ManageWebhooks,
+        ManagePermissionEnum.ManageGroups => ManageGroups,
         _ => false
     };
 
@@ -68,6 +70,7 @@ public class ManagePermissionSet
         if (ManageSettings) permissions.Add(ManagePermissionEnum.ManageSettings);
         if (ManageTeam) permissions.Add(ManagePermissionEnum.ManageTeam);
         if (ManageWebhooks) permissions.Add(ManagePermissionEnum.ManageWebhooks);
+        if (ManageGroups) permissions.Add(ManagePermissionEnum.ManageGroups);
 
         return permissions;
     }
@@ -83,7 +86,8 @@ public class ManagePermissionSet
         ManageBans = true,
         ManageSettings = true,
         ManageTeam = true,
-        ManageWebhooks = true
+        ManageWebhooks = true,
+        ManageGroups = true
     };
 
     /// <summary>

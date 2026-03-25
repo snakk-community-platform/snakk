@@ -11,12 +11,12 @@
             Model.Community,
             discussion.Hub.Slug,
             discussion.Space.Slug,
-            $"{discussion.Slug}~{discussion.PublicId}")
+            SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId))
         : SnakkUrlHelper.Discussion(
             Model.Community,
             discussion.Hub.Slug,
             discussion.Space.Slug,
-            $"{discussion.Slug}~{discussion.PublicId}");
+            SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
 
     var unreadUrl = $"{baseUrl}?gotoUnread=true";
 }

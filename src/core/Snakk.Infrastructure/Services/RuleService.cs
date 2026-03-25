@@ -10,42 +10,52 @@ namespace Snakk.Infrastructure.Services;
 public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleService
 {
     private const string SiteRulesRevisionCacheKey = "site-rules-revision";
-    private static readonly HybridCacheEntryOptions RevisionCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+    private const string HasSiteRulesCacheKey = "has-site-rules";
+    private static readonly HybridCacheEntryOptions RulesCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+
+    private static string RulesCacheKey(string scopeType, string? scopePublicId) =>
+        $"rules:{scopeType}:{scopePublicId ?? "site"}";
+
     public async Task<RulesDto> GetRulesAsync(
         string scopeType,
         string? scopePublicId,
-        CancellationToken cancellationToken = default)
-    {
-        var query = scopeType switch
-        {
-            "Site" => context.Rules
-                .Where(r => r.CommunityId == null && r.HubId == null && r.SpaceId == null),
-            "Community" => context.Rules
-                .Where(r =>
-                    r.Community!.PublicId == scopePublicId
-                    && r.HubId == null
-                    && r.SpaceId == null),
-            "Hub" => context.Rules
-                .Where(r =>
-                    r.Hub!.PublicId == scopePublicId
-                    && r.SpaceId == null),
-            "Space" => context.Rules
-                .Where(r => r.Space!.PublicId == scopePublicId),
-            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
-        };
-
-        var rules = await query
-            .OrderBy(r => r.SortOrder)
-            .Select(r => new RuleDto
+        CancellationToken cancellationToken = default) =>
+        await cache.GetOrCreateAsync(
+            RulesCacheKey(scopeType, scopePublicId),
+            async cancel =>
             {
-                Title = r.Title,
-                Description = r.Description,
-                Order = r.SortOrder
-            })
-            .ToListAsync(cancellationToken);
+                var query = scopeType switch
+                {
+                    "Site" => context.Rules
+                        .Where(r => r.CommunityId == null && r.HubId == null && r.SpaceId == null),
+                    "Community" => context.Rules
+                        .Where(r =>
+                            r.Community!.PublicId == scopePublicId
+                            && r.HubId == null
+                            && r.SpaceId == null),
+                    "Hub" => context.Rules
+                        .Where(r =>
+                            r.Hub!.PublicId == scopePublicId
+                            && r.SpaceId == null),
+                    "Space" => context.Rules
+                        .Where(r => r.Space!.PublicId == scopePublicId),
+                    _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+                };
 
-        return new RulesDto { Rules = rules };
-    }
+                var rules = await query
+                    .OrderBy(r => r.SortOrder)
+                    .Select(r => new RuleDto
+                    {
+                        Title = r.Title,
+                        Description = r.Description,
+                        Order = r.SortOrder
+                    })
+                    .ToListAsync(cancel);
+
+                return new RulesDto { Rules = rules };
+            },
+            RulesCacheOptions,
+            cancellationToken: cancellationToken);
 
     public async Task<RulesDto> UpdateRulesAsync(
         string scopeType,
@@ -75,10 +85,12 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
     }
 
     public async Task<bool> HasSiteRulesAsync(CancellationToken cancellationToken = default) =>
-        await context.Rules
-            .AnyAsync(
-                r => r.CommunityId == null && r.HubId == null && r.SpaceId == null,
-                cancellationToken);
+        await cache.GetOrCreateAsync<bool>(
+            HasSiteRulesCacheKey,
+            cancel => new ValueTask<bool>(context.Rules
+                .AnyAsync(r => r.CommunityId == null && r.HubId == null && r.SpaceId == null, cancel)),
+            RulesCacheOptions,
+            cancellationToken: cancellationToken);
 
     public async Task<string> GetSiteRulesRevisionAsync(CancellationToken cancellationToken = default) =>
         await cache.GetOrCreateAsync(
@@ -91,7 +103,7 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
                     .FirstOrDefaultAsync(cancel);
                 return setting ?? "";
             },
-            RevisionCacheOptions,
+            RulesCacheOptions,
             cancellationToken: cancellationToken);
 
     private async Task UpdateSiteRulesAsync(
@@ -145,6 +157,8 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 
         await context.SaveChangesAsync(cancellationToken);
         await cache.RemoveAsync(SiteRulesRevisionCacheKey, cancellationToken);
+        await cache.RemoveAsync(RulesCacheKey("Site", null), cancellationToken);
+        await cache.RemoveAsync(HasSiteRulesCacheKey, cancellationToken);
     }
 
     private async Task UpdateCommunityRulesAsync(
@@ -203,6 +217,7 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
                 cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
+        await cache.RemoveAsync(RulesCacheKey("Community", communityPublicId), cancellationToken);
     }
 
     private async Task UpdateHubRulesAsync(
@@ -248,6 +263,7 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
                 cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
+        await cache.RemoveAsync(RulesCacheKey("Hub", hubPublicId), cancellationToken);
     }
 
     private async Task UpdateSpaceRulesAsync(
@@ -286,5 +302,6 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
         space.RulesRevision = Guid.NewGuid().ToString("N")[..8];
 
         await context.SaveChangesAsync(cancellationToken);
+        await cache.RemoveAsync(RulesCacheKey("Space", spacePublicId), cancellationToken);
     }
 }

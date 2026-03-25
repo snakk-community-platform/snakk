@@ -5,11 +5,11 @@
 @model SpaceDiscussionListItemVM
 @{
     var discussion = Model.Discussion;
-    var baseUrl = SnakkUrlHelper.Discussion(Model.Community, Model.HubSlug, Model.SpaceSlug, $"{discussion.Slug}~{discussion.PublicId}");
+    var baseUrl = SnakkUrlHelper.Discussion(Model.Community, Model.HubSlug, Model.SpaceSlug, SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
     var unreadUrl = $"{baseUrl}?gotoUnread=true";
 }
 
-<div class="topic-item-wrapper">
+<div class="topic-item-wrapper" data-discussion-id="@discussion.PublicId">
     <img src="@SnakkUrlHelper.UserAvatar(discussion.Author.PublicId)"
          alt="@discussion.Author.DisplayName"
          width="40" height="40"
@@ -39,7 +39,7 @@
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
                 </div>
-                <div class="topic-stat-value">@discussion.PostCount</div>
+                <div class="topic-stat-value" data-stat="post-count">@discussion.PostCount</div>
             </div>
         </div>
     </div>

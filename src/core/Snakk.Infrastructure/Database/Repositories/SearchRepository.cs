@@ -2,10 +2,11 @@ namespace Snakk.Infrastructure.Database.Repositories;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Shared.Models;
 
-public class SearchRepository(SnakkDbContext context) : ISearchRepository
+public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
 
@@ -23,10 +24,13 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         string? spacePublicId = null,
         string? hubPublicId = null,
         int offset = 0,
-        int pageSize = 20)
+        int pageSize = 20,
+        string? userId = null)
     {
         var baseQuery = _context.Discussions
             .Where(d => !d.IsDeleted);
+
+        baseQuery = await WithAccessFilterAsync(baseQuery, userId);
 
         // Full-text search: PostgreSQL uses tsvector + websearch_to_tsquery, others fall back to LIKE
         if (!string.IsNullOrWhiteSpace(query))
@@ -200,10 +204,13 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         string spacePublicId,
         int offset = 0,
         int pageSize = 20,
-        int? typeFilter = null)
+        int? typeFilter = null,
+        string? userId = null)
     {
         var baseQuery = _context.Discussions
             .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
+
+        baseQuery = await WithAccessFilterAsync(baseQuery, userId);
 
         if (typeFilter.HasValue)
             baseQuery = baseQuery.Where(d => d.Type == typeFilter.Value);
@@ -251,10 +258,13 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
 
     public async Task<PagedResult<HubListItemDto>> GetHubsAsync(
         int offset = 0,
-        int pageSize = 20)
+        int pageSize = 20,
+        string? userId = null)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems
-        var hubs = await _context.Hubs
+        var query = _context.Hubs.AsQueryable();
+        query = await WithHubAccessFilterAsync(query, userId);
+        var hubs = await query
             .OrderBy(h => h.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -288,11 +298,14 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
     public async Task<PagedResult<SpaceListItemDto>> GetSpacesByHubAsync(
         string hubPublicId,
         int offset = 0,
-        int pageSize = 20)
+        int pageSize = 20,
+        string? userId = null)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
-        var spaces = await _context.Spaces
-            .Where(s => s.Hub.PublicId == hubPublicId)
+        var baseSpaceQuery = _context.Spaces
+            .Where(s => s.Hub.PublicId == hubPublicId);
+        baseSpaceQuery = await WithSpaceAccessFilterAsync(baseSpaceQuery, userId);
+        var spaces = await baseSpaceQuery
             .OrderBy(s => s.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -356,11 +369,85 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         };
     }
 
+    private async Task<IQueryable<Database.Entities.HubDatabaseEntity>> WithHubAccessFilterAsync(
+        IQueryable<Database.Entities.HubDatabaseEntity> query, string? userId)
+    {
+        if (!await grantsCache.AnyRestrictedAsync())
+            return query;
+
+        if (userId == null)
+            return query.Where(h =>
+                !h.IsRestricted &&
+                !h.Community.IsRestricted);
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        var hubIds = grants.HubIds;
+        var communityIds = grants.CommunityIds;
+
+        return query.Where(h =>
+            (!h.IsRestricted || hubIds.Contains(h.Id))
+            && (!h.Community.IsRestricted || communityIds.Contains(h.CommunityId)));
+    }
+
+    private async Task<IQueryable<Database.Entities.SpaceDatabaseEntity>> WithSpaceAccessFilterAsync(
+        IQueryable<Database.Entities.SpaceDatabaseEntity> query, string? userId)
+    {
+        if (!await grantsCache.AnyRestrictedAsync())
+            return query;
+
+        if (userId == null)
+            return query.Where(s =>
+                !s.IsRestricted &&
+                !s.Hub.IsRestricted &&
+                !s.Hub.Community.IsRestricted);
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        var spaceIds = grants.SpaceIds;
+        var hubIds = grants.HubIds;
+        var communityIds = grants.CommunityIds;
+
+        return query.Where(s =>
+            (!s.IsRestricted || spaceIds.Contains(s.Id))
+            && (!s.Hub.IsRestricted || hubIds.Contains(s.HubId))
+            && (!s.Hub.Community.IsRestricted || communityIds.Contains(s.Hub.CommunityId)));
+    }
+
+    /// <summary>
+    /// Filters discussions to only those accessible by the given user.
+    /// Anonymous (null userId): only unrestricted discussions are returned.
+    /// Authenticated: unrestricted discussions plus those where the user holds a CanRead
+    /// grant at each restricted level (intersection-gate model).
+    /// Grant lookups are resolved via <see cref="IUserGrantsCacheService"/> (5-minute TTL).
+    /// </summary>
+    private async Task<IQueryable<Database.Entities.DiscussionDatabaseEntity>> WithAccessFilterAsync(
+        IQueryable<Database.Entities.DiscussionDatabaseEntity> query, string? userId)
+    {
+        if (!await grantsCache.AnyRestrictedAsync())
+            return query;
+
+        if (userId == null)
+            return query.Where(d =>
+                !d.Space.IsRestricted &&
+                !d.Space.Hub.IsRestricted &&
+                !d.Space.Hub.Community.IsRestricted);
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        var spaceIds = grants.SpaceIds;
+        var hubIds = grants.HubIds;
+        var communityIds = grants.CommunityIds;
+
+        return query.Where(d =>
+            (!d.Space.IsRestricted || spaceIds.Contains(d.SpaceId))
+            && (!d.Space.Hub.IsRestricted || hubIds.Contains(d.Space.HubId))
+            && (!d.Space.Hub.Community.IsRestricted || communityIds.Contains(d.Space.Hub.CommunityId)));
+    }
+
     public async Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(
         int page,
         int pageSize)
     {
         var query = _context.Discussions.Where(d => !d.IsDeleted);
+        query = await WithAccessFilterAsync(query, null);
 
         var totalCount = await query.CountAsync();
 
@@ -386,9 +473,12 @@ public class SearchRepository(SnakkDbContext context) : ISearchRepository
         int pageSize,
         string? communityId = null,
         string? hubId = null,
-        string? cursor = null)
+        string? cursor = null,
+        string? userId = null)
     {
         var query = _context.Discussions.AsQueryable();
+
+        query = await WithAccessFilterAsync(query, userId);
 
         // Filter by hub if specified (more specific than community)
         if (!string.IsNullOrEmpty(hubId))

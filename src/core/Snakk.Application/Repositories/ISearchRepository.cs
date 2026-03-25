@@ -10,7 +10,8 @@ public interface ISearchRepository
         string? spacePublicId = null,
         string? hubPublicId = null,
         int offset = 0,
-        int pageSize = 20);
+        int pageSize = 20,
+        string? userId = null);
 
     Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
         string query,
@@ -31,14 +32,16 @@ public interface ISearchRepository
         string spacePublicId,
         int offset = 0,
         int pageSize = 20,
-        int? typeFilter = null);
+        int? typeFilter = null,
+        string? userId = null);
 
     /// <summary>
     /// Gets all hubs with their statistics
     /// </summary>
     Task<PagedResult<HubListItemDto>> GetHubsAsync(
         int offset = 0,
-        int pageSize = 20);
+        int pageSize = 20,
+        string? userId = null);
 
     /// <summary>
     /// Gets spaces by hub with their statistics
@@ -46,7 +49,8 @@ public interface ISearchRepository
     Task<PagedResult<SpaceListItemDto>> GetSpacesByHubAsync(
         string hubPublicId,
         int offset = 0,
-        int pageSize = 20);
+        int pageSize = 20,
+        string? userId = null);
 
     /// <summary>
     /// Gets all discussions for sitemap generation
@@ -61,7 +65,8 @@ public interface ISearchRepository
         int pageSize,
         string? communityId = null,
         string? hubId = null,
-        string? cursor = null);
+        string? cursor = null,
+        string? userId = null);
 }
 
 public record HubListItemDto(

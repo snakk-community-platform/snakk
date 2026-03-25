@@ -61,6 +61,9 @@ public class DiscussionUseCase(
         discussion.ClearDomainEvents();
         firstPost.ClearDomainEvents();
 
+        // Notify space subscribers about the new discussion
+        await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, user);
+
         return Result<Discussion>.Success(discussion);
     }
 
@@ -90,6 +93,7 @@ public class DiscussionUseCase(
         {
             discussion.UpdateTitle(newTitle);
             await discussionRepository.UpdateAsync(discussion);
+            await realtimeNotifier.NotifyDiscussionTitleUpdatedAsync(discussionId, newTitle);
 
             return Result<Discussion>.Success(discussion);
         }
@@ -108,6 +112,7 @@ public class DiscussionUseCase(
 
         discussion.Pin();
         await discussionRepository.UpdateAsync(discussion);
+        await realtimeNotifier.NotifyDiscussionPinnedAsync(discussionId, discussion.SpaceId, isPinned: true);
 
         return Result.Success();
     }
@@ -121,6 +126,7 @@ public class DiscussionUseCase(
 
         discussion.Unpin();
         await discussionRepository.UpdateAsync(discussion);
+        await realtimeNotifier.NotifyDiscussionPinnedAsync(discussionId, discussion.SpaceId, isPinned: false);
 
         return Result.Success();
     }

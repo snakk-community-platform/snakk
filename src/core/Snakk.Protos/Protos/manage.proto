@@ -34,6 +34,23 @@ service ManageService {
   rpc CreateAnnouncement (CreateAnnouncementGrpcRequest) returns (CreateAnnouncementResponse);
   rpc UpdateAnnouncement (UpdateAnnouncementGrpcRequest) returns (UpdateAnnouncementResponse);
   rpc DeleteAnnouncement (DeleteAnnouncementRequest) returns (DeleteAnnouncementResponse);
+  rpc SendGlobalAnnouncement (SendGlobalAnnouncementRequest) returns (SendGlobalAnnouncementResponse);
+
+  // Community Groups
+  rpc GetCommunityGroups (GetCommunityGroupsRequest) returns (GetCommunityGroupsResponse);
+  rpc GetCommunityGroup (GetCommunityGroupRequest) returns (CommunityGroupItem);
+  rpc CreateCommunityGroup (CreateCommunityGroupRequest) returns (CommunityGroupItem);
+  rpc UpdateCommunityGroup (UpdateCommunityGroupRequest) returns (CommunityGroupItem);
+  rpc DeleteCommunityGroup (DeleteCommunityGroupRequest) returns (DeleteCommunityGroupResponse);
+  rpc GetCommunityGroupMembers (GetCommunityGroupMembersRequest) returns (GetCommunityGroupMembersResponse);
+  rpc AddCommunityGroupMember (AddCommunityGroupMemberRequest) returns (AddCommunityGroupMemberResponse);
+  rpc RemoveCommunityGroupMember (RemoveCommunityGroupMemberRequest) returns (RemoveCommunityGroupMemberResponse);
+
+  // Group Access Control
+  rpc GetEntityAccess (GetEntityAccessRequest) returns (EntityAccessResponse);
+  rpc SetEntityRestricted (SetEntityRestrictedRequest) returns (SetEntityRestrictedResponse);
+  rpc UpsertGroupGrant (UpsertGroupGrantRequest) returns (UpsertGroupGrantResponse);
+  rpc DeleteGroupGrant (DeleteGroupGrantRequest) returns (DeleteGroupGrantResponse);
 }
 
 // --- Requests ---
@@ -74,6 +91,8 @@ message ResolveScopeResponse {
   optional string space_name = 10;
 
   repeated int32 permissions = 11;
+
+  string community_public_id = 12;
 }
 
 message SpaceSettingsResponse {
@@ -503,6 +522,18 @@ message DeleteAnnouncementResponse {
   optional string error_message = 2;
 }
 
+// --- Global Broadcast ---
+
+message SendGlobalAnnouncementRequest {
+  string event_type = 1;   // e.g. "global-announcement", "server-shutdown"
+  string message = 2;
+}
+
+message SendGlobalAnnouncementResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
 // --- Community Settings ---
 
 message GetCommunitySettingsRequest {
@@ -547,4 +578,155 @@ message UpdateSiteSettingsRequest {
 message UpdateSiteSettingsResponse {
   bool success = 1;
   optional string error_message = 2;
+}
+
+// --- Community Groups ---
+
+message GetCommunityGroupsRequest {
+  string community_id = 1;
+}
+
+message GetCommunityGroupRequest {
+  string community_id = 1;
+  string group_id = 2;
+}
+
+message CommunityGroupItem {
+  string public_id = 1;
+  string name = 2;
+  string slug = 3;
+  optional string description = 4;
+  bool is_public = 5;
+  int32 sort_order = 6;
+  int32 member_count = 7;
+  int64 created_at_ticks = 8;
+}
+
+message GetCommunityGroupsResponse {
+  repeated CommunityGroupItem groups = 1;
+}
+
+message CreateCommunityGroupRequest {
+  string community_id = 1;
+  string name = 2;
+  optional string slug = 3;
+  optional string description = 4;
+  bool is_public = 5;
+  int32 sort_order = 6;
+}
+
+message UpdateCommunityGroupRequest {
+  string community_id = 1;
+  string group_id = 2;
+  string name = 3;
+  optional string description = 4;
+  bool is_public = 5;
+  int32 sort_order = 6;
+}
+
+message DeleteCommunityGroupRequest {
+  string community_id = 1;
+  string group_id = 2;
+}
+
+message DeleteCommunityGroupResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+message GetCommunityGroupMembersRequest {
+  string community_id = 1;
+  string group_id = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message CommunityGroupMemberItem {
+  string user_public_id = 1;
+  string display_name = 2;
+  int64 added_at_ticks = 3;
+}
+
+message GetCommunityGroupMembersResponse {
+  repeated CommunityGroupMemberItem members = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message AddCommunityGroupMemberRequest {
+  string community_id = 1;
+  string group_id = 2;
+  string user_public_id = 3;
+}
+
+message AddCommunityGroupMemberResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+message RemoveCommunityGroupMemberRequest {
+  string community_id = 1;
+  string group_id = 2;
+  string user_public_id = 3;
+}
+
+message RemoveCommunityGroupMemberResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Group Access Control ---
+
+message GetEntityAccessRequest {
+  optional string community_public_id = 1;
+  optional string hub_public_id = 2;
+  optional string space_public_id = 3;
+}
+
+message GroupAccessGrantItem {
+  string group_public_id = 1;
+  string group_name = 2;
+  bool can_read = 3;
+  bool can_write = 4;
+}
+
+message EntityAccessResponse {
+  bool is_restricted = 1;
+  repeated GroupAccessGrantItem grants = 2;
+}
+
+message SetEntityRestrictedRequest {
+  bool is_restricted = 1;
+  optional string community_public_id = 2;
+  optional string hub_public_id = 3;
+  optional string space_public_id = 4;
+}
+
+message SetEntityRestrictedResponse {
+  bool success = 1;
+}
+
+message UpsertGroupGrantRequest {
+  string group_public_id = 1;
+  bool can_read = 2;
+  bool can_write = 3;
+  optional string community_public_id = 4;
+  optional string hub_public_id = 5;
+  optional string space_public_id = 6;
+}
+
+message UpsertGroupGrantResponse {
+  bool success = 1;
+}
+
+message DeleteGroupGrantRequest {
+  string group_public_id = 1;
+  optional string community_public_id = 2;
+  optional string hub_public_id = 3;
+  optional string space_public_id = 4;
+}
+
+message DeleteGroupGrantResponse {
+  bool success = 1;
 }

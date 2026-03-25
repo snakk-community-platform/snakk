@@ -1,0 +1,62 @@
+@page "/partials/discussion-item"
+@using Snakk.Web.Helpers
+@using static Snakk.Web.Helpers.DisplayHelper
+@model Snakk.Web.Pages.Partials.DiscussionItemModel
+@{
+    Layout = null;
+    var discussion = Model.Discussion!;
+    var baseUrl = SnakkUrlHelper.Discussion(Model.Community, Model.HubSlug, Model.SpaceSlug, SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
+    var unreadUrl = $"{baseUrl}?gotoUnread=true";
+}
+
+<div class="topic-item-wrapper" data-discussion-id="@discussion.PublicId">
+    <img src="@SnakkUrlHelper.UserAvatar(Model.AuthorId)"
+         alt="@Model.AuthorName"
+         width="40" height="40"
+         class="w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block" />
+
+    <div class="topic-item">
+        <div class="topic-content">
+            <div class="topic-title">
+                <a href="@baseUrl" class="topic-title-link">@discussion.Title</a>
+            </div>
+            <div class="topic-meta">
+                <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
+            </div>
+        </div>
+        <div class="topic-stats hidden sm:flex">
+            <div class="topic-stat">
+                <div class="topic-stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                    </svg>
+                </div>
+                <div class="topic-stat-value">0</div>
+            </div>
+            <div class="topic-stat">
+                <div class="topic-stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="topic-stat-value" data-stat="post-count">@discussion.PostCount</div>
+            </div>
+        </div>
+    </div>
+    <button class="preview-btn"
+            data-discussion-id="@discussion.PublicId"
+            title="Preview first post"
+            type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    </button>
+    <a href="@unreadUrl" class="topic-latest-link" title="Jump to first unread post">
+        <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    </a>
+    <div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
+        <div class="preview-content"></div>
+    </div>
+</div>

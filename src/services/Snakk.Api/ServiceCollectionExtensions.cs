@@ -171,6 +171,8 @@ public static class ServiceCollectionExtensions
         // API Services
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<Application.Services.IUserGrantsCacheService, Infrastructure.Services.UserGrantsCacheService>();
+        services.AddScoped<Application.Services.IEntityHierarchyCacheService, Infrastructure.Services.EntityHierarchyCacheService>();
         services.AddScoped<IViewRenderingService, ViewRenderingService>();
 
         // Services
@@ -279,6 +281,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.IHubManagementService, Infrastructure.Services.HubManagementService>();
         services.AddScoped<Application.Services.ISpaceManagementService, Infrastructure.Services.SpaceManagementService>();
         services.AddScoped<Application.Services.IRuleService, Infrastructure.Services.RuleService>();
+        services.AddScoped<Application.Services.IGroupService, Infrastructure.Services.GroupService>();
+        services.AddScoped<Application.Services.IGroupAccessService, Infrastructure.Services.GroupAccessService>();
 
         // Webhook Services
         services.AddHttpClient(); // Required for WebhookService HTTP calls

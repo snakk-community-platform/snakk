@@ -63,6 +63,7 @@ public static class ManageContextEndpoints
                 ScopeName = community.Name,
                 CommunitySlug = community.Slug,
                 CommunityName = community.Name,
+                CommunityPublicId = community.PublicId,
                 Permissions = communityPermissions.GetGrantedPermissions()
             });
         }
@@ -99,6 +100,7 @@ public static class ManageContextEndpoints
                 HubSlug = hub.Slug,
                 CommunityName = community.Name,
                 HubName = hub.Name,
+                CommunityPublicId = community.PublicId,
                 Permissions = hubPermissions.GetGrantedPermissions()
             });
         }
@@ -134,6 +136,7 @@ public static class ManageContextEndpoints
             CommunityName = community.Name,
             HubName = hub.Name,
             SpaceName = space.Name,
+            CommunityPublicId = community.PublicId,
             Permissions = spacePermissions.GetGrantedPermissions()
         });
     }

@@ -1,5 +1,6 @@
 namespace Snakk.Web.Endpoints;
 
+using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 
 public static class OEmbedEndpoints
@@ -34,7 +35,7 @@ public static class OEmbedEndpoints
         if (parts.Length != 2 || string.IsNullOrEmpty(parts[1]))
             return Results.NotFound();
 
-        var publicId = parts[1];
+        var publicId = UlidBase62.Decode(parts[1]);
 
         var discussion = await apiClient.GetDiscussionAsync(publicId);
         if (discussion is null)

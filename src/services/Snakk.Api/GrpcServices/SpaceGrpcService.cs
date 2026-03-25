@@ -1,10 +1,12 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Snakk.Api.Services;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Space;
 using Snakk.Shared.Helpers;
@@ -16,13 +18,20 @@ public class SpaceGrpcService(
     ISearchRepository searchRepository,
     IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
-    SnakkDbContext dbContext) : SpaceService.SpaceServiceBase
+    SnakkDbContext dbContext,
+    ICurrentUserService currentUser,
+    IUserGrantsCacheService grantsCache,
+    IEntityHierarchyCacheService hierarchyCache,
+    HybridCache cache) : SpaceService.SpaceServiceBase
 {
     public override async Task<SpaceInfo> GetSpaceBySlug(GetSpaceBySlugRequest request, ServerCallContext context)
     {
         var result = await spaceUseCase.GetSpaceBySlugAsync(request.Slug, request.HubSlug);
 
         if (!result.IsSuccess || result.Value is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
+
+        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
@@ -38,6 +47,9 @@ public class SpaceGrpcService(
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
+        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+            throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
+
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
 
@@ -46,10 +58,12 @@ public class SpaceGrpcService(
 
     public override async Task<PagedSpaceByHubList> ListSpacesByHub(ListSpacesByHubRequest request, ServerCallContext context)
     {
+        var userId = currentUser.GetCurrentUserId();
         var result = await searchRepository.GetSpacesByHubAsync(
             request.HubId,
             request.Offset,
-            request.PageSize);
+            request.PageSize,
+            userId);
 
         var response = new PagedSpaceByHubList
         {
@@ -135,18 +149,51 @@ public class SpaceGrpcService(
         };
     }
 
+    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)
+    {
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        if (restricted.IsEmpty) return true;
+
+        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId);
+
+        if (h is null) return false;
+
+        var spaceGate = restricted.SpaceIds.Contains(h.Id);
+        var hubGate = restricted.HubIds.Contains(h.HubId);
+        var communityGate = restricted.CommunityIds.Contains(h.CommunityId);
+
+        if (!spaceGate && !hubGate && !communityGate) return true;
+        if (userId is null) return false;
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        return (!spaceGate || grants.SpaceIds.Contains(h.Id))
+            && (!hubGate || grants.HubIds.Contains(h.HubId))
+            && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
+    }
+
+    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes);
+    private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
     private async Task PopulateRulesMetadata(SpaceInfo info, string publicId)
     {
-        var data = await dbContext.Spaces
-            .Where(s => s.PublicId == publicId)
-            .Select(s => new {
-                s.HasRules,
-                s.RulesRevision,
-                s.ParentHubHasRules,
-                s.ParentCommunityHasRules,
-                s.TeamRevision,
-                AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList() })
-            .FirstOrDefaultAsync();
+        var data = await cache.GetOrCreateAsync<SpaceMeta?>(
+            $"space-meta:{publicId}",
+            async cancel =>
+            {
+                var raw = await dbContext.Spaces
+                    .Where(s => s.PublicId == publicId)
+                    .Select(s => new {
+                        s.HasRules,
+                        s.RulesRevision,
+                        s.ParentHubHasRules,
+                        s.ParentCommunityHasRules,
+                        s.TeamRevision,
+                        s.IsRestricted,
+                        AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList() })
+                    .FirstOrDefaultAsync(cancel);
+                return raw is null ? null : new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes);
+            },
+            MetaCacheOptions);
 
         if (data is not null)
         {
@@ -155,6 +202,7 @@ public class SpaceGrpcService(
             info.ParentHubHasRules = data.ParentHubHasRules;
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
             info.TeamRevision = data.TeamRevision ?? "";
+            info.IsRestricted = data.IsRestricted;
             info.AllowedDiscussionTypes.AddRange(data.AllowedTypes);
         }
     }

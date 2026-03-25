@@ -128,6 +128,12 @@ public class DatabaseSeeder(
         // Seed high-volume threads for pagination debugging
         await SeedHighVolumeDiscussionsAsync(users);
 
+        // Seed community groups, member assignments, and group access control
+        await SeedGroupsAndAccessAsync(snakkCommunity, users);
+
+        // Recompute denormalized counts on Space, Hub, and Community entities
+        await UpdateDenormalizedCountsAsync();
+
         Console.WriteLine("Database seeding completed successfully.");
 
         // Separate avatar generation phase
@@ -137,6 +143,9 @@ public class DatabaseSeeder(
     private async Task ClearExistingDataAsync()
     {
         // Delete in correct order due to foreign keys
+        _context.GroupAccess.RemoveRange(_context.GroupAccess);
+        _context.GroupMembers.RemoveRange(_context.GroupMembers);
+        _context.Groups.RemoveRange(_context.Groups);
         _context.Rules.RemoveRange(_context.Rules);
         _context.Follows.RemoveRange(_context.Follows);
         _context.ReportComments.RemoveRange(_context.ReportComments);
@@ -1278,6 +1287,73 @@ public class DatabaseSeeder(
         Console.WriteLine($"Seeded {reactions.Count} reactions across {postReactionCounts.Count} posts.");
     }
 
+    private async Task UpdateDenormalizedCountsAsync()
+    {
+        Console.WriteLine("Updating denormalized counts on spaces, hubs, and communities...");
+
+        // Spaces: count discussions and posts per space
+        var spaceDiscussionCounts = await _context.Discussions
+            .GroupBy(d => d.SpaceId)
+            .Select(g => new { SpaceId = g.Key, DiscussionCount = g.Count(), PostCount = g.Sum(d => d.PostCount) })
+            .ToListAsync();
+
+        var spaceReactionCounts = await _context.Discussions
+            .GroupBy(d => d.SpaceId)
+            .Select(g => new { SpaceId = g.Key, ReactionCount = g.Sum(d => d.ReactionCount) })
+            .ToListAsync();
+
+        var spaces = await _context.Spaces.ToListAsync();
+        foreach (var space in spaces)
+        {
+            var disc = spaceDiscussionCounts.FirstOrDefault(x => x.SpaceId == space.Id);
+            var react = spaceReactionCounts.FirstOrDefault(x => x.SpaceId == space.Id);
+            space.DiscussionCount = disc?.DiscussionCount ?? 0;
+            space.PostCount = disc?.PostCount ?? 0;
+            space.ReactionCount = react?.ReactionCount ?? 0;
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Hubs: aggregate from spaces and discussions
+        var hubSpaceCounts = await _context.Spaces
+            .GroupBy(s => s.HubId)
+            .Select(g => new { HubId = g.Key, SpaceCount = g.Count(), DiscussionCount = g.Sum(s => s.DiscussionCount), PostCount = g.Sum(s => s.PostCount), ReactionCount = g.Sum(s => s.ReactionCount) })
+            .ToListAsync();
+
+        var hubs = await _context.Hubs.ToListAsync();
+        foreach (var hub in hubs)
+        {
+            var agg = hubSpaceCounts.FirstOrDefault(x => x.HubId == hub.Id);
+            hub.SpaceCount = agg?.SpaceCount ?? 0;
+            hub.DiscussionCount = agg?.DiscussionCount ?? 0;
+            hub.PostCount = agg?.PostCount ?? 0;
+            hub.ReactionCount = agg?.ReactionCount ?? 0;
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Communities: aggregate from hubs
+        var communityHubCounts = await _context.Hubs
+            .GroupBy(h => h.CommunityId)
+            .Select(g => new { CommunityId = g.Key, HubCount = g.Count(), SpaceCount = g.Sum(h => h.SpaceCount), DiscussionCount = g.Sum(h => h.DiscussionCount), PostCount = g.Sum(h => h.PostCount), ReactionCount = g.Sum(h => h.ReactionCount) })
+            .ToListAsync();
+
+        var communities = await _context.Communities.ToListAsync();
+        foreach (var community in communities)
+        {
+            var agg = communityHubCounts.FirstOrDefault(x => x.CommunityId == community.Id);
+            community.HubCount = agg?.HubCount ?? 0;
+            community.SpaceCount = agg?.SpaceCount ?? 0;
+            community.DiscussionCount = agg?.DiscussionCount ?? 0;
+            community.PostCount = agg?.PostCount ?? 0;
+            community.ReactionCount = agg?.ReactionCount ?? 0;
+        }
+
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Updated counts for {spaces.Count} spaces, {hubs.Count} hubs, {communities.Count} communities.");
+    }
+
     private string GenerateSlug(string title)
     {
         var slug = title.ToLowerInvariant()
@@ -1300,8 +1376,6 @@ public class DatabaseSeeder(
         if (slug.Length > 80)
             slug = slug[..80].TrimEnd('-');
 
-        // Add short random suffix for uniqueness
-        slug += "-" + Guid.NewGuid().ToString("N")[..6];
         return slug;
     }
 
@@ -2052,5 +2126,156 @@ public class DatabaseSeeder(
 
         await _context.SaveChangesAsync();
         Console.WriteLine($"Created {totalRoles} moderator roles, {totalBans} bans, {totalReportReasons} custom report reasons.");
+    }
+
+    // ===== GROUP ACCESS CONTROL =====
+
+    private async Task SeedGroupsAndAccessAsync(
+        CommunityDatabaseEntity snakkCommunity,
+        List<UserDatabaseEntity> users)
+    {
+        // Pick a set of regular users to assign to groups (skip test user and admin)
+        var regularUsers = users
+            .Where(u => u.PublicId != "01JJQP0000000000000000TEST" && u.PublicId != "01JJQP0000000000000ADMIN")
+            .ToList();
+
+        var adminUser = users.First(u => u.PublicId == "01JJQP0000000000000ADMIN");
+
+        // Create 3 groups for the Snakk community
+        var premiumGroup = new GroupDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            CommunityId = snakkCommunity.Id,
+            Name = "Premium Members",
+            Slug = "premium-members",
+            Description = "Paid supporters with elevated access.",
+            IsPublic = true,
+            SortOrder = 0,
+            CreatedAt = EarliestDate
+        };
+
+        var betaGroup = new GroupDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            CommunityId = snakkCommunity.Id,
+            Name = "Beta Testers",
+            Slug = "beta-testers",
+            Description = "Early access to new features.",
+            IsPublic = true,
+            SortOrder = 1,
+            CreatedAt = EarliestDate
+        };
+
+        var staffGroup = new GroupDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            CommunityId = snakkCommunity.Id,
+            Name = "Staff",
+            Slug = "staff",
+            Description = "Internal staff members.",
+            IsPublic = false,
+            SortOrder = 2,
+            CreatedAt = EarliestDate
+        };
+
+        _context.Groups.AddRange(premiumGroup, betaGroup, staffGroup);
+        await _context.SaveChangesAsync();
+
+        // Assign ~30 users to Premium Members
+        var premiumUsers = regularUsers.Take(30).ToList();
+        foreach (var user in premiumUsers)
+        {
+            _context.GroupMembers.Add(new GroupMemberDatabaseEntity
+            {
+                GroupId = premiumGroup.Id,
+                UserId = user.Id,
+                AddedByUserId = adminUser.Id,
+                AddedAt = EarliestDate.AddDays(_faker.Random.Int(1, 10))
+            });
+        }
+
+        // Assign ~15 users to Beta Testers (some overlap with premium)
+        var betaUsers = regularUsers.Skip(10).Take(15).ToList();
+        foreach (var user in betaUsers)
+        {
+            _context.GroupMembers.Add(new GroupMemberDatabaseEntity
+            {
+                GroupId = betaGroup.Id,
+                UserId = user.Id,
+                AddedByUserId = adminUser.Id,
+                AddedAt = EarliestDate.AddDays(_faker.Random.Int(1, 10))
+            });
+        }
+
+        // Assign 5 users to Staff
+        var staffUsers = regularUsers.Skip(50).Take(5).ToList();
+        foreach (var user in staffUsers)
+        {
+            _context.GroupMembers.Add(new GroupMemberDatabaseEntity
+            {
+                GroupId = staffGroup.Id,
+                UserId = user.Id,
+                AddedByUserId = adminUser.Id,
+                AddedAt = EarliestDate.AddDays(_faker.Random.Int(1, 10))
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Mark the AI & Machine Learning space as IsRestricted
+        // and grant Premium Members read+write access
+        var aiMlSpace = await _context.Spaces
+            .AsTracking()
+            .FirstOrDefaultAsync(s => s.Slug == "ai-ml");
+
+        if (aiMlSpace is not null)
+        {
+            aiMlSpace.IsRestricted = true;
+            await _context.SaveChangesAsync();
+
+            _context.GroupAccess.Add(new GroupAccessDatabaseEntity
+            {
+                GroupId = premiumGroup.Id,
+                SpaceId = aiMlSpace.Id,
+                CanRead = true,
+                CanWrite = true,
+                CreatedAt = EarliestDate
+            });
+
+            // Beta testers can read but not write
+            _context.GroupAccess.Add(new GroupAccessDatabaseEntity
+            {
+                GroupId = betaGroup.Id,
+                SpaceId = aiMlSpace.Id,
+                CanRead = true,
+                CanWrite = false,
+                CreatedAt = EarliestDate
+            });
+        }
+
+        // Mark the DevOps & Cloud space as IsRestricted
+        // and grant only Staff access
+        var devopsSpace = await _context.Spaces
+            .AsTracking()
+            .FirstOrDefaultAsync(s => s.Slug == "devops");
+
+        if (devopsSpace is not null)
+        {
+            devopsSpace.IsRestricted = true;
+            await _context.SaveChangesAsync();
+
+            _context.GroupAccess.Add(new GroupAccessDatabaseEntity
+            {
+                GroupId = staffGroup.Id,
+                SpaceId = devopsSpace.Id,
+                CanRead = true,
+                CanWrite = true,
+                CreatedAt = EarliestDate
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Created 3 groups (Premium Members, Beta Testers, Staff), assigned {premiumUsers.Count + betaUsers.Count + staffUsers.Count} memberships, restricted 2 spaces.");
     }
 }

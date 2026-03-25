@@ -3,7 +3,6 @@ namespace Snakk.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
 using Snakk.Application.Services;
 using Snakk.Domain.Entities;
-using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Hubs;
 
@@ -13,76 +12,30 @@ using Snakk.Infrastructure.Hubs;
 /// </summary>
 public class SignalRRealtimeNotifier(
     IHubContext<SnakkHub> hubContext,
-    IPostHtmlRenderer htmlRenderer,
-    ISpaceRepository spaceRepository,
-    IHubRepository hubRepository) : IRealtimeNotifier
+    IPostHtmlRenderer htmlRenderer) : IRealtimeNotifier
 {
-    // Temporary user ID for rendering post cards
-    private const string TempUserId = "01JJQP0000000000000000TEST";
 
-    public async Task NotifyPostCreatedAsync(Post post, User author, Discussion discussion)
-    {
-        // Fetch routing context
-        var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
-
-        if (space is null) return;
-
-        var hub = await hubRepository.GetByPublicIdAsync(space.HubId);
-
-        if (hub is null) return;
-
-        // Render HTML
-        var html = htmlRenderer.RenderPostCard(
-            post,
-            author,
-            hub.Slug,
-            space.Slug,
-            discussion.Slug,
-            TempUserId);
-
-        // Send to discussion subscribers
+    public async Task NotifyPostCreatedAsync(Post post, User author, Discussion discussion) =>
         await hubContext.Clients
-            .Group($"discussion:{post.DiscussionId.Value}")
+            .Group($"discussion:{discussion.PublicId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussion.PublicId.Value}",
                 eventType = "post-created",
-                htmlContent = html,
-                targetId = "posts-container",
-                swapStrategy = "beforeend"
+                postId = post.PublicId.Value,
+                discussionId = discussion.PublicId.Value
             });
-    }
 
-    public async Task NotifyPostEditedAsync(Post post, User author, Discussion discussion)
-    {
-        // Fetch routing context
-        var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
-
-        if (space is null) return;
-
-        var hub = await hubRepository.GetByPublicIdAsync(space.HubId);
-
-        if (hub is null) return;
-
-        // Render entire post card with updated content
-        var html = htmlRenderer.RenderPostCard(
-            post,
-            author,
-            hub.Slug,
-            space.Slug,
-            discussion.Slug,
-            TempUserId);
-
-        // Send to discussion subscribers
+    public async Task NotifyPostEditedAsync(Post post, User author, Discussion discussion) =>
         await hubContext.Clients
-            .Group($"discussion:{post.DiscussionId.Value}")
+            .Group($"discussion:{discussion.PublicId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussion.PublicId.Value}",
                 eventType = "post-edited",
-                htmlContent = html,
-                targetId = $"post-{post.PublicId.Value}",
-                swapStrategy = "outerHTML"
+                postId = post.PublicId.Value,
+                discussionId = discussion.PublicId.Value
             });
-    }
 
     public async Task NotifyPostDeletedAsync(
         PostId postId,
@@ -110,6 +63,7 @@ public class SignalRRealtimeNotifier(
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussionId.Value}",
                 eventType = "post-deleted",
                 htmlContent = html,
                 targetId = $"post-{postId.Value}",
@@ -136,6 +90,7 @@ public class SignalRRealtimeNotifier(
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussionId.Value}",
                 eventType = "reaction-updated",
                 postId = postId.Value,
                 counts = countDict
@@ -152,6 +107,7 @@ public class SignalRRealtimeNotifier(
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussionId.Value}",
                 eventType = "discussion-locked",
                 targetId = "discussion-lock-banner",
                 htmlContent = "",
@@ -163,8 +119,116 @@ public class SignalRRealtimeNotifier(
             .Group($"discussion:{discussionId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
+                group = $"discussion:{discussionId.Value}",
                 eventType = "discussion-unlocked",
                 targetId = "discussion-lock-banner",
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author) =>
+        await hubContext.Clients
+            .Group($"space:{spaceId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"space:{spaceId.Value}",
+                eventType = "discussion-created",
+                discussionId = discussionId.Value,
+                authorId = author.PublicId.Value,
+                authorName = author.DisplayName
+            });
+
+    public async Task NotifyGlobalAsync(string eventType, string message) =>
+        await hubContext.Clients
+            .Group("global")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = "global",
+                eventType,
+                targetId = "",
+                htmlContent = message,
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDiscussionPinnedAsync(DiscussionId discussionId, SpaceId spaceId, bool isPinned) =>
+        await hubContext.Clients
+            .Group($"space:{spaceId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"space:{spaceId.Value}",
+                eventType = isPinned ? "discussion-pinned" : "discussion-unpinned",
+                discussionId = discussionId.Value,
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDiscussionDeletedAsync(DiscussionId discussionId, SpaceId spaceId) =>
+        await hubContext.Clients
+            .Group($"space:{spaceId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"space:{spaceId.Value}",
+                eventType = "discussion-deleted",
+                discussionId = discussionId.Value,
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDiscussionTitleUpdatedAsync(DiscussionId discussionId, string newTitle) =>
+        await hubContext.Clients
+            .Group($"discussion:{discussionId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"discussion:{discussionId.Value}",
+                eventType = "discussion-title-updated",
+                title = newTitle,
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId)
+    {
+        var group = scopeType switch
+        {
+            "Community" => $"community:{scopePublicId}",
+            "Hub"       => $"hub:{scopePublicId}",
+            "Space"     => $"space:{scopePublicId}",
+            _           => $"space:{scopePublicId}"
+        };
+
+        await hubContext.Clients
+            .Group(group)
+            .SendAsync("ReceiveUpdate", new
+            {
+                group,
+                eventType = "announcement-updated",
+                htmlContent = "",
+                swapStrategy = ""
+            });
+    }
+
+    public async Task NotifyReadStateUpdatedAsync(UserId userId, string discussionId, string postId) =>
+        await hubContext.Clients
+            .Group($"user:{userId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"user:{userId.Value}",
+                eventType = "read-state-updated",
+                discussionId,
+                postId,
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta) =>
+        await hubContext.Clients
+            .Group($"space:{spaceId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"space:{spaceId.Value}",
+                eventType = "post-count-updated",
+                discussionId = discussionId.Value,
+                delta,
                 htmlContent = "",
                 swapStrategy = ""
             });

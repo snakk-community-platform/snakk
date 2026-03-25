@@ -128,6 +128,7 @@ app.MapAdminSettingsEndpoints();
 app.MapAdminPermissionsEndpoints();
 app.MapAdminWebhooksEndpoints();
 app.MapCommunityManagementEndpoints();
+app.MapGroupEndpoints();
 app.MapHubManagementEndpoints();
 app.MapSpaceManagementEndpoints();
 app.MapAvatarEndpoints();
@@ -143,6 +144,7 @@ app.MapModerationEndpoints();
 app.MapManageContextEndpoints();
 app.MapAnnouncementManagementEndpoints();
 app.MapMediaEndpoints();
+app.MapRealtimeInternalEndpoints();
 // Sitemap moved to Snakk.Web (public-facing app)
 
 app.Run();

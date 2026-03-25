@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
-using Snakk.Shared.Helpers;
 
 namespace Snakk.Infrastructure.Realtime;
 
@@ -21,15 +20,12 @@ public class HttpRealtimeNotifier(
     {
         try
         {
-            var htmlContent = RenderPostHtml(post, author);
-
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
                 EventType = "post-created",
                 TargetGroup = $"discussion:{discussion.PublicId}",
-                TargetId = "posts-container",
-                HtmlContent = htmlContent,
-                SwapStrategy = "beforeend"
+                PostId = post.PublicId.Value,
+                DiscussionId = discussion.PublicId.Value
             });
         }
         catch (Exception ex)
@@ -42,15 +38,12 @@ public class HttpRealtimeNotifier(
     {
         try
         {
-            var htmlContent = RenderPostHtml(post, author);
-
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
                 EventType = "post-edited",
-                TargetGroup = $"post:{post.PublicId}",
-                TargetId = $"post-{post.PublicId}",
-                HtmlContent = htmlContent,
-                SwapStrategy = "outerHTML"
+                TargetGroup = $"discussion:{discussion.PublicId}",
+                PostId = post.PublicId.Value,
+                DiscussionId = discussion.PublicId.Value
             });
         }
         catch (Exception ex)
@@ -183,32 +176,165 @@ public class HttpRealtimeNotifier(
         }
     }
 
-    private string RenderPostHtml(Post post, User author)
+    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author)
     {
-        var contentHtml = post.RenderedContent;
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "discussion-created",
+                TargetGroup = $"space:{spaceId.Value}",
+                DiscussionId = discussionId.Value,
+                AuthorId = author.PublicId.Value,
+                AuthorName = author.DisplayName
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion created: {DiscussionId}", discussionId.Value);
+        }
+    }
 
-        // Generate post HTML (this matches your existing post card structure)
-        return $@"
-<div id=""post-{post.PublicId}"" class=""card bg-base-100 shadow-sm"">
-    <div class=""card-body"">
-        <div class=""flex items-start gap-3"">
-            <div class=""avatar"">
-                <div class=""w-10 h-10 rounded-full"">
-                    <img src=""{AvatarHelper.GetAvatarUrl(author.PublicId, AvatarEntityType.User, 0)}"" alt=""{author.DisplayName}"" />
-                </div>
-            </div>
-            <div class=""flex-1"">
-                <div class=""flex items-center gap-2"">
-                    <a href=""/users/{author.PublicId}"" class=""font-semibold hover:underline"">{author.DisplayName}</a>
-                    <span class=""text-sm text-muted"">just now</span>
-                </div>
-                <div class=""prose prose-sm mt-2"">{contentHtml}</div>
-                <div id=""reactions-{post.PublicId}"" class=""flex gap-2 mt-3"">
-                    <button type=""button"" class=""reaction-pill add-reaction"" onclick=""toggleReactionPicker('{post.PublicId}')"" title=""Add reaction"">+</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>";
+    public async Task NotifyGlobalAsync(string eventType, string message)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = eventType,
+                TargetGroup = "global",
+                TargetId = "",
+                HtmlContent = message,
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast global: {EventType}", eventType);
+        }
+    }
+
+    public async Task NotifyDiscussionPinnedAsync(DiscussionId discussionId, SpaceId spaceId, bool isPinned)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = isPinned ? "discussion-pinned" : "discussion-unpinned",
+                TargetGroup = $"space:{spaceId.Value}",
+                DiscussionId = discussionId.Value,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion pinned: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyDiscussionDeletedAsync(DiscussionId discussionId, SpaceId spaceId)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "discussion-deleted",
+                TargetGroup = $"space:{spaceId.Value}",
+                DiscussionId = discussionId.Value,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion deleted: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyDiscussionTitleUpdatedAsync(DiscussionId discussionId, string newTitle)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "discussion-title-updated",
+                TargetGroup = $"discussion:{discussionId.Value}",
+                DiscussionId = discussionId.Value,
+                Title = newTitle,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast discussion title updated: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId)
+    {
+        var group = scopeType switch
+        {
+            "Community" => $"community:{scopePublicId}",
+            "Hub"       => $"hub:{scopePublicId}",
+            "Space"     => $"space:{scopePublicId}",
+            _           => $"space:{scopePublicId}"
+        };
+
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "announcement-updated",
+                TargetGroup = group,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast announcement updated: {ScopeType}/{ScopeId}", scopeType, scopePublicId);
+        }
+    }
+
+    public async Task NotifyReadStateUpdatedAsync(UserId userId, string discussionId, string postId)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "read-state-updated",
+                TargetGroup = $"user:{userId.Value}",
+                DiscussionId = discussionId,
+                PostId = postId,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast read state updated: {UserId}", userId.Value);
+        }
+    }
+
+    public async Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "post-count-updated",
+                TargetGroup = $"space:{spaceId.Value}",
+                DiscussionId = discussionId.Value,
+                Delta = delta,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast post count updated: {DiscussionId}", discussionId.Value);
+        }
     }
 }

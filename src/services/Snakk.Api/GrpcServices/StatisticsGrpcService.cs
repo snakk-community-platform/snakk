@@ -1,6 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Snakk.Shared.Helpers;
+using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Protos;
 using Snakk.Protos.Statistics;
@@ -10,7 +11,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class StatisticsGrpcService(
     StatisticsUseCase statisticsUseCase,
-    IConfiguration configuration) : StatisticsService.StatisticsServiceBase
+    IConfiguration configuration,
+    ICurrentUserService currentUser) : StatisticsService.StatisticsServiceBase
 {
     private DateTime GetTrendingSince() =>
         DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
@@ -35,7 +37,8 @@ public class StatisticsGrpcService(
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
-            request.Limit);
+            request.Limit,
+            currentUser.GetCurrentUserId());
 
         if (!result.IsSuccess || result.Value is null)
             return new TopActiveDiscussionsList();

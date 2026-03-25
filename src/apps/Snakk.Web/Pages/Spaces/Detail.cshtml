@@ -26,6 +26,9 @@
 }
 else
 {
+    <!-- Realtime context — JS reads these to subscribe to the correct groups -->
+    <div id="page-context" data-space-id="@Model.Space.PublicId" data-hub-id="@Model.Hub?.PublicId" data-hub-slug="@Model.HubSlug" data-space-slug="@Model.Slug" hidden></div>
+
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
             <a href="/">Home</a>
@@ -310,11 +313,11 @@ else
                         }
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <div class="text-lg font-semibold">@FormatCount(Model.Space.DiscussionCount)</div>
+                                <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.DiscussionCount ?? 0)</div>
                                 <div class="text-xs text-base-content/50">Discussions</div>
                             </div>
                             <div>
-                                <div class="text-lg font-semibold">@FormatCount(Model.Space.ReplyCount)</div>
+                                <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.ReplyCount ?? 0)</div>
                                 <div class="text-xs text-base-content/50">Replies</div>
                             </div>
                         </div>

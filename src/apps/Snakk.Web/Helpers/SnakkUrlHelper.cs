@@ -66,6 +66,13 @@ public static class SnakkUrlHelper
         int offset) 
         => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}?offset={offset}";
 
+    /// <summary>
+    /// Builds the {slug}~{base62Id} segment used in discussion URLs.
+    /// The publicId (ULID) is compressed to 22-char Base62 for shorter URLs.
+    /// </summary>
+    public static string DiscussionSlugId(string slug, string publicId)
+        => $"{slug}~{UlidBase62.Encode(publicId)}";
+
     public static string Discussion(
         ICommunityContext community,
         string hubSlug,

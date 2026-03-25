@@ -8,6 +8,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Community layer
     public DbSet<CommunityDatabaseEntity> Communities { get; set; } = null!;
     public DbSet<CommunityDomainDatabaseEntity> CommunityDomains { get; set; } = null!;
+    public DbSet<GroupDatabaseEntity> Groups { get; set; } = null!;
+    public DbSet<GroupMemberDatabaseEntity> GroupMembers { get; set; } = null!;
+    public DbSet<GroupAccessDatabaseEntity> GroupAccess { get; set; } = null!;
 
     // Core entities
     public DbSet<HubDatabaseEntity> Hubs { get; set; } = null!;
@@ -101,6 +104,79 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany(c => c.Domains)
             .HasForeignKey(d => d.CommunityId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // === Groups ===
+
+        modelBuilder.Entity<GroupDatabaseEntity>(entity =>
+        {
+            entity.Property(g => g.Name).HasMaxLength(100).IsRequired();
+            entity.Property(g => g.Slug).HasMaxLength(100).IsRequired();
+            entity.Property(g => g.Description).HasMaxLength(500);
+
+            entity.HasOne(g => g.Community)
+                .WithMany(c => c.Groups)
+                .HasForeignKey(g => g.CommunityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(g => g.PublicId).IsUnique();
+            entity.HasIndex(g => new { g.CommunityId, g.Slug }).IsUnique();
+            entity.HasIndex(g => new { g.CommunityId, g.IsPublic });
+        });
+
+        modelBuilder.Entity<GroupMemberDatabaseEntity>(entity =>
+        {
+            entity.HasOne(m => m.Group)
+                .WithMany(g => g.Members)
+                .HasForeignKey(m => m.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(m => m.AddedByUser)
+                .WithMany()
+                .HasForeignKey(m => m.AddedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(m => new { m.GroupId, m.UserId }).IsUnique();
+            entity.HasIndex(m => new { m.UserId, m.GroupId });
+        });
+
+        // === Group Access ===
+
+        modelBuilder.Entity<GroupAccessDatabaseEntity>(entity =>
+        {
+            entity.HasOne(a => a.Group)
+                .WithMany()
+                .HasForeignKey(a => a.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.Community)
+                .WithMany(c => c.GroupAccess)
+                .HasForeignKey(a => a.CommunityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.Hub)
+                .WithMany(h => h.GroupAccess)
+                .HasForeignKey(a => a.HubId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.Space)
+                .WithMany(s => s.GroupAccess)
+                .HasForeignKey(a => a.SpaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A group can only have one grant per scoped entity
+            entity.HasIndex(a => new { a.GroupId, a.CommunityId }).IsUnique().HasFilter("\"CommunityId\" IS NOT NULL AND \"HubId\" IS NULL AND \"SpaceId\" IS NULL");
+            entity.HasIndex(a => new { a.GroupId, a.HubId }).IsUnique().HasFilter("\"HubId\" IS NOT NULL AND \"SpaceId\" IS NULL");
+            entity.HasIndex(a => new { a.GroupId, a.SpaceId }).IsUnique().HasFilter("\"SpaceId\" IS NOT NULL");
+
+            entity.HasIndex(a => a.CommunityId);
+            entity.HasIndex(a => a.HubId);
+            entity.HasIndex(a => a.SpaceId);
+        });
 
         // Community unique indexes
         modelBuilder.Entity<CommunityDatabaseEntity>()

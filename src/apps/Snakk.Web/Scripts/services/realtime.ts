@@ -1,9 +1,11 @@
 /**
  * SignalR Realtime Connection Manager
- * Handles WebSocket connection to Snakk.Realtime service
  *
- * Note: SignalR is loaded globally via script tag in HTML
- * Type definitions are in global.d.ts
+ * Uses a SharedWorker (one SignalR connection across all tabs) with a fallback
+ * to a direct per-tab connection for browsers that don't support SharedWorker.
+ *
+ * Auth: fetches a short-lived JWT from /bff/realtime-token (cookie-backed BFF).
+ * Subscriptions: reads publicIds from #page-context data attributes — never slugs.
  */
 
 // ============================================================================
@@ -11,12 +13,18 @@
 // ============================================================================
 
 interface RealtimeMessage {
+    group?: string;
     eventType: string;
     targetId: string;
     htmlContent: string;
     swapStrategy: 'beforeend' | 'afterbegin' | 'innerHTML' | 'outerHTML';
     postId?: string;
     counts?: ReactionCounts;
+    discussionId?: string;
+    title?: string;
+    delta?: number;
+    authorId?: string;
+    authorName?: string;
 }
 
 interface ReactionCounts {
@@ -25,6 +33,17 @@ interface ReactionCounts {
     Eyes?: number;
     Crazy?: number;
     [key: string]: number | undefined;
+}
+
+interface ViewerCountData {
+    count: number;
+    group?: string;
+}
+
+interface TypingData {
+    displayName: string;
+    isTyping: boolean;
+    group?: string;
 }
 
 interface NotificationData {
@@ -36,12 +55,17 @@ interface Notification {
     [key: string]: any;
 }
 
-interface Subscriptions {
+interface PageContext {
     discussionId: string | null;
-    spaceSlug: string | null;
-    hubSlug: string | null;
+    spaceId: string | null;
+    hubId: string | null;
 }
 
+interface Subscriptions {
+    discussionId: string | null;
+    spaceId: string | null;
+    hubId: string | null;
+}
 
 // ============================================================================
 // Implementation
@@ -50,7 +74,6 @@ interface Subscriptions {
 (function(): void {
     'use strict';
 
-    // Sanitize HTML to prevent XSS from SignalR-delivered content
     const sanitizeHtml = (window as any).SnakkUtils?.sanitizeHtml || function(html: string): string {
         if (!html) return '';
         const parser = new DOMParser();
@@ -68,29 +91,54 @@ interface Subscriptions {
         return doc.body.innerHTML;
     };
 
-    // Use SNAKK debug logger if available, otherwise noop
     const snakkDebug = (window as any).SnakkDebug;
     function debugLog(message: string): void {
-        if (snakkDebug?.log) {
-            snakkDebug.log('SignalR', message);
-        } else {
-            console.debug(message);
+        if (snakkDebug?.log) snakkDebug.log('SignalR', message);
+        else console.debug('[Realtime]', message);
+    }
+
+    // ============================================================================
+    // Token management (shared between worker and direct paths)
+    // ============================================================================
+
+    let cachedToken: string | null = null;
+    let tokenExpiry = 0;
+
+    async function fetchToken(): Promise<string | null> {
+        if (cachedToken && Date.now() < tokenExpiry - 60_000) return cachedToken;
+        try {
+            const resp = await fetch('/bff/realtime-token', { credentials: 'include' });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            cachedToken = data.token;
+            tokenExpiry = Date.now() + data.expiresInSeconds * 1000;
+            return cachedToken;
+        } catch {
+            return null;
         }
     }
 
-    // Connection is created lazily after SignalR library loads
-    const realtimeUrl = window.realtimeServiceUrl || 'https://localhost:17101/realtime';
-    let connection: signalR.HubConnection | null = null;
+    // ============================================================================
+    // Page context — read publicIds from #page-context data attributes
+    // ============================================================================
 
-    // Track if user is near bottom of page for auto-scroll
-    function isNearBottom(threshold: number = 200): boolean {
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const windowHeight = window.innerHeight;
-        const documentHeight = document.documentElement.scrollHeight;
-        return (scrollTop + windowHeight) >= (documentHeight - threshold);
+    function getPageContext(): PageContext {
+        const el = document.getElementById('page-context');
+        return {
+            discussionId: el?.dataset.discussionId || null,
+            spaceId: el?.dataset.spaceId || null,
+            hubId: el?.dataset.hubId || null,
+        };
     }
 
-    // Show "new post" indicator when user is scrolled up
+    // ============================================================================
+    // Realtime event handlers
+    // ============================================================================
+
+    function isNearBottom(threshold = 200): boolean {
+        return (window.scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - threshold);
+    }
+
     function showNewPostIndicator(): void {
         let indicator = document.getElementById('new-post-indicator');
         if (!indicator) {
@@ -100,44 +148,25 @@ interface Subscriptions {
             indicator.innerHTML = '↓ New post';
             indicator.onclick = function() {
                 const posts = document.querySelectorAll<HTMLElement>('[id^="post-"]');
-                if (posts.length > 0) {
-                    const lastPost = posts[posts.length - 1];
-                    if (lastPost) {
-                        lastPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
+                if (posts.length > 0) posts[posts.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 indicator?.remove();
             };
             document.body.appendChild(indicator);
         }
     }
 
-    // Handle reaction updates — write server counts to data-attrs and re-render
     function handleReactionUpdate(postId: string, counts: ReactionCounts): void {
         const reactionsBar = document.getElementById(`reactions-${postId}`);
         if (!reactionsBar) return;
 
-        const reactionEmojis: Record<string, string> = {
-            ThumbsUp: '👍',
-            Heart: '❤️',
-            Eyes: '👀',
-            Crazy: '🤯'
-        };
-        const dataKeys: Record<string, string> = {
-            ThumbsUp: 'thumbsup',
-            Heart: 'heart',
-            Eyes: 'eyes',
-            Crazy: 'crazy'
-        };
+        const reactionEmojis: Record<string, string> = { ThumbsUp: '👍', Heart: '❤️', Eyes: '👀', Crazy: '🤯' };
+        const dataKeys: Record<string, string> = { ThumbsUp: 'thumbsup', Heart: 'heart', Eyes: 'eyes', Crazy: 'crazy' };
 
-        // Update data-count-* attributes with server truth
         let html = '';
         for (const [type, emoji] of Object.entries(reactionEmojis)) {
             const count = counts[type] || 0;
             reactionsBar.setAttribute(`data-count-${dataKeys[type]}`, String(count));
-            if (count > 0) {
-                html += `<span data-type="${type}">${emoji} ${count}</span>`;
-            }
+            if (count > 0) html += `<span data-type="${type}">${emoji} ${count}</span>`;
         }
 
         if (!html) {
@@ -148,30 +177,120 @@ interface Subscriptions {
     }
 
     function handleDiscussionLockChange(isLocked: boolean): void {
-        const banner = document.getElementById('discussion-lock-banner');
-        const replyForm = document.getElementById('reply-form');
-
-        if (banner) {
-            if (isLocked) {
-                banner.classList.remove('hidden');
-            } else {
-                banner.classList.add('hidden');
-            }
-        }
-
-        if (replyForm) {
-            if (isLocked) {
-                replyForm.classList.add('hidden');
-            } else {
-                replyForm.classList.remove('hidden');
-            }
-        }
+        document.getElementById('discussion-lock-banner')?.classList.toggle('hidden', !isLocked);
+        document.getElementById('reply-form')?.classList.toggle('hidden', isLocked);
     }
 
-    function handleViewerCount(data: { count: number }): void {
+    function handleDiscussionPinned(discussionId: string, isPinned: boolean): void {
+        const item = document.querySelector<HTMLElement>(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`);
+        if (!item) return;
+        item.classList.toggle('is-pinned', isPinned);
+        // Move pinned items to top, unpinned back to natural order
+        const container = item.parentElement;
+        if (!container) return;
+        if (isPinned) container.prepend(item);
+    }
+
+    function handleDiscussionDeleted(discussionId: string): void {
+        document.querySelector(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`)?.remove();
+    }
+
+    function handleDiscussionTitleUpdated(title: string): void {
+        // Update the <h1> on the discussion detail page
+        const h1 = document.querySelector<HTMLElement>('h1.discussion-title');
+        if (h1) h1.textContent = title;
+        // Update browser tab title (keep the suffix after " — ")
+        const titleParts = document.title.split(' — ');
+        if (titleParts.length > 1) document.title = `${title} — ${titleParts.slice(1).join(' — ')}`;
+        else document.title = title;
+    }
+
+    function handlePostCountUpdated(discussionId: string, delta: number): void {
+        const item = document.querySelector<HTMLElement>(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`);
+        if (!item) return;
+        const countEl = item.querySelector<HTMLElement>('[data-stat="post-count"]');
+        if (!countEl) return;
+        const current = parseInt(countEl.textContent || '0', 10);
+        if (!isNaN(current)) countEl.textContent = String(current + delta);
+    }
+
+    function handleReadStateUpdated(discussionId: string): void {
+        document.dispatchEvent(new CustomEvent('snakk:realtime:read-state-updated', {
+            detail: { discussionId }
+        }));
+    }
+
+    function handleAnnouncementUpdated(): void {
+        document.dispatchEvent(new CustomEvent('snakk:realtime:announcement-updated'));
+    }
+
+    async function handleDiscussionCreated(discussionId: string, authorId: string, authorName: string): Promise<void> {
+        const container = document.getElementById('discussions-container');
+        if (!container) return;
+
+        const ctx = document.getElementById('page-context');
+        const hubSlug = ctx?.dataset.hubSlug;
+        const spaceSlug = ctx?.dataset.spaceSlug;
+        if (!hubSlug || !spaceSlug) return;
+
+        try {
+            const params = new URLSearchParams({ discussionId, hubSlug, spaceSlug, authorId, authorName });
+            const resp = await fetch(`/partials/discussion-item?${params}`);
+            if (!resp.ok) return;
+
+            const safeHtml = sanitizeHtml(await resp.text());
+            container.insertAdjacentHTML('afterbegin', safeHtml);
+
+            if (typeof htmx !== 'undefined') htmx.process(container);
+        } catch { /* silently ignore fetch failures */ }
+    }
+
+    async function handlePostCreated(postId: string, discussionId: string): Promise<void> {
+        const container = document.getElementById('posts-container');
+        if (!container) return;
+
+        try {
+            const resp = await fetch(
+                `/partials/post?discussionId=${encodeURIComponent(discussionId)}&postId=${encodeURIComponent(postId)}`
+            );
+            if (!resp.ok) return;
+
+            const safeHtml = sanitizeHtml(await resp.text());
+            const wasNearBottom = isNearBottom();
+            container.insertAdjacentHTML('beforeend', safeHtml);
+
+            const newEl = container.lastElementChild as HTMLElement | null;
+            if (newEl) {
+                newEl.classList.add('post-new');
+                setTimeout(() => newEl.classList.remove('post-new'), 500);
+                if (wasNearBottom) newEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                else showNewPostIndicator();
+            }
+
+            if (typeof htmx !== 'undefined') htmx.process(container);
+        } catch { /* silently ignore fetch failures */ }
+    }
+
+    async function handlePostEdited(postId: string, discussionId: string): Promise<void> {
+        const target = document.querySelector(`[data-post-id="${CSS.escape(postId)}"]`) as HTMLElement | null;
+        if (!target) return;
+
+        try {
+            const resp = await fetch(
+                `/partials/post?discussionId=${encodeURIComponent(discussionId)}&postId=${encodeURIComponent(postId)}`
+            );
+            if (!resp.ok) return;
+
+            const safeHtml = sanitizeHtml(await resp.text());
+            target.outerHTML = safeHtml;
+
+            if (typeof htmx !== 'undefined') htmx.process(document.body);
+        } catch { /* silently ignore fetch failures */ }
+    }
+
+    function handleViewerCount(data: ViewerCountData): void {
         const el = document.getElementById('viewer-count');
         if (!el) return;
-
         if (data.count > 1) {
             el.textContent = `${data.count} viewing`;
             el.classList.remove('hidden');
@@ -182,13 +301,10 @@ interface Subscriptions {
 
     const typingUsers = new Map<string, ReturnType<typeof setTimeout>>();
 
-    function handleTypingIndicator(data: { displayName: string; isTyping: boolean }): void {
+    function handleTypingIndicator(data: TypingData): void {
         if (data.isTyping) {
-            // Clear existing timeout for this user
             const existing = typingUsers.get(data.displayName);
             if (existing) clearTimeout(existing);
-
-            // Auto-clear after 3 seconds
             typingUsers.set(data.displayName, setTimeout(() => {
                 typingUsers.delete(data.displayName);
                 renderTypingIndicator();
@@ -198,7 +314,6 @@ interface Subscriptions {
             if (existing) clearTimeout(existing);
             typingUsers.delete(data.displayName);
         }
-
         renderTypingIndicator();
     }
 
@@ -208,7 +323,6 @@ interface Subscriptions {
         if (!el || !usersEl) return;
 
         const names = Array.from(typingUsers.keys());
-
         if (names.length === 0) {
             el.classList.add('hidden');
         } else if (names.length === 1) {
@@ -223,187 +337,6 @@ interface Subscriptions {
         }
     }
 
-    // Expose typing functions for discussion-detail.ts to call
-    (window as any).SnakkRealtime = {
-        startTyping(discussionId: string, displayName: string): void {
-            if (connection?.state === signalR.HubConnectionState.Connected) {
-                connection.invoke('StartTyping', discussionId, displayName).catch(() => {});
-            }
-        },
-        stopTyping(discussionId: string, displayName: string): void {
-            if (connection?.state === signalR.HubConnectionState.Connected) {
-                connection.invoke('StopTyping', discussionId, displayName).catch(() => {});
-            }
-        }
-    };
-
-    // Subscribe to groups based on page context
-    function subscribeToGroups(): void {
-        if (!connection) return;
-
-        // Always subscribe to global
-        connection.invoke("SubscribeToGlobal")
-            .catch(_err => debugLog('Failed to subscribe to global'));
-
-        // Check current page and subscribe accordingly
-        const discussionId = document.body.dataset.discussionId;
-        const spaceSlug = document.body.dataset.spaceSlug;
-        const hubSlug = document.body.dataset.hubSlug;
-
-        if (discussionId) {
-            debugLog(`Subscribe: discussion ${discussionId}`);
-            connection.invoke("SubscribeToDiscussion", discussionId)
-                .catch(_err => debugLog('Failed to subscribe to discussion'));
-        }
-
-        if (spaceSlug && hubSlug) {
-            debugLog(`Subscribe: space ${hubSlug}/${spaceSlug}`);
-            connection.invoke("SubscribeToSpace", hubSlug, spaceSlug)
-                .catch(_err => debugLog('Failed to subscribe to space'));
-        }
-
-        if (hubSlug) {
-            debugLog(`Subscribe: hub ${hubSlug}`);
-            connection.invoke("SubscribeToHub", hubSlug)
-                .catch(_err => debugLog('Failed to subscribe to hub'));
-        }
-
-        subscribeToUserNotifications();
-    }
-
-    // Track current subscriptions to avoid duplicate subscriptions
-    const currentSubscriptions: Subscriptions = {
-        discussionId: null,
-        spaceSlug: null,
-        hubSlug: null
-    };
-
-    // Update subscriptions based on current page context
-    function updateSubscriptions(): void {
-        if (!connection) return;
-
-        const discussionId = document.body.dataset.discussionId;
-        const spaceSlug = document.body.dataset.spaceSlug;
-        const hubSlug = document.body.dataset.hubSlug;
-
-        // Unsubscribe from old discussion if changed
-        if (currentSubscriptions.discussionId && currentSubscriptions.discussionId !== discussionId) {
-            debugLog(`Unsubscribe: discussion ${currentSubscriptions.discussionId}`);
-            connection.invoke("UnsubscribeFromDiscussion", currentSubscriptions.discussionId)
-                .catch(_err => debugLog('Failed to unsubscribe from discussion'));
-        }
-
-        // Subscribe to new discussion
-        if (discussionId && discussionId !== currentSubscriptions.discussionId) {
-            debugLog(`Subscribe: discussion ${discussionId}`);
-            connection.invoke("SubscribeToDiscussion", discussionId)
-                .catch(_err => debugLog('Failed to subscribe to discussion'));
-        }
-        currentSubscriptions.discussionId = discussionId || null;
-
-        // Unsubscribe from old space if changed
-        if (currentSubscriptions.spaceSlug && currentSubscriptions.hubSlug &&
-            (currentSubscriptions.spaceSlug !== spaceSlug || currentSubscriptions.hubSlug !== hubSlug)) {
-            debugLog(`Unsubscribe: space ${currentSubscriptions.hubSlug}/${currentSubscriptions.spaceSlug}`);
-            connection.invoke("UnsubscribeFromSpace", currentSubscriptions.hubSlug, currentSubscriptions.spaceSlug)
-                .catch(_err => debugLog('Failed to unsubscribe from space'));
-        }
-
-        // Subscribe to new space
-        if (spaceSlug && hubSlug && (spaceSlug !== currentSubscriptions.spaceSlug || hubSlug !== currentSubscriptions.hubSlug)) {
-            debugLog(`Subscribe: space ${hubSlug}/${spaceSlug}`);
-            connection.invoke("SubscribeToSpace", hubSlug, spaceSlug)
-                .catch(_err => debugLog('Failed to subscribe to space'));
-        }
-        currentSubscriptions.spaceSlug = spaceSlug || null;
-        currentSubscriptions.hubSlug = hubSlug || null;
-
-        // Unsubscribe from old hub if changed
-        if (currentSubscriptions.hubSlug && currentSubscriptions.hubSlug !== hubSlug) {
-            debugLog(`Unsubscribe: hub ${currentSubscriptions.hubSlug}`);
-            connection.invoke("UnsubscribeFromHub", currentSubscriptions.hubSlug)
-                .catch(_err => debugLog('Failed to unsubscribe from hub'));
-        }
-
-        // Subscribe to new hub
-        if (hubSlug && hubSlug !== currentSubscriptions.hubSlug) {
-            debugLog(`Subscribe: hub ${hubSlug}`);
-            connection.invoke("SubscribeToHub", hubSlug)
-                .catch(_err => debugLog('Failed to subscribe to hub'));
-        }
-    }
-
-    // Subscribe to user notifications if logged in
-    function subscribeToUserNotifications(): void {
-        if (!connection) return;
-
-        const userId = window.currentUserId;
-        if (userId) {
-            debugLog(`Subscribe: notifications ${userId}`);
-            connection.invoke("SubscribeToUserNotifications", userId)
-                .catch(_err => debugLog('Failed to subscribe to notifications'));
-        }
-    }
-
-    // Load SignalR library on demand from meta tag URL
-    function loadSignalR(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (typeof signalR !== 'undefined') {
-                resolve();
-                return;
-            }
-
-            var meta = document.querySelector('meta[name="signalr-src"]');
-            if (!meta) {
-                reject(new Error('SignalR meta tag not found'));
-                return;
-            }
-
-            var script = document.createElement('script');
-            script.src = meta.getAttribute('content')!;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load SignalR'));
-            document.body.appendChild(script);
-        });
-    }
-
-    // Start connection after browser is idle to avoid competing with initial render
-    function startConnection(): void {
-        loadSignalR()
-            .then(() => {
-                connection = new signalR.HubConnectionBuilder()
-                    .withUrl(realtimeUrl)
-                    .withAutomaticReconnect([0, 2000, 10000, 30000])
-                    .build();
-
-                // Register event handlers
-                connection.on("ReceiveUpdate", handleReceiveUpdate);
-                connection.on("ReceiveNotificationCount", handleNotificationCount);
-                connection.on("ReceiveNotification", handleNotification);
-                connection.on("ReceiveViewerCount", handleViewerCount);
-                connection.on("ReceiveTyping", handleTypingIndicator);
-
-                connection.onreconnected(() => {
-                    debugLog('Reconnected');
-                    subscribeToGroups();
-                });
-                connection.onreconnecting(() => debugLog('Reconnecting...'));
-                connection.onclose(() => debugLog('Disconnected'));
-
-                window.snakkRealtime = connection;
-
-                return connection.start();
-            })
-            .then(() => {
-                debugLog('Connected');
-                subscribeToGroups();
-            })
-            .catch(_err => {
-                debugLog('Connection error');
-            });
-    }
-
-    // Event handlers (defined as named functions for registration)
     function handleReceiveUpdate(message: RealtimeMessage): void {
         debugLog(`Update: ${message.eventType}`);
 
@@ -411,87 +344,305 @@ interface Subscriptions {
             handleReactionUpdate(message.postId, message.counts);
             return;
         }
-
-        if (message.eventType === 'discussion-locked') {
-            handleDiscussionLockChange(true);
+        if (message.eventType === 'discussion-locked') { handleDiscussionLockChange(true); return; }
+        if (message.eventType === 'discussion-unlocked') { handleDiscussionLockChange(false); return; }
+        if (message.eventType === 'discussion-created' && message.discussionId && message.authorId && message.authorName) {
+            handleDiscussionCreated(message.discussionId, message.authorId, message.authorName);
+            return;
+        }
+        if (message.eventType === 'discussion-pinned' && message.discussionId) {
+            handleDiscussionPinned(message.discussionId, true);
+            return;
+        }
+        if (message.eventType === 'discussion-unpinned' && message.discussionId) {
+            handleDiscussionPinned(message.discussionId, false);
+            return;
+        }
+        if (message.eventType === 'discussion-deleted' && message.discussionId) {
+            handleDiscussionDeleted(message.discussionId);
+            return;
+        }
+        if (message.eventType === 'discussion-title-updated' && message.title) {
+            handleDiscussionTitleUpdated(message.title);
+            return;
+        }
+        if (message.eventType === 'post-count-updated' && message.discussionId && message.delta != null) {
+            handlePostCountUpdated(message.discussionId, message.delta);
+            return;
+        }
+        if (message.eventType === 'read-state-updated' && message.discussionId) {
+            handleReadStateUpdated(message.discussionId);
+            return;
+        }
+        if (message.eventType === 'announcement-updated') {
+            handleAnnouncementUpdated();
+            return;
+        }
+        if (message.eventType === 'global-announcement' && !document.hidden) {
+            document.dispatchEvent(new CustomEvent('snakk:realtime:global-announcement', {
+                detail: { message: message.htmlContent }
+            }));
             return;
         }
 
-        if (message.eventType === 'discussion-unlocked') {
-            handleDiscussionLockChange(false);
+        if (message.eventType === 'post-created' && message.postId && message.discussionId) {
+            handlePostCreated(message.postId, message.discussionId);
+            return;
+        }
+
+        if (message.eventType === 'post-edited' && message.postId && message.discussionId) {
+            handlePostEdited(message.postId, message.discussionId);
             return;
         }
 
         const target = document.getElementById(message.targetId);
-        if (!target) {
-            debugLog(`Target not found: ${message.targetId}`);
-            return;
-        }
+        if (!target) { debugLog(`Target not found: ${message.targetId}`); return; }
 
-        const wasNearBottom = isNearBottom();
         const safeHtml = sanitizeHtml(message.htmlContent);
 
         switch (message.swapStrategy) {
-            case "beforeend":
-                target.insertAdjacentHTML('beforeend', safeHtml);
-                if (message.eventType === 'post-created') {
-                    const newElement = target.lastElementChild;
-                    if (newElement) {
-                        newElement.classList.add('post-new');
-                        setTimeout(() => newElement.classList.remove('post-new'), 500);
-                        if (wasNearBottom) {
-                            newElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                        } else {
-                            showNewPostIndicator();
-                        }
-                    }
-                }
+            case 'beforeend': target.insertAdjacentHTML('beforeend', safeHtml); break;
+            case 'afterbegin': target.insertAdjacentHTML('afterbegin', safeHtml); break;
+            case 'innerHTML':  target.innerHTML = safeHtml; break;
+            case 'outerHTML':
+                if (message.htmlContent === '') target.remove();
+                else target.outerHTML = safeHtml;
                 break;
-            case "afterbegin":
-                target.insertAdjacentHTML('afterbegin', safeHtml);
-                break;
-            case "innerHTML":
-                target.innerHTML = safeHtml;
-                break;
-            case "outerHTML":
-                if (message.htmlContent === "") {
-                    target.remove();
-                } else {
-                    target.outerHTML = safeHtml;
-                }
-                break;
-            default:
-                target.innerHTML = safeHtml;
+            default: target.innerHTML = safeHtml;
         }
 
-        if (typeof htmx !== 'undefined') {
-            htmx.process(target.parentElement || document.body);
-        }
+        if (typeof htmx !== 'undefined') htmx.process(target.parentElement || document.body);
     }
 
     function handleNotificationCount(data: NotificationData): void {
-        debugLog(`Notification count: ${data.unreadCount}`);
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification-count', {
             detail: { unreadCount: data.unreadCount }
         }));
     }
 
     function handleNotification(notification: Notification): void {
-        debugLog(`Notification: ${notification.type}`);
         document.dispatchEvent(new CustomEvent('snakk:realtime:notification', {
             detail: { notification }
         }));
     }
 
-    if ('requestIdleCallback' in window) {
-        requestIdleCallback(startConnection);
-    } else {
-        setTimeout(startConnection, 200);
+    // ============================================================================
+    // SharedWorker path
+    // ============================================================================
+
+    let worker: SharedWorker | null = null;
+    const currentSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null };
+
+    function trySharedWorker(): boolean {
+        if (typeof SharedWorker === 'undefined') return false;
+        try {
+            const meta = document.querySelector<HTMLMetaElement>('meta[name="signalr-src"]');
+            if (!meta) return false;
+
+            worker = new SharedWorker('/js/dist/services/realtime-worker.js');
+            worker.port.start();
+
+            // Send init with the realtime URL and SignalR script URL
+            const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17101/realtime';
+            worker.port.postMessage({ type: 'init', realtimeUrl, signalrSrc: meta.content });
+
+            worker.port.onmessage = (e: MessageEvent) => {
+                const msg = e.data;
+                if (msg.type === 'message') {
+                    switch (msg.event) {
+                        case 'ReceiveUpdate':          handleReceiveUpdate(msg.data); break;
+                        case 'ReceiveViewerCount':     handleViewerCount(msg.data); break;
+                        case 'ReceiveTyping':          handleTypingIndicator(msg.data); break;
+                        case 'ReceiveNotificationCount': handleNotificationCount(msg.data); break;
+                        case 'ReceiveNotification':    handleNotification(msg.data); break;
+                    }
+                } else if (msg.type === 'connection-state') {
+                    debugLog(`Worker connection: ${msg.state}`);
+                }
+            };
+
+            worker.onerror = () => {
+                debugLog('SharedWorker error — falling back to direct connection');
+                worker = null;
+                startDirectConnection();
+            };
+
+            updateWorkerSubscriptions();
+            return true;
+        } catch {
+            return false;
+        }
     }
 
-    // Update subscriptions when navigating via HTMX
-    document.body.addEventListener('htmx:load', function() {
+    function updateWorkerSubscriptions(): void {
+        if (!worker) return;
+        const ctx = getPageContext();
+
+        // Discussion
+        if (currentSubs.discussionId && currentSubs.discussionId !== ctx.discussionId)
+            worker.port.postMessage({ type: 'unsubscribe', group: `discussion:${currentSubs.discussionId}` });
+        if (ctx.discussionId && ctx.discussionId !== currentSubs.discussionId)
+            worker.port.postMessage({ type: 'subscribe', group: `discussion:${ctx.discussionId}` });
+        currentSubs.discussionId = ctx.discussionId;
+
+        // Space
+        if (currentSubs.spaceId && currentSubs.spaceId !== ctx.spaceId)
+            worker.port.postMessage({ type: 'unsubscribe', group: `space:${currentSubs.spaceId}` });
+        if (ctx.spaceId && ctx.spaceId !== currentSubs.spaceId)
+            worker.port.postMessage({ type: 'subscribe', group: `space:${ctx.spaceId}` });
+        currentSubs.spaceId = ctx.spaceId;
+
+        // Hub
+        if (currentSubs.hubId && currentSubs.hubId !== ctx.hubId)
+            worker.port.postMessage({ type: 'unsubscribe', group: `hub:${currentSubs.hubId}` });
+        if (ctx.hubId && ctx.hubId !== currentSubs.hubId)
+            worker.port.postMessage({ type: 'subscribe', group: `hub:${ctx.hubId}` });
+        currentSubs.hubId = ctx.hubId;
+    }
+
+    // ============================================================================
+    // Direct connection path (fallback)
+    // ============================================================================
+
+    let connection: signalR.HubConnection | null = null;
+    const directSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null };
+
+    function loadSignalR(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (typeof signalR !== 'undefined') { resolve(); return; }
+            const meta = document.querySelector('meta[name="signalr-src"]');
+            if (!meta) { reject(new Error('SignalR meta tag not found')); return; }
+            const script = document.createElement('script');
+            script.src = meta.getAttribute('content')!;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load SignalR'));
+            document.body.appendChild(script);
+        });
+    }
+
+    function startDirectConnection(): void {
+        const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17101/realtime';
+
+        loadSignalR()
+            .then(async () => {
+                const token = await fetchToken();
+                if (!token) {
+                    debugLog('No auth token — realtime disabled');
+                    return;
+                }
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(realtimeUrl, { accessTokenFactory: fetchToken as () => Promise<string> })
+                    .withAutomaticReconnect([0, 2000, 10000, 30000])
+                    .build();
+
+                connection.on('ReceiveUpdate', handleReceiveUpdate);
+                connection.on('ReceiveViewerCount', handleViewerCount);
+                connection.on('ReceiveTyping', handleTypingIndicator);
+                connection.on('ReceiveNotificationCount', handleNotificationCount);
+                connection.on('ReceiveNotification', handleNotification);
+
+                connection.onreconnected(() => { debugLog('Reconnected'); subscribeToGroups(); });
+                connection.onreconnecting(() => debugLog('Reconnecting...'));
+                connection.onclose(() => debugLog('Disconnected'));
+
+                (window as any).snakkRealtime = connection;
+
+                return connection.start();
+            })
+            .then(() => {
+                debugLog('Connected (direct)');
+                subscribeToGroups();
+            })
+            .catch(() => debugLog('Connection error'));
+    }
+
+    function subscribeToGroups(): void {
         if (!connection) return;
-        setTimeout(updateSubscriptions, 100);
+        connection.invoke('SubscribeToGlobal').catch(() => {});
+
+        const ctx = getPageContext();
+        if (ctx.discussionId) {
+            connection.invoke('SubscribeToDiscussion', ctx.discussionId).catch(() => {});
+            directSubs.discussionId = ctx.discussionId;
+        }
+        if (ctx.spaceId) {
+            connection.invoke('SubscribeToSpace', ctx.spaceId).catch(() => {});
+            directSubs.spaceId = ctx.spaceId;
+        }
+        if (ctx.hubId) {
+            connection.invoke('SubscribeToHub', ctx.hubId).catch(() => {});
+            directSubs.hubId = ctx.hubId;
+        }
+    }
+
+    function updateDirectSubscriptions(): void {
+        if (!connection) return;
+        const ctx = getPageContext();
+
+        if (directSubs.discussionId && directSubs.discussionId !== ctx.discussionId) {
+            connection.invoke('UnsubscribeFromDiscussion', directSubs.discussionId).catch(() => {});
+        }
+        if (ctx.discussionId && ctx.discussionId !== directSubs.discussionId) {
+            connection.invoke('SubscribeToDiscussion', ctx.discussionId).catch(() => {});
+        }
+        directSubs.discussionId = ctx.discussionId;
+
+        if (directSubs.spaceId && directSubs.spaceId !== ctx.spaceId) {
+            connection.invoke('UnsubscribeFromSpace', directSubs.spaceId).catch(() => {});
+        }
+        if (ctx.spaceId && ctx.spaceId !== directSubs.spaceId) {
+            connection.invoke('SubscribeToSpace', ctx.spaceId).catch(() => {});
+        }
+        directSubs.spaceId = ctx.spaceId;
+
+        if (directSubs.hubId && directSubs.hubId !== ctx.hubId) {
+            connection.invoke('UnsubscribeFromHub', directSubs.hubId).catch(() => {});
+        }
+        if (ctx.hubId && ctx.hubId !== directSubs.hubId) {
+            connection.invoke('SubscribeToHub', ctx.hubId).catch(() => {});
+        }
+        directSubs.hubId = ctx.hubId;
+    }
+
+    // ============================================================================
+    // Typing indicator API (for discussion-detail.ts)
+    // ============================================================================
+
+    (window as any).SnakkRealtime = {
+        startTyping(discussionId: string, displayName: string): void {
+            if (worker) {
+                worker.port.postMessage({ type: 'invoke', method: 'StartTyping', args: [discussionId, displayName] });
+            } else if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StartTyping', discussionId, displayName).catch(() => {});
+            }
+        },
+        stopTyping(discussionId: string, displayName: string): void {
+            if (worker) {
+                worker.port.postMessage({ type: 'invoke', method: 'StopTyping', args: [discussionId, displayName] });
+            } else if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StopTyping', discussionId, displayName).catch(() => {});
+            }
+        }
+    };
+
+    // ============================================================================
+    // Bootstrap
+    // ============================================================================
+
+    function start(): void {
+        if (!trySharedWorker()) {
+            debugLog('SharedWorker unavailable — using direct connection');
+            startDirectConnection();
+        }
+    }
+
+    if ('requestIdleCallback' in window) requestIdleCallback(start);
+    else setTimeout(start, 200);
+
+    // Re-evaluate subscriptions after HTMX boost navigation
+    document.addEventListener('htmx:afterSettle', () => {
+        if (worker) updateWorkerSubscriptions();
+        else if (connection) updateDirectSubscriptions();
     });
 })();

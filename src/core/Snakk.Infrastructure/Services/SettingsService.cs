@@ -19,6 +19,8 @@ public class SettingsService : ISettingsService
     private readonly IConfiguration _configuration;
     private readonly ISecurityService _securityService;
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+    private static readonly HybridCacheEntryOptions LongCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+    private const string SiteInfoCacheKey = "site-info";
 
     public SettingsService(
         SnakkDbContext context,
@@ -215,14 +217,18 @@ public class SettingsService : ISettingsService
         await UpdateSettingAsync("Email", "FromName", config.FromName, adminUserId);
     }
 
-    public async Task<SiteInfoDto> GetSiteInfoAsync() => new SiteInfoDto
-    {
-        SiteName = await GetSettingValueAsync<string>("General", "SiteName") ?? "Snakk",
-        SiteDescription = await GetSettingValueAsync<string>("General", "SiteDescription") ?? string.Empty,
-        LogoUrl = await GetSettingValueAsync<string>("General", "LogoUrl") ?? string.Empty,
-        Timezone = await GetSettingValueAsync<string>("General", "Timezone") ?? "UTC",
-        Language = await GetSettingValueAsync<string>("General", "Language") ?? "en"
-    };
+    public async Task<SiteInfoDto> GetSiteInfoAsync() =>
+        await _cache.GetOrCreateAsync(
+            SiteInfoCacheKey,
+            async cancel => new SiteInfoDto
+            {
+                SiteName = await GetSettingValueAsync<string>("General", "SiteName") ?? "Snakk",
+                SiteDescription = await GetSettingValueAsync<string>("General", "SiteDescription") ?? string.Empty,
+                LogoUrl = await GetSettingValueAsync<string>("General", "LogoUrl") ?? string.Empty,
+                Timezone = await GetSettingValueAsync<string>("General", "Timezone") ?? "UTC",
+                Language = await GetSettingValueAsync<string>("General", "Language") ?? "en"
+            },
+            LongCacheOptions);
 
     public async Task UpdateSiteInfoAsync(SiteInfoDto siteInfo, string adminUserId)
     {
@@ -231,6 +237,7 @@ public class SettingsService : ISettingsService
         await UpdateSettingAsync("General", "LogoUrl", siteInfo.LogoUrl, adminUserId);
         await UpdateSettingAsync("General", "Timezone", siteInfo.Timezone, adminUserId);
         await UpdateSettingAsync("General", "Language", siteInfo.Language, adminUserId);
+        await _cache.RemoveAsync(SiteInfoCacheKey);
     }
 
     public async Task<AvatarSettingsDto> GetAvatarSettingsAsync() => new AvatarSettingsDto

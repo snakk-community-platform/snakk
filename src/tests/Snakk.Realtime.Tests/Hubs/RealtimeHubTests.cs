@@ -2,29 +2,53 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Snakk.Realtime.Hubs;
+using Snakk.Realtime.Services;
 
 namespace Snakk.Realtime.Tests.Hubs;
 
 public class RealtimeHubTests : IDisposable
 {
     private const string TestConnectionId = "test-connection-id";
+    private const string TestUserId = "user-public-id-123";
 
+    private readonly Mock<IAccessVerifier> _mockAccessVerifier;
     private readonly Mock<ILogger<RealtimeHub>> _mockLogger;
     private readonly Mock<IGroupManager> _mockGroups;
     private readonly Mock<HubCallerContext> _mockContext;
     private readonly Mock<IHubCallerClients> _mockClients;
+    private readonly Mock<ISingleClientProxy> _mockCallerClient;
+    private readonly Mock<IClientProxy> _mockGroupClient;
     private readonly RealtimeHub _hub;
 
     public RealtimeHubTests()
     {
+        _mockAccessVerifier = new Mock<IAccessVerifier>();
         _mockLogger = new Mock<ILogger<RealtimeHub>>();
         _mockGroups = new Mock<IGroupManager>();
         _mockContext = new Mock<HubCallerContext>();
         _mockClients = new Mock<IHubCallerClients>();
+        _mockCallerClient = new Mock<ISingleClientProxy>();
+        _mockGroupClient = new Mock<IClientProxy>();
 
         _mockContext.Setup(c => c.ConnectionId).Returns(TestConnectionId);
+        _mockContext.Setup(c => c.UserIdentifier).Returns(TestUserId);
+        _mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(_mockGroupClient.Object);
+        _mockClients.Setup(c => c.OthersInGroup(It.IsAny<string>())).Returns(_mockGroupClient.Object);
 
-        _hub = new RealtimeHub(_mockLogger.Object)
+        // Default: access granted
+        _mockAccessVerifier
+            .Setup(v => v.VerifyDiscussionAccessAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        _mockAccessVerifier
+            .Setup(v => v.VerifySpaceAccessAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        _mockAccessVerifier
+            .Setup(v => v.VerifyHubAccessAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        _mockClients.Setup(c => c.Caller).Returns(_mockCallerClient.Object);
+
+        _hub = new RealtimeHub(_mockAccessVerifier.Object, _mockLogger.Object)
         {
             Groups = _mockGroups.Object,
             Context = _mockContext.Object,
@@ -112,16 +136,33 @@ public class RealtimeHubTests : IDisposable
     public async Task SubscribeToSpace_AddsConnectionToCorrectGroup()
     {
         // Arrange
-        var hubSlug = "tech";
-        var spaceSlug = "programming";
+        var spacePublicId = "space-abc-123";
 
         // Act
-        await _hub.SubscribeToSpace(hubSlug, spaceSlug);
+        await _hub.SubscribeToSpace(spacePublicId);
 
         // Assert
         _mockGroups.Verify(
-            g => g.AddToGroupAsync(TestConnectionId, "space:tech:programming", default),
+            g => g.AddToGroupAsync(TestConnectionId, $"space:{spacePublicId}", default),
             Times.Once);
+    }
+
+    [Test]
+    public async Task SubscribeToSpace_WhenAccessDenied_DoesNotAddToGroup()
+    {
+        // Arrange
+        var spacePublicId = "restricted-space";
+        _mockAccessVerifier
+            .Setup(v => v.VerifySpaceAccessAsync(TestUserId, spacePublicId))
+            .ReturnsAsync(false);
+
+        // Act
+        await _hub.SubscribeToSpace(spacePublicId);
+
+        // Assert
+        _mockGroups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), default),
+            Times.Never);
     }
 
     #endregion
@@ -132,15 +173,14 @@ public class RealtimeHubTests : IDisposable
     public async Task UnsubscribeFromSpace_RemovesConnectionFromCorrectGroup()
     {
         // Arrange
-        var hubSlug = "tech";
-        var spaceSlug = "programming";
+        var spacePublicId = "space-abc-123";
 
         // Act
-        await _hub.UnsubscribeFromSpace(hubSlug, spaceSlug);
+        await _hub.UnsubscribeFromSpace(spacePublicId);
 
         // Assert
         _mockGroups.Verify(
-            g => g.RemoveFromGroupAsync(TestConnectionId, "space:tech:programming", default),
+            g => g.RemoveFromGroupAsync(TestConnectionId, $"space:{spacePublicId}", default),
             Times.Once);
     }
 
@@ -152,14 +192,14 @@ public class RealtimeHubTests : IDisposable
     public async Task SubscribeToHub_AddsConnectionToCorrectGroup()
     {
         // Arrange
-        var hubSlug = "technology";
+        var hubPublicId = "hub-public-id-456";
 
         // Act
-        await _hub.SubscribeToHub(hubSlug);
+        await _hub.SubscribeToHub(hubPublicId);
 
         // Assert
         _mockGroups.Verify(
-            g => g.AddToGroupAsync(TestConnectionId, "hub:technology", default),
+            g => g.AddToGroupAsync(TestConnectionId, $"hub:{hubPublicId}", default),
             Times.Once);
     }
 
@@ -171,33 +211,14 @@ public class RealtimeHubTests : IDisposable
     public async Task UnsubscribeFromHub_RemovesConnectionFromCorrectGroup()
     {
         // Arrange
-        var hubSlug = "technology";
+        var hubPublicId = "hub-public-id-456";
 
         // Act
-        await _hub.UnsubscribeFromHub(hubSlug);
+        await _hub.UnsubscribeFromHub(hubPublicId);
 
         // Assert
         _mockGroups.Verify(
-            g => g.RemoveFromGroupAsync(TestConnectionId, "hub:technology", default),
-            Times.Once);
-    }
-
-    #endregion
-
-    #region SubscribeToUserNotifications Tests
-
-    [Test]
-    public async Task SubscribeToUserNotifications_AddsConnectionToCorrectGroup()
-    {
-        // Arrange
-        var userId = "user-456";
-
-        // Act
-        await _hub.SubscribeToUserNotifications(userId);
-
-        // Assert
-        _mockGroups.Verify(
-            g => g.AddToGroupAsync(TestConnectionId, "user:user-456", default),
+            g => g.RemoveFromGroupAsync(TestConnectionId, $"hub:{hubPublicId}", default),
             Times.Once);
     }
 
@@ -206,10 +227,15 @@ public class RealtimeHubTests : IDisposable
     #region OnConnectedAsync Tests
 
     [Test]
-    public async Task OnConnectedAsync_CompletesSuccessfully()
+    public async Task OnConnectedAsync_AutoSubscribesToUserGroup()
     {
-        // Act & Assert - should not throw
+        // Act
         await _hub.OnConnectedAsync();
+
+        // Assert — auto-subscribed to user group server-side
+        _mockGroups.Verify(
+            g => g.AddToGroupAsync(TestConnectionId, $"user:{TestUserId}", default),
+            Times.Once);
     }
 
     #endregion

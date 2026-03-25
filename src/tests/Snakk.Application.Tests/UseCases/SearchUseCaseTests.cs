@@ -41,7 +41,7 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, null, null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, null, null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -68,14 +68,14 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, authorId, null, null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, authorId, null, null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
         var result = await _useCase.SearchDiscussionsAsync(query, authorPublicId: authorId);
 
         // Assert
-        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, authorId, null, null, 0, 20), Times.Once);
+        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, authorId, null, null, 0, 20, null), Times.Once);
     }
 
     [Test]
@@ -93,14 +93,14 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, spaceId, null, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, spaceId, null, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
         var result = await _useCase.SearchDiscussionsAsync(query, spacePublicId: spaceId);
 
         // Assert
-        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, null, spaceId, null, 0, 20), Times.Once);
+        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, null, spaceId, null, 0, 20, null), Times.Once);
     }
 
     [Test]
@@ -118,14 +118,14 @@ public class SearchUseCaseTests
             HasMoreItems = false
         };
 
-        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, null, hubId, 0, 20))
+        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync(query, null, null, hubId, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
         var result = await _useCase.SearchDiscussionsAsync(query, hubPublicId: hubId);
 
         // Assert
-        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, null, null, hubId, 0, 20), Times.Once);
+        _mockSearchRepository.Verify(r => r.SearchDiscussionsAsync(query, null, null, hubId, 0, 20, null), Times.Once);
     }
 
     [Test]
@@ -140,7 +140,7 @@ public class SearchUseCaseTests
             HasMoreItems = true
         };
 
-        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync("query", null, null, null, 10, 5))
+        _mockSearchRepository.Setup(r => r.SearchDiscussionsAsync("query", null, null, null, 10, 5, null))
             .ReturnsAsync(pagedResult);
 
         // Act

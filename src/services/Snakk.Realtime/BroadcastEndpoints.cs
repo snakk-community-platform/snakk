@@ -17,12 +17,18 @@ public static class BroadcastEndpoints
         await hubContext.Clients.Group(request.TargetGroup)
             .SendAsync("ReceiveUpdate", new
             {
+                group = request.TargetGroup,
                 eventType = request.EventType,
                 htmlContent = request.HtmlContent,
                 targetId = request.TargetId,
                 swapStrategy = request.SwapStrategy,
                 postId = request.PostId,
-                counts = request.Counts
+                counts = request.Counts,
+                discussionId = request.DiscussionId,
+                title = request.Title,
+                delta = request.Delta,
+                authorId = request.AuthorId,
+                authorName = request.AuthorName
             });
 
         return Results.Ok(new { success = true, targetGroup = request.TargetGroup });

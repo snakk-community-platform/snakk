@@ -35,7 +35,7 @@
                     Model.Community,
                     discussion.Hub.Slug,
                     discussion.Space.Slug,
-                    $"{discussion.Slug}~{discussion.PublicId}");
+                    SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
 
                 <a href="@discussionUrl" class="topic-item">
                     <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
@@ -116,7 +116,7 @@ else if (Model.SearchType == "post")
                     Model.Community,
                     post.Hub.Slug,
                     post.Space.Slug,
-                    $"{post.DiscussionSlug}~{post.DiscussionPublicId}");
+                    SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
 
                 <div class="clean-card">
                     <div class="flex items-start gap-3">

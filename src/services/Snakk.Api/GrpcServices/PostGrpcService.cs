@@ -15,18 +15,24 @@ public class PostGrpcService(
     PostUseCase postUseCase,
     DiscussionUseCase discussionUseCase,
     IMarkupParser markupParser,
-    ICurrentUserService currentUser) : PostService.PostServiceBase
+    ICurrentUserService currentUser,
+    IUserGrantsCacheService grantsCache,
+    IEntityHierarchyCacheService hierarchyCache) : PostService.PostServiceBase
 {
     public override async Task<PagedEnrichedPostList> GetPostsByDiscussion(GetPostsByDiscussionRequest request, ServerCallContext context)
     {
         UserId? currentUserId = null;
+        string? currentUserIdValue = null;
 
         if (currentUser.IsAuthenticated())
         {
-            var uid = currentUser.GetCurrentUserId();
+            currentUserIdValue = currentUser.GetCurrentUserId();
 
-            if (uid is not null) currentUserId = UserId.From(uid);
+            if (currentUserIdValue is not null) currentUserId = UserId.From(currentUserIdValue);
         }
+
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUserIdValue))
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var result = await postUseCase.GetEnrichedPostsByDiscussionAsync(
             DiscussionId.From(request.DiscussionId),
@@ -106,6 +112,9 @@ public class PostGrpcService(
     {
         var userId = RequireAuth();
 
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, userId.Value))
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
         PostId? replyToPostId = request.HasReplyToPostId
             ? PostId.From(request.ReplyToPostId)
             : null;
@@ -183,6 +192,28 @@ public class PostGrpcService(
         response.RenderedHtml = string.Join("\n---\n", htmlParts);
 
         return response;
+    }
+
+    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId)
+    {
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        if (restricted.IsEmpty) return true;
+
+        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId);
+
+        if (h is null) return false;
+
+        var spaceGate = restricted.SpaceIds.Contains(h.SpaceId);
+        var hubGate = restricted.HubIds.Contains(h.HubId);
+        var communityGate = restricted.CommunityIds.Contains(h.CommunityId);
+
+        if (!spaceGate && !hubGate && !communityGate) return true;
+        if (userId is null) return false;
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        return (!spaceGate || grants.SpaceIds.Contains(h.SpaceId))
+            && (!hubGate || grants.HubIds.Contains(h.HubId))
+            && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
     private UserId RequireAuth()

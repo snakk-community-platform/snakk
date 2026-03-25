@@ -20,6 +20,7 @@ public class DetailModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public HubInfo? Hub { get; set; }
+    public HubStats? HubStats { get; set; }
     public CommunityInfo? CommunityDetail { get; set; }
     public PagedSpaceByHubList? Spaces { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
@@ -64,13 +65,26 @@ public class DetailModel(
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
         var announcementsTask = _apiClient.GetActiveAnnouncementsForHubAsync(Hub.PublicId);
+        var statsTask = _apiClient.GetHubStatsAsync(Hub.PublicId);
 
-        await Task.WhenAll(spacesTask, discussionsTask, communityTask, announcementsTask);
+        await Task.WhenAll(spacesTask, discussionsTask, communityTask, announcementsTask, statsTask);
 
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
         RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
         Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
+        HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
+
+        // Group access check — only call if hub or its community is restricted
+        if (CommunityDetail is not null && (Hub.IsRestricted || CommunityDetail.IsRestricted))
+        {
+            var access = await _apiClient.CheckGroupAccessAsync(
+                CommunityDetail.PublicId,
+                Hub.PublicId);
+
+            if (access is not null && !access.CanRead)
+                return StatusCode(403);
+        }
 
         return Page();
     }

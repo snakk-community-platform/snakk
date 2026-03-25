@@ -14,6 +14,9 @@ public class ManageScopeDto
     public string? HubSlug { get; set; }
     public string? SpaceSlug { get; set; }
 
+    // Community public ID (always the community, regardless of scope type)
+    public required string CommunityPublicId { get; set; }
+
     // Breadcrumb data
     public required string CommunityName { get; set; }
     public string? HubName { get; set; }

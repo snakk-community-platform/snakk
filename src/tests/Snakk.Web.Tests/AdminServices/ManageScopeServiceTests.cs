@@ -25,10 +25,11 @@ public class ManageScopeServiceTests
         string? spaceSlug = null,
         List<ManagePermissionEnum>? permissions = null)
     {
+        var publicId = Guid.NewGuid().ToString();
         return new ManageScopeDto
         {
             ScopeType = scopeType,
-            ScopePublicId = Guid.NewGuid().ToString(),
+            ScopePublicId = publicId,
             ScopeName = $"Test {scopeType}",
             CommunitySlug = communitySlug,
             HubSlug = hubSlug,
@@ -36,6 +37,7 @@ public class ManageScopeServiceTests
             CommunityName = "Test Community",
             HubName = hubSlug is not null ? "Test Hub" : null,
             SpaceName = spaceSlug is not null ? "Test Space" : null,
+            CommunityPublicId = publicId,
             Permissions = permissions ?? []
         };
     }

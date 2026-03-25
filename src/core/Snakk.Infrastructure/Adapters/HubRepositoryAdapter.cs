@@ -85,7 +85,8 @@ public class HubRepositoryAdapter(
     public async Task<PagedResult<Hub>> GetByCommunityAsync(
         CommunityId communityId,
         int offset,
-        int pageSize)
+        int pageSize,
+        string? userId = null)
     {
         // First get the community's database ID
         var communityDbId = await databaseRepository.GetCommunityDbIdAsync(communityId.Value);
@@ -101,7 +102,7 @@ public class HubRepositoryAdapter(
             };
         }
 
-        var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize);
+        var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize, userId);
 
         return new PagedResult<Hub>
         {

@@ -130,6 +130,12 @@
 
 @if (Model.Discussion != null)
 {
+    <!-- Realtime context — JS reads these to subscribe to the correct groups -->
+    <div id="page-context"
+         data-discussion-id="@Model.Discussion.PublicId"
+         data-space-id="@Model.Space?.PublicId"
+         hidden></div>
+
     <!-- Breadcrumb -->
     <div class="breadcrumb-bar">
         <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -281,44 +287,18 @@
             </div>
             <div class="flex items-center gap-2">
                 <!-- Share dropdown (visible to all users) -->
-                @{
-                    var xShareUrl = $"https://x.com/intent/tweet?url={Uri.EscapeDataString(Model.CanonicalUrl)}&text={Uri.EscapeDataString(Model.Discussion.Title)}";
-                    var redditShareUrl = $"https://www.reddit.com/submit?url={Uri.EscapeDataString(Model.CanonicalUrl)}&title={Uri.EscapeDataString(Model.Discussion.Title)}";
-                }
                 <div class="dropdown dropdown-end">
-                    <button tabindex="0" class="btn btn-sm btn-ghost gap-1" aria-label="Share discussion">
+                    <button id="share-dropdown-btn" tabindex="0" class="btn btn-sm btn-ghost gap-1" aria-label="Share discussion">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
                         <span class="hidden sm:inline">Share</span>
                     </button>
-                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-52 z-20">
-                        <li>
-                            <button class="text-sm"
-                                    data-action="copy-discussion-link"
-                                    data-discussion-url="@Model.CanonicalUrl">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copy link
-                            </button>
-                        </li>
-                        <li>
-                            <a href="@xShareUrl" target="_blank" rel="noopener noreferrer" class="text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zM17.083 20.25l-11.54-15.5H4.834l11.54 15.5h.709z" />
-                                </svg>
-                                Share on X
-                            </a>
-                        </li>
-                        <li>
-                            <a href="@redditShareUrl" target="_blank" rel="noopener noreferrer" class="text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
-                                </svg>
-                                Share on Reddit
-                            </a>
-                        </li>
+                    <ul tabindex="0"
+                        class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-20"
+                        hx-get="/partials/share-menu?url=@Uri.EscapeDataString(Model.CanonicalUrl)&title=@Uri.EscapeDataString(Model.Discussion.Title)"
+                        hx-trigger="click from:#share-dropdown-btn once"
+                        hx-swap="innerHTML">
                     </ul>
                 </div>
                 @if (Model.IsAuthenticated)
@@ -903,11 +883,11 @@
                 }
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <div class="text-lg font-semibold">@FormatCount(Model.Space.DiscussionCount)</div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.DiscussionCount ?? 0)</div>
                         <div class="text-xs text-base-content/50">Discussions</div>
                     </div>
                     <div>
-                        <div class="text-lg font-semibold">@FormatCount(Model.Space.ReplyCount)</div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.ReplyCount ?? 0)</div>
                         <div class="text-xs text-base-content/50">Replies</div>
                     </div>
                 </div>
@@ -926,6 +906,23 @@
                         <div class="skeleton h-4 w-full"></div>
                         <div class="skeleton h-4 w-5/6"></div>
                         <div class="skeleton h-4 w-4/6"></div>
+                    </div>
+                </inline-or-htmx>
+            </div>
+        }
+
+        <!-- Moderators -->
+        @if (Model.Space != null)
+        {
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Moderators</h3>
+                <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                                 model="Model.InlineModerators"
+                                 htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
+                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
                     </div>
                 </inline-or-htmx>
             </div>

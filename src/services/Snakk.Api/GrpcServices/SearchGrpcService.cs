@@ -1,6 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Snakk.Shared.Helpers;
+using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Protos;
 using Snakk.Protos.Search;
@@ -10,7 +11,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class SearchGrpcService(
     SearchUseCase searchUseCase,
-    Application.Repositories.ISearchRepository searchRepository) : SearchService.SearchServiceBase
+    Application.Repositories.ISearchRepository searchRepository,
+    ICurrentUserService currentUser) : SearchService.SearchServiceBase
 {
     public override async Task<PagedDiscussionSearchResults> SearchDiscussions(SearchDiscussionsRequest request, ServerCallContext context)
     {
@@ -22,7 +24,8 @@ public class SearchGrpcService(
             request.HasSpaceId ? request.SpaceId : null,
             request.HasHubId ? request.HubId : null,
             request.Offset,
-            pageSize);
+            pageSize,
+            currentUser.GetCurrentUserId());
 
         var response = new PagedDiscussionSearchResults
         {

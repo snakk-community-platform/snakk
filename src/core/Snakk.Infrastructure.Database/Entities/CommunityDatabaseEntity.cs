@@ -30,6 +30,9 @@ public class CommunityDatabaseEntity
     // Timezone (IANA timezone ID, e.g. "Europe/London"; null = use site-wide setting)
     public string? Timezone { get; set; }
 
+    // Group access control
+    public bool IsRestricted { get; set; }
+
     // Rules denormalization
     public bool HasRules { get; set; }
     public string? RulesRevision { get; set; }
@@ -48,4 +51,6 @@ public class CommunityDatabaseEntity
     public virtual ICollection<HubDatabaseEntity> Hubs { get; set; } = [];
     public virtual ICollection<CommunityDomainDatabaseEntity> Domains { get; set; } = [];
     public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
+    public virtual ICollection<GroupDatabaseEntity> Groups { get; set; } = [];
+    public virtual ICollection<GroupAccessDatabaseEntity> GroupAccess { get; set; } = [];
 }

@@ -57,6 +57,14 @@ public class DetailModel(
         CommunityDetail = communityResult.Value!;
         SidebarScopeId = CommunityDetail.PublicId;
 
+        // Group access check — only call if the community is actually restricted
+        if (CommunityDetail.IsRestricted)
+        {
+            var communityAccess = await _apiClient.CheckGroupAccessAsync(CommunityDetail.PublicId);
+            if (communityAccess is not null && !communityAccess.CanRead)
+                return StatusCode(403);
+        }
+
         if (CommunityDetail.HasRules)
             InlineCommunityRules = prefetchCache.ResolveOrPrefetch(
                 $"community-rules:{CommunityDetail.PublicId}",
@@ -69,12 +77,17 @@ public class DetailModel(
         var hubsTask = _apiClient.GetHubsByCommunityAsync(CommunityDetail.PublicId, 0, 50);
         var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId: CommunityDetail.PublicId);
         var announcementsTask = _apiClient.GetActiveAnnouncementsForCommunityAsync(CommunityDetail.PublicId);
+        var statsTask = _apiClient.GetCommunityStatsAsync(CommunityDetail.PublicId);
 
-        await Task.WhenAll(hubsTask, discussionsTask, announcementsTask);
+        await Task.WhenAll(hubsTask, discussionsTask, announcementsTask, statsTask);
 
         Hubs = hubsTask.IsCompletedSuccessfully ? hubsTask.Result : null;
         RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
+
+        var stats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
+        if (stats is not null)
+            InlineCommunityStats = new(stats.SpaceCount, stats.DiscussionCount, stats.ReplyCount, "fresh");
 
         return Page();
     }
@@ -82,12 +95,6 @@ public class DetailModel(
     private void ResolveSidebarData()
     {
         var communityId = CommunityDetail!.PublicId;
-
-        var statsData = prefetchCache.ResolveOrPrefetch(
-            $"platform-stats:community:{communityId}",
-            () => _apiClient.GetCommunityStatsAsync(communityId));
-        if (statsData is not null)
-            InlineCommunityStats = new(statsData.SpaceCount, statsData.DiscussionCount, statsData.ReplyCount, "cache");
 
         if (ShowTrendingDiscussions)
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(

@@ -408,6 +408,23 @@ public class SnakkApiClient(
     public virtual Task<CommunityStats?> GetCommunityStatsForPopupAsync(string publicId) => GetCommunityStatsAsync(publicId);
     public virtual Task<UserStats?> GetUserStatsForPopupAsync(string publicId) => GetUserStatsAsync(publicId);
 
+    // ==================== Group Access ====================
+
+    public virtual async Task<CheckGroupAccessResponse?> CheckGroupAccessAsync(
+        string communityPublicId,
+        string? hubPublicId = null,
+        string? spacePublicId = null)
+    {
+        try
+        {
+            var request = new CheckGroupAccessRequest { CommunityPublicId = communityPublicId };
+            if (hubPublicId is not null) request.HubPublicId = hubPublicId;
+            if (spacePublicId is not null) request.SpacePublicId = spacePublicId;
+            return await communityClient.CheckGroupAccessAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // ==================== Search ====================
 
     public virtual async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(

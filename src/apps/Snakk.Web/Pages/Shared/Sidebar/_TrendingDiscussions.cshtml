@@ -16,7 +16,7 @@ else
                 Model.Community,
                 discussion.Hub.Slug,
                 discussion.Space.Slug,
-                $"{discussion.Slug}~{discussion.PublicId}");
+                SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
 
             <li>
                 <a href="@discussionUrl" class="sidebar-link">

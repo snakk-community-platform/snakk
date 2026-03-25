@@ -18,6 +18,7 @@ public class SpaceDatabaseEntity
     // Access control
     public bool AllowAnonymousReading { get; set; }
     public bool RequireEmailConfirmation { get; set; }
+    public bool IsRestricted { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }
@@ -49,4 +50,5 @@ public class SpaceDatabaseEntity
     public virtual ICollection<DiscussionDatabaseEntity> Discussions { get; set; } = [];
     public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
     public virtual ICollection<SpaceAllowedDiscussionTypeDatabaseEntity> AllowedDiscussionTypes { get; set; } = [];
+    public virtual ICollection<GroupAccessDatabaseEntity> GroupAccess { get; set; } = [];
 }

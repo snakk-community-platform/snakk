@@ -321,6 +321,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsRestricted")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -689,6 +692,144 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Follow");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CanRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanWrite")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("CommunityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HubId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SpaceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId");
+
+                    b.HasIndex("HubId");
+
+                    b.HasIndex("SpaceId");
+
+                    b.HasIndex("GroupId", "CommunityId")
+                        .IsUnique()
+                        .HasFilter("\"CommunityId\" IS NOT NULL AND \"HubId\" IS NULL AND \"SpaceId\" IS NULL");
+
+                    b.HasIndex("GroupId", "HubId")
+                        .IsUnique()
+                        .HasFilter("\"HubId\" IS NOT NULL AND \"SpaceId\" IS NULL");
+
+                    b.HasIndex("GroupId", "SpaceId")
+                        .IsUnique()
+                        .HasFilter("\"SpaceId\" IS NOT NULL");
+
+                    b.ToTable("GroupAccess");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommunityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("CommunityId", "IsPublic");
+
+                    b.HasIndex("CommunityId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupMemberDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("AddedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddedByUserId");
+
+                    b.HasIndex("GroupId", "UserId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "GroupId");
+
+                    b.ToTable("GroupMembers");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -722,6 +863,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRestricted")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModifiedAt")
@@ -1702,6 +1846,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsRestricted")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2548,6 +2695,76 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", "Community")
+                        .WithMany("GroupAccess")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", "Hub")
+                        .WithMany("GroupAccess")
+                        .HasForeignKey("HubId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
+                        .WithMany("GroupAccess")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Community");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Hub");
+
+                    b.Navigation("Space");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", "Community")
+                        .WithMany("Groups")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Community");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupMemberDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "AddedByUser")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", "Group")
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("AddedByUser");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.CommunityDatabaseEntity", "Community")
@@ -3245,6 +3462,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                 {
                     b.Navigation("Domains");
 
+                    b.Navigation("GroupAccess");
+
+                    b.Navigation("Groups");
+
                     b.Navigation("Hubs");
 
                     b.Navigation("Rules");
@@ -3260,8 +3481,15 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Options");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", b =>
+                {
+                    b.Navigation("Members");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.HubDatabaseEntity", b =>
                 {
+                    b.Navigation("GroupAccess");
+
                     b.Navigation("Rules");
 
                     b.Navigation("Spaces");
@@ -3287,6 +3515,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("AllowedDiscussionTypes");
 
                     b.Navigation("Discussions");
+
+                    b.Navigation("GroupAccess");
 
                     b.Navigation("Rules");
                 });

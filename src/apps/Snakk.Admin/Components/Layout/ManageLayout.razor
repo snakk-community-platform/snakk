@@ -105,6 +105,17 @@
                     <MudNavLink Href="@($"{BaseUrl}/rules")" Icon="@Icons.Material.Filled.MenuBook">
                         Rules
                     </MudNavLink>
+
+                    <MudNavLink Href="@($"{BaseUrl}/access")" Icon="@Icons.Material.Filled.Lock">
+                        Access Control
+                    </MudNavLink>
+                }
+
+                @if (Scope?.ScopeType == "Community" && HasPermission(ManagePermissionEnum.ManageGroups))
+                {
+                    <MudNavLink Href="@($"{BaseUrl}/groups")" Icon="@Icons.Material.Filled.Group">
+                        Groups
+                    </MudNavLink>
                 }
 
                 @if (HasPermission(ManagePermissionEnum.ManageTeam))

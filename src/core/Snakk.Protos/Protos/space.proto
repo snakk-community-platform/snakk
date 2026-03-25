@@ -58,6 +58,7 @@ message SpaceInfo {
   bool parent_community_has_rules = 14;
   repeated int32 allowed_discussion_types = 15;
   string team_revision = 16;
+  bool is_restricted = 17;
 }
 
 message LatestDiscussionRef {

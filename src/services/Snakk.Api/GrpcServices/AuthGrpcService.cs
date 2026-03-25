@@ -18,7 +18,8 @@ public class AuthGrpcService(
     ICurrentUserService currentUser,
     SnakkDbContext context,
     ISettingsService settingsService,
-    ILogger<AuthGrpcService> logger) : AuthService.AuthServiceBase
+    ILogger<AuthGrpcService> logger,
+    IUserGrantsCacheService grantsCache) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -48,6 +49,8 @@ public class AuthGrpcService(
 
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
+
+        await grantsCache.GetGrantsAsync(user.PublicId.Value);
 
         return new AuthTokenResponse
         {
@@ -92,6 +95,8 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
         logger.LogInformation("Login succeeded for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
+
+        await grantsCache.GetGrantsAsync(user.PublicId.Value);
 
         return new AuthTokenResponse
         {

@@ -151,7 +151,7 @@ public class StatisticsUseCaseTests
         };
 
         _mockDiscussionRepo.Setup(r => r.GetTopActiveDiscussionsSinceAsync(
-                It.IsAny<DateTime>(), null, null, null, 5))
+                It.IsAny<DateTime>(), null, null, null, 5, null))
             .ReturnsAsync(topDiscussions);
 
         // Act
@@ -174,7 +174,7 @@ public class StatisticsUseCaseTests
         const string spaceId = "space-123";
 
         _mockDiscussionRepo.Setup(r => r.GetTopActiveDiscussionsSinceAsync(
-                It.IsAny<DateTime>(), null, SpaceId.From(spaceId), null, 5))
+                It.IsAny<DateTime>(), null, SpaceId.From(spaceId), null, 5, null))
             .ReturnsAsync([]);
 
         // Act
@@ -182,7 +182,7 @@ public class StatisticsUseCaseTests
 
         // Assert
         _mockDiscussionRepo.Verify(r => r.GetTopActiveDiscussionsSinceAsync(
-            It.IsAny<DateTime>(), null, It.Is<SpaceId>(s => s.Value == spaceId), null, 5), Times.Once);
+            It.IsAny<DateTime>(), null, It.Is<SpaceId>(s => s.Value == spaceId), null, 5, null), Times.Once);
     }
 
     #endregion

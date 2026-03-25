@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
@@ -11,7 +12,8 @@ using Snakk.Shared.Models;
 
 public class DiscussionRepositoryAdapter(
     Infrastructure.Database.Repositories.IDiscussionRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.IDiscussionRepository
+    SnakkDbContext context,
+    IUserGrantsCacheService grantsCache) : Domain.Repositories.IDiscussionRepository
 {
     public async Task<Discussion?> GetByIdAsync(int id)
     {
@@ -182,7 +184,8 @@ public class DiscussionRepositoryAdapter(
         HubId? hubId,
         SpaceId? spaceId,
         CommunityId? communityId,
-        int limit)
+        int limit,
+        string? userId = null)
     {
         var postsQuery = context.Posts
             .Where(p => !p.IsDeleted && p.CreatedAt >= since);
@@ -213,6 +216,31 @@ public class DiscussionRepositoryAdapter(
                     .Where(s => s.PublicId == spaceId.Value)
                     .Select(s => s.Id)
                     .FirstOrDefault());
+        }
+
+        // Group access filter — only show posts in discussions the user can read
+        if (!await grantsCache.AnyRestrictedAsync())
+        {
+            // Fast path: nothing in the platform is restricted, skip filter entirely
+        }
+        else if (userId == null)
+        {
+            postsQuery = postsQuery.Where(p =>
+                !p.Discussion.Space.IsRestricted &&
+                !p.Discussion.Space.Hub.IsRestricted &&
+                !p.Discussion.Space.Hub.Community.IsRestricted);
+        }
+        else
+        {
+            var grants = await grantsCache.GetGrantsAsync(userId);
+            var spaceIds = grants.SpaceIds;
+            var hubIds = grants.HubIds;
+            var communityIds = grants.CommunityIds;
+
+            postsQuery = postsQuery.Where(p =>
+                (!p.Discussion.Space.IsRestricted || spaceIds.Contains(p.Discussion.SpaceId))
+                && (!p.Discussion.Space.Hub.IsRestricted || hubIds.Contains(p.Discussion.Space.HubId))
+                && (!p.Discussion.Space.Hub.Community.IsRestricted || communityIds.Contains(p.Discussion.Space.Hub.CommunityId)));
         }
 
         var topDiscussions = await postsQuery

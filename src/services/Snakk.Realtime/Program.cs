@@ -1,8 +1,11 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.IdentityModel.Tokens;
 using Snakk.Realtime;
 using Snakk.Realtime.Hubs;
-using Serilog;
 using Snakk.Realtime.Middleware;
+using Snakk.Realtime.Services;
 using Snakk.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +18,52 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 
 // Add SignalR
 builder.Services.AddSignalR();
+
+// JWT auth for browser WebSocket connections
+var realtimeJwtKey = builder.Configuration["Realtime:JwtKey"]
+    ?? throw new InvalidOperationException("Realtime:JwtKey is not configured.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(realtimeJwtKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        // SignalR sends the token as ?access_token= query param on WebSocket upgrade
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken)
+                    && context.HttpContext.Request.Path.StartsWithSegments("/realtime"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// HTTP client to Snakk.Api for subscription access verification
+var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
+var snakkApiKey = builder.Configuration["SnakkApi:ApiKey"] ?? string.Empty;
+
+builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
+{
+    client.BaseAddress = new Uri(snakkApiBaseUrl);
+    client.DefaultRequestHeaders.Add("X-Api-Key", snakkApiKey);
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 
 // Configure forwarded headers for proxy scenarios
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -44,12 +93,15 @@ var app = builder.Build();
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();
 
-// API Key authentication for internal service calls
+// API Key authentication for internal service calls (broadcast endpoints)
 app.UseApiKeyAuth();
 
 app.UseCors();
 
-// SignalR hub for browser WebSocket connections
+app.UseAuthentication();
+app.UseAuthorization();
+
+// SignalR hub for browser WebSocket connections (requires JWT auth)
 app.MapHub<RealtimeHub>("/realtime");
 
 // HTTP API for internal services to broadcast events (protected by API key)

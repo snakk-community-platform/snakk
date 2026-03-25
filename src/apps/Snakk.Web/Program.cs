@@ -330,6 +330,7 @@ app.MapRazorPages();
 
 // BFF API endpoints
 app.MapBffApiEndpoints();
+app.MapRealtimeTokenEndpoints();
 
 // Public endpoints
 app.MapSitemapEndpoints();

@@ -115,7 +115,8 @@ public static class AuthEndpoints
         IJwtTokenService jwtService,
         SnakkDbContext context,
         HttpContext httpContext,
-        ILogger<object> logger)
+        ILogger<object> logger,
+        IUserGrantsCacheService grantsCache)
     {
         var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
         var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
@@ -152,6 +153,9 @@ public static class AuthEndpoints
             return Results.Problem("Failed to create refresh token");
 
         AuthAuditLogger.LogLoginSuccess(logger, request.Email, ipAddress, userAgent);
+
+        // Warm the grant cache so the user's first post-login request doesn't pay the DB cost.
+        await grantsCache.GetGrantsAsync(user.PublicId.Value);
 
         return TypedResults.Ok(new Application.DTOs.Auth.LoginResponse
         {

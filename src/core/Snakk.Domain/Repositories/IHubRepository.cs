@@ -11,7 +11,7 @@ public interface IHubRepository
     Task<Hub?> GetBySlugAsync(string slug, string communitySlug);
     Task<IEnumerable<Hub>> GetAllAsync();
     Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize);
-    Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize);
+    Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize, string? userId = null);
     Task AddAsync(Hub hub);
     Task UpdateAsync(Hub hub);
 }

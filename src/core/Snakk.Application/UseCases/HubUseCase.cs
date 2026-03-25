@@ -53,8 +53,8 @@ public class HubUseCase(
     public async Task<PagedResult<Hub>> GetAllHubsAsync(int offset = 0, int pageSize = 20) =>
         await hubRepository.GetFilteredForDisplayAsync(offset, pageSize);
 
-    public async Task<PagedResult<Hub>> GetHubsByCommunityAsync(CommunityId communityId, int offset = 0, int pageSize = 20) =>
-        await hubRepository.GetByCommunityAsync(communityId, offset, pageSize);
+    public async Task<PagedResult<Hub>> GetHubsByCommunityAsync(CommunityId communityId, int offset = 0, int pageSize = 20, string? userId = null) =>
+        await hubRepository.GetByCommunityAsync(communityId, offset, pageSize, userId);
 
     public async Task<Result<Hub>> UpdateHubNameAsync(
         HubId hubId,

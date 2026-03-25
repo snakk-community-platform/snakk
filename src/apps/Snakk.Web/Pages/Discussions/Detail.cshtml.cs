@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Protos.Community;
@@ -22,6 +23,7 @@ public class DetailModel(
     public PagedEnrichedPostList? Posts { get; set; }
     public HubInfo? Hub { get; set; }
     public SpaceInfo? Space { get; set; }
+    public SpaceStats? SpaceStats { get; set; }
     public CommunityInfo? CommunityDetail { get; set; }
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
@@ -42,6 +44,7 @@ public class DetailModel(
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
+    public SidebarModeratorsVM? InlineModerators { get; set; }
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -89,7 +92,7 @@ public class DetailModel(
             return NotFound();
         }
 
-        PublicId = parts[1];
+        PublicId = UlidBase62.Decode(parts[1]);
 
         try
         {
@@ -133,13 +136,27 @@ public class DetailModel(
             Space = spaceTask.Result;
             CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
-            // Prefetch space rules for sidebar (inline if cache warm, HTMX fallback if cold)
+            if (Space is not null)
+                SpaceStats = await _apiClient.GetSpaceStatsAsync(Space.PublicId);
+
+            // Prefetch space rules and moderators for sidebar (inline if cache warm, HTMX fallback if cold)
             if (Space?.HasRules == true)
             {
                 InlineSpaceRules = prefetchCache.ResolveOrPrefetch($"space-rules:{Space.PublicId}",
                     () => _apiClient.GetSpaceRulesAsync(Space.PublicId),
                     d => new SidebarSpaceRulesVM(d, CommunityContext, HubSlug, CommunityContext.CommunitySlug ?? "",
                         Space.ParentHubHasRules, Space.ParentCommunityHasRules, "cache"));
+            }
+
+            if (Space is not null)
+            {
+                InlineModerators = prefetchCache.ResolveOrPrefetch(
+                    $"moderators:Space:{Space.PublicId}",
+                    () => _apiClient.GetModeratorsAsync("Space", Space.PublicId),
+                    d => new SidebarModeratorsVM(
+                        d,
+                        $"{Helpers.SnakkUrlHelper.Space(CommunityContext, HubSlug, SpaceSlug)}/moderators",
+                        "cache"));
             }
 
             var discussionResult = await _apiClient.GetDiscussionResultAsync(PublicId);
@@ -172,7 +189,7 @@ public class DetailModel(
             return NotFound();
         }
 
-        PublicId = parts[1];
+        PublicId = UlidBase62.Decode(parts[1]);
 
         // Load auth status
         var authStatus = await _apiClient.GetAuthStatusAsync();

@@ -21,6 +21,7 @@ public class HubDatabaseEntity
     // Access control
     public bool AllowAnonymousReading { get; set; }
     public bool RequireEmailConfirmation { get; set; }
+    public bool IsRestricted { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }
@@ -48,4 +49,5 @@ public class HubDatabaseEntity
     public virtual CommunityDatabaseEntity Community { get; set; } = null!;
     public virtual ICollection<SpaceDatabaseEntity> Spaces { get; set; } = [];
     public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
+    public virtual ICollection<GroupAccessDatabaseEntity> GroupAccess { get; set; } = [];
 }

@@ -1,5 +1,6 @@
 namespace Snakk.Api.Endpoints;
 
+using System.Security.Claims;
 using Snakk.Api.Models;
 using Snakk.Api.Extensions;
 using Snakk.Application.UseCases;
@@ -144,7 +145,7 @@ public static class DiscussionEndpoints
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
 
-        var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, cursor);
+        var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, null, cursor, httpContext.User.GetUserIdString());
 
         return TypedResults.Ok(new PagedResponse<RecentDiscussionResponse>(
             Items: result.Items.Select(d => new RecentDiscussionResponse(
@@ -187,6 +188,7 @@ public static class DiscussionEndpoints
     private static async Task<IResult> GetTopActiveDiscussionsTodayAsync(
         StatisticsUseCase useCase,
         IConfiguration configuration,
+        ClaimsPrincipal user,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null)
@@ -197,7 +199,8 @@ public static class DiscussionEndpoints
             hubId,
             spaceId,
             communityId,
-            limit: 5);
+            limit: 5,
+            user.GetUserIdString());
 
         if (!result.IsSuccess)
             return Results.Problem(result.Error);

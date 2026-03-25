@@ -11,5 +11,6 @@ public enum ManagePermissionEnum
     ManageBans = 4,
     ManageSettings = 5,
     ManageTeam = 6,
-    ManageWebhooks = 7
+    ManageWebhooks = 7,
+    ManageGroups = 8
 }

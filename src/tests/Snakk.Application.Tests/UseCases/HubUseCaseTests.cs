@@ -224,7 +224,7 @@ public class HubUseCaseTests
             HasMoreItems = false
         };
 
-        _mockHubRepository.Setup(r => r.GetByCommunityAsync(communityId, 0, 20))
+        _mockHubRepository.Setup(r => r.GetByCommunityAsync(communityId, 0, 20, null))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -248,7 +248,7 @@ public class HubUseCaseTests
             HasMoreItems = true
         };
 
-        _mockHubRepository.Setup(r => r.GetByCommunityAsync(communityId, 5, 10))
+        _mockHubRepository.Setup(r => r.GetByCommunityAsync(communityId, 5, 10, null))
             .ReturnsAsync(pagedResult);
 
         // Act

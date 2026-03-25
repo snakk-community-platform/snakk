@@ -45,6 +45,8 @@ builder.Services.AddDbContext<SnakkDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // Register services
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 

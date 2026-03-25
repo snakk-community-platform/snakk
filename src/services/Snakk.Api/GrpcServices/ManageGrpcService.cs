@@ -24,7 +24,11 @@ public class ManageGrpcService(
     IDashboardChartRepository dashboardChartRepository,
     AnnouncementUseCase announcementUseCase,
     ISettingsService settingsService,
-    IRuleService ruleService) : ManageService.ManageServiceBase
+    IRuleService ruleService,
+    IRealtimeNotifier realtimeNotifier,
+    IActivityBroadcaster activityBroadcaster,
+    IGroupService groupService,
+    IGroupAccessService groupAccessService) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -54,7 +58,8 @@ public class ManageGrpcService(
             return BuildResponse("Community", community.PublicId, community.Name,
                 community.Slug, null, null,
                 community.Name, null, null,
-                permissions);
+                permissions,
+                communityPublicId: community.PublicId);
         }
 
         // Resolve hub
@@ -80,7 +85,8 @@ public class ManageGrpcService(
             return BuildResponse("Hub", hub.PublicId, hub.Name,
                 community.Slug, hub.Slug, null,
                 community.Name, hub.Name, null,
-                permissions);
+                permissions,
+                communityPublicId: community.PublicId);
         }
 
         // Resolve space
@@ -103,7 +109,8 @@ public class ManageGrpcService(
         return BuildResponse("Space", space.PublicId, space.Name,
             community.Slug, hub.Slug, space.Slug,
             community.Name, hub.Name, space.Name,
-            spacePermissions);
+            spacePermissions,
+            communityPublicId: community.PublicId);
     }
 
     public override async Task<SpaceSettingsResponse> GetSpaceSettings(
@@ -598,6 +605,14 @@ public class ManageGrpcService(
         await moderationRepository.BanUserAsync(
             targetUser, banType, communityPublicId, hubPublicId, spacePublicId,
             request.Reason, expiresAt, userId);
+
+        var moderatorName = await dbContext.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => u.DisplayName)
+            .FirstOrDefaultAsync() ?? userId;
+
+        await activityBroadcaster.BroadcastUserBanned(
+            userId, moderatorName, targetUser, request.TargetUsername, request.Reason);
 
         return new CreateBanResponse { Success = true };
     }
@@ -1103,8 +1118,22 @@ public class ManageGrpcService(
                 await moderationRepository.ModeratorDeletePostAsync(request.TargetPublicId, userId, reason);
                 break;
             case "Delete" when request.ContentType == "Discussion":
+            {
+                var spacePublicId = await dbContext.Discussions
+                    .Where(d => d.PublicId == request.TargetPublicId)
+                    .Select(d => d.Space.PublicId)
+                    .FirstOrDefaultAsync();
+
                 await moderationRepository.ModeratorDeleteDiscussionAsync(request.TargetPublicId, userId, reason);
+
+                if (spacePublicId is not null)
+                {
+                    await realtimeNotifier.NotifyDiscussionDeletedAsync(
+                        DiscussionId.From(request.TargetPublicId),
+                        SpaceId.From(spacePublicId));
+                }
                 break;
+            }
             case "Lock":
                 await moderationRepository.LockDiscussionAsync(request.TargetPublicId, userId, reason);
                 break;
@@ -1335,6 +1364,8 @@ public class ManageGrpcService(
         if (!result.IsSuccess)
             return new CreateAnnouncementResponse { Success = false, ErrorMessage = result.Error };
 
+        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(request.ScopeType, request.ScopePublicId);
+
         return new CreateAnnouncementResponse { Success = true, PublicId = result.Value!.PublicId.Value };
     }
 
@@ -1372,6 +1403,8 @@ public class ManageGrpcService(
         if (!result.IsSuccess)
             return new UpdateAnnouncementResponse { Success = false, ErrorMessage = result.Error };
 
+        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+
         return new UpdateAnnouncementResponse { Success = true };
     }
 
@@ -1397,7 +1430,22 @@ public class ManageGrpcService(
         if (!result.IsSuccess)
             return new DeleteAnnouncementResponse { Success = false, ErrorMessage = result.Error };
 
+        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+
         return new DeleteAnnouncementResponse { Success = true };
+    }
+
+    public override async Task<SendGlobalAnnouncementResponse> SendGlobalAnnouncement(
+        SendGlobalAnnouncementRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        await realtimeNotifier.NotifyGlobalAsync(request.EventType, request.Message);
+
+        return new SendGlobalAnnouncementResponse { Success = true };
     }
 
     private static string? GetUserId(ServerCallContext context)
@@ -1411,7 +1459,8 @@ public class ManageGrpcService(
         string scopeType, string scopePublicId, string scopeName,
         string communitySlug, string? hubSlug, string? spaceSlug,
         string communityName, string? hubName, string? spaceName,
-        ManagePermissionSet permissions)
+        ManagePermissionSet permissions,
+        string communityPublicId = "")
     {
         var response = new ResolveScopeResponse
         {
@@ -1419,7 +1468,8 @@ public class ManageGrpcService(
             ScopePublicId = scopePublicId,
             ScopeName = scopeName,
             CommunitySlug = communitySlug,
-            CommunityName = communityName
+            CommunityName = communityName,
+            CommunityPublicId = communityPublicId
         };
 
         if (hubSlug is not null) response.HubSlug = hubSlug;
@@ -1432,4 +1482,324 @@ public class ManageGrpcService(
 
         return response;
     }
+
+    // === Community Groups ===
+
+    public override async Task<GetCommunityGroupsResponse> GetCommunityGroups(
+        GetCommunityGroupsRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var result = await groupService.GetGroupsAsync(request.CommunityId, context.CancellationToken);
+        var response = new GetCommunityGroupsResponse();
+        response.Groups.AddRange(result.Groups.Select(MapGroupItem));
+        return response;
+    }
+
+    public override async Task<CommunityGroupItem> GetCommunityGroup(
+        GetCommunityGroupRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var group = await groupService.GetGroupAsync(request.CommunityId, request.GroupId, context.CancellationToken);
+        if (group is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Group not found"));
+
+        return MapGroupItem(group);
+    }
+
+    public override async Task<CommunityGroupItem> CreateCommunityGroup(
+        CreateCommunityGroupRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var appRequest = new Application.DTOs.Management.CreateGroupRequest
+        {
+            Name = request.Name,
+            Slug = request.HasSlug ? request.Slug : null,
+            Description = request.HasDescription ? request.Description : null,
+            IsPublic = request.IsPublic,
+            SortOrder = request.SortOrder
+        };
+
+        var group = await groupService.CreateGroupAsync(request.CommunityId, appRequest, userId, context.CancellationToken);
+        return MapGroupItem(group);
+    }
+
+    public override async Task<CommunityGroupItem> UpdateCommunityGroup(
+        UpdateCommunityGroupRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var appRequest = new Application.DTOs.Management.UpdateGroupRequest
+        {
+            Name = request.Name,
+            Description = request.HasDescription ? request.Description : null,
+            IsPublic = request.IsPublic,
+            SortOrder = request.SortOrder
+        };
+
+        var group = await groupService.UpdateGroupAsync(request.CommunityId, request.GroupId, appRequest, context.CancellationToken);
+        if (group is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Group not found"));
+
+        return MapGroupItem(group);
+    }
+
+    public override async Task<DeleteCommunityGroupResponse> DeleteCommunityGroup(
+        DeleteCommunityGroupRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var success = await groupService.DeleteGroupAsync(request.CommunityId, request.GroupId, context.CancellationToken);
+        return new DeleteCommunityGroupResponse { Success = success };
+    }
+
+    public override async Task<GetCommunityGroupMembersResponse> GetCommunityGroupMembers(
+        GetCommunityGroupMembersRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var pageSize = request.PageSize > 0 ? Math.Min(request.PageSize, 100) : 50;
+        var page = request.Page > 0 ? request.Page : 1;
+
+        var result = await groupService.GetMembersAsync(request.CommunityId, request.GroupId, page, pageSize, context.CancellationToken);
+
+        var response = new GetCommunityGroupMembersResponse
+        {
+            Total = result.Total,
+            Page = result.Page,
+            PageSize = result.PageSize
+        };
+        response.Members.AddRange(result.Members.Select(m => new CommunityGroupMemberItem
+        {
+            UserPublicId = m.UserPublicId,
+            DisplayName = m.DisplayName,
+            AddedAtTicks = m.AddedAt.Ticks
+        }));
+        return response;
+    }
+
+    public override async Task<AddCommunityGroupMemberResponse> AddCommunityGroupMember(
+        AddCommunityGroupMemberRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var appRequest = new Application.DTOs.Management.AddGroupMemberRequest
+        {
+            UserPublicId = request.UserPublicId
+        };
+
+        var success = await groupService.AddMemberAsync(request.CommunityId, request.GroupId, appRequest, userId, context.CancellationToken);
+        return new AddCommunityGroupMemberResponse { Success = success };
+    }
+
+    public override async Task<RemoveCommunityGroupMemberResponse> RemoveCommunityGroupMember(
+        RemoveCommunityGroupMemberRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, "Community", request.CommunityId, ManagePermissionEnum.ManageGroups);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var success = await groupService.RemoveMemberAsync(request.CommunityId, request.GroupId, request.UserPublicId, context.CancellationToken);
+        return new RemoveCommunityGroupMemberResponse { Success = success };
+    }
+
+    // === Group Access Control ===
+
+    public override async Task<EntityAccessResponse> GetEntityAccess(
+        GetEntityAccessRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        // Resolve community for permission check
+        var scopeId = request.HasSpacePublicId ? request.SpacePublicId
+            : request.HasHubPublicId ? request.HubPublicId
+            : request.CommunityPublicId;
+        var scopeType = request.HasSpacePublicId ? "Space"
+            : request.HasHubPublicId ? "Hub"
+            : "Community";
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, scopeType, scopeId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var dto = await groupAccessService.GetEntityAccessAsync(
+            request.HasCommunityPublicId ? request.CommunityPublicId : null,
+            request.HasHubPublicId ? request.HubPublicId : null,
+            request.HasSpacePublicId ? request.SpacePublicId : null,
+            context.CancellationToken);
+
+        var response = new EntityAccessResponse { IsRestricted = dto.IsRestricted };
+        response.Grants.AddRange(dto.Grants.Select(g => new GroupAccessGrantItem
+        {
+            GroupPublicId = g.GroupPublicId,
+            GroupName = g.GroupName,
+            CanRead = g.CanRead,
+            CanWrite = g.CanWrite
+        }));
+        return response;
+    }
+
+    public override async Task<SetEntityRestrictedResponse> SetEntityRestricted(
+        SetEntityRestrictedRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var scopeId = request.HasSpacePublicId ? request.SpacePublicId
+            : request.HasHubPublicId ? request.HubPublicId
+            : request.CommunityPublicId;
+        var scopeType = request.HasSpacePublicId ? "Space"
+            : request.HasHubPublicId ? "Hub"
+            : "Community";
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, scopeType, scopeId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        await groupAccessService.SetIsRestrictedAsync(
+            request.IsRestricted,
+            request.HasCommunityPublicId ? request.CommunityPublicId : null,
+            request.HasHubPublicId ? request.HubPublicId : null,
+            request.HasSpacePublicId ? request.SpacePublicId : null,
+            context.CancellationToken);
+
+        return new SetEntityRestrictedResponse { Success = true };
+    }
+
+    public override async Task<UpsertGroupGrantResponse> UpsertGroupGrant(
+        UpsertGroupGrantRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var scopeId = request.HasSpacePublicId ? request.SpacePublicId
+            : request.HasHubPublicId ? request.HubPublicId
+            : request.CommunityPublicId;
+        var scopeType = request.HasSpacePublicId ? "Space"
+            : request.HasHubPublicId ? "Hub"
+            : "Community";
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, scopeType, scopeId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        await groupAccessService.UpsertGrantAsync(
+            new Application.DTOs.Management.UpsertGroupGrantRequest
+            {
+                GroupPublicId = request.GroupPublicId,
+                CanRead = request.CanRead,
+                CanWrite = request.CanWrite
+            },
+            request.HasCommunityPublicId ? request.CommunityPublicId : null,
+            request.HasHubPublicId ? request.HubPublicId : null,
+            request.HasSpacePublicId ? request.SpacePublicId : null,
+            context.CancellationToken);
+
+        return new UpsertGroupGrantResponse { Success = true };
+    }
+
+    public override async Task<DeleteGroupGrantResponse> DeleteGroupGrant(
+        DeleteGroupGrantRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var scopeId = request.HasSpacePublicId ? request.SpacePublicId
+            : request.HasHubPublicId ? request.HubPublicId
+            : request.CommunityPublicId;
+        var scopeType = request.HasSpacePublicId ? "Space"
+            : request.HasHubPublicId ? "Hub"
+            : "Community";
+
+        var hasPermission = await permissionService.HasPermissionAsync(userId, scopeType, scopeId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var success = await groupAccessService.DeleteGrantAsync(
+            request.GroupPublicId,
+            request.HasCommunityPublicId ? request.CommunityPublicId : null,
+            request.HasHubPublicId ? request.HubPublicId : null,
+            request.HasSpacePublicId ? request.SpacePublicId : null,
+            context.CancellationToken);
+
+        return new DeleteGroupGrantResponse { Success = success };
+    }
+
+    private static CommunityGroupItem MapGroupItem(Application.DTOs.Management.GroupDto g) =>
+        new()
+        {
+            PublicId = g.PublicId,
+            Name = g.Name,
+            Slug = g.Slug,
+            Description = g.Description ?? string.Empty,
+            IsPublic = g.IsPublic,
+            SortOrder = g.SortOrder,
+            MemberCount = g.MemberCount,
+            CreatedAtTicks = g.CreatedAt.Ticks
+        };
 }

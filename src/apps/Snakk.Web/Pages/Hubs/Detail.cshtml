@@ -25,6 +25,9 @@
 }
 else
 {
+    <!-- Realtime context — JS reads these to subscribe to the correct groups -->
+    <div id="page-context" data-hub-id="@Model.Hub.PublicId" hidden></div>
+
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
             <a href="/">Home</a>
@@ -196,6 +199,25 @@ else
 
             <!-- Right Column: Sidebar -->
             <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
+                <!-- Hub Stats -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">About this Hub</h3>
+                    @if (!string.IsNullOrEmpty(Model.Hub.Description))
+                    {
+                        <p class="text-sm text-base-content/70 mb-3">@Model.Hub.Description</p>
+                    }
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-lg font-semibold">@FormatCount(Model.HubStats?.DiscussionCount ?? 0)</div>
+                            <div class="text-xs text-base-content/50">Discussions</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-semibold">@FormatCount(Model.HubStats?.ReplyCount ?? 0)</div>
+                            <div class="text-xs text-base-content/50">Replies</div>
+                        </div>
+                    </div>
+                </div>
+
                 @if (Model.Hub.HasRules)
                 {
                     <div class="sidebar-section">

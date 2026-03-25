@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using Snakk.Application.DTOs.Responses;
+using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
@@ -59,7 +60,8 @@ public static class ReadStateEndpoints
         string discussionId,
         string postId,
         HttpContext context,
-        IDiscussionReadStateRepository readStateRepository)
+        IDiscussionReadStateRepository readStateRepository,
+        IRealtimeNotifier realtimeNotifier)
     {
         // SECURITY: Extract userId from JWT, NOT from request
         var userId = context.User.GetUserId();
@@ -77,6 +79,7 @@ public static class ReadStateEndpoints
             readState.MarkAsRead(postIdValue);
 
         await readStateRepository.SaveAsync(readState);
+        await realtimeNotifier.NotifyReadStateUpdatedAsync(UserId.From(userId), discussionId, postId);
 
         return TypedResults.Ok(new SuccessResponse(true));
     }
@@ -84,7 +87,8 @@ public static class ReadStateEndpoints
     private static async Task<IResult> BatchMarkAsReadAsync(
         BatchMarkAsReadRequest request,
         HttpContext httpContext,
-        IDiscussionReadStateRepository readStateRepository)
+        IDiscussionReadStateRepository readStateRepository,
+        IRealtimeNotifier realtimeNotifier)
     {
         if (request?.Updates is null || request.Updates.Count == 0)
             return TypedResults.Ok(new SuccessResponse(true, 0));
@@ -96,6 +100,7 @@ public static class ReadStateEndpoints
             return Results.Unauthorized();
 
         var processed = 0;
+        var userIdValue = UserId.From(userId);
 
         foreach (var update in request.Updates)
         {
@@ -111,6 +116,7 @@ public static class ReadStateEndpoints
                     readState.MarkAsRead(postIdValue);
 
                 await readStateRepository.SaveAsync(readState);
+                await realtimeNotifier.NotifyReadStateUpdatedAsync(userIdValue, update.DiscussionId, update.PostId);
                 processed++;
             }
             catch

@@ -1,11 +1,12 @@
 namespace Snakk.Infrastructure.Database.Repositories;
 
 using Microsoft.EntityFrameworkCore;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Models;
 
-public class HubRepository(SnakkDbContext context)
+public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache)
     : GenericDatabaseRepository<HubDatabaseEntity>(context), IHubRepository
 {
     public record HubListDto(
@@ -86,10 +87,15 @@ public class HubRepository(SnakkDbContext context)
     public async Task<PagedResult<HubListDto>> GetByCommunityAsync(
         int communityId,
         int offset,
-        int pageSize)
+        int pageSize,
+        string? userId = null)
     {
-        var items = await _dbSet
-            .Where(h => h.CommunityId == communityId)
+        var query = _dbSet
+            .Where(h => h.CommunityId == communityId);
+
+        query = await WithHubAccessFilterAsync(query, userId);
+
+        var items = await query
             .OrderBy(h => h.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -118,6 +124,26 @@ public class HubRepository(SnakkDbContext context)
             PageSize = pageSize,
             HasMoreItems = hasMoreItems
         };
+    }
+
+    private async Task<IQueryable<HubDatabaseEntity>> WithHubAccessFilterAsync(
+        IQueryable<HubDatabaseEntity> query, string? userId)
+    {
+        if (!await grantsCache.AnyRestrictedAsync())
+            return query;
+
+        if (userId == null)
+            return query.Where(h =>
+                !h.IsRestricted &&
+                !h.Community.IsRestricted);
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        var hubIds = grants.HubIds;
+        var communityIds = grants.CommunityIds;
+
+        return query.Where(h =>
+            (!h.IsRestricted || hubIds.Contains(h.Id))
+            && (!h.Community.IsRestricted || communityIds.Contains(h.CommunityId)));
     }
 
     public async Task<int?> GetCommunityDbIdAsync(string communityPublicId) => await _context.Communities

@@ -24,7 +24,8 @@ public interface IDiscussionRepository
         HubId? hubId,
         SpaceId? spaceId,
         CommunityId? communityId,
-        int limit);
+        int limit,
+        string? userId = null);
 
     /// <summary>
     /// Gets discussion activity counts grouped by date for a specific user

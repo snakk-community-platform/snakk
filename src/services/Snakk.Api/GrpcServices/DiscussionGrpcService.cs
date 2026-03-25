@@ -3,6 +3,7 @@ using Grpc.Core;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Snakk.Protos;
@@ -15,7 +16,9 @@ public class DiscussionGrpcService(
     DiscussionUseCase discussionUseCase,
     ISearchRepository searchRepository,
     StatisticsUseCase statisticsUseCase,
-    ICurrentUserService currentUser) : DiscussionService.DiscussionServiceBase
+    ICurrentUserService currentUser,
+    IUserGrantsCacheService grantsCache,
+    IEntityHierarchyCacheService hierarchyCache) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -25,6 +28,9 @@ public class DiscussionGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var d = result.Value;
+
+        if (!await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId()))
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
         var postCount = await searchRepository.GetDiscussionPostCountAsync(d.PublicId.Value);
         var info = new DiscussionInfo
         {
@@ -48,6 +54,9 @@ public class DiscussionGrpcService(
     public override async Task<DiscussionCreatedInfo> CreateDiscussion(CreateDiscussionRequest request, ServerCallContext context)
     {
         var userId = RequireAuth();
+
+        if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value))
+            throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var slug = request.Title.ToLower().Replace(" ", "-");
         var type = (Snakk.Shared.Enums.DiscussionTypeEnum)request.Type;
@@ -83,7 +92,8 @@ public class DiscussionGrpcService(
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             request.HasHubId ? request.HubId : null,
-            null);
+            null,
+            currentUser.GetCurrentUserId());
 
         var response = new PagedRecentDiscussionList
         {
@@ -151,7 +161,8 @@ public class DiscussionGrpcService(
             request.SpaceId,
             request.Offset,
             request.PageSize,
-            typeFilter);
+            typeFilter,
+            currentUser.GetCurrentUserId());
 
         var response = new PagedDiscussionBySpaceList
         {
@@ -200,6 +211,9 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionPreviewInfo> GetDiscussionPreview(GetDiscussionPreviewRequest request, ServerCallContext context)
     {
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUser.GetCurrentUserId()))
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
         var result = await discussionUseCase.GetFirstPostPreviewAsync(DiscussionId.From(request.DiscussionId));
 
         if (!result.IsSuccess)
@@ -210,6 +224,9 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionStats> GetDiscussionStats(GetDiscussionStatsRequest request, ServerCallContext context)
     {
+        if (!await IsDiscussionAccessibleAsync(request.PublicId, currentUser.GetCurrentUserId()))
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
         var result = await statisticsUseCase.GetDiscussionStatsAsync(request.PublicId);
 
         if (!result.IsSuccess || result.Value is null)
@@ -224,6 +241,48 @@ public class DiscussionGrpcService(
             ReplyCount = stats.ReplyCount,
             FollowerCount = stats.FollowerCount
         };
+    }
+
+    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId)
+    {
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        if (restricted.IsEmpty) return true;
+
+        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId);
+        if (h is null) return false;
+
+        var spaceGate = restricted.SpaceIds.Contains(h.SpaceId);
+        var hubGate = restricted.HubIds.Contains(h.HubId);
+        var communityGate = restricted.CommunityIds.Contains(h.CommunityId);
+
+        if (!spaceGate && !hubGate && !communityGate) return true;
+        if (userId is null) return false;
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        return (!spaceGate || grants.SpaceIds.Contains(h.SpaceId))
+            && (!hubGate || grants.HubIds.Contains(h.HubId))
+            && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
+    }
+
+    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)
+    {
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        if (restricted.IsEmpty) return true;
+
+        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId);
+        if (h is null) return false;
+
+        var spaceGate = restricted.SpaceIds.Contains(h.Id);
+        var hubGate = restricted.HubIds.Contains(h.HubId);
+        var communityGate = restricted.CommunityIds.Contains(h.CommunityId);
+
+        if (!spaceGate && !hubGate && !communityGate) return true;
+        if (userId is null) return false;
+
+        var grants = await grantsCache.GetGrantsAsync(userId);
+        return (!spaceGate || grants.SpaceIds.Contains(h.Id))
+            && (!hubGate || grants.HubIds.Contains(h.HubId))
+            && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
     private UserId RequireAuth()

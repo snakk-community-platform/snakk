@@ -1,5 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
+using System.Security.Claims;
+using Snakk.Api.Extensions;
 using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Repositories;
 using Snakk.Application.UseCases;
@@ -28,6 +30,7 @@ public static class SearchEndpoints
         string? hubPublicId,
         int offset,
         int pageSize,
+        ClaimsPrincipal user,
         SearchUseCase searchUseCase)
     {
         // Validate pageSize
@@ -40,7 +43,8 @@ public static class SearchEndpoints
             spacePublicId,
             hubPublicId,
             offset,
-            pageSize);
+            pageSize,
+            user.GetUserIdString());
 
         return TypedResults.Ok(results);
     }

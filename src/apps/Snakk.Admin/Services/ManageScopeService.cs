@@ -44,6 +44,7 @@ public class ManageScopeService(
                 CommunityName = response.CommunityName,
                 HubName = response.HasHubName ? response.HubName : null,
                 SpaceName = response.HasSpaceName ? response.SpaceName : null,
+                CommunityPublicId = response.CommunityPublicId,
                 Permissions = response.Permissions
                     .Select(p => (ManagePermissionEnum)p)
                     .ToList()

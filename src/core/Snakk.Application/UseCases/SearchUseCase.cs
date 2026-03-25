@@ -11,8 +11,9 @@ public class SearchUseCase(ISearchRepository searchRepository) : UseCaseBase
         string? spacePublicId = null,
         string? hubPublicId = null,
         int offset = 0,
-        int pageSize = 20) =>
-        searchRepository.SearchDiscussionsAsync(query, authorPublicId, spacePublicId, hubPublicId, offset, pageSize);
+        int pageSize = 20,
+        string? userId = null) =>
+        searchRepository.SearchDiscussionsAsync(query, authorPublicId, spacePublicId, hubPublicId, offset, pageSize, userId);
 
     public Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
         string query,

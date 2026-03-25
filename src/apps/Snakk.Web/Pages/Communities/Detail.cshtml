@@ -168,16 +168,20 @@
         <!-- Right Column: Sidebar -->
         <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
             <div class="sidebar-section">
-                <div class="stats-panel">
-                    <inline-or-htmx partial="Shared/Sidebar/_PlatformStats"
-                                     model="Model.InlineCommunityStats"
-                                     htmx-url="/partials/platform-stats?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
-                        <div class="stats-grid">
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                            <div class="stat-item"><span class="stat-value skeleton w-8 h-5"></span></div>
-                        </div>
-                    </inline-or-htmx>
+                <h3 class="sidebar-title">About this Community</h3>
+                @if (!string.IsNullOrEmpty(Model.CommunityDetail?.Description))
+                {
+                    <p class="text-sm text-base-content/70 mb-3">@Model.CommunityDetail.Description</p>
+                }
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.InlineCommunityStats?.DiscussionCount ?? 0)</div>
+                        <div class="text-xs text-base-content/50">Discussions</div>
+                    </div>
+                    <div>
+                        <div class="text-lg font-semibold">@FormatCount(Model.InlineCommunityStats?.ReplyCount ?? 0)</div>
+                        <div class="text-xs text-base-content/50">Replies</div>
+                    </div>
                 </div>
             </div>
 

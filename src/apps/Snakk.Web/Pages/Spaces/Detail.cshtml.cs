@@ -81,6 +81,19 @@ public class DetailModel(
 
         Space = spaceTask.Result.Value!;
 
+        // Group access check — only call if any level in the hierarchy is restricted
+        if (CommunityDetail is not null
+            && (Space.IsRestricted || Hub?.IsRestricted == true || CommunityDetail.IsRestricted))
+        {
+            var access = await _apiClient.CheckGroupAccessAsync(
+                CommunityDetail.PublicId,
+                Hub?.PublicId,
+                Space.PublicId);
+
+            if (access is not null && !access.CanRead)
+                return StatusCode(403);
+        }
+
         SidebarScopeId = Space.PublicId;
 
         // Check cache for sidebar data — inline if warm, prefetch if cold
@@ -139,7 +152,7 @@ public class DetailModel(
             CommunityContext,
             hubSlug,
             slug,
-            $"{result.Slug}~{result.PublicId}");
+            SnakkUrlHelper.DiscussionSlugId(result.Slug, result.PublicId));
 
         return Redirect(discussionUrl);
     }
