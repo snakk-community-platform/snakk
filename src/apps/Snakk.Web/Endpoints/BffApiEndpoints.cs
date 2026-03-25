@@ -904,8 +904,6 @@ public static class BffApiEndpoints
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/posts/{postId}/history");
-        request.Version = new Version(2, 0);
-        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
         var response = await client.SendAsync(request, httpContext.RequestAborted);
@@ -1060,8 +1058,6 @@ public static class BffApiEndpoints
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/media/upload");
-        request.Version = new Version(2, 0);
-        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         request.Content = content;
 

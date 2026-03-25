@@ -2096,7 +2096,12 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
 
             // Build the wrapper that matches the SnakkEditor API
             const wrapper: EditorInstance = {
-                getMarkdown: () => cleanTableMarkdown(editor.action(getMarkdown())),
+                getMarkdown: () => cleanTableMarkdown(
+                    editor.action(getMarkdown())
+                        .replace(/^(\s*\|.+\|)\s*$/gm, (line) => line.replace(/<br\s*\/?>/g, ''))
+                        .replace(/<br\s*\/?>\n?/g, '\n')
+                        .replace(/^(#{1,6}) \n+/gm, '$1 ')
+                ),
                 setMarkdown: (markdown: string) => {
                     editor.action(replaceAll(markdown));
                     textarea.value = markdown;

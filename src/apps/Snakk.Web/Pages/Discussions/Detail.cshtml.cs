@@ -219,7 +219,14 @@ public class DetailModel(
                 PostContent,
                 string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
 
-            return RedirectToPage("/Discussions/Detail", null, new { hubSlug, spaceSlug, slugWithId }, "reply-form");
+            // Navigate to the last page so the new post is visible
+            var discussion = await _apiClient.GetDiscussionAsync(PublicId);
+            var totalPosts = discussion?.PostCount ?? 0;
+            var lastPageOffset = Math.Max(0, ((totalPosts - 1) / 20) * 20);
+
+            return RedirectToPage("/Discussions/Detail", null,
+                new { hubSlug, spaceSlug, slugWithId, offset = lastPageOffset },
+                "reply-form-container");
         }
         catch
         {

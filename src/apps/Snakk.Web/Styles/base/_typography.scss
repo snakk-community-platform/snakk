@@ -45,12 +45,33 @@ h1, h2, h3, h4, h5, h6 {
         }
     }
 
+    p {
+        margin: 0.5em 0;
+    }
+
     code {
         background: var(--bg-subtle);
         padding: 0.125rem 0.375rem;
         border-radius: 4px;
         font-size: 0.875em;
         font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    }
+
+    pre {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        overflow-x: auto;
+        margin: 0.75rem 0;
+
+        code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            font-size: 0.8125rem;
+            line-height: 1.6;
+        }
     }
 
     blockquote {
@@ -108,7 +129,7 @@ h1, h2, h3, h4, h5, h6 {
     }
 
     .spoiler {
-        background: #2a2a2a;
+        background: var(--text-primary);
         color: transparent;
         border-radius: 3px;
         cursor: pointer;
@@ -123,25 +144,27 @@ h1, h2, h3, h4, h5, h6 {
         }
     }
 
-    // Task list (Markdig renders: li.task-list-item > input[type="checkbox"])
+    // Task list (Markdig renders: ul > li.task-list-item > input[type="checkbox"])
+    ul:has(> .task-list-item) {
+        padding-left: 0.5rem;
+    }
+
     .task-list-item {
         list-style: none;
-        position: relative;
-        margin-left: -0.25em;
-        padding-left: 1.5em;
+        margin-left: 0;
+        padding-left: 0;
 
         > input[type="checkbox"] {
             appearance: none;
-            position: absolute;
-            left: 0;
-            top: 0.35em;
+            display: inline-block;
+            vertical-align: middle;
             width: 1em;
             height: 1em;
             border: 1.5px solid var(--text-tertiary);
             border-radius: 0.2em;
             background: transparent;
             cursor: default;
-            margin: 0;
+            margin: 0 0.375em 0 0;
             padding: 0;
 
             &:checked {
