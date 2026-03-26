@@ -1,4 +1,4 @@
-/**
+    /**
  * Snakk Hover Popup Component
  * Displays entity information on hover
  */

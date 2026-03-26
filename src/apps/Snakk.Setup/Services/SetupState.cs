@@ -21,6 +21,12 @@ public class SetupState
 
     // Step 4: Storage
     public string AvatarStoragePath { get; set; } = "/app/storage";
+    public string StorageProvider { get; set; } = "Local"; // "Local" or "S3"
+    public string S3Endpoint { get; set; } = "";
+    public string S3AccessKey { get; set; } = "";
+    public string S3SecretKey { get; set; } = "";
+    public string S3BucketName { get; set; } = "";
+    public string S3PublicUrlBase { get; set; } = "";
 
     // Step 5: Admin Account
     public string AdminEmail { get; set; } = "";

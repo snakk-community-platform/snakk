@@ -38,6 +38,7 @@ message RegisterRequest {
   string password = 2;
   string display_name = 3;
   string base_url = 4; // For email verification link
+  optional string turnstile_token = 5;
 }
 
 message LoginRequest {
@@ -45,6 +46,7 @@ message LoginRequest {
   string password = 2;
   string ip_address = 3;  // Forwarded from caller for audit
   string user_agent = 4;  // Forwarded from caller for audit
+  optional string turnstile_token = 5;
 }
 
 message LogoutRequest {

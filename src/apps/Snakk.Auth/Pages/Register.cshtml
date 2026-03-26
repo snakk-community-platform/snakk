@@ -92,6 +92,11 @@
                     <span asp-validation-for="Input.ConfirmPassword" class="text-error text-xs mt-1 block"></span>
                 </div>
 
+                @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
+                {
+                    <div class="cf-turnstile" data-sitekey="@Model.TurnstileSiteKey" data-theme="auto"></div>
+                }
+
                 <button type="submit" class="auth-btn-primary">
                     Create Account
                 </button>
@@ -106,4 +111,8 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
+    {
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    }
 }

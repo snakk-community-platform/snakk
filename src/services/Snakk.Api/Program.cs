@@ -16,12 +16,13 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 
 //builder.AddSnakkDefaults();
 
-// HTTP/2 only — required for gRPC over plaintext (h2c) in Docker
+// HTTP/1.1 + HTTP/2 — gRPC requires HTTP/2 (negotiated via ALPN over TLS, or h2c over plaintext)
+// REST endpoints (media upload, avatars, health) work over either protocol
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ConfigureEndpointDefaults(listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http2;
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
     });
 });
 

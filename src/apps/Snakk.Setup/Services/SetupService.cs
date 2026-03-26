@@ -73,11 +73,7 @@ public class SetupService(IConfiguration configuration)
             {
                 ["MultiCommunityEnabled"] = state.MultiCommunityEnabled
             },
-            ["FileStorage"] = new Dictionary<string, string>
-            {
-                ["BasePath"] = state.AvatarStoragePath,
-                ["PublicUrlBase"] = "/avatars"
-            },
+            ["FileStorage"] = BuildFileStorageConfig(state),
             ["Setup"] = new Dictionary<string, string>
             {
                 ["AdminEmail"] = state.AdminEmail,
@@ -158,6 +154,12 @@ public class SetupService(IConfiguration configuration)
                 ["DOTNET_ENVIRONMENT"] = "Production",
                 ["ConnectionStrings__DbConnection"] = state.GetConnectionString(),
                 ["FileStorage__BasePath"] = state.AvatarStoragePath,
+                ["FileStorage__Provider"] = state.StorageProvider == "S3" ? "S3" : "",
+                ["FileStorage__S3__Endpoint"] = state.S3Endpoint,
+                ["FileStorage__S3__AccessKey"] = state.S3AccessKey,
+                ["FileStorage__S3__SecretKey"] = state.S3SecretKey,
+                ["FileStorage__S3__BucketName"] = state.S3BucketName,
+                ["FileStorage__S3__PublicUrlBase"] = state.S3PublicUrlBase,
                 ["Setup__AdminEmail"] = state.AdminEmail,
                 ["Setup__AdminPassword"] = state.AdminPassword,
                 ["Setup__AdminDisplayName"] = state.AdminDisplayName,
@@ -381,6 +383,12 @@ public class SetupService(IConfiguration configuration)
                 ["DOTNET_ENVIRONMENT"] = "Production",
                 ["ConnectionStrings__DbConnection"] = state.GetConnectionString(),
                 ["FileStorage__BasePath"] = state.AvatarStoragePath,
+                ["FileStorage__Provider"] = state.StorageProvider == "S3" ? "S3" : "",
+                ["FileStorage__S3__Endpoint"] = state.S3Endpoint,
+                ["FileStorage__S3__AccessKey"] = state.S3AccessKey,
+                ["FileStorage__S3__SecretKey"] = state.S3SecretKey,
+                ["FileStorage__S3__BucketName"] = state.S3BucketName,
+                ["FileStorage__S3__PublicUrlBase"] = state.S3PublicUrlBase,
                 ["Setup__AdminEmail"] = state.AdminEmail,
                 ["Setup__AdminPassword"] = state.AdminPassword,
                 ["Setup__AdminDisplayName"] = state.AdminDisplayName
@@ -440,6 +448,30 @@ public class SetupService(IConfiguration configuration)
         {
             return (false, $"Error running DbSeeder: {ex.Message}");
         }
+    }
+
+    private static Dictionary<string, object> BuildFileStorageConfig(SetupState state)
+    {
+        var config = new Dictionary<string, object>
+        {
+            ["BasePath"] = state.AvatarStoragePath,
+            ["PublicUrlBase"] = "/avatars"
+        };
+
+        if (state.StorageProvider == "S3")
+        {
+            config["Provider"] = "S3";
+            config["S3"] = new Dictionary<string, string>
+            {
+                ["Endpoint"] = state.S3Endpoint,
+                ["AccessKey"] = state.S3AccessKey,
+                ["SecretKey"] = state.S3SecretKey,
+                ["BucketName"] = state.S3BucketName,
+                ["PublicUrlBase"] = state.S3PublicUrlBase
+            };
+        }
+
+        return config;
     }
 }
 

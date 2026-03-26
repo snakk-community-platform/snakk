@@ -23,6 +23,7 @@ public class LoginModel(
     public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
     public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
     public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
+    public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
 
     public class InputModel
     {
@@ -67,13 +68,19 @@ public class LoginModel(
 
         try
         {
-            var response = await authClient.LoginAsync(new LoginRequest
+            var loginRequest = new LoginRequest
             {
                 Email = Input.Email,
                 Password = Input.Password,
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
                 UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
-            });
+            };
+
+            var turnstileToken = Request.Form["cf-turnstile-response"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(turnstileToken))
+                loginRequest.TurnstileToken = turnstileToken;
+
+            var response = await authClient.LoginAsync(loginRequest);
 
             if (string.IsNullOrEmpty(response.AccessToken))
             {

@@ -42,6 +42,7 @@ public class MarkupParser : IMarkupParser
         SanitizeLinks(document);
         CleanEmptyTables(document);
         NormalizeCodeBlockLanguages(document);
+        TrimCodeBlocks(document);
 
         using var writer = new StringWriter();
         var renderer = new HtmlRenderer(writer);
@@ -193,6 +194,23 @@ public class MarkupParser : IMarkupParser
         }
 
         return false;
+    }
+
+    private static void TrimCodeBlocks(MarkdownDocument document)
+    {
+        foreach (var codeBlock in document.Descendants<FencedCodeBlock>())
+        {
+            if (codeBlock.Lines.Count == 0)
+                continue;
+
+            // Remove leading empty lines
+            while (codeBlock.Lines.Count > 0 && codeBlock.Lines.Lines[0].Slice.IsEmpty)
+                codeBlock.Lines.RemoveAt(0);
+
+            // Remove trailing empty lines
+            while (codeBlock.Lines.Count > 0 && codeBlock.Lines.Lines[codeBlock.Lines.Count - 1].Slice.IsEmpty)
+                codeBlock.Lines.RemoveAt(codeBlock.Lines.Count - 1);
+        }
     }
 
     private static void NormalizeCodeBlockLanguages(MarkdownDocument document)

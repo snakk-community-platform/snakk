@@ -93,8 +93,6 @@ builder.Services.AddHttpClient("InternalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100");
     client.Timeout = TimeSpan.FromSeconds(30);
-    client.DefaultRequestVersion = new Version(2, 0);
-    client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
 });
 
 // gRPC channel + clients for API communication

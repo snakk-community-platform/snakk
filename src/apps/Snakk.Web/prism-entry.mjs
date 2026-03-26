@@ -21,4 +21,7 @@ import 'prismjs/components/prism-markdown';
 import 'prismjs/components/prism-xml-doc';
 import 'prismjs/components/prism-yaml';
 
-export default Prism;
+// Plugins
+import 'prismjs/plugins/line-numbers/prism-line-numbers';
+
+window.Prism = Prism;

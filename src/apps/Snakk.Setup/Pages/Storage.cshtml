@@ -2,22 +2,88 @@
 @model Snakk.Setup.Pages.StorageModel
 
 <h2 class="text-xl font-semibold mb-4">Storage Configuration</h2>
-<p class="text-base-content/70 mb-6">Configure where Snakk stores files like avatars and configuration.</p>
+<p class="text-base-content/70 mb-6">Configure where Snakk stores files like avatars and uploaded images.</p>
 
 <form method="post" class="space-y-4">
+    <!-- Storage Provider Selection -->
+    <div class="form-control">
+        <label class="label"><span class="label-text font-medium">Storage Provider</span></label>
+        <div class="flex gap-4">
+            <label class="label cursor-pointer justify-start gap-2">
+                <input type="radio" name="StorageProvider" value="Local"
+                       class="radio radio-primary" checked="@(Model.StorageProvider == "Local")"
+                       onchange="toggleStorageFields()" />
+                <span class="label-text">Local filesystem</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-2">
+                <input type="radio" name="StorageProvider" value="S3"
+                       class="radio radio-primary" checked="@(Model.StorageProvider == "S3")"
+                       onchange="toggleStorageFields()" />
+                <span class="label-text">S3-compatible (Cloudflare R2, AWS S3, MinIO, etc.)</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Local Storage Path (always shown — also used for config file storage) -->
     <div class="form-control">
         <label class="label"><span class="label-text">Storage Path</span></label>
         <input type="text" asp-for="AvatarStoragePath" class="input w-full" placeholder="/app/storage" />
         <label class="label"><span class="label-text-alt text-base-content/50">
-            Absolute path for file storage. In Docker, this should be a mounted volume (default: /app/storage).
-            For local development, use a relative or absolute path.
+            Absolute path for local file storage and configuration. In Docker, use a mounted volume.
         </span></label>
         <span asp-validation-for="AvatarStoragePath" class="text-error text-sm"></span>
     </div>
 
+    <!-- S3 Configuration (shown when S3 is selected) -->
+    <div id="s3-fields" style="display: @(Model.StorageProvider == "S3" ? "block" : "none");">
+        <div class="divider">S3 Connection</div>
+
+        <div class="space-y-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Endpoint URL</span></label>
+                <input type="url" asp-for="S3Endpoint" class="input w-full"
+                       placeholder="https://abc123.r2.cloudflarestorage.com" />
+                <label class="label"><span class="label-text-alt text-base-content/50">
+                    R2: found in R2 > Overview > S3 API. AWS: leave empty for default.
+                </span></label>
+                <span asp-validation-for="S3Endpoint" class="text-error text-sm"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Access Key ID</span></label>
+                    <input type="text" asp-for="S3AccessKey" class="input w-full" placeholder="Access key" />
+                    <span asp-validation-for="S3AccessKey" class="text-error text-sm"></span>
+                </div>
+
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Secret Access Key</span></label>
+                    <input type="password" asp-for="S3SecretKey" class="input w-full" placeholder="Secret key" />
+                    <span asp-validation-for="S3SecretKey" class="text-error text-sm"></span>
+                </div>
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text">Bucket Name</span></label>
+                <input type="text" asp-for="S3BucketName" class="input w-full" placeholder="snakk" />
+                <span asp-validation-for="S3BucketName" class="text-error text-sm"></span>
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text">Public URL Base</span></label>
+                <input type="url" asp-for="S3PublicUrlBase" class="input w-full"
+                       placeholder="https://cdn.example.com" />
+                <label class="label"><span class="label-text-alt text-base-content/50">
+                    The public URL where files are accessible. For R2, use your custom domain or the r2.dev URL.
+                </span></label>
+                <span asp-validation-for="S3PublicUrlBase" class="text-error text-sm"></span>
+            </div>
+        </div>
+    </div>
+
     <div class="alert alert-info">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <span>This directory will also store the generated <code>appsettings.Production.json</code> configuration file, shared by all services.</span>
+        <span>The storage path directory will also store the generated <code>appsettings.Production.json</code> configuration file, shared by all services.</span>
     </div>
 
     <div class="divider"></div>
@@ -27,3 +93,11 @@
         <button type="submit" class="btn btn-primary">Next</button>
     </div>
 </form>
+
+<script>
+function toggleStorageFields() {
+    var s3Fields = document.getElementById('s3-fields');
+    var isS3 = document.querySelector('input[name="StorageProvider"][value="S3"]').checked;
+    s3Fields.style.display = isS3 ? 'block' : 'none';
+}
+</script>

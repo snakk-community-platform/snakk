@@ -21,10 +21,14 @@ public class AuthGrpcService(
     ISettingsService settingsService,
     ILogger<AuthGrpcService> logger,
     IUserGrantsCacheService grantsCache,
-    IDisplayNameHistoryRepository displayNameHistoryRepository) : AuthService.AuthServiceBase
+    IDisplayNameHistoryRepository displayNameHistoryRepository,
+    ITurnstileService turnstileService) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
+        if (!await turnstileService.VerifyAsync(request.HasTurnstileToken ? request.TurnstileToken : ""))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Captcha verification failed. Please try again."));
+
         var result = await authUseCase.RegisterWithEmailAsync(
             request.Email,
             request.Password,
@@ -72,6 +76,9 @@ public class AuthGrpcService(
 
     public override async Task<AuthTokenResponse> Login(LoginRequest request, ServerCallContext ctx)
     {
+        if (!await turnstileService.VerifyAsync(request.HasTurnstileToken ? request.TurnstileToken : ""))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Captcha verification failed. Please try again."));
+
         var result = await authUseCase.LoginWithEmailAsync(request.Email, request.Password);
 
         if (!result.IsSuccess)

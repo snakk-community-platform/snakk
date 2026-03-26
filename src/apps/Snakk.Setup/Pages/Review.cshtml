@@ -25,6 +25,13 @@
             <!-- Storage -->
             <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Storage</th></tr>
             <tr><td class="font-medium">Storage Path</td><td><code>@Model.State.AvatarStoragePath</code></td></tr>
+            <tr><td class="font-medium">Provider</td><td>@(Model.State.StorageProvider == "S3" ? "S3-compatible" : "Local filesystem")</td></tr>
+            @if (Model.State.StorageProvider == "S3")
+            {
+                <tr><td class="font-medium">S3 Endpoint</td><td><code>@Model.State.S3Endpoint</code></td></tr>
+                <tr><td class="font-medium">Bucket</td><td><code>@Model.State.S3BucketName</code></td></tr>
+                <tr><td class="font-medium">Public URL</td><td><code>@Model.State.S3PublicUrlBase</code></td></tr>
+            }
 
             <!-- Admin Account -->
             <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Admin Account</th></tr>

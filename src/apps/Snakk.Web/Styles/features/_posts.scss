@@ -40,7 +40,6 @@
 
     &.same-author {
         .post-main {
-            padding-left: 2.5rem;
             padding-top: 0;
         }
     }
@@ -1081,6 +1080,29 @@
         background: #fee2e2;
         color: #dc2626;
         border-color: #fca5a5;
+    }
+}
+
+.element-ctl-language {
+    position: absolute;
+    top: 0.25rem;
+    right: 1.5rem;
+    pointer-events: auto;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+
+    &:hover {
+        border-color: var(--text-tertiary);
+    }
+
+    &:focus {
+        border-color: var(--link-primary);
     }
 }
 

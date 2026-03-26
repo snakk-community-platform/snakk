@@ -17,6 +17,7 @@ import {
     wrapInBulletListCommand,
     wrapInOrderedListCommand,
     createCodeBlockCommand,
+    updateCodeBlockLanguageCommand,
     insertHrCommand,
 } from '@milkdown/kit/preset/commonmark';
 import {
@@ -46,6 +47,26 @@ import { markRule } from '@milkdown/kit/prose';
 import { toggleMark } from '@milkdown/kit/prose/commands';
 import { Decoration } from '@milkdown/kit/prose/view';
 import type { Node } from '@milkdown/kit/prose/model';
+
+// ============================================================================
+// Code Block Language Options (must match Prism grammars in prism-entry.mjs)
+// ============================================================================
+
+const CODE_LANGUAGES: { value: string; label: string }[] = [
+    { value: '', label: 'Plain text' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'typescript', label: 'TypeScript' },
+    { value: 'csharp', label: 'C#' },
+    { value: 'html', label: 'HTML' },
+    { value: 'css', label: 'CSS' },
+    { value: 'sql', label: 'SQL' },
+    { value: 'json', label: 'JSON' },
+    { value: 'bash', label: 'Bash' },
+    { value: 'python', label: 'Python' },
+    { value: 'markdown', label: 'Markdown' },
+    { value: 'yaml', label: 'YAML' },
+    { value: 'xml', label: 'XML' },
+];
 
 // ============================================================================
 // Type Definitions
@@ -1291,6 +1312,7 @@ function closeEmojiPicker(): void {
 
 let tableOverlays: HTMLElement[] = [];
 let imageOverlays: HTMLElement[] = [];
+let languagePickerOpen = false;
 
 function deleteTableAtDOM(editor: Editor, tableEl: HTMLElement): void {
     editor.action((ctx) => {
@@ -1323,6 +1345,9 @@ function getAlignIcon(align: string): string {
 }
 
 function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
+    // Don't rebuild overlays while a language picker is open
+    if (languagePickerOpen) return;
+
     removeAllOverlays();
 
     const contentRect = contentArea.getBoundingClientRect();
@@ -1590,6 +1615,45 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
         overlay.style.left = `${elRect.left - contentRect.left + contentArea.scrollLeft}px`;
         overlay.style.width = `${elRect.width}px`;
         overlay.style.height = `${elRect.height}px`;
+
+        // Language picker for code blocks
+        if (type === 'code_block') {
+            const select = document.createElement('select');
+            select.className = 'element-ctl-language';
+            select.title = 'Code language';
+            CODE_LANGUAGES.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.value;
+                option.textContent = lang.label;
+                select.appendChild(option);
+            });
+
+            // Read current language from the ProseMirror node
+            const currentLang = el.getAttribute('data-language') || '';
+            select.value = currentLang;
+
+            select.addEventListener('mousedown', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
+            select.addEventListener('mouseup', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
+            select.addEventListener('click', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
+            select.addEventListener('focus', () => { languagePickerOpen = true; });
+            select.addEventListener('blur', () => { languagePickerOpen = false; });
+            select.addEventListener('change', () => {
+                const newLang = select.value;
+                editor.action((ctx) => {
+                    const view = ctx.get(editorViewCtx);
+                    const pos = view.posAtDOM(el, 0);
+                    const $pos = view.state.doc.resolve(pos);
+                    for (let d = $pos.depth; d >= 0; d--) {
+                        if ($pos.node(d).type.name === 'code_block') {
+                            const nodePos = $pos.before(d);
+                            view.dispatch(view.state.tr.setNodeAttribute(nodePos, 'language', newLang));
+                            break;
+                        }
+                    }
+                });
+            });
+            overlay.appendChild(select);
+        }
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';

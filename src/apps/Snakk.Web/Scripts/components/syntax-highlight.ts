@@ -9,6 +9,7 @@
     if ((window as any).SnakkSyntax) return;
 
     const CSS_ID = 'prism-css';
+    const LINE_NUMBERS_CSS_ID = 'prism-line-numbers-css';
     let loadPromise: Promise<any> | null = null;
 
     function loadCSS(id: string, href: string): void {
@@ -38,6 +39,7 @@
             loadPromise = (async () => {
                 try {
                     loadCSS(CSS_ID, '/css/vendor/prism.css');
+                    loadCSS(LINE_NUMBERS_CSS_ID, '/css/vendor/prism-line-numbers.css');
                     await loadScript('/js/vendor/prism.js');
                     const Prism = (window as any).Prism;
                     if (!Prism) {
@@ -68,9 +70,34 @@
         const root = container || document;
         const codeBlocks = root.querySelectorAll('pre > code:not(.prism-highlighted)');
 
+        const LANG_LABELS: Record<string, string> = {
+            javascript: 'JavaScript', typescript: 'TypeScript', csharp: 'C#',
+            html: 'HTML', css: 'CSS', sql: 'SQL', json: 'JSON',
+            bash: 'Bash', python: 'Python', markdown: 'Markdown',
+            yaml: 'YAML', xml: 'XML', markup: 'HTML',
+        };
+
         codeBlocks.forEach((block: Element) => {
+            const pre = block.parentElement;
+            if (pre) pre.classList.add('line-numbers');
             Prism.highlightElement(block);
             block.classList.add('prism-highlighted');
+
+            // Add language label — wrapped outside the scrollable <pre>
+            if (pre && !pre.parentElement?.classList.contains('code-block-wrapper')) {
+                const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
+                const lang = langClass?.replace('language-', '') || '';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block-wrapper';
+                pre.parentNode!.insertBefore(wrapper, pre);
+                wrapper.appendChild(pre);
+
+                const label = document.createElement('span');
+                label.className = 'code-language-label';
+                label.textContent = lang ? (LANG_LABELS[lang] || lang) : 'Plain text';
+                wrapper.appendChild(label);
+            }
         });
     }
 
