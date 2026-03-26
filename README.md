@@ -4,6 +4,7 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 
 > **Pre-Release Software**
 > Snakk is in active development and should be considered pre-release/alpha software. Core functionality works, but some features may be incomplete or subject to breaking changes.
+> Preview: https://preview.snakk.community/
 
 ## Table of Contents
 
