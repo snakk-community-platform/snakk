@@ -107,7 +107,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Infrastructure.Database.Repositories.INotificationDatabaseRepository, Infrastructure.Database.Repositories.NotificationDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IFollowDatabaseRepository, Infrastructure.Database.Repositories.FollowDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IMentionDatabaseRepository, Infrastructure.Database.Repositories.MentionDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IAnnouncementDatabaseRepository, Infrastructure.Database.Repositories.AnnouncementDatabaseRepository>();
+        services.AddScoped<Infrastructure.Database.Repositories.IBannerDatabaseRepository, Infrastructure.Database.Repositories.BannerDatabaseRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IAchievementRepository, Infrastructure.Database.Repositories.AchievementRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementRepository, Infrastructure.Database.Repositories.UserAchievementRepository>();
         services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementProgressRepository, Infrastructure.Database.Repositories.UserAchievementProgressRepository>();
@@ -135,7 +135,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Domain.Repositories.INotificationRepository, Infrastructure.Adapters.NotificationRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IFollowRepository, Infrastructure.Adapters.FollowRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IMentionRepository, Infrastructure.Adapters.MentionRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IAnnouncementRepository, Infrastructure.Adapters.AnnouncementRepositoryAdapter>();
+        services.AddScoped<Domain.Repositories.IBannerRepository, Infrastructure.Adapters.BannerRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IAchievementRepository, Infrastructure.Adapters.AchievementRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IUserAchievementRepository, Infrastructure.Adapters.UserAchievementRepositoryAdapter>();
         services.AddScoped<Domain.Repositories.IUserAchievementProgressRepository, Infrastructure.Adapters.UserAchievementProgressRepositoryAdapter>();
@@ -168,7 +168,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SearchUseCase>();
         services.AddScoped<UserProfileUseCase>();
         services.AddScoped<ModerationUseCase>();
-        services.AddScoped<AnnouncementUseCase>();
+        services.AddScoped<BannerUseCase>();
         services.AddScoped<StatisticsUseCase>();
 
         // API Services

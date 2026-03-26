@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Banner";
+
+package snakk.banner;
+
+import "google/protobuf/timestamp.proto";
+
+service BannerService {
+  rpc GetActiveForCommunity (GetActiveBannersRequest) returns (BannerList);
+  rpc GetActiveForHub (GetActiveBannersRequest) returns (BannerList);
+  rpc GetActiveForSpace (GetActiveBannersRequest) returns (BannerList);
+}
+
+// --- Requests ---
+
+message GetActiveBannersRequest {
+  string entity_id = 1;
+}
+
+// --- Responses ---
+
+message BannerInfo {
+  string public_id = 1;
+  string title = 2;
+  string rendered_content = 3;
+  string type = 4;     // "Info", "Warning", "Critical"
+  string scope = 5;    // "Community", "Hub", "Space"
+  bool is_dismissible = 6;
+  int32 sort_order = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message BannerList {
+  repeated BannerInfo banners = 1;
+}

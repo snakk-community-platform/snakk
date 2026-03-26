@@ -35,8 +35,8 @@ public class DetailModel(
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:SpaceList:ShowDiscussions", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:SpaceList:ShowContributors", true);
 
-    // Announcements (bubble-down: hub + community)
-    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
+    // Banners (bubble-down: hub + community)
+    public Snakk.Protos.Banner.BannerList? Banners { get; set; }
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
@@ -64,7 +64,7 @@ public class DetailModel(
         var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
-        var announcementsTask = _apiClient.GetActiveAnnouncementsForHubAsync(Hub.PublicId);
+        var announcementsTask = _apiClient.GetActiveBannersForHubAsync(Hub.PublicId);
         var statsTask = _apiClient.GetHubStatsAsync(Hub.PublicId);
 
         await Task.WhenAll(spacesTask, discussionsTask, communityTask, announcementsTask, statsTask);
@@ -72,7 +72,7 @@ public class DetailModel(
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
         RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
-        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
+        Banners = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
         HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
 
         // Group access check — only call if hub or its community is restricted

@@ -186,7 +186,7 @@ public class SignalRRealtimeNotifier(
                 swapStrategy = ""
             });
 
-    public async Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId)
+    public async Task NotifyBannerUpdatedAsync(string scopeType, string scopePublicId)
     {
         var group = scopeType switch
         {
@@ -201,7 +201,7 @@ public class SignalRRealtimeNotifier(
             .SendAsync("ReceiveUpdate", new
             {
                 group,
-                eventType = "announcement-updated",
+                eventType = "banner-updated",
                 htmlContent = "",
                 swapStrategy = ""
             });

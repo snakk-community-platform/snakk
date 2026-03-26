@@ -3,14 +3,14 @@ namespace Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Enums;
 
-public class Announcement
+public class Banner
 {
-    public AnnouncementId PublicId { get; private set; }
+    public BannerId PublicId { get; private set; }
     public string Title { get; private set; }
     public string Content { get; private set; }
     public string RenderedContent { get; private set; }
-    public AnnouncementTypeEnum Type { get; private set; }
-    public AnnouncementScopeEnum Scope { get; private set; }
+    public BannerTypeEnum Type { get; private set; }
+    public BannerScopeEnum Scope { get; private set; }
     public string ScopeEntityId { get; private set; }
     public DateTime? VisibleFrom { get; private set; }
     public DateTime? VisibleUntil { get; private set; }
@@ -21,16 +21,16 @@ public class Announcement
     public DateTime? LastModifiedAt { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable property must contain a non-null value when exiting constructor
-    private Announcement() { }
+    private Banner() { }
 #pragma warning restore CS8618
 
-    private Announcement(
-        AnnouncementId publicId,
+    private Banner(
+        BannerId publicId,
         string title,
         string content,
         string renderedContent,
-        AnnouncementTypeEnum type,
-        AnnouncementScopeEnum scope,
+        BannerTypeEnum type,
+        BannerScopeEnum scope,
         string scopeEntityId,
         DateTime? visibleFrom,
         DateTime? visibleUntil,
@@ -56,24 +56,24 @@ public class Announcement
         LastModifiedAt = lastModifiedAt;
     }
 
-    public static Announcement Create(
-        AnnouncementScopeEnum scope,
+    public static Banner Create(
+        BannerScopeEnum scope,
         string scopeEntityId,
         UserId createdByUserId,
         string title,
         string content,
         string renderedContent,
-        AnnouncementTypeEnum type = AnnouncementTypeEnum.Info,
+        BannerTypeEnum type = BannerTypeEnum.Info,
         DateTime? visibleFrom = null,
         DateTime? visibleUntil = null,
         bool isDismissible = true,
         int sortOrder = 0)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Announcement title cannot be empty", nameof(title));
+            throw new ArgumentException("Banner title cannot be empty", nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Announcement content cannot be empty", nameof(content));
+            throw new ArgumentException("Banner content cannot be empty", nameof(content));
 
         if (string.IsNullOrWhiteSpace(scopeEntityId))
             throw new ArgumentException("Scope entity ID cannot be empty", nameof(scopeEntityId));
@@ -81,8 +81,8 @@ public class Announcement
         if (visibleFrom.HasValue && visibleUntil.HasValue && visibleFrom >= visibleUntil)
             throw new ArgumentException("VisibleFrom must be before VisibleUntil");
 
-        return new Announcement(
-            AnnouncementId.New(),
+        return new Banner(
+            BannerId.New(),
             title,
             content,
             renderedContent,
@@ -98,13 +98,13 @@ public class Announcement
             lastModifiedAt: null);
     }
 
-    public static Announcement Rehydrate(
-        AnnouncementId publicId,
+    public static Banner Rehydrate(
+        BannerId publicId,
         string title,
         string content,
         string renderedContent,
-        AnnouncementTypeEnum type,
-        AnnouncementScopeEnum scope,
+        BannerTypeEnum type,
+        BannerScopeEnum scope,
         string scopeEntityId,
         DateTime? visibleFrom,
         DateTime? visibleUntil,
@@ -121,17 +121,17 @@ public class Announcement
         string title,
         string content,
         string renderedContent,
-        AnnouncementTypeEnum type,
+        BannerTypeEnum type,
         DateTime? visibleFrom,
         DateTime? visibleUntil,
         bool isDismissible,
         int sortOrder)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Announcement title cannot be empty", nameof(title));
+            throw new ArgumentException("Banner title cannot be empty", nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Announcement content cannot be empty", nameof(content));
+            throw new ArgumentException("Banner content cannot be empty", nameof(content));
 
         if (visibleFrom.HasValue && visibleUntil.HasValue && visibleFrom >= visibleUntil)
             throw new ArgumentException("VisibleFrom must be before VisibleUntil");

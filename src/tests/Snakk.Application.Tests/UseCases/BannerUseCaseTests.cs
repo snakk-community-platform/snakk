@@ -8,12 +8,12 @@ using Snakk.Shared.Enums;
 
 namespace Snakk.Application.Tests.UseCases;
 
-public class AnnouncementUseCaseTests
+public class BannerUseCaseTests
 {
-    private readonly Mock<IAnnouncementRepository> _mockAnnouncementRepository = new();
+    private readonly Mock<IBannerRepository> _mockBannerRepository = new();
     private readonly Mock<IUserRepository> _mockUserRepository = new();
     private readonly Mock<IMarkupParser> _mockMarkupParser = new();
-    private AnnouncementUseCase _useCase = null!;
+    private BannerUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
@@ -22,8 +22,8 @@ public class AnnouncementUseCaseTests
             .Setup(m => m.ToHtml(It.IsAny<string>()))
             .Returns((string s) => $"<p>{s}</p>");
 
-        _useCase = new AnnouncementUseCase(
-            _mockAnnouncementRepository.Object,
+        _useCase = new BannerUseCase(
+            _mockBannerRepository.Object,
             _mockUserRepository.Object,
             _mockMarkupParser.Object);
     }
@@ -31,7 +31,7 @@ public class AnnouncementUseCaseTests
     #region CreateAsync Tests
 
     [Test]
-    public async Task CreateAsync_WithValidParameters_CreatesAnnouncement()
+    public async Task CreateAsync_WithValidParameters_CreatesBanner()
     {
         // Arrange
         var userId = UserId.New();
@@ -42,20 +42,20 @@ public class AnnouncementUseCaseTests
 
         // Act
         var result = await _useCase.CreateAsync(
-            AnnouncementScopeEnum.Community,
+            BannerScopeEnum.Community,
             "community-id",
             userId,
-            "Test Announcement",
+            "Test Banner",
             "Hello world");
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsNotNull();
-        await Assert.That(result.Value!.Title).IsEqualTo("Test Announcement");
+        await Assert.That(result.Value!.Title).IsEqualTo("Test Banner");
         await Assert.That(result.Value.RenderedContent).IsEqualTo("<p>Hello world</p>");
 
         _mockMarkupParser.Verify(m => m.ToHtml("Hello world"), Times.Once);
-        _mockAnnouncementRepository.Verify(r => r.AddAsync(It.IsAny<Announcement>()), Times.Once);
+        _mockBannerRepository.Verify(r => r.AddAsync(It.IsAny<Banner>()), Times.Once);
     }
 
     [Test]
@@ -69,7 +69,7 @@ public class AnnouncementUseCaseTests
 
         // Act
         var result = await _useCase.CreateAsync(
-            AnnouncementScopeEnum.Community,
+            BannerScopeEnum.Community,
             "community-id",
             userId,
             "Test",
@@ -92,7 +92,7 @@ public class AnnouncementUseCaseTests
 
         // Act
         var result = await _useCase.CreateAsync(
-            AnnouncementScopeEnum.Community,
+            BannerScopeEnum.Community,
             "community-id",
             userId,
             "",
@@ -107,20 +107,20 @@ public class AnnouncementUseCaseTests
     #region UpdateAsync Tests
 
     [Test]
-    public async Task UpdateAsync_WithValidParameters_UpdatesAnnouncement()
+    public async Task UpdateAsync_WithValidParameters_UpdatesBanner()
     {
         // Arrange
-        var existingAnnouncement = CreateTestAnnouncement();
+        var existingBanner = CreateTestBanner();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(existingAnnouncement.PublicId))
-            .ReturnsAsync(existingAnnouncement);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(existingBanner.PublicId))
+            .ReturnsAsync(existingBanner);
 
         // Act
         var result = await _useCase.UpdateAsync(
-            existingAnnouncement.PublicId,
+            existingBanner.PublicId,
             "Updated Title",
             "Updated content",
-            AnnouncementTypeEnum.Warning,
+            BannerTypeEnum.Warning,
             null, null, true, 0);
 
         // Assert
@@ -129,24 +129,24 @@ public class AnnouncementUseCaseTests
         await Assert.That(result.Value.RenderedContent).IsEqualTo("<p>Updated content</p>");
 
         _mockMarkupParser.Verify(m => m.ToHtml("Updated content"), Times.Once);
-        _mockAnnouncementRepository.Verify(r => r.UpdateAsync(It.IsAny<Announcement>()), Times.Once);
+        _mockBannerRepository.Verify(r => r.UpdateAsync(It.IsAny<Banner>()), Times.Once);
     }
 
     [Test]
-    public async Task UpdateAsync_WithNonExistentAnnouncement_ReturnsFailure()
+    public async Task UpdateAsync_WithNonExistentBanner_ReturnsFailure()
     {
         // Arrange
-        var announcementId = AnnouncementId.New();
+        var announcementId = BannerId.New();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
-            .ReturnsAsync((Announcement?)null);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
+            .ReturnsAsync((Banner?)null);
 
         // Act
         var result = await _useCase.UpdateAsync(
             announcementId,
             "Title",
             "Content",
-            AnnouncementTypeEnum.Info,
+            BannerTypeEnum.Info,
             null, null, true, 0);
 
         // Assert
@@ -159,30 +159,30 @@ public class AnnouncementUseCaseTests
     #region DeleteAsync Tests
 
     [Test]
-    public async Task DeleteAsync_WithExistingAnnouncement_Succeeds()
+    public async Task DeleteAsync_WithExistingBanner_Succeeds()
     {
         // Arrange
-        var existingAnnouncement = CreateTestAnnouncement();
+        var existingBanner = CreateTestBanner();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(existingAnnouncement.PublicId))
-            .ReturnsAsync(existingAnnouncement);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(existingBanner.PublicId))
+            .ReturnsAsync(existingBanner);
 
         // Act
-        var result = await _useCase.DeleteAsync(existingAnnouncement.PublicId);
+        var result = await _useCase.DeleteAsync(existingBanner.PublicId);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
-        _mockAnnouncementRepository.Verify(r => r.DeleteAsync(existingAnnouncement.PublicId), Times.Once);
+        _mockBannerRepository.Verify(r => r.DeleteAsync(existingBanner.PublicId), Times.Once);
     }
 
     [Test]
-    public async Task DeleteAsync_WithNonExistentAnnouncement_ReturnsFailure()
+    public async Task DeleteAsync_WithNonExistentBanner_ReturnsFailure()
     {
         // Arrange
-        var announcementId = AnnouncementId.New();
+        var announcementId = BannerId.New();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
-            .ReturnsAsync((Announcement?)null);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
+            .ReturnsAsync((Banner?)null);
 
         // Act
         var result = await _useCase.DeleteAsync(announcementId);
@@ -196,30 +196,30 @@ public class AnnouncementUseCaseTests
     #region GetByIdAsync Tests
 
     [Test]
-    public async Task GetByIdAsync_WithExistingAnnouncement_ReturnsSuccess()
+    public async Task GetByIdAsync_WithExistingBanner_ReturnsSuccess()
     {
         // Arrange
-        var existingAnnouncement = CreateTestAnnouncement();
+        var existingBanner = CreateTestBanner();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(existingAnnouncement.PublicId))
-            .ReturnsAsync(existingAnnouncement);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(existingBanner.PublicId))
+            .ReturnsAsync(existingBanner);
 
         // Act
-        var result = await _useCase.GetByIdAsync(existingAnnouncement.PublicId);
+        var result = await _useCase.GetByIdAsync(existingBanner.PublicId);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
-        await Assert.That(result.Value!.PublicId).IsEqualTo(existingAnnouncement.PublicId);
+        await Assert.That(result.Value!.PublicId).IsEqualTo(existingBanner.PublicId);
     }
 
     [Test]
-    public async Task GetByIdAsync_WithNonExistentAnnouncement_ReturnsFailure()
+    public async Task GetByIdAsync_WithNonExistentBanner_ReturnsFailure()
     {
         // Arrange
-        var announcementId = AnnouncementId.New();
+        var announcementId = BannerId.New();
 
-        _mockAnnouncementRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
-            .ReturnsAsync((Announcement?)null);
+        _mockBannerRepository.Setup(r => r.GetByPublicIdAsync(announcementId))
+            .ReturnsAsync((Banner?)null);
 
         // Act
         var result = await _useCase.GetByIdAsync(announcementId);
@@ -230,12 +230,12 @@ public class AnnouncementUseCaseTests
 
     #endregion
 
-    private static Announcement CreateTestAnnouncement() =>
-        Announcement.Create(
-            AnnouncementScopeEnum.Community,
+    private static Banner CreateTestBanner() =>
+        Banner.Create(
+            BannerScopeEnum.Community,
             "community-id",
             UserId.New(),
-            "Test Announcement",
+            "Test Banner",
             "Test content",
             "<p>Test content</p>");
 

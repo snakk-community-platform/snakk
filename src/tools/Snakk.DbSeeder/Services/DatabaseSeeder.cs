@@ -105,7 +105,7 @@ public class DatabaseSeeder(
         var test5Community = await CreateTest5CommunityAsync(users);
 
         // Seed announcements across different scopes
-        await SeedAnnouncementsAsync(snakkCommunity, users);
+        await SeedBannersAsync(snakkCommunity, users);
 
         // Seed moderators, bans, and custom report reasons
         await SeedModerationDataAsync(users);
@@ -154,7 +154,7 @@ public class DatabaseSeeder(
         _context.Reactions.RemoveRange(_context.Reactions);
         _context.UserBans.RemoveRange(_context.UserBans);
         _context.ReportReasons.RemoveRange(_context.ReportReasons);
-        _context.Announcements.RemoveRange(_context.Announcements);
+        _context.Banners.RemoveRange(_context.Banners);
         _context.SpaceAllowedDiscussionTypes.RemoveRange(_context.SpaceAllowedDiscussionTypes);
         _context.HubAllowedDiscussionTypes.RemoveRange(_context.HubAllowedDiscussionTypes);
         _context.CommunityAllowedDiscussionTypes.RemoveRange(_context.CommunityAllowedDiscussionTypes);
@@ -430,7 +430,7 @@ public class DatabaseSeeder(
 
         // Single hub with 3 spaces
         var generalHub = await CreateHubAsync(community, "General", "general", "General discussions", communityCreatedAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(generalHub, "Announcements", "announcements", "Official announcements"), users, 15);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(generalHub, "Banners", "announcements", "Official announcements"), users, 15);
         await CreateDiscussionsForSpace(await CreateSpaceAsync(generalHub, "Feedback", "feedback", "Share your feedback"), users, 55);
         await CreateDiscussionsForSpace(await CreateSpaceAsync(generalHub, "Off-Topic", "off-topic", "Anything goes"), users, 30);
 
@@ -1676,7 +1676,7 @@ public class DatabaseSeeder(
         return slug;
     }
 
-    private async Task SeedAnnouncementsAsync(
+    private async Task SeedBannersAsync(
         CommunityDatabaseEntity community,
         List<UserDatabaseEntity> users)
     {
@@ -1691,16 +1691,16 @@ public class DatabaseSeeder(
             .Where(s => s.HubId == hub.Id)
             .FirstAsync();
 
-        // Community-level: Welcome announcement (Info, permanent)
+        // Community-level: Welcome banner (Info, permanent)
         var welcomeContent = "Welcome to the community! Please read the rules and be respectful to other members.";
-        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        _context.Banners.Add(new BannerDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             Title = "Welcome to the community!",
             Content = welcomeContent,
             RenderedContent = _markupParser.ToHtml(welcomeContent),
-            TypeId = (int)AnnouncementTypeEnum.Info,
-            ScopeId = (int)AnnouncementScopeEnum.Community,
+            TypeId = (int)BannerTypeEnum.Info,
+            ScopeId = (int)BannerScopeEnum.Community,
             ScopeEntityId = community.PublicId,
             IsDismissible = true,
             SortOrder = 0,
@@ -1710,14 +1710,14 @@ public class DatabaseSeeder(
 
         // Community-level: Maintenance warning (Warning, time-limited)
         var maintenanceContent = "**Scheduled maintenance** on Saturday at 02:00 UTC. The platform may be briefly unavailable.";
-        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        _context.Banners.Add(new BannerDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             Title = "Upcoming Maintenance",
             Content = maintenanceContent,
             RenderedContent = _markupParser.ToHtml(maintenanceContent),
-            TypeId = (int)AnnouncementTypeEnum.Warning,
-            ScopeId = (int)AnnouncementScopeEnum.Community,
+            TypeId = (int)BannerTypeEnum.Warning,
+            ScopeId = (int)BannerScopeEnum.Community,
             ScopeEntityId = community.PublicId,
             VisibleFrom = Now.AddDays(-1),
             VisibleUntil = Now.AddDays(7),
@@ -1727,16 +1727,16 @@ public class DatabaseSeeder(
             CreatedAt = Now.AddDays(-1)
         });
 
-        // Hub-level: New rules announcement (Info)
+        // Hub-level: New rules banner (Info)
         var rulesContent = "New community guidelines are now in effect for this hub. Please review the updated rules in the sidebar.";
-        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        _context.Banners.Add(new BannerDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             Title = "Updated Hub Guidelines",
             Content = rulesContent,
             RenderedContent = _markupParser.ToHtml(rulesContent),
-            TypeId = (int)AnnouncementTypeEnum.Info,
-            ScopeId = (int)AnnouncementScopeEnum.Hub,
+            TypeId = (int)BannerTypeEnum.Info,
+            ScopeId = (int)BannerScopeEnum.Hub,
             ScopeEntityId = hub.PublicId,
             IsDismissible = true,
             SortOrder = 0,
@@ -1746,14 +1746,14 @@ public class DatabaseSeeder(
 
         // Space-level: Under review (Critical, non-dismissible)
         var reviewContent = "This space is currently under moderation review. Some features may be temporarily restricted.";
-        _context.Announcements.Add(new AnnouncementDatabaseEntity
+        _context.Banners.Add(new BannerDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             Title = "Space Under Review",
             Content = reviewContent,
             RenderedContent = _markupParser.ToHtml(reviewContent),
-            TypeId = (int)AnnouncementTypeEnum.Critical,
-            ScopeId = (int)AnnouncementScopeEnum.Space,
+            TypeId = (int)BannerTypeEnum.Critical,
+            ScopeId = (int)BannerScopeEnum.Space,
             ScopeEntityId = space.PublicId,
             IsDismissible = false,
             SortOrder = 0,

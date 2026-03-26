@@ -7,21 +7,21 @@ using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
 using Snakk.Shared.Enums;
 
-public class AnnouncementRepositoryAdapter(
-    Infrastructure.Database.Repositories.IAnnouncementDatabaseRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.IAnnouncementRepository
+public class BannerRepositoryAdapter(
+    Infrastructure.Database.Repositories.IBannerDatabaseRepository databaseRepository,
+    SnakkDbContext context) : Domain.Repositories.IBannerRepository
 {
-    public async Task<Announcement?> GetByPublicIdAsync(AnnouncementId publicId)
+    public async Task<Banner?> GetByPublicIdAsync(BannerId publicId)
     {
         var entity = await databaseRepository.GetByPublicIdAsync(publicId.Value);
         return entity?.FromPersistence();
     }
 
-    public async Task<IEnumerable<Announcement>> GetByScopeAsync(
-        AnnouncementScopeEnum scope,
+    public async Task<IEnumerable<Banner>> GetByScopeAsync(
+        BannerScopeEnum scope,
         string scopeEntityId)
     {
-        var entities = await context.Announcements
+        var entities = await context.Banners
             .Include(a => a.CreatedByUser)
             .Where(a =>
                 a.ScopeId == (int)scope
@@ -33,14 +33,14 @@ public class AnnouncementRepositoryAdapter(
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Announcement>> GetActiveForCommunityAsync(CommunityId communityId)
+    public async Task<IEnumerable<Banner>> GetActiveForCommunityAsync(CommunityId communityId)
     {
         var now = DateTime.UtcNow;
 
-        var entities = await context.Announcements
+        var entities = await context.Banners
             .Include(a => a.CreatedByUser)
             .Where(a =>
-                a.ScopeId == (int)AnnouncementScopeEnum.Community
+                a.ScopeId == (int)BannerScopeEnum.Community
                 && a.ScopeEntityId == communityId.Value
                 && (a.VisibleFrom == null || a.VisibleFrom <= now)
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
@@ -51,7 +51,7 @@ public class AnnouncementRepositoryAdapter(
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Announcement>> GetActiveForHubAsync(HubId hubId)
+    public async Task<IEnumerable<Banner>> GetActiveForHubAsync(HubId hubId)
     {
         var now = DateTime.UtcNow;
 
@@ -64,16 +64,14 @@ public class AnnouncementRepositoryAdapter(
         if (hub is null)
             return [];
 
-        var scopeFilters = new List<(int ScopeId, string EntityId)>
-        {
-            ((int)AnnouncementScopeEnum.Hub, hub.PublicId),
-            ((int)AnnouncementScopeEnum.Community, hub.CommunityPublicId)
-        };
+        var hubScope = (int)BannerScopeEnum.Hub;
+        var communityScope = (int)BannerScopeEnum.Community;
 
-        var entities = await context.Announcements
+        var entities = await context.Banners
             .Include(a => a.CreatedByUser)
             .Where(a =>
-                scopeFilters.Any(f => a.ScopeId == f.ScopeId && a.ScopeEntityId == f.EntityId)
+                ((a.ScopeId == hubScope && a.ScopeEntityId == hub.PublicId)
+                || (a.ScopeId == communityScope && a.ScopeEntityId == hub.CommunityPublicId))
                 && (a.VisibleFrom == null || a.VisibleFrom <= now)
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
             .OrderBy(a => a.SortOrder)
@@ -83,7 +81,7 @@ public class AnnouncementRepositoryAdapter(
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Announcement>> GetActiveForSpaceAsync(SpaceId spaceId)
+    public async Task<IEnumerable<Banner>> GetActiveForSpaceAsync(SpaceId spaceId)
     {
         var now = DateTime.UtcNow;
 
@@ -101,17 +99,16 @@ public class AnnouncementRepositoryAdapter(
         if (space is null)
             return [];
 
-        var scopeFilters = new List<(int ScopeId, string EntityId)>
-        {
-            ((int)AnnouncementScopeEnum.Space, space.PublicId),
-            ((int)AnnouncementScopeEnum.Hub, space.HubPublicId),
-            ((int)AnnouncementScopeEnum.Community, space.CommunityPublicId)
-        };
+        var spaceScope = (int)BannerScopeEnum.Space;
+        var hubScope = (int)BannerScopeEnum.Hub;
+        var communityScope = (int)BannerScopeEnum.Community;
 
-        var entities = await context.Announcements
+        var entities = await context.Banners
             .Include(a => a.CreatedByUser)
             .Where(a =>
-                scopeFilters.Any(f => a.ScopeId == f.ScopeId && a.ScopeEntityId == f.EntityId)
+                ((a.ScopeId == spaceScope && a.ScopeEntityId == space.PublicId)
+                || (a.ScopeId == hubScope && a.ScopeEntityId == space.HubPublicId)
+                || (a.ScopeId == communityScope && a.ScopeEntityId == space.CommunityPublicId))
                 && (a.VisibleFrom == null || a.VisibleFrom <= now)
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
             .OrderBy(a => a.SortOrder)
@@ -121,14 +118,14 @@ public class AnnouncementRepositoryAdapter(
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task AddAsync(Announcement announcement)
+    public async Task AddAsync(Banner banner)
     {
-        var entity = announcement.ToPersistence();
+        var entity = banner.ToPersistence();
 
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == announcement.CreatedByUserId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == banner.CreatedByUserId.Value);
 
         if (user is null)
-            throw new InvalidOperationException($"User with PublicId '{announcement.CreatedByUserId}' not found");
+            throw new InvalidOperationException($"User with PublicId '{banner.CreatedByUserId}' not found");
 
         entity.CreatedByUserId = user.Id;
 
@@ -136,35 +133,35 @@ public class AnnouncementRepositoryAdapter(
         await databaseRepository.SaveChangesAsync();
     }
 
-    public async Task UpdateAsync(Announcement announcement)
+    public async Task UpdateAsync(Banner banner)
     {
-        var entity = await context.Announcements.FirstOrDefaultAsync(a => a.PublicId == announcement.PublicId.Value);
+        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == banner.PublicId.Value);
 
         if (entity is null)
-            throw new InvalidOperationException($"Announcement with PublicId '{announcement.PublicId}' not found");
+            throw new InvalidOperationException($"Banner with PublicId '{banner.PublicId}' not found");
 
-        entity.Title = announcement.Title;
-        entity.Content = announcement.Content;
-        entity.RenderedContent = announcement.RenderedContent;
-        entity.TypeId = (int)announcement.Type;
-        entity.VisibleFrom = announcement.VisibleFrom;
-        entity.VisibleUntil = announcement.VisibleUntil;
-        entity.IsDismissible = announcement.IsDismissible;
-        entity.SortOrder = announcement.SortOrder;
-        entity.LastModifiedAt = announcement.LastModifiedAt;
+        entity.Title = banner.Title;
+        entity.Content = banner.Content;
+        entity.RenderedContent = banner.RenderedContent;
+        entity.TypeId = (int)banner.Type;
+        entity.VisibleFrom = banner.VisibleFrom;
+        entity.VisibleUntil = banner.VisibleUntil;
+        entity.IsDismissible = banner.IsDismissible;
+        entity.SortOrder = banner.SortOrder;
+        entity.LastModifiedAt = banner.LastModifiedAt;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(AnnouncementId publicId)
+    public async Task DeleteAsync(BannerId publicId)
     {
-        var entity = await context.Announcements.FirstOrDefaultAsync(a => a.PublicId == publicId.Value);
+        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == publicId.Value);
 
         if (entity is null)
-            throw new InvalidOperationException($"Announcement with PublicId '{publicId}' not found");
+            throw new InvalidOperationException($"Banner with PublicId '{publicId}' not found");
 
-        context.Announcements.Remove(entity);
+        context.Banners.Remove(entity);
         await context.SaveChangesAsync();
     }
 }

@@ -19,7 +19,7 @@ public static partial class DisplayNameValidator
 
         // Functional
         "help", "info", "contact",
-        "announcement", "announcements", "news",
+        "banner", "announcements", "news",
         "security", "postmaster", "noreply",
         "abuse", "legal", "copyright", "dmca",
 

@@ -16,7 +16,8 @@ public class DiscussionUseCase(
     IDomainEventDispatcher eventDispatcher,
     ICounterService counterService,
     IMarkupParser markupParser,
-    IRealtimeNotifier realtimeNotifier) : UseCaseBase
+    IRealtimeNotifier realtimeNotifier,
+    IMediaService mediaService) : UseCaseBase
 {
     public async Task<Result<Discussion>> CreateDiscussionAsync(
         SpaceId spaceId,
@@ -60,6 +61,9 @@ public class DiscussionUseCase(
 
         discussion.ClearDomainEvents();
         firstPost.ClearDomainEvents();
+
+        // Publish any draft media referenced in the first post
+        await mediaService.PublishDraftMediaAsync(firstPostContent);
 
         // Notify space subscribers about the new discussion
         await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, user);

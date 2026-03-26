@@ -32,11 +32,14 @@ service ManageService {
   rpc GetDashboardStats (GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
   rpc GetDashboardCharts (GetDashboardChartsRequest) returns (GetDashboardChartsResponse);
   rpc GetDashboardCharts2 (GetDashboardCharts2Request) returns (GetDashboardCharts2Response);
-  rpc GetAnnouncements (GetAnnouncementsRequest) returns (GetAnnouncementsResponse);
-  rpc CreateAnnouncement (CreateAnnouncementGrpcRequest) returns (CreateAnnouncementResponse);
-  rpc UpdateAnnouncement (UpdateAnnouncementGrpcRequest) returns (UpdateAnnouncementResponse);
-  rpc DeleteAnnouncement (DeleteAnnouncementRequest) returns (DeleteAnnouncementResponse);
-  rpc SendGlobalAnnouncement (SendGlobalAnnouncementRequest) returns (SendGlobalAnnouncementResponse);
+  rpc GetBanners (GetBannersRequest) returns (GetBannersResponse);
+  rpc CreateBanner (CreateBannerGrpcRequest) returns (CreateBannerResponse);
+  rpc UpdateBanner (UpdateBannerGrpcRequest) returns (UpdateBannerResponse);
+  rpc DeleteBanner (DeleteBannerRequest) returns (DeleteBannerResponse);
+  rpc SendGlobalBanner (SendGlobalBannerRequest) returns (SendGlobalBannerResponse);
+
+  // Announcement discussions (mod-only discussion type)
+  rpc CreateAnnouncementDiscussion (CreateAnnouncementDiscussionRequest) returns (CreateAnnouncementDiscussionResponse);
 
   // Community Groups
   rpc GetCommunityGroups (GetCommunityGroupsRequest) returns (GetCommunityGroupsResponse);
@@ -457,18 +460,18 @@ message TopDiscussionPoint {
   int32 reaction_count = 5;
 }
 
-// --- Announcements ---
+// --- Banners ---
 
-message GetAnnouncementsRequest {
+message GetBannersRequest {
   string scope_type = 1;      // "Community", "Hub", or "Space"
   string scope_public_id = 2;
 }
 
-message GetAnnouncementsResponse {
-  repeated AnnouncementItem announcements = 1;
+message GetBannersResponse {
+  repeated BannerItem banners = 1;
 }
 
-message AnnouncementItem {
+message BannerItem {
   string public_id = 1;
   string title = 2;
   string content = 3;           // raw markdown
@@ -482,7 +485,7 @@ message AnnouncementItem {
   optional int64 last_modified_at_ticks = 11;
 }
 
-message CreateAnnouncementGrpcRequest {
+message CreateBannerGrpcRequest {
   string scope_type = 1;
   string scope_public_id = 2;
   string title = 3;
@@ -494,13 +497,13 @@ message CreateAnnouncementGrpcRequest {
   optional int64 visible_until_ticks = 9;
 }
 
-message CreateAnnouncementResponse {
+message CreateBannerResponse {
   bool success = 1;
   optional string error_message = 2;
   optional string public_id = 3;
 }
 
-message UpdateAnnouncementGrpcRequest {
+message UpdateBannerGrpcRequest {
   string public_id = 1;
   string title = 2;
   string content = 3;
@@ -511,30 +514,45 @@ message UpdateAnnouncementGrpcRequest {
   optional int64 visible_until_ticks = 8;
 }
 
-message UpdateAnnouncementResponse {
+message UpdateBannerResponse {
   bool success = 1;
   optional string error_message = 2;
 }
 
-message DeleteAnnouncementRequest {
+message DeleteBannerRequest {
   string public_id = 1;
 }
 
-message DeleteAnnouncementResponse {
+message DeleteBannerResponse {
   bool success = 1;
   optional string error_message = 2;
 }
 
 // --- Global Broadcast ---
 
-message SendGlobalAnnouncementRequest {
-  string event_type = 1;   // e.g. "global-announcement", "server-shutdown"
+message SendGlobalBannerRequest {
+  string event_type = 1;   // e.g. "global-banner", "server-shutdown"
   string message = 2;
 }
 
-message SendGlobalAnnouncementResponse {
+message SendGlobalBannerResponse {
   bool success = 1;
   optional string error_message = 2;
+}
+
+// --- Announcement Discussion (mod-only discussion type) ---
+
+message CreateAnnouncementDiscussionRequest {
+  string space_public_id = 1;
+  string title = 2;
+  string content = 3; // Markdown body
+}
+
+message CreateAnnouncementDiscussionResponse {
+  bool success = 1;
+  optional string error_message = 2;
+  optional string discussion_public_id = 3;
+  optional string discussion_slug = 4;
 }
 
 // --- Community Settings ---

@@ -146,7 +146,7 @@ public class MediaService(
         processedStream.Position = 0;
         await fileStorage.SaveAsync(storagePath, processedStream, cancellationToken);
 
-        // Create database record
+        // Create database record — uploads start as drafts until linked to a discussion
         var media = new MediaDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
@@ -156,7 +156,9 @@ public class MediaService(
             SizeBytes = processedStream.Length,
             StoragePath = storagePath,
             CreatedAt = now,
-            UploadedByUserId = user.Id
+            UploadedByUserId = user.Id,
+            IsDraft = true,
+            DraftExpiresAt = now.AddHours(12)
         };
 
         db.Media.Add(media);
@@ -226,6 +228,67 @@ public class MediaService(
 
         if (toRemove.Count > 0 || toAdd.Count > 0)
             await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Mark all draft media referenced in the given content as published.
+    /// Call after a discussion or post is successfully created.
+    /// </summary>
+    public async Task PublishDraftMediaAsync(string content, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(content)) return;
+
+        var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
+        var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)")
+            .Select(m => m.Groups[1].Value)
+            .Where(url => url.StartsWith(urlPrefix))
+            .Select(url => url[urlPrefix.Length..])
+            .ToList();
+
+        if (storagePaths.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        await db.Media
+            .Where(m => m.IsDraft && storagePaths.Contains(m.StoragePath))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(m => m.IsDraft, false)
+                .SetProperty(m => m.PublishedAt, now)
+                .SetProperty(m => m.DraftExpiresAt, (DateTime?)null),
+                cancellationToken);
+    }
+
+    /// <summary>
+    /// Delete expired draft media (files + database records).
+    /// Called by background cleanup worker.
+    /// </summary>
+    public async Task<int> CleanupExpiredDraftsAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var expiredDrafts = await db.Media
+            .Where(m => m.IsDraft && m.DraftExpiresAt != null && m.DraftExpiresAt <= now)
+            .ToListAsync(cancellationToken);
+
+        if (expiredDrafts.Count == 0) return 0;
+
+        // Delete files from storage
+        foreach (var draft in expiredDrafts)
+        {
+            try
+            {
+                await fileStorage.DeleteAsync(draft.StoragePath, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to delete expired draft file: {Path}", draft.StoragePath);
+            }
+        }
+
+        // Remove database records
+        db.Media.RemoveRange(expiredDrafts);
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Cleaned up {Count} expired media drafts", expiredDrafts.Count);
+        return expiredDrafts.Count;
     }
 
     private string GetMediaUrl(string storagePath) =>

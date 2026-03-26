@@ -18,4 +18,9 @@ public class MediaDatabaseEntity
     // Who uploaded this file
     public int UploadedByUserId { get; set; }
     public virtual UserDatabaseEntity UploadedByUser { get; set; } = null!;
+
+    // Draft tracking — uploads are drafts until linked to a published discussion
+    public bool IsDraft { get; set; } = true;
+    public DateTime? DraftExpiresAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
 }

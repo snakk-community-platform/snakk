@@ -75,9 +75,9 @@ public interface IRealtimeNotifier
     Task NotifyDiscussionTitleUpdatedAsync(DiscussionId discussionId, string newTitle);
 
     /// <summary>
-    /// Notify scope subscribers when an announcement is published, updated, or deleted
+    /// Notify scope subscribers when an banner is published, updated, or deleted
     /// </summary>
-    Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId);
+    Task NotifyBannerUpdatedAsync(string scopeType, string scopePublicId);
 
     /// <summary>
     /// Notify a user's other tabs when a discussion read state is updated

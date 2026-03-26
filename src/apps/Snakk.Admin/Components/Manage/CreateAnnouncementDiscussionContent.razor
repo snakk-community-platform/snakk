@@ -1,0 +1,120 @@
+@using Snakk.Protos.Manage
+@using Snakk.Admin.Services
+@inject ManageService.ManageServiceClient ManageClient
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">📢 Create Announcement Discussion</MudText>
+    <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+        Post an official banner in this space. Banners are highlighted and can be pinned.
+    </MudText>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    <MudStack Spacing="4" Style="max-width: 800px;">
+        <MudTextField @bind-Value="_title" Label="Title" Placeholder="Announcement title..."
+                      MaxLength="200" Required="true" />
+
+        <div>
+            <MudText Typo="Typo.body2" Class="mb-2" Style="opacity: 0.7;">Content</MudText>
+            <Snakk.Admin.Components.Shared.MarkdownEditor @ref="_editor"
+                Value="@_content"
+                Placeholder="Write your banner..."
+                MinHeight="300px" />
+        </div>
+
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="@CreateAsync" Disabled="@_saving">
+                @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Create Announcement
+            </MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@GoBack">Cancel</MudButton>
+        </MudStack>
+
+        @if (_success)
+        {
+            <MudAlert Severity="Severity.Success">Announcement created successfully.</MudAlert>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error">@_error</MudAlert>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private Snakk.Admin.Components.Shared.MarkdownEditor? _editor;
+    private string _title = "";
+    private string _content = "";
+    private bool _saving;
+    private bool _success;
+    private string? _error;
+
+    private async Task CreateAsync()
+    {
+        _saving = true;
+        _success = false;
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _error = "Title is required.";
+            _saving = false;
+            return;
+        }
+
+        // Get markdown from the editor
+        var markdown = _editor is not null ? await _editor.GetMarkdownAsync() : _content;
+
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            _error = "Content is required.";
+            _saving = false;
+            return;
+        }
+
+        if (Scope?.ScopeType != "Space" || string.IsNullOrEmpty(Scope.ScopePublicId))
+        {
+            _error = "Banners can only be created at the space level.";
+            _saving = false;
+            return;
+        }
+
+        try
+        {
+            var response = await ManageClient.CreateAnnouncementDiscussionAsync(
+                new CreateAnnouncementDiscussionRequest
+                {
+                    SpacePublicId = Scope.ScopePublicId,
+                    Title = _title.Trim(),
+                    Content = markdown
+                });
+
+            if (response.Success)
+            {
+                _success = true;
+                _title = "";
+                _content = "";
+            }
+            else
+            {
+                _error = response.HasErrorMessage ? response.ErrorMessage : "Failed to create banner.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error: {ex.Message}";
+        }
+
+        _saving = false;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/c/{Scope?.CommunitySlug}/h/{Scope?.HubSlug}/s/{Scope?.SpaceSlug}/announcements");
+    }
+}

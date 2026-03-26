@@ -1,0 +1,61 @@
+@inject IJSRuntime JS
+
+<div class="markdown-editor-wrapper">
+    <textarea @ref="_textareaRef" id="@_textareaId" style="display:none">@Value</textarea>
+    <div id="@_containerId" class="milkdown-admin-container">
+        @if (!_initialized)
+        {
+            <div style="border: 1px solid var(--mud-palette-lines-default); border-radius: 4px; padding: 1rem; min-height: @MinHeight; display: flex; align-items: center; justify-content: center; opacity: 0.5;">
+                Loading editor...
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Write your content...";
+    [Parameter] public string MinHeight { get; set; } = "250px";
+
+    private ElementReference _textareaRef;
+    private readonly string _containerId = $"editor-{Guid.NewGuid():N}";
+    private readonly string _textareaId = $"textarea-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Wait for the JS to be available
+            await Task.Delay(100);
+
+            try
+            {
+                await JS.InvokeVoidAsync("SnakkAdminEditor.init", _containerId, _textareaId, Placeholder, Value ?? "");
+                _initialized = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Editor init failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get the current markdown content from the editor.
+    /// Call this before form submission.
+    /// </summary>
+    public async Task<string> GetMarkdownAsync()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string>("SnakkAdminEditor.getMarkdown", _containerId);
+        }
+        catch
+        {
+            return Value;
+        }
+    }
+}

@@ -1,10 +1,10 @@
-@page "/c/{CommunitySlug}/announcements"
-@page "/c/{CommunitySlug}/h/{HubSlug}/announcements"
-@page "/c/{CommunitySlug}/h/{HubSlug}/s/{SpaceSlug}/announcements"
+@page "/c/{CommunitySlug}/banners"
+@page "/c/{CommunitySlug}/h/{HubSlug}/banners"
+@page "/c/{CommunitySlug}/h/{HubSlug}/s/{SpaceSlug}/banners"
 @layout ManageLayout
 
 <ManagePage CommunitySlug="@CommunitySlug" HubSlug="@HubSlug" SpaceSlug="@SpaceSlug">
-    <AnnouncementsContent />
+    <BannersContent />
 </ManagePage>
 
 @code {

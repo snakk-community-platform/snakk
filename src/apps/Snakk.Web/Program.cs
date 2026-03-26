@@ -136,7 +136,7 @@ AddGrpcClient<Snakk.Protos.Statistics.StatisticsService.StatisticsServiceClient>
 AddGrpcClient<Snakk.Protos.User.UserService.UserServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(builder.Services);
-AddGrpcClient<Snakk.Protos.Announcement.AnnouncementService.AnnouncementServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Banner.BannerService.BannerServiceClient>(builder.Services);
 
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();

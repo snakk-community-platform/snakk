@@ -272,7 +272,7 @@ public class HttpRealtimeNotifier(
         }
     }
 
-    public async Task NotifyAnnouncementUpdatedAsync(string scopeType, string scopePublicId)
+    public async Task NotifyBannerUpdatedAsync(string scopeType, string scopePublicId)
     {
         var group = scopeType switch
         {
@@ -286,7 +286,7 @@ public class HttpRealtimeNotifier(
         {
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
-                EventType = "announcement-updated",
+                EventType = "banner-updated",
                 TargetGroup = group,
                 HtmlContent = "",
                 SwapStrategy = ""
@@ -294,7 +294,7 @@ public class HttpRealtimeNotifier(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to broadcast announcement updated: {ScopeType}/{ScopeId}", scopeType, scopePublicId);
+            logger.LogWarning(ex, "Failed to broadcast banner updated: {ScopeType}/{ScopeId}", scopeType, scopePublicId);
         }
     }
 

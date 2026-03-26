@@ -30,8 +30,8 @@ public class DetailModel(
     public bool ShowTrendingSpaces => Configuration.GetValue("Trending:CommunityPage:ShowSpaces", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:CommunityPage:ShowContributors", true);
 
-    // Announcements (community-level only)
-    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
+    // Banners (community-level only)
+    public Snakk.Protos.Banner.BannerList? Banners { get; set; }
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarPlatformStatsVM? InlineCommunityStats { get; set; }
@@ -76,14 +76,14 @@ public class DetailModel(
 
         var hubsTask = _apiClient.GetHubsByCommunityAsync(CommunityDetail.PublicId, 0, 50);
         var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId: CommunityDetail.PublicId);
-        var announcementsTask = _apiClient.GetActiveAnnouncementsForCommunityAsync(CommunityDetail.PublicId);
+        var announcementsTask = _apiClient.GetActiveBannersForCommunityAsync(CommunityDetail.PublicId);
         var statsTask = _apiClient.GetCommunityStatsAsync(CommunityDetail.PublicId);
 
         await Task.WhenAll(hubsTask, discussionsTask, announcementsTask, statsTask);
 
         Hubs = hubsTask.IsCompletedSuccessfully ? hubsTask.Result : null;
         RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
-        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
+        Banners = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         var stats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
         if (stats is not null)

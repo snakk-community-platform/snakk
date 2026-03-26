@@ -31,4 +31,16 @@ public interface IMediaService
         string postPublicId,
         string content,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Mark all draft media referenced in the content as published.
+    /// Call after a discussion or post is successfully created.
+    /// </summary>
+    Task PublishDraftMediaAsync(string content, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete expired draft media (files + database records).
+    /// Returns the number of drafts cleaned up.
+    /// </summary>
+    Task<int> CleanupExpiredDraftsAsync(CancellationToken cancellationToken = default);
 }

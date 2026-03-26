@@ -21,74 +21,68 @@
     </nav>
 </div>
 
-<div class="max-w-[90rem] mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-6">
-        <div class="flex-1 min-w-0 max-w-3xl">
-            <h1 class="text-xl font-semibold mb-6">⚖️ Start a Debate</h1>
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-xl font-semibold mb-6">Start a Debate</h1>
 
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
-            <form method="post" id="new-discussion-form" hx-boost="false">
-                <div class="space-y-4">
-                    <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Debate topic (e.g. Should we...)" />
+    <form method="post" id="new-discussion-form" hx-boost="false">
+        <div class="space-y-4">
+            <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
+                   class="input w-full text-lg" required maxlength="200" placeholder="Debate topic (e.g. Should we...)" />
 
-                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                    <div id="editor-container">
-                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:200px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-                    </div>
-
-                    <!-- Debate positions -->
-                    <div class="space-y-3">
-                        <div class="text-sm font-medium">Positions</div>
-                        <div id="debate-positions-list" class="space-y-2">
-                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 1 (e.g. For)" />
-                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 2 (e.g. Against)" />
-                        </div>
-                        <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" onclick="addDebatePosition()">+ Add position</button>
-
-                        <label class="flex items-center gap-2 text-sm cursor-pointer mt-2">
-                            <input type="checkbox" name="DebateAllowNeutral" value="true" class="checkbox checkbox-sm" />
-                            Allow neutral / undecided position
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Debate</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <aside class="w-full lg:w-72 xl:w-80 shrink-0 order-first lg:order-last">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">How debates work</h3>
-                <div class="text-sm text-base-content/70 space-y-3">
-                    <p>Debates are structured discussions where each reply takes a position. This encourages thoughtful arguments from defined perspectives.</p>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">After you post</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Your prompt and positions are shown at the top</li>
-                            <li>When replying, participants must choose a position</li>
-                            <li>Each reply is labeled with the author's chosen side</li>
-                            <li>Readers can filter replies by position</li>
-                            <li>Participants can change their position later</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">Setting up a fair debate</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Frame the topic as a clear question or statement</li>
-                            <li>Define 2-3 distinct, non-overlapping positions</li>
-                            <li>Write a neutral prompt that doesn't favor one side</li>
-                            <li>Enable the neutral option for nuanced topics</li>
-                        </ul>
-                    </div>
-                </div>
+            <div id="editor-container" data-hide-image="true">
+                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:200px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
             </div>
-        </aside>
+
+            <!-- Debate positions -->
+            <div class="space-y-3">
+                <div class="text-sm font-medium">Positions</div>
+                <div id="debate-positions-list" class="space-y-2">
+                    <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 1 (e.g. For)" />
+                    <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 2 (e.g. Against)" />
+                </div>
+                <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" onclick="addDebatePosition()">+ Add position</button>
+
+                <label class="flex items-center gap-2 text-sm cursor-pointer mt-2">
+                    <input type="checkbox" name="DebateAllowNeutral" value="true" class="checkbox checkbox-sm" />
+                    Allow neutral / undecided position
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
+                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Debate</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="mt-8 border-t border-base-content/10 pt-6">
+        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How debates work</h3>
+        <div class="text-sm text-base-content/60 space-y-3">
+            <p>Debates are structured discussions where each reply takes a position. This encourages thoughtful arguments from defined perspectives.</p>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Your prompt and positions are shown at the top</li>
+                    <li>When replying, participants must choose a position</li>
+                    <li>Each reply is labeled with the author's chosen side</li>
+                    <li>Readers can filter replies by position</li>
+                    <li>Participants can change their position later</li>
+                </ul>
+            </div>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">Setting up a fair debate</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Frame the topic as a clear question or statement</li>
+                    <li>Define 2-3 distinct, non-overlapping positions</li>
+                    <li>Write a neutral prompt that doesn't favor one side</li>
+                    <li>Enable the neutral option for nuanced topics</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 

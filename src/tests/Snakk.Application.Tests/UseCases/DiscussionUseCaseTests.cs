@@ -20,6 +20,7 @@ public class DiscussionUseCaseTests
     private readonly Mock<ICounterService> _mockCounterService = new();
     private readonly Mock<IMarkupParser> _mockMarkupParser = new();
     private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
+    private readonly Mock<IMediaService> _mockMediaService = new();
     private DiscussionUseCase _useCase = null!;
 
     [Before(Test)]
@@ -56,7 +57,8 @@ public class DiscussionUseCaseTests
             _mockEventDispatcher.Object,
             _mockCounterService.Object,
             _mockMarkupParser.Object,
-            _mockRealtimeNotifier.Object);
+            _mockRealtimeNotifier.Object,
+            _mockMediaService.Object);
     }
 
     #region CreateDiscussionAsync Tests

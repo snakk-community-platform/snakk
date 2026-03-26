@@ -21,59 +21,53 @@
     </nav>
 </div>
 
-<div class="max-w-[90rem] mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-6">
-        <div class="flex-1 min-w-0 max-w-3xl">
-            <h1 class="text-xl font-semibold mb-6">📓 Start a Journal</h1>
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-xl font-semibold mb-6">Start a Journal</h1>
 
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
-            <form method="post" id="new-discussion-form" hx-boost="false">
-                <div class="space-y-4">
-                    <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Journal title (e.g. My project progress)" />
+    <form method="post" id="new-discussion-form" hx-boost="false">
+        <div class="space-y-4">
+            <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
+                   class="input w-full text-lg" required maxlength="200" placeholder="Journal title (e.g. My project progress)" />
 
-                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                    <div id="editor-container">
-                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Journal</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <aside class="w-full lg:w-72 xl:w-80 shrink-0 order-first lg:order-last">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">How journals work</h3>
-                <div class="text-sm text-base-content/70 space-y-3">
-                    <p>Journals are living documents. You post the first entry now, then add timestamped updates over time. Others can discuss in regular replies.</p>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">After you post</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Your first post becomes the opening entry</li>
-                            <li>Use "+ Add update" to append new entries</li>
-                            <li>Updates appear as a timeline above the replies</li>
-                            <li>Others can reply and discuss below your updates</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">Great for</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Project progress logs</li>
-                            <li>Learning journals and study notes</li>
-                            <li>Changelogs and release notes</li>
-                            <li>Curated resource collections</li>
-                            <li>Ongoing summaries of a topic</li>
-                        </ul>
-                    </div>
-                </div>
+            <div id="editor-container" data-hide-image="true">
+                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
             </div>
-        </aside>
+
+            <div class="flex items-center justify-between">
+                <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
+                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Journal</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="mt-8 border-t border-base-content/10 pt-6">
+        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How journals work</h3>
+        <div class="text-sm text-base-content/60 space-y-3">
+            <p>Journals are living documents. You post the first entry now, then add timestamped updates over time. Others can discuss in regular replies.</p>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Your first post becomes the opening entry</li>
+                    <li>Use "+ Add update" to append new entries</li>
+                    <li>Updates appear as a timeline above the replies</li>
+                    <li>Others can reply and discuss below your updates</li>
+                </ul>
+            </div>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">Great for</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Project progress logs</li>
+                    <li>Learning journals and study notes</li>
+                    <li>Changelogs and release notes</li>
+                    <li>Curated resource collections</li>
+                    <li>Ongoing summaries of a topic</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 

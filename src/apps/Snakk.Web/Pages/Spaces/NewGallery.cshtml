@@ -21,59 +21,130 @@
     </nav>
 </div>
 
-<div class="max-w-[90rem] mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-6">
-        <div class="flex-1 min-w-0 max-w-3xl">
-            <h1 class="text-xl font-semibold mb-6">🖼️ New Gallery</h1>
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-xl font-semibold mb-6">New Gallery</h1>
 
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
-            <form method="post" id="new-discussion-form" hx-boost="false">
-                <div class="space-y-4">
-                    <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Gallery title" />
+    <form method="post" id="new-discussion-form" hx-boost="false">
+        <div class="space-y-4">
+            <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
+                   class="input w-full text-lg" required maxlength="200" placeholder="Gallery title" />
 
-                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-                    <div id="editor-container">
-                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Gallery</button>
+            <!-- Image uploads -->
+            <div>
+                <div class="text-sm font-medium mb-2">Images</div>
+                <div id="gallery-uploads" class="space-y-3">
+                    <div class="gallery-upload-slot" data-index="0">
+                        <div class="flex items-center gap-3">
+                            <input type="file" accept="image/*" class="file-input file-input-sm flex-1"
+                                   onchange="uploadGalleryImage(this)" />
+                            <div class="gallery-upload-status text-sm text-base-content/50"></div>
+                        </div>
+                        <div class="gallery-preview hidden mt-2">
+                            <img class="max-h-32 rounded" />
+                            <input type="hidden" name="GalleryImageUrls" />
+                        </div>
                     </div>
                 </div>
-            </form>
-        </div>
+                <button type="button" class="btn btn-ghost btn-xs mt-2" id="add-gallery-image-btn" onclick="addGallerySlot()">+ Add image</button>
+            </div>
 
-        <aside class="w-full lg:w-72 xl:w-80 shrink-0 order-first lg:order-last">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">How galleries work</h3>
-                <div class="text-sm text-base-content/70 space-y-3">
-                    <p>Galleries are for sharing collections of images. Perfect for showcasing work, photography, art, or visual content.</p>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">After you post</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Images display in your post with full-size previews</li>
-                            <li>Others can reply and discuss your images</li>
-                            <li>Reactions show community appreciation</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="font-medium text-base-content/80 mb-1">Tips</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>Paste or drag images directly into the editor</li>
-                            <li>Add captions and descriptions between images</li>
-                            <li>Supported formats: JPEG, PNG, GIF, WebP</li>
-                            <li>Max 5MB per image</li>
-                        </ul>
-                    </div>
+            <!-- Caption/description editor (image button hidden) -->
+            <div>
+                <div class="text-sm font-medium mb-2">Description (optional)</div>
+                <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+                <div id="editor-container" data-hide-image="true" data-placeholder="Add captions, descriptions, or context for your images...">
+                    <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                 </div>
             </div>
-        </aside>
+
+            <div class="flex items-center justify-between">
+                <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
+                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Gallery</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="mt-8 border-t border-base-content/10 pt-6">
+        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How galleries work</h3>
+        <div class="text-sm text-base-content/60 space-y-3">
+            <p>Galleries are for sharing collections of images. Upload your images above, then add optional descriptions in the editor.</p>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Images display in your post with full-size previews</li>
+                    <li>Others can reply and discuss your images</li>
+                    <li>Reactions show community appreciation</li>
+                </ul>
+            </div>
+            <div>
+                <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                <ul class="space-y-1 list-disc pl-4">
+                    <li>Supported formats: JPEG, PNG, GIF, WebP</li>
+                    <li>Max 5MB per image</li>
+                    <li>Add descriptions between images for context</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
+<script>
+    var gallerySlotCount = 1;
+
+    function addGallerySlot() {
+        var container = document.getElementById('gallery-uploads');
+        var slot = document.createElement('div');
+        slot.className = 'gallery-upload-slot';
+        slot.dataset.index = gallerySlotCount++;
+        slot.innerHTML =
+            '<div class="flex items-center gap-3">' +
+                '<input type="file" accept="image/*" class="file-input file-input-sm flex-1" onchange="uploadGalleryImage(this)" />' +
+                '<div class="gallery-upload-status text-sm text-base-content/50"></div>' +
+                '<button type="button" class="btn btn-ghost btn-xs" onclick="this.closest(\'.gallery-upload-slot\').remove()">✕</button>' +
+            '</div>' +
+            '<div class="gallery-preview hidden mt-2">' +
+                '<img class="max-h-32 rounded" />' +
+                '<input type="hidden" name="GalleryImageUrls" />' +
+            '</div>';
+        container.appendChild(slot);
+    }
+
+    async function uploadGalleryImage(input) {
+        var file = input.files[0];
+        if (!file) return;
+
+        var slot = input.closest('.gallery-upload-slot');
+        var status = slot.querySelector('.gallery-upload-status');
+        var preview = slot.querySelector('.gallery-preview');
+        var previewImg = preview.querySelector('img');
+        var hiddenInput = preview.querySelector('input[type="hidden"]');
+
+        status.textContent = 'Uploading...';
+
+        try {
+            var formData = new FormData();
+            formData.append('file', file, file.name);
+
+            var response = await fetch('/bff/media/upload', { method: 'POST', body: formData });
+
+            if (!response.ok) {
+                status.textContent = 'Upload failed';
+                return;
+            }
+
+            var result = JSON.parse(await response.text());
+            hiddenInput.value = result.url;
+            previewImg.src = result.url;
+            preview.classList.remove('hidden');
+            status.textContent = 'Uploaded';
+        } catch (err) {
+            status.textContent = 'Error';
+            console.error('Gallery upload error:', err);
+        }
+    }
+</script>

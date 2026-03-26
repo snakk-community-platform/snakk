@@ -109,7 +109,7 @@ app.MapGrpcService<Snakk.Api.GrpcServices.StatisticsGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.UserGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ReadStateGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.MarkupGrpcService>();
-app.MapGrpcService<Snakk.Api.GrpcServices.AnnouncementGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.BannerGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ManageGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
@@ -143,7 +143,7 @@ app.MapReadStateEndpoints();
 app.MapSearchEndpoints();
 app.MapModerationEndpoints();
 app.MapManageContextEndpoints();
-app.MapAnnouncementManagementEndpoints();
+app.MapBannerManagementEndpoints();
 app.MapMediaEndpoints();
 app.MapRealtimeInternalEndpoints();
 // Sitemap moved to Snakk.Web (public-facing app)

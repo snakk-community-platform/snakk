@@ -53,7 +53,7 @@ public class TestWebApp : WebApplicationFactory<Program>
             new Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient(dummyChannel),
             new Snakk.Protos.Markup.MarkupService.MarkupServiceClient(dummyChannel),
             new AuthService.AuthServiceClient(dummyChannel),
-            new Snakk.Protos.Announcement.AnnouncementService.AnnouncementServiceClient(dummyChannel),
+            new Snakk.Protos.Banner.BannerService.BannerServiceClient(dummyChannel),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<SnakkApiClient>.Instance);
 
         MockAuthClient = new Mock<AuthService.AuthServiceClient>(dummyChannel);

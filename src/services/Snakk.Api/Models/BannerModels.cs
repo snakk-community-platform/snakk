@@ -1,6 +1,6 @@
 namespace Snakk.Api.Models;
 
-public record CreateAnnouncementRequest(
+public record CreateBannerRequest(
     string Title,
     string Content,
     string Type,
@@ -11,7 +11,7 @@ public record CreateAnnouncementRequest(
     bool IsDismissible = true,
     int SortOrder = 0);
 
-public record UpdateAnnouncementRequest(
+public record UpdateBannerRequest(
     string Title,
     string Content,
     string Type,

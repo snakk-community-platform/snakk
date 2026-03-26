@@ -86,6 +86,7 @@ interface SnakkEditorOptions {
     initialValue?: string;
     height?: string;
     onChange?: (markdown: string) => void;
+    hideImageButton?: boolean;
 }
 
 interface SnakkEditorAPI {
@@ -1663,17 +1664,6 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
         deleteBtn.addEventListener('mousedown', (e) => {
             e.preventDefault();
 
-            // Clean up pending upload if removing an image with a blob URL
-            if (type === 'image') {
-                const imgSrc = (el as HTMLImageElement).src;
-                if (imgSrc && imgSrc.startsWith('blob:')) {
-                    const container = contentArea.parentElement?.parentElement as HTMLElement;
-                    if (container) {
-                        (window as any).SnakkEditor?.removePendingUpload(container, imgSrc);
-                    }
-                }
-            }
-
             editor.action((ctx) => {
                 const view = ctx.get(editorViewCtx);
                 const pos = view.posAtDOM(el, 0);
@@ -1898,12 +1888,14 @@ interface ToolbarButtonRef {
     allowInTable: boolean;
 }
 
-function createToolbarDOM(editor: Editor): { toolbar: HTMLElement; buttons: ToolbarButtonRef[] } {
+function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean }): { toolbar: HTMLElement; buttons: ToolbarButtonRef[] } {
     const toolbar = document.createElement('div');
     toolbar.className = 'milkdown-toolbar';
     const buttons: ToolbarButtonRef[] = [];
 
     for (const item of buildToolbarItems()) {
+        // Skip image button if hideImageButton is set
+        if (options?.hideImageButton && 'title' in item && item.title === 'Image') continue;
         if ('separator' in item && item.separator) {
             const sep = document.createElement('span');
             sep.className = 'milkdown-toolbar-separator';
@@ -2020,10 +2012,9 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
     if ((window as any).SnakkEditor) return;
 
     const instances = new Map<HTMLElement, { editor: Editor; wrapper: EditorInstance }>();
-    const pendingUploads = new Map<HTMLElement, Map<string, File>>();
 
     async function init(options: SnakkEditorOptions): Promise<EditorInstance | null> {
-        const { container, textarea, placeholder, initialValue, height, onChange } = options;
+        const { container, textarea, placeholder, initialValue, height, onChange, hideImageButton } = options;
 
         // Already initialized for this container
         const existing = instances.get(container);
@@ -2073,7 +2064,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                             onChange?.(cleaned);
                         });
 
-                    // Upload plugin: intercept pasted/dropped images
+                    // Upload plugin: immediately upload pasted/dropped images to server
                     ctx.update(uploadConfig.key, (prev) => ({
                         ...prev,
                         uploader: async (files, schema, _ctx, _insertPos) => {
@@ -2082,22 +2073,29 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                                 const file = files.item(i);
                                 if (!file || !file.type.startsWith('image/')) continue;
 
-                                // Create blob URL for immediate preview
-                                const blobUrl = URL.createObjectURL(file);
+                                try {
+                                    const formData = new FormData();
+                                    formData.append('file', file, file.name);
 
-                                // Track for later upload on form submit
-                                let containerUploads = pendingUploads.get(container);
-                                if (!containerUploads) {
-                                    containerUploads = new Map<string, File>();
-                                    pendingUploads.set(container, containerUploads);
+                                    const response = await fetch('/bff/media/upload', {
+                                        method: 'POST',
+                                        body: formData,
+                                    });
+
+                                    if (!response.ok) {
+                                        console.error('[Editor] Image upload failed:', response.status);
+                                        continue;
+                                    }
+
+                                    const result = JSON.parse(await response.text());
+                                    const node = schema.nodes.image?.createAndFill({
+                                        src: result.url,
+                                        alt: 'user uploaded image',
+                                    });
+                                    if (node) nodes.push(node);
+                                } catch (err) {
+                                    console.error('[Editor] Image upload error:', err);
                                 }
-                                containerUploads.set(blobUrl, file);
-
-                                const node = schema.nodes.image?.createAndFill({
-                                    src: blobUrl,
-                                    alt: 'user uploaded image',
-                                });
-                                if (node) nodes.push(node);
                             }
                             return nodes;
                         },
@@ -2130,7 +2128,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 .create();
 
             // Build toolbar, footer and assemble the editor
-            const { toolbar, buttons: toolbarButtons } = createToolbarDOM(editor);
+            const { toolbar, buttons: toolbarButtons } = createToolbarDOM(editor, { hideImageButton });
             const footer = document.createElement('div');
             footer.className = 'milkdown-footer';
 
@@ -2204,47 +2202,11 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
         return instances.get(container)?.wrapper || null;
     }
 
-    function addPendingUpload(container: HTMLElement, blobUrl: string, file: File): void {
-        let containerUploads = pendingUploads.get(container);
-        if (!containerUploads) {
-            containerUploads = new Map<string, File>();
-            pendingUploads.set(container, containerUploads);
-        }
-        containerUploads.set(blobUrl, file);
-        console.log('[SnakkEditor] addPendingUpload: container=', container.id, 'total=', containerUploads.size);
-    }
-
-    function getPendingUploads(container: HTMLElement): Map<string, File> {
-        const uploads = pendingUploads.get(container) || new Map<string, File>();
-        console.log('[SnakkEditor] getPendingUploads: container=', container.id, 'size=', uploads.size);
-        return uploads;
-    }
-
-    function removePendingUpload(container: HTMLElement, blobUrl: string): void {
-        const uploads = pendingUploads.get(container);
-        if (uploads && uploads.has(blobUrl)) {
-            URL.revokeObjectURL(blobUrl);
-            uploads.delete(blobUrl);
-        }
-    }
-
-    function clearPendingUploads(container: HTMLElement): void {
-        const uploads = pendingUploads.get(container);
-        if (uploads) {
-            for (const blobUrl of uploads.keys()) {
-                URL.revokeObjectURL(blobUrl);
-            }
-            uploads.clear();
-        }
-    }
-
     function destroyEditor(container: HTMLElement): void {
-        clearPendingUploads(container);
         const entry = instances.get(container);
         if (entry) {
             entry.editor.destroy();
             instances.delete(container);
-            pendingUploads.delete(container);
         }
     }
 
@@ -2252,9 +2214,5 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
         init,
         getInstance,
         destroy: destroyEditor,
-        addPendingUpload,
-        removePendingUpload,
-        getPendingUploads,
-        clearPendingUploads,
     } as any;
 })();

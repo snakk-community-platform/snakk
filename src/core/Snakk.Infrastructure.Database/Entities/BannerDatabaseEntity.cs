@@ -2,16 +2,16 @@ namespace Snakk.Infrastructure.Database.Entities;
 
 using System.ComponentModel.DataAnnotations.Schema;
 
-[Table("Announcement")]
-public class AnnouncementDatabaseEntity
+[Table("Banner")]
+public class BannerDatabaseEntity
 {
     public int Id { get; set; }
     public required string PublicId { get; set; }
     public required string Title { get; set; }
     public required string Content { get; set; }
     public string RenderedContent { get; set; } = "";
-    public int TypeId { get; set; } // Maps to AnnouncementTypeEnum
-    public int ScopeId { get; set; } // Maps to AnnouncementScopeEnum
+    public int TypeId { get; set; } // Maps to BannerTypeEnum
+    public int ScopeId { get; set; } // Maps to BannerScopeEnum
     public required string ScopeEntityId { get; set; } // PublicId of community/hub/space
     public DateTime? VisibleFrom { get; set; }
     public DateTime? VisibleUntil { get; set; }

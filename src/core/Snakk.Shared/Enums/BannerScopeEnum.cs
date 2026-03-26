@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace Snakk.Shared.Enums;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum AnnouncementTypeEnum
+public enum BannerScopeEnum
 {
-    Info = 0,
-    Warning = 1,
-    Critical = 2
+    Community = 0,
+    Hub = 1,
+    Space = 2
 }

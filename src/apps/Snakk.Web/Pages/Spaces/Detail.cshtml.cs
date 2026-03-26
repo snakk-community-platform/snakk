@@ -38,8 +38,8 @@ public class DetailModel(
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:DiscussionList:ShowDiscussions", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:DiscussionList:ShowContributors", true);
 
-    // Announcements (bubble-down: space + hub + community)
-    public Snakk.Protos.Announcement.AnnouncementList? Announcements { get; set; }
+    // Banners (bubble-down: space + hub + community)
+    public Snakk.Protos.Banner.BannerList? Banners { get; set; }
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
@@ -94,13 +94,13 @@ public class DetailModel(
         // Fetch discussions, stats, and announcements in parallel
         var discussionsTask = _apiClient.GetDiscussionsBySpaceAsync(Space.PublicId, offset, 20);
         var statsTask = _apiClient.GetSpaceStatsAsync(Space.PublicId);
-        var announcementsTask = _apiClient.GetActiveAnnouncementsForSpaceAsync(Space.PublicId);
+        var announcementsTask = _apiClient.GetActiveBannersForSpaceAsync(Space.PublicId);
 
         await Task.WhenAll(discussionsTask, statsTask, announcementsTask);
 
         Discussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         SpaceStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
-        Announcements = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
+        Banners = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         return Page();
     }

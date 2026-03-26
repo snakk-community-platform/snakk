@@ -30,3 +30,93 @@ html, body {
 .search-box {
     padding: 8px;
 }
+
+/* Milkdown editor styles for admin panel */
+.milkdown-admin-container {
+    min-height: 250px;
+}
+
+.milkdown-editor {
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 4px;
+    background: var(--mud-palette-surface, #fff);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.milkdown-editor-content {
+    padding: 0.75rem 1rem;
+    min-height: 200px;
+}
+
+.milkdown-editor-content .ProseMirror {
+    outline: none;
+    min-height: inherit;
+}
+
+.milkdown-editor-content .ProseMirror > *:first-child { margin-top: 0; }
+.milkdown-editor-content .ProseMirror > *:last-child { margin-bottom: 0; }
+.milkdown-editor-content .ProseMirror p { margin: 0.5em 0; }
+
+.milkdown-editor-content .ProseMirror code {
+    background: rgba(0,0,0,0.05);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.milkdown-editor-content .ProseMirror pre {
+    background: rgba(0,0,0,0.05);
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.milkdown-editor-content .ProseMirror pre code {
+    background: none;
+    padding: 0;
+}
+
+.milkdown-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    background: var(--mud-palette-background-grey, #f5f5f5);
+}
+
+.milkdown-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: inherit;
+}
+
+.milkdown-toolbar-btn:hover {
+    background: rgba(0,0,0,0.08);
+}
+
+.milkdown-toolbar-separator {
+    width: 1px;
+    height: 1.25rem;
+    margin: 0 0.25rem;
+    background: var(--mud-palette-lines-default, #e0e0e0);
+}
+
+.milkdown-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+}

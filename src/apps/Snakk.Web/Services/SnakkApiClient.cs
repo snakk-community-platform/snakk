@@ -49,7 +49,7 @@ public class SnakkApiClient(
     ReadStateClient readStateClient,
     MarkupService.MarkupServiceClient markupClient,
     AuthService.AuthServiceClient authClient,
-    Snakk.Protos.Announcement.AnnouncementService.AnnouncementServiceClient announcementClient,
+    Snakk.Protos.Banner.BannerService.BannerServiceClient bannerClient,
     ILogger<SnakkApiClient> logger)
 {
     private void LogGrpcError(Exception ex, [CallerMemberName] string? caller = null)
@@ -1206,14 +1206,14 @@ public class SnakkApiClient(
         l.Details, l.Reason,
         l.CreatedAt.ToDateTime());
 
-    // ==================== Announcements ====================
+    // ==================== Banners ====================
 
-    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForCommunityAsync(string communityPublicId)
+    public async Task<Snakk.Protos.Banner.BannerList?> GetActiveBannersForCommunityAsync(string communityPublicId)
     {
         try
         {
-            return await announcementClient.GetActiveForCommunityAsync(
-                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = communityPublicId });
+            return await bannerClient.GetActiveForCommunityAsync(
+                new Snakk.Protos.Banner.GetActiveBannersRequest { EntityId = communityPublicId });
         }
         catch (RpcException ex)
         {
@@ -1222,12 +1222,12 @@ public class SnakkApiClient(
         }
     }
 
-    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForHubAsync(string hubPublicId)
+    public async Task<Snakk.Protos.Banner.BannerList?> GetActiveBannersForHubAsync(string hubPublicId)
     {
         try
         {
-            return await announcementClient.GetActiveForHubAsync(
-                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = hubPublicId });
+            return await bannerClient.GetActiveForHubAsync(
+                new Snakk.Protos.Banner.GetActiveBannersRequest { EntityId = hubPublicId });
         }
         catch (RpcException ex)
         {
@@ -1236,12 +1236,12 @@ public class SnakkApiClient(
         }
     }
 
-    public async Task<Snakk.Protos.Announcement.AnnouncementList?> GetActiveAnnouncementsForSpaceAsync(string spacePublicId)
+    public async Task<Snakk.Protos.Banner.BannerList?> GetActiveBannersForSpaceAsync(string spacePublicId)
     {
         try
         {
-            return await announcementClient.GetActiveForSpaceAsync(
-                new Snakk.Protos.Announcement.GetActiveAnnouncementsRequest { EntityId = spacePublicId });
+            return await bannerClient.GetActiveForSpaceAsync(
+                new Snakk.Protos.Banner.GetActiveBannersRequest { EntityId = spacePublicId });
         }
         catch (RpcException ex)
         {

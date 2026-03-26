@@ -5,7 +5,7 @@
 
 <MudPaper Class="pa-4 d-flex justify-space-between align-center mb-4">
     <div>
-        <MudText Typo="Typo.h5">Announcements</MudText>
+        <MudText Typo="Typo.h5">Banners</MudText>
         <MudText Typo="Typo.body2" Style="opacity: 0.7;">
             Manage banner announcements shown to users visiting this @Scope?.ScopeType?.ToLower().
         </MudText>
@@ -24,7 +24,7 @@
         <MudStack Spacing="3">
             <MudTextField @bind-Value="_formTitle" Label="Title" Placeholder="Announcement title..." />
             <MudTextField @bind-Value="_formContent" Label="Content (Markdown)" Lines="4"
-                          Placeholder="Write your announcement content..." />
+                          Placeholder="Write your banner content..." />
             <MudSelect @bind-Value="_formType" T="string" Label="Type">
                 <MudSelectItem Value="@("Info")">Info (blue)</MudSelectItem>
                 <MudSelectItem Value="@("Warning")">Warning (yellow)</MudSelectItem>
@@ -52,7 +52,7 @@
 
 @* Announcement list *@
 <MudPaper Class="pa-4">
-    <MudText Typo="Typo.h6" Class="mb-2">Current Announcements</MudText>
+    <MudText Typo="Typo.h6" Class="mb-2">Current Banners</MudText>
 
     @if (_loading)
     {
@@ -64,9 +64,9 @@
     }
     else
     {
-        @foreach (var announcement in _announcements.OrderBy(a => a.SortOrder))
+        @foreach (var banner in _announcements.OrderBy(a => a.SortOrder))
         {
-            var a = announcement;
+            var a = banner;
             var typeColor = a.Type switch
             {
                 "Critical" => Color.Error,
@@ -106,7 +106,7 @@
                     <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
                                    OnClick="@(() => StartEdit(a))" Disabled="@_saving" />
                     <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                   OnClick="@(() => DeleteAnnouncement(a.PublicId))" Disabled="@_saving" />
+                                   OnClick="@(() => DeleteBanner(a.PublicId))" Disabled="@_saving" />
                 </MudStack>
             </MudPaper>
         }
@@ -122,7 +122,7 @@
     private bool _showForm;
     private string? _editingPublicId;
     private string? _errorMessage;
-    private List<AnnouncementItem> _announcements = new();
+    private List<BannerItem> _announcements = new();
 
     private string _formTitle = "";
     private string _formContent = "";
@@ -136,22 +136,22 @@
     {
         if (Scope == null) return;
         await Tz.EnsureInitializedAsync();
-        await LoadAnnouncements();
+        await LoadBanners();
     }
 
-    private async Task LoadAnnouncements()
+    private async Task LoadBanners()
     {
         _loading = true;
 
         try
         {
-            var response = await ManageClient.GetAnnouncementsAsync(new GetAnnouncementsRequest
+            var response = await ManageClient.GetBannersAsync(new GetBannersRequest
             {
                 ScopeType = Scope!.ScopeType,
                 ScopePublicId = Scope.ScopePublicId
             }, deadline: DateTime.UtcNow.AddSeconds(10));
 
-            _announcements = response.Announcements.ToList();
+            _announcements = response.Banners.ToList();
         }
         catch
         {
@@ -177,7 +177,7 @@
         _showForm = true;
     }
 
-    private void StartEdit(AnnouncementItem a)
+    private void StartEdit(BannerItem a)
     {
         _editingPublicId = a.PublicId;
         _formTitle = a.Title;
@@ -214,7 +214,7 @@
         {
             if (_editingPublicId == null)
             {
-                var request = new CreateAnnouncementGrpcRequest
+                var request = new CreateBannerGrpcRequest
                 {
                     ScopeType = Scope!.ScopeType,
                     ScopePublicId = Scope.ScopePublicId,
@@ -230,19 +230,19 @@
                 if (_formVisibleUntil.HasValue)
                     request.VisibleUntilTicks = _formVisibleUntil.Value.ToUniversalTime().Ticks;
 
-                var result = await ManageClient.CreateAnnouncementAsync(request,
+                var result = await ManageClient.CreateBannerAsync(request,
                     deadline: DateTime.UtcNow.AddSeconds(10));
 
                 if (!result.Success)
                 {
-                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to create announcement";
+                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to create banner";
                     _saving = false;
                     return;
                 }
             }
             else
             {
-                var request = new UpdateAnnouncementGrpcRequest
+                var request = new UpdateBannerGrpcRequest
                 {
                     PublicId = _editingPublicId,
                     Title = _formTitle.Trim(),
@@ -257,19 +257,19 @@
                 if (_formVisibleUntil.HasValue)
                     request.VisibleUntilTicks = _formVisibleUntil.Value.ToUniversalTime().Ticks;
 
-                var result = await ManageClient.UpdateAnnouncementAsync(request,
+                var result = await ManageClient.UpdateBannerAsync(request,
                     deadline: DateTime.UtcNow.AddSeconds(10));
 
                 if (!result.Success)
                 {
-                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to update announcement";
+                    _errorMessage = result.HasErrorMessage ? result.ErrorMessage : "Failed to update banner";
                     _saving = false;
                     return;
                 }
             }
 
             _showForm = false;
-            await LoadAnnouncements();
+            await LoadBanners();
         }
         finally
         {
@@ -277,18 +277,18 @@
         }
     }
 
-    private async Task DeleteAnnouncement(string publicId)
+    private async Task DeleteBanner(string publicId)
     {
         _saving = true;
 
         try
         {
-            await ManageClient.DeleteAnnouncementAsync(new DeleteAnnouncementRequest
+            await ManageClient.DeleteBannerAsync(new DeleteBannerRequest
             {
                 PublicId = publicId
             }, deadline: DateTime.UtcNow.AddSeconds(10));
 
-            await LoadAnnouncements();
+            await LoadBanners();
         }
         finally
         {

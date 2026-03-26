@@ -22,7 +22,7 @@ public class ManageGrpcService(
     ISpaceManagementService spaceManagementService,
     IModerationRepository moderationRepository,
     IDashboardChartRepository dashboardChartRepository,
-    AnnouncementUseCase announcementUseCase,
+    BannerUseCase bannerUseCase,
     ISettingsService settingsService,
     IRuleService ruleService,
     IRealtimeNotifier realtimeNotifier,
@@ -30,7 +30,9 @@ public class ManageGrpcService(
     IGroupService groupService,
     IGroupAccessService groupAccessService,
     IHubManagementService hubManagementService,
-    IAllowedTypesService allowedTypesService) : ManageService.ManageServiceBase
+    IAllowedTypesService allowedTypesService,
+    DiscussionUseCase discussionUseCase,
+    IDiscussionExtensionService discussionExtensionService) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -1357,10 +1359,10 @@ public class ManageGrpcService(
         return response;
     }
 
-    // ==================== Announcements ====================
+    // ==================== Banners ====================
 
-    public override async Task<GetAnnouncementsResponse> GetAnnouncements(
-        GetAnnouncementsRequest request, ServerCallContext context)
+    public override async Task<GetBannersResponse> GetBanners(
+        GetBannersRequest request, ServerCallContext context)
     {
         var userId = GetUserId(context);
         if (string.IsNullOrEmpty(userId))
@@ -1371,15 +1373,15 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        if (!Enum.TryParse<AnnouncementScopeEnum>(request.ScopeType, true, out var scope))
+        if (!Enum.TryParse<BannerScopeEnum>(request.ScopeType, true, out var scope))
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid scope type: {request.ScopeType}"));
 
-        var announcements = await announcementUseCase.GetByScopeAsync(scope, request.ScopePublicId);
+        var announcements = await bannerUseCase.GetByScopeAsync(scope, request.ScopePublicId);
 
-        var response = new GetAnnouncementsResponse();
-        response.Announcements.AddRange(announcements.Select(a =>
+        var response = new GetBannersResponse();
+        response.Banners.AddRange(announcements.Select(a =>
         {
-            var item = new AnnouncementItem
+            var item = new BannerItem
             {
                 PublicId = a.PublicId.Value,
                 Title = a.Title,
@@ -1399,8 +1401,8 @@ public class ManageGrpcService(
         return response;
     }
 
-    public override async Task<CreateAnnouncementResponse> CreateAnnouncement(
-        CreateAnnouncementGrpcRequest request, ServerCallContext context)
+    public override async Task<CreateBannerResponse> CreateBanner(
+        CreateBannerGrpcRequest request, ServerCallContext context)
     {
         var userId = GetUserId(context);
         if (string.IsNullOrEmpty(userId))
@@ -1411,41 +1413,41 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        if (!Enum.TryParse<AnnouncementScopeEnum>(request.ScopeType, true, out var scope))
-            return new CreateAnnouncementResponse { Success = false, ErrorMessage = $"Invalid scope type: {request.ScopeType}" };
+        if (!Enum.TryParse<BannerScopeEnum>(request.ScopeType, true, out var scope))
+            return new CreateBannerResponse { Success = false, ErrorMessage = $"Invalid scope type: {request.ScopeType}" };
 
-        if (!Enum.TryParse<AnnouncementTypeEnum>(request.Type, true, out var type))
-            return new CreateAnnouncementResponse { Success = false, ErrorMessage = $"Invalid type: {request.Type}" };
+        if (!Enum.TryParse<BannerTypeEnum>(request.Type, true, out var type))
+            return new CreateBannerResponse { Success = false, ErrorMessage = $"Invalid type: {request.Type}" };
 
         DateTime? visibleFrom = request.HasVisibleFromTicks
             ? new DateTime(request.VisibleFromTicks, DateTimeKind.Utc) : null;
         DateTime? visibleUntil = request.HasVisibleUntilTicks
             ? new DateTime(request.VisibleUntilTicks, DateTimeKind.Utc) : null;
 
-        var result = await announcementUseCase.CreateAsync(
+        var result = await bannerUseCase.CreateAsync(
             scope, request.ScopePublicId, UserId.From(userId),
             request.Title, request.Content, type,
             visibleFrom, visibleUntil, request.IsDismissible, request.SortOrder);
 
         if (!result.IsSuccess)
-            return new CreateAnnouncementResponse { Success = false, ErrorMessage = result.Error };
+            return new CreateBannerResponse { Success = false, ErrorMessage = result.Error };
 
-        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(request.ScopeType, request.ScopePublicId);
+        await realtimeNotifier.NotifyBannerUpdatedAsync(request.ScopeType, request.ScopePublicId);
 
-        return new CreateAnnouncementResponse { Success = true, PublicId = result.Value!.PublicId.Value };
+        return new CreateBannerResponse { Success = true, PublicId = result.Value!.PublicId.Value };
     }
 
-    public override async Task<UpdateAnnouncementResponse> UpdateAnnouncement(
-        UpdateAnnouncementGrpcRequest request, ServerCallContext context)
+    public override async Task<UpdateBannerResponse> UpdateBanner(
+        UpdateBannerGrpcRequest request, ServerCallContext context)
     {
         var userId = GetUserId(context);
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        // Look up announcement to determine its scope for permission check
-        var existing = await announcementUseCase.GetByIdAsync(AnnouncementId.From(request.PublicId));
+        // Look up banner to determine its scope for permission check
+        var existing = await bannerUseCase.GetByIdAsync(BannerId.From(request.PublicId));
         if (!existing.IsSuccess)
-            return new UpdateAnnouncementResponse { Success = false, ErrorMessage = "Announcement not found" };
+            return new UpdateBannerResponse { Success = false, ErrorMessage = "Banner not found" };
 
         var a = existing.Value!;
         var hasPermission = await permissionService.HasPermissionAsync(
@@ -1453,38 +1455,38 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        if (!Enum.TryParse<AnnouncementTypeEnum>(request.Type, true, out var type))
-            return new UpdateAnnouncementResponse { Success = false, ErrorMessage = $"Invalid type: {request.Type}" };
+        if (!Enum.TryParse<BannerTypeEnum>(request.Type, true, out var type))
+            return new UpdateBannerResponse { Success = false, ErrorMessage = $"Invalid type: {request.Type}" };
 
         DateTime? visibleFrom = request.HasVisibleFromTicks
             ? new DateTime(request.VisibleFromTicks, DateTimeKind.Utc) : null;
         DateTime? visibleUntil = request.HasVisibleUntilTicks
             ? new DateTime(request.VisibleUntilTicks, DateTimeKind.Utc) : null;
 
-        var result = await announcementUseCase.UpdateAsync(
-            AnnouncementId.From(request.PublicId),
+        var result = await bannerUseCase.UpdateAsync(
+            BannerId.From(request.PublicId),
             request.Title, request.Content, type,
             visibleFrom, visibleUntil, request.IsDismissible, request.SortOrder);
 
         if (!result.IsSuccess)
-            return new UpdateAnnouncementResponse { Success = false, ErrorMessage = result.Error };
+            return new UpdateBannerResponse { Success = false, ErrorMessage = result.Error };
 
-        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+        await realtimeNotifier.NotifyBannerUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
 
-        return new UpdateAnnouncementResponse { Success = true };
+        return new UpdateBannerResponse { Success = true };
     }
 
-    public override async Task<DeleteAnnouncementResponse> DeleteAnnouncement(
-        DeleteAnnouncementRequest request, ServerCallContext context)
+    public override async Task<DeleteBannerResponse> DeleteBanner(
+        DeleteBannerRequest request, ServerCallContext context)
     {
         var userId = GetUserId(context);
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        // Look up announcement to determine its scope for permission check
-        var existing = await announcementUseCase.GetByIdAsync(AnnouncementId.From(request.PublicId));
+        // Look up banner to determine its scope for permission check
+        var existing = await bannerUseCase.GetByIdAsync(BannerId.From(request.PublicId));
         if (!existing.IsSuccess)
-            return new DeleteAnnouncementResponse { Success = false, ErrorMessage = "Announcement not found" };
+            return new DeleteBannerResponse { Success = false, ErrorMessage = "Banner not found" };
 
         var a = existing.Value!;
         var hasPermission = await permissionService.HasPermissionAsync(
@@ -1492,17 +1494,17 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        var result = await announcementUseCase.DeleteAsync(AnnouncementId.From(request.PublicId));
+        var result = await bannerUseCase.DeleteAsync(BannerId.From(request.PublicId));
         if (!result.IsSuccess)
-            return new DeleteAnnouncementResponse { Success = false, ErrorMessage = result.Error };
+            return new DeleteBannerResponse { Success = false, ErrorMessage = result.Error };
 
-        await realtimeNotifier.NotifyAnnouncementUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+        await realtimeNotifier.NotifyBannerUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
 
-        return new DeleteAnnouncementResponse { Success = true };
+        return new DeleteBannerResponse { Success = true };
     }
 
-    public override async Task<SendGlobalAnnouncementResponse> SendGlobalAnnouncement(
-        SendGlobalAnnouncementRequest request,
+    public override async Task<SendGlobalBannerResponse> SendGlobalBanner(
+        SendGlobalBannerRequest request,
         ServerCallContext context)
     {
         var userId = GetUserId(context);
@@ -1511,7 +1513,44 @@ public class ManageGrpcService(
 
         await realtimeNotifier.NotifyGlobalAsync(request.EventType, request.Message);
 
-        return new SendGlobalAnnouncementResponse { Success = true };
+        return new SendGlobalBannerResponse { Success = true };
+    }
+
+    public override async Task<CreateAnnouncementDiscussionResponse> CreateAnnouncementDiscussion(
+        CreateAnnouncementDiscussionRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        // Require at least SpaceMod permission
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Space", request.SpacePublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Only moderators can create announcements"));
+
+        var slug = request.Title.ToLower().Replace(" ", "-");
+        var result = await discussionUseCase.CreateDiscussionAsync(
+            Snakk.Domain.ValueObjects.SpaceId.From(request.SpacePublicId),
+            Snakk.Domain.ValueObjects.UserId.From(userId),
+            request.Title,
+            slug,
+            request.Content,
+            Snakk.Shared.Enums.DiscussionTypeEnum.Announcement);
+
+        if (!result.IsSuccess || result.Value is null)
+            return new CreateAnnouncementDiscussionResponse
+            {
+                Success = false,
+                ErrorMessage = result.Error ?? "Failed to create banner discussion"
+            };
+
+        return new CreateAnnouncementDiscussionResponse
+        {
+            Success = true,
+            DiscussionPublicId = result.Value.PublicId.Value,
+            DiscussionSlug = result.Value.Slug
+        };
     }
 
     private static string? GetUserId(ServerCallContext context)

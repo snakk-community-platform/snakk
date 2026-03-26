@@ -9,7 +9,7 @@
 
     <MudStack Spacing="3">
         <MudSelect @bind-Value="_eventType" Label="Event Type">
-            <MudSelectItem Value="@("global-announcement")">Announcement</MudSelectItem>
+            <MudSelectItem Value="@("global-banner")">Announcement</MudSelectItem>
             <MudSelectItem Value="@("server-shutdown")">Server Shutdown Warning</MudSelectItem>
             <MudSelectItem Value="@("global-alert")">Alert</MudSelectItem>
         </MudSelect>
@@ -35,7 +35,7 @@
 </MudPaper>
 
 @code {
-    private string _eventType = "global-announcement";
+    private string _eventType = "global-banner";
     private string _message = "";
     private bool _sending;
     private string _result = "";
@@ -50,7 +50,7 @@
 
         try
         {
-            await ManageClient.SendGlobalAnnouncementAsync(new SendGlobalAnnouncementRequest
+            await ManageClient.SendGlobalBannerAsync(new SendGlobalBannerRequest
             {
                 EventType = _eventType,
                 Message = _message

@@ -65,8 +65,8 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<MediaDatabaseEntity> Media { get; set; } = null!;
     public DbSet<PostMediaDatabaseEntity> PostMedia { get; set; } = null!;
 
-    // Announcements
-    public DbSet<AnnouncementDatabaseEntity> Announcements { get; set; } = null!;
+    // Banners
+    public DbSet<BannerDatabaseEntity> Banners { get; set; } = null!;
 
     // Discussion types — allowed type permissions
     public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
@@ -1475,6 +1475,11 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasMaxLength(500)
             .IsRequired();
 
+        // Draft cleanup index — find expired unpublished drafts
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .HasIndex(m => new { m.IsDraft, m.DraftExpiresAt })
+            .HasDatabaseName("IX_Media_IsDraft_DraftExpiresAt");
+
         // PostMedia: composite PK (join table)
         modelBuilder.Entity<PostMediaDatabaseEntity>()
             .HasKey(pm => new { pm.PostId, pm.MediaId });
@@ -1491,16 +1496,16 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(pm => pm.MediaId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // === Announcement Configuration ===
+        // === Banner Configuration ===
 
-        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+        modelBuilder.Entity<BannerDatabaseEntity>()
             .HasIndex(a => a.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+        modelBuilder.Entity<BannerDatabaseEntity>()
             .HasIndex(a => new { a.ScopeId, a.ScopeEntityId });
 
-        modelBuilder.Entity<AnnouncementDatabaseEntity>()
+        modelBuilder.Entity<BannerDatabaseEntity>()
             .HasOne(a => a.CreatedByUser)
             .WithMany()
             .HasForeignKey(a => a.CreatedByUserId)

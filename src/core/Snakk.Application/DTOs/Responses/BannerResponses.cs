@@ -1,6 +1,6 @@
 namespace Snakk.Application.DTOs.Responses;
 
-public record AnnouncementResponse(
+public record BannerResponse(
     string PublicId,
     string Title,
     string Content,
@@ -16,7 +16,7 @@ public record AnnouncementResponse(
     DateTime? LastModifiedAt,
     string CreatedByUserId);
 
-public record ActiveAnnouncementResponse(
+public record ActiveBannerResponse(
     string PublicId,
     string Title,
     string RenderedContent,

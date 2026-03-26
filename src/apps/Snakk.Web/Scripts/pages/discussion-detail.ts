@@ -180,18 +180,9 @@ function initReplyEditor(): Promise<void> {
         if (form && editor) {
             console.log('[Editor] form submit handler attached, hx-boost=', form.getAttribute('hx-boost'));
 
-            form.addEventListener('submit', async (e) => {
-                console.log('[Submit] ========== SUBMIT START ==========');
-                console.log('[Submit] handler fired, container=', container?.id);
-                console.log('[Submit] event defaultPrevented=', e.defaultPrevented, 'type=', e.type);
-                const pending: Map<string, File> = (window as any).SnakkEditor.getPendingUploads(container);
+            form.addEventListener('submit', (e) => {
                 const md = editor.getMarkdown();
 
-                console.log('[Submit] pending.size=', pending.size, 'md length=', md.length);
-                console.log('[Submit] md contains blob?', md.includes('blob:'));
-                console.log('[Submit] md preview=', md.substring(0, 300));
-
-                // Validate content
                 if (!md.trim()) {
                     e.preventDefault();
                     return;
@@ -203,84 +194,8 @@ function initReplyEditor(): Promise<void> {
                     (window as any).SnakkDraftManager.clearDraftOnSuccess(activeDiscussionId, replyToPostId);
                 }
 
-                // If there are pending image uploads, handle everything via fetch
-                // to avoid HTMX boost intercepting the re-submit and causing race conditions
-                if (pending.size > 0) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Submit] >>> UPLOAD BRANCH: uploading', pending.size, 'images...');
-                    console.log('[Submit] pending keys:', [...pending.keys()]);
-
-                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.dataset.originalText = submitBtn.textContent || '';
-                        submitBtn.textContent = 'Uploading images...';
-                    }
-
-                    try {
-                        let updatedMd = md;
-                        for (const [blobUrl, file] of pending) {
-                            console.log('[Submit] uploading:', file.name, 'size=', file.size);
-                            const uploadData = new FormData();
-                            uploadData.append('file', file, file.name);
-
-                            console.log('[Submit] fetching /bff/media/upload...');
-                            const response = await fetch('/bff/media/upload', {
-                                method: 'POST',
-                                body: uploadData,
-                            });
-
-                            console.log('[Submit] upload response: status=', response.status, 'ok=', response.ok);
-                            if (!response.ok) {
-                                const errText = await response.text();
-                                console.error('[Submit] Image upload failed: status=', response.status, 'body=', errText);
-                                continue;
-                            }
-
-                            const resultText = await response.text();
-                            console.log('[Submit] upload raw response:', resultText);
-                            const result = JSON.parse(resultText);
-                            console.log('[Submit] upload parsed result:', result, 'url=', result.url);
-                            updatedMd = updatedMd.split(blobUrl).join(result.url);
-                        }
-
-                        console.log('[Submit] updatedMd preview=', updatedMd.substring(0, 200));
-                        (window as any).SnakkEditor.clearPendingUploads(container);
-
-                        // Submit the form via fetch to bypass HTMX boost entirely
-                        const formData = new FormData(form);
-                        formData.set('PostContent', updatedMd);
-
-                        console.log('[Submit] posting form via fetch to:', form.action);
-                        const response = await fetch(form.action, {
-                            method: 'POST',
-                            body: formData,
-                        });
-
-                        console.log('[Submit] form response: redirected=', response.redirected, 'url=', response.url, 'status=', response.status);
-                        if (response.redirected) {
-                            const url = new URL(response.url);
-                            url.hash = 'reply-form';
-                            window.location.href = url.toString();
-                        } else {
-                            window.location.reload();
-                        }
-                    } catch (err) {
-                        console.error('[Submit] Error uploading images:', err);
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = submitBtn.dataset.originalText || 'Post Reply';
-                        }
-                    }
-                    return;
-                }
-
-                // No pending uploads — just sync textarea, let form submit naturally
-                console.log('[Submit] >>> NO-UPLOAD BRANCH: syncing textarea, letting form submit');
-                console.log('[Submit] textarea.name=', textarea.name, 'form.action=', form.action);
+                // Images are already uploaded with real URLs — just sync textarea
                 textarea.value = md;
-                console.log('[Submit] ========== SUBMIT END (native) ==========');
             });
         }
 
