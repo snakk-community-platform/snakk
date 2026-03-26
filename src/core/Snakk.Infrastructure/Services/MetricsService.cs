@@ -22,7 +22,7 @@ public class MetricsService(SnakkDbContext context)
         var sql = @"
             INSERT INTO ""UserMetric"" (""UserId"", ""MetricType"", ""Scope"", ""ScopeId"", ""Value"", ""LastUpdated"")
             VALUES
-                ({0}, {1}, 'Global', NULL, {2}, NOW())";
+                ({0}, {1}, 'Global', 0, {2}, NOW())";
 
         var parameters = new List<object> { await GetUserIdAsync(userId), metricType, amount };
         var paramIndex = 3;
@@ -30,7 +30,7 @@ public class MetricsService(SnakkDbContext context)
         if (spaceId.HasValue)
         {
             sql += $@",
-                ({0}, {1}, 'Space', {{{paramIndex}}}, {2}, NOW())";
+                ({{0}}, {{1}}, 'Space', {{{paramIndex}}}, {{2}}, NOW())";
             parameters.Add(spaceId.Value);
             paramIndex++;
         }
@@ -38,7 +38,7 @@ public class MetricsService(SnakkDbContext context)
         if (hubId.HasValue)
         {
             sql += $@",
-                ({0}, {1}, 'Hub', {{{paramIndex}}}, {2}, NOW())";
+                ({{0}}, {{1}}, 'Hub', {{{paramIndex}}}, {{2}}, NOW())";
             parameters.Add(hubId.Value);
             paramIndex++;
         }
@@ -46,7 +46,7 @@ public class MetricsService(SnakkDbContext context)
         if (communityId.HasValue)
         {
             sql += $@",
-                ({0}, {1}, 'Community', {{{paramIndex}}}, {2}, NOW())";
+                ({{0}}, {{1}}, 'Community', {{{paramIndex}}}, {{2}}, NOW())";
             parameters.Add(communityId.Value);
         }
 
@@ -77,7 +77,7 @@ public class MetricsService(SnakkDbContext context)
                 WHERE ""UserId"" = {userIdInt}
                   AND ""MetricType"" = {metricType}
                   AND ""Scope"" = {scope}
-                  AND (""ScopeId"" = {scopeId} OR (""ScopeId"" IS NULL AND {scopeId} IS NULL))")
+                  AND ""ScopeId"" = {scopeId ?? 0}")
             .FirstOrDefaultAsync();
     }
 
@@ -97,7 +97,7 @@ public class MetricsService(SnakkDbContext context)
                 FROM ""UserMetric""
                 WHERE ""UserId"" = {userIdInt}
                   AND ""Scope"" = {scope}
-                  AND (""ScopeId"" = {scopeId} OR (""ScopeId"" IS NULL AND {scopeId} IS NULL))")
+                  AND ""ScopeId"" = {scopeId ?? 0}")
             .ToListAsync();
 
         return metrics.ToDictionary(m => m.MetricType, m => m.Value);

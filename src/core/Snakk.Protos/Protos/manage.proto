@@ -10,6 +10,8 @@ service ManageService {
   rpc UpdateSpaceSettings (UpdateSpaceSettingsRequest) returns (UpdateSpaceSettingsResponse);
   rpc GetCommunitySettings (GetCommunitySettingsRequest) returns (CommunitySettingsResponse);
   rpc UpdateCommunitySettings (UpdateCommunitySettingsRequest) returns (UpdateCommunitySettingsResponse);
+  rpc GetHubSettings (GetHubSettingsRequest) returns (HubSettingsResponse);
+  rpc UpdateHubSettings (UpdateHubSettingsRequest) returns (UpdateHubSettingsResponse);
   rpc GetSiteSettings (GetSiteSettingsRequest) returns (SiteSettingsGrpcResponse);
   rpc UpdateSiteSettings (UpdateSiteSettingsRequest) returns (UpdateSiteSettingsResponse);
   rpc GetRules (GetRulesRequest) returns (GetRulesResponse);
@@ -103,6 +105,7 @@ message SpaceSettingsResponse {
   bool require_approval = 5;
   bool allow_anonymous = 6;
   repeated string moderator_user_ids = 7;
+  repeated int32 parent_allowed_types = 8; // Hub's effective allowed types (for cascade UI)
 }
 
 message UpdateSpaceSettingsResponse {
@@ -545,6 +548,7 @@ message CommunitySettingsResponse {
   optional string description = 2;
   string slug = 3;
   optional string timezone = 4;
+  repeated int32 allowed_discussion_types = 5;
 }
 
 message UpdateCommunitySettingsRequest {
@@ -552,9 +556,37 @@ message UpdateCommunitySettingsRequest {
   string name = 2;
   optional string description = 3;
   optional string timezone = 4;
+  repeated int32 allowed_discussion_types = 5;
 }
 
 message UpdateCommunitySettingsResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Hub Settings ---
+
+message GetHubSettingsRequest {
+  string hub_public_id = 1;
+}
+
+message HubSettingsResponse {
+  string slug = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated int32 allowed_discussion_types = 4;
+  repeated string moderator_user_ids = 5;
+  repeated int32 parent_allowed_types = 6; // Community's allowed types (for cascade UI)
+}
+
+message UpdateHubSettingsRequest {
+  string hub_public_id = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated int32 allowed_discussion_types = 4;
+}
+
+message UpdateHubSettingsResponse {
   bool success = 1;
   optional string error_message = 2;
 }

@@ -75,17 +75,33 @@
                     <MudSelectItem Value="@("newest")">Newest First</MudSelectItem>
                     <MudSelectItem Value="@("oldest")">Oldest First</MudSelectItem>
                 </MudSelect>
+            }
 
+            @* Discussion type checkboxes — shown for Community, Hub, and Space *@
+            @if (Scope?.ScopeType is "Community" or "Hub" or "Space")
+            {
                 <div>
                     <MudText Typo="Typo.subtitle2" Class="mb-2">Allowed Discussion Types</MudText>
+                    @if (Scope.ScopeType != "Community")
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Default" Class="mb-2"
+                                 Style="opacity: 0.6;">
+                            Types disabled by the parent @(_parentScopeLabel) cannot be enabled here.
+                        </MudText>
+                    }
                     <MudStack Spacing="2">
                         @foreach (var type in Enum.GetValues<DiscussionTypeEnum>())
                         {
                             var t = type;
-                            <MudCheckBox T="bool"
-                                Value="@(_allowedTypes.Contains(t))"
-                                ValueChanged="@(v => ToggleType(t, v))"
-                                Label="@t.ToString()" />
+                            var blockedByParent = _parentAllowedTypes.Count > 0 && !_parentAllowedTypes.Contains(t);
+                            <MudTooltip Text="@(blockedByParent ? $"Disabled by {_parentScopeLabel}" : "")"
+                                        Disabled="@(!blockedByParent)">
+                                <MudCheckBox T="bool"
+                                    Value="@(_allowedTypes.Contains(t))"
+                                    ValueChanged="@(v => ToggleType(t, v))"
+                                    Label="@t.ToString()"
+                                    Disabled="@blockedByParent" />
+                            </MudTooltip>
                         }
                     </MudStack>
                     @if (_typeError is not null)
@@ -126,6 +142,8 @@
     private string _defaultSort = "latest";
     private string _timezone = "UTC";
     private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
+    private HashSet<DiscussionTypeEnum> _parentAllowedTypes = [];
+    private string _parentScopeLabel = "";
     private string? _loadError;
     private string? _saveError;
     private string? _typeError;
@@ -147,11 +165,37 @@
                 _description = response.HasDescription ? response.Description : "";
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
-                    : [DiscussionTypeEnum.Standard];
+                    : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
+                _parentAllowedTypes = response.ParentAllowedTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(response.ParentAllowedTypes.Select(t => (DiscussionTypeEnum)t))
+                    : [];
+                _parentScopeLabel = "hub";
             }
             catch
             {
                 _loadError = "Failed to load space settings.";
+            }
+        }
+        else if (Scope.ScopeType == "Hub")
+        {
+            try
+            {
+                var response = await ManageClient.GetHubSettingsAsync(
+                    new GetHubSettingsRequest { HubPublicId = Scope.ScopePublicId });
+
+                _name = response.Name;
+                _description = response.HasDescription ? response.Description : "";
+                _allowedTypes = response.AllowedDiscussionTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
+                    : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
+                _parentAllowedTypes = response.ParentAllowedTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(response.ParentAllowedTypes.Select(t => (DiscussionTypeEnum)t))
+                    : [];
+                _parentScopeLabel = "community";
+            }
+            catch
+            {
+                _loadError = "Failed to load hub settings.";
             }
         }
         else if (Scope.ScopeType == "Community")
@@ -164,6 +208,11 @@
                 _name = response.Name;
                 _description = response.HasDescription ? response.Description : "";
                 _timezone = response.HasTimezone ? response.Timezone : "UTC";
+                _allowedTypes = response.AllowedDiscussionTypes.Count > 0
+                    ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
+                    : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
+                _parentAllowedTypes = []; // Community has no parent
+                _parentScopeLabel = "";
             }
             catch
             {
@@ -228,6 +277,31 @@
                 _saveError = "Failed to save settings. Please try again.";
             }
         }
+        else if (Scope?.ScopeType == "Hub")
+        {
+            try
+            {
+                var request = new Snakk.Protos.Manage.UpdateHubSettingsRequest
+                {
+                    HubPublicId = Scope.ScopePublicId,
+                    Name = _name,
+                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description
+                };
+
+                request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
+
+                var response = await ManageClient.UpdateHubSettingsAsync(request);
+
+                if (response.Success)
+                    _saved = true;
+                else
+                    _saveError = response.HasErrorMessage ? response.ErrorMessage : "Failed to save settings. Please try again.";
+            }
+            catch
+            {
+                _saveError = "Failed to save settings. Please try again.";
+            }
+        }
         else if (Scope?.ScopeType == "Community")
         {
             try
@@ -239,6 +313,8 @@
                     Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
                     Timezone = string.IsNullOrWhiteSpace(_timezone) ? null : _timezone
                 };
+
+                request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
 
                 var response = await ManageClient.UpdateCommunitySettingsAsync(request);
 

@@ -28,6 +28,19 @@ message CreateDiscussionRequest {
   string content = 3;
   repeated string tags = 4;
   int32 type = 5; // DiscussionTypeEnum value
+
+  // Poll extension fields
+  repeated string poll_options = 6;
+  bool poll_allow_multiple = 7;
+  bool poll_allow_change_vote = 8;
+  optional google.protobuf.Timestamp poll_closes_at = 9;
+
+  // Link extension fields
+  optional string link_url = 10;
+
+  // Debate extension fields
+  repeated string debate_positions = 11;
+  bool debate_allow_neutral = 12;
 }
 
 message GetRecentDiscussionsRequest {

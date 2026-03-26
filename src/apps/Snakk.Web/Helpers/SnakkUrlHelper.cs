@@ -55,6 +55,9 @@ public static class SnakkUrlHelper
     public static string DiscussionSlugId(string slug, string publicId)
         => $"{slug}~{UlidBase62.Encode(publicId)}";
 
+    public static string NewDiscussion(ICommunityContext community, string hubSlug, string spaceSlug)
+        => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/new";
+
     public static string Discussion(ICommunityContext community, string hubSlug, string spaceSlug, string slugWithId)
         => $"{GetCommunityPrefix(community)}/h/{hubSlug}/{spaceSlug}/{slugWithId}";
 

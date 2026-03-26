@@ -50,4 +50,5 @@ public class HubDatabaseEntity
     public virtual ICollection<SpaceDatabaseEntity> Spaces { get; set; } = [];
     public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
     public virtual ICollection<GroupAccessDatabaseEntity> GroupAccess { get; set; } = [];
+    public virtual ICollection<HubAllowedDiscussionTypeDatabaseEntity> AllowedDiscussionTypes { get; set; } = [];
 }

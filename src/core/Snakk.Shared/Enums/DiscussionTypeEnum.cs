@@ -10,5 +10,8 @@ public enum DiscussionTypeEnum
     Poll = 2,
     Announcement = 3,
     Link = 4,
-    Media = 5
+    Gallery = 5,
+    Guide = 6,
+    Debate = 7,
+    Journal = 8
 }

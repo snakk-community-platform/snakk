@@ -1,0 +1,89 @@
+@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/new"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DiscussionTypeHelper
+@model Snakk.Web.Pages.Spaces.NewDiscussionModel
+@{
+    ViewData["Title"] = $"New Discussion — {Model.Space?.Name ?? "Space"}";
+}
+
+@if (Model.Space == null)
+{
+    <div class="max-w-xl mx-auto">
+        <div class="clean-card">
+            <div class="empty-state-simple">
+                <h3>Space not found</h3>
+                <p>This space may have been removed or the link might be incorrect.</p>
+                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="breadcrumb-bar">
+        <nav class="breadcrumb">
+            <a href="/">Home</a>
+            @if (Model.ShowCommunityInBreadcrumb)
+            {
+                <span class="breadcrumb-separator">/</span>
+                <a href="/communities">Communities</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+            }
+            <span class="breadcrumb-separator">/</span>
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
+            <span class="breadcrumb-separator">/</span>
+            <span>New Discussion</span>
+        </nav>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 py-8">
+        <h1 class="text-xl font-semibold mb-2">What would you like to create?</h1>
+        <p class="text-sm text-base-content/60 mb-6">Choose a discussion type for @Model.Space.Name</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            @foreach (var typeInt in Model.AllowedTypes.OrderBy(t => t))
+            {
+                var typeName = GetTypeName(typeInt);
+                var (icon, label, cssClass) = GetTypeBadge(typeName);
+                var typeSlug = NewDiscussionModel.TypeSlugFromInt(typeInt);
+                var (description, features) = NewDiscussionModel.TypeInfo(typeInt);
+                var url = $"{SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)}/{typeSlug}";
+
+                <a href="@url"
+                   class="new-discussion-type-card"
+                   onclick="stashDraftAndNavigate(event, '@url')">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        @if (!string.IsNullOrEmpty(icon))
+                        {
+                            <span class="text-lg">@icon</span>
+                        }
+                        <span class="font-semibold">@label</span>
+                    </div>
+                    <p class="text-sm text-base-content/70 mb-2">@description</p>
+                    @if (!string.IsNullOrEmpty(features))
+                    {
+                        <p class="text-xs text-base-content/40">@features</p>
+                    }
+                </a>
+            }
+        </div>
+
+        <div class="mt-6">
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)"
+               class="btn btn-ghost btn-sm">Cancel</a>
+        </div>
+    </div>
+}
+
+<script>
+    // Stash any previously entered title before navigating to a type page
+    function stashDraftAndNavigate(event, url) {
+        // Nothing to stash from the picker page itself,
+        // but future enhancement could stash from the title input
+        // For now, just navigate
+    }
+</script>

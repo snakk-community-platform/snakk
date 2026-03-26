@@ -9,7 +9,10 @@ public static class DiscussionTypeHelper
             "Poll" => ("📊", "Poll", "type-poll"),
             "Announcement" => ("📢", "Announcement", "type-announcement"),
             "Link" => ("🔗", "Link", "type-link"),
-            "Media" => ("🖼", "Media", "type-media"),
+            "Gallery" => ("🖼️", "Gallery", "type-gallery"),
+            "Guide" => ("📖", "Guide", "type-guide"),
+            "Debate" => ("⚖️", "Debate", "type-debate"),
+            "Journal" => ("📓", "Journal", "type-journal"),
             _ => ("", type, "type-standard")
         };
 
@@ -21,7 +24,10 @@ public static class DiscussionTypeHelper
             2 => "Poll",
             3 => "Announcement",
             4 => "Link",
-            5 => "Media",
+            5 => "Gallery",
+            6 => "Guide",
+            7 => "Debate",
+            8 => "Journal",
             _ => "Standard"
         };
 }

@@ -11,6 +11,7 @@ public class DiscussionPollDatabaseEntity
     public virtual DiscussionDatabaseEntity Discussion { get; set; } = null!;
 
     public bool AllowMultipleChoices { get; set; }
+    public bool AllowChangeVote { get; set; }
     public bool VotesVisible { get; set; } = true;
     public DateTime? ClosesAt { get; set; }
 

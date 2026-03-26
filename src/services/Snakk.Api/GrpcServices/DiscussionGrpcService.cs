@@ -18,7 +18,9 @@ public class DiscussionGrpcService(
     StatisticsUseCase statisticsUseCase,
     ICurrentUserService currentUser,
     IUserGrantsCacheService grantsCache,
-    IEntityHierarchyCacheService hierarchyCache) : DiscussionService.DiscussionServiceBase
+    IEntityHierarchyCacheService hierarchyCache,
+    IAllowedTypesService allowedTypesService,
+    IDiscussionExtensionService extensionService) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -58,8 +60,17 @@ public class DiscussionGrpcService(
         if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
+        var type = (DiscussionTypeEnum)request.Type;
+
+        // Validate type is allowed in this space
+        var effectiveTypes = await allowedTypesService.GetSpaceEffectiveAllowedTypesAsync(request.SpaceId);
+        if (!effectiveTypes.Contains(type))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Discussion type '{type}' is not allowed in this space"));
+
+        // Validate type-specific required fields
+        ValidateTypeSpecificFields(request, type);
+
         var slug = request.Title.ToLower().Replace(" ", "-");
-        var type = (Snakk.Shared.Enums.DiscussionTypeEnum)request.Type;
         var result = await discussionUseCase.CreateDiscussionAsync(
             SpaceId.From(request.SpaceId),
             userId,
@@ -75,6 +86,9 @@ public class DiscussionGrpcService(
 
         var d = result.Value;
 
+        // Create type-specific extension records
+        await CreateExtensionRecordsAsync(d.PublicId.Value, type, request);
+
         return new DiscussionCreatedInfo
         {
             PublicId = d.PublicId.Value,
@@ -83,6 +97,71 @@ public class DiscussionGrpcService(
             CreatedAt = ToTimestamp(d.CreatedAt),
             Type = d.Type.ToString()
         };
+    }
+
+    private static void ValidateTypeSpecificFields(CreateDiscussionRequest request, DiscussionTypeEnum type)
+    {
+        switch (type)
+        {
+            case DiscussionTypeEnum.Poll:
+                if (request.PollOptions.Count < 2)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Poll requires at least 2 options"));
+                if (request.PollOptions.Count > 20)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Poll cannot have more than 20 options"));
+                break;
+
+            case DiscussionTypeEnum.Debate:
+                if (request.DebatePositions.Count < 2)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Debate requires at least 2 positions"));
+                if (request.DebatePositions.Count > 3)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Debate cannot have more than 3 positions"));
+                break;
+
+            case DiscussionTypeEnum.Link:
+                if (!request.HasLinkUrl || string.IsNullOrWhiteSpace(request.LinkUrl))
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Link discussions require a URL"));
+                break;
+        }
+    }
+
+    private async Task CreateExtensionRecordsAsync(string discussionPublicId, DiscussionTypeEnum type, CreateDiscussionRequest request)
+    {
+        switch (type)
+        {
+            case DiscussionTypeEnum.Question:
+                await extensionService.CreateQuestionAsync(discussionPublicId);
+                break;
+
+            case DiscussionTypeEnum.Guide:
+                await extensionService.CreateGuideAsync(discussionPublicId);
+                break;
+
+            case DiscussionTypeEnum.Poll:
+                await extensionService.CreatePollAsync(
+                    discussionPublicId,
+                    request.PollOptions.ToList(),
+                    request.PollAllowMultiple,
+                    request.PollAllowChangeVote,
+                    request.PollClosesAt is not null ? request.PollClosesAt.ToDateTime() : null);
+                break;
+
+            case DiscussionTypeEnum.Link:
+                await extensionService.CreateLinkAsync(
+                    discussionPublicId,
+                    request.LinkUrl);
+                break;
+
+            case DiscussionTypeEnum.Debate:
+                await extensionService.CreateDebateAsync(
+                    discussionPublicId,
+                    request.DebatePositions.ToList(),
+                    request.DebateAllowNeutral);
+                break;
+
+            case DiscussionTypeEnum.Journal:
+                await extensionService.CreateJournalAsync(discussionPublicId);
+                break;
+        }
     }
 
     public override async Task<PagedRecentDiscussionList> GetRecentDiscussions(GetRecentDiscussionsRequest request, ServerCallContext context)

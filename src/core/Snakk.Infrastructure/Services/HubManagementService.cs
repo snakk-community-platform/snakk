@@ -129,11 +129,17 @@ public class HubManagementService(
             .Select(ur => ur.User.PublicId)
             .ToListAsync(cancellationToken);
 
+        var allowedTypes = await context.HubAllowedDiscussionTypes
+            .Where(x => x.HubId == hub.Id)
+            .Select(x => (DiscussionTypeEnum)x.DiscussionType)
+            .ToListAsync(cancellationToken);
+
         return new HubSettingsDto
         {
             Slug = hub.Slug,
             Name = hub.Name,
             Description = hub.Description,
+            AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
     }
@@ -153,6 +159,25 @@ public class HubManagementService(
 
         hub.Name = request.Name;
         hub.Description = request.Description;
+
+        // Update allowed discussion types (empty list = all types allowed)
+        var existingTypes = await context.HubAllowedDiscussionTypes
+            .Where(x => x.HubId == hub.Id)
+            .ToListAsync(cancellationToken);
+
+        context.HubAllowedDiscussionTypes.RemoveRange(existingTypes);
+
+        if (request.AllowedDiscussionTypes.Count > 0)
+        {
+            var newTypes = request.AllowedDiscussionTypes
+                .Select(type => new HubAllowedDiscussionTypeDatabaseEntity
+                {
+                    HubId = hub.Id,
+                    DiscussionType = (int)type
+                });
+
+            context.HubAllowedDiscussionTypes.AddRange(newTypes);
+        }
 
         await context.SaveChangesAsync(cancellationToken);
 

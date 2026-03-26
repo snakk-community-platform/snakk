@@ -205,12 +205,34 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<DiscussionCreatedInfo?> CreateDiscussionAsync(string spaceId, string title, string content, int type = 0, IEnumerable<string>? tags = null)
+    public virtual async Task<DiscussionCreatedInfo?> CreateDiscussionAsync(
+        string spaceId,
+        string title,
+        string content,
+        int type = 0,
+        IEnumerable<string>? tags = null,
+        // Poll extension
+        IEnumerable<string>? pollOptions = null,
+        bool pollAllowMultiple = false,
+        bool pollAllowChangeVote = false,
+        DateTime? pollClosesAt = null,
+        // Link extension
+        string? linkUrl = null,
+        // Debate extension
+        IEnumerable<string>? debatePositions = null,
+        bool debateAllowNeutral = false)
     {
         try
         {
             var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content, Type = type };
             if (tags is not null) request.Tags.AddRange(tags);
+            if (pollOptions is not null) request.PollOptions.AddRange(pollOptions);
+            request.PollAllowMultiple = pollAllowMultiple;
+            request.PollAllowChangeVote = pollAllowChangeVote;
+            if (pollClosesAt.HasValue) request.PollClosesAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(pollClosesAt.Value, DateTimeKind.Utc));
+            if (linkUrl is not null) request.LinkUrl = linkUrl;
+            if (debatePositions is not null) request.DebatePositions.AddRange(debatePositions);
+            request.DebateAllowNeutral = debateAllowNeutral;
             return await discussionClient.CreateDiscussionAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }

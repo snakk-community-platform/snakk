@@ -231,9 +231,24 @@
         color: oklch(0.4 0.15 220);
     }
 
-    &.type-media {
+    &.type-gallery {
         background-color: oklch(0.9 0.05 330);
         color: oklch(0.4 0.15 330);
+    }
+
+    &.type-guide {
+        background-color: oklch(0.9 0.05 170);
+        color: oklch(0.4 0.15 170);
+    }
+
+    &.type-debate {
+        background-color: oklch(0.92 0.05 50);
+        color: oklch(0.45 0.15 50);
+    }
+
+    &.type-journal {
+        background-color: oklch(0.9 0.05 30);
+        color: oklch(0.4 0.15 30);
     }
 }
 
@@ -259,9 +274,41 @@
         color: oklch(0.8 0.1 220);
     }
 
-    &.type-media {
+    &.type-gallery {
         background-color: oklch(0.3 0.05 330);
         color: oklch(0.8 0.1 330);
+    }
+
+    &.type-guide {
+        background-color: oklch(0.3 0.05 170);
+        color: oklch(0.8 0.1 170);
+    }
+
+    &.type-debate {
+        background-color: oklch(0.3 0.05 50);
+        color: oklch(0.8 0.1 50);
+    }
+
+    &.type-journal {
+        background-color: oklch(0.3 0.05 30);
+        color: oklch(0.8 0.1 30);
+    }
+}
+
+// New discussion type picker cards
+.new-discussion-type-card {
+    display: block;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    transition: border-color 0.15s, background 0.15s;
+    text-decoration: none;
+    color: inherit;
+
+    &:hover {
+        border-color: var(--link-primary);
+        background: var(--bg-tertiary);
     }
 }
 

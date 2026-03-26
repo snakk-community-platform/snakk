@@ -53,4 +53,5 @@ public class CommunityDatabaseEntity
     public virtual ICollection<RuleDatabaseEntity> Rules { get; set; } = [];
     public virtual ICollection<GroupDatabaseEntity> Groups { get; set; } = [];
     public virtual ICollection<GroupAccessDatabaseEntity> GroupAccess { get; set; } = [];
+    public virtual ICollection<CommunityAllowedDiscussionTypeDatabaseEntity> AllowedDiscussionTypes { get; set; } = [];
 }

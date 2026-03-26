@@ -68,13 +68,24 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Announcements
     public DbSet<AnnouncementDatabaseEntity> Announcements { get; set; } = null!;
 
-    // Discussion types
+    // Discussion types — allowed type permissions
+    public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
+    public DbSet<HubAllowedDiscussionTypeDatabaseEntity> HubAllowedDiscussionTypes { get; set; } = null!;
     public DbSet<SpaceAllowedDiscussionTypeDatabaseEntity> SpaceAllowedDiscussionTypes { get; set; } = null!;
+
+    // Discussion types — extension data
     public DbSet<DiscussionLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
-    public DbSet<DiscussionMediaDatabaseEntity> DiscussionMedia { get; set; } = null!;
+    public DbSet<DiscussionGalleryDatabaseEntity> DiscussionGalleries { get; set; } = null!;
     public DbSet<DiscussionPollDatabaseEntity> DiscussionPolls { get; set; } = null!;
     public DbSet<PollOptionDatabaseEntity> PollOptions { get; set; } = null!;
     public DbSet<PollVoteDatabaseEntity> PollVotes { get; set; } = null!;
+    public DbSet<DiscussionQuestionDatabaseEntity> DiscussionQuestions { get; set; } = null!;
+    public DbSet<DiscussionGuideDatabaseEntity> DiscussionGuides { get; set; } = null!;
+    public DbSet<DiscussionDebateDatabaseEntity> DiscussionDebates { get; set; } = null!;
+    public DbSet<DiscussionDebatePositionDatabaseEntity> DiscussionDebatePositions { get; set; } = null!;
+    public DbSet<PostDebatePositionDatabaseEntity> PostDebatePositions { get; set; } = null!;
+    public DbSet<DiscussionJournalDatabaseEntity> DiscussionJournals { get; set; } = null!;
+    public DbSet<JournalEntryPostDatabaseEntity> JournalEntryPosts { get; set; } = null!;
 
     // Note: Lookup tables removed - now using enums directly (see Snakk.Shared.Enums)
 
@@ -1211,6 +1222,26 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // === Discussion Types Configuration ===
 
+        // CommunityAllowedDiscussionType: composite PK (link table)
+        modelBuilder.Entity<CommunityAllowedDiscussionTypeDatabaseEntity>()
+            .HasKey(x => new { x.CommunityId, x.DiscussionType });
+
+        modelBuilder.Entity<CommunityAllowedDiscussionTypeDatabaseEntity>()
+            .HasOne(x => x.Community)
+            .WithMany(c => c.AllowedDiscussionTypes)
+            .HasForeignKey(x => x.CommunityId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // HubAllowedDiscussionType: composite PK (link table)
+        modelBuilder.Entity<HubAllowedDiscussionTypeDatabaseEntity>()
+            .HasKey(x => new { x.HubId, x.DiscussionType });
+
+        modelBuilder.Entity<HubAllowedDiscussionTypeDatabaseEntity>()
+            .HasOne(x => x.Hub)
+            .WithMany(h => h.AllowedDiscussionTypes)
+            .HasForeignKey(x => x.HubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // SpaceAllowedDiscussionType: composite PK (link table)
         modelBuilder.Entity<SpaceAllowedDiscussionTypeDatabaseEntity>()
             .HasKey(x => new { x.SpaceId, x.DiscussionType });
@@ -1237,23 +1268,23 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasMaxLength(2048)
             .IsRequired();
 
-        // DiscussionMedia: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+        // DiscussionGalleries: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
             .Property(x => x.Url)
             .HasMaxLength(2048)
             .IsRequired();
 
-        modelBuilder.Entity<DiscussionMediaDatabaseEntity>()
+        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
             .Property(x => x.MediaType)
             .HasMaxLength(50)
             .IsRequired();
@@ -1307,6 +1338,100 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<DiscussionDatabaseEntity>()
             .HasIndex(d => new { d.SpaceId, d.Type })
             .HasDatabaseName("IX_Discussion_SpaceId_Type");
+
+        // DiscussionQuestion: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+            .HasOne(x => x.AcceptedPost)
+            .WithMany()
+            .HasForeignKey(x => x.AcceptedPostId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // DiscussionGuide: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionGuideDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionGuideDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // DiscussionDebate: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionDebateDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionDebateDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // DiscussionDebatePosition: belongs to Debate
+        modelBuilder.Entity<DiscussionDebatePositionDatabaseEntity>()
+            .HasOne(x => x.Debate)
+            .WithMany(d => d.Positions)
+            .HasForeignKey(x => x.DebateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DiscussionDebatePositionDatabaseEntity>()
+            .HasIndex(x => new { x.DebateId, x.Index })
+            .IsUnique()
+            .HasDatabaseName("IX_DebatePosition_DebateId_Index");
+
+        // PostDebatePosition: one-to-one with Post (PostId is PK)
+        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+            .HasKey(x => x.PostId);
+
+        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+            .HasOne(x => x.Post)
+            .WithMany()
+            .HasForeignKey(x => x.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+            .HasOne(x => x.Position)
+            .WithMany()
+            .HasForeignKey(x => x.PositionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // DiscussionJournal: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionJournalDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionJournalDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // JournalEntryPost: one-to-one with Post (PostId is PK)
+        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+            .HasKey(x => x.PostId);
+
+        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+            .HasOne(x => x.Post)
+            .WithMany()
+            .HasForeignKey(x => x.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+            .HasOne(x => x.Journal)
+            .WithMany(j => j.Entries)
+            .HasForeignKey(x => x.JournalId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // === Media Configuration ===
 

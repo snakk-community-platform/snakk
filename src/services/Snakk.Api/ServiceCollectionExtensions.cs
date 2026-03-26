@@ -191,6 +191,8 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IMediaService, Infrastructure.Services.MediaService>();
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
+        services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
+        services.AddScoped<IDiscussionExtensionService, Infrastructure.Services.DiscussionExtensionService>();
 
         // 2FA & Security Services
         services.AddScoped<Application.Services.ITotpService, Infrastructure.Services.TotpService>();

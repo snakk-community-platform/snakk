@@ -152,12 +152,18 @@ public class CommunityManagementService(
             .Select(ur => ur.User.PublicId)
             .ToListAsync(cancellationToken);
 
+        var allowedTypes = await context.CommunityAllowedDiscussionTypes
+            .Where(x => x.CommunityId == community.Id)
+            .Select(x => (DiscussionTypeEnum)x.DiscussionType)
+            .ToListAsync(cancellationToken);
+
         return new CommunitySettingsDto
         {
             Slug = community.Slug,
             Name = community.Name,
             Description = community.Description,
             Timezone = community.Timezone,
+            AllowedDiscussionTypes = allowedTypes,
             OwnerId = string.Empty, // TODO: Add owner tracking
             AdminUserIds = adminUserIds,
             ModeratorUserIds = modUserIds
@@ -180,6 +186,25 @@ public class CommunityManagementService(
         community.Name = request.Name;
         community.Description = request.Description;
         community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
+
+        // Update allowed discussion types (empty list = all types allowed)
+        var existingTypes = await context.CommunityAllowedDiscussionTypes
+            .Where(x => x.CommunityId == community.Id)
+            .ToListAsync(cancellationToken);
+
+        context.CommunityAllowedDiscussionTypes.RemoveRange(existingTypes);
+
+        if (request.AllowedDiscussionTypes.Count > 0)
+        {
+            var newTypes = request.AllowedDiscussionTypes
+                .Select(type => new CommunityAllowedDiscussionTypeDatabaseEntity
+                {
+                    CommunityId = community.Id,
+                    DiscussionType = (int)type
+                });
+
+            context.CommunityAllowedDiscussionTypes.AddRange(newTypes);
+        }
 
         await context.SaveChangesAsync(cancellationToken);
 

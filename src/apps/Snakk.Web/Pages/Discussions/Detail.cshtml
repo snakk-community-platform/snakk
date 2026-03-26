@@ -244,11 +244,6 @@
             <div>
                 <h1 class="title">@Model.Discussion.Title</h1>
                 <div class="discussion-author">
-                    @if (Model.Discussion.Type != "Standard")
-                    {
-                        var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
-                        <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
-                    }
                     @if (Model.Discussion.IsPinned)
                     {
                         <span class="badge badge-primary badge-sm">📌 Pinned</span>
@@ -282,6 +277,11 @@
                         {
                             <span class="badge badge-info badge-xs">Mod</span>
                         }
+                    }
+                    @if (Model.Discussion.Type != "Standard")
+                    {
+                        var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
+                        <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
                     }
                 </div>
             </div>

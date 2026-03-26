@@ -155,6 +155,21 @@ public class DatabaseSeeder(
         _context.UserBans.RemoveRange(_context.UserBans);
         _context.ReportReasons.RemoveRange(_context.ReportReasons);
         _context.Announcements.RemoveRange(_context.Announcements);
+        _context.SpaceAllowedDiscussionTypes.RemoveRange(_context.SpaceAllowedDiscussionTypes);
+        _context.HubAllowedDiscussionTypes.RemoveRange(_context.HubAllowedDiscussionTypes);
+        _context.CommunityAllowedDiscussionTypes.RemoveRange(_context.CommunityAllowedDiscussionTypes);
+        _context.JournalEntryPosts.RemoveRange(_context.JournalEntryPosts);
+        _context.DiscussionJournals.RemoveRange(_context.DiscussionJournals);
+        _context.PostDebatePositions.RemoveRange(_context.PostDebatePositions);
+        _context.DiscussionDebatePositions.RemoveRange(_context.DiscussionDebatePositions);
+        _context.DiscussionDebates.RemoveRange(_context.DiscussionDebates);
+        _context.PollVotes.RemoveRange(_context.PollVotes);
+        _context.PollOptions.RemoveRange(_context.PollOptions);
+        _context.DiscussionPolls.RemoveRange(_context.DiscussionPolls);
+        _context.DiscussionQuestions.RemoveRange(_context.DiscussionQuestions);
+        _context.DiscussionGuides.RemoveRange(_context.DiscussionGuides);
+        _context.DiscussionLinks.RemoveRange(_context.DiscussionLinks);
+        _context.DiscussionGalleries.RemoveRange(_context.DiscussionGalleries);
         _context.Posts.RemoveRange(_context.Posts);
         _context.Discussions.RemoveRange(_context.Discussions);
         _context.Spaces.RemoveRange(_context.Spaces);
@@ -630,7 +645,9 @@ public class DatabaseSeeder(
         return hub;
     }
 
-    private async Task<SpaceDatabaseEntity> CreateSpaceAsync(
+    private static readonly int[] AllDiscussionTypes = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+    private async Task<(SpaceDatabaseEntity Space, int[] AllowedTypes)> CreateSpaceAsync(
         HubDatabaseEntity hub, string name, string slug, string description)
     {
         var space = new SpaceDatabaseEntity
@@ -645,11 +662,42 @@ public class DatabaseSeeder(
         _context.Spaces.Add(space);
         await _context.SaveChangesAsync();
 
-        return space;
+        // Seed allowed discussion types:
+        // ~60% of spaces allow all types (empty list = all)
+        // ~40% allow a random subset (always including Standard)
+        int[] allowedTypes;
+        if (_faker.Random.Int(1, 100) <= 60)
+        {
+            // All types allowed — seed all explicitly so the UI shows them
+            allowedTypes = AllDiscussionTypes;
+        }
+        else
+        {
+            // Random subset: always include Standard (0), plus 2-5 others
+            var others = AllDiscussionTypes.Where(t => t != 0).OrderBy(_ => _faker.Random.Int()).Take(_faker.Random.Int(2, 5)).ToList();
+            others.Insert(0, 0);
+            allowedTypes = others.ToArray();
+        }
+
+        foreach (var type in allowedTypes)
+        {
+            _context.SpaceAllowedDiscussionTypes.Add(new SpaceAllowedDiscussionTypeDatabaseEntity
+            {
+                SpaceId = space.Id,
+                DiscussionType = type
+            });
+        }
+        await _context.SaveChangesAsync();
+
+        return (space, allowedTypes);
     }
 
-    private async Task CreateDiscussionsForSpace(
-        SpaceDatabaseEntity space, List<UserDatabaseEntity> users, int count)
+    private Task CreateDiscussionsForSpace(
+        (SpaceDatabaseEntity Space, int[] AllowedTypes) spaceWithTypes, List<UserDatabaseEntity> users, int count)
+        => CreateDiscussionsForSpaceCore(spaceWithTypes.Space, users, count, spaceWithTypes.AllowedTypes);
+
+    private async Task CreateDiscussionsForSpaceCore(
+        SpaceDatabaseEntity space, List<UserDatabaseEntity> users, int count, int[] allowedTypes)
     {
         Console.WriteLine($"  Creating {count} discussions in {space.Name}...");
 
@@ -681,12 +729,21 @@ public class DatabaseSeeder(
             var isPinned = _faker.Random.Int(1, 100) <= 3;  // 3% pinned
             var isLocked = _faker.Random.Int(1, 100) <= 1;  // 1% locked
 
+            // ~33% of discussions get a non-standard type (from allowed types only)
+            var type = (int)DiscussionTypeEnum.Standard;
+            var nonStandardAllowed = allowedTypes.Where(t => t != 0).ToArray();
+            if (nonStandardAllowed.Length > 0 && _faker.Random.Int(1, 100) <= 33)
+            {
+                type = _faker.PickRandom(nonStandardAllowed);
+            }
+
             var discussion = new DiscussionDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 SpaceId = space.Id,
                 Title = title,
                 Slug = slug,
+                Type = type,
                 CreatedByUserId = author.Id,
                 CreatedAt = createdAt,
                 LastActivityAt = createdAt,
@@ -698,6 +755,9 @@ public class DatabaseSeeder(
         }
 
         await _context.SaveChangesAsync();
+
+        // Create extension records for typed discussions (after posts are saved)
+        await CreateDiscussionExtensionRecords(discussions, posts, users);
 
         // Track which users have posted in this space (for IsUsersFirstPostInSpace)
         var usersWhoPostedInSpace = new HashSet<int>();
@@ -711,11 +771,11 @@ public class DatabaseSeeder(
             var usersWhoPostedInDiscussion = new HashSet<int>();
             var postNumber = 0;
 
-            // First post (opening post) — usually longer
+            // First post (opening post) — type-aware content
             postNumber++;
             var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             usersWhoPostedInDiscussion.Add(author.Id);
-            var firstPostContent = GeneratePostContent(isOpeningPost: true);
+            var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
             posts.Add(new PostDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
@@ -795,6 +855,179 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
     }
 
+    private async Task CreateDiscussionExtensionRecords(
+        List<DiscussionDatabaseEntity> discussions,
+        List<PostDatabaseEntity> posts,
+        List<UserDatabaseEntity> users)
+    {
+        foreach (var discussion in discussions)
+        {
+            var discussionPosts = posts.Where(p => p.DiscussionId == discussion.Id).ToList();
+            var replyPosts = discussionPosts.Where(p => !p.IsFirstPost).ToList();
+
+            switch ((DiscussionTypeEnum)discussion.Type)
+            {
+                case DiscussionTypeEnum.Question:
+                {
+                    var question = new DiscussionQuestionDatabaseEntity { DiscussionId = discussion.Id };
+
+                    // ~40% of questions are solved with an accepted answer
+                    if (replyPosts.Count > 0 && _faker.Random.Bool(0.4f))
+                    {
+                        var acceptedPost = _faker.PickRandom(replyPosts);
+                        question.AcceptedPostId = acceptedPost.Id;
+                        question.SolvedAt = acceptedPost.CreatedAt.AddMinutes(_faker.Random.Int(5, 60));
+                    }
+
+                    _context.DiscussionQuestions.Add(question);
+                    break;
+                }
+
+                case DiscussionTypeEnum.Guide:
+                    _context.DiscussionGuides.Add(new DiscussionGuideDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id
+                    });
+                    break;
+
+                case DiscussionTypeEnum.Poll:
+                {
+                    var poll = new DiscussionPollDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id,
+                        AllowMultipleChoices = _faker.Random.Bool(0.2f),
+                        AllowChangeVote = _faker.Random.Bool(0.3f),
+                        ClosesAt = _faker.Random.Bool(0.4f)
+                            ? DateTime.UtcNow.AddDays(_faker.Random.Int(1, 30))
+                            : null
+                    };
+                    _context.DiscussionPolls.Add(poll);
+                    await _context.SaveChangesAsync();
+
+                    var optionCount = _faker.Random.Int(2, 6);
+                    var options = new List<PollOptionDatabaseEntity>();
+                    for (var o = 0; o < optionCount; o++)
+                    {
+                        var option = new PollOptionDatabaseEntity
+                        {
+                            PollId = poll.Id,
+                            Text = _faker.Lorem.Sentence(2, 4).TrimEnd('.'),
+                            DisplayOrder = o
+                        };
+                        _context.PollOptions.Add(option);
+                        options.Add(option);
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Seed votes — 30-80% of users who replied vote
+                    var voterPool = replyPosts.Select(p => p.CreatedByUserId).Distinct().ToList();
+                    if (voterPool.Count == 0) voterPool = users.Select(u => u.Id).Take(10).ToList();
+
+                    var voterCount = Math.Max(1, (int)(voterPool.Count * _faker.Random.Double(0.3, 0.8)));
+                    var voters = _faker.PickRandom(voterPool, Math.Min(voterCount, voterPool.Count)).ToList();
+
+                    foreach (var voterId in voters)
+                    {
+                        var chosenOption = _faker.PickRandom(options);
+                        _context.PollVotes.Add(new PollVoteDatabaseEntity
+                        {
+                            OptionId = chosenOption.Id,
+                            UserId = voterId,
+                            VotedAt = discussion.CreatedAt.AddMinutes(_faker.Random.Int(10, 10000))
+                        });
+                        chosenOption.VoteCount++;
+                    }
+                    break;
+                }
+
+                case DiscussionTypeEnum.Link:
+                    _context.DiscussionLinks.Add(new DiscussionLinkDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id,
+                        Url = _faker.Internet.Url(),
+                        Title = _faker.Lorem.Sentence(3, 5).TrimEnd('.'),
+                        Description = _faker.Lorem.Paragraph(1),
+                        Domain = _faker.Internet.DomainName()
+                    });
+                    break;
+
+                case DiscussionTypeEnum.Debate:
+                {
+                    var debate = new DiscussionDebateDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id,
+                        AllowNeutral = _faker.Random.Bool(0.5f)
+                    };
+                    _context.DiscussionDebates.Add(debate);
+                    await _context.SaveChangesAsync();
+
+                    var positionCount = _faker.Random.Int(2, 3);
+                    var labels = positionCount == 2
+                        ? new[] { "For", "Against" }
+                        : new[] { "For", "Against", "Undecided" };
+
+                    var positions = new List<DiscussionDebatePositionDatabaseEntity>();
+                    for (var p = 0; p < positionCount; p++)
+                    {
+                        var pos = new DiscussionDebatePositionDatabaseEntity
+                        {
+                            DebateId = debate.Id,
+                            Index = p,
+                            Label = labels[p]
+                        };
+                        _context.DiscussionDebatePositions.Add(pos);
+                        positions.Add(pos);
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Assign positions to ~70% of reply posts
+                    foreach (var reply in replyPosts)
+                    {
+                        if (_faker.Random.Bool(0.7f))
+                        {
+                            _context.PostDebatePositions.Add(new PostDebatePositionDatabaseEntity
+                            {
+                                PostId = reply.Id,
+                                PositionId = _faker.PickRandom(positions).Id
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                case DiscussionTypeEnum.Journal:
+                {
+                    var journal = new DiscussionJournalDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id
+                    };
+                    _context.DiscussionJournals.Add(journal);
+                    await _context.SaveChangesAsync();
+
+                    // Mark some OP replies as journal entries (~50% of OP's posts)
+                    var opReplies = replyPosts
+                        .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
+                        .ToList();
+
+                    foreach (var opReply in opReplies)
+                    {
+                        if (_faker.Random.Bool(0.5f))
+                        {
+                            _context.JournalEntryPosts.Add(new JournalEntryPostDatabaseEntity
+                            {
+                                PostId = opReply.Id,
+                                JournalId = journal.Id
+                            });
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
     /// <summary>
     /// Generate a realistic discussion title using Bogus.
     /// Mixes template-based titles with generated sentences.
@@ -870,6 +1103,40 @@ public class DatabaseSeeder(
     /// Generate post content with natural size distribution.
     /// Opening posts tend to be longer, replies vary from one-liners to detailed responses.
     /// </summary>
+    private string GenerateTypedFirstPostContent(DiscussionTypeEnum type)
+    {
+        return type switch
+        {
+            DiscussionTypeEnum.Question =>
+                $"{_faker.Lorem.Paragraph(1)}\n\n" +
+                $"## Details\n\n{_faker.Lorem.Paragraphs(1, 2, "\n\n")}\n\n" +
+                $"## What I've tried\n\n{_faker.Lorem.Paragraph(1)}",
+
+            DiscussionTypeEnum.Guide =>
+                $"## Summary\n\n{_faker.Lorem.Paragraph(1)}\n\n" +
+                $"## Prerequisites\n\n- {_faker.Lorem.Sentence()}\n- {_faker.Lorem.Sentence()}\n\n" +
+                $"## Step 1: {_faker.Lorem.Sentence(3).TrimEnd('.')}\n\n{_faker.Lorem.Paragraph(1)}\n\n" +
+                $"## Step 2: {_faker.Lorem.Sentence(3).TrimEnd('.')}\n\n{_faker.Lorem.Paragraph(1)}\n\n" +
+                $"## Step 3: {_faker.Lorem.Sentence(3).TrimEnd('.')}\n\n{_faker.Lorem.Paragraph(1)}",
+
+            DiscussionTypeEnum.Debate =>
+                $"{_faker.Lorem.Paragraphs(2, "\n\n")}\n\n" +
+                "What's your position on this?",
+
+            DiscussionTypeEnum.Poll =>
+                _faker.Lorem.Paragraphs(_faker.Random.Int(1, 2), "\n\n"),
+
+            DiscussionTypeEnum.Link =>
+                $"{_faker.Lorem.Paragraph(1)}\n\n" +
+                "Thoughts?",
+
+            DiscussionTypeEnum.Journal =>
+                $"## Entry 1\n\n{_faker.Lorem.Paragraphs(2, "\n\n")}",
+
+            _ => GeneratePostContent(isOpeningPost: true)
+        };
+    }
+
     private string GeneratePostContent(bool isOpeningPost)
     {
         var roll = _faker.Random.Int(1, 100);

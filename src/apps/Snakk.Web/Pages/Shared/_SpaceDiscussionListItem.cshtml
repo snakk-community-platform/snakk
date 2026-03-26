@@ -22,6 +22,11 @@
             </div>
             <div class="topic-meta">
                 <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
+                @if (discussion.Type is not "" and not "Standard")
+                {
+                    var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
+                    <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
+                }
             </div>
         </div>
         <div class="topic-stats hidden sm:flex">

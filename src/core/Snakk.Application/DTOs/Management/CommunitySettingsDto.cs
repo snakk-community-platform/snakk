@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Application.DTOs.Management;
 
@@ -24,6 +25,8 @@ public class CommunitySettingsDto
     public bool AllowMemberInvites { get; set; } = true;
 
     public string? Timezone { get; set; }
+
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     // Owner and team
     public string OwnerId { get; set; } = string.Empty;
@@ -51,4 +54,6 @@ public class UpdateCommunitySettingsRequest
     public bool AllowMemberInvites { get; set; } = true;
 
     public string? Timezone { get; set; }
+
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 }

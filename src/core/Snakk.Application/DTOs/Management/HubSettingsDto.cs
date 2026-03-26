@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Application.DTOs.Management;
 
@@ -13,6 +14,8 @@ public class HubSettingsDto
     [StringLength(500)]
     public string? Description { get; set; }
 
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
+
     public List<string> ModeratorUserIds { get; set; } = new();
 }
 
@@ -24,4 +27,6 @@ public class UpdateHubSettingsRequest
 
     [StringLength(500)]
     public string? Description { get; set; }
+
+    public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 }

@@ -28,7 +28,9 @@ public class ManageGrpcService(
     IRealtimeNotifier realtimeNotifier,
     IActivityBroadcaster activityBroadcaster,
     IGroupService groupService,
-    IGroupAccessService groupAccessService) : ManageService.ManageServiceBase
+    IGroupAccessService groupAccessService,
+    IHubManagementService hubManagementService,
+    IAllowedTypesService allowedTypesService) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -143,6 +145,9 @@ public class ManageGrpcService(
         response.AllowedDiscussionTypes.AddRange(
             settings.AllowedDiscussionTypes.Select(t => (int)t));
         response.ModeratorUserIds.AddRange(settings.ModeratorUserIds);
+
+        var parentTypes = await allowedTypesService.GetParentAllowedTypesForSpaceAsync(request.SpacePublicId);
+        response.ParentAllowedTypes.AddRange(parentTypes.Select(t => (int)t));
 
         return response;
     }
@@ -761,6 +766,7 @@ public class ManageGrpcService(
         };
         if (settings.Description is not null) response.Description = settings.Description;
         if (settings.Timezone is not null) response.Timezone = settings.Timezone;
+        response.AllowedDiscussionTypes.AddRange(settings.AllowedDiscussionTypes.Select(t => (int)t));
         return response;
     }
 
@@ -780,7 +786,9 @@ public class ManageGrpcService(
         {
             Name = request.Name,
             Description = request.HasDescription ? request.Description : null,
-            Timezone = request.HasTimezone ? request.Timezone : null
+            Timezone = request.HasTimezone ? request.Timezone : null,
+            AllowedDiscussionTypes = request.AllowedDiscussionTypes
+                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
         };
 
         var result = await communityManagementService.UpdateSettingsAsync(
@@ -789,6 +797,64 @@ public class ManageGrpcService(
         return result is null
             ? new UpdateCommunitySettingsResponse { Success = false, ErrorMessage = "Community not found" }
             : new UpdateCommunitySettingsResponse { Success = true };
+    }
+
+    public override async Task<HubSettingsResponse> GetHubSettings(
+        GetHubSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Hub", request.HubPublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var settings = await hubManagementService.GetSettingsAsync(request.HubPublicId);
+        if (settings is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
+
+        var parentTypes = await allowedTypesService.GetParentAllowedTypesForHubAsync(request.HubPublicId);
+
+        var response = new HubSettingsResponse
+        {
+            Slug = settings.Slug,
+            Name = settings.Name
+        };
+        if (settings.Description is not null) response.Description = settings.Description;
+        response.AllowedDiscussionTypes.AddRange(settings.AllowedDiscussionTypes.Select(t => (int)t));
+        response.ModeratorUserIds.AddRange(settings.ModeratorUserIds);
+        response.ParentAllowedTypes.AddRange(parentTypes.Select(t => (int)t));
+        return response;
+    }
+
+    public override async Task<UpdateHubSettingsResponse> UpdateHubSettings(
+        UpdateHubSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Hub", request.HubPublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var updateRequest = new Snakk.Application.DTOs.Management.UpdateHubSettingsRequest
+        {
+            Name = request.Name,
+            Description = request.HasDescription ? request.Description : null,
+            AllowedDiscussionTypes = request.AllowedDiscussionTypes
+                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
+        };
+
+        var result = await hubManagementService.UpdateSettingsAsync(
+            request.HubPublicId, updateRequest);
+
+        return result is null
+            ? new UpdateHubSettingsResponse { Success = false, ErrorMessage = "Hub not found" }
+            : new UpdateHubSettingsResponse { Success = true };
     }
 
     public override async Task<SiteSettingsGrpcResponse> GetSiteSettings(
