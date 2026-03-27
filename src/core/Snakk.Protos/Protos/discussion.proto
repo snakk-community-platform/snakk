@@ -14,6 +14,31 @@ service DiscussionService {
   rpc GetDiscussionsBySpace (GetDiscussionsBySpaceRequest) returns (PagedDiscussionBySpaceList);
   rpc GetDiscussionPreview (GetDiscussionPreviewRequest) returns (DiscussionPreviewInfo);
   rpc GetDiscussionStats (GetDiscussionStatsRequest) returns (DiscussionStats);
+
+  // Poll
+  rpc GetPoll (GetPollRequest) returns (PollResponse);
+  rpc VotePoll (VotePollRequest) returns (VotePollResponse);
+  rpc RemovePollVote (RemovePollVoteRequest) returns (VotePollResponse);
+
+  // Question
+  rpc GetQuestionStatus (GetQuestionStatusRequest) returns (QuestionStatusResponse);
+  rpc MarkQuestionSolved (MarkQuestionSolvedRequest) returns (MarkQuestionSolvedResponse);
+
+  // Debate
+  rpc GetDebateInfo (GetDebateInfoRequest) returns (DebateInfoResponse);
+  rpc SetPostDebatePosition (SetPostDebatePositionRequest) returns (SetPostDebatePositionResponse);
+
+  // Journal
+  rpc AddJournalEntry (AddJournalEntryRequest) returns (AddJournalEntryResponse);
+
+  // Link
+  rpc GetDiscussionLink (GetDiscussionLinkRequest) returns (DiscussionLinkResponse);
+
+  // Gallery
+  rpc GetGalleryLayout (GetGalleryLayoutRequest) returns (GalleryLayoutResponse);
+
+  // Journal
+  rpc GetJournalEntries (GetJournalEntriesRequest) returns (JournalEntriesResponse);
 }
 
 // --- Requests ---
@@ -41,6 +66,10 @@ message CreateDiscussionRequest {
   // Debate extension fields
   repeated string debate_positions = 11;
   bool debate_allow_neutral = 12;
+
+  // Gallery extension fields
+  optional string gallery_layout = 13; // grid, masonry, justified, carousel, hero
+  repeated string gallery_image_urls = 14;
 }
 
 message GetRecentDiscussionsRequest {
@@ -145,4 +174,150 @@ message DiscussionStats {
   string title = 2;
   int32 reply_count = 3;
   int32 follower_count = 4;
+}
+
+// --- Poll ---
+
+message GetPollRequest {
+  string discussion_id = 1;
+}
+
+message PollResponse {
+  repeated PollOptionInfo options = 1;
+  bool allow_multiple = 2;
+  bool allow_change_vote = 3;
+  optional google.protobuf.Timestamp closes_at = 4;
+  bool is_closed = 5;
+  int32 total_votes = 6;
+  repeated int32 user_voted_option_ids = 7;
+}
+
+message PollOptionInfo {
+  int32 id = 1;
+  string text = 2;
+  int32 vote_count = 3;
+  int32 display_order = 4;
+}
+
+message VotePollRequest {
+  string discussion_id = 1;
+  int32 option_id = 2;
+}
+
+message VotePollResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+message RemovePollVoteRequest {
+  string discussion_id = 1;
+  int32 option_id = 2;
+}
+
+// --- Question ---
+
+message GetQuestionStatusRequest {
+  string discussion_id = 1;
+}
+
+message QuestionStatusResponse {
+  bool is_solved = 1;
+  optional string accepted_post_public_id = 2;
+  optional google.protobuf.Timestamp solved_at = 3;
+}
+
+message MarkQuestionSolvedRequest {
+  string discussion_id = 1;
+  string post_public_id = 2;
+}
+
+message MarkQuestionSolvedResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// --- Debate ---
+
+message GetDebateInfoRequest {
+  string discussion_id = 1;
+}
+
+message DebateInfoResponse {
+  repeated DebatePositionInfo positions = 1;
+  bool allow_neutral = 2;
+  // Map of post_public_id → position_id for all posts in this debate
+  map<string, int32> post_positions = 3;
+}
+
+message DebatePositionInfo {
+  int32 id = 1;
+  string label = 2;
+  int32 index = 3;
+  int32 post_count = 4;
+}
+
+// --- Link ---
+
+message GetDiscussionLinkRequest {
+  string discussion_id = 1;
+}
+
+message DiscussionLinkResponse {
+  string url = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string image_url = 4;
+  optional string domain = 5;
+}
+
+// --- Journal ---
+
+message GetJournalEntriesRequest {
+  string discussion_id = 1;
+}
+
+message JournalEntriesResponse {
+  repeated string entry_post_public_ids = 1;
+}
+
+// --- Debate: Set post position ---
+
+message SetPostDebatePositionRequest {
+  string discussion_id = 1;
+  string post_public_id = 2;
+  int32 position_id = 3;
+}
+
+message SetPostDebatePositionResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// --- Journal: Add entry ---
+
+message AddJournalEntryRequest {
+  string discussion_id = 1;
+  string post_public_id = 2;
+}
+
+message AddJournalEntryResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// --- Gallery ---
+
+message GetGalleryLayoutRequest {
+  string discussion_id = 1;
+}
+
+message GalleryLayoutResponse {
+  string layout = 1;
+  repeated GalleryImageProto images = 2;
+}
+
+message GalleryImageProto {
+  string url = 1;
+  optional string thumbnail_url = 2;
+  optional string blur_data_uri = 3;
 }

@@ -20,7 +20,9 @@ public class DiscussionGrpcService(
     IUserGrantsCacheService grantsCache,
     IEntityHierarchyCacheService hierarchyCache,
     IAllowedTypesService allowedTypesService,
-    IDiscussionExtensionService extensionService) : DiscussionService.DiscussionServiceBase
+    IDiscussionExtensionService extensionService,
+    IPollService pollService,
+    IDiscussionTypeQueryService typeQueryService) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -161,6 +163,13 @@ public class DiscussionGrpcService(
             case DiscussionTypeEnum.Journal:
                 await extensionService.CreateJournalAsync(discussionPublicId);
                 break;
+
+            case DiscussionTypeEnum.Gallery:
+                await extensionService.CreateGalleryAsync(
+                    discussionPublicId,
+                    request.HasGalleryLayout ? request.GalleryLayout : "grid",
+                    request.GalleryImageUrls.Count > 0 ? request.GalleryImageUrls.ToList() : null);
+                break;
         }
     }
 
@@ -217,7 +226,7 @@ public class DiscussionGrpcService(
                 {
                     PublicId = d.CreatedByUserPublicId,
                     DisplayName = d.CreatedByUserDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
                 }
             };
 
@@ -269,7 +278,7 @@ public class DiscussionGrpcService(
                 {
                     PublicId = d.AuthorPublicId,
                     DisplayName = d.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
                 }
             };
 
@@ -341,6 +350,160 @@ public class DiscussionGrpcService(
         return (!spaceGate || grants.SpaceIds.Contains(h.SpaceId))
             && (!hubGate || grants.HubIds.Contains(h.HubId))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
+    }
+
+    // --- Poll RPCs ---
+
+    public override async Task<PollResponse> GetPoll(GetPollRequest request, ServerCallContext context)
+    {
+        var userId = currentUser.GetCurrentUserId();
+        var data = await pollService.GetPollAsync(request.DiscussionId, userId);
+
+        if (data is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Poll not found"));
+
+        var response = new PollResponse
+        {
+            AllowMultiple = data.AllowMultipleChoices,
+            AllowChangeVote = data.AllowChangeVote,
+            IsClosed = data.IsClosed,
+            TotalVotes = data.TotalVotes
+        };
+
+        if (data.ClosesAt.HasValue)
+            response.ClosesAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(data.ClosesAt.Value, DateTimeKind.Utc));
+
+        response.Options.AddRange(data.Options.Select(o => new PollOptionInfo
+        {
+            Id = o.Id,
+            Text = o.Text,
+            VoteCount = o.VoteCount,
+            DisplayOrder = o.DisplayOrder
+        }));
+
+        response.UserVotedOptionIds.AddRange(data.UserVotedOptionIds);
+
+        return response;
+    }
+
+    public override async Task<VotePollResponse> VotePoll(VotePollRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value);
+
+        return new VotePollResponse { Success = success, Error = error };
+    }
+
+    public override async Task<VotePollResponse> RemovePollVote(RemovePollVoteRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await pollService.RemoveVoteAsync(request.DiscussionId, request.OptionId, userId.Value);
+
+        return new VotePollResponse { Success = success, Error = error };
+    }
+
+    // --- Question RPCs ---
+
+    public override async Task<QuestionStatusResponse> GetQuestionStatus(GetQuestionStatusRequest request, ServerCallContext context)
+    {
+        var status = await typeQueryService.GetQuestionStatusAsync(request.DiscussionId);
+        if (status is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Question not found"));
+
+        var response = new QuestionStatusResponse { IsSolved = status.IsSolved };
+        if (status.AcceptedPostPublicId is not null) response.AcceptedPostPublicId = status.AcceptedPostPublicId;
+        if (status.SolvedAt.HasValue)
+            response.SolvedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(status.SolvedAt.Value, DateTimeKind.Utc));
+        return response;
+    }
+
+    public override async Task<MarkQuestionSolvedResponse> MarkQuestionSolved(MarkQuestionSolvedRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.MarkQuestionSolvedAsync(request.DiscussionId, request.PostPublicId, userId.Value);
+        return new MarkQuestionSolvedResponse { Success = success, Error = error };
+    }
+
+    // --- Debate RPCs ---
+
+    public override async Task<DebateInfoResponse> GetDebateInfo(GetDebateInfoRequest request, ServerCallContext context)
+    {
+        var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId);
+        if (info is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Debate not found"));
+
+        var response = new DebateInfoResponse { AllowNeutral = info.AllowNeutral };
+        response.Positions.AddRange(info.Positions.Select(p => new DebatePositionInfo
+        {
+            Id = p.Id, Label = p.Label, Index = p.Index, PostCount = p.PostCount
+        }));
+        foreach (var (postId, posId) in info.PostPositions)
+            response.PostPositions[postId] = posId;
+        return response;
+    }
+
+    // --- Link RPCs ---
+
+    public override async Task<DiscussionLinkResponse> GetDiscussionLink(GetDiscussionLinkRequest request, ServerCallContext context)
+    {
+        var link = await typeQueryService.GetLinkInfoAsync(request.DiscussionId);
+        if (link is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Link not found"));
+
+        var response = new DiscussionLinkResponse { Url = link.Url };
+        if (link.Title is not null) response.Title = link.Title;
+        if (link.Description is not null) response.Description = link.Description;
+        if (link.ImageUrl is not null) response.ImageUrl = link.ImageUrl;
+        if (link.Domain is not null) response.Domain = link.Domain;
+        return response;
+    }
+
+    // --- Gallery RPCs ---
+
+    public override async Task<GalleryLayoutResponse> GetGalleryLayout(GetGalleryLayoutRequest request, ServerCallContext context)
+    {
+        var layout = await typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
+        var images = await typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
+
+        var response = new GalleryLayoutResponse { Layout = layout ?? "grid" };
+        foreach (var img in images)
+        {
+            var proto = new GalleryImageProto { Url = img.Url };
+            if (img.ThumbnailUrl != null) proto.ThumbnailUrl = img.ThumbnailUrl;
+            if (img.BlurDataUri != null) proto.BlurDataUri = img.BlurDataUri;
+            response.Images.Add(proto);
+        }
+
+        return response;
+    }
+
+    // --- Journal RPCs ---
+
+    public override async Task<JournalEntriesResponse> GetJournalEntries(GetJournalEntriesRequest request, ServerCallContext context)
+    {
+        var info = await typeQueryService.GetJournalInfoAsync(request.DiscussionId);
+        if (info is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Journal not found"));
+
+        var response = new JournalEntriesResponse();
+        response.EntryPostPublicIds.AddRange(info.EntryPostPublicIds);
+        return response;
+    }
+
+    public override async Task<SetPostDebatePositionResponse> SetPostDebatePosition(SetPostDebatePositionRequest request, ServerCallContext context)
+    {
+        RequireAuth();
+        var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId);
+        return new SetPostDebatePositionResponse { Success = success, Error = error };
+    }
+
+    public override async Task<AddJournalEntryResponse> AddJournalEntry(AddJournalEntryRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.AddJournalEntryAsync(request.DiscussionId, request.PostPublicId, userId.Value);
+        return new AddJournalEntryResponse { Success = success, Error = error };
     }
 
     private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)

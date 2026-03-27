@@ -220,7 +220,10 @@ public class SnakkApiClient(
         string? linkUrl = null,
         // Debate extension
         IEnumerable<string>? debatePositions = null,
-        bool debateAllowNeutral = false)
+        bool debateAllowNeutral = false,
+        // Gallery extension
+        string? galleryLayout = null,
+        IEnumerable<string>? galleryImageUrls = null)
     {
         try
         {
@@ -233,6 +236,8 @@ public class SnakkApiClient(
             if (linkUrl is not null) request.LinkUrl = linkUrl;
             if (debatePositions is not null) request.DebatePositions.AddRange(debatePositions);
             request.DebateAllowNeutral = debateAllowNeutral;
+            if (galleryLayout is not null) request.GalleryLayout = galleryLayout;
+            if (galleryImageUrls is not null) request.GalleryImageUrls.AddRange(galleryImageUrls);
             return await discussionClient.CreateDiscussionAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
@@ -424,6 +429,87 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    // ==================== Poll ====================
+
+    public virtual async Task<PollResponse?> GetPollAsync(string discussionId)
+    {
+        try { return await discussionClient.GetPollAsync(new GetPollRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<VotePollResponse?> VotePollAsync(string discussionId, int optionId)
+    {
+        try { return await discussionClient.VotePollAsync(new VotePollRequest { DiscussionId = discussionId, OptionId = optionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<VotePollResponse?> RemovePollVoteAsync(string discussionId, int optionId)
+    {
+        try { return await discussionClient.RemovePollVoteAsync(new RemovePollVoteRequest { DiscussionId = discussionId, OptionId = optionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Question ====================
+
+    public virtual async Task<QuestionStatusResponse?> GetQuestionStatusAsync(string discussionId)
+    {
+        try { return await discussionClient.GetQuestionStatusAsync(new GetQuestionStatusRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<MarkQuestionSolvedResponse?> MarkQuestionSolvedAsync(string discussionId, string postPublicId)
+    {
+        try { return await discussionClient.MarkQuestionSolvedAsync(new MarkQuestionSolvedRequest { DiscussionId = discussionId, PostPublicId = postPublicId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Debate ====================
+
+    public virtual async Task<DebateInfoResponse?> GetDebateInfoAsync(string discussionId)
+    {
+        try { return await discussionClient.GetDebateInfoAsync(new GetDebateInfoRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SetPostDebatePositionResponse?> SetPostDebatePositionAsync(string discussionId, string postPublicId, int positionId)
+    {
+        try { return await discussionClient.SetPostDebatePositionAsync(new SetPostDebatePositionRequest { DiscussionId = discussionId, PostPublicId = postPublicId, PositionId = positionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Link ====================
+
+    public virtual async Task<DiscussionLinkResponse?> GetDiscussionLinkAsync(string discussionId)
+    {
+        try { return await discussionClient.GetDiscussionLinkAsync(new GetDiscussionLinkRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Gallery ====================
+
+    public virtual async Task<GalleryLayoutResponse?> GetGalleryDataAsync(string discussionId)
+    {
+        try
+        {
+            return await discussionClient.GetGalleryLayoutAsync(new GetGalleryLayoutRequest { DiscussionId = discussionId });
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Journal ====================
+
+    public virtual async Task<JournalEntriesResponse?> GetJournalEntriesAsync(string discussionId)
+    {
+        try { return await discussionClient.GetJournalEntriesAsync(new GetJournalEntriesRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<AddJournalEntryResponse?> AddJournalEntryAsync(string discussionId, string postPublicId)
+    {
+        try { return await discussionClient.AddJournalEntryAsync(new AddJournalEntryRequest { DiscussionId = discussionId, PostPublicId = postPublicId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // Entity stats aliases
     public virtual Task<HubStats?> GetHubStatsForPopupAsync(string publicId) => GetHubStatsAsync(publicId);
     public virtual Task<SpaceStats?> GetSpaceStatsForPopupAsync(string publicId) => GetSpaceStatsAsync(publicId);
@@ -523,14 +609,14 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<bool> UpdatePreferencesAsync(bool? preferEndlessScroll = null, bool? autoFollowOnReply = null, string? timezone = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null)
     {
         try
         {
             var request = new UpdatePreferencesRequest();
-            if (preferEndlessScroll.HasValue) request.PreferEndlessScroll = preferEndlessScroll.Value;
             if (autoFollowOnReply.HasValue) request.AutoFollowOnReply = autoFollowOnReply.Value;
             if (timezone is not null) request.Timezone = timezone;
+            if (bio is not null) request.Bio = bio;
             await authClient.UpdatePreferencesAsync(request);
 
             return true;

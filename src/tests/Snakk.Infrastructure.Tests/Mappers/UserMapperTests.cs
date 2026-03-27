@@ -30,8 +30,6 @@ public class UserMapperTests
         await Assert.That(entity.OAuthProvider).IsNull();
         await Assert.That(entity.OAuthProviderId).IsNull();
         await Assert.That(entity.AvatarFileName).IsNull();
-        // Note: PreferEndlessScroll defaults to true in the User entity
-        await Assert.That(entity.PreferEndlessScroll).IsTrue();
         await Assert.That((DateTime.UtcNow - entity.CreatedAt).TotalSeconds).IsLessThan(1);
     }
 
@@ -71,7 +69,6 @@ public class UserMapperTests
             "Admin", // Admin role
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -102,7 +99,6 @@ public class UserMapperTests
             "Mod", // Mod role
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -133,7 +129,6 @@ public class UserMapperTests
             "ADMIN", // Uppercase
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -178,7 +173,6 @@ public class UserMapperTests
             "InvalidRole", // Not a valid role
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -207,20 +201,6 @@ public class UserMapperTests
         await Assert.That(entity.AvatarFileName).IsEqualTo("avatar.jpg");
     }
 
-    [Test]
-    public async Task ToPersistence_WithPreferEndlessScroll_MapsPreference()
-    {
-        // Arrange
-        var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        user.SetPreferEndlessScroll(true);
-
-        // Act
-        var entity = user.ToPersistence();
-
-        // Assert
-        await Assert.That(entity.PreferEndlessScroll).IsTrue();
-    }
-
     #endregion
 
     #region FromPersistence Tests
@@ -240,7 +220,6 @@ public class UserMapperTests
             OAuthProvider = null,
             OAuthProviderId = null,
             AvatarFileName = null,
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -262,7 +241,6 @@ public class UserMapperTests
         await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.Role).IsNull();
         await Assert.That(user.AvatarFileName).IsNull();
-        await Assert.That(user.PreferEndlessScroll).IsFalse();
     }
 
     [Test]
@@ -280,7 +258,6 @@ public class UserMapperTests
             OAuthProvider = "google",
             OAuthProviderId = "google_123",
             AvatarFileName = null,
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -316,7 +293,6 @@ public class UserMapperTests
                 new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.GlobalAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
             ],
             AvatarFileName = null,
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -349,7 +325,6 @@ public class UserMapperTests
                 new() { PublicId = Guid.NewGuid().ToString(), RoleId = (int)UserRoleTypeEnum.CommunityAdmin, AssignedAt = DateTime.UtcNow, RevokedAt = null }
             ],
             AvatarFileName = null,
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -378,7 +353,6 @@ public class UserMapperTests
             OAuthProvider = null,
             OAuthProviderId = null,
             AvatarFileName = null,
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -407,7 +381,6 @@ public class UserMapperTests
             OAuthProvider = null,
             OAuthProviderId = null,
             AvatarFileName = "avatar.png",
-            PreferEndlessScroll = false,
             CreatedAt = DateTime.UtcNow,
             LastModifiedAt = DateTime.UtcNow,
             LastSeenAt = null,
@@ -419,35 +392,6 @@ public class UserMapperTests
 
         // Assert
         await Assert.That(user.AvatarFileName).IsEqualTo("avatar.png");
-    }
-
-    [Test]
-    public async Task FromPersistence_WithPreferEndlessScroll_MapsPreference()
-    {
-        // Arrange
-        var entity = new UserDatabaseEntity
-        {
-            PublicId = Guid.NewGuid().ToString(),
-            DisplayName = "TestUser",
-            Email = "test@example.com",
-            PasswordHash = "hash",
-            EmailVerified = true,
-            EmailVerificationToken = null,
-            OAuthProvider = null,
-            OAuthProviderId = null,
-            AvatarFileName = null,
-            PreferEndlessScroll = true,
-            CreatedAt = DateTime.UtcNow,
-            LastModifiedAt = DateTime.UtcNow,
-            LastSeenAt = null,
-            LastLoginAt = null
-        };
-
-        // Act
-        var user = entity.FromPersistence();
-
-        // Assert
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
     }
 
     #endregion
@@ -475,7 +419,6 @@ public class UserMapperTests
         await Assert.That(reconstructedUser.OAuthProviderId).IsEqualTo(originalUser.OAuthProviderId);
         await Assert.That(reconstructedUser.Role).IsEqualTo(originalUser.Role);
         await Assert.That(reconstructedUser.AvatarFileName).IsEqualTo(originalUser.AvatarFileName);
-        await Assert.That(reconstructedUser.PreferEndlessScroll).IsEqualTo(originalUser.PreferEndlessScroll);
     }
 
     [Test]
@@ -513,7 +456,6 @@ public class UserMapperTests
             "Admin",
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,
@@ -545,7 +487,6 @@ public class UserMapperTests
             "Admin",
             null,
             0, // avatarRevision
-            false,
             false, // autoFollowOnReply
             DateTime.UtcNow,
             DateTime.UtcNow,

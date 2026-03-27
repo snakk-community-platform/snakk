@@ -63,7 +63,7 @@ public class SearchGrpcService(
                 {
                     PublicId = d.AuthorPublicId,
                     DisplayName = d.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
                 }
             };
 
@@ -112,7 +112,7 @@ public class SearchGrpcService(
                 {
                     PublicId = p.AuthorPublicId,
                     DisplayName = p.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(p.AuthorPublicId, AvatarEntityType.User, 0)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName)
                 },
                 Space = new EntityRef
                 {

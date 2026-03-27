@@ -51,7 +51,7 @@ else
         <!-- Profile Header (full width) -->
         <div class="page-header">
             <div class="flex items-start gap-4">
-                <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId)"
+                <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
                      alt="@Model.Profile.DisplayName"
                      width="64" height="64"
                      class="w-16 h-16 rounded-full shrink-0" />
@@ -62,6 +62,10 @@ else
                             <div class="skeleton h-8 w-24"></div>
                         </div>
                     </div>
+                    @if (Model.Profile.HasBio && !string.IsNullOrWhiteSpace(Model.Profile.Bio))
+                    {
+                        <p class="text-sm text-base-content/70 mt-2">@Model.Profile.Bio</p>
+                    }
                     <div class="flex items-center gap-3 text-sm text-base-content/60 mt-1">
                         <span class="flex items-center gap-1">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

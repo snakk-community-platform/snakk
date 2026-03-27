@@ -13,7 +13,6 @@ public class SettingsModel(SnakkApiClient apiClient, IConfiguration configuratio
     public string? Email { get; set; }
     public bool EmailVerified { get; set; }
     public string? OAuthProvider { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
     public bool AutoFollowOnReply { get; set; } = true;
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }

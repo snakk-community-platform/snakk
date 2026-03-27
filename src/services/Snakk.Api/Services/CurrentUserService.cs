@@ -34,4 +34,8 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
     public string? GetCurrentUserRole() =>
         httpContextAccessor.HttpContext?.User
             .FindFirst(ClaimTypes.Role)?.Value;
+
+    public string? GetAvatarFileName() =>
+        httpContextAccessor.HttpContext?.User
+            .FindFirst("AvatarFileName")?.Value;
 }

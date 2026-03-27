@@ -19,8 +19,13 @@ public class MediaDatabaseEntity
     public int UploadedByUserId { get; set; }
     public virtual UserDatabaseEntity UploadedByUser { get; set; } = null!;
 
-    // Draft tracking — uploads are drafts until linked to a published discussion
+    // Optimized versions for fast rendering
+    public string? ThumbnailPath { get; set; } // 300px longest side, proportional
+    public string? BlurDataUri { get; set; } // ~20px base64 data URI for blur-up placeholder
+
+    // Lifecycle tracking
     public bool IsDraft { get; set; } = true;
-    public DateTime? DraftExpiresAt { get; set; }
     public DateTime? PublishedAt { get; set; }
+    public bool IsReadyForDeletion { get; set; }
+    public bool IsDeleted { get; set; }
 }

@@ -33,9 +33,9 @@ public class UserDatabaseEntity
     public int AvatarRevision { get; set; } = 0;
 
     // User preferences
-    public bool PreferEndlessScroll { get; set; } = true;
     public bool AutoFollowOnReply { get; set; } = true;
     public string? Timezone { get; set; }
+    public string? Bio { get; set; }
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }

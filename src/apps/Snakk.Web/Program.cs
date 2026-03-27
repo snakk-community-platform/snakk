@@ -14,6 +14,9 @@ using Serilog;
 using Snakk.ServiceDefaults;
 using System.Text;
 
+// Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Load shared production config (written by setup wizard)
@@ -218,6 +221,39 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
+
+// Security headers — CSP, clickjacking, MIME sniffing, referrer, permissions
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+
+    // Content Security Policy — allow self, Cloudflare Turnstile, inline styles (Tailwind), WebSocket for SignalR
+    headers.Append("Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self'; " +
+        "connect-src 'self' wss: ws:; " +
+        "frame-src https://challenges.cloudflare.com; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'");
+
+    // Clickjacking protection (redundant with frame-ancestors but covers older browsers)
+    headers.Append("X-Frame-Options", "DENY");
+
+    // Prevent MIME type sniffing
+    headers.Append("X-Content-Type-Options", "nosniff");
+
+    // Control referrer information
+    headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Restrict browser features
+    headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+
+    await next();
+});
 
 // Resource preload hints — send Link headers for critical CSS so browser starts downloading
 // before HTML parsing. These headers propagate through YARP gateway to the client.

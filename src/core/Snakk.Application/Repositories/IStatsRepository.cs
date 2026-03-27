@@ -88,7 +88,8 @@ public record UserStatsDto(
     string DisplayName,
     int DiscussionCount,
     int ReplyCount,
-    int FollowerCount);
+    int FollowerCount,
+    string? AvatarFileName = null);
 
 public record DiscussionStatsDto(
     string PublicId,

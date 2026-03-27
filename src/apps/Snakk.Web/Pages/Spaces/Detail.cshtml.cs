@@ -28,7 +28,6 @@ public class DetailModel(
     public string HubSlug { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public bool IsAuthenticated { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "space";
@@ -54,7 +53,6 @@ public class DetailModel(
 
         // Read preferences from cookies (no API call needed)
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
-        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // Fetch hub, space, and community in parallel
         var hubTask = _apiClient.GetHubBySlugResultAsync(hubSlug, CommunityContext.CommunitySlug!);

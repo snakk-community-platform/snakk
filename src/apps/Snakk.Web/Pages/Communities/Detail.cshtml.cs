@@ -19,7 +19,6 @@ public class DetailModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public PagedHubList? Hubs { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "community";
@@ -46,8 +45,6 @@ public class DetailModel(
         var multiCommunityEnabled = Configuration.GetValue<bool>("Features:MultiCommunityEnabled");
         if (!multiCommunityEnabled)
             return RedirectToPage("/Index");
-
-        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 

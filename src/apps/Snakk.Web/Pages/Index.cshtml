@@ -31,7 +31,7 @@
                                  model="new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community)" />
                     }
 
-                    @if (Model.PreferEndlessScroll && Model.RecentDiscussions.HasMoreItems)
+                    @if (Model.RecentDiscussions.HasMoreItems)
                     {
                         var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
                         var communityParam = Model.SidebarScopeType == "community" ? $"&communityId={Model.SidebarScopeId}" : "";
@@ -65,34 +65,11 @@
                             </div>
                         </div>
                     }
-                    else if (Model.PreferEndlessScroll)
+                    else
                     {
                         <partial name="Shared/_EndOfScroll" />
                     }
                 </div>
-
-                @if (!Model.PreferEndlessScroll)
-                {
-                    @if (Model.RecentDiscussions.Offset > 0 || Model.RecentDiscussions.HasMoreItems)
-                    {
-                        <div class="flex justify-center gap-2 mt-6">
-                            @if (Model.RecentDiscussions.Offset > 0)
-                            {
-                                <a href="/?offset=@(Math.Max(0, Model.RecentDiscussions.Offset - Model.RecentDiscussions.PageSize))"
-                                   class="btn btn-ghost btn-sm">
-                                    Previous
-                                </a>
-                            }
-                            @if (Model.RecentDiscussions.HasMoreItems)
-                            {
-                                <a href="/?offset=@(Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize)"
-                                   class="btn btn-ghost btn-sm">
-                                    Next
-                                </a>
-                            }
-                        </div>
-                    }
-                }
             }
         </div>
 
@@ -194,7 +171,7 @@
 
 
 <!-- Scroll to Top Button (for endless scroll) -->
-@if (Model.PreferEndlessScroll && Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
+@if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
 {
     <div id="scroll-to-top-wrapper" class="fixed bottom-6 right-6 z-50 hidden">
         <div class="flex flex-col items-center gap-1">
@@ -211,7 +188,7 @@
 @section Scripts {
     <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
 
-    @if (Model.PreferEndlessScroll && Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
+    @if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
     {
         <script src="@SnakkUrlHelper.Js("pages/frontpage-discussions")" asp-append-version="true" defer></script>
     }

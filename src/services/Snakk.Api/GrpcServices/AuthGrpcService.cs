@@ -49,7 +49,8 @@ public class AuthGrpcService(
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            user.AvatarFileName);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -96,7 +97,8 @@ public class AuthGrpcService(
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            user.AvatarFileName);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -148,7 +150,8 @@ public class AuthGrpcService(
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            user.AvatarFileName);
 
         return new Protos.Auth.RefreshTokenResponse
         {
@@ -170,9 +173,7 @@ public class AuthGrpcService(
     public override Task<AuthStatusResponse> GetAuthStatus(GetAuthStatusRequest request, ServerCallContext ctx)
     {
         if (!currentUser.IsAuthenticated())
-        {
             return Task.FromResult(new AuthStatusResponse { IsAuthenticated = false });
-        }
 
         var userId = currentUser.GetCurrentUserId();
 
@@ -183,7 +184,7 @@ public class AuthGrpcService(
             DisplayName = currentUser.GetCurrentUserDisplayName(),
             EmailVerified = currentUser.IsEmailVerified(),
             Role = currentUser.GetCurrentUserRole() ?? "",
-            AvatarUrl = AvatarHelper.GetAvatarUrl(userId ?? "", AvatarEntityType.User, 0)
+            AvatarUrl = AvatarHelper.GetAvatarUrl(userId ?? "", AvatarEntityType.User, 0, currentUser.GetAvatarFileName())
         });
     }
 
@@ -213,12 +214,15 @@ public class AuthGrpcService(
             Email = user.Email,
             EmailVerified = user.EmailVerified,
             OauthProvider = user.OAuthProvider ?? "",
-            PreferEndlessScroll = user.PreferEndlessScroll,
             AutoFollowOnReply = user.AutoFollowOnReply,
             Timezone = user.Timezone ?? "",
             IsDisplayNameLocked = user.IsDisplayNameLocked,
-            HasPassword = user.PasswordHash is not null
+            HasPassword = user.PasswordHash is not null,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId.Value, AvatarEntityType.User, 0, user.AvatarFileName)
         };
+
+        if (user.Bio is not null)
+            response.Bio = user.Bio;
 
         if (user.DisplayNameChangedAt.HasValue)
             response.DisplayNameChangedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
@@ -261,7 +265,8 @@ public class AuthGrpcService(
                 user.Email,
                 user.EmailVerified,
                 user.OAuthProvider,
-                roles.FirstOrDefault());
+                roles.FirstOrDefault(),
+                user.AvatarFileName);
 
             return new UpdateProfileResponse
             {
@@ -286,11 +291,11 @@ public class AuthGrpcService(
 
         var userId = UserId.From(userIdValue);
 
-        bool? preferEndlessScroll = request.HasPreferEndlessScroll ? request.PreferEndlessScroll : null;
         bool? autoFollowOnReply = request.HasAutoFollowOnReply ? request.AutoFollowOnReply : null;
         string? timezone = request.HasTimezone ? request.Timezone : null;
+        string? bio = request.HasBio ? request.Bio : null;
 
-        var result = await authUseCase.UpdatePreferencesAsync(userId, preferEndlessScroll, autoFollowOnReply, timezone);
+        var result = await authUseCase.UpdatePreferencesAsync(userId, autoFollowOnReply, timezone, bio);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
@@ -318,7 +323,8 @@ public class AuthGrpcService(
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            user.AvatarFileName);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 

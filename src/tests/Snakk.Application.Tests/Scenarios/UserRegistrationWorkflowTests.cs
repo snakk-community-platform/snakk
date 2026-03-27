@@ -266,12 +266,12 @@ public class UserRegistrationWorkflowTests
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
             .ReturnsAsync(user);
 
-        // Act - Update to enable endless scroll
-        var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, preferEndlessScroll: true, autoFollowOnReply: null);
+        // Act - Update auto-follow preference
+        var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, autoFollowOnReply: false);
 
         // Assert
         await Assert.That(updateResult.IsSuccess).IsTrue();
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
+        await Assert.That(user.AutoFollowOnReply).IsFalse();
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 }

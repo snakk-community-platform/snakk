@@ -87,7 +87,8 @@ public class StatisticsUseCase(
                 HubName: d.HubName,
                 AuthorPublicId: d.AuthorPublicId,
                 AuthorDisplayName: d.AuthorDisplayName,
-                CommunitySlug: d.CommunitySlug))
+                CommunitySlug: d.CommunitySlug,
+                AuthorAvatarFileName: d.AuthorAvatarFileName))
             .ToList();
 
         return Result<PagedResult<TopDiscussionResult>>.Success(
@@ -265,7 +266,8 @@ public record TopDiscussionResult(
     string HubName,
     string AuthorPublicId,
     string AuthorDisplayName,
-    string CommunitySlug);
+    string CommunitySlug,
+    string? AuthorAvatarFileName = null);
 
 public record UserActivityHistoryResult(
     int Days,

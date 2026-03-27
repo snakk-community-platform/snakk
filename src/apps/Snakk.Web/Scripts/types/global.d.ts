@@ -108,7 +108,6 @@ interface SnakkConfig {
         initialDiscussionsCount: number;
         hasMoreItems: boolean;
         pageSize: number;
-        preferEndlessScroll: boolean;
     };
 }
 
@@ -123,6 +122,9 @@ interface Window {
 
     // User role types enum
     UserRoleType: any;
+
+    // Components
+    SnakkLightbox: { open(urls: string[], startIdx: number): void };
 
     // Service modules
     CacheManager: any;

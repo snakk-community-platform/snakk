@@ -18,7 +18,6 @@ public record CurrentUserResponse(
     string Email,
     bool EmailVerified,
     string? OAuthProvider,
-    bool PreferEndlessScroll,
     bool AutoFollowOnReply,
     string? Timezone = null);
 

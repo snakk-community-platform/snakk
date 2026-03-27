@@ -25,7 +25,7 @@
             ? (firstPost.Content.Length > 160 ? firstPost.Content.Substring(0, 157) + "..." : firstPost.Content)
             : Model.Discussion.Title;
         var url = $"{scheme}://{host}{path}";
-        var authorAvatar = firstPost?.Author?.PublicId != null ? SnakkUrlHelper.UserAvatar(firstPost.Author.PublicId) : null;
+        var authorAvatar = firstPost?.Author?.AvatarUrl;
         var baseUrl = $"{scheme}://{host}";
         var authorName = firstPost?.Author?.DisplayName ?? "Anonymous";
         ViewData["CanonicalUrl"] = url;
@@ -199,7 +199,7 @@
         </button>
     </div>
 
-    @if (Model.PreferEndlessScroll && Model.Discussion != null && Model.Discussion.PostCount > 1)
+    @if (Model.Discussion != null && Model.Discussion.PostCount > 1)
     {
         <!-- Thread Navigation Bar -->
         <div id="thread-nav" class="thread-nav hidden">
@@ -257,7 +257,7 @@
                     {
                         @if (!firstPostItem.Author.IsDeleted)
                         {
-                            <img src="@SnakkUrlHelper.UserAvatar(firstPostItem.Author.PublicId)"
+                            <img src="@firstPostItem.Author.AvatarUrl"
                                  alt="@firstPostItem.Author.DisplayName"
                                  width="20" height="20" />
                             <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
@@ -363,17 +363,174 @@
         </div>
     }
 
+    @* Type-specific widgets — server-rendered *@
+
+    @if (Model.Discussion.Type == "Question" && Model.QuestionStatus is not null && Model.QuestionStatus.IsSolved)
+    {
+        <div class="type-widget-container">
+            <div class="type-widget-solved">
+                <span>✅ Solved</span>
+            </div>
+        </div>
+    }
+
+    @if (Model.Discussion.Type == "Link" && Model.LinkInfo is not null)
+    {
+        <div class="type-widget-container">
+            <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-card">
+                @if (Model.LinkInfo.HasImageUrl)
+                {
+                    <img src="@Model.LinkInfo.ImageUrl" class="link-preview-image" alt="" />
+                }
+                <div class="link-preview-content">
+                    @if (Model.LinkInfo.HasTitle) { <div class="link-preview-title">@Model.LinkInfo.Title</div> }
+                    @if (Model.LinkInfo.HasDescription) { <div class="link-preview-description">@Model.LinkInfo.Description</div> }
+                    <div class="link-preview-domain">@(Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host)</div>
+                </div>
+            </a>
+        </div>
+    }
+
+    @if (Model.Discussion.Type == "Debate" && Model.DebateInfo is not null)
+    {
+        var debatePositions = Model.DebateInfo.Positions.OrderBy(p => p.Index).ToList();
+        var debateTotalPosts = debatePositions.Sum(p => p.PostCount);
+        var debateColors = new[] { "var(--link-primary)", "var(--text-tertiary)", "oklch(0.6 0.15 50)" };
+
+        <div class="type-widget-container">
+            <div class="debate-distribution">
+                @for (var i = 0; i < debatePositions.Count; i++)
+                {
+                    var p = debatePositions[i];
+                    var pct = debateTotalPosts > 0 ? Math.Max((int)Math.Round(p.PostCount * 100.0 / debateTotalPosts), 5) : 33;
+                    <div class="debate-position-bar" style="width:@(pct)%;background:@debateColors[Math.Min(i, debateColors.Length - 1)]"
+                         title="@p.Label: @p.PostCount posts"></div>
+                }
+            </div>
+            <div class="debate-legend">
+                @for (var i = 0; i < debatePositions.Count; i++)
+                {
+                    var p = debatePositions[i];
+                    <span class="debate-legend-item">
+                        <span class="debate-legend-color" style="background:@debateColors[Math.Min(i, debateColors.Length - 1)]"></span>
+                        @p.Label (@p.PostCount)
+                    </span>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Discussion.Type == "Guide")
+    {
+        <div id="guide-toc-container" class="type-widget-container"></div>
+    }
+
+    @* Poll widget — rendered client-side via JS *@
+    @if (Model.Discussion.Type == "Poll")
+    {
+        <div id="poll-container"
+             data-discussion-id="@Model.Discussion.PublicId"
+             data-authenticated="@(Model.IsAuthenticated ? "true" : "false")"
+             class="poll-widget">
+            <div class="poll-skeleton">
+                <div class="poll-skeleton-option"></div>
+                <div class="poll-skeleton-option"></div>
+                <div class="poll-skeleton-option"></div>
+            </div>
+        </div>
+    }
+
+    @* Gallery — server-rendered outside .prose so layout CSS works *@
+    @if (Model.Discussion.Type == "Gallery" && Model.GalleryImages.Count > 0)
+    {
+        var layout = Model.GalleryLayout ?? "grid";
+        <div class="gallery-display type-widget-container">
+            @if (layout == "carousel")
+            {
+                <div class="gup-carousel" id="gallery-carousel">
+                    <div class="gup-carousel-track" id="gallery-carousel-track">
+                        @for (var i = 0; i < Model.GalleryImages.Count; i++)
+                        {
+                            var img = Model.GalleryImages[i];
+                            var isFirst = i == 0;
+                            var isAdjacent = i == 1;
+                            var src = (isFirst || isAdjacent) ? img.Url : (img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url);
+                            var blurStyle = img.HasBlurDataUri
+                                ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
+                                : "";
+                            <div class="gallery-upload-item" data-index="@i" style="@blurStyle">
+                                <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                     class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                            </div>
+                        }
+                    </div>
+                    @if (Model.GalleryImages.Count > 1)
+                    {
+                        <button type="button" class="gup-carousel-arrow gup-carousel-prev" id="gup-prev"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                        <button type="button" class="gup-carousel-arrow gup-carousel-next" id="gup-next"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
+                    }
+                </div>
+                @if (Model.GalleryImages.Count > 1)
+                {
+                    <div class="gup-carousel-dots" id="gallery-carousel-dots">
+                        @for (var i = 0; i < Model.GalleryImages.Count; i++)
+                        {
+                            <span class="gup-carousel-dot@(i == 0 ? " gup-carousel-dot-active" : "")" data-idx="@i"></span>
+                        }
+                    </div>
+                }
+            }
+            else if (layout == "hero")
+            {
+                <div class="gup-hero">
+                    @{ var heroFirst = Model.GalleryImages[0]; }
+                    <div class="gallery-upload-item"
+                         style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
+                        <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
+                             class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                    </div>
+                    @if (Model.GalleryImages.Count > 1)
+                    {
+                        <div class="gup-hero-grid">
+                            @for (var i = 1; i < Model.GalleryImages.Count; i++)
+                            {
+                                var img = Model.GalleryImages[i];
+                                <div class="gallery-upload-item"
+                                     style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
+                                    <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
+                                         class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                @* Grid / Masonry / Justified — all use the same item structure *@
+                <div class="gup-@layout">
+                    @for (var i = 0; i < Model.GalleryImages.Count; i++)
+                    {
+                        var img = Model.GalleryImages[i];
+                        <div class="gallery-upload-item"
+                             style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
+                            <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
+                                 class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
     <!-- Posts Container -->
                 <div id="posts-container" class="flex flex-col">
-        @if (Model.PreferEndlessScroll)
-        {
-            <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
-            <div id="load-up-sentinel" class="hidden">
-                <div id="load-up-indicator" class="hidden py-4 flex justify-center">
-                    <span class="loading loading-spinner loading-sm text-muted"></span>
-                </div>
+        <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
+        <div id="load-up-sentinel" class="hidden">
+            <div id="load-up-indicator" class="hidden py-4 flex justify-center">
+                <span class="loading loading-spinner loading-sm text-muted"></span>
             </div>
-        }
+        </div>
         @if (Model.Posts != null && Model.Posts.Items.Any())
         {
             var postList = Model.Posts.Items.ToList();
@@ -421,8 +578,11 @@
                         </li>
                     </ul>
                 }
+                var isJournalEntry = !isOP && Model.JournalInfo?.EntryPostPublicIds?.Contains(post.PublicId) == true;
+                var isAcceptedAnswer = !isOP && Model.QuestionStatus?.HasAcceptedPostPublicId == true && Model.QuestionStatus.AcceptedPostPublicId == post.PublicId;
+                var debatePositionId = Model.DebateInfo?.PostPositions?.ContainsKey(post.PublicId) == true ? (int?)Model.DebateInfo.PostPositions[post.PublicId] : null;
                 <article id="post-@post.PostNumber"
-                         class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "")"
+                         class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
                          data-author-id="@post.Author.PublicId"
                          data-post-id="@post.PublicId"
                          data-post-number="@post.PostNumber"
@@ -447,7 +607,7 @@
                             }
                             else
                             {
-                                <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
+                                <img src="@post.Author.AvatarUrl"
                                      alt="@post.Author.DisplayName"
                                      width="48" height="48"
                                      class="post-avatar"
@@ -489,6 +649,24 @@
                         <!-- Post Toolbar -->
                         <div class="post-toolbar">
                             <div class="post-toolbar-left">
+                                @if (isJournalEntry)
+                                {
+                                    <span class="journal-entry-badge">📓 Update</span>
+                                }
+                                @if (isAcceptedAnswer)
+                                {
+                                    <span class="accepted-answer-badge">✅ Accepted Answer</span>
+                                }
+                                @if (debatePositionId.HasValue && Model.DebateInfo is not null)
+                                {
+                                    var debatePos = Model.DebateInfo.Positions.FirstOrDefault(p => p.Id == debatePositionId.Value);
+                                    if (debatePos is not null)
+                                    {
+                                        var dColors = new[] { "var(--link-primary)", "var(--text-tertiary)", "oklch(0.6 0.15 50)" };
+                                        var dColor = dColors[Math.Min(debatePos.Index, dColors.Length - 1)];
+                                        <span class="debate-position-badge" style="border-color:@dColor;color:@dColor">@debatePos.Label</span>
+                                    }
+                                }
                                 @if (!isOP)
                                 {
                                     @if (isSameAuthorAsPrevious)
@@ -535,7 +713,7 @@
                                 @if (!Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                 {
                                     <div class="hidden group-hover:flex items-center gap-1">
-                                    <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
+                                    <button onclick="replyToPost('@post.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')"
                                             class="subtle-btn"
                                             aria-label="Reply to @post.Author.DisplayName">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -543,7 +721,7 @@
                                         </svg>
                                         Reply
                                     </button>
-                                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@post.Author.DisplayName')"
+                                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@Model.EscapeForJs(post.Author.DisplayName)')"
                                             class="subtle-btn"
                                             aria-label="Quote post by @post.Author.DisplayName">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -611,7 +789,7 @@
                                         @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
                                         {
                                             <li>
-                                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@post.Author.DisplayName')" class="text-sm">
+                                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')" class="text-sm">
                                                     Hide posts from user
                                                 </button>
                                             </li>
@@ -650,80 +828,51 @@
                 previousCreatedAt = post.CreatedAt.ToDateTime();
             }
 
-            <!-- Endless scroll or Pagination -->
-            @if (Model.PreferEndlessScroll)
-            {
-                <!-- Endless scroll sentinel -->
-                <div id="scroll-sentinel" class="h-4"></div>
-                <div id="loading-indicator" class="hidden">
-                    <!-- Skeleton loaders -->
-                    <div class="skeleton-post post-layout">
-                        <aside class="post-author-pane">
-                            <div class="skeleton w-12 h-12 rounded-full"></div>
-                            <div class="skeleton h-3 w-16 mt-2"></div>
-                        </aside>
-                        <div class="post-main">
-                            <div class="skeleton skeleton-line skeleton-width-30"></div>
-                            <div class="skeleton skeleton-line mt-3"></div>
-                            <div class="skeleton skeleton-line"></div>
-                            <div class="skeleton skeleton-line short"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-post post-layout">
-                        <aside class="post-author-pane">
-                            <div class="skeleton w-12 h-12 rounded-full"></div>
-                            <div class="skeleton h-3 w-14 mt-2"></div>
-                        </aside>
-                        <div class="post-main">
-                            <div class="skeleton skeleton-line skeleton-width-25"></div>
-                            <div class="skeleton skeleton-line mt-3"></div>
-                            <div class="skeleton skeleton-line short"></div>
-                        </div>
+            <!-- Endless scroll sentinel -->
+            <div id="scroll-sentinel" class="h-4"></div>
+            <div id="loading-indicator" class="hidden">
+                <!-- Skeleton loaders -->
+                <div class="skeleton-post post-layout">
+                    <aside class="post-author-pane">
+                        <div class="skeleton w-12 h-12 rounded-full"></div>
+                        <div class="skeleton h-3 w-16 mt-2"></div>
+                    </aside>
+                    <div class="post-main">
+                        <div class="skeleton skeleton-line skeleton-width-30"></div>
+                        <div class="skeleton skeleton-line mt-3"></div>
+                        <div class="skeleton skeleton-line"></div>
+                        <div class="skeleton skeleton-line short"></div>
                     </div>
                 </div>
-                <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
-                    You've reached the end
+                <div class="skeleton-post post-layout">
+                    <aside class="post-author-pane">
+                        <div class="skeleton w-12 h-12 rounded-full"></div>
+                        <div class="skeleton h-3 w-14 mt-2"></div>
+                    </aside>
+                    <div class="post-main">
+                        <div class="skeleton skeleton-line skeleton-width-25"></div>
+                        <div class="skeleton skeleton-line mt-3"></div>
+                        <div class="skeleton skeleton-line short"></div>
+                    </div>
                 </div>
-                <div id="load-error-message" class="hidden text-center py-8">
-                    <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </div>
+            <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
+                You've reached the end
+            </div>
+            <div id="load-error-message" class="hidden text-center py-8">
+                <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p class="text-sm text-error font-medium">Failed to load more posts</p>
+                    <button onclick="retryLoadPosts()" class="btn btn-sm btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <p class="text-sm text-error font-medium">Failed to load more posts</p>
-                        <button onclick="retryLoadPosts()" class="btn btn-sm btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Retry
-                        </button>
-                    </div>
+                        Retry
+                    </button>
                 </div>
-            }
-            else if (Model.Posts.Offset > 0 || Model.Posts.HasMoreItems)
-            {
-                <nav class="flex justify-center gap-2 pt-6 mt-6 border-t border-subtle">
-                    @if (Model.Posts.Offset > 0)
-                    {
-                        <button class="btn btn-ghost btn-sm"
-                                hx-get="@SnakkUrlHelper.DiscussionWithOffset(Model.Community, Model.HubSlug, Model.SpaceSlug, Model.SlugWithId, Math.Max(0, Model.Posts.Offset - Model.Posts.PageSize))"
-                                hx-target="#posts-container"
-                                hx-swap="innerHTML"
-                                hx-push-url="true">
-                            Previous
-                        </button>
-                    }
-                    @if (Model.Posts.HasMoreItems)
-                    {
-                        <button class="btn btn-ghost btn-sm"
-                                hx-get="@SnakkUrlHelper.DiscussionWithOffset(Model.Community, Model.HubSlug, Model.SpaceSlug, Model.SlugWithId, Model.Posts.Offset + Model.Posts.PageSize)"
-                                hx-target="#posts-container"
-                                hx-swap="innerHTML"
-                                hx-push-url="true">
-                            Next
-                        </button>
-                    }
-                </nav>
-            }
+            </div>
         }
         else
         {
@@ -1069,6 +1218,18 @@ else
 <script src="@SnakkUrlHelper.Js("services/read-state-batcher")"></script>
 
 <script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true"></script>
+@if (Model.Discussion?.Type == "Poll")
+{
+    <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true"></script>
+}
+@if (Model.Discussion?.Type == "Gallery")
+{
+    <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true"></script>
+}
+@if (Model.Discussion?.Type is not "Standard" and not "Poll")
+{
+    <script src="@SnakkUrlHelper.Js("components/discussion-type-widgets")" asp-append-version="true"></script>
+}
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
 <script>
@@ -1086,7 +1247,7 @@ else
         currentUserId: '@Model.CurrentUserId',
         isLocked: @(Model.Discussion?.IsLocked == true ? "true" : "false"),
         spaceId: '@Model.Space?.PublicId',
-        preferEndlessScroll: @(Model.PreferEndlessScroll ? "true" : "false"),
+        preferEndlessScroll: true,
         postsCurrentOffset: @(Model.Posts?.Items?.Count() ?? 0),
         postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false"),
         hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false"),
@@ -1099,6 +1260,9 @@ else
         {
             <text>
             document.body.dataset.discussionId = '@Model.Discussion.PublicId';
+            document.body.dataset.discussionType = '@Model.Discussion.Type';
+            document.body.dataset.isAuthenticated = '@(Model.IsAuthenticated ? "true" : "false")';
+            document.body.dataset.currentUserId = '@Model.CurrentUserId';
             document.body.dataset.spaceSlug = '@Model.SpaceSlug';
             document.body.dataset.hubSlug = '@Model.HubSlug';
 

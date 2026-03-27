@@ -282,21 +282,21 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
-    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? preferEndlessScroll, bool? autoFollowOnReply, string? timezone = null)
+    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? autoFollowOnReply, string? timezone = null, string? bio = null)
     {
         var user = await userRepository.GetByPublicIdAsync(userId);
 
         if (user is null)
             return Result.Failure("User not found");
 
-        if (preferEndlessScroll.HasValue)
-            user.SetPreferEndlessScroll(preferEndlessScroll.Value);
-
         if (autoFollowOnReply.HasValue)
             user.SetAutoFollowOnReply(autoFollowOnReply.Value);
 
         if (timezone is not null)
             user.SetTimezone(timezone == "" ? null : timezone);
+
+        if (bio is not null)
+            user.SetBio(bio == "" ? null : bio);
 
         await userRepository.UpdateAsync(user);
 

@@ -53,6 +53,37 @@ public static class BffApiEndpoints
         group.MapPost("/discussions/{discussionId}/mark-read", MarkDiscussionAsReadAsync)
             .WithName("BffMarkDiscussionRead");
 
+        // Poll voting
+        group.MapGet("/discussions/{discussionId}/poll", GetPollAsync)
+            .WithName("BffGetPoll");
+        group.MapPost("/discussions/{discussionId}/poll/vote", VotePollAsync)
+            .WithName("BffVotePoll");
+        group.MapDelete("/discussions/{discussionId}/poll/vote", RemovePollVoteAsync)
+            .WithName("BffRemovePollVote");
+
+        // Question
+        group.MapGet("/discussions/{discussionId}/question", GetQuestionStatusBffAsync)
+            .WithName("BffGetQuestionStatus");
+        group.MapPost("/discussions/{discussionId}/question/solve", MarkQuestionSolvedBffAsync)
+            .WithName("BffMarkQuestionSolved");
+
+        // Debate
+        group.MapGet("/discussions/{discussionId}/debate", GetDebateInfoBffAsync)
+            .WithName("BffGetDebateInfo");
+
+        group.MapPost("/discussions/{discussionId}/debate/position", SetPostDebatePositionBffAsync)
+            .WithName("BffSetPostDebatePosition");
+
+        // Link
+        group.MapGet("/discussions/{discussionId}/link", GetDiscussionLinkBffAsync)
+            .WithName("BffGetDiscussionLink");
+
+        // Journal
+        group.MapGet("/discussions/{discussionId}/journal", GetJournalEntriesBffAsync)
+            .WithName("BffGetJournalEntries");
+        group.MapPost("/discussions/{discussionId}/journal/entry", AddJournalEntryBffAsync)
+            .WithName("BffAddJournalEntry");
+
         // Follow lists (for caching)
         group.MapGet("/follows/spaces", GetFollowedSpacesAsync)
             .WithName("BffGetFollowedSpaces");
@@ -173,13 +204,19 @@ public static class BffApiEndpoints
         group.MapGet("/moderation/reports/reasons", GetModerationReportReasonsAsync)
             .WithName("BffGetModerationReportReasons");
 
-        // Media upload
+        // Media upload + delete
         group.MapPost("/media/upload", UploadMediaAsync)
             .WithName("BffUploadMedia")
             .DisableAntiforgery();
+        group.MapDelete("/media/draft", DeleteDraftMediaBffAsync)
+            .WithName("BffDeleteDraftMedia");
 
-        // Avatar proxy
-        // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
+        // Avatar upload + delete (proxy to internal API)
+        group.MapPost("/avatars/upload", UploadAvatarBffAsync)
+            .WithName("BffUploadAvatar")
+            .DisableAntiforgery();
+        group.MapDelete("/avatars", DeleteAvatarBffAsync)
+            .WithName("BffDeleteAvatar");
     }
 
     private static async Task<IResult> GetHomepageDataAsync(
@@ -548,14 +585,33 @@ public static class BffApiEndpoints
         }
     }
 
+    /// <summary>
+    /// Refreshes the auth cookies by requesting a new JWT via the refresh token.
+    /// Used after operations that change JWT claims (e.g. avatar upload/delete).
+    /// </summary>
+    private static async Task RefreshAuthCookiesAsync(
+        HttpContext httpContext,
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient)
+    {
+        try
+        {
+            var refreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+            if (string.IsNullOrEmpty(refreshToken)) return;
+
+            var response = await authClient.RefreshTokenAsync(
+                new Snakk.Protos.Auth.RefreshTokenRequest { RefreshToken = refreshToken });
+
+            if (!string.IsNullOrEmpty(response.AccessToken) && !string.IsNullOrEmpty(response.RefreshToken))
+                AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
+        }
+        catch { /* best-effort — avatar was saved, cookie refresh is non-critical */ }
+    }
+
     // Current user (me) endpoints
     private static async Task<IResult> GetCurrentUserMeAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
         var apiResult = await apiClient.GetCurrentUserAsync();
         if (apiResult is null) return Results.Unauthorized();
-
-        // Sync preference cookie so server-side pages can read it without an API call
-        AuthCookieHelper.SetPreferenceCookies(httpContext, apiResult.PreferEndlessScroll);
 
         // Sync timezone cookie for server-side rendering
         var timezone = apiResult.HasTimezone ? apiResult.Timezone : null;
@@ -568,14 +624,15 @@ public static class BffApiEndpoints
             email = apiResult.Email,
             emailVerified = apiResult.EmailVerified,
             oAuthProvider = apiResult.OauthProvider,
-            preferEndlessScroll = apiResult.PreferEndlessScroll,
             autoFollowOnReply = apiResult.AutoFollowOnReply,
             timezone = timezone,
             displayNameChangedAt = apiResult.DisplayNameChangedAt != null
                 ? apiResult.DisplayNameChangedAt.ToDateTime().ToString("o")
                 : null,
             isDisplayNameLocked = apiResult.IsDisplayNameLocked,
-            hasPassword = apiResult.HasPassword
+            hasPassword = apiResult.HasPassword,
+            avatarUrl = apiResult.HasAvatarUrl ? apiResult.AvatarUrl : null,
+            bio = apiResult.HasBio ? apiResult.Bio : null
         });
     }
 
@@ -619,12 +676,8 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient,
         HttpContext httpContext)
     {
-        var success = await apiClient.UpdatePreferencesAsync(request.PreferEndlessScroll, request.AutoFollowOnReply, request.Timezone);
+        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
-
-        // Update preference cookie
-        if (request.PreferEndlessScroll.HasValue)
-            AuthCookieHelper.SetPreferenceCookies(httpContext, request.PreferEndlessScroll.Value);
 
         // Update timezone cookie
         if (request.Timezone is not null)
@@ -1034,8 +1087,66 @@ public static class BffApiEndpoints
         return result is not null ? Results.Ok(result) : Results.Ok(Array.Empty<object>());
     }
 
-    // Avatar proxy endpoints
-    // Avatar endpoints removed - now handled by URL rewrite middleware in Program.cs
+    // --- Avatar upload proxy ---
+
+    private static async Task<IResult> UploadAvatarBffAsync(
+        IFormFile avatar,
+        IHttpClientFactory httpClientFactory,
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient,
+        HttpContext httpContext)
+    {
+        if (avatar is null || avatar.Length == 0)
+            return Results.BadRequest(new { error = "No file provided." });
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        using var content = new MultipartFormDataContent();
+        using var fileStream = avatar.OpenReadStream();
+        using var streamContent = new StreamContent(fileStream);
+        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
+        content.Add(streamContent, "avatar", avatar.FileName);
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/avatars/upload");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = content;
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+
+        // Refresh JWT so the AvatarFileName claim updates in the cookie
+        if (response.IsSuccessStatusCode)
+            await RefreshAuthCookiesAsync(httpContext, authClient);
+
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    // --- Avatar delete proxy ---
+
+    private static async Task<IResult> DeleteAvatarBffAsync(
+        IHttpClientFactory httpClientFactory,
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient,
+        HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/avatars");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+
+        // Refresh JWT so the AvatarFileName claim is cleared from the cookie
+        if (response.IsSuccessStatusCode)
+            await RefreshAuthCookiesAsync(httpContext, authClient);
+
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
 
     // Media upload — proxies multipart to internal API
     private static async Task<IResult> UploadMediaAsync(
@@ -1068,6 +1179,147 @@ public static class BffApiEndpoints
     }
 
     // Helper: map GrpcStatus to HTTP result
+    // --- Media draft delete ---
+
+    private static async Task<IResult> DeleteDraftMediaBffAsync(string url, IHttpClientFactory httpClientFactory, HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/media/draft?url={Uri.EscapeDataString(url)}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        return Results.StatusCode((int)response.StatusCode);
+    }
+
+    // --- Question ---
+
+    private static async Task<IResult> GetQuestionStatusBffAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var status = await apiClient.GetQuestionStatusAsync(discussionId);
+        if (status is null) return Results.NotFound();
+        return Results.Ok(new
+        {
+            isSolved = status.IsSolved,
+            acceptedPostPublicId = status.HasAcceptedPostPublicId ? status.AcceptedPostPublicId : null,
+            solvedAt = status.SolvedAt?.ToDateTime().ToString("o")
+        });
+    }
+
+    private static async Task<IResult> MarkQuestionSolvedBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient)
+    {
+        var result = await apiClient.MarkQuestionSolvedAsync(discussionId, postPublicId);
+        if (result is null) return Results.StatusCode(503);
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Failed" });
+    }
+
+    // --- Debate ---
+
+    private static async Task<IResult> GetDebateInfoBffAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var info = await apiClient.GetDebateInfoAsync(discussionId);
+        if (info is null) return Results.NotFound();
+        return Results.Ok(new
+        {
+            positions = info.Positions.Select(p => new { id = p.Id, label = p.Label, index = p.Index, postCount = p.PostCount }),
+            allowNeutral = info.AllowNeutral,
+            postPositions = info.PostPositions.ToDictionary(kv => kv.Key, kv => kv.Value)
+        });
+    }
+
+    // --- Debate: Set position ---
+
+    private static async Task<IResult> SetPostDebatePositionBffAsync(string discussionId, string postPublicId, int positionId, SnakkApiClient apiClient)
+    {
+        var result = await apiClient.SetPostDebatePositionAsync(discussionId, postPublicId, positionId);
+        if (result is null) return Results.StatusCode(503);
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Failed" });
+    }
+
+    // --- Journal: Add entry ---
+
+    private static async Task<IResult> AddJournalEntryBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient)
+    {
+        var result = await apiClient.AddJournalEntryAsync(discussionId, postPublicId);
+        if (result is null) return Results.StatusCode(503);
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Failed" });
+    }
+
+    // --- Link ---
+
+    private static async Task<IResult> GetDiscussionLinkBffAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var link = await apiClient.GetDiscussionLinkAsync(discussionId);
+        if (link is null) return Results.NotFound();
+        return Results.Ok(new
+        {
+            url = link.Url,
+            title = link.HasTitle ? link.Title : null,
+            description = link.HasDescription ? link.Description : null,
+            imageUrl = link.HasImageUrl ? link.ImageUrl : null,
+            domain = link.HasDomain ? link.Domain : null
+        });
+    }
+
+    // --- Journal ---
+
+    private static async Task<IResult> GetJournalEntriesBffAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var info = await apiClient.GetJournalEntriesAsync(discussionId);
+        if (info is null) return Results.NotFound();
+        return Results.Ok(new { entryPostPublicIds = info.EntryPostPublicIds.ToList() });
+    }
+
+    // --- Poll ---
+
+    private static async Task<IResult> GetPollAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var poll = await apiClient.GetPollAsync(discussionId);
+        if (poll is null)
+            return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            options = poll.Options.Select(o => new { id = o.Id, text = o.Text, voteCount = o.VoteCount, displayOrder = o.DisplayOrder }),
+            allowMultiple = poll.AllowMultiple,
+            allowChangeVote = poll.AllowChangeVote,
+            closesAt = poll.ClosesAt?.ToDateTime().ToString("o"),
+            isClosed = poll.IsClosed,
+            totalVotes = poll.TotalVotes,
+            userVotedOptionIds = poll.UserVotedOptionIds.ToList()
+        });
+    }
+
+    private static async Task<IResult> VotePollAsync(string discussionId, int optionId, SnakkApiClient apiClient)
+    {
+        var result = await apiClient.VotePollAsync(discussionId, optionId);
+        if (result is null)
+            return Results.StatusCode(503);
+
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Vote failed" });
+    }
+
+    private static async Task<IResult> RemovePollVoteAsync(string discussionId, int optionId, SnakkApiClient apiClient)
+    {
+        var result = await apiClient.RemovePollVoteAsync(discussionId, optionId);
+        if (result is null)
+            return Results.StatusCode(503);
+
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Remove vote failed" });
+    }
+
     private static IResult MapGrpcError(GrpcStatus status, string? error = null) => status switch
     {
         GrpcStatus.Unauthenticated => Results.Unauthorized(),
@@ -1084,4 +1336,4 @@ public record BffCreateReportRequest(string EntityType, string EntityId, string 
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
-public record UpdatePreferencesRequestDto(bool? PreferEndlessScroll, bool? AutoFollowOnReply, string? Timezone = null);
+public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null);

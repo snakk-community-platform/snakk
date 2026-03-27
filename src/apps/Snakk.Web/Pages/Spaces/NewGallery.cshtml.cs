@@ -12,24 +12,21 @@ public class NewGalleryModel(
     protected override string TypeSlug => "gallery";
 
     [BindProperty] public List<string> GalleryImageUrls { get; set; } = [];
+    [BindProperty] public string GalleryLayout { get; set; } = "grid";
 
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
-        // Prepend gallery images as markdown to the content
         var imageUrls = GalleryImageUrls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? [];
-        var imageMarkdown = string.Join("\n\n", imageUrls.Select(url => $"![gallery image]({url})"));
-
-        var fullContent = !string.IsNullOrWhiteSpace(NewContent)
-            ? $"{imageMarkdown}\n\n{NewContent}"
-            : imageMarkdown;
-
-        if (string.IsNullOrWhiteSpace(fullContent))
-            fullContent = " "; // Fallback — at least one image URL should be present
+        var content = NewContent?.Trim();
+        if (string.IsNullOrWhiteSpace(content))
+            content = " ";
 
         return await ApiClient.CreateDiscussionAsync(
             Space!.PublicId,
             NewTitle!.Trim(),
-            fullContent,
-            DiscussionType);
+            content,
+            DiscussionType,
+            galleryLayout: GalleryLayout,
+            galleryImageUrls: imageUrls);
     }
 }

@@ -595,24 +595,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("EmbedUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MediaType")
+                    b.Property<string>("Layout")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ThumbnailUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
@@ -859,6 +845,32 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Follow");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GalleryImageDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GalleryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MediaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GalleryId");
+
+                    b.HasIndex("MediaId");
+
+                    b.ToTable("GalleryImages");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
@@ -1120,6 +1132,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BlurDataUri")
+                        .HasColumnType("text");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1128,10 +1143,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("DraftExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDraft")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsReadyForDeletion")
                         .HasColumnType("boolean");
 
                     b.Property<string>("OriginalFileName")
@@ -1160,10 +1178,19 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ThumbnailPath")
+                        .HasColumnType("text");
+
                     b.Property<int>("UploadedByUserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Media_IsDeleted");
+
+                    b.HasIndex("IsReadyForDeletion")
+                        .HasDatabaseName("IX_Media_IsReadyForDeletion");
 
                     b.HasIndex("PublicId")
                         .IsUnique()
@@ -1173,9 +1200,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_Media_Sha256Hash");
 
                     b.HasIndex("UploadedByUserId");
-
-                    b.HasIndex("IsDraft", "DraftExpiresAt")
-                        .HasDatabaseName("IX_Media_IsDraft_DraftExpiresAt");
 
                     b.ToTable("Media");
                 });
@@ -2472,6 +2496,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("AvatarRevision")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Bio")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2526,9 +2553,6 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
-
-                    b.Property<bool>("PreferEndlessScroll")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
@@ -3014,6 +3038,25 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Space");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GalleryImageDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", "Gallery")
+                        .WithMany("Images")
+                        .HasForeignKey("GalleryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", "Media")
+                        .WithMany()
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Gallery");
+
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
@@ -3851,6 +3894,11 @@ namespace Snakk.Infrastructure.Database.Migrations
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebateDatabaseEntity", b =>
                 {
                     b.Navigation("Positions");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", b =>
+                {
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionJournalDatabaseEntity", b =>

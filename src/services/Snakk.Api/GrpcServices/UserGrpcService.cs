@@ -33,6 +33,9 @@ public class UserGrpcService(
         if (profile.AvatarFileName is not null)
             response.AvatarFileName = profile.AvatarFileName;
 
+        if (profile.Bio is not null)
+            response.Bio = profile.Bio;
+
         if (profile.LastSeenAt.HasValue)
             response.LastSeenAt = Timestamp.FromDateTime(
                 DateTime.SpecifyKind(profile.LastSeenAt.Value, DateTimeKind.Utc));
@@ -52,7 +55,7 @@ public class UserGrpcService(
             {
                 PublicId = u.PublicId.Value,
                 DisplayName = u.DisplayName,
-                AvatarUrl = AvatarHelper.GetAvatarUrl(u.PublicId.Value, AvatarEntityType.User, 0)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(u.PublicId.Value, AvatarEntityType.User, 0, u.AvatarFileName)
             });
         }
 

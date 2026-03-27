@@ -74,7 +74,8 @@ public class PostGrpcService(
                     AvatarUrl = AvatarHelper.GetAvatarUrl(
                         post.CreatedByUserId.Value,
                         AvatarEntityType.User,
-                        ep.Author.AvatarRevision),
+                        ep.Author.AvatarRevision,
+                        ep.Author.AvatarFileName),
                     Role = ep.Author.Role ?? "",
                     IsDeleted = ep.Author.IsDeleted,
                     JoinedAt = ToTimestamp(ep.Author.JoinedAt),

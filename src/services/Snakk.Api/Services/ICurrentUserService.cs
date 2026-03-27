@@ -36,4 +36,9 @@ public interface ICurrentUserService
     /// Gets the current user's role (admin, mod, or null)
     /// </summary>
     string? GetCurrentUserRole();
+
+    /// <summary>
+    /// Gets the current user's uploaded avatar filename from claims, or null
+    /// </summary>
+    string? GetAvatarFileName();
 }

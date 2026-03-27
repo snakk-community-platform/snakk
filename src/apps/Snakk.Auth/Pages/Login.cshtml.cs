@@ -42,8 +42,11 @@ public class LoginModel(
         public string? ReturnUrl { get; set; }
     }
 
-    public void OnGet(string? error)
+    public IActionResult OnGet(string? error)
     {
+        if (Request.Cookies.ContainsKey(".Snakk.Auth"))
+            return Redirect("/");
+
         Input.ReturnUrl = ReturnUrl;
 
         if (!string.IsNullOrEmpty(error))
@@ -59,6 +62,8 @@ public class LoginModel(
                 _ => Uri.UnescapeDataString(error)
             };
         }
+
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()

@@ -12,7 +12,8 @@ public record UserProfileDto(
     int DiscussionCount,
     int PostCount,
     int FollowerCount,
-    int ReplyCount);
+    int ReplyCount,
+    string? Bio);
 
 public class UserProfileUseCase(
     IUserRepository userRepository) : UseCaseBase
@@ -33,6 +34,7 @@ public class UserProfileUseCase(
             user.DiscussionCount,
             user.ReplyCount,
             user.FollowerCount,
-            user.ReplyCount);
+            user.ReplyCount,
+            user.Bio);
     }
 }

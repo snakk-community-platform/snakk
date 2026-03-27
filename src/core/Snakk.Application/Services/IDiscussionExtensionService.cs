@@ -4,6 +4,7 @@ public interface IDiscussionExtensionService
 {
     Task CreateQuestionAsync(string discussionPublicId);
     Task CreateGuideAsync(string discussionPublicId);
+    Task CreateGalleryAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null);
 
     Task CreatePollAsync(
         string discussionPublicId,

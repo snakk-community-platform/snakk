@@ -22,6 +22,7 @@
          class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") new-author"
          data-author-id="@post.Author.PublicId"
          data-post-id="@post.PublicId"
+         data-is-first-post="@(isOP ? "true" : "false")"
          data-post-number="@post.PostNumber"
          data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
          role="article"
@@ -42,7 +43,7 @@
         }
         else
         {
-            <img src="@SnakkUrlHelper.UserAvatar(post.Author.PublicId)"
+            <img src="@post.Author.AvatarUrl"
                  alt="@post.Author.DisplayName"
                  width="48" height="48"
                  class="post-avatar" />
@@ -109,7 +110,7 @@
                 @if (!Model.IsDiscussionLocked && Model.IsAuthenticated && !isOwnPost)
                 {
                     <div class="hidden group-hover:flex items-center gap-1">
-                    <button onclick="replyToPost('@post.PublicId', '@post.Author.DisplayName')"
+                    <button onclick="replyToPost('@post.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')"
                             class="subtle-btn"
                             aria-label="Reply to @post.Author.DisplayName">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -117,7 +118,7 @@
                         </svg>
                         Reply
                     </button>
-                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@post.Author.DisplayName')"
+                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@Model.EscapeForJs(post.Author.DisplayName)')"
                             class="subtle-btn"
                             aria-label="Quote post by @post.Author.DisplayName">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -183,7 +184,7 @@
                         @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
                         {
                             <li>
-                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@post.Author.DisplayName')" class="text-sm">
+                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')" class="text-sm">
                                     Hide posts from user
                                 </button>
                             </li>

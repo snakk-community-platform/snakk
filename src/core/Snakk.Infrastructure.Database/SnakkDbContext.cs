@@ -76,6 +76,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Discussion types — extension data
     public DbSet<DiscussionLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
     public DbSet<DiscussionGalleryDatabaseEntity> DiscussionGalleries { get; set; } = null!;
+    public DbSet<GalleryImageDatabaseEntity> GalleryImages { get; set; } = null!;
     public DbSet<DiscussionPollDatabaseEntity> DiscussionPolls { get; set; } = null!;
     public DbSet<PollOptionDatabaseEntity> PollOptions { get; set; } = null!;
     public DbSet<PollVoteDatabaseEntity> PollVotes { get; set; } = null!;
@@ -1268,7 +1269,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasMaxLength(2048)
             .IsRequired();
 
-        // DiscussionGalleries: one-to-one with Discussion
+        // DiscussionGalleries: one-to-one with Discussion (gallery layout settings)
         modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
@@ -1279,15 +1280,18 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
-            .Property(x => x.Url)
-            .HasMaxLength(2048)
-            .IsRequired();
+        // GalleryImages: ordered images linking Gallery → Media
+        modelBuilder.Entity<GalleryImageDatabaseEntity>()
+            .HasOne(x => x.Gallery)
+            .WithMany(g => g.Images)
+            .HasForeignKey(x => x.GalleryId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
-            .Property(x => x.MediaType)
-            .HasMaxLength(50)
-            .IsRequired();
+        modelBuilder.Entity<GalleryImageDatabaseEntity>()
+            .HasOne(x => x.Media)
+            .WithMany()
+            .HasForeignKey(x => x.MediaId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionPoll: one-to-one with Discussion
         modelBuilder.Entity<DiscussionPollDatabaseEntity>()
@@ -1475,10 +1479,14 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasMaxLength(500)
             .IsRequired();
 
-        // Draft cleanup index — find expired unpublished drafts
+        // Cleanup indexes
         modelBuilder.Entity<MediaDatabaseEntity>()
-            .HasIndex(m => new { m.IsDraft, m.DraftExpiresAt })
-            .HasDatabaseName("IX_Media_IsDraft_DraftExpiresAt");
+            .HasIndex(m => m.IsReadyForDeletion)
+            .HasDatabaseName("IX_Media_IsReadyForDeletion");
+
+        modelBuilder.Entity<MediaDatabaseEntity>()
+            .HasIndex(m => m.IsDeleted)
+            .HasDatabaseName("IX_Media_IsDeleted");
 
         // PostMedia: composite PK (join table)
         modelBuilder.Entity<PostMediaDatabaseEntity>()

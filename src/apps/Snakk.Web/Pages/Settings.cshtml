@@ -64,50 +64,82 @@
 
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <!-- Avatar Section -->
                 <div>
                     <div class="section-header">
                         <span class="section-title">Avatar</span>
                     </div>
+                    @{
+                        var settingsAvatarFileName = User.FindFirst("AvatarFileName")?.Value;
+                        var hasUploadedAvatar = !string.IsNullOrEmpty(settingsAvatarFileName);
+                        var settingsAvatarUrl = SnakkUrlHelper.UserAvatar(Model.UserId ?? "", avatarFileName: settingsAvatarFileName);
+                        var settingsGeneratedUrl = SnakkUrlHelper.UserAvatar(Model.UserId ?? "");
+                    }
                     <div class="clean-card mb-6">
-                        <div class="flex items-start gap-6 p-4">
-                            <div class="flex flex-col items-center gap-2 shrink-0">
-                                <div class="avatar avatar-xl" id="current-avatar">
-                                    <img src="@SnakkUrlHelper.UserAvatar(Model.UserId ?? "")"
-                                         alt="Your avatar"
-                                         width="80" height="80"
-                                         id="avatar-preview" />
+                        <div class="p-4">
+                            <form id="avatar-upload-form" class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="avatar avatar-xl shrink-0">
+                                        <img src="@settingsAvatarUrl"
+                                             alt="Your avatar"
+                                             width="80" height="80"
+                                             id="avatar-preview"
+                                             data-generated-url="@settingsGeneratedUrl" />
+                                    </div>
+                                    <div class="text-sm text-base-content/60">
+                                        Upload a custom avatar or use the auto-generated one.
+                                        <br />Supported: JPEG, PNG, WebP. Max 2MB.
+                                    </div>
                                 </div>
-                                <span class="text-xs text-base-content/50">Current</span>
-                            </div>
 
-                            <div class="flex-1">
-                                <p class="text-sm text-base-content/60 mb-4">
-                                    Upload a custom avatar or use the auto-generated one.
-                                    Supported: JPEG, PNG, GIF, WebP. Max 2MB.
-                                </p>
+                                <input type="file" id="avatar-file" name="avatar"
+                                       accept="image/jpeg,image/png,image/webp" class="hidden" />
 
-                                <form id="avatar-upload-form" class="space-y-3">
-                                    <div class="form-control">
-                                        <input type="file"
-                                               id="avatar-file"
-                                               name="avatar"
-                                               accept="image/jpeg,image/png,image/gif,image/webp"
-                                               class="file-input w-full" />
+                                <div id="avatar-drop-zone" class="gallery-drop-zone">
+                                    <div class="gallery-drop-zone-content">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span class="text-sm text-base-content/50" id="avatar-drop-label">Click or drag an image here</span>
                                     </div>
+                                </div>
 
-                                    <div class="flex gap-2">
-                                        <button type="submit" class="btn btn-primary btn-sm" id="upload-btn">
-                                            Upload Avatar
-                                        </button>
-                                        <button type="button" class="btn btn-ghost btn-sm" id="delete-avatar-btn">
-                                            Use Generated
-                                        </button>
-                                    </div>
-                                </form>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm" id="upload-btn" disabled>
+                                        Upload Avatar
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-ghost btn-sm"
+                                            id="delete-avatar-btn"
+                                            @(hasUploadedAvatar ? "" : "disabled")>
+                                        Use Generated
+                                    </button>
+                                </div>
+                            </form>
 
-                                <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                            <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bio Section -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">Bio</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="p-4">
+                            <p class="text-sm text-base-content/60 mb-3">
+                                A short description that appears on your profile.
+                            </p>
+                            <textarea id="bio-input"
+                                      class="textarea w-full"
+                                      rows="3"
+                                      maxlength="300"
+                                      placeholder="Tell others a bit about yourself..."></textarea>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-xs text-base-content/50"><span id="bio-char-count">0</span>/300</span>
+                                <button type="button" class="btn btn-primary btn-sm" id="save-bio-btn">Save Bio</button>
                             </div>
                         </div>
                     </div>
@@ -163,7 +195,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <!-- Behavior -->
@@ -173,33 +204,17 @@
                     </div>
                     <div class="clean-card">
                         <div class="p-4 space-y-4">
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-4">
-                                    <input type="checkbox"
-                                           name="preferEndlessScroll"
-                                           class="toggle toggle-primary" />
-                                    <span class="label-text">
-                                        <span class="font-medium">Endless scroll</span>
-                                        <span class="block text-sm text-base-content/50">
-                                            Automatically load more content as you scroll.
-                                        </span>
+                            <label class="flex items-center gap-4 cursor-pointer">
+                                <input type="checkbox"
+                                       name="autoFollowOnReply"
+                                       class="toggle toggle-primary" />
+                                <span>
+                                    <span class="font-medium">Auto-follow on reply</span>
+                                    <span class="block text-sm text-base-content/50">
+                                        Automatically follow discussions when you post a reply.
                                     </span>
-                                </label>
-                            </div>
-
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-4">
-                                    <input type="checkbox"
-                                           name="autoFollowOnReply"
-                                           class="toggle toggle-primary" />
-                                    <span class="label-text">
-                                        <span class="font-medium">Auto-follow on reply</span>
-                                        <span class="block text-sm text-base-content/50">
-                                            Automatically follow discussions when you post a reply.
-                                        </span>
-                                    </span>
-                                </label>
-                            </div>
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -215,47 +230,237 @@
                                 <label class="label">
                                     <span class="label-text font-medium">Timezone</span>
                                 </label>
+
+                                <div class="tz-map-wrapper">
+                                    <object id="timezone-map-object"
+                                            class="tz-map-object"
+                                            data="/svg/world-map.svg"
+                                            type="image/svg+xml"
+                                            aria-label="World map — click a country to select its timezone">
+                                    </object>
+                                    <div id="tz-map-tooltip" class="tz-map-tooltip hidden"></div>
+                                </div>
+
                                 <select id="timezone-select" name="timezone" class="select w-full">
                                     <option value="UTC">UTC</option>
                                     <optgroup label="Americas">
-                                        <option value="America/New_York">Eastern Time (New York)</option>
-                                        <option value="America/Chicago">Central Time (Chicago)</option>
-                                        <option value="America/Denver">Mountain Time (Denver)</option>
-                                        <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
-                                        <option value="America/Anchorage">Alaska Time (Anchorage)</option>
-                                        <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
-                                        <option value="America/Toronto">Eastern Time (Toronto)</option>
-                                        <option value="America/Vancouver">Pacific Time (Vancouver)</option>
-                                        <option value="America/Sao_Paulo">Brasilia (Sao Paulo)</option>
-                                        <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
-                                        <option value="America/Mexico_City">Central Time (Mexico City)</option>
+                                        <option value="America/Adak">Adak (USA)</option>
+                                        <option value="America/Anchorage">Anchorage (USA)</option>
+                                        <option value="America/Asuncion">Asuncion (Paraguay)</option>
+                                        <option value="America/Bogota">Bogota (Colombia)</option>
+                                        <option value="America/Argentina/Buenos_Aires">Buenos Aires (Argentina)</option>
+                                        <option value="America/Cancun">Cancun (Mexico)</option>
+                                        <option value="America/Caracas">Caracas (Venezuela)</option>
+                                        <option value="America/Cayenne">Cayenne (French Guiana)</option>
+                                        <option value="America/Chicago">Chicago (USA)</option>
+                                        <option value="America/Cuiaba">Cuiaba (Brazil)</option>
+                                        <option value="America/Denver">Denver (USA)</option>
+                                        <option value="America/Edmonton">Edmonton (Canada)</option>
+                                        <option value="America/Noronha">Fernando de Noronha (Brazil)</option>
+                                        <option value="America/Fortaleza">Fortaleza (Brazil)</option>
+                                        <option value="America/Guatemala">Guatemala City (Guatemala)</option>
+                                        <option value="America/Guayaquil">Guayaquil (Ecuador)</option>
+                                        <option value="America/Halifax">Halifax (Canada)</option>
+                                        <option value="America/Havana">Havana (Cuba)</option>
+                                        <option value="Pacific/Honolulu">Honolulu (USA)</option>
+                                        <option value="America/Jamaica">Kingston (Jamaica)</option>
+                                        <option value="America/La_Paz">La Paz (Bolivia)</option>
+                                        <option value="America/Lima">Lima (Peru)</option>
+                                        <option value="America/Los_Angeles">Los Angeles (USA)</option>
+                                        <option value="America/Manaus">Manaus (Brazil)</option>
+                                        <option value="America/Mazatlan">Mazatlan (Mexico)</option>
+                                        <option value="America/Mexico_City">Mexico City (Mexico)</option>
+                                        <option value="America/Montevideo">Montevideo (Uruguay)</option>
+                                        <option value="America/New_York">New York (USA)</option>
+                                        <option value="America/Godthab">Nuuk (Greenland)</option>
+                                        <option value="America/Panama">Panama City (Panama)</option>
+                                        <option value="America/Paramaribo">Paramaribo (Suriname)</option>
+                                        <option value="America/Phoenix">Phoenix (USA, no DST)</option>
+                                        <option value="America/Regina">Regina (Canada, no DST)</option>
+                                        <option value="America/Rio_Branco">Rio Branco (Brazil)</option>
+                                        <option value="America/Santiago">Santiago (Chile)</option>
+                                        <option value="America/Santo_Domingo">Santo Domingo (Dominican Republic)</option>
+                                        <option value="America/Sao_Paulo">Sao Paulo (Brazil)</option>
+                                        <option value="America/St_Johns">St. John's (Canada)</option>
+                                        <option value="America/Tijuana">Tijuana (Mexico)</option>
+                                        <option value="America/Toronto">Toronto (Canada)</option>
+                                        <option value="America/Vancouver">Vancouver (Canada)</option>
+                                        <option value="America/Winnipeg">Winnipeg (Canada)</option>
                                     </optgroup>
                                     <optgroup label="Europe">
-                                        <option value="Europe/London">GMT/BST (London)</option>
-                                        <option value="Europe/Paris">CET (Paris, Berlin, Rome)</option>
-                                        <option value="Europe/Helsinki">EET (Helsinki, Kyiv)</option>
-                                        <option value="Europe/Moscow">Moscow Time</option>
-                                        <option value="Europe/Oslo">CET (Oslo, Stockholm, Copenhagen)</option>
-                                    </optgroup>
-                                    <optgroup label="Asia &amp; Pacific">
-                                        <option value="Asia/Dubai">GST (Dubai)</option>
-                                        <option value="Asia/Kolkata">IST (India)</option>
-                                        <option value="Asia/Bangkok">ICT (Bangkok, Jakarta)</option>
-                                        <option value="Asia/Singapore">SGT (Singapore, Kuala Lumpur)</option>
-                                        <option value="Asia/Shanghai">CST (China, Hong Kong)</option>
-                                        <option value="Asia/Tokyo">JST (Tokyo)</option>
-                                        <option value="Asia/Seoul">KST (Seoul)</option>
-                                        <option value="Australia/Sydney">AEDT (Sydney)</option>
-                                        <option value="Pacific/Auckland">NZDT (Auckland)</option>
+                                        <option value="Europe/Amsterdam">Amsterdam (Netherlands)</option>
+                                        <option value="Europe/Astrakhan">Astrakhan (Russia)</option>
+                                        <option value="Europe/Athens">Athens (Greece)</option>
+                                        <option value="Atlantic/Azores">Azores (Portugal)</option>
+                                        <option value="Europe/Belgrade">Belgrade (Serbia)</option>
+                                        <option value="Europe/Berlin">Berlin (Germany)</option>
+                                        <option value="Europe/Bratislava">Bratislava (Slovakia)</option>
+                                        <option value="Europe/Brussels">Brussels (Belgium)</option>
+                                        <option value="Europe/Bucharest">Bucharest (Romania)</option>
+                                        <option value="Europe/Budapest">Budapest (Hungary)</option>
+                                        <option value="Atlantic/Canary">Canary Islands (Spain)</option>
+                                        <option value="Europe/Chisinau">Chisinau (Moldova)</option>
+                                        <option value="Europe/Copenhagen">Copenhagen (Denmark)</option>
+                                        <option value="Europe/Dublin">Dublin (Ireland)</option>
+                                        <option value="Europe/Helsinki">Helsinki (Finland)</option>
+                                        <option value="Europe/Istanbul">Istanbul (Turkey)</option>
+                                        <option value="Europe/Kaliningrad">Kaliningrad (Russia)</option>
+                                        <option value="Europe/Kiev">Kyiv (Ukraine)</option>
+                                        <option value="Europe/Lisbon">Lisbon (Portugal)</option>
+                                        <option value="Europe/Ljubljana">Ljubljana (Slovenia)</option>
+                                        <option value="Europe/London">London (United Kingdom)</option>
+                                        <option value="Europe/Madrid">Madrid (Spain)</option>
+                                        <option value="Europe/Malta">Valletta (Malta)</option>
+                                        <option value="Europe/Minsk">Minsk (Belarus)</option>
+                                        <option value="Europe/Moscow">Moscow (Russia)</option>
+                                        <option value="Europe/Oslo">Oslo (Norway)</option>
+                                        <option value="Europe/Paris">Paris (France)</option>
+                                        <option value="Europe/Prague">Prague (Czechia)</option>
+                                        <option value="Atlantic/Reykjavik">Reykjavik (Iceland)</option>
+                                        <option value="Europe/Riga">Riga (Latvia)</option>
+                                        <option value="Europe/Rome">Rome (Italy)</option>
+                                        <option value="Europe/Samara">Samara (Russia)</option>
+                                        <option value="Europe/Saratov">Saratov (Russia)</option>
+                                        <option value="Europe/Sofia">Sofia (Bulgaria)</option>
+                                        <option value="Europe/Stockholm">Stockholm (Sweden)</option>
+                                        <option value="Europe/Tallinn">Tallinn (Estonia)</option>
+                                        <option value="Europe/Tirane">Tirane (Albania)</option>
+                                        <option value="Europe/Vienna">Vienna (Austria)</option>
+                                        <option value="Europe/Vilnius">Vilnius (Lithuania)</option>
+                                        <option value="Europe/Volgograd">Volgograd (Russia)</option>
+                                        <option value="Europe/Warsaw">Warsaw (Poland)</option>
+                                        <option value="Europe/Zagreb">Zagreb (Croatia)</option>
+                                        <option value="Europe/Zurich">Zurich (Switzerland)</option>
                                     </optgroup>
                                     <optgroup label="Africa">
-                                        <option value="Africa/Johannesburg">SAST (Johannesburg)</option>
-                                        <option value="Africa/Cairo">EET (Cairo)</option>
-                                        <option value="Africa/Lagos">WAT (Lagos)</option>
+                                        <option value="Africa/Abidjan">Abidjan (Ivory Coast)</option>
+                                        <option value="Africa/Accra">Accra (Ghana)</option>
+                                        <option value="Africa/Addis_Ababa">Addis Ababa (Ethiopia)</option>
+                                        <option value="Africa/Algiers">Algiers (Algeria)</option>
+                                        <option value="Africa/Cairo">Cairo (Egypt)</option>
+                                        <option value="Africa/Casablanca">Casablanca (Morocco)</option>
+                                        <option value="Africa/Dar_es_Salaam">Dar es Salaam (Tanzania)</option>
+                                        <option value="Africa/Johannesburg">Johannesburg (South Africa)</option>
+                                        <option value="Africa/Juba">Juba (South Sudan)</option>
+                                        <option value="Africa/Kampala">Kampala (Uganda)</option>
+                                        <option value="Africa/Khartoum">Khartoum (Sudan)</option>
+                                        <option value="Africa/Lagos">Lagos (Nigeria)</option>
+                                        <option value="Africa/Maputo">Maputo (Mozambique)</option>
+                                        <option value="Africa/Nairobi">Nairobi (Kenya)</option>
+                                        <option value="Africa/Tripoli">Tripoli (Libya)</option>
+                                        <option value="Africa/Tunis">Tunis (Tunisia)</option>
+                                        <option value="Africa/Windhoek">Windhoek (Namibia)</option>
+                                    </optgroup>
+                                    <optgroup label="Middle East">
+                                        <option value="Asia/Amman">Amman (Jordan)</option>
+                                        <option value="Asia/Baghdad">Baghdad (Iraq)</option>
+                                        <option value="Asia/Baku">Baku (Azerbaijan)</option>
+                                        <option value="Asia/Beirut">Beirut (Lebanon)</option>
+                                        <option value="Asia/Damascus">Damascus (Syria)</option>
+                                        <option value="Asia/Qatar">Doha (Qatar)</option>
+                                        <option value="Asia/Dubai">Dubai (UAE)</option>
+                                        <option value="Asia/Jerusalem">Jerusalem (Israel)</option>
+                                        <option value="Asia/Kuwait">Kuwait City (Kuwait)</option>
+                                        <option value="Asia/Muscat">Muscat (Oman)</option>
+                                        <option value="Asia/Riyadh">Riyadh (Saudi Arabia)</option>
+                                        <option value="Asia/Tbilisi">Tbilisi (Georgia)</option>
+                                        <option value="Asia/Tehran">Tehran (Iran)</option>
+                                        <option value="Asia/Yerevan">Yerevan (Armenia)</option>
+                                    </optgroup>
+                                    <optgroup label="Asia">
+                                        <option value="Asia/Aden">Aden (Yemen)</option>
+                                        <option value="Asia/Almaty">Almaty (Kazakhstan)</option>
+                                        <option value="Asia/Anadyr">Anadyr (Russia)</option>
+                                        <option value="Asia/Ashgabat">Ashgabat (Turkmenistan)</option>
+                                        <option value="Asia/Bahrain">Manama (Bahrain)</option>
+                                        <option value="Asia/Bangkok">Bangkok (Thailand)</option>
+                                        <option value="Asia/Bishkek">Bishkek (Kyrgyzstan)</option>
+                                        <option value="Asia/Brunei">Bandar Seri Begawan (Brunei)</option>
+                                        <option value="Asia/Colombo">Colombo (Sri Lanka)</option>
+                                        <option value="Asia/Dhaka">Dhaka (Bangladesh)</option>
+                                        <option value="Asia/Dushanbe">Dushanbe (Tajikistan)</option>
+                                        <option value="Asia/Ho_Chi_Minh">Ho Chi Minh City (Vietnam)</option>
+                                        <option value="Asia/Hong_Kong">Hong Kong (China)</option>
+                                        <option value="Asia/Irkutsk">Irkutsk (Russia)</option>
+                                        <option value="Asia/Jakarta">Jakarta (Indonesia)</option>
+                                        <option value="Asia/Jayapura">Jayapura (Indonesia)</option>
+                                        <option value="Asia/Kabul">Kabul (Afghanistan)</option>
+                                        <option value="Asia/Kamchatka">Kamchatka (Russia)</option>
+                                        <option value="Asia/Karachi">Karachi (Pakistan)</option>
+                                        <option value="Asia/Nicosia">Nicosia (Cyprus)</option>
+                                        <option value="Asia/Kathmandu">Kathmandu (Nepal)</option>
+                                        <option value="Asia/Kolkata">Kolkata (India)</option>
+                                        <option value="Asia/Krasnoyarsk">Krasnoyarsk (Russia)</option>
+                                        <option value="Asia/Kuala_Lumpur">Kuala Lumpur (Malaysia)</option>
+                                        <option value="Asia/Magadan">Magadan (Russia)</option>
+                                        <option value="Asia/Makassar">Makassar (Indonesia)</option>
+                                        <option value="Asia/Manila">Manila (Philippines)</option>
+                                        <option value="Asia/Novosibirsk">Novosibirsk (Russia)</option>
+                                        <option value="Asia/Omsk">Omsk (Russia)</option>
+                                        <option value="Asia/Phnom_Penh">Phnom Penh (Cambodia)</option>
+                                        <option value="Asia/Pyongyang">Pyongyang (North Korea)</option>
+                                        <option value="Asia/Sakhalin">Sakhalin (Russia)</option>
+                                        <option value="Asia/Seoul">Seoul (South Korea)</option>
+                                        <option value="Asia/Shanghai">Shanghai (China)</option>
+                                        <option value="Asia/Singapore">Singapore</option>
+                                        <option value="Asia/Taipei">Taipei (Taiwan)</option>
+                                        <option value="Asia/Tashkent">Tashkent (Uzbekistan)</option>
+                                        <option value="Asia/Thimphu">Thimphu (Bhutan)</option>
+                                        <option value="Asia/Tokyo">Tokyo (Japan)</option>
+                                        <option value="Asia/Ulaanbaatar">Ulaanbaatar (Mongolia)</option>
+                                        <option value="Asia/Vientiane">Vientiane (Laos)</option>
+                                        <option value="Asia/Vladivostok">Vladivostok (Russia)</option>
+                                        <option value="Asia/Yakutsk">Yakutsk (Russia)</option>
+                                        <option value="Asia/Yangon">Yangon (Myanmar)</option>
+                                        <option value="Asia/Yekaterinburg">Yekaterinburg (Russia)</option>
+                                    </optgroup>
+                                    <optgroup label="Australia">
+                                        <option value="Australia/Adelaide">Adelaide (Australia)</option>
+                                        <option value="Australia/Brisbane">Brisbane (Australia, no DST)</option>
+                                        <option value="Australia/Darwin">Darwin (Australia, no DST)</option>
+                                        <option value="Australia/Eucla">Eucla (Australia)</option>
+                                        <option value="Australia/Hobart">Hobart (Australia)</option>
+                                        <option value="Australia/Lord_Howe">Lord Howe Island (Australia)</option>
+                                        <option value="Australia/Melbourne">Melbourne (Australia)</option>
+                                        <option value="Australia/Perth">Perth (Australia)</option>
+                                        <option value="Australia/Sydney">Sydney (Australia)</option>
+                                    </optgroup>
+                                    <optgroup label="Pacific">
+                                        <option value="Pacific/Apia">Apia (Samoa)</option>
+                                        <option value="Pacific/Auckland">Auckland (New Zealand)</option>
+                                        <option value="Pacific/Chatham">Chatham Islands (New Zealand)</option>
+                                        <option value="Pacific/Easter">Easter Island (Chile)</option>
+                                        <option value="Pacific/Galapagos">Galapagos (Ecuador)</option>
+                                        <option value="Pacific/Gambier">Gambier (French Polynesia)</option>
+                                        <option value="Pacific/Guam">Guam (USA)</option>
+                                        <option value="Pacific/Guadalcanal">Honiara (Solomon Islands)</option>
+                                        <option value="Pacific/Kiritimati">Kiritimati (Kiribati)</option>
+                                        <option value="Pacific/Palau">Koror (Palau)</option>
+                                        <option value="Pacific/Kwajalein">Kwajalein (Marshall Islands)</option>
+                                        <option value="Pacific/Marquesas">Marquesas (French Polynesia)</option>
+                                        <option value="Pacific/Midway">Midway (USA)</option>
+                                        <option value="Pacific/Norfolk">Norfolk Island (Australia)</option>
+                                        <option value="Pacific/Noumea">Noumea (New Caledonia)</option>
+                                        <option value="Pacific/Tongatapu">Nuku'alofa (Tonga)</option>
+                                        <option value="Pacific/Pago_Pago">Pago Pago (American Samoa)</option>
+                                        <option value="Pacific/Port_Moresby">Port Moresby (Papua New Guinea)</option>
+                                        <option value="Pacific/Rarotonga">Rarotonga (Cook Islands)</option>
+                                        <option value="Pacific/Fiji">Suva (Fiji)</option>
+                                        <option value="Pacific/Tahiti">Tahiti (French Polynesia)</option>
+                                        <option value="Pacific/Tarawa">Tarawa (Kiribati)</option>
+                                    </optgroup>
+                                    <optgroup label="Atlantic &amp; Indian Ocean">
+                                        <option value="Indian/Maldives">Male (Maldives)</option>
+                                        <option value="Indian/Mauritius">Port Louis (Mauritius)</option>
+                                        <option value="Atlantic/Cape_Verde">Praia (Cape Verde)</option>
+                                        <option value="Indian/Reunion">Saint-Denis (Reunion)</option>
+                                        <option value="Atlantic/South_Georgia">South Georgia (UK)</option>
+                                        <option value="Atlantic/Stanley">Stanley (Falkland Islands)</option>
                                     </optgroup>
                                 </select>
                                 <label class="label">
-                                    <span class="label-text-alt text-base-content/50">Controls how dates and times are displayed</span>
+                                    <span class="label-text-alt text-base-content/50">Click a country on the map, or select directly</span>
+                                    <button type="button" id="tz-show-all" class="label-text-alt text-base-content/50 hover:text-base-content underline bg-transparent border-0 cursor-pointer p-0 hidden">show all</button>
                                 </label>
                             </div>
 
@@ -315,10 +520,10 @@
     }
 
     function populateProfileForm(data) {
-        // Update avatar
+        // Update avatar — use custom avatar URL if set, otherwise keep generated SVG
         const avatarImg = document.getElementById('avatar-preview');
-        if (avatarImg) {
-            avatarImg.src = `/avatars/${data.publicId}`;
+        if (avatarImg && data.avatarUrl) {
+            avatarImg.src = data.avatarUrl;
         }
 
         // Update display name input
@@ -328,11 +533,6 @@
         }
 
         // Update preferences checkboxes
-        const scrollCheckbox = document.querySelector('input[name="preferEndlessScroll"]');
-        if (scrollCheckbox) {
-            scrollCheckbox.checked = data.preferEndlessScroll !== false;
-        }
-
         const autoFollowCheckbox = document.querySelector('input[name="autoFollowOnReply"]');
         if (autoFollowCheckbox) {
             autoFollowCheckbox.checked = data.autoFollowOnReply !== false;
@@ -342,6 +542,14 @@
         const timezoneSelect = document.getElementById('timezone-select');
         if (timezoneSelect) {
             timezoneSelect.value = data.timezone || 'UTC';
+        }
+
+        // Update bio
+        const bioInput = document.getElementById('bio-input');
+        const bioCharCount = document.getElementById('bio-char-count');
+        if (bioInput) {
+            bioInput.value = data.bio || '';
+            if (bioCharCount) bioCharCount.textContent = (data.bio || '').length;
         }
 
         // Display name change restrictions
@@ -430,38 +638,92 @@
         const pageHeader = document.querySelector('.page-header');
         if (pageHeader) {
             pageHeader.insertAdjacentElement('afterend', alertDiv);
-            alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
-    function refreshAvatar() {
+    async function refreshAvatar() {
         const avatarPreview = document.getElementById('avatar-preview');
         if (!avatarPreview || !userId) return;
-        const timestamp = new Date().getTime();
-        avatarPreview.src = `/avatars/${userId}?t=${timestamp}`;
+        // Re-fetch profile to get the current avatar URL
+        try {
+            const response = await fetch('/bff/me', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                const timestamp = new Date().getTime();
+                if (data.avatarUrl) {
+                    avatarPreview.src = data.avatarUrl + '?t=' + timestamp;
+                } else {
+                    // Fall back to generated SVG
+                    avatarPreview.src = document.getElementById('avatar-preview').dataset.generatedUrl || '';
+                }
+            }
+        } catch { /* ignore */ }
     }
 
-    function handleFileChange(e) {
+    function setAvatarFile(file) {
         const avatarPreview = document.getElementById('avatar-preview');
         const fileInput = document.getElementById('avatar-file');
+        const uploadBtn = document.getElementById('upload-btn');
+        const dropLabel = document.getElementById('avatar-drop-label');
         if (!avatarPreview || !fileInput) return;
 
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                showStatus('File is too large. Maximum size is 2MB.', true);
-                fileInput.value = '';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                avatarPreview.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+            showStatus('Invalid file type. Allowed: JPEG, PNG, WebP.', true);
+            return;
         }
+
+        if (file.size > 2 * 1024 * 1024) {
+            showStatus('File is too large. Maximum size is 2MB.', true);
+            return;
+        }
+
+        // Transfer file to the hidden input via DataTransfer
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+
+        if (uploadBtn) uploadBtn.disabled = false;
+        if (dropLabel) dropLabel.textContent = file.name;
+
+        const reader = new FileReader();
+        reader.onload = function(e) { avatarPreview.src = e.target.result; };
+        reader.readAsDataURL(file);
+    }
+
+    function initAvatarDropZone() {
+        const dropZone = document.getElementById('avatar-drop-zone');
+        const fileInput = document.getElementById('avatar-file');
+        if (!dropZone || !fileInput) return;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) setAvatarFile(e.target.files[0]);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('gallery-drop-zone-active');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('gallery-drop-zone-active');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('gallery-drop-zone-active');
+            const file = e.dataTransfer?.files[0];
+            if (file) setAvatarFile(file);
+        });
+    }
+
+    function resetDropZone() {
+        const dropLabel = document.getElementById('avatar-drop-label');
+        if (dropLabel) dropLabel.textContent = 'Click or drag an image here';
     }
 
     async function handleAvatarUploadSubmit(e) {
@@ -484,7 +746,7 @@
             const formData = new FormData();
             formData.append('avatar', file);
 
-            const response = await fetch(`/avatars/upload`, {
+            const response = await fetch('/bff/avatars/upload', {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
@@ -496,6 +758,11 @@
                 showStatus('Avatar uploaded successfully!');
                 refreshAvatar();
                 fileInput.value = '';
+                resetDropZone();
+                uploadBtn.disabled = true;
+                const delBtn = document.getElementById('delete-avatar-btn');
+                if (delBtn) delBtn.disabled = false;
+                htmx.ajax('GET', location.pathname, { target: '#auth-nav', select: '#auth-nav > *', swap: 'innerHTML' });
             } else {
                 showStatus(result.error || 'Failed to upload avatar.', true);
                 refreshAvatar();
@@ -519,7 +786,7 @@
         deleteBtn.textContent = 'Reverting...';
 
         try {
-            const response = await fetch(`/avatars`, {
+            const response = await fetch('/bff/avatars', {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -527,15 +794,19 @@
             if (response.ok) {
                 showStatus('Now using generated avatar.');
                 refreshAvatar();
+                deleteBtn.disabled = true;
+                deleteBtn.textContent = 'Use Generated';
+                htmx.ajax('GET', location.pathname, { target: '#auth-nav', select: '#auth-nav > *', swap: 'innerHTML' });
             } else {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Use Generated';
                 const result = await response.json();
                 showStatus(result.error || 'Failed to delete avatar.', true);
             }
         } catch (error) {
-            showStatus('Network error. Please try again.', true);
-        } finally {
             deleteBtn.disabled = false;
-            deleteBtn.textContent = 'Use Generated Avatar';
+            deleteBtn.textContent = 'Use Generated';
+            showStatus('Network error. Please try again.', true);
         }
     }
 
@@ -594,26 +865,33 @@
         }
     }
 
-    async function handleScrollPreferenceChange(checkbox) {
-        const preferEndlessScroll = checkbox.checked;
+    async function handleBioSave() {
+        const bioInput = document.getElementById('bio-input');
+        const saveBtn = document.getElementById('save-bio-btn');
+        if (!bioInput || !saveBtn) return;
+
+        const bio = bioInput.value.trim();
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
 
         try {
-            const response = await fetch(`/bff/me/preferences`, {
+            const response = await fetch('/bff/me/preferences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ preferEndlessScroll })
+                body: JSON.stringify({ bio })
             });
 
             if (response.ok) {
-                showMessage('Scroll preference updated');
+                showMessage('Bio updated');
             } else {
-                showMessage('Failed to update preference', true);
-                checkbox.checked = !preferEndlessScroll;
+                showMessage('Failed to update bio', true);
             }
-        } catch (error) {
+        } catch {
             showMessage('Network error. Please try again.', true);
-            checkbox.checked = !preferEndlessScroll;
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Bio';
         }
     }
 
@@ -686,12 +964,11 @@
         initSkinTonePicker();
 
         const avatarForm = document.getElementById('avatar-upload-form');
-        const fileInput = document.getElementById('avatar-file');
         const deleteBtn = document.getElementById('delete-avatar-btn');
 
         if (avatarForm && !avatarForm.dataset.initialized) {
             avatarForm.dataset.initialized = 'true';
-            if (fileInput) fileInput.addEventListener('change', handleFileChange);
+            initAvatarDropZone();
             avatarForm.addEventListener('submit', handleAvatarUploadSubmit);
             if (deleteBtn) deleteBtn.addEventListener('click', handleDeleteClick);
         }
@@ -704,10 +981,17 @@
             }
         });
 
-        const scrollCheckbox = document.querySelector('input[name="preferEndlessScroll"][type="checkbox"]');
-        if (scrollCheckbox && !scrollCheckbox.dataset.initialized) {
-            scrollCheckbox.dataset.initialized = 'true';
-            scrollCheckbox.addEventListener('change', (e) => handleScrollPreferenceChange(e.target));
+
+
+        const bioInput = document.getElementById('bio-input');
+        const bioCharCount = document.getElementById('bio-char-count');
+        const saveBioBtn = document.getElementById('save-bio-btn');
+        if (bioInput && !bioInput.dataset.initialized) {
+            bioInput.dataset.initialized = 'true';
+            bioInput.addEventListener('input', () => {
+                if (bioCharCount) bioCharCount.textContent = bioInput.value.length;
+            });
+            if (saveBioBtn) saveBioBtn.addEventListener('click', handleBioSave);
         }
 
         const autoFollowCheckbox = document.querySelector('input[name="autoFollowOnReply"][type="checkbox"]');
@@ -738,6 +1022,7 @@
     });
 })();
 </script>
+<script src="/js/dist/components/timezone-map.js" defer></script>
 @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
 {
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

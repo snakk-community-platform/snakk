@@ -76,9 +76,9 @@ message UpdateProfileRequest {
 }
 
 message UpdatePreferencesRequest {
-  optional bool prefer_endless_scroll = 1;
   optional bool auto_follow_on_reply = 2;
   optional string timezone = 3;
+  optional string bio = 4;
 }
 
 message OAuthCallbackRequest {
@@ -119,13 +119,14 @@ message CurrentUserResponse {
   string email = 3;
   bool email_verified = 4;
   optional string oauth_provider = 5;
-  bool prefer_endless_scroll = 6;
   bool auto_follow_on_reply = 7;
   bool is_authenticated = 8; // False when anonymous — mirrors AuthStatusResponse pattern
   optional string timezone = 9;
   optional google.protobuf.Timestamp display_name_changed_at = 10;
   bool is_display_name_locked = 11;
   bool has_password = 12;
+  optional string avatar_url = 13;
+  optional string bio = 14;
 }
 
 message UpdateProfileResponse {

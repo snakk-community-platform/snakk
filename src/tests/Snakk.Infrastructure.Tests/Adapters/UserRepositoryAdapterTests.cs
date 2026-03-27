@@ -127,7 +127,6 @@ public class UserRepositoryAdapterTests : IDisposable
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow);
 

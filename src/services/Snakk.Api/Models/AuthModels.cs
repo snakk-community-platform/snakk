@@ -13,7 +13,6 @@ public record UpdateProfileRequest(
     string DisplayName);
 
 public record UpdatePreferencesRequest(
-    bool? PreferEndlessScroll,
     bool? AutoFollowOnReply,
     string? Timezone = null);
 

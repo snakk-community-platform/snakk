@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Infrastructure.Services;
 
-public class DiscussionExtensionService(SnakkDbContext context) : IDiscussionExtensionService
+public class DiscussionExtensionService(SnakkDbContext context, IConfiguration configuration) : IDiscussionExtensionService
 {
+    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "/storage";
     public async Task CreateQuestionAsync(string discussionPublicId)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
@@ -29,6 +31,62 @@ public class DiscussionExtensionService(SnakkDbContext context) : IDiscussionExt
         });
 
         await context.SaveChangesAsync();
+    }
+
+    public async Task CreateGalleryAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null)
+    {
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+
+        var gallery = new DiscussionGalleryDatabaseEntity
+        {
+            DiscussionId = discussionId,
+            Layout = layout
+        };
+
+        context.DiscussionGalleries.Add(gallery);
+        await context.SaveChangesAsync();
+
+        // Resolve image URLs to Media records and create ordered links
+        if (imageUrls is { Count: > 0 })
+        {
+            var urlBase = _mediaUrlBase.TrimEnd('/') + "/";
+            var storagePaths = imageUrls
+                .Where(url => url.StartsWith(urlBase, StringComparison.OrdinalIgnoreCase))
+                .Select(url => url[urlBase.Length..])
+                .ToList();
+
+            if (storagePaths.Count > 0)
+            {
+                var mediaRecords = await context.Media
+                    .AsTracking()
+                    .Where(m => storagePaths.Contains(m.StoragePath) && !m.IsDeleted)
+                    .ToListAsync();
+
+                var mediaByPath = mediaRecords.ToDictionary(m => m.StoragePath, m => m);
+
+                for (var i = 0; i < storagePaths.Count; i++)
+                {
+                    if (mediaByPath.TryGetValue(storagePaths[i], out var media))
+                    {
+                        context.GalleryImages.Add(new GalleryImageDatabaseEntity
+                        {
+                            GalleryId = gallery.Id,
+                            MediaId = media.Id,
+                            DisplayOrder = i
+                        });
+
+                        // Publish draft media so cleanup worker doesn't delete it
+                        if (media.IsDraft)
+                        {
+                            media.IsDraft = false;
+                            media.PublishedAt = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                await context.SaveChangesAsync();
+            }
+        }
     }
 
     public async Task CreatePollAsync(

@@ -103,8 +103,8 @@ public static class SnakkUrlHelper
     public static string CommunityAvatar(string publicId, int revision = 0)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Community, revision);
 
-    public static string UserAvatar(string publicId, int revision = 0)
-        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.User, revision);
+    public static string UserAvatar(string publicId, int revision = 0, string? avatarFileName = null)
+        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.User, revision, avatarFileName);
 
     public static string Css(string filename, bool isVendor = false)
     {

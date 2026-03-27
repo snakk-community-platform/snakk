@@ -11,7 +11,8 @@ public interface IJwtTokenService
         string? email,
         bool emailVerified,
         string? oAuthProvider,
-        string? role = null);
+        string? role = null,
+        string? avatarFileName = null);
 
     string GenerateToken(User user);
 

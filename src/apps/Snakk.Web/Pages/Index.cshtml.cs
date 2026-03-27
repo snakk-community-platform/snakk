@@ -17,7 +17,6 @@ public class IndexModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "platform";
@@ -46,9 +45,6 @@ public class IndexModel(
 
     public async Task OnGetAsync(int offset = 0)
     {
-        // Read preference from cookie (set by /bff/me on page load)
-        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
-
         // Determine if we need to scope to a community
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))

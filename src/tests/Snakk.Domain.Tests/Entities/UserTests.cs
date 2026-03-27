@@ -31,7 +31,6 @@ public class UserTests
         await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.Role).IsNull();
         await Assert.That(user.AvatarFileName).IsNull();
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
         await Assert.That(user.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
         await Assert.That(user.LastSeenAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
@@ -93,7 +92,6 @@ public class UserTests
         await Assert.That(user.OAuthProvider).IsEqualTo(provider);
         await Assert.That(user.OAuthProviderId).IsEqualTo(providerId);
         await Assert.That(user.Role).IsNull();
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
     }
 
     [Test]
@@ -447,25 +445,6 @@ public class UserTests
 
     #endregion
 
-    #region PreferEndlessScroll Tests
-
-    [Test]
-    public async Task SetPreferEndlessScroll_UpdatesPreference()
-    {
-        // Arrange
-        var user = User.Create("testuser");
-        await Assert.That(user.PreferEndlessScroll).IsTrue(); // Default
-
-        // Act
-        user.SetPreferEndlessScroll(false);
-
-        // Assert
-        await Assert.That(user.PreferEndlessScroll).IsFalse();
-        await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
-    }
-
-    #endregion
-
     #region Rehydrate Tests
 
     [Test]
@@ -492,7 +471,6 @@ public class UserTests
             "avatar.jpg",
             0,
             false,
-            false,
             createdAt,
             lastModifiedAt,
             lastSeenAt,
@@ -509,7 +487,6 @@ public class UserTests
         await Assert.That(user.OAuthProviderId).IsEqualTo("google-id");
         await Assert.That(user.Role).IsEqualTo("admin");
         await Assert.That(user.AvatarFileName).IsEqualTo("avatar.jpg");
-        await Assert.That(user.PreferEndlessScroll).IsFalse();
         await Assert.That(user.CreatedAt).IsEqualTo(createdAt);
         await Assert.That(user.LastModifiedAt).IsEqualTo(lastModifiedAt);
         await Assert.That(user.LastSeenAt).IsEqualTo(lastSeenAt);

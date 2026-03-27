@@ -1,0 +1,305 @@
+/**
+ * Discussion Type Widgets — client-side interactivity for type-specific features.
+ * Data display (badges, bars, previews) is server-rendered in Razor.
+ * This script handles: interactive buttons, Guide TOC, Gallery layout toggle.
+ */
+
+(function() {
+    'use strict';
+
+    function init(): void {
+        // Gallery inits from server-rendered DOM, no dataset dependency
+        initGallery();
+
+        const discussionType = document.body.dataset.discussionType || '';
+        const discussionId = document.body.dataset.discussionId || '';
+        const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
+
+        if (!discussionId || discussionType === 'Standard') return;
+
+        if (discussionType === 'Question') initQuestionActions(discussionId, isAuthenticated);
+        if (discussionType === 'Debate') initDebateActions(discussionId, isAuthenticated);
+        if (discussionType === 'Journal') initJournalActions(discussionId, isAuthenticated);
+        if (discussionType === 'Guide') initGuideToc();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        setTimeout(init, 0);
+    }
+
+    // ─── Question: Accept answer button ─────────────────────────
+
+    function initQuestionActions(discussionId: string, isAuthenticated: boolean): void {
+        if (!isAuthenticated) return;
+
+        // Check if already solved — if so, no buttons needed
+        const solvedBadge = document.querySelector('.type-widget-solved');
+        if (solvedBadge) return;
+
+        // Add "Accept answer" buttons to non-first posts (only for OP)
+        const currentUserId = document.body.dataset.currentUserId || '';
+        const firstPost = document.querySelector('article[data-is-first-post="true"]');
+        const opId = firstPost?.getAttribute('data-author-id');
+
+        if (currentUserId !== opId) return; // Only OP can accept
+
+        document.querySelectorAll('article[data-post-id]').forEach(article => {
+            const el = article as HTMLElement;
+            if (el.dataset.isFirstPost === 'true') return;
+
+            const toolbar = el.querySelector('.post-toolbar-right');
+            if (!toolbar) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'subtle-btn';
+            btn.title = 'Accept as answer';
+            btn.textContent = '✅';
+            btn.addEventListener('click', async () => {
+                const postId = el.dataset.postId;
+                if (!postId) return;
+                const resp = await fetch(`/bff/discussions/${discussionId}/question/solve?postPublicId=${postId}`, { method: 'POST' });
+                if (resp.ok) window.location.reload();
+            });
+            toolbar.prepend(btn);
+        });
+    }
+
+    // ─── Debate: Position picker on reply form ──────────────────
+
+    function initDebateActions(discussionId: string, isAuthenticated: boolean): void {
+        if (!isAuthenticated) return;
+
+        // Read positions from server-rendered debate legend
+        const legendItems = document.querySelectorAll('.debate-legend-item');
+        if (legendItems.length === 0) return;
+
+        // We need position IDs — extract from the debate info data attribute or fetch
+        // For now, use a lightweight fetch since we need IDs not just labels
+        fetch(`/bff/discussions/${discussionId}/debate`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                const colors = ['var(--link-primary)', 'var(--text-tertiary)', 'oklch(0.6 0.15 50)'];
+                addDebatePositionPicker(data.positions, colors);
+            })
+            .catch(() => {});
+    }
+
+    function addDebatePositionPicker(positions: any[], colors: string[]): void {
+        const replyForm = document.getElementById('reply-form');
+        if (!replyForm) return;
+
+        const picker = document.createElement('div');
+        picker.className = 'debate-position-picker';
+        picker.innerHTML = '<div class="text-sm font-medium mb-2">Choose your position:</div>';
+
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'flex flex-wrap gap-2';
+
+        positions.forEach((p: any, i: number) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'debate-position-picker-btn';
+            btn.dataset.positionId = p.id.toString();
+            const color = (colors[i] || colors[0]) as string;
+            btn.style.borderColor = color;
+            btn.textContent = p.label;
+            btn.addEventListener('click', () => {
+                btnContainer.querySelectorAll('.debate-position-picker-btn').forEach(b =>
+                    b.classList.remove('debate-position-active'));
+                btn.classList.add('debate-position-active');
+                btn.style.backgroundColor = color;
+                btn.style.color = 'white';
+
+                let input = replyForm.querySelector('input[name="DebatePositionId"]') as HTMLInputElement;
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'DebatePositionId';
+                    replyForm.appendChild(input);
+                }
+                input.value = p.id.toString();
+            });
+            btnContainer.appendChild(btn);
+        });
+
+        picker.appendChild(btnContainer);
+
+        const editor = replyForm.querySelector('#editor-container, .composer-area');
+        if (editor) {
+            editor.parentNode?.insertBefore(picker, editor);
+        } else {
+            replyForm.prepend(picker);
+        }
+    }
+
+    // ─── Journal: Mark as update button for OP ──────────────────
+
+    function initJournalActions(discussionId: string, isAuthenticated: boolean): void {
+        if (!isAuthenticated) return;
+
+        const currentUserId = document.body.dataset.currentUserId || '';
+
+        document.querySelectorAll('article[data-post-id]').forEach(article => {
+            const el = article as HTMLElement;
+            if (el.dataset.isFirstPost === 'true') return;
+            if (el.classList.contains('journal-entry')) return; // Already an entry
+            if (el.dataset.authorId !== currentUserId) return; // Not OP
+
+            const toolbar = el.querySelector('.post-toolbar-right');
+            if (!toolbar) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'subtle-btn';
+            btn.title = 'Mark as journal update';
+            btn.textContent = '📓';
+            btn.addEventListener('click', async () => {
+                const postId = el.dataset.postId;
+                if (!postId) return;
+                const resp = await fetch(`/bff/discussions/${discussionId}/journal/entry?postPublicId=${postId}`, { method: 'POST' });
+                if (resp.ok) window.location.reload();
+            });
+            toolbar.prepend(btn);
+        });
+    }
+
+    // ─── Gallery: Carousel interactivity (layout is server-rendered) ───
+
+    function initGallery(): void {
+        const galleryDisplay = document.querySelector('.gallery-display');
+        if (!galleryDisplay) return; // No server-rendered gallery
+
+        // Mark cached images as loaded (backup for onload already fired)
+        galleryDisplay.querySelectorAll('img.gallery-blur-up').forEach(img => {
+            if ((img as HTMLImageElement).complete) {
+                img.classList.add('gallery-loaded');
+                img.closest('.gallery-upload-item')?.classList.add('gallery-item-loaded');
+            }
+        });
+
+        // Lightbox — event delegation on the gallery container
+        galleryDisplay.addEventListener('click', (e) => {
+            const item = (e.target as HTMLElement).closest('.gallery-upload-item');
+            if (!item) return;
+
+            const allItems = galleryDisplay.querySelectorAll('.gallery-upload-item');
+            const idx = Array.from(allItems).indexOf(item);
+            if (idx < 0) return;
+
+            const fullUrls = Array.from(allItems).map(el => {
+                const img = el.querySelector('img') as HTMLImageElement | null;
+                return img?.dataset.full || img?.src || '';
+            });
+
+            if (fullUrls[idx] && (window as any).SnakkLightbox) {
+                (window as any).SnakkLightbox.open(fullUrls, idx);
+            }
+        });
+
+        // Preload full image on hover
+        galleryDisplay.addEventListener('mouseenter', (e) => {
+            const item = (e.target as HTMLElement).closest('.gallery-upload-item');
+            if (!item) return;
+            const img = item.querySelector('img') as HTMLImageElement | null;
+            const fullUrl = img?.dataset.full;
+            if (fullUrl && (window as any).SnakkLightbox) {
+                (window as any).SnakkLightbox.preloadUrl(fullUrl);
+            }
+        }, true);
+
+        // Carousel interactivity (only if carousel layout)
+        const track = document.getElementById('gallery-carousel-track') as HTMLElement | null;
+        const dots = document.getElementById('gallery-carousel-dots');
+        if (!track) return;
+
+        const items = track.querySelectorAll('.gallery-upload-item');
+        if (items.length <= 1) return;
+
+        let carouselIdx = 0;
+
+        function slide(newIdx: number): void {
+            carouselIdx = newIdx;
+            track!.style.transform = `translateX(-${carouselIdx * 100}%)`;
+
+            dots?.querySelectorAll('.gup-carousel-dot').forEach((dot, i) => {
+                dot.classList.toggle('gup-carousel-dot-active', i === carouselIdx);
+            });
+
+            // Lazy-load current + adjacent slides with full-res images
+            [carouselIdx - 1, carouselIdx, carouselIdx + 1].forEach(idx => {
+                if (idx < 0 || idx >= items.length) return;
+                const img = items[idx]?.querySelector('img') as HTMLImageElement | null;
+                if (img && img.dataset.full && img.src !== img.dataset.full) {
+                    img.src = img.dataset.full;
+                }
+            });
+        }
+
+        // Arrow buttons (wrap around)
+        document.getElementById('gup-prev')?.addEventListener('click', () => {
+            slide(carouselIdx > 0 ? carouselIdx - 1 : items.length - 1);
+        });
+        document.getElementById('gup-next')?.addEventListener('click', () => {
+            slide(carouselIdx < items.length - 1 ? carouselIdx + 1 : 0);
+        });
+
+        // Arrow hover preload
+        document.getElementById('gup-prev')?.addEventListener('mouseenter', () => {
+            const target = carouselIdx - 1;
+            const img = items[target]?.querySelector('img') as HTMLImageElement | null;
+            if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
+        });
+        document.getElementById('gup-next')?.addEventListener('mouseenter', () => {
+            const target = carouselIdx + 1;
+            const img = items[target]?.querySelector('img') as HTMLImageElement | null;
+            if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
+        });
+
+        // Dot navigation
+        dots?.querySelectorAll('.gup-carousel-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                slide(parseInt((dot as HTMLElement).dataset.idx || '0'));
+            });
+        });
+    }
+
+
+
+    // ─── Guide: TOC from headings ───────────────────────────────
+
+    function initGuideToc(): void {
+        const firstPost = document.querySelector('article[data-is-first-post="true"] .prose');
+        if (!firstPost) return;
+
+        const headings = firstPost.querySelectorAll('h1, h2, h3');
+        if (headings.length < 2) return;
+
+        const container = document.getElementById('guide-toc-container');
+        if (!container) return;
+
+        let tocHtml = '<div class="guide-toc"><div class="guide-toc-title">Contents</div><ul>';
+        headings.forEach((heading, i) => {
+            const id = `guide-heading-${i}`;
+            heading.id = id;
+            const level = heading.tagName.toLowerCase();
+            const indent = level === 'h3' ? ' class="guide-toc-indent"' : '';
+            const text = heading.textContent || '';
+            tocHtml += `<li${indent}><a href="#${id}">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a></li>`;
+        });
+        tocHtml += '</ul></div>';
+
+        container.innerHTML = tocHtml;
+    }
+
+    // Expose for Razor onclick
+    (window as any).highlightAcceptedAnswer = function(postPublicId: string): void {
+        const post = document.querySelector(`article[data-post-id="${postPublicId}"]`);
+        if (post) {
+            post.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            post.classList.add('highlight-flash');
+            setTimeout(() => post.classList.remove('highlight-flash'), 2000);
+        }
+    };
+})();

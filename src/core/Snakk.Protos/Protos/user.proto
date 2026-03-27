@@ -34,6 +34,7 @@ message UserProfileInfo {
   int32 post_count = 7;
   int32 follower_count = 8;
   int32 reply_count = 9;
+  optional string bio = 10;
 }
 
 message UserSearchResultItem {

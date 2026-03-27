@@ -34,7 +34,6 @@ public class DetailModel(
     public bool IsAuthenticated { get; set; }
     public string? CurrentUserId { get; set; }
     public string? CurrentUserDisplayName { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
 
     // Whether any post in the initial batch contains code blocks (for Prism.js loading)
     public bool HasCodeBlocks { get; set; }
@@ -45,6 +44,14 @@ public class DetailModel(
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
     public SidebarModeratorsVM? InlineModerators { get; set; }
+
+    // Type-specific data (loaded for non-Standard types)
+    public Snakk.Protos.Discussion.QuestionStatusResponse? QuestionStatus { get; set; }
+    public Snakk.Protos.Discussion.DebateInfoResponse? DebateInfo { get; set; }
+    public Snakk.Protos.Discussion.DiscussionLinkResponse? LinkInfo { get; set; }
+    public Snakk.Protos.Discussion.JournalEntriesResponse? JournalInfo { get; set; }
+    public string? GalleryLayout { get; set; }
+    public List<Snakk.Protos.Discussion.GalleryImageProto> GalleryImages { get; set; } = [];
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -96,9 +103,6 @@ public class DetailModel(
 
         try
         {
-            // Read scroll preference from cookie (always available, no API call)
-            PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
-
             // Load user info for auth-dependent features
             var user = await _apiClient.GetCurrentUserAsync();
             IsAuthenticated = user is not null;
@@ -168,6 +172,28 @@ public class DetailModel(
 
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
             HasCodeBlocks = Posts?.HasCodeBlocks ?? false;
+
+            // Load type-specific data
+            switch (Discussion.Type)
+            {
+                case "Question":
+                    QuestionStatus = await _apiClient.GetQuestionStatusAsync(PublicId);
+                    break;
+                case "Debate":
+                    DebateInfo = await _apiClient.GetDebateInfoAsync(PublicId);
+                    break;
+                case "Link":
+                    LinkInfo = await _apiClient.GetDiscussionLinkAsync(PublicId);
+                    break;
+                case "Journal":
+                    JournalInfo = await _apiClient.GetJournalEntriesAsync(PublicId);
+                    break;
+                case "Gallery":
+                    var galleryData = await _apiClient.GetGalleryDataAsync(PublicId);
+                    GalleryLayout = galleryData?.Layout ?? "grid";
+                    GalleryImages = galleryData?.Images?.ToList() ?? [];
+                    break;
+            }
         }
         catch
         {

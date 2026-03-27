@@ -541,11 +541,11 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync(user);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
+        var result = await _useCase.UpdatePreferencesAsync(userId, autoFollowOnReply: false);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
+        await Assert.That(user.AutoFollowOnReply).IsFalse();
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
     }
 
@@ -555,17 +555,17 @@ public class AuthenticationUseCaseTests
         // Arrange
         var userId = UserId.New();
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        var originalPreference = user.PreferEndlessScroll;
+        var originalPreference = user.AutoFollowOnReply;
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: null, autoFollowOnReply: null);
+        var result = await _useCase.UpdatePreferencesAsync(userId, autoFollowOnReply: null);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
-        await Assert.That(user.PreferEndlessScroll).IsEqualTo(originalPreference);
+        await Assert.That(user.AutoFollowOnReply).IsEqualTo(originalPreference);
         _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once); // Still updates (could be optimized)
     }
 
@@ -578,7 +578,7 @@ public class AuthenticationUseCaseTests
             .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _useCase.UpdatePreferencesAsync(userId, preferEndlessScroll: true, autoFollowOnReply: null);
+        var result = await _useCase.UpdatePreferencesAsync(userId, autoFollowOnReply: true);
 
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();

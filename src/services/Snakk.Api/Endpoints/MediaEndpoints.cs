@@ -15,6 +15,22 @@ public static class MediaEndpoints
             .RequireAuthorization()
             .RequireRateLimiting("api")
             .DisableAntiforgery();
+
+        group.MapDelete("/draft", DeleteDraftMediaAsync)
+            .WithName("DeleteDraftMedia")
+            .RequireAuthorization();
+    }
+
+    private static async Task<IResult> DeleteDraftMediaAsync(
+        string url,
+        IMediaService mediaService,
+        HttpContext context)
+    {
+        var userId = context.User.GetUserId();
+        if (userId is null) return Results.Unauthorized();
+
+        var deleted = await mediaService.DeleteDraftAsync(url, userId.Value, context.RequestAborted);
+        return deleted ? Results.Ok() : Results.NotFound();
     }
 
     private static async Task<IResult> UploadMediaAsync(
@@ -39,7 +55,7 @@ public static class MediaEndpoints
                 userId.Value,
                 context.RequestAborted);
 
-            return Results.Ok(new { result.PublicId, result.Url });
+            return Results.Ok(new { result.PublicId, result.Url, result.ThumbnailUrl, result.BlurDataUri });
         }
         catch (InvalidOperationException ex)
         {

@@ -37,6 +37,10 @@
 @use 'features/sidebar';
 @use 'features/stats';
 @use 'features/profile';
+@use 'features/poll';
+@use 'features/type-widgets';
+@use 'features/lightbox';
+@use 'features/timezone-map';
 
 // ============================================
 // Utilities

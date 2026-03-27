@@ -49,4 +49,5 @@ public record TopActiveDiscussion(
     string HubName,
     string AuthorPublicId,
     string AuthorDisplayName,
-    string CommunitySlug);
+    string CommunitySlug,
+    string? AuthorAvatarFileName = null);

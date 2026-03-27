@@ -58,7 +58,6 @@ interface DiscussionConfig {
     isAuthenticated: boolean;
     currentUserId: string;
     isLocked: boolean;
-    preferEndlessScroll: boolean;
     postsCurrentOffset: number;
     postsHasMoreItems: boolean;
     hasCodeBlocks: boolean;
@@ -1222,14 +1221,10 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
     }
 }
 
-function retryLoadPosts(discussionId: string, currentUserId: string, isAuthenticated: boolean, isLocked: boolean, preferEndlessScroll: boolean): void {
+function retryLoadPosts(discussionId: string, currentUserId: string, isAuthenticated: boolean, isLocked: boolean): void {
     const errorMessage = document.getElementById('load-error-message');
     errorMessage?.classList.add('hidden');
-    // Reinitialize endless scroll
-    if (preferEndlessScroll) {
-        initPostsEndlessScroll();
-    }
-    // Trigger load immediately
+    initPostsEndlessScroll();
     loadMorePosts(discussionId, currentUserId, isAuthenticated, isLocked);
 }
 
@@ -2095,15 +2090,13 @@ function initDiscussionPage(config: DiscussionConfig): void {
         loadMuteStatus(config.discussionId);
     }
 
-    // Initialize endless scroll if enabled
-    if (config.preferEndlessScroll) {
-        initPostsEndlessScroll();
-        // Fragment navigation: load correct page when entering via #post-N link
-        handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
-        initFragmentTracking();
-        // Thread navigation bar (osu-style pagination)
-        initThreadNav(config);
-    }
+    // Initialize endless scroll
+    initPostsEndlessScroll();
+    // Fragment navigation: load correct page when entering via #post-N link
+    handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
+    initFragmentTracking();
+    // Thread navigation bar (osu-style pagination)
+    initThreadNav(config);
 
     // Initialize keyboard navigation
     initKeyboardNavigation();
@@ -2285,8 +2278,7 @@ document.addEventListener('click', async (e) => {
                 action.dataset.discussionId || '',
                 action.dataset.currentUserId || '',
                 action.dataset.isAuthenticated === 'true',
-                action.dataset.isLocked === 'true',
-                action.dataset.preferEndlessScroll === 'true'
+                action.dataset.isLocked === 'true'
             );
             break;
         case 'load-more-posts':

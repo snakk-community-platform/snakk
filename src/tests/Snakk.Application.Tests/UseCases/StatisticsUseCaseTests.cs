@@ -41,8 +41,8 @@ public class StatisticsUseCaseTests
             (userId2, 5)
         };
 
-        var user1 = User.Rehydrate(userId1, "TopUser1", "user1@test.com", null, true, null, null, null, null, "avatar1.png", 0, true, true, DateTime.UtcNow);
-        var user2 = User.Rehydrate(userId2, "TopUser2", "user2@test.com", null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+        var user1 = User.Rehydrate(userId1, "TopUser1", "user1@test.com", null, true, null, null, null, null, "avatar1.png", 0, true, DateTime.UtcNow);
+        var user2 = User.Rehydrate(userId2, "TopUser2", "user2@test.com", null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _mockPostRepo.Setup(r => r.GetTopContributorsSinceAsync(
                 It.IsAny<DateTime>(), null, null, null, 5))

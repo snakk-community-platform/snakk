@@ -52,7 +52,6 @@ public static class MeEndpoints
             Email: result.Value.Email ?? "",
             EmailVerified: result.Value.EmailVerified,
             OAuthProvider: result.Value.OAuthProvider,
-            PreferEndlessScroll: result.Value.PreferEndlessScroll,
             AutoFollowOnReply: result.Value.AutoFollowOnReply,
             Timezone: result.Value.Timezone));
     }
@@ -117,7 +116,6 @@ public static class MeEndpoints
         var userId = UserId.From(userIdValue);
         var result = await authUseCase.UpdatePreferencesAsync(
             userId,
-            request.PreferEndlessScroll,
             request.AutoFollowOnReply,
             request.Timezone);
 

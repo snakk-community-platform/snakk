@@ -3,7 +3,7 @@
 // ============================================
 
 .input, .textarea, .select {
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border: 1px solid var(--border-primary);
     border-radius: 6px;
     transition: border-color 0.15s ease;
@@ -13,6 +13,19 @@
         outline: none;
         box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
     }
+}
+
+// Cloudflare Turnstile widget — transparent background to match cards
+.cf-turnstile iframe {
+    background: transparent !important;
+}
+
+// Disabled buttons
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 // Composer area (Milkdown editor provides its own frame)
@@ -86,6 +99,16 @@ select:focus-visible {
     outline: 2px solid #0066cc;
     outline-offset: 0;
     border-color: var(--link-primary);
+}
+
+// daisyUI v5 lofi theme toggle fix — calc() chain for --size-selector produces wrong dimensions
+.toggle {
+    width: 3rem !important;
+    height: 1.5rem !important;
+
+    &:checked {
+        --input-color: var(--link-primary) !important;
+    }
 }
 
 // daisyUI v4 → v5 compatibility shims (form-control, label, label-text removed in v5)

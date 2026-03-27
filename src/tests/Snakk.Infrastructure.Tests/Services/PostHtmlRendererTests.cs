@@ -46,7 +46,6 @@ public class PostHtmlRendererTests
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             createdAt: DateTime.UtcNow);
     }

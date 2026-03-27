@@ -154,7 +154,7 @@ else
                                      model="new DiscussionListItemVM(discussion, false, Model.Community, ShowHub: false)" />
                         }
 
-                        @if (Model.PreferEndlessScroll && Model.RecentDiscussions.HasMoreItems)
+                        @if (Model.RecentDiscussions.HasMoreItems)
                         {
                             var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
 
@@ -187,31 +187,12 @@ else
                                 </div>
                             </div>
                         }
-                        else if (Model.PreferEndlessScroll)
+                        else
                         {
                             <partial name="Shared/_EndOfScroll" />
                         }
                     </div>
 
-                    @if (!Model.PreferEndlessScroll && (Model.RecentDiscussions.Offset > 0 || Model.RecentDiscussions.HasMoreItems))
-                    {
-                        <div class="flex justify-center gap-2 mt-6">
-                            @if (Model.RecentDiscussions.Offset > 0)
-                            {
-                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Math.Max(0, Model.RecentDiscussions.Offset - Model.RecentDiscussions.PageSize))"
-                                   class="btn btn-ghost btn-sm">
-                                    Previous
-                                </a>
-                            }
-                            @if (Model.RecentDiscussions.HasMoreItems)
-                            {
-                                <a href="@SnakkUrlHelper.HubWithOffset(Model.Community, Model.Slug, Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize)"
-                                   class="btn btn-ghost btn-sm">
-                                    Next
-                                </a>
-                            }
-                        </div>
-                    }
                 }
             </div>
 

@@ -190,7 +190,7 @@ public class MentionServiceTests
         var discussion = Discussion.Create(SpaceId.New(), authorId, "Test Discussion", "test");
         var author = User.CreateWithEmail("Author", "author@test.com", "hash", "token");
         var mentionedUser = User.Rehydrate(mentionedUserId, "MentionedUser", "mentioned@test.com",
-            null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+            null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);
@@ -218,7 +218,7 @@ public class MentionServiceTests
 
         var discussion = Discussion.Create(SpaceId.New(), authorId, "Test Discussion", "test");
         var author = User.Rehydrate(authorId, "SelfUser", "self@test.com",
-            null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+            null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);
@@ -314,9 +314,9 @@ public class MentionServiceTests
         var discussion = Discussion.Create(SpaceId.New(), authorId, "Test Discussion", "test");
         var author = User.CreateWithEmail("Author", "author@test.com", "hash", "token");
         var mentionedUser1 = User.Rehydrate(mentionedUser1Id, "User1", "user1@test.com",
-            null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+            null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
         var mentionedUser2 = User.Rehydrate(mentionedUser2Id, "User2", "user2@test.com",
-            null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+            null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);
@@ -348,7 +348,7 @@ public class MentionServiceTests
         var discussion = Discussion.Create(SpaceId.New(), authorId, "Test Discussion", "test");
         var author = User.CreateWithEmail("Author", "author@test.com", "hash", "token");
         var validUser = User.Rehydrate(validUserId, "ValidUser", "valid@test.com",
-            null, true, null, null, null, null, null, 0, true, true, DateTime.UtcNow);
+            null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
             .ReturnsAsync(discussion);

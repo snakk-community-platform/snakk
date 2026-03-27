@@ -43,7 +43,6 @@ public class SearchModel(
     public PagedResult<dynamic>? Spaces { get; set; } // TODO: Replace with SpaceSearchResultDto when available
     public PagedResult<UserProfileInfo>? Users { get; set; }
     public UserProfileInfo? FilteredUser { get; set; }
-    public bool PreferEndlessScroll { get; set; } = true;
 
     public string BuildSearchUrl(
         string? query = null,
@@ -77,9 +76,6 @@ public class SearchModel(
 
         // Normalize search type
         SearchType = SearchType?.ToLowerInvariant() ?? "post";
-
-        // Read preference from cookie (no API call needed)
-        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         // If filtering by author, get their profile
         Task<UserProfileInfo?>? filteredUserTask = null;

@@ -26,7 +26,7 @@ public class UserProfileUseCaseTests
         // Arrange
         var user = User.Rehydrate(
             UserId.New(), "TestUser", "test@example.com", "hash", true, null,
-            null, null, null, "avatar.png", 1, true, true,
+            null, null, null, "avatar.png", 1, true,
             DateTime.UtcNow.AddDays(-30),
             lastSeenAt: DateTime.UtcNow,
             discussionCount: 15,
@@ -112,7 +112,7 @@ public class UserProfileUseCaseTests
         // Arrange
         var user = User.Rehydrate(
             UserId.New(), "TestUser", "test@example.com", "hash", true, null,
-            null, null, null, null, 0, true, true,
+            null, null, null, null, 0, true,
             DateTime.UtcNow.AddDays(-30),
             lastSeenAt: null);
         var publicId = user.PublicId.Value;

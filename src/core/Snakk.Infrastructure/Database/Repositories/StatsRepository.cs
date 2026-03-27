@@ -79,7 +79,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             u.DisplayName,
             u.DiscussionCount,
             u.ReplyCount,
-            u.FollowerCount))
+            u.FollowerCount,
+            u.AvatarFileName))
         .FirstOrDefaultAsync();
 
     public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId)

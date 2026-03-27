@@ -250,6 +250,7 @@ public class DiscussionRepositoryAdapter(
                 p.Discussion.Slug,
                 AuthorPublicId = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.PublicId : "",
                 AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName : "",
+                AuthorAvatarFileName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.AvatarFileName : (string?)null,
                 p.Discussion.Space.Hub.CommunityId,
 
                 SpacePublicId = p.Discussion.Space.PublicId,
@@ -272,6 +273,7 @@ public class DiscussionRepositoryAdapter(
                 g.Key.HubName,
                 g.Key.AuthorPublicId,
                 g.Key.AuthorDisplayName,
+                g.Key.AuthorAvatarFileName,
                 g.Key.CommunitySlug })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
@@ -291,7 +293,8 @@ public class DiscussionRepositoryAdapter(
                 d.HubName,
                 d.AuthorPublicId,
                 d.AuthorDisplayName,
-                d.CommunitySlug))
+                d.CommunitySlug,
+                d.AuthorAvatarFileName))
             .ToList();
     }
 

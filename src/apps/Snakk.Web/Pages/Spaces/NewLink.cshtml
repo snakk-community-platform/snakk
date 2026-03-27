@@ -28,7 +28,7 @@
 
     <form method="post" id="new-discussion-form" hx-boost="false">
         <div class="space-y-4">
-            <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
+            <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
                    class="input w-full text-lg" required maxlength="200" placeholder="Title for this link" />
 
             <input type="url" name="LinkUrl" value="@Model.LinkUrl"

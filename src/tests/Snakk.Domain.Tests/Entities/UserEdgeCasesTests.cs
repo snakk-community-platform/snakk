@@ -162,7 +162,6 @@ public class UserEdgeCasesTests
             UserId.New(), "testuser", "test@example.com", "hash",
             true, null, null, null, null, "avatar.jpg",
             avatarRevision: 5,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow);
 
@@ -172,17 +171,7 @@ public class UserEdgeCasesTests
 
     #endregion
 
-    #region PreferEndlessScroll and AutoFollowOnReply Defaults
-
-    [Test]
-    public async Task NewUser_PreferEndlessScroll_DefaultsToTrue()
-    {
-        // Arrange & Act
-        var user = User.Create("testuser");
-
-        // Assert
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
-    }
+    #region AutoFollowOnReply Defaults
 
     [Test]
     public async Task NewUser_AutoFollowOnReply_DefaultsToTrue()
@@ -228,7 +217,6 @@ public class UserEdgeCasesTests
         var user = User.CreateWithEmail("user", "test@example.com", "hash", "token");
 
         // Assert
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
         await Assert.That(user.AutoFollowOnReply).IsTrue();
     }
 
@@ -239,7 +227,6 @@ public class UserEdgeCasesTests
         var user = User.CreateWithOAuth("user", "test@example.com", "Google", "google-id");
 
         // Assert
-        await Assert.That(user.PreferEndlessScroll).IsTrue();
         await Assert.That(user.AutoFollowOnReply).IsTrue();
     }
 
@@ -499,7 +486,6 @@ public class UserEdgeCasesTests
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastModifiedAt: null,
@@ -539,7 +525,6 @@ public class UserEdgeCasesTests
             role: "admin",
             avatarFileName: "admin-avatar.png",
             avatarRevision: 3,
-            preferEndlessScroll: false,
             autoFollowOnReply: false,
             now.AddDays(-30),
             lastModifiedAt: now.AddDays(-1),
@@ -558,7 +543,6 @@ public class UserEdgeCasesTests
         await Assert.That(user.Role).IsEqualTo("admin");
         await Assert.That(user.AvatarFileName).IsEqualTo("admin-avatar.png");
         await Assert.That(user.AvatarRevision).IsEqualTo(3);
-        await Assert.That(user.PreferEndlessScroll).IsFalse();
         await Assert.That(user.AutoFollowOnReply).IsFalse();
         await Assert.That(user.LastModifiedAt).IsNotNull();
         await Assert.That(user.LastSeenAt).IsNotNull();
@@ -571,7 +555,7 @@ public class UserEdgeCasesTests
         // Arrange & Act
         var user = User.Rehydrate(
             UserId.New(), "testuser", null, null, false, null, null, null, null, null,
-            0, true, true, DateTime.UtcNow);
+            0, true, DateTime.UtcNow);
 
         // Assert
         await Assert.That(user.DomainEvents).IsEmpty();

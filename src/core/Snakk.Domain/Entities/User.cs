@@ -16,9 +16,9 @@ public class User
     public string? Role { get; private set; } // "admin", "mod", or null for regular users
     public string? AvatarFileName { get; private set; } // Uploaded avatar filename (null = use generated)
     public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
-    public bool PreferEndlessScroll { get; private set; } = true; // User preference for endless scroll vs pagination
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
+    public string? Bio { get; private set; }
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime? DisplayNameChangedAt { get; private set; }
     public bool IsDisplayNameLocked { get; private set; }
@@ -51,7 +51,6 @@ public class User
         string? role,
         string? avatarFileName,
         int avatarRevision,
-        bool preferEndlessScroll,
         bool autoFollowOnReply,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
@@ -59,6 +58,7 @@ public class User
         DateTime? lastLoginAt = null,
         bool needsProfileSetup = false,
         string? timezone = null,
+        string? bio = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
@@ -76,9 +76,9 @@ public class User
         Role = role;
         AvatarFileName = avatarFileName;
         AvatarRevision = avatarRevision;
-        PreferEndlessScroll = preferEndlessScroll;
         AutoFollowOnReply = autoFollowOnReply;
         Timezone = timezone;
+        Bio = bio;
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
@@ -116,7 +116,6 @@ public class User
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
@@ -149,7 +148,6 @@ public class User
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow,
@@ -180,7 +178,6 @@ public class User
             role: null,
             avatarFileName: null,
             avatarRevision: 0,
-            preferEndlessScroll: true,
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow);
@@ -198,7 +195,6 @@ public class User
         string? role,
         string? avatarFileName,
         int avatarRevision,
-        bool preferEndlessScroll,
         bool autoFollowOnReply,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
@@ -206,6 +202,7 @@ public class User
         DateTime? lastLoginAt = null,
         bool needsProfileSetup = false,
         string? timezone = null,
+        string? bio = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
@@ -223,7 +220,6 @@ public class User
             role,
             avatarFileName,
             avatarRevision,
-            preferEndlessScroll,
             autoFollowOnReply,
             createdAt,
             lastModifiedAt,
@@ -231,6 +227,7 @@ public class User
             lastLoginAt,
             needsProfileSetup,
             timezone,
+            bio,
             discussionCount,
             replyCount,
             followerCount,
@@ -326,12 +323,6 @@ public class User
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public void SetPreferEndlessScroll(bool prefer)
-    {
-        PreferEndlessScroll = prefer;
-        LastModifiedAt = DateTime.UtcNow;
-    }
-
     public void SetAutoFollowOnReply(bool autoFollow)
     {
         AutoFollowOnReply = autoFollow;
@@ -341,6 +332,12 @@ public class User
     public void SetTimezone(string? timezone)
     {
         Timezone = timezone;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetBio(string? bio)
+    {
+        Bio = bio?.Length > 300 ? bio[..300] : bio;
         LastModifiedAt = DateTime.UtcNow;
     }
 

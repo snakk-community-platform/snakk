@@ -30,16 +30,7 @@ public class MediaService(
     {
         "image/jpeg",
         "image/png",
-        "image/gif",
         "image/webp"
-    };
-
-    private static readonly Dictionary<string, string> ContentTypeToExtension = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["image/jpeg"] = "jpg",
-        ["image/png"] = "png",
-        ["image/gif"] = "gif",
-        ["image/webp"] = "webp"
     };
 
     public async Task<MediaUploadResult> UploadAsync(
@@ -80,15 +71,8 @@ public class MediaService(
                 }));
             }
 
-            // Re-encode in the original format (strips all metadata, produces a clean file)
-            var encoder = contentType.ToLowerInvariant() switch
-            {
-                "image/jpeg" => (SixLabors.ImageSharp.Formats.IImageEncoder)new JpegEncoder { Quality = 85 },
-                "image/png" => new PngEncoder(),
-                "image/gif" => new GifEncoder(),
-                "image/webp" => new WebpEncoder { Quality = 80 },
-                _ => new PngEncoder()
-            };
+            // Always re-encode as WebP for smallest file size (strips all metadata)
+            var encoder = new WebpEncoder { Quality = 80 };
 
             await image.SaveAsync(processedStream, encoder, cancellationToken);
         }
@@ -120,13 +104,16 @@ public class MediaService(
                 logger.LogDebug("Deduplicated upload: {Hash} already exists at {Path}", sha256Hash, existing.StoragePath);
             }
 
-            return new MediaUploadResult(existing.PublicId, GetMediaUrl(existing.StoragePath));
+            return new MediaUploadResult(
+                existing.PublicId,
+                GetMediaUrl(existing.StoragePath),
+                existing.ThumbnailPath is not null ? GetMediaUrl(existing.ThumbnailPath) : null,
+                existing.BlurDataUri);
         }
 
-        // Build storage path: media/posts/{yyyy}/{MM}/{dd}/{sha256}.{ext}
+        // Build storage path: media/posts/{yyyy}/{MM}/{dd}/{sha256}.webp
         var now = DateTime.UtcNow;
-        var extension = ContentTypeToExtension.GetValueOrDefault(contentType, "bin");
-        var storagePath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{sha256Hash}.{extension}";
+        var storagePath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{sha256Hash}.webp";
 
         // Resolve uploader's internal user ID
         var user = await db.Users
@@ -146,28 +133,78 @@ public class MediaService(
         processedStream.Position = 0;
         await fileStorage.SaveAsync(storagePath, processedStream, cancellationToken);
 
+        // Generate thumbnail (300px longest side)
+        string? thumbnailPath = null;
+        try
+        {
+            processedStream.Position = 0;
+            using var thumbImage = await Image.LoadAsync(processedStream, cancellationToken);
+
+            if (thumbImage.Width > 300 || thumbImage.Height > 300)
+            {
+                thumbImage.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(300, 300),
+                    Mode = ResizeMode.Max
+                }));
+
+                thumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{sha256Hash}_thumb.webp";
+                using var thumbStream = new MemoryStream();
+                await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 }, cancellationToken);
+                thumbStream.Position = 0;
+                await fileStorage.SaveAsync(thumbnailPath, thumbStream, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to generate thumbnail for {Hash}", sha256Hash);
+        }
+
+        // Generate blur placeholder (~20px, base64 data URI)
+        string? blurDataUri = null;
+        try
+        {
+            processedStream.Position = 0;
+            using var blurImage = await Image.LoadAsync(processedStream, cancellationToken);
+            blurImage.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(20, 20),
+                Mode = ResizeMode.Max
+            }));
+
+            using var blurStream = new MemoryStream();
+            await blurImage.SaveAsWebpAsync(blurStream, new WebpEncoder { Quality = 20 }, cancellationToken);
+            blurDataUri = $"data:image/webp;base64,{Convert.ToBase64String(blurStream.ToArray())}";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to generate blur placeholder for {Hash}", sha256Hash);
+        }
+
         // Create database record — uploads start as drafts until linked to a discussion
         var media = new MediaDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             Sha256Hash = sha256Hash,
             OriginalFileName = Path.GetFileName(fileName),
-            ContentType = contentType,
+            ContentType = "image/webp",
             SizeBytes = processedStream.Length,
             StoragePath = storagePath,
+            ThumbnailPath = thumbnailPath,
+            BlurDataUri = blurDataUri,
             CreatedAt = now,
             UploadedByUserId = user.Id,
-            IsDraft = true,
-            DraftExpiresAt = now.AddHours(12)
+            IsDraft = true
         };
 
         db.Media.Add(media);
         await db.SaveChangesAsync(cancellationToken);
 
         var publicUrl = GetMediaUrl(storagePath);
+        var thumbnailUrl = thumbnailPath is not null ? GetMediaUrl(thumbnailPath) : null;
         logger.LogInformation("Media uploaded: {PublicId} ({Size} bytes) → {Path}", media.PublicId, media.SizeBytes, storagePath);
 
-        return new MediaUploadResult(media.PublicId, publicUrl);
+        return new MediaUploadResult(media.PublicId, publicUrl, thumbnailUrl, blurDataUri);
     }
 
     public async Task LinkMediaToPostAsync(
@@ -234,6 +271,35 @@ public class MediaService(
     /// Mark all draft media referenced in the given content as published.
     /// Call after a discussion or post is successfully created.
     /// </summary>
+    public async Task<bool> DeleteDraftAsync(string mediaUrl, string userPublicId, CancellationToken cancellationToken = default)
+    {
+        // Extract storage path from URL
+        var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
+        if (!mediaUrl.StartsWith(urlPrefix)) return false;
+        var storagePath = mediaUrl[urlPrefix.Length..];
+
+        var media = await db.Media
+            .AsTracking()
+            .FirstOrDefaultAsync(m => m.StoragePath == storagePath && m.IsDraft, cancellationToken);
+
+        if (media is null) return false;
+
+        // Verify ownership
+        var userId = await db.Users
+            .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (userId == 0 || media.UploadedByUserId != userId) return false;
+
+        // Mark for deletion — cleanup worker will remove files on next run
+        media.IsReadyForDeletion = true;
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Draft media marked for deletion: {PublicId} ({Path})", media.PublicId, media.StoragePath);
+        return true;
+    }
+
     public async Task PublishDraftMediaAsync(string content, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(content)) return;
@@ -249,46 +315,59 @@ public class MediaService(
 
         var now = DateTime.UtcNow;
         await db.Media
-            .Where(m => m.IsDraft && storagePaths.Contains(m.StoragePath))
+            .Where(m => m.IsDraft && !m.IsDeleted && storagePaths.Contains(m.StoragePath))
             .ExecuteUpdateAsync(s => s
                 .SetProperty(m => m.IsDraft, false)
-                .SetProperty(m => m.PublishedAt, now)
-                .SetProperty(m => m.DraftExpiresAt, (DateTime?)null),
+                .SetProperty(m => m.PublishedAt, now),
                 cancellationToken);
     }
 
     /// <summary>
-    /// Delete expired draft media (files + database records).
+    /// Process media marked for deletion + stale drafts.
+    /// Step 1: Mark stale drafts (12h+ unpublished) as IsReadyForDeletion.
+    /// Step 2: Delete files for IsReadyForDeletion records, then set IsDeleted.
     /// Called by background cleanup worker.
     /// </summary>
     public async Task<int> CleanupExpiredDraftsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var expiredDrafts = await db.Media
-            .Where(m => m.IsDraft && m.DraftExpiresAt != null && m.DraftExpiresAt <= now)
+        var cutoff = now.AddHours(-12);
+
+        // Step 1: Mark stale unpublished drafts as ready for deletion
+        await db.Media
+            .Where(m => m.IsDraft && !m.IsReadyForDeletion && !m.IsDeleted && m.CreatedAt < cutoff)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsReadyForDeletion, true), cancellationToken);
+
+        // Step 2: Find all records ready for deletion (user-deleted + stale drafts)
+        var toDelete = await db.Media
+            .AsTracking()
+            .Where(m => m.IsReadyForDeletion && !m.IsDeleted)
+            .Take(100)
             .ToListAsync(cancellationToken);
 
-        if (expiredDrafts.Count == 0) return 0;
+        if (toDelete.Count == 0) return 0;
 
-        // Delete files from storage
-        foreach (var draft in expiredDrafts)
+        // Delete files from storage (main + thumbnail)
+        foreach (var media in toDelete)
         {
             try
             {
-                await fileStorage.DeleteAsync(draft.StoragePath, cancellationToken);
+                await fileStorage.DeleteAsync(media.StoragePath, cancellationToken);
+                if (media.ThumbnailPath is not null)
+                    await fileStorage.DeleteAsync(media.ThumbnailPath, cancellationToken);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to delete expired draft file: {Path}", draft.StoragePath);
+                logger.LogWarning(ex, "Failed to delete media file: {Path}", media.StoragePath);
             }
+
+            media.IsDeleted = true;
         }
 
-        // Remove database records
-        db.Media.RemoveRange(expiredDrafts);
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Cleaned up {Count} expired media drafts", expiredDrafts.Count);
-        return expiredDrafts.Count;
+        logger.LogInformation("Cleaned up {Count} media files", toDelete.Count);
+        return toDelete.Count;
     }
 
     private string GetMediaUrl(string storagePath) =>

@@ -193,6 +193,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
         services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
         services.AddScoped<IDiscussionExtensionService, Infrastructure.Services.DiscussionExtensionService>();
+        services.AddScoped<IPollService, Infrastructure.Services.PollService>();
+        services.AddScoped<IDiscussionTypeQueryService, Infrastructure.Services.DiscussionTypeQueryService>();
 
         // 2FA & Security Services
         services.AddScoped<Application.Services.ITotpService, Infrastructure.Services.TotpService>();

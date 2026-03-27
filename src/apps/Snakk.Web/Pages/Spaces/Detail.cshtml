@@ -155,7 +155,7 @@ else
                                      model="new SpaceDiscussionListItemVM(discussion, Model.Community, Model.HubSlug, Model.Slug)" />
                         }
 
-                        @if (Model.PreferEndlessScroll && Model.Discussions.HasMoreItems)
+                        @if (Model.Discussions.HasMoreItems)
                         {
                             var nextOffset = Model.Discussions.Offset + Model.Discussions.PageSize;
 
@@ -188,7 +188,7 @@ else
                                 </div>
                             </div>
                         }
-                        else if (Model.PreferEndlessScroll)
+                        else
                         {
                             <div class="text-center py-8 text-base-content/50 text-sm">
                                 You've reached the end
@@ -196,25 +196,6 @@ else
                         }
                     </div>
 
-                    @if (!Model.PreferEndlessScroll && (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems))
-                    {
-                        <div class="flex justify-center gap-2 mt-8">
-                            @if (Model.Discussions.Offset > 0)
-                            {
-                                var prevUrl = SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize));
-                                <a href="@prevUrl" class="btn btn-ghost btn-sm">
-                                    Previous
-                                </a>
-                            }
-                            @if (Model.Discussions.HasMoreItems)
-                            {
-                                var nextUrl = SnakkUrlHelper.SpaceWithOffset(Model.Community, Model.HubSlug, Model.Slug, Model.Discussions.Offset + Model.Discussions.PageSize);
-                                <a href="@nextUrl" class="btn btn-ghost btn-sm">
-                                    Next
-                                </a>
-                            }
-                        </div>
-                    }
                 }
             </div>
 

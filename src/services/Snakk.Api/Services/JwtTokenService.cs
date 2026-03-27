@@ -15,7 +15,7 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
     private readonly string _audience = configuration["Jwt:Audience"] ?? "Snakk";
     private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 15); // 15 minutes default
 
-    public string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null)
+    public string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null)
     {
         var claims = new List<Claim>
         {
@@ -32,6 +32,9 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
 
         if (!string.IsNullOrEmpty(role))
             claims.Add(new(ClaimTypes.Role, role));
+
+        if (!string.IsNullOrEmpty(avatarFileName))
+            claims.Add(new("AvatarFileName", avatarFileName));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -53,7 +56,8 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            user.Role);
+            user.Role,
+            user.AvatarFileName);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {

@@ -25,7 +25,6 @@ public class DetailModel(
     public PagedSpaceByHubList? Spaces { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public string Slug { get; set; } = string.Empty;
-    public bool PreferEndlessScroll { get; set; } = true;
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "hub";
@@ -47,7 +46,6 @@ public class DetailModel(
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
     {
         Slug = slug;
-        PreferEndlessScroll = AuthCookieHelper.GetPreferEndlessScroll(HttpContext);
 
         var hubResult = await _apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
         if (!hubResult.IsSuccess)

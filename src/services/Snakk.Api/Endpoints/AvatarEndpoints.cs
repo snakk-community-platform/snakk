@@ -28,7 +28,7 @@ public static class AvatarEndpoints
     private static async Task<IResult> UploadAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IWebHostEnvironment env)
+        IConfiguration configuration)
     {
         // Require authentication
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
@@ -56,14 +56,14 @@ public static class AvatarEndpoints
             return Results.BadRequest(new { error = "File too large. Maximum size is 2MB." });
 
         // Validate content type
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
 
         if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
-            return Results.BadRequest(new { error = "Invalid file type. Allowed: JPEG, PNG, GIF, WebP" });
+            return Results.BadRequest(new { error = "Invalid file type. Allowed: JPEG, PNG, WebP" });
 
         // Validate file extension
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
         if (!allowedExtensions.Contains(extension))
             return Results.BadRequest(new { error = "Invalid file extension" });
@@ -72,8 +72,9 @@ public static class AvatarEndpoints
         if (!await FileValidationHelper.IsValidImageFileAsync(file, extension))
             return Results.BadRequest(new { error = "Invalid image file format" });
 
-        // Create avatars directory if it doesn't exist
-        var avatarsDir = Path.Combine(env.ContentRootPath, "avatars");
+        // Save to shared storage: {FileStorage:BasePath}/avatars/uploaded/
+        var basePath = configuration["FileStorage:BasePath"] ?? "storage";
+        var avatarsDir = Path.Combine(basePath, "avatars", "uploaded");
         Directory.CreateDirectory(avatarsDir);
 
         // Delete old avatar if exists
@@ -101,13 +102,13 @@ public static class AvatarEndpoints
 
         return TypedResults.Ok(new AvatarUploadResponse(
             "Avatar uploaded successfully",
-            $"/avatars/{userId.Value}"));
+            $"/avatars/uploaded/{newFileName}"));
     }
 
     private static async Task<IResult> DeleteAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IWebHostEnvironment env)
+        IConfiguration configuration)
     {
         // Require authentication
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
@@ -127,8 +128,8 @@ public static class AvatarEndpoints
         // Delete file if exists
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
-            var avatarsDir = Path.Combine(env.ContentRootPath, "avatars");
-            var avatarPath = Path.Combine(avatarsDir, user.AvatarFileName);
+            var basePath = configuration["FileStorage:BasePath"] ?? "storage";
+            var avatarPath = Path.Combine(basePath, "avatars", "uploaded", user.AvatarFileName);
 
             if (File.Exists(avatarPath))
                 File.Delete(avatarPath);

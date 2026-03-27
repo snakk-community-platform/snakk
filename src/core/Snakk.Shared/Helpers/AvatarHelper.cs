@@ -50,10 +50,14 @@ public static class AvatarHelper
 
     /// <summary>
     /// Gets the public URL for an avatar.
-    /// Example: "/avatars/generated/users/4a/userId.svg"
+    /// If avatarFileName is set, returns the uploaded avatar URL.
+    /// Otherwise returns the generated SVG URL.
     /// </summary>
-    public static string GetAvatarUrl(string publicId, AvatarEntityType entityType, int revision = 0)
+    public static string GetAvatarUrl(string publicId, AvatarEntityType entityType, int revision = 0, string? avatarFileName = null)
     {
+        if (!string.IsNullOrEmpty(avatarFileName))
+            return $"/avatars/uploaded/{avatarFileName}";
+
         var avatarPath = GetAvatarPath(publicId, entityType, revision);
         var entityFolder = GetEntityFolder(entityType);
 

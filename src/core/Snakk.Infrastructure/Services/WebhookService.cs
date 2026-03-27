@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -48,6 +50,8 @@ public class WebhookService(
         string createdBy,
         CancellationToken cancellationToken = default)
     {
+        ValidateWebhookUrl(request.Url);
+
         var webhook = new WebhookDatabaseEntity
         {
             Id = Guid.NewGuid(),
@@ -90,7 +94,10 @@ public class WebhookService(
             webhook.Name = request.Name;
 
         if (request.Url is not null)
+        {
+            ValidateWebhookUrl(request.Url);
             webhook.Url = request.Url;
+        }
 
         if (request.Description is not null)
             webhook.Description = request.Description;
@@ -544,6 +551,79 @@ public class WebhookService(
 
             _ => "Unknown event type"
         };
+
+    /// <summary>
+    /// Validates that a webhook URL is safe to call — blocks private/internal networks (SSRF prevention).
+    /// </summary>
+    private static void ValidateWebhookUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Webhook URL is required.");
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            throw new ArgumentException("Webhook URL must be a valid absolute URL.");
+
+        if (uri.Scheme is not ("https" or "http"))
+            throw new ArgumentException("Webhook URL must use https or http scheme.");
+
+        var host = uri.Host;
+
+        // Block localhost variants
+        if (host is "localhost" || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Webhook URL must not target localhost.");
+
+        // Resolve and check IP addresses
+        if (IPAddress.TryParse(host, out var ip))
+        {
+            if (IsPrivateOrReservedIp(ip))
+                throw new ArgumentException("Webhook URL must not target private or reserved IP addresses.");
+        }
+        else
+        {
+            // DNS resolution — check all resolved addresses
+            try
+            {
+                var addresses = Dns.GetHostAddresses(host);
+                if (addresses.Length == 0)
+                    throw new ArgumentException("Webhook URL hostname could not be resolved.");
+
+                if (addresses.All(IsPrivateOrReservedIp))
+                    throw new ArgumentException("Webhook URL must not target private or reserved IP addresses.");
+            }
+            catch (SocketException)
+            {
+                throw new ArgumentException("Webhook URL hostname could not be resolved.");
+            }
+        }
+    }
+
+    private static bool IsPrivateOrReservedIp(IPAddress ip)
+    {
+        // Map IPv6-mapped IPv4 to IPv4 for consistent checks
+        if (ip.IsIPv4MappedToIPv6)
+            ip = ip.MapToIPv4();
+
+        var bytes = ip.GetAddressBytes();
+
+        if (ip.AddressFamily == AddressFamily.InterNetwork)
+        {
+            return bytes[0] switch
+            {
+                10 => true,                                           // 10.0.0.0/8
+                127 => true,                                          // 127.0.0.0/8 (loopback)
+                169 when bytes[1] == 254 => true,                     // 169.254.0.0/16 (link-local)
+                172 when bytes[1] >= 16 && bytes[1] <= 31 => true,    // 172.16.0.0/12
+                192 when bytes[1] == 168 => true,                     // 192.168.0.0/16
+                0 => true,                                            // 0.0.0.0/8
+                _ => false
+            };
+        }
+
+        // IPv6: block loopback (::1) and link-local (fe80::/10)
+        return IPAddress.IsLoopback(ip)
+            || ip.IsIPv6LinkLocal
+            || ip.IsIPv6SiteLocal;
+    }
 
     private static WebhookResponse MapToResponse(WebhookDatabaseEntity webhook)
     {

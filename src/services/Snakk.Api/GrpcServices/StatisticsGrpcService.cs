@@ -71,7 +71,7 @@ public class StatisticsGrpcService(
                 {
                     PublicId = d.AuthorPublicId,
                     DisplayName = d.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
                 }
             });
         }
@@ -132,7 +132,7 @@ public class StatisticsGrpcService(
                 DisplayName = c.DisplayName,
                 PostCountToday = c.PostCountToday,
 
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName)
             });
         }
 
@@ -183,7 +183,7 @@ public class StatisticsGrpcService(
             ReplyCount = stats.ReplyCount,
             FollowerCount = stats.FollowerCount,
 
-            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0)
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName)
         };
     }
 }

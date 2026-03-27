@@ -49,8 +49,12 @@ public class RegisterModel(
         public string ConfirmPassword { get; set; } = "";
     }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        if (Request.Cookies.ContainsKey(".Snakk.Auth"))
+            return Redirect("/");
+
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()

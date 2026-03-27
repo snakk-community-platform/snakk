@@ -10,6 +10,9 @@ using Grpc.Core.Interceptors;
 using Snakk.Protos.Auth;
 using Snakk.Protos.Manage;
 
+// Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Load shared production config (written by setup wizard)

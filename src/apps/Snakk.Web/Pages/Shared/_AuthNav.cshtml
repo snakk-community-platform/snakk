@@ -11,7 +11,8 @@
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
     var isModerator = !string.IsNullOrEmpty(role);
     var isGlobalAdmin = role == "GlobalAdmin";
-    var avatarUrl = SnakkUrlHelper.UserAvatar(publicId);
+    var avatarFileName = User.FindFirst("AvatarFileName")?.Value;
+    var avatarUrl = SnakkUrlHelper.UserAvatar(publicId, avatarFileName: avatarFileName);
 
     <!-- Notification Bell -->
     <div class="dropdown dropdown-end mr-2">

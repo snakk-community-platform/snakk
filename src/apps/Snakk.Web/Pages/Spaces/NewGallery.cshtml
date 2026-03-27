@@ -29,33 +29,79 @@
     <form method="post" id="new-discussion-form" hx-boost="false">
         <div class="space-y-4">
             <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                   class="input w-full text-lg" required maxlength="200" placeholder="Gallery title" />
+                   class="input w-full text-lg" required maxlength="200" placeholder="Gallery title" autofocus />
 
-            <!-- Image uploads -->
+            <!-- Layout picker -->
             <div>
-                <div class="text-sm font-medium mb-2">Images</div>
-                <div id="gallery-uploads" class="space-y-3">
-                    <div class="gallery-upload-slot" data-index="0">
-                        <div class="flex items-center gap-3">
-                            <input type="file" accept="image/*" class="file-input file-input-sm flex-1"
-                                   onchange="uploadGalleryImage(this)" />
-                            <div class="gallery-upload-status text-sm text-base-content/50"></div>
+                <div class="text-sm font-medium mb-2">Layout</div>
+                <div class="flex gap-3" id="gallery-layout-picker">
+                    <label class="gallery-layout-option gallery-layout-active" data-layout="grid">
+                        <input type="radio" name="GalleryLayout" value="grid" checked class="hidden" />
+                        <div class="gallery-layout-preview">
+                            <div class="glp glp-grid"><div></div><div></div><div></div><div></div></div>
                         </div>
-                        <div class="gallery-preview hidden mt-2">
-                            <img class="max-h-32 rounded" />
-                            <input type="hidden" name="GalleryImageUrls" />
+                        <span class="text-xs mt-1">Grid</span>
+                    </label>
+                    <label class="gallery-layout-option" data-layout="masonry">
+                        <input type="radio" name="GalleryLayout" value="masonry" class="hidden" />
+                        <div class="gallery-layout-preview">
+                            <div class="glp glp-masonry"><div></div><div></div><div></div></div>
                         </div>
-                    </div>
+                        <span class="text-xs mt-1">Masonry</span>
+                    </label>
+                    <label class="gallery-layout-option" data-layout="justified">
+                        <input type="radio" name="GalleryLayout" value="justified" class="hidden" />
+                        <div class="gallery-layout-preview">
+                            <div class="glp glp-justified"><div></div><div></div><div></div></div>
+                        </div>
+                        <span class="text-xs mt-1">Justified</span>
+                    </label>
+                    <label class="gallery-layout-option" data-layout="carousel">
+                        <input type="radio" name="GalleryLayout" value="carousel" class="hidden" />
+                        <div class="gallery-layout-preview">
+                            <div class="glp glp-carousel"><span>‹</span><div></div><span>›</span></div>
+                        </div>
+                        <span class="text-xs mt-1">Carousel</span>
+                    </label>
+                    <label class="gallery-layout-option" data-layout="hero">
+                        <input type="radio" name="GalleryLayout" value="hero" class="hidden" />
+                        <div class="gallery-layout-preview">
+                            <div class="glp glp-hero"><div class="glp-hero-big"></div><div class="glp-hero-row"><div></div><div></div><div></div></div></div>
+                        </div>
+                        <span class="text-xs mt-1">Hero</span>
+                    </label>
                 </div>
-                <button type="button" class="btn btn-ghost btn-xs mt-2" id="add-gallery-image-btn" onclick="addGallerySlot()">+ Add image</button>
             </div>
 
-            <!-- Caption/description editor (image button hidden) -->
+            <!-- Image upload area + live preview -->
+            <div>
+                <div class="text-sm font-medium mb-2">Images</div>
+
+                <!-- Live preview (hidden when empty, switches between grid/carousel) -->
+                <div id="gallery-preview" class="gallery-upload-preview hidden"></div>
+
+                <!-- Drop zone -->
+                <div id="gallery-drop-zone" class="gallery-drop-zone">
+                    <input type="file" id="gallery-file-input" accept="image/*" multiple class="hidden" />
+                    <div class="gallery-drop-zone-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-sm text-base-content/50">Click or drag images here</span>
+                        <span class="text-xs text-base-content/30 mt-1">JPEG, PNG, GIF, WebP — max 5MB each</span>
+                    </div>
+                </div>
+
+                <!-- Hidden inputs container (populated by JS) -->
+                <div id="gallery-hidden-inputs"></div>
+            </div>
+
+            <!-- Description editor -->
             <div>
                 <div class="text-sm font-medium mb-2">Description (optional)</div>
                 <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                <div id="editor-container" data-hide-image="true" data-placeholder="Add captions, descriptions, or context for your images...">
+                <div id="editor-container" data-hide-image="true" data-placeholder="Add captions or context for your images...">
                     <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                 </div>
             </div>
@@ -70,21 +116,19 @@
     <div class="mt-8 border-t border-base-content/10 pt-6">
         <h3 class="text-sm font-semibold mb-3 text-base-content/70">How galleries work</h3>
         <div class="text-sm text-base-content/60 space-y-3">
-            <p>Galleries are for sharing collections of images. Upload your images above, then add optional descriptions in the editor.</p>
+            <p>Upload images and see a live preview in your chosen layout. Switch between grid and carousel at any time.</p>
             <div>
                 <div class="font-medium text-base-content/70 mb-1">After you post</div>
                 <ul class="space-y-1 list-disc pl-4">
-                    <li>Images display in your post with full-size previews</li>
+                    <li>Images display in your chosen layout</li>
                     <li>Others can reply and discuss your images</li>
-                    <li>Reactions show community appreciation</li>
                 </ul>
             </div>
             <div>
                 <div class="font-medium text-base-content/70 mb-1">Tips</div>
                 <ul class="space-y-1 list-disc pl-4">
-                    <li>Supported formats: JPEG, PNG, GIF, WebP</li>
-                    <li>Max 5MB per image</li>
-                    <li>Add descriptions between images for context</li>
+                    <li>Drag and drop multiple images at once</li>
+                    <li>Supported: JPEG, PNG, GIF, WebP — max 5MB each</li>
                 </ul>
             </div>
         </div>
@@ -93,58 +137,4 @@
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
-<script>
-    var gallerySlotCount = 1;
-
-    function addGallerySlot() {
-        var container = document.getElementById('gallery-uploads');
-        var slot = document.createElement('div');
-        slot.className = 'gallery-upload-slot';
-        slot.dataset.index = gallerySlotCount++;
-        slot.innerHTML =
-            '<div class="flex items-center gap-3">' +
-                '<input type="file" accept="image/*" class="file-input file-input-sm flex-1" onchange="uploadGalleryImage(this)" />' +
-                '<div class="gallery-upload-status text-sm text-base-content/50"></div>' +
-                '<button type="button" class="btn btn-ghost btn-xs" onclick="this.closest(\'.gallery-upload-slot\').remove()">✕</button>' +
-            '</div>' +
-            '<div class="gallery-preview hidden mt-2">' +
-                '<img class="max-h-32 rounded" />' +
-                '<input type="hidden" name="GalleryImageUrls" />' +
-            '</div>';
-        container.appendChild(slot);
-    }
-
-    async function uploadGalleryImage(input) {
-        var file = input.files[0];
-        if (!file) return;
-
-        var slot = input.closest('.gallery-upload-slot');
-        var status = slot.querySelector('.gallery-upload-status');
-        var preview = slot.querySelector('.gallery-preview');
-        var previewImg = preview.querySelector('img');
-        var hiddenInput = preview.querySelector('input[type="hidden"]');
-
-        status.textContent = 'Uploading...';
-
-        try {
-            var formData = new FormData();
-            formData.append('file', file, file.name);
-
-            var response = await fetch('/bff/media/upload', { method: 'POST', body: formData });
-
-            if (!response.ok) {
-                status.textContent = 'Upload failed';
-                return;
-            }
-
-            var result = JSON.parse(await response.text());
-            hiddenInput.value = result.url;
-            previewImg.src = result.url;
-            preview.classList.remove('hidden');
-            status.textContent = 'Uploaded';
-        } catch (err) {
-            status.textContent = 'Error';
-            console.error('Gallery upload error:', err);
-        }
-    }
-</script>
+<script src="@SnakkUrlHelper.Js("pages/gallery-upload")" asp-append-version="true"></script>

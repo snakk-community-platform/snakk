@@ -108,9 +108,10 @@ public class UserRepositoryAdapter(
 
         entity.DisplayName = user.DisplayName;
         entity.Email = user.Email;
-        entity.PreferEndlessScroll = user.PreferEndlessScroll;
+        entity.AvatarFileName = user.AvatarFileName;
         entity.AutoFollowOnReply = user.AutoFollowOnReply;
         entity.Timezone = user.Timezone;
+        entity.Bio = user.Bio;
         entity.LastModifiedAt = user.LastModifiedAt;
         entity.LastSeenAt = user.LastSeenAt;
 
@@ -131,9 +132,9 @@ public class UserRepositoryAdapter(
         public bool HasGlobalAdminRole { get; init; }
         public string? AvatarFileName { get; init; }
         public int AvatarRevision { get; init; }
-        public bool PreferEndlessScroll { get; init; }
         public bool AutoFollowOnReply { get; init; }
         public string? Timezone { get; init; }
+        public string? Bio { get; init; }
         public DateTime CreatedAt { get; init; }
         public DateTime? LastModifiedAt { get; init; }
         public DateTime? LastSeenAt { get; init; }
@@ -157,9 +158,9 @@ public class UserRepositoryAdapter(
                 && r.RevokedAt is null);
             AvatarFileName = u.AvatarFileName;
             AvatarRevision = u.AvatarRevision;
-            PreferEndlessScroll = u.PreferEndlessScroll;
             AutoFollowOnReply = u.AutoFollowOnReply;
             Timezone = u.Timezone;
+            Bio = u.Bio;
             CreatedAt = u.CreatedAt;
             LastModifiedAt = u.LastModifiedAt;
             LastSeenAt = u.LastSeenAt;
@@ -176,9 +177,9 @@ public class UserRepositoryAdapter(
             OAuthProvider, OAuthProviderId,
             HasGlobalAdminRole ? "Admin" : null,
             AvatarFileName, AvatarRevision,
-            PreferEndlessScroll, AutoFollowOnReply,
+            AutoFollowOnReply,
             CreatedAt, LastModifiedAt, LastSeenAt, LastLoginAt,
-            NeedsProfileSetup, Timezone,
+            NeedsProfileSetup, Timezone, bio: Bio,
             DiscussionCount, ReplyCount);
     }
 }

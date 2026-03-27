@@ -1,6 +1,6 @@
 namespace Snakk.Application.Services;
 
-public record MediaUploadResult(string PublicId, string Url);
+public record MediaUploadResult(string PublicId, string Url, string? ThumbnailUrl, string? BlurDataUri);
 
 public interface IMediaService
 {
@@ -19,6 +19,12 @@ public interface IMediaService
         string contentType,
         string userPublicId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete a draft media file (main + thumbnail) by its public URL.
+    /// Only deletes if the media is still a draft (not published).
+    /// </summary>
+    Task<bool> DeleteDraftAsync(string mediaUrl, string userPublicId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Parses media URLs from post content and creates PostMedia links.
