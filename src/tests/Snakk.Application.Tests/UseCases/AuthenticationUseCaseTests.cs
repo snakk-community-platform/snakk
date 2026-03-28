@@ -183,8 +183,10 @@ public class AuthenticationUseCaseTests
 
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
             .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([existingUser]);
+        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(displayName))
+            .ReturnsAsync(existingUser);
+        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(It.Is<string>(n => n != displayName)))
+            .ReturnsAsync((User?)null);
         _mockPasswordHasher.Setup(h => h.HashPassword(It.IsAny<string>()))
             .Returns("hashed");
 
@@ -480,8 +482,8 @@ public class AuthenticationUseCaseTests
 
         _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
             .ReturnsAsync(user);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([user, otherUser]);
+        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync("TakenName"))
+            .ReturnsAsync(otherUser);
         _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hash")).Returns(true);
 
         // Act

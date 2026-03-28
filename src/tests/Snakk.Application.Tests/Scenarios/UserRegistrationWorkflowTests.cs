@@ -108,8 +108,10 @@ public class UserRegistrationWorkflowTests
 
         _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
             .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([existingUser]);
+        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(displayName))
+            .ReturnsAsync(existingUser);
+        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(It.Is<string>(n => n != displayName)))
+            .ReturnsAsync((User?)null);
         _mockPasswordHasher.Setup(h => h.HashPassword(password))
             .Returns("hash");
 
