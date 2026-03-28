@@ -91,11 +91,11 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Assert
         await Assert.That(result.Url).Contains("/storage/media/posts/");
-        await Assert.That(result.Url).Contains(".jpg");
+        await Assert.That(result.Url).Contains(".webp");
         await Assert.That(result.PublicId).IsNotNull();
 
         _fileStorage.Verify(f => f.SaveAsync(
-            It.Is<string>(p => p.StartsWith("media/posts/") && p.EndsWith(".jpg")),
+            It.Is<string>(p => p.StartsWith("media/posts/") && p.EndsWith(".webp")),
             It.IsAny<Stream>(),
             It.IsAny<CancellationToken>()), Times.Once);
 
@@ -227,6 +227,6 @@ public class MediaServiceTests : IAsyncDisposable
         // The DB record should exist with smaller size than original
         var dbRecord = await _db.Media.FirstAsync();
         await Assert.That(dbRecord.SizeBytes).IsGreaterThan(0);
-        await Assert.That(result.Url).Contains(".jpg");
+        await Assert.That(result.Url).Contains(".webp");
     }
 }

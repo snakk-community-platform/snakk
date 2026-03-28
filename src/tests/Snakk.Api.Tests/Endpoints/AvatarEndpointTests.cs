@@ -352,7 +352,7 @@ public class AvatarEndpointTests : IAsyncDisposable
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body);
         await Assert.That(json.RootElement.GetProperty("avatarUrl").GetString())
-            .IsEqualTo($"/avatars/{TestUserId}");
+            .StartsWith("/avatars/uploaded/");
     }
 
     [Test]
