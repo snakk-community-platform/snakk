@@ -86,20 +86,22 @@ public class RegisterModel(
                 return RedirectToPage("/Login", new { returnUrl = ReturnUrl });
             }
 
-            // Set auth cookies (access + refresh)
-            var cookieOptions = new CookieOptions
+            // Set auth cookies using dual-cookie pattern
+            var expiry = DateTimeOffset.UtcNow.AddHours(8);
+            var strictOptions = new CookieOptions
             {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddHours(8),
-                Path = "/"
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+            };
+            var laxOptions = new CookieOptions
+            {
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
             };
 
-            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, cookieOptions);
+            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, strictOptions);
+            Response.Cookies.Append(".Snakk.Auth.Session", response.AccessToken, laxOptions);
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, cookieOptions);
+                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
 
             var returnUrl = ReturnUrl ?? "/";

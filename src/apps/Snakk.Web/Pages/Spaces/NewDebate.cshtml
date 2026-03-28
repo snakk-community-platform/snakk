@@ -44,7 +44,7 @@
                     <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 1 (e.g. For)" />
                     <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 2 (e.g. Against)" />
                 </div>
-                <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" onclick="addDebatePosition()">+ Add position</button>
+                <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" data-action="add-debate-position">+ Add position</button>
 
                 <label class="flex items-center gap-2 text-sm cursor-pointer mt-2">
                     <input type="checkbox" name="DebateAllowNeutral" value="true" class="checkbox checkbox-sm" />
@@ -88,15 +88,4 @@
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
-<script>
-    function addDebatePosition() {
-        var list = document.getElementById('debate-positions-list');
-        if (list.children.length >= 3) return;
-        var input = document.createElement('input');
-        input.type = 'text'; input.name = 'DebatePositions';
-        input.className = 'input w-full input-sm';
-        input.placeholder = 'Position ' + (list.children.length + 1);
-        list.appendChild(input);
-        if (list.children.length >= 3) document.getElementById('add-debate-position-btn').classList.add('hidden');
-    }
-</script>
+<script src="@SnakkUrlHelper.Js("pages/new-debate")" asp-append-version="true"></script>

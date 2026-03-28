@@ -145,7 +145,7 @@
             // Use thumbnail for grid-like layouts, full image for carousel/hero-main
             const useThumbnail = thumbnailLayouts.has(currentLayout) && img.thumbnailUrl;
             const src = useThumbnail ? img.thumbnailUrl : img.url;
-            html += `<img src="${src}" data-full="${img.url}" alt="${img.fileName}" loading="lazy" class="gallery-blur-up" onload="this.classList.add('gallery-loaded')" onerror="this.classList.add('gallery-loaded')" />`;
+            html += `<img src="${src}" data-full="${img.url}" alt="${img.fileName}" loading="lazy" class="gallery-blur-up" data-blur-up />`;
             html += `<button type="button" class="gallery-upload-item-delete" data-index="${i}" title="Remove image">&times;</button>`;
         }
         return html + '</div>';
@@ -202,7 +202,7 @@
                     if (isUploading) {
                         html += '<div class="gallery-upload-item-skeleton skeleton"></div>';
                     } else {
-                        html += `<img src="${src}" data-full="${img.url}" alt="${img.fileName}" class="gallery-blur-up" onload="this.classList.add('gallery-loaded')" />`;
+                        html += `<img src="${src}" data-full="${img.url}" alt="${img.fileName}" class="gallery-blur-up" data-blur-up />`;
                         html += `<button type="button" class="gallery-upload-item-delete" data-index="${i}" title="Remove image">&times;</button>`;
                     }
                     html += '</div>';
@@ -240,9 +240,18 @@
 
         preview.innerHTML = html;
 
-        // Skip blur-up transition for already-cached images
-        preview.querySelectorAll('img.gallery-blur-up').forEach(img => {
-            if ((img as HTMLImageElement).complete) img.classList.add('gallery-loaded');
+        // Attach blur-up load handlers (replaces removed inline onload/onerror)
+        preview.querySelectorAll<HTMLImageElement>('img[data-blur-up]').forEach(img => {
+            const done = () => {
+                img.classList.add('gallery-loaded');
+                img.parentElement?.classList.add('gallery-item-loaded');
+            };
+            if (img.complete) {
+                done();
+            } else {
+                img.addEventListener('load', done);
+                img.addEventListener('error', done);
+            }
         });
 
         // Bind delete buttons

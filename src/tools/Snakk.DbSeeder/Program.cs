@@ -62,6 +62,8 @@ builder.Services.AddScoped<Snakk.Domain.Repositories.ICommunityRepository, Commu
 builder.Services.AddScoped<Snakk.Domain.Repositories.IHubRepository, HubRepositoryAdapter>();
 builder.Services.AddScoped<Snakk.Domain.Repositories.ISpaceRepository, SpaceRepositoryAdapter>();
 
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
 builder.Services.AddSingleton<IMarkupParser, MarkupParser>();
 builder.Services.AddScoped<DatabaseSeeder>();

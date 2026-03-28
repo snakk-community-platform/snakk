@@ -12,7 +12,7 @@ public interface ITokenService
         string ipAddress,
         string userAgent,
         int expirationDays = 90);
-    Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress);
+    Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress, string? userAgent = null);
     Task RevokeRefreshTokenAsync(string tokenValue, string reason);
     Task RevokeAllUserTokensAsync(UserId userId, string reason);
     DateTime? GetTokenExpiration(string token);

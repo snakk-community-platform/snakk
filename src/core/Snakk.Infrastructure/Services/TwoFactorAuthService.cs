@@ -12,6 +12,7 @@ public class TwoFactorAuthService(
     ITotpService totpService,
     IPasswordHasher passwordHasher,
     ITrustedDeviceService trustedDeviceService,
+    ITwoFactorSecretProtector secretProtector,
     ILogger<TwoFactorAuthService> logger) : ITwoFactorAuthService
 {
     public async Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId)
@@ -32,8 +33,8 @@ public class TwoFactorAuthService(
             user.Email ?? user.DisplayName,
             "Snakk");
 
-        // Store secret temporarily (will be saved when user enables 2FA)
-        user.TwoFactorSecret = secret;
+        // Store encrypted secret (will be used when user enables 2FA)
+        user.TwoFactorSecret = secretProtector.Protect(secret);
         await context.SaveChangesAsync();
 
         logger.LogInformation("2FA setup initiated for user {UserId}", userId);
@@ -60,8 +61,9 @@ public class TwoFactorAuthService(
         if (string.IsNullOrEmpty(user.TwoFactorSecret))
             return (false, [], "2FA setup not initiated. Call /setup first");
 
-        // Verify the code
-        if (!totpService.VerifyCode(user.TwoFactorSecret, code))
+        // Decrypt and verify the code
+        var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+        if (!totpService.VerifyCode(decryptedSecret, code))
             return (false, [], "Invalid verification code");
 
         // Enable 2FA
@@ -178,10 +180,11 @@ public class TwoFactorAuthService(
         var isValid = false;
         var usedBackupCode = false;
 
-        // Try TOTP code first
+        // Try TOTP code first (decrypt the stored secret)
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
         {
-            isValid = totpService.VerifyCode(user.TwoFactorSecret, code);
+            var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+            isValid = totpService.VerifyCode(decryptedSecret, code);
         }
 
         // If TOTP fails, try backup codes

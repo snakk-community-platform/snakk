@@ -11,15 +11,7 @@ public class ReportRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReportDatabaseEntity>(context), IReportRepository
 {
     public async Task<ReportDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
-        .Include(r => r.ReporterUser)
-        .Include(r => r.ReportedPost)
-        .Include(r => r.ReportedDiscussion)
-        .Include(r => r.ReportedUser)
         .Include(r => r.Reason)
-        .Include(r => r.ResolvedByUser)
-        .Include(r => r.Space)
-        .Include(r => r.Hub)
-        .Include(r => r.Community)
         .FirstOrDefaultAsync(r => r.PublicId == publicId);
 
     public async Task<ReportDatabaseEntity?> GetByPublicIdWithCommentsAsync(string publicId) => await _dbSet

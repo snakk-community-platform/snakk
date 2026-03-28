@@ -229,10 +229,20 @@ public class MarkupParser : IMarkupParser
 
     private static readonly Regex TableRegex = new(
         @"<table\b[^>]*>.*?</table>",
-        RegexOptions.Singleline | RegexOptions.Compiled);
+        RegexOptions.Singleline | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(250));
 
-    private static string WrapTablesInScrollContainer(string html) =>
-        TableRegex.Replace(html, match => $"<div class=\"table-scroll\">{match.Value}</div>");
+    private static string WrapTablesInScrollContainer(string html)
+    {
+        try
+        {
+            return TableRegex.Replace(html, match => $"<div class=\"table-scroll\">{match.Value}</div>");
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return html;
+        }
+    }
 
     private static bool IsValidUrl(string? url)
     {

@@ -38,11 +38,14 @@ public static class UserMapper
             entity.NeedsProfileSetup,
             entity.Timezone,
             entity.Bio,
+            entity.FeedToken,
             entity.DiscussionCount,
             entity.ReplyCount,
             entity.FollowerCount,
             entity.DisplayNameChangedAt,
-            entity.IsDisplayNameLocked);
+            entity.IsDisplayNameLocked,
+            entity.FailedLoginAttempts,
+            entity.LockoutEnd);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>
@@ -63,6 +66,7 @@ public static class UserMapper
             AutoFollowOnReply = user.AutoFollowOnReply,
             Timezone = user.Timezone,
             Bio = user.Bio,
+            FeedToken = user.FeedToken,
             NeedsProfileSetup = user.NeedsProfileSetup,
             CreatedAt = user.CreatedAt,
             LastModifiedAt = user.LastModifiedAt,
@@ -72,6 +76,8 @@ public static class UserMapper
             ReplyCount = user.ReplyCount,
             FollowerCount = user.FollowerCount,
             DisplayNameChangedAt = user.DisplayNameChangedAt,
-            IsDisplayNameLocked = user.IsDisplayNameLocked
+            IsDisplayNameLocked = user.IsDisplayNameLocked,
+            FailedLoginAttempts = user.FailedLoginAttempts,
+            LockoutEnd = user.LockoutEnd
         };
 }

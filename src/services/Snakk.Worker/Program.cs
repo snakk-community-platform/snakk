@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using Snakk.Worker.Workers;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Services;
@@ -14,9 +15,18 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 //builder.AddSnakkDefaults();
 
 // Database (PostgreSQL) with DbContext pooling for better performance
+var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
+    builder.Configuration.GetConnectionString("DbConnection"))
+{
+    MaxPoolSize = 50,
+    MinPoolSize = 2,
+    Timeout = 30,
+    ConnectionIdleLifetime = 300
+}.ToString();
+
 builder.Services.AddDbContextPool<SnakkDbContext>(options =>
     options
-        .UseNpgsql(builder.Configuration.GetConnectionString("DbConnection"),
+        .UseNpgsql(connectionString,
             o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
         .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
     poolSize: 32);
@@ -50,7 +60,11 @@ builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IUserRepos
 builder.Services.AddScoped<Snakk.Domain.Repositories.IUserRepository, Snakk.Infrastructure.Adapters.UserRepositoryAdapter>();
 
 // HttpClient for webhook service
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("WebhookService", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddStandardResilienceHandler();
 
 // Background workers
 builder.Services.AddHostedService<AchievementCheckerWorker>();

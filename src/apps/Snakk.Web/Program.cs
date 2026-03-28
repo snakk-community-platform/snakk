@@ -4,6 +4,7 @@ using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.IO.Compression;
 using Microsoft.Extensions.FileProviders;
@@ -55,12 +56,18 @@ builder.Services.AddResponseCompression(options =>
 
 builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
 {
-    options.Level = CompressionLevel.Fastest;
+    options.Level = CompressionLevel.Optimal;
 });
 
 builder.Services.Configure<GzipCompressionProviderOptions>(options =>
 {
-    options.Level = CompressionLevel.Fastest;
+    options.Level = CompressionLevel.Optimal;
+});
+
+// Configure JSON serialization with source generators for BFF types
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, Snakk.Web.Models.Bff.BffJsonContext.Default);
 });
 
 // Add services to the container
@@ -96,7 +103,8 @@ builder.Services.AddHttpClient("InternalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddStandardResilienceHandler();
 
 // gRPC channel + clients for API communication
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
@@ -169,12 +177,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)) { KeyId = "snakk-hmac" }
         };
 
-        // Read JWT from cookie instead of Authorization header
+        // Read JWT from cookie instead of Authorization header.
+        // Strict cookie (.Snakk.Auth) is preferred — it's only sent on same-site requests.
+        // Falls back to Lax session cookie (.Snakk.Auth.Session) for cross-site navigation personalization.
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
-                var token = context.Request.Cookies[".Snakk.Auth"];
+                var token = context.Request.Cookies[AuthCookieHelper.AccessCookieName]
+                    ?? context.Request.Cookies[AuthCookieHelper.SessionCookieName];
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.Token = token;
@@ -230,18 +241,18 @@ app.Use(async (context, next) =>
     // Content Security Policy — allow self, Cloudflare Turnstile, inline styles (Tailwind), WebSocket for SignalR
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
+        "script-src 'self' https://challenges.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: https:; " +
         "font-src 'self'; " +
         "connect-src 'self' wss: ws:; " +
-        "frame-src https://challenges.cloudflare.com; " +
-        "frame-ancestors 'none'; " +
+        "frame-src 'self' https://challenges.cloudflare.com; " +
+        "frame-ancestors 'self'; " +
         "base-uri 'self'; " +
         "form-action 'self'");
 
     // Clickjacking protection (redundant with frame-ancestors but covers older browsers)
-    headers.Append("X-Frame-Options", "DENY");
+    headers.Append("X-Frame-Options", "SAMEORIGIN");
 
     // Prevent MIME type sniffing
     headers.Append("X-Content-Type-Options", "nosniff");
@@ -367,6 +378,24 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
+// the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks
+// where the Lax cookie is sent on cross-site navigations but can't perform mutations.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/bff")
+        && context.Request.Method is not "GET" and not "HEAD" and not "OPTIONS"
+        && context.User.Identity?.IsAuthenticated == true
+        && !AuthCookieHelper.HasStrictAuthCookie(context))
+    {
+        context.Response.StatusCode = 403;
+        await context.Response.WriteAsJsonAsync(new { error = "Cross-site mutation rejected" });
+        return;
+    }
+
+    await next();
+});
+
 // Redirect unauthenticated users to SSO login for protected actions
 app.UseAuthRedirect();
 
@@ -379,8 +408,20 @@ app.MapRealtimeTokenEndpoints();
 // Public endpoints
 app.MapSitemapEndpoints();
 app.MapOEmbedEndpoints();
+app.MapRssFeedEndpoints();
 
-// Health check for gateway probes
-app.MapGet("/health", () => Results.Ok());
+// Health check for gateway probes (verifies gRPC channel connectivity)
+app.MapGet("/health", async (Grpc.Net.Client.GrpcChannel channel) =>
+{
+    try
+    {
+        var state = channel.State;
+        return Results.Ok(new { status = "healthy", grpcChannel = state.ToString() });
+    }
+    catch
+    {
+        return Results.Ok(new { status = "degraded", grpcChannel = "unknown" });
+    }
+});
 
 app.Run();

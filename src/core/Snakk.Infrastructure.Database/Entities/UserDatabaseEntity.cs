@@ -12,6 +12,7 @@ public class UserDatabaseEntity
     // Required attributes
     public required string DisplayName { get; set; }
     public string? Email { get; set; }
+    public string? EmailHash { get; set; } // SHA-256 hash of lowercased email for lookups
     public string? PasswordHash { get; set; }
     public bool EmailVerified { get; set; }
     public string? EmailVerificationToken { get; set; }
@@ -36,6 +37,7 @@ public class UserDatabaseEntity
     public bool AutoFollowOnReply { get; set; } = true;
     public string? Timezone { get; set; }
     public string? Bio { get; set; }
+    public string? FeedToken { get; set; }
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }
@@ -49,6 +51,10 @@ public class UserDatabaseEntity
 
     // Profile setup flag (true for new OAuth users until they choose a display name)
     public bool NeedsProfileSetup { get; set; } = false;
+
+    // Account lockout (brute-force protection)
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LockoutEnd { get; set; }
 
     // 2FA (Two-Factor Authentication)
     public bool TwoFactorEnabled { get; set; } = false;

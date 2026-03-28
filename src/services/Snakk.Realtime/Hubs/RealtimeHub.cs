@@ -19,6 +19,26 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     // Connection → discussion mapping for cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
 
+    /// <summary>Current number of tracked connections (for health checks)</summary>
+    public static int ActiveConnectionCount => ConnectionDiscussions.Count;
+
+    /// <summary>
+    /// Periodic cleanup: removes viewer count entries that have dropped to zero.
+    /// Called by ViewerCountCleanupService to prevent unbounded dictionary growth
+    /// from connections that disconnected without triggering OnDisconnectedAsync.
+    /// </summary>
+    public static int CleanupStaleEntries()
+    {
+        var removed = 0;
+        foreach (var kvp in ViewerCounts)
+        {
+            if (kvp.Value <= 0 && ViewerCounts.TryRemove(kvp.Key, out _))
+                removed++;
+        }
+
+        return removed;
+    }
+
     // ==================== Lifecycle ====================
 
     public override async Task OnConnectedAsync()

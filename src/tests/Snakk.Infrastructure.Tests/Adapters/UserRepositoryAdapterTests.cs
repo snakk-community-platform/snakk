@@ -1,3 +1,5 @@
+using Moq;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Infrastructure.Adapters;
 using Snakk.Infrastructure.Database.Repositories;
@@ -17,7 +19,13 @@ public class UserRepositoryAdapterTests : IDisposable
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
         var databaseRepo = new UserRepository(_db.Context);
-        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context);
+
+        var mockEmailProtector = new Mock<IEmailProtector>();
+        mockEmailProtector.Setup(p => p.Protect(It.IsAny<string>())).Returns<string>(s => s);
+        mockEmailProtector.Setup(p => p.Unprotect(It.IsAny<string>())).Returns<string>(s => s);
+        mockEmailProtector.Setup(p => p.ComputeHash(It.IsAny<string>())).Returns<string>(s => s.Trim().ToLowerInvariant());
+
+        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector.Object);
     }
 
     public void Dispose() => _db.Dispose();

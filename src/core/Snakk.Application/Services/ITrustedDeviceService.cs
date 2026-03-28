@@ -35,6 +35,12 @@ public interface ITrustedDeviceService
     Task RevokeDeviceAsync(string devicePublicId, string reason);
 
     /// <summary>
+    /// Revokes a trusted device only if it belongs to the specified user (IDOR-safe).
+    /// Returns false if the device was not found or doesn't belong to the user.
+    /// </summary>
+    Task<bool> RevokeDeviceForUserAsync(string devicePublicId, string userId, string reason);
+
+    /// <summary>
     /// Revokes all trusted devices for a user
     /// </summary>
     Task RevokeAllDevicesAsync(UserId userId, string reason);

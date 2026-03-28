@@ -110,7 +110,9 @@
                 @if (!Model.IsDiscussionLocked && Model.IsAuthenticated && !isOwnPost)
                 {
                     <div class="hidden group-hover:flex items-center gap-1">
-                    <button onclick="replyToPost('@post.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')"
+                    <button data-action="reply-to-post"
+                            data-post-id="@post.PublicId"
+                            data-author-name="@post.Author.DisplayName"
                             class="subtle-btn"
                             aria-label="Reply to @post.Author.DisplayName">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -118,7 +120,10 @@
                         </svg>
                         Reply
                     </button>
-                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@Model.EscapeForJs(post.Author.DisplayName)')"
+                    <button data-action="quote-post"
+                            data-post-id="@post.PublicId"
+                            data-content="@post.Content"
+                            data-author-name="@post.Author.DisplayName"
                             class="subtle-btn"
                             aria-label="Quote post by @post.Author.DisplayName">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -134,7 +139,7 @@
                      data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
                      @if (Model.IsAuthenticated && !Model.IsDiscussionLocked)
                      {
-                         <text>onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"</text>
+                         <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
                      }
                      aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
                     @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
@@ -163,14 +168,14 @@
                             <button hx-get="/api/posts/@post.PublicId/history"
                                     hx-target="#history-modal-content"
                                     hx-swap="innerHTML"
-                                    onclick="history_modal.showModal()"
+                                    data-modal-open="history_modal"
                                     class="text-sm">
                                 History
                             </button>
                         </li>
                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                         {
-                            <li><button onclick="editPost('@post.PublicId', '@Model.CurrentUserId')" class="text-sm">Edit</button></li>
+                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
                             <li>
                                 <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
                                         hx-target="#post-@post.PostNumber"
@@ -184,12 +189,12 @@
                         @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
                         {
                             <li>
-                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')" class="text-sm">
+                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
                                     Hide posts from user
                                 </button>
                             </li>
                             <li>
-                                <button onclick="openReportModal('post', '@post.PublicId', 'this post')" class="text-sm text-error">
+                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="this post" class="text-sm text-error">
                                     Report post
                                 </button>
                             </li>

@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Community;
 
 namespace Snakk.Web.Pages.Communities;
 
-[OutputCache(PolicyName = "CommunitiesList")]
 public class IndexModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

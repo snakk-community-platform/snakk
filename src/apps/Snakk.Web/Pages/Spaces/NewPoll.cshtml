@@ -44,7 +44,7 @@
                     <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="Option 1" />
                     <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="Option 2" />
                 </div>
-                <button type="button" class="btn btn-ghost btn-xs" onclick="addPollOption()">+ Add option</button>
+                <button type="button" class="btn btn-ghost btn-xs" data-action="add-poll-option">+ Add option</button>
 
                 <div class="flex flex-wrap gap-4 mt-2">
                     <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -97,14 +97,4 @@
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
-<script>
-    function addPollOption() {
-        var list = document.getElementById('poll-options-list');
-        if (list.children.length >= 20) return;
-        var input = document.createElement('input');
-        input.type = 'text'; input.name = 'PollOptions';
-        input.className = 'input w-full input-sm';
-        input.placeholder = 'Option ' + (list.children.length + 1);
-        list.appendChild(input);
-    }
-</script>
+<script src="@SnakkUrlHelper.Js("pages/new-poll")" asp-append-version="true"></script>

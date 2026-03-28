@@ -10,6 +10,12 @@
     ViewData["Description"] = Model.Space is { IsRestricted: false }
         ? $"{Model.Space.Name} — discussions and topics in this space on Snakk."
         : null;
+
+    if (Model.Space is not null)
+    {
+        ViewData["RssFeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed.xml";
+        ViewData["RssFeedTitle"] = $"{Model.Space.Name} — RSS Feed";
+    }
 }
 
 @section Meta {
@@ -75,12 +81,18 @@ else
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h1>@Model.Space.Name</h1>
+                                <a href="/c/@(Model.Community.CommunitySlug)/h/@(Model.HubSlug)/@(Model.Slug)/feed.xml"
+                                   class="btn btn-ghost btn-sm btn-square" title="RSS Feed" target="_blank" rel="noopener">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
+                                    </svg>
+                                </a>
                                 @if (Model.IsAuthenticated)
                                 {
                                     <!-- Follow Button Group -->
                                     <div id="follow-group" class="flex items-center ml-auto">
                                         <button id="follow-toggle-btn"
-                                                onclick="toggleFollowSpace('@Model.Space.PublicId')"
+                                                data-action="toggle-follow-space" data-space-id="@Model.Space.PublicId"
                                                 class="btn btn-ghost btn-sm rounded-r-none border-r-0 follow-btn">
                                             <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -89,12 +101,12 @@ else
                                         </button>
                                         <div id="level-toggle" class="btn-group hidden">
                                             <button id="level-discussions-btn"
-                                                    onclick="setFollowLevel('DiscussionsOnly')"
+                                                    data-action="set-follow-level" data-level="DiscussionsOnly"
                                                     class="btn btn-sm btn-primary rounded-none text-xs px-2">
                                                 Discussions
                                             </button>
                                             <button id="level-posts-btn"
-                                                    onclick="setFollowLevel('DiscussionsAndPosts')"
+                                                    data-action="set-follow-level" data-level="DiscussionsAndPosts"
                                                     class="btn btn-sm btn-ghost rounded-l-none text-xs px-2">
                                                 +Posts
                                             </button>
@@ -148,7 +160,7 @@ else
                 }
                 else
                 {
-                    <div class="topic-list" id="discussions-container">
+                    <div class="topic-list h-feed" id="discussions-container">
                         @foreach (var discussion in Model.Discussions.Items)
                         {
                             <partial name="Shared/_SpaceDiscussionListItem"
@@ -315,19 +327,7 @@ else
 }
 
 @section Scripts {
-    @* INLINE REASON: Server-side configuration for follow button functionality.
-       Values are page-specific and only known at render time. Cannot be in external .js files.
-       Endless scroll is now handled by HTMX (hx-trigger="revealed"). *@
-    <script>
-    window.SnakkConfig = {
-        communityPrefix: '@SnakkUrlHelper.CommunityPrefix(Model.Community)',
-        space: {
-            publicId: '@Model.Space!.PublicId',
-            hubSlug: '@Model.HubSlug',
-            slug: '@Model.Slug'
-        }
-    };
-    </script>
+    <script type="application/json" id="space-page-config">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { communityPrefix = SnakkUrlHelper.CommunityPrefix(Model.Community), space = new { publicId = Model.Space!.PublicId, hubSlug = Model.HubSlug, slug = Model.Slug } }))</script>
     <script src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
     }

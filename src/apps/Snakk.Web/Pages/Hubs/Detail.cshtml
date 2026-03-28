@@ -9,6 +9,12 @@
     ViewData["Description"] = Model.Hub is { IsRestricted: false }
         ? $"{Model.Hub.Name} — browse spaces and discussions in this hub on Snakk."
         : null;
+
+    if (Model.Hub is not null)
+    {
+        ViewData["RssFeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed.xml";
+        ViewData["RssFeedTitle"] = $"{Model.Hub.Name} — RSS Feed";
+    }
 }
 
 @section Meta {
@@ -67,7 +73,15 @@ else
                     <div class="flex items-start gap-4">
                         <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)" alt="" width="64" height="64" class="w-16 h-16 rounded-full shrink-0" />
                         <div class="flex-1 min-w-0">
-                            <h1>@Model.Hub.Name</h1>
+                            <div class="flex items-center gap-2">
+                                <h1>@Model.Hub.Name</h1>
+                                <a href="/c/@(Model.Community.CommunitySlug)/h/@(Model.Slug)/feed.xml"
+                                   class="btn btn-ghost btn-sm btn-square" title="RSS Feed" target="_blank" rel="noopener">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
+                                    </svg>
+                                </a>
+                            </div>
                             @if (!string.IsNullOrEmpty(Model.Hub.Description))
                             {
                                 <p>@Model.Hub.Description</p>
@@ -147,7 +161,7 @@ else
                 }
                 else
                 {
-                    <div class="topic-list" id="discussions-container">
+                    <div class="topic-list h-feed" id="discussions-container">
                         @foreach (var discussion in Model.RecentDiscussions.Items)
                         {
                             <partial name="Shared/_DiscussionListItem"

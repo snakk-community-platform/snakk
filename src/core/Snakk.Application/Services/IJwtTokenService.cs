@@ -17,4 +17,9 @@ public interface IJwtTokenService
     string GenerateToken(User user);
 
     ClaimsPrincipal? ValidateToken(string token);
+
+    /// <summary>
+    /// Revokes a JWT by adding its jti to an in-memory blacklist until the token's natural expiry.
+    /// </summary>
+    void RevokeToken(string token);
 }

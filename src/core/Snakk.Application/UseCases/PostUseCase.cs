@@ -5,6 +5,7 @@ using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Models;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 
 public class PostUseCase(
@@ -17,6 +18,7 @@ public class PostUseCase(
     ICounterService counterService,
     IMediaService mediaService,
     IMarkupParser markupParser,
+    IModerationRepository moderationRepository,
     ReactionUseCase reactionUseCase) : UseCaseBase
 {
     public async Task<Result<Post>> CreatePostAsync(
@@ -40,6 +42,12 @@ public class PostUseCase(
 
         if (user is null)
             return Result<Post>.Failure($"User '{userId}' not found");
+
+        // Check if user is banned
+        var isBanned = await moderationRepository.IsUserBannedAsync(userId.Value, spacePublicId: discussion.SpaceId.Value);
+
+        if (isBanned)
+            return Result<Post>.Failure("You are currently banned from posting in this space");
 
         // If replying, validate reply-to post exists
         if (replyToPostId is not null)
@@ -241,15 +249,35 @@ public class PostUseCase(
             .Where(p => !p.IsDeleted)
             .ToList();
 
-        // 2. Batch fetch authors
+        // 2. Prepare batch IDs for parallel fetching
         var authorIds = visiblePosts
             .Select(p => p.CreatedByUserId)
             .Distinct()
             .ToList();
 
-        var authorUsers = await userRepository.GetByPublicIdsAsync(authorIds);
-        var authorsDict = authorUsers.ToDictionary(u => u.PublicId.Value);
+        var replyToIds = visiblePosts
+            .Where(p => p.ReplyToPostId is not null)
+            .Select(p => p.ReplyToPostId!)
+            .Distinct()
+            .ToList();
 
+        var postIds = visiblePosts
+            .Select(p => p.PublicId)
+            .ToList();
+
+        // 3. Fetch authors, reply-to posts, reactions, and user reactions sequentially
+        //    (EF Core DbContext does not support concurrent operations)
+        var authors_raw = await userRepository.GetByPublicIdsAsync(authorIds);
+        var replyToPosts = replyToIds.Count > 0
+            ? await GetPostsByPublicIdsAsync(replyToIds)
+            : Enumerable.Empty<Post>();
+        var reactionCountsResult = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
+        var userReactionsResult = currentUserId is not null
+            ? await reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds)
+            : new Dictionary<string, List<ReactionType>>();
+
+        // 4. Build authors dictionary
+        var authorsDict = authors_raw.ToDictionary(u => u.PublicId.Value);
         var authors = new Dictionary<string, AuthorInfo>();
 
         foreach (var authorId in authorIds)
@@ -270,32 +298,32 @@ public class PostUseCase(
                 authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true, DateTime.MinValue, 0, 0);
         }
 
-        // 3. Batch fetch reply-to posts
-        var replyToIds = visiblePosts
-            .Where(p => p.ReplyToPostId is not null)
-            .Select(p => p.ReplyToPostId!)
-            .Distinct()
-            .ToList();
-
-        var replyToPosts = new Dictionary<string, ReplyToInfo>();
+        // 5. Build reply-to dictionary (need reply authors — batch from already-fetched authors where possible)
+        var replyToPostsDict = new Dictionary<string, ReplyToInfo>();
 
         if (replyToIds.Count > 0)
         {
-            var replyPostsList = (await GetPostsByPublicIdsAsync(replyToIds))
+            var replyPostsList = replyToPosts
                 .Where(p => !p.IsDeleted)
                 .ToList();
 
-            var replyAuthorIds = replyPostsList
+            // Fetch reply authors not already in authorsDict
+            var missingReplyAuthorIds = replyPostsList
                 .Select(p => p.CreatedByUserId)
+                .Where(id => !authorsDict.ContainsKey(id.Value))
                 .Distinct()
                 .ToList();
 
-            var replyAuthorUsers = await userRepository.GetByPublicIdsAsync(replyAuthorIds);
-            var replyAuthorsDict = replyAuthorUsers.ToDictionary(u => u.PublicId.Value);
+            if (missingReplyAuthorIds.Count > 0)
+            {
+                var extraAuthors = await userRepository.GetByPublicIdsAsync(missingReplyAuthorIds);
+                foreach (var a in extraAuthors)
+                    authorsDict[a.PublicId.Value] = a;
+            }
 
             foreach (var replyPost in replyPostsList)
             {
-                var authorName = replyAuthorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
+                var authorName = authorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
                     ? replyAuthor.DisplayName
                     : "Deleted User";
 
@@ -303,22 +331,12 @@ public class PostUseCase(
                     ? replyPost.Content.Substring(0, 100) + "..."
                     : replyPost.Content;
 
-                replyToPosts[replyPost.PublicId.Value] = new ReplyToInfo(authorName, snippet);
+                replyToPostsDict[replyPost.PublicId.Value] = new ReplyToInfo(authorName, snippet);
             }
         }
 
-        // 4. Batch fetch reactions
-        var postIds = visiblePosts
-            .Select(p => p.PublicId)
-            .ToList();
-
-        var reactionCounts = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
-
-        // 5. Fetch current user's reactions if authenticated
-        var userReactions = new Dictionary<string, List<ReactionType>>();
-
-        if (currentUserId is not null)
-            userReactions = await reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds);
+        var reactionCounts = reactionCountsResult;
+        var userReactions = userReactionsResult;
 
         // 6. Build enriched result
         var enrichedPosts = visiblePosts
@@ -326,8 +344,8 @@ public class PostUseCase(
                 Post: p,
                 PostNumber: offset + index + 1,
                 Author: authors[p.CreatedByUserId.Value],
-                ReplyTo: p.ReplyToPostId is not null && replyToPosts.ContainsKey(p.ReplyToPostId.Value)
-                    ? replyToPosts[p.ReplyToPostId.Value]
+                ReplyTo: p.ReplyToPostId is not null && replyToPostsDict.ContainsKey(p.ReplyToPostId.Value)
+                    ? replyToPostsDict[p.ReplyToPostId.Value]
                     : null,
                 ReactionCounts: reactionCounts.GetValueOrDefault(p.PublicId.Value, new Dictionary<ReactionType, int>()),
                 UserReactions: userReactions.GetValueOrDefault(p.PublicId.Value, [])))

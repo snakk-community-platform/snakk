@@ -6,6 +6,7 @@ using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 
 public class DiscussionUseCase(
@@ -17,7 +18,8 @@ public class DiscussionUseCase(
     ICounterService counterService,
     IMarkupParser markupParser,
     IRealtimeNotifier realtimeNotifier,
-    IMediaService mediaService) : UseCaseBase
+    IMediaService mediaService,
+    IModerationRepository moderationRepository) : UseCaseBase
 {
     public async Task<Result<Discussion>> CreateDiscussionAsync(
         SpaceId spaceId,
@@ -38,6 +40,12 @@ public class DiscussionUseCase(
 
         if (user is null)
             return Result<Discussion>.Failure($"User '{userId}' not found");
+
+        // Check if user is banned
+        var isBanned = await moderationRepository.IsUserBannedAsync(userId.Value, spacePublicId: spaceId.Value);
+
+        if (isBanned)
+            return Result<Discussion>.Failure("You are currently banned from posting in this space");
 
         // Create discussion
         var discussion = Discussion.Create(spaceId, userId, title, slug, type);

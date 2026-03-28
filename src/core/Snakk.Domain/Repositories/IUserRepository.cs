@@ -11,6 +11,7 @@ public interface IUserRepository
     Task<User?> GetByEmailAsync(string email);
     Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId);
     Task<User?> GetByDisplayNameAsync(string displayName);
+    Task<User?> GetByEmailVerificationTokenAsync(string token);
     Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit);
     Task<IEnumerable<User>> GetAllAsync();
     Task AddAsync(User user);

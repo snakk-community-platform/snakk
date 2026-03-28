@@ -70,41 +70,73 @@ builder.Services.AddResponseCompression(options =>
         "image/svg+xml"
     ]);
 });
-builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
-builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 
-// Rate limiting (disabled — re-enable before production)
-// builder.Services.AddRateLimiter(options =>
-// {
-//     options.RejectionStatusCode = 429;
-//
-//     // Auth endpoints: strict per-IP (10 req/min) to prevent brute force
-//     options.AddPolicy("auth-strict", context =>
-//         RateLimitPartition.GetFixedWindowLimiter(
-//             partitionKey: GetClientIp(context, clientIpHeader),
-//             factory: _ => new FixedWindowRateLimiterOptions
-//             {
-//                 PermitLimit = 10,
-//                 Window = TimeSpan.FromMinutes(1),
-//                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-//                 QueueLimit = 2
-//             }));
-//
-//     // General routes: moderate per-IP (200 req/min)
-//     options.AddPolicy("general", context =>
-//         RateLimitPartition.GetSlidingWindowLimiter(
-//             partitionKey: GetClientIp(context, clientIpHeader),
-//             factory: _ => new SlidingWindowRateLimiterOptions
-//             {
-//                 PermitLimit = 200,
-//                 Window = TimeSpan.FromMinutes(1),
-//                 SegmentsPerWindow = 6,
-//                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-//                 QueueLimit = 10
-//             }));
-// });
+// Gateway-level rate limiting (per real client IP)
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry)
+            ? retry.TotalSeconds
+            : 60;
 
-// Request timeouts (configured per-route in appsettings.json)
+        context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter).ToString();
+        context.HttpContext.Response.Headers["X-RateLimit-Policy"] = context.Lease.ToString();
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Too many requests. Please try again later.",
+            retryAfter
+        }, cancellationToken);
+    };
+
+    // Auth endpoints: strict on POST (form submissions), relaxed on GET (page loads)
+    options.AddPolicy("auth", context =>
+    {
+        var ip = GetClientIp(context, clientIpHeader);
+        var isPost = context.Request.Method == "POST";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"{ip}:{(isPost ? "post" : "get")}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = isPost ? 30 : 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+    });
+
+    // HTMX partials: separate bucket (sidebars, infinite scroll, fragments)
+    options.AddPolicy("partials", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: GetClientIp(context, clientIpHeader),
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 600,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 5
+            }));
+
+    // Dynamic page/API routes: moderate per-IP (excludes static assets and realtime)
+    options.AddPolicy("general", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: GetClientIp(context, clientIpHeader),
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+});
+
+// Request timeouts (per-route in appsettings.json)
 builder.Services.AddRequestTimeouts();
 
 // YARP reverse proxy with connection pooling
@@ -135,8 +167,12 @@ if (!app.Environment.IsProduction())
 // Middleware pipeline (order matters)
 app.UseResponseCompression();
 app.UseRouting();
-//app.UseRateLimiter();
+app.UseRateLimiter();
 app.UseRequestTimeouts();
+
+// Gateway's own health endpoint (not proxied — handled locally before YARP)
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "gateway" }));
+
 app.MapReverseProxy();
 
 app.Run();

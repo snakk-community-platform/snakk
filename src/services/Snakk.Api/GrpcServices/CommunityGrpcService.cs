@@ -81,7 +81,7 @@ public class CommunityGrpcService(
         var counts = await dbContext.Communities
             .Where(c => publicIds.Contains(c.PublicId))
             .Select(c => new { c.PublicId, c.DiscussionCount, c.PostCount })
-            .ToDictionaryAsync(c => c.PublicId);
+            .ToDictionaryAsync(c => c.PublicId, context.CancellationToken);
 
         var response = new PagedCommunityList
         {

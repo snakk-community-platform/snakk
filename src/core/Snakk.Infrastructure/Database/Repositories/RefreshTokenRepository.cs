@@ -87,12 +87,9 @@ public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepos
 
     public async Task DeleteExpiredTokensAsync()
     {
-        var expiredTokens = await _context.RefreshTokens
+        await _context.RefreshTokens
             .Where(t => t.ExpiresAt < DateTime.UtcNow)
-            .ToListAsync();
-
-        _context.RefreshTokens.RemoveRange(expiredTokens);
-        await _context.SaveChangesAsync();
+            .ExecuteDeleteAsync();
     }
 
     private readonly SnakkDbContext _context = context;

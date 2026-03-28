@@ -484,544 +484,86 @@
                     </div>
                 </div>
             </div>
+
+            <!-- RSS Feeds Section -->
+                <div>
+                    <div class="section-header">
+                        <span class="section-title">RSS Feeds</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="p-4">
+                            <p class="text-sm text-base-content/60 mb-4">
+                                Subscribe to feeds in your favourite RSS reader. Public feeds work without a token.
+                            </p>
+
+                            <div class="space-y-3 text-sm mb-4">
+                                <div>
+                                    <span class="font-medium">Site-wide feed</span>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <input type="text" readonly value="/feed.xml" id="rss-site-url"
+                                               class="input input-sm w-full font-mono text-xs" />
+                                        <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0" onclick="navigator.clipboard.writeText(document.getElementById('rss-site-url').value)" title="Copy">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-base-content/50">
+                                    Feeds are also available per hub and space — look for the RSS icon or append <code>/feed.xml</code> to any hub or space URL.
+                                </p>
+                            </div>
+
+                            <div class="border-t border-subtle pt-4">
+                                <span class="font-medium text-sm">Personal feed token</span>
+                                <p class="text-xs text-base-content/50 mt-1 mb-3">
+                                    Generate a token for authenticated feeds (e.g. your followed discussions). Keep it secret — anyone with the token can read your feeds.
+                                </p>
+
+                                <div id="feed-token-section">
+                                    <div id="feed-token-empty" class="hidden">
+                                        <button type="button" class="btn btn-primary btn-sm" id="generate-feed-token-btn">Generate Token</button>
+                                    </div>
+                                    <div id="feed-token-active" class="hidden">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <input type="text" readonly id="feed-token-value"
+                                                   class="input input-sm w-full font-mono text-xs" />
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0" onclick="navigator.clipboard.writeText(document.getElementById('feed-token-value').value)" title="Copy">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                            </button>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button type="button" class="btn btn-ghost btn-sm" id="regenerate-feed-token-btn">Regenerate</button>
+                                            <button type="button" class="btn btn-ghost btn-sm text-error" id="revoke-feed-token-btn">Revoke</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- Trusted Devices Section -->
+            <div class="card bg-base-100 border border-subtle">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Trusted Devices</h2>
+                    <p class="text-sm text-muted mb-4">Devices that have been trusted for this account. Revoking a device will require re-authentication on that device.</p>
+                    <div id="devices-list">
+                        <div class="flex justify-center py-4">
+                            <span class="loading loading-spinner loading-md text-muted"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<script>
-@* INLINE REASON: Page-specific profile settings functionality including client-side authentication check,
-   profile data loading, avatar upload, and form submissions. Not reused elsewhere. *@
-
-(function() {
-    let userId = null;
-    let userData = null;
-
-    // Client-side authentication check and profile data loading
-    async function initProfileSettings() {
-        // Load profile data via BFF
-        try {
-            const response = await fetch('/bff/me', {
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to load profile');
-            }
-
-            userData = await response.json();
-            userId = userData.publicId;
-
-            console.log('[Profile Settings] Loaded profile data:', userData);
-            populateProfileForm(userData);
-        } catch (error) {
-            console.error('[Profile Settings] Failed to load profile:', error);
-            window.location.href = '/auth/login?returnUrl=/settings';
-        }
-    }
-
-    function populateProfileForm(data) {
-        // Update avatar — use custom avatar URL if set, otherwise keep generated SVG
-        const avatarImg = document.getElementById('avatar-preview');
-        if (avatarImg && data.avatarUrl) {
-            avatarImg.src = data.avatarUrl;
-        }
-
-        // Update display name input
-        const displayNameInput = document.querySelector('input[name="displayName"]');
-        if (displayNameInput) {
-            displayNameInput.value = data.displayName || '';
-        }
-
-        // Update preferences checkboxes
-        const autoFollowCheckbox = document.querySelector('input[name="autoFollowOnReply"]');
-        if (autoFollowCheckbox) {
-            autoFollowCheckbox.checked = data.autoFollowOnReply !== false;
-        }
-
-        // Update timezone select
-        const timezoneSelect = document.getElementById('timezone-select');
-        if (timezoneSelect) {
-            timezoneSelect.value = data.timezone || 'UTC';
-        }
-
-        // Update bio
-        const bioInput = document.getElementById('bio-input');
-        const bioCharCount = document.getElementById('bio-char-count');
-        if (bioInput) {
-            bioInput.value = data.bio || '';
-            if (bioCharCount) bioCharCount.textContent = (data.bio || '').length;
-        }
-
-        // Display name change restrictions
-        const statusEl = document.getElementById('display-name-status');
-        const passwordField = document.getElementById('password-field');
-        const displayNameForm = document.getElementById('display-name-form');
-
-        if (data.isDisplayNameLocked) {
-            if (statusEl) {
-                statusEl.textContent = 'Your display name has been locked by an administrator.';
-                statusEl.className = 'text-sm mb-3 text-warning';
-            }
-            if (displayNameForm) {
-                displayNameForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
-            }
-        } else if (data.displayNameChangedAt) {
-            const changedAt = new Date(data.displayNameChangedAt);
-            const daysSince = Math.floor((Date.now() - changedAt.getTime()) / (1000 * 60 * 60 * 24));
-            const cooldownDays = 30;
-            if (daysSince < cooldownDays) {
-                const remaining = cooldownDays - daysSince;
-                if (statusEl) {
-                    statusEl.textContent = `You can change your display name again in ${remaining} day${remaining === 1 ? '' : 's'}.`;
-                    statusEl.className = 'text-sm mb-3 text-base-content/60';
-                }
-                if (displayNameForm) {
-                    displayNameForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
-                }
-            }
-        }
-
-        // Hide password field for OAuth-only users (no password set)
-        if (!data.passwordHash && data.oAuthProvider && passwordField) {
-            passwordField.style.display = 'none';
-        }
-
-        // Update account info section
-        if (data.email) {
-            const emailEl = document.getElementById('profile-email');
-            const emailBadge = document.getElementById('profile-email-badge');
-            const emailRow = document.getElementById('email-row');
-
-            if (emailEl) emailEl.textContent = data.email;
-            if (emailBadge) {
-                emailBadge.textContent = data.emailVerified ? 'Verified' : 'Not verified';
-                emailBadge.className = data.emailVerified
-                    ? 'badge badge-success badge-sm shrink-0'
-                    : 'badge badge-warning badge-sm shrink-0';
-            }
-            if (emailRow) emailRow.style.display = '';
-        }
-
-        if (data.oAuthProvider) {
-            const oauthEl = document.getElementById('profile-oauth');
-            const oauthRow = document.getElementById('oauth-row');
-
-            if (oauthEl) oauthEl.textContent = data.oAuthProvider;
-            if (oauthRow) oauthRow.style.display = '';
-        }
-
-        const userIdEl = document.getElementById('profile-userid');
-        if (userIdEl) {
-            userIdEl.textContent = data.publicId;
-        }
-    }
-
-    function showStatus(message, isError = false) {
-        const statusDiv = document.getElementById('upload-status');
-        if (!statusDiv) return;
-        statusDiv.textContent = message;
-        statusDiv.className = 'mt-3 text-sm ' + (isError ? 'text-error' : 'text-success');
-        statusDiv.classList.remove('hidden');
-    }
-
-    function showMessage(message, isError = false) {
-        // Remove existing messages
-        const existingAlerts = document.querySelectorAll('.profile-alert-message');
-        existingAlerts.forEach(el => el.remove());
-
-        // Create new message
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert ${isError ? 'alert-error' : 'alert-success'} mb-6 profile-alert-message`;
-        alertDiv.innerHTML = `<span>${message}</span>`;
-
-        // Insert after page header
-        const pageHeader = document.querySelector('.page-header');
-        if (pageHeader) {
-            pageHeader.insertAdjacentElement('afterend', alertDiv);
-        }
-
-        setTimeout(() => { alertDiv.remove(); }, 5000);
-    }
-
-    async function refreshAvatar() {
-        const avatarPreview = document.getElementById('avatar-preview');
-        if (!avatarPreview || !userId) return;
-        // Re-fetch profile to get the current avatar URL
-        try {
-            const response = await fetch('/bff/me', { credentials: 'include' });
-            if (response.ok) {
-                const data = await response.json();
-                const timestamp = new Date().getTime();
-                if (data.avatarUrl) {
-                    avatarPreview.src = data.avatarUrl + '?t=' + timestamp;
-                } else {
-                    // Fall back to generated SVG
-                    avatarPreview.src = document.getElementById('avatar-preview').dataset.generatedUrl || '';
-                }
-            }
-        } catch { /* ignore */ }
-    }
-
-    function setAvatarFile(file) {
-        const avatarPreview = document.getElementById('avatar-preview');
-        const fileInput = document.getElementById('avatar-file');
-        const uploadBtn = document.getElementById('upload-btn');
-        const dropLabel = document.getElementById('avatar-drop-label');
-        if (!avatarPreview || !fileInput) return;
-
-        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowed.includes(file.type)) {
-            showStatus('Invalid file type. Allowed: JPEG, PNG, WebP.', true);
-            return;
-        }
-
-        if (file.size > 2 * 1024 * 1024) {
-            showStatus('File is too large. Maximum size is 2MB.', true);
-            return;
-        }
-
-        // Transfer file to the hidden input via DataTransfer
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInput.files = dt.files;
-
-        if (uploadBtn) uploadBtn.disabled = false;
-        if (dropLabel) dropLabel.textContent = file.name;
-
-        const reader = new FileReader();
-        reader.onload = function(e) { avatarPreview.src = e.target.result; };
-        reader.readAsDataURL(file);
-    }
-
-    function initAvatarDropZone() {
-        const dropZone = document.getElementById('avatar-drop-zone');
-        const fileInput = document.getElementById('avatar-file');
-        if (!dropZone || !fileInput) return;
-
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) setAvatarFile(e.target.files[0]);
-        });
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('gallery-drop-zone-active');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('gallery-drop-zone-active');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('gallery-drop-zone-active');
-            const file = e.dataTransfer?.files[0];
-            if (file) setAvatarFile(file);
-        });
-    }
-
-    function resetDropZone() {
-        const dropLabel = document.getElementById('avatar-drop-label');
-        if (dropLabel) dropLabel.textContent = 'Click or drag an image here';
-    }
-
-    async function handleAvatarUploadSubmit(e) {
-        e.preventDefault();
-
-        const fileInput = document.getElementById('avatar-file');
-        const uploadBtn = document.getElementById('upload-btn');
-        if (!fileInput || !uploadBtn) return;
-
-        const file = fileInput.files[0];
-        if (!file) {
-            showStatus('Please select a file first.', true);
-            return;
-        }
-
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = 'Uploading...';
-
-        try {
-            const formData = new FormData();
-            formData.append('avatar', file);
-
-            const response = await fetch('/bff/avatars/upload', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                showStatus('Avatar uploaded successfully!');
-                refreshAvatar();
-                fileInput.value = '';
-                resetDropZone();
-                uploadBtn.disabled = true;
-                const delBtn = document.getElementById('delete-avatar-btn');
-                if (delBtn) delBtn.disabled = false;
-                htmx.ajax('GET', location.pathname, { target: '#auth-nav', select: '#auth-nav > *', swap: 'innerHTML' });
-            } else {
-                showStatus(result.error || 'Failed to upload avatar.', true);
-                refreshAvatar();
-            }
-        } catch (error) {
-            showStatus('Network error. Please try again.', true);
-            refreshAvatar();
-        } finally {
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload Avatar';
-        }
-    }
-
-    async function handleDeleteClick() {
-        if (!confirm('Revert to the auto-generated avatar?')) return;
-
-        const deleteBtn = document.getElementById('delete-avatar-btn');
-        if (!deleteBtn) return;
-
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Reverting...';
-
-        try {
-            const response = await fetch('/bff/avatars', {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                showStatus('Now using generated avatar.');
-                refreshAvatar();
-                deleteBtn.disabled = true;
-                deleteBtn.textContent = 'Use Generated';
-                htmx.ajax('GET', location.pathname, { target: '#auth-nav', select: '#auth-nav > *', swap: 'innerHTML' });
-            } else {
-                deleteBtn.disabled = false;
-                deleteBtn.textContent = 'Use Generated';
-                const result = await response.json();
-                showStatus(result.error || 'Failed to delete avatar.', true);
-            }
-        } catch (error) {
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = 'Use Generated';
-            showStatus('Network error. Please try again.', true);
-        }
-    }
-
-    async function handleDisplayNameUpdate(e) {
-        e.preventDefault();
-
-        const form = e.target;
-        const displayNameInput = form.querySelector('input[name="displayName"]');
-        const passwordInput = form.querySelector('input[name="password"]');
-        const displayName = displayNameInput?.value?.trim();
-        const password = passwordInput?.value || null;
-
-        if (!displayName) {
-            showMessage('Display name cannot be empty', true);
-            return;
-        }
-
-        // Get Turnstile token
-        const turnstileToken = typeof turnstile !== 'undefined'
-            ? turnstile.getResponse()
-            : null;
-
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Updating...';
-        }
-
-        try {
-            const response = await fetch(`/bff/me/profile`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ displayName, password, turnstileToken })
-            });
-
-            const result = await response.json().catch(() => null);
-
-            if (response.ok) {
-                showMessage('Display name updated successfully');
-                if (passwordInput) passwordInput.value = '';
-                // Reset Turnstile for next use
-                if (typeof turnstile !== 'undefined') turnstile.reset();
-            } else {
-                showMessage(result?.error || 'Failed to update display name', true);
-                if (typeof turnstile !== 'undefined') turnstile.reset();
-            }
-        } catch (error) {
-            console.error('[Profile Settings] Update display name error:', error);
-            showMessage('Network error. Please try again.', true);
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Update Display Name';
-            }
-        }
-    }
-
-    async function handleBioSave() {
-        const bioInput = document.getElementById('bio-input');
-        const saveBtn = document.getElementById('save-bio-btn');
-        if (!bioInput || !saveBtn) return;
-
-        const bio = bioInput.value.trim();
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
-
-        try {
-            const response = await fetch('/bff/me/preferences', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ bio })
-            });
-
-            if (response.ok) {
-                showMessage('Bio updated');
-            } else {
-                showMessage('Failed to update bio', true);
-            }
-        } catch {
-            showMessage('Network error. Please try again.', true);
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Bio';
-        }
-    }
-
-    async function handleTimezoneChange(select) {
-        const timezone = select.value;
-
-        try {
-            const response = await fetch(`/bff/me/preferences`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ timezone })
-            });
-
-            if (response.ok) {
-                showMessage('Timezone updated');
-            } else {
-                showMessage('Failed to update timezone', true);
-            }
-        } catch (error) {
-            showMessage('Network error. Please try again.', true);
-        }
-    }
-
-    async function handleAutoFollowPreferenceChange(checkbox) {
-        const autoFollowOnReply = checkbox.checked;
-
-        try {
-            const response = await fetch(`/bff/me/preferences`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ autoFollowOnReply })
-            });
-
-            if (response.ok) {
-                showMessage('Auto-follow preference updated');
-            } else {
-                showMessage('Failed to update preference', true);
-                checkbox.checked = !autoFollowOnReply;
-            }
-        } catch (error) {
-            showMessage('Network error. Please try again.', true);
-            checkbox.checked = !autoFollowOnReply;
-        }
-    }
-
-    function initSkinTonePicker() {
-        const picker = document.getElementById('skin-tone-picker');
-        if (!picker) return;
-
-        const stored = localStorage.getItem('snakk:skin-tone') || '';
-        const swatches = picker.querySelectorAll('.skin-tone-swatch');
-        swatches.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tone === stored);
-        });
-
-        picker.addEventListener('click', (e) => {
-            const btn = e.target.closest('.skin-tone-swatch');
-            if (!btn) return;
-
-            const tone = btn.dataset.tone;
-            localStorage.setItem('snakk:skin-tone', tone);
-
-            swatches.forEach(s => s.classList.toggle('active', s === btn));
-        });
-    }
-
-    function attachEventListeners() {
-        initSkinTonePicker();
-
-        const avatarForm = document.getElementById('avatar-upload-form');
-        const deleteBtn = document.getElementById('delete-avatar-btn');
-
-        if (avatarForm && !avatarForm.dataset.initialized) {
-            avatarForm.dataset.initialized = 'true';
-            initAvatarDropZone();
-            avatarForm.addEventListener('submit', handleAvatarUploadSubmit);
-            if (deleteBtn) deleteBtn.addEventListener('click', handleDeleteClick);
-        }
-
-        const displayNameForms = document.querySelectorAll('form[asp-page-handler="UpdateDisplayName"]');
-        displayNameForms.forEach(form => {
-            if (!form.dataset.initialized) {
-                form.dataset.initialized = 'true';
-                form.addEventListener('submit', handleDisplayNameUpdate);
-            }
-        });
-
-
-
-        const bioInput = document.getElementById('bio-input');
-        const bioCharCount = document.getElementById('bio-char-count');
-        const saveBioBtn = document.getElementById('save-bio-btn');
-        if (bioInput && !bioInput.dataset.initialized) {
-            bioInput.dataset.initialized = 'true';
-            bioInput.addEventListener('input', () => {
-                if (bioCharCount) bioCharCount.textContent = bioInput.value.length;
-            });
-            if (saveBioBtn) saveBioBtn.addEventListener('click', handleBioSave);
-        }
-
-        const autoFollowCheckbox = document.querySelector('input[name="autoFollowOnReply"][type="checkbox"]');
-        if (autoFollowCheckbox && !autoFollowCheckbox.dataset.initialized) {
-            autoFollowCheckbox.dataset.initialized = 'true';
-            autoFollowCheckbox.addEventListener('change', (e) => handleAutoFollowPreferenceChange(e.target));
-        }
-
-        const timezoneSelect = document.getElementById('timezone-select');
-        if (timezoneSelect && !timezoneSelect.dataset.initialized) {
-            timezoneSelect.dataset.initialized = 'true';
-            timezoneSelect.addEventListener('change', (e) => handleTimezoneChange(e.target));
-        }
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initProfileSettings().then(() => attachEventListeners());
-        });
-    } else {
-        initProfileSettings().then(() => attachEventListeners());
-    }
-
-    document.body.addEventListener('htmx:load', function(evt) {
-        if (document.getElementById('avatar-upload-form')) {
-            initProfileSettings().then(() => attachEventListeners());
-        }
-    });
-})();
+<script type="application/json" id="settings-page-config">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    turnstileSiteKey = Model.TurnstileSiteKey
+}, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true" defer></script>
 <script src="/js/dist/components/timezone-map.js" defer></script>
 @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
 {

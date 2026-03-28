@@ -119,7 +119,15 @@ public class PollService(SnakkDbContext context) : IPollService
         });
         option.VoteCount++;
 
-        await context.SaveChangesAsync();
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return (false, "You have already voted for this option");
+        }
+
         return (true, null);
     }
 

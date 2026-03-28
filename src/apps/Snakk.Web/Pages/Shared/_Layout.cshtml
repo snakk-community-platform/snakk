@@ -22,6 +22,11 @@
 
     <!-- Canonical URL (pages can override via ViewData["CanonicalUrl"]) -->
     <link rel="canonical" href="@(ViewData["CanonicalUrl"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
+    @if (ViewData["RssFeedUrl"] is string rssFeedUrl)
+    {
+        <link rel="alternate" type="application/rss+xml" title="@(ViewData["RssFeedTitle"] ?? "RSS Feed")" href="@rssFeedUrl" />
+    }
+    <link rel="search" type="application/opensearchdescription+xml" title="Snakk" href="/opensearch.xml" />
 
     <!-- Realtime WebSocket connects same-origin through the gateway — no preconnect needed -->
 
@@ -64,14 +69,14 @@
     <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
+    <!-- Action delegation (must load before page scripts that register handlers) -->
+    <script src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
     <!-- Auth (CSRF interceptor) + Theme (full management, toggle, system listener) -->
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
 
-    <!-- Realtime Service Configuration -->
-    <script>
-        window.realtimeServiceUrl = '@(Configuration["RealtimeServiceUrl"] ?? "/realtime")';
-    </script>
+    <!-- Runtime configuration (read by JS from meta tags — no inline scripts) -->
+    <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
 
     <!-- Note: JavaScript only calls /bff/* endpoints for HTTP (Backend-for-Frontend pattern)
          JavaScript connects directly to Snakk.Realtime for WebSocket (no proxy) -->
@@ -161,10 +166,10 @@
     @{
         var _tz = Context.Request.Cookies[".Snakk.Pref.Timezone"];
     }
-    <script>window.snakkTimezone = '@(_tz ?? "UTC")';</script>
+    <meta name="snakk-timezone" content="@(_tz ?? "UTC")" />
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <script>window.currentUserId = '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';</script>
+        <meta name="current-user-id" content="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
     }
     <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/search-focus")" asp-append-version="true" defer></script>
@@ -185,42 +190,11 @@
     <!-- Realtime Updates -->
     <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
 
-    <!-- Non-critical scripts: lazy-loaded after initial render -->
-    @{
-        var siteJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"));
-        var sidebarJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/sidebar-scrollbar"));
-        var breadcrumbJsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/breadcrumb-title"));
-    }
-    <script>
-        (function() {
-            // Load a script dynamically by URL
-            function loadScript(src) {
-                var s = document.createElement('script');
-                s.src = src;
-                document.body.appendChild(s);
-            }
-
-            // Hover popups: load on first pointer interaction
-            var popupsLoaded = false;
-            document.addEventListener('pointerover', function handler() {
-                if (popupsLoaded) return;
-                popupsLoaded = true;
-                document.removeEventListener('pointerover', handler);
-                loadScript('@Html.Raw(siteJsUrl)');
-            }, { passive: true, capture: true });
-
-            // Sidebar scrollbar + breadcrumb title: load when browser is idle
-            function loadIdleScripts() {
-                loadScript('@Html.Raw(sidebarJsUrl)');
-                loadScript('@Html.Raw(breadcrumbJsUrl)');
-            }
-            if ('requestIdleCallback' in window) {
-                requestIdleCallback(loadIdleScripts);
-            } else {
-                setTimeout(loadIdleScripts, 200);
-            }
-        })();
-    </script>
+    <!-- Non-critical scripts: URLs for lazy-loader (core/script-loader.ts) -->
+    <meta name="lazy-site-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"))" />
+    <meta name="lazy-sidebar-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/sidebar-scrollbar"))" />
+    <meta name="lazy-breadcrumb-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/breadcrumb-title"))" />
+    <script src="@SnakkUrlHelper.Js("core/script-loader")" asp-append-version="true" defer></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -17,7 +17,7 @@ public static class AvatarEndpoints
             .WithName("UploadAvatar")
             .Produces<AvatarUploadResponse>()
             .RequireAuthorization()
-            .DisableAntiforgery();
+            .DisableAntiforgery(); // File uploads via fetch() — CSRF mitigated by JWT auth
 
         group.MapDelete("/", DeleteAvatarAsync)
             .WithName("DeleteAvatar")

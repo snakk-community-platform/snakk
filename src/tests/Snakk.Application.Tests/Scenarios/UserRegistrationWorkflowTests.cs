@@ -65,8 +65,8 @@ public class UserRegistrationWorkflowTests
         var verificationToken = registeredUser.EmailVerificationToken!;
 
         // Step 2: Verify email
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([registeredUser]);
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync(verificationToken))
+            .ReturnsAsync(registeredUser);
 
         var verifyResult = await _useCase.VerifyEmailAsync(verificationToken);
 
@@ -161,8 +161,8 @@ public class UserRegistrationWorkflowTests
         const string email = "test@example.com";
         var user = User.CreateWithEmail("TestUser", email, "hash", "verification_token");
 
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([user]);
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync("verification_token"))
+            .ReturnsAsync(user);
 
         // Step 1: First verification (succeeds)
         var firstVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
@@ -170,12 +170,16 @@ public class UserRegistrationWorkflowTests
         await Assert.That(firstVerifyResult.IsSuccess).IsTrue();
         await Assert.That(user.EmailVerified).IsTrue();
 
+        // After verification, the token is set to null, so the repository returns null
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync("verification_token"))
+            .ReturnsAsync((User?)null);
+
         // Step 2: Try to verify again
         var secondVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
 
         // Assert - Second verification should fail
-        // Note: After verification succeeds, the token is set to null, so when we try to verify again
-        // with the same token, the user lookup by token returns null, hence "Invalid or expired verification token"
+        // After verification succeeds, the token is set to null, so when we try to verify again
+        // with the same token, the repository returns null, hence "Invalid or expired verification token"
         await Assert.That(secondVerifyResult.IsSuccess).IsFalse();
         await Assert.That(secondVerifyResult.Error).Contains("Invalid or expired verification token");
     }

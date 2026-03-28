@@ -155,6 +155,21 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
         }
     }
 
+    public async Task<bool> RevokeDeviceForUserAsync(string devicePublicId, string userId, string reason)
+    {
+        var device = await context.TrustedDevices
+            .Include(d => d.User)
+            .FirstOrDefaultAsync(d => d.PublicId == devicePublicId);
+
+        if (device is null || device.User.PublicId != userId || device.RevokedAt is not null)
+            return false;
+
+        device.RevokedAt = DateTime.UtcNow;
+        device.RevocationReason = reason;
+        await context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task RevokeAllDevicesAsync(UserId userId, string reason)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);

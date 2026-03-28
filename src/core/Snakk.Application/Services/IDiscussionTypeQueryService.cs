@@ -28,7 +28,7 @@ public interface IDiscussionTypeQueryService
 
     // Debate
     Task<DebateInfo?> GetDebateInfoAsync(string discussionPublicId);
-    Task<(bool Success, string? Error)> SetPostDebatePositionAsync(string discussionPublicId, string postPublicId, int positionId);
+    Task<(bool Success, string? Error)> SetPostDebatePositionAsync(string discussionPublicId, string postPublicId, int positionId, string userPublicId);
 
     // Link
     Task<LinkInfo?> GetLinkInfoAsync(string discussionPublicId);

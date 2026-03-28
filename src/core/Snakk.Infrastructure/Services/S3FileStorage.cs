@@ -59,6 +59,8 @@ public class S3FileStorage : IFileStorage
         await _s3Client.PutObjectAsync(request, cancellationToken);
     }
 
+    private const long MaxReadSize = 50 * 1024 * 1024; // 50 MB safety limit
+
     public async Task<Stream?> ReadAsync(
         string relativePath,
         CancellationToken cancellationToken = default)
@@ -69,7 +71,11 @@ public class S3FileStorage : IFileStorage
         try
         {
             var response = await _s3Client.GetObjectAsync(_bucketName, NormalizeKey(relativePath), cancellationToken);
-            var memoryStream = new MemoryStream();
+
+            if (response.ContentLength > MaxReadSize)
+                throw new InvalidOperationException($"S3 object exceeds maximum read size of {MaxReadSize / (1024 * 1024)} MB: {relativePath}");
+
+            var memoryStream = new MemoryStream((int)Math.Min(response.ContentLength, MaxReadSize));
             await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
             memoryStream.Position = 0;
             return memoryStream;

@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Snakk.Realtime;
@@ -16,8 +17,14 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 
 //builder.AddSnakkDefaults();
 
-// Add SignalR
-builder.Services.AddSignalR();
+// Add SignalR with tuned limits
+builder.Services.AddSignalR(options =>
+{
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32 KB
+    options.StreamBufferCapacity = 20;
+});
 
 // JWT auth for browser WebSocket connections
 var realtimeJwtKey = builder.Configuration["Realtime:JwtKey"]
@@ -54,6 +61,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Background service to clean up stale viewer count entries
+builder.Services.AddHostedService<ViewerCountCleanupService>();
+
 // HTTP client to Snakk.Api for subscription access verification
 var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
 var snakkApiKey = builder.Configuration["SnakkApi:ApiKey"] ?? string.Empty;
@@ -63,7 +73,8 @@ builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
     client.BaseAddress = new Uri(snakkApiBaseUrl);
     client.DefaultRequestHeaders.Add("X-Api-Key", snakkApiKey);
     client.Timeout = TimeSpan.FromSeconds(5);
-});
+})
+.AddStandardResilienceHandler();
 
 // Configure forwarded headers for proxy scenarios
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -109,6 +120,6 @@ app.MapPost("/api/broadcast", BroadcastEndpoints.BroadcastEvent);
 app.MapPost("/api/broadcast/activity", BroadcastEndpoints.BroadcastActivity);
 
 // Health check for gateway probes
-app.MapGet("/health", () => Results.Ok());
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", connections = Snakk.Realtime.Hubs.RealtimeHub.ActiveConnectionCount }));
 
 app.Run();

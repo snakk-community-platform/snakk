@@ -10,17 +10,36 @@ namespace Snakk.Infrastructure.Services;
 public class LocalFileStorage : IFileStorage
 {
     private readonly string _basePath;
+    private readonly string _resolvedBasePath;
     private readonly string _publicUrlBase;
 
     public LocalFileStorage(IConfiguration configuration)
     {
         _basePath = configuration["FileStorage:BasePath"]
             ?? throw new InvalidOperationException("FileStorage:BasePath is not configured");
+        _resolvedBasePath = Path.GetFullPath(_basePath);
         _publicUrlBase = configuration["FileStorage:PublicUrlBase"] ?? "/storage";
 
         // Ensure the base directory exists
-        if (!Directory.Exists(_basePath))
-            Directory.CreateDirectory(_basePath);
+        if (!Directory.Exists(_resolvedBasePath))
+            Directory.CreateDirectory(_resolvedBasePath);
+    }
+
+    /// <summary>
+    /// Resolves a relative path to a full path within the base directory.
+    /// Throws if the resolved path escapes the base directory (path traversal prevention).
+    /// </summary>
+    private string ResolveSafePath(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
+
+        var fullPath = Path.GetFullPath(Path.Combine(_basePath, relativePath));
+
+        if (!fullPath.StartsWith(_resolvedBasePath, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Path traversal detected — resolved path is outside the storage directory.", nameof(relativePath));
+
+        return fullPath;
     }
 
     public async Task SaveAsync(
@@ -28,10 +47,7 @@ public class LocalFileStorage : IFileStorage
         Stream content,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(relativePath))
-            throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
-
-        var fullPath = Path.Combine(_basePath, relativePath);
+        var fullPath = ResolveSafePath(relativePath);
         var directory = Path.GetDirectoryName(fullPath);
 
         if (directory is not null && !Directory.Exists(directory))
@@ -41,19 +57,22 @@ public class LocalFileStorage : IFileStorage
         await content.CopyToAsync(fileStream, cancellationToken);
     }
 
+    private const long MaxReadSize = 50 * 1024 * 1024; // 50 MB safety limit
+
     public async Task<Stream?> ReadAsync(
         string relativePath,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(relativePath))
-            throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
-
-        var fullPath = Path.Combine(_basePath, relativePath);
+        var fullPath = ResolveSafePath(relativePath);
 
         if (!File.Exists(fullPath))
             return null;
 
-        var memoryStream = new MemoryStream();
+        var fileInfo = new FileInfo(fullPath);
+        if (fileInfo.Length > MaxReadSize)
+            throw new InvalidOperationException($"File exceeds maximum read size of {MaxReadSize / (1024 * 1024)} MB: {relativePath}");
+
+        var memoryStream = new MemoryStream((int)fileInfo.Length);
         using var fileStream = File.OpenRead(fullPath);
         await fileStream.CopyToAsync(memoryStream, cancellationToken);
         memoryStream.Position = 0;
@@ -64,10 +83,7 @@ public class LocalFileStorage : IFileStorage
         string relativePath,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(relativePath))
-            throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
-
-        var fullPath = Path.Combine(_basePath, relativePath);
+        var fullPath = ResolveSafePath(relativePath);
         return Task.FromResult(File.Exists(fullPath));
     }
 
@@ -75,10 +91,7 @@ public class LocalFileStorage : IFileStorage
         string relativePath,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(relativePath))
-            throw new ArgumentException("Relative path cannot be empty", nameof(relativePath));
-
-        var fullPath = Path.Combine(_basePath, relativePath);
+        var fullPath = ResolveSafePath(relativePath);
 
         if (File.Exists(fullPath))
             File.Delete(fullPath);

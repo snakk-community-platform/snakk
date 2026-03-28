@@ -8,22 +8,22 @@ public static class AuthAuditLogger
     public static void LogLoginSuccess(ILogger logger, string email, string ipAddress, string? userAgent) =>
         logger.LogInformation(
             "[AUTH AUDIT] Login success - Email: {Email}, IP: {IpAddress}, UserAgent: {UserAgent}",
-            email, ipAddress, userAgent);
+            MaskEmail(email), ipAddress, userAgent);
 
     public static void LogLoginFailure(ILogger logger, string email, string ipAddress, string? userAgent) =>
         logger.LogWarning(
             "[AUTH AUDIT] Login failure - Email: {Email}, IP: {IpAddress}, UserAgent: {UserAgent}",
-            email, ipAddress, userAgent);
+            MaskEmail(email), ipAddress, userAgent);
 
     public static void LogRegistration(ILogger logger, string email, string ipAddress, string? userAgent) =>
         logger.LogInformation(
             "[AUTH AUDIT] New registration - Email: {Email}, IP: {IpAddress}, UserAgent: {UserAgent}",
-            email, ipAddress, userAgent);
+            MaskEmail(email), ipAddress, userAgent);
 
     public static void LogOAuthLogin(ILogger logger, string provider, string email, string ipAddress, string? userAgent) =>
         logger.LogInformation(
             "[AUTH AUDIT] OAuth login - Provider: {Provider}, Email: {Email}, IP: {IpAddress}, UserAgent: {UserAgent}",
-            provider, email, ipAddress, userAgent);
+            provider, MaskEmail(email), ipAddress, userAgent);
 
     public static void LogLogout(ILogger logger, string userId, string ipAddress, string? userAgent) =>
         logger.LogInformation(
@@ -54,4 +54,11 @@ public static class AuthAuditLogger
 
     public static string? GetUserAgent(HttpContext context) =>
         context.Request.Headers["User-Agent"].FirstOrDefault();
+
+    private static string MaskEmail(string email)
+    {
+        var atIndex = email.IndexOf('@');
+        if (atIndex <= 1) return "***@***";
+        return email[0] + "***" + email[(atIndex - 1)..];
+    }
 }

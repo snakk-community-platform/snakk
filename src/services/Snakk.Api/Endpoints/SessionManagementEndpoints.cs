@@ -93,7 +93,7 @@ public static class SessionManagementEndpoints
             return Results.Unauthorized();
 
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress);
+        var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress, httpContext.Request.Headers.UserAgent.ToString());
 
         if (newAccessToken is null)
         {

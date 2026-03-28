@@ -123,6 +123,12 @@ public class SetupService(IConfiguration configuration)
         var configPath = Path.Combine(state.AvatarStoragePath, "appsettings.Production.json");
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
         File.WriteAllText(configPath, json);
+
+        // Restrict file permissions on Linux/macOS (owner read/write only)
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(configPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
     }
 
     /// <summary>

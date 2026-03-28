@@ -11,6 +11,14 @@
      * Initialize space page functionality
      */
     function initSpacePage(): void {
+        // Read config from <script type="application/json"> instead of window.SnakkConfig
+        const configEl = document.getElementById('space-page-config');
+        if (configEl) {
+            try {
+                (window as any).SnakkConfig = JSON.parse(configEl.textContent || '{}');
+            } catch { /* ignore parse errors */ }
+        }
+
         const config = window.SnakkConfig;
         const spaceConfig = config?.space;
         if (!config || !spaceConfig) return;

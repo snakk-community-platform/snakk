@@ -144,6 +144,12 @@ public static class BffApiEndpoints
         group.MapPut("/me/preferences", UpdatePreferencesMeAsync)
             .WithName("BffUpdatePreferences");
 
+        group.MapGet("/me/devices", GetMyDevicesAsync)
+            .WithName("BffGetMyDevices");
+
+        group.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
+            .WithName("BffRevokeMyDevice");
+
         // User operations
         group.MapGet("/users/{userId}/stats", GetUserStatsAsync)
             .WithName("BffGetUserStats");
@@ -159,6 +165,11 @@ public static class BffApiEndpoints
 
         group.MapGet("/me/display-name-history", GetDisplayNameHistoryAsync)
             .WithName("BffGetDisplayNameHistory");
+
+        group.MapPost("/me/feed-token", GenerateFeedTokenAsync)
+            .WithName("BffGenerateFeedToken");
+        group.MapDelete("/me/feed-token", RevokeFeedTokenAsync)
+            .WithName("BffRevokeFeedToken");
 
         // Search operations
         group.MapGet("/search/discussions", SearchDiscussionsAsync)
@@ -225,18 +236,20 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize,
         SnakkApiClient apiClient)
     {
-        // Aggregate multiple API calls into a single response
-        var recentDiscussions = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId);
-        var topActiveDiscussions = await apiClient.GetTopActiveDiscussionsAsync(communityId);
-        var topActiveSpaces = await apiClient.GetTopActiveSpacesAsync(communityId);
-        var topContributors = await apiClient.GetTopContributorsAsync(communityId);
+        // Aggregate multiple API calls in parallel
+        var recentTask = apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId);
+        var topActiveTask = apiClient.GetTopActiveDiscussionsAsync(communityId);
+        var topSpacesTask = apiClient.GetTopActiveSpacesAsync(communityId);
+        var topContributorsTask = apiClient.GetTopContributorsAsync(communityId);
+
+        await Task.WhenAll(recentTask, topActiveTask, topSpacesTask, topContributorsTask);
 
         return Results.Ok(new
         {
-            recentDiscussions,
-            topActiveDiscussions,
-            topActiveSpaces,
-            topContributors
+            recentDiscussions = recentTask.Result,
+            topActiveDiscussions = topActiveTask.Result,
+            topActiveSpaces = topSpacesTask.Result,
+            topContributors = topContributorsTask.Result
         });
     }
 
@@ -387,10 +400,12 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> MarkDiscussionAsReadAsync(
         string discussionId,
-        [FromQuery] string userId,
         [FromQuery] string postId,
+        HttpContext httpContext,
         SnakkApiClient apiClient)
     {
+        // Read userId from auth claims, not query params (IDOR prevention)
+        var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         await apiClient.MarkDiscussionAsReadAsync(discussionId, userId, postId);
         return Results.Ok();
     }
@@ -632,7 +647,8 @@ public static class BffApiEndpoints
             isDisplayNameLocked = apiResult.IsDisplayNameLocked,
             hasPassword = apiResult.HasPassword,
             avatarUrl = apiResult.HasAvatarUrl ? apiResult.AvatarUrl : null,
-            bio = apiResult.HasBio ? apiResult.Bio : null
+            bio = apiResult.HasBio ? apiResult.Bio : null,
+            feedToken = apiResult.HasFeedToken ? apiResult.FeedToken : null
         });
     }
 
@@ -731,9 +747,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> GetUserFollowStatusAsync(
         string userId,
-        [FromQuery] string currentUserId,
+        HttpContext httpContext,
         SnakkApiClient apiClient)
     {
+        // Read currentUserId from auth claims, not query params (IDOR prevention)
+        var currentUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         var apiResult = await apiClient.GetUserFollowStatusAsync(userId, currentUserId);
         if (apiResult is null) return Results.NotFound();
 
@@ -915,7 +933,6 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> EditPostAsync(
         string postId,
-        [FromQuery] string userId,
         [FromQuery] string content,
         SnakkApiClient apiClient)
     {
@@ -1320,6 +1337,48 @@ public static class BffApiEndpoints
             : Results.BadRequest(new { error = result.HasError ? result.Error : "Remove vote failed" });
     }
 
+    // --- Device Management ---
+
+    private static async Task<IResult> GetMyDevicesAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
+            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/trusted-devices");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return Results.StatusCode((int)response.StatusCode);
+
+        var content = await response.Content.ReadAsStringAsync();
+        return Results.Content(content, "application/json");
+    }
+
+    private static async Task<IResult> RevokeMyDeviceAsync(
+        string deviceId,
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        if (!AuthCookieHelper.HasStrictAuthCookie(httpContext))
+            return Results.StatusCode(403);
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/auth/2fa/trusted-devices/{deviceId}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return Results.StatusCode((int)response.StatusCode);
+
+        return Results.Ok();
+    }
+
     private static IResult MapGrpcError(GrpcStatus status, string? error = null) => status switch
     {
         GrpcStatus.Unauthenticated => Results.Unauthorized(),
@@ -1328,6 +1387,19 @@ public static class BffApiEndpoints
         GrpcStatus.InvalidArgument => Results.BadRequest(error is not null ? new { error } : null),
         _ => Results.StatusCode(503)
     };
+
+    private static async Task<IResult> GenerateFeedTokenAsync(SnakkApiClient apiClient)
+    {
+        var token = await apiClient.GenerateFeedTokenAsync();
+        if (token is null) return Results.StatusCode(503);
+        return Results.Ok(new { token });
+    }
+
+    private static async Task<IResult> RevokeFeedTokenAsync(SnakkApiClient apiClient)
+    {
+        var success = await apiClient.RevokeFeedTokenAsync();
+        return success ? Results.Ok() : Results.StatusCode(503);
+    }
 }
 
 public record ToggleReactionRequest(int Type);

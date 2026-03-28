@@ -49,7 +49,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.LoginPath = "/Auth/Login";
     options.LogoutPath = "/Auth/Logout";
-    options.Cookie.Name = ".Snakk.Auth.Session";
+    options.Cookie.Name = ".Snakk.Auth.OAuthState";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
@@ -130,7 +130,18 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
-// Health check for gateway probes
-app.MapGet("/health", () => Results.Ok());
+// Health check for gateway probes (verifies gRPC channel connectivity)
+app.MapGet("/health", (Grpc.Net.Client.GrpcChannel channel) =>
+{
+    try
+    {
+        var state = channel.State;
+        return Results.Ok(new { status = "healthy", grpcChannel = state.ToString() });
+    }
+    catch
+    {
+        return Results.Ok(new { status = "degraded", grpcChannel = "unknown" });
+    }
+});
 
 app.Run();

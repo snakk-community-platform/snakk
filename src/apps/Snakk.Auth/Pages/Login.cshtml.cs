@@ -93,22 +93,28 @@ public class LoginModel(
                 return Page();
             }
 
-            // Set auth cookies (access + refresh)
-            var cookieOptions = new CookieOptions
+            // Set auth cookies using dual-cookie pattern:
+            //   .Snakk.Auth (Strict) — used for state-changing operations
+            //   .Snakk.Auth.Session (Lax) — used for personalization on cross-site navigations
+            //   .Snakk.Auth.Refresh (Strict) — refresh token
+            var expiry = Input.RememberMe
+                ? DateTimeOffset.UtcNow.AddDays(30)
+                : DateTimeOffset.UtcNow.AddHours(8);
+
+            var strictOptions = new CookieOptions
             {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = Input.RememberMe
-                    ? DateTimeOffset.UtcNow.AddDays(30)
-                    : DateTimeOffset.UtcNow.AddHours(8),
-                Path = "/"
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+            };
+            var laxOptions = new CookieOptions
+            {
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
             };
 
-            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, cookieOptions);
+            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, strictOptions);
+            Response.Cookies.Append(".Snakk.Auth.Session", response.AccessToken, laxOptions);
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, cookieOptions);
+                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
 
             var returnUrl = Input.ReturnUrl ?? ReturnUrl ?? "/";

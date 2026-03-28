@@ -47,7 +47,7 @@
                 </div>
                 @if (Model.CanAdminister)
                 {
-                    <button onclick="document.getElementById('assign-modal').showModal()" class="btn btn-primary btn-sm">
+                    <button data-modal-open="assign-modal" class="btn btn-primary btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -118,7 +118,7 @@
                         @if (Model.CanAdminister)
                         {
                             <form method="post" asp-page-handler="Revoke"
-                                  onsubmit="return confirm('Are you sure you want to revoke this role?');">
+                                  data-submit-action="confirm-revoke-role" data-confirm-message="Are you sure you want to revoke this role?">
                                 <input type="hidden" name="roleId" value="@role.PublicId" />
                                 <input type="hidden" name="userId" value="@role.UserPublicId" />
                                 <button type="submit" class="btn btn-ghost btn-sm text-error">
@@ -203,7 +203,7 @@
                     </div>
 
                     <div class="modal-action">
-                        <button type="button" onclick="document.getElementById('assign-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="button" data-modal-close="assign-modal" class="btn btn-ghost">Cancel</button>
                         <button type="submit" class="btn btn-primary">Assign Role</button>
                     </div>
                 </form>

@@ -16,11 +16,20 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Pro
 
 //builder.AddSnakkDefaults();
 
-// HTTP/1.1 + HTTP/2 — gRPC requires HTTP/2 (negotiated via ALPN over TLS, or h2c over plaintext)
-// REST endpoints (media upload, avatars, health) work over either protocol
-builder.WebHost.ConfigureKestrel(options =>
+// Kestrel tuning — gRPC requires HTTP/2, REST endpoints work over either
+builder.WebHost.ConfigureKestrel(kestrel =>
 {
-    options.ConfigureEndpointDefaults(listenOptions =>
+    kestrel.AddServerHeader = false;
+    kestrel.Limits.MaxConcurrentConnections = 5_000;
+    kestrel.Limits.MaxConcurrentUpgradedConnections = 2_500;
+    kestrel.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+    kestrel.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    kestrel.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+    kestrel.Limits.Http2.MaxStreamsPerConnection = 100;
+    kestrel.Limits.Http2.InitialConnectionWindowSize = 1024 * 1024;     // 1 MB
+    kestrel.Limits.Http2.InitialStreamWindowSize = 768 * 1024;          // 768 KB
+
+    kestrel.ConfigureEndpointDefaults(listenOptions =>
     {
         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
     });

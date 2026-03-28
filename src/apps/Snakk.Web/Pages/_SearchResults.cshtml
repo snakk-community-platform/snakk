@@ -48,7 +48,7 @@
                         <div class="topic-meta">
                             <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)"
                                class="hover:underline"
-                               onclick="event.stopPropagation()">@discussion.Author.DisplayName</a>
+                               data-stop-propagation>@discussion.Author.DisplayName</a>
                             <span class="topic-meta-separator">in</span>
                             <span class="font-medium">@discussion.Space.Name</span>
                             <span class="topic-meta-separator">·</span>

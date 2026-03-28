@@ -28,7 +28,8 @@
                 @if (banner.IsDismissible)
                 {
                     <button class="btn btn-sm btn-ghost banner-dismiss self-start shrink-0 ml-auto"
-                            onclick="dismissBanner('@banner.PublicId', this)"
+                            data-action="dismiss-banner"
+                            data-banner-id="@banner.PublicId"
                             aria-label="Dismiss banner">
                         ✕
                     </button>
@@ -37,24 +38,5 @@
         }
     </div>
 
-    <script>
-        (function() {
-            'use strict';
-
-            // Hide already-dismissed announcements on load
-            document.querySelectorAll('.banner-banner[data-dismissible="true"]').forEach(function(banner) {
-                var id = banner.getAttribute('data-banner-id');
-                if (localStorage.getItem('banner-dismissed-' + id)) {
-                    banner.style.display = 'none';
-                }
-            });
-
-            // Global dismiss function
-            window.dismissBanner = function(publicId, button) {
-                localStorage.setItem('banner-dismissed-' + publicId, '1');
-                var banner = button.closest('.banner-banner');
-                if (banner) banner.style.display = 'none';
-            };
-        })();
-    </script>
+    <script src="/js/dist/components/banners.js" asp-append-version="true" defer></script>
 }

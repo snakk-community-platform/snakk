@@ -194,7 +194,7 @@
 
     <!-- Jump to Unread Button -->
     <div id="jump-to-unread" class="hidden fixed bottom-6 right-6 z-30">
-        <button onclick="jumpToUnread()" class="btn btn-primary btn-sm">
+        <button data-action="jump-to-unread" class="btn btn-primary btn-sm">
             Jump to unread
         </button>
     </div>
@@ -306,7 +306,8 @@
                 @if (Model.IsAuthenticated)
                 {
                     <button id="follow-btn"
-                            onclick="toggleFollowDiscussion('@Model.Discussion.PublicId')"
+                            data-action="toggle-follow-discussion"
+                            data-discussion-id="@Model.Discussion.PublicId"
                             class="btn btn-ghost btn-sm follow-btn"
                             aria-label="Follow this discussion">
                         <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -323,7 +324,7 @@
                         </button>
                         <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
                             <li>
-                                <button id="mute-discussion-btn" onclick="toggleMuteDiscussion('@Model.Discussion.PublicId')" class="text-sm">
+                                <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="text-sm">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
@@ -332,7 +333,7 @@
                                 </button>
                             </li>
                             <li>
-                                <button onclick="openReportModal('discussion', '@Model.Discussion.PublicId', '@Model.EscapeForJs(Model.Discussion.Title)')" class="text-sm text-error">
+                                <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
@@ -460,7 +461,7 @@
                                 : "";
                             <div class="gallery-upload-item" data-index="@i" style="@blurStyle">
                                 <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
-                                     class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                                     class="gallery-blur-up" data-blur-up />
                             </div>
                         }
                     </div>
@@ -487,7 +488,7 @@
                     <div class="gallery-upload-item"
                          style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
                         <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
-                             class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                             class="gallery-blur-up" data-blur-up />
                     </div>
                     @if (Model.GalleryImages.Count > 1)
                     {
@@ -498,7 +499,7 @@
                                 <div class="gallery-upload-item"
                                      style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                                     <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                         class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                                         class="gallery-blur-up" data-blur-up />
                                 </div>
                             }
                         </div>
@@ -515,7 +516,7 @@
                         <div class="gallery-upload-item"
                              style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                             <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                 class="gallery-blur-up" onload="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" onerror="this.classList.add('gallery-loaded');this.parentElement.classList.add('gallery-item-loaded')" />
+                                 class="gallery-blur-up" data-blur-up />
                         </div>
                     }
                 </div>
@@ -713,7 +714,9 @@
                                 @if (!Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                 {
                                     <div class="hidden group-hover:flex items-center gap-1">
-                                    <button onclick="replyToPost('@post.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')"
+                                    <button data-action="reply-to-post"
+                                            data-post-id="@post.PublicId"
+                                            data-author-name="@post.Author.DisplayName"
                                             class="subtle-btn"
                                             aria-label="Reply to @post.Author.DisplayName">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -721,7 +724,10 @@
                                         </svg>
                                         Reply
                                     </button>
-                                    <button onclick="quotePost('@post.PublicId', '@Model.EscapeForJs(post.Content)', '@Model.EscapeForJs(post.Author.DisplayName)')"
+                                    <button data-action="quote-post"
+                                            data-post-id="@post.PublicId"
+                                            data-content="@post.Content"
+                                            data-author-name="@post.Author.DisplayName"
                                             class="subtle-btn"
                                             aria-label="Quote post by @post.Author.DisplayName">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -737,7 +743,7 @@
                                      data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
                                      @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
                                      {
-                                         <text>onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('@post.PublicId'); return false;"</text>
+                                         <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
                                      }
                                      aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
                                     @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
@@ -768,14 +774,14 @@
                                             <button hx-get="/api/posts/@post.PublicId/history"
                                                     hx-target="#history-modal-content"
                                                     hx-swap="innerHTML"
-                                                    onclick="history_modal.showModal()"
+                                                    data-modal-open="history_modal"
                                                     class="text-sm">
                                                 History
                                             </button>
                                         </li>
                                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                                         {
-                                            <li><button onclick="editPost('@post.PublicId', '@Model.CurrentUserId')" class="text-sm">Edit</button></li>
+                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
                                             <li>
                                                 <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
                                                         hx-target="#post-@post.PublicId"
@@ -789,12 +795,12 @@
                                         @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
                                         {
                                             <li>
-                                                <button onclick="hidePostsFromUser('@post.Author.PublicId', '@Model.EscapeForJs(post.Author.DisplayName)')" class="text-sm">
+                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
                                                     Hide posts from user
                                                 </button>
                                             </li>
                                             <li>
-                                                <button onclick="openReportModal('post', '@post.PublicId', 'this post')" class="text-sm text-error">
+                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="this post" class="text-sm text-error">
                                                     Report post
                                                 </button>
                                             </li>
@@ -865,7 +871,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <p class="text-sm text-error font-medium">Failed to load more posts</p>
-                    <button onclick="retryLoadPosts()" class="btn btn-sm btn-primary">
+                    <button data-action="retry-load-posts" class="btn btn-sm btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -977,7 +983,7 @@
                 <span class="text-sm text-muted">
                     Replying to <span id="reply-context-author" class="font-semibold"></span>
                 </span>
-                <button type="button" onclick="clearReplyContext()" class="subtle-btn">
+                <button type="button" data-action="clear-reply-context" class="subtle-btn">
                     Cancel
                 </button>
             </div>
@@ -1148,7 +1154,7 @@ else
             You're reporting <span id="report-target-description" class="font-medium"></span>.
             Please select a reason and optionally provide additional details.
         </p>
-        <form id="report-form" onsubmit="submitReport(event)">
+        <form id="report-form" data-submit-action="submit-report">
             <input type="hidden" id="report-type" name="type" value="" />
             <input type="hidden" id="report-target-id" name="targetId" value="" />
 
@@ -1182,7 +1188,7 @@ else
             </div>
 
             <div class="modal-action">
-                <button type="button" onclick="document.getElementById('report_modal').close()" class="btn btn-ghost">Cancel</button>
+                <button type="button" data-modal-close="report_modal" class="btn btn-ghost">Cancel</button>
                 <button type="submit" id="report-submit-btn" class="btn btn-error">
                     <span id="report-submit-text">Submit Report</span>
                     <span id="report-submit-loading" class="loading loading-spinner loading-sm hidden"></span>
@@ -1230,84 +1236,71 @@ else
 {
     <script src="@SnakkUrlHelper.Js("components/discussion-type-widgets")" asp-append-version="true"></script>
 }
-<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
-<script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
+@* Markdown editor (488KB) — lazy-loaded when reply form enters viewport or user clicks reply/edit *@
+<script id="editor-loader-config" type="application/json">{"editorSrc":"@SnakkUrlHelper.Js("components/markdown-editor")"}</script>
 <script>
-@* INLINE REASON: Initialization code with extensive Razor syntax (@Model.Discussion.X, @if blocks).
-   Passes server-side discussion metadata to external discussion-detail.js.
-   Contains conditional Razor blocks (@if Model.Discussion != null) that can't be in external files.
-   Also handles read history tracking with server-generated URLs and titles. *@
 (function() {
-    // Set API base URL for realtime subscriptions
-    window.snakkApiBaseUrl = '@Model.ApiBaseUrl';
-
-    var config = {
-        discussionId: '@Model.Discussion?.PublicId',
-        isAuthenticated: @(Model.IsAuthenticated ? "true" : "false"),
-        currentUserId: '@Model.CurrentUserId',
-        isLocked: @(Model.Discussion?.IsLocked == true ? "true" : "false"),
-        spaceId: '@Model.Space?.PublicId',
-        preferEndlessScroll: true,
-        postsCurrentOffset: @(Model.Posts?.Items?.Count() ?? 0),
-        postsHasMoreItems: @(Model.Posts?.HasMoreItems == true ? "true" : "false"),
-        hasCodeBlocks: @(Model.HasCodeBlocks ? "true" : "false"),
-        postCount: @(Model.Discussion?.PostCount ?? 0),
-        displayName: '@(Model.EscapeForJs(Model.CurrentUserDisplayName ?? ""))'
-    };
-
-    function setupAndInit() {
-        @if (Model.Discussion != null)
-        {
-            <text>
-            document.body.dataset.discussionId = '@Model.Discussion.PublicId';
-            document.body.dataset.discussionType = '@Model.Discussion.Type';
-            document.body.dataset.isAuthenticated = '@(Model.IsAuthenticated ? "true" : "false")';
-            document.body.dataset.currentUserId = '@Model.CurrentUserId';
-            document.body.dataset.spaceSlug = '@Model.SpaceSlug';
-            document.body.dataset.hubSlug = '@Model.HubSlug';
-
-            if (window.SnakkReadHistory) {
-                window.SnakkReadHistory.addToHistory({
-                    discussionPublicId: '@Model.Discussion.PublicId',
-                    discussionTitle: '@Model.Discussion.Title.Replace("'", "\'").Replace("\"", "\\\"")'.replace(/\n/g, ' '),
-                    discussionSlug: '@Model.SlugWithId.Split('~')[0]',
-                    spacePublicId: '@Model.Space?.PublicId',
-                    spaceSlug: '@Model.SpaceSlug',
-                    spaceName: '@(Model.Space?.Name?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.SpaceSlug)',
-                    hubPublicId: '@Model.Hub?.PublicId',
-                    hubSlug: '@Model.HubSlug',
-                    hubName: '@(Model.Hub?.Name?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.HubSlug)',
-                    communitySlug: '@Model.Community.CommunitySlug',
-                    communityName: '@(Model.Community.CommunityName?.Replace("'", "\'").Replace("\"", "\\\"") ?? Model.Community.CommunitySlug)',
-                    isMultiCommunity: @(Model.Community.IsMultiCommunityEnabled ? "true" : "false"),
-                    lastActivityAt: '@(Model.Discussion.LastActivityAt?.ToDateTime().ToString("O") ?? Model.Discussion.CreatedAt.ToDateTime().ToString("O"))'
-                });
-            }
-            </text>
-        }
-
-        if (typeof initDiscussionPage === 'function') {
-            initDiscussionPage(config);
+    'use strict';
+    var loaded = false;
+    function loadEditor() {
+        if (loaded) return;
+        loaded = true;
+        var cfg = JSON.parse(document.getElementById('editor-loader-config').textContent);
+        var s = document.createElement('script');
+        s.src = cfg.editorSrc;
+        document.body.appendChild(s);
+    }
+    var container = document.getElementById('reply-form-container') || document.getElementById('editor-container');
+    if (container) {
+        if ('IntersectionObserver' in window) {
+            var obs = new IntersectionObserver(function(entries) {
+                if (entries[0].isIntersecting) { loadEditor(); obs.disconnect(); }
+            }, { rootMargin: '200px' });
+            obs.observe(container);
         } else {
-            // External script not loaded yet (SPA navigation) — retry briefly
-            var attempts = 0;
-            var timer = setInterval(function() {
-                if (typeof initDiscussionPage === 'function') {
-                    clearInterval(timer);
-                    initDiscussionPage(config);
-                } else if (++attempts > 20) {
-                    clearInterval(timer);
-                    console.warn('[Discussion] initDiscussionPage not available after retries');
-                }
-            }, 50);
+            loadEditor();
         }
     }
-
-    // Initialize: DOM ready (full page load) or immediately (SPA navigation, DOM already parsed)
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupAndInit);
-    } else {
-        setupAndInit();
-    }
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action="reply"], [data-action="quote-reply"], [data-action="edit-post"]');
+        if (btn) loadEditor();
+    });
 })();
+</script>
+<script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
+@* Discussion config — parsed by discussion-detail.ts (CSP-safe: type=application/json is not executed) *@
+<script type="application/json" id="discussion-page-config">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    discussionId = Model.Discussion?.PublicId ?? "",
+    isAuthenticated = Model.IsAuthenticated,
+    currentUserId = Model.CurrentUserId ?? "",
+    isLocked = Model.Discussion?.IsLocked == true,
+    spaceId = Model.Space?.PublicId ?? "",
+    preferEndlessScroll = true,
+    postsCurrentOffset = Model.Posts?.Items?.Count() ?? 0,
+    postsHasMoreItems = Model.Posts?.HasMoreItems == true,
+    hasCodeBlocks = Model.HasCodeBlocks,
+    postCount = Model.Discussion?.PostCount ?? 0,
+    displayName = Model.CurrentUserDisplayName ?? "",
+    discussionType = Model.Discussion?.Type ?? "",
+    spaceSlug = Model.SpaceSlug ?? "",
+    hubSlug = Model.HubSlug ?? "",
+    readHistory = Model.Discussion != null ? new
+    {
+        discussionPublicId = Model.Discussion.PublicId,
+        discussionTitle = Model.Discussion.Title,
+        discussionSlug = Model.SlugWithId.Split('~')[0],
+        spacePublicId = Model.Space?.PublicId ?? "",
+        spaceSlug = Model.SpaceSlug ?? "",
+        spaceName = Model.Space?.Name ?? Model.SpaceSlug ?? "",
+        hubPublicId = Model.Hub?.PublicId ?? "",
+        hubSlug = Model.HubSlug ?? "",
+        hubName = Model.Hub?.Name ?? Model.HubSlug ?? "",
+        communitySlug = Model.Community.CommunitySlug ?? "",
+        communityName = Model.Community.CommunityName ?? Model.Community.CommunitySlug ?? "",
+        isMultiCommunity = Model.Community.IsMultiCommunityEnabled,
+        lastActivityAt = (Model.Discussion.LastActivityAt?.ToDateTime() ?? Model.Discussion.CreatedAt.ToDateTime()).ToString("O")
+    } : (object?)null
+}, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

@@ -408,8 +408,9 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string? hubPublicId = null,
         string? spacePublicId = null)
     {
-        var now = DateTime.UtcNow;
         var bans = await GetActiveBansForUserAsync(userPublicId);
+
+        if (!bans.Any()) return null;
 
         // Check platform-wide ban
         var platformBan = bans.FirstOrDefault(b =>
@@ -418,6 +419,34 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             && b.SpacePublicId == null);
 
         if (platformBan is not null) return platformBan;
+
+        // Resolve hierarchy: if only spacePublicId is provided, look up its parent hub and community
+        if (!string.IsNullOrEmpty(spacePublicId) && string.IsNullOrEmpty(hubPublicId))
+        {
+            var space = await _context.Spaces
+                .Include(s => s.Hub)
+                .Where(s => s.PublicId == spacePublicId)
+                .Select(s => new { HubPublicId = s.Hub.PublicId, CommunityPublicId = s.Hub.Community.PublicId })
+                .FirstOrDefaultAsync();
+
+            if (space is not null)
+            {
+                hubPublicId = space.HubPublicId;
+                communityPublicId = space.CommunityPublicId;
+            }
+        }
+
+        // Resolve hierarchy: if only hubPublicId is provided, look up its parent community
+        if (!string.IsNullOrEmpty(hubPublicId) && string.IsNullOrEmpty(communityPublicId))
+        {
+            var hub = await _context.Hubs
+                .Where(h => h.PublicId == hubPublicId)
+                .Select(h => new { CommunityPublicId = h.Community.PublicId })
+                .FirstOrDefaultAsync();
+
+            if (hub is not null)
+                communityPublicId = hub.CommunityPublicId;
+        }
 
         // Check community ban
         if (!string.IsNullOrEmpty(communityPublicId))

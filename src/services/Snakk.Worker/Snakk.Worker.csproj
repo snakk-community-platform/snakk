@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.3.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>
 

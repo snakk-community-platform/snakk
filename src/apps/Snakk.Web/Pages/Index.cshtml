@@ -6,6 +6,8 @@
 @{
     ViewData["Title"] = "Home";
     ViewData["Description"] = "Snakk — a community discussion platform. Browse discussions, join communities, and connect with others.";
+    ViewData["RssFeedUrl"] = "/feed.xml";
+    ViewData["RssFeedTitle"] = "Latest Discussions";
 }
 
 <div class="max-w-[90rem] mx-auto px-4 py-8">
@@ -24,7 +26,7 @@
             }
             else
             {
-                <div class="topic-list" id="discussions-container">
+                <div class="topic-list h-feed" id="discussions-container">
                     @foreach (var discussion in Model.RecentDiscussions.Items)
                     {
                         <partial name="Shared/_DiscussionListItem"

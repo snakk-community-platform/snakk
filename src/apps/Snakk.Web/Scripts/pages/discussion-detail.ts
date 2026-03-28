@@ -55,17 +55,18 @@ interface FollowStatus {
 
 interface DiscussionConfig {
     discussionId: string;
+    discussionType?: string;
     isAuthenticated: boolean;
     currentUserId: string;
     isLocked: boolean;
+    spaceSlug?: string;
+    hubSlug?: string;
     postsCurrentOffset: number;
     postsHasMoreItems: boolean;
     hasCodeBlocks: boolean;
     postCount: number;
     displayName: string;
 }
-
-let discussionConfig: DiscussionConfig | null = null;
 
 interface ReportReason {
     publicId: string;
@@ -85,6 +86,8 @@ interface CurrentSelection {
 
 (function(): void {
     'use strict';
+
+let discussionConfig: DiscussionConfig | null = null;
 
 // ===== Editor Functions =====
 
@@ -322,12 +325,12 @@ function editPost(postId: string, userId: string): void {
         <form id="edit-form-${postId}" class="space-y-2">
             <textarea class="textarea w-full min-h-20 text-sm resize-none"
                       id="edit-textarea-${postId}"
-                      oninput="autoGrow(this)">${escapeHtml(rawContent)}</textarea>
+                      data-input-action="auto-grow">${escapeHtml(rawContent)}</textarea>
             <div class="flex items-center justify-between">
                 <span class="text-xs text-base-content/50">Supports **bold**, *italic*, \`code\`, [links](url)</span>
                 <div class="flex gap-2">
-                    <button type="button" class="btn btn-ghost btn-xs" onclick="cancelEdit('${postId}')">Cancel</button>
-                    <button type="button" class="btn btn-primary btn-xs" onclick="submitEdit('${postId}', '${userId}')">Save</button>
+                    <button type="button" class="btn btn-ghost btn-xs" data-action="cancel-edit" data-post-id="${postId}">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-xs" data-action="submit-edit" data-post-id="${postId}" data-user-id="${userId}">Save</button>
                 </div>
             </div>
         </form>
@@ -923,7 +926,7 @@ function hidePostsFromUser(userId: string, userName: string): void {
                 </svg>
                 <div>
                     <p class="text-sm font-medium">Posts from ${userName} are now hidden</p>
-                    <button onclick="unhideUser('${userId}')" class="text-xs text-primary underline">Undo</button>
+                    <button data-action="unhide-user" data-author-id="${userId}" class="text-xs text-primary underline">Undo</button>
                 </div>
             </div>
         `;
@@ -1357,7 +1360,9 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     if (!isLocked && isAuthenticated && !hideReplyQuote) {
         actionButtonsHtml = `
             <div class="hidden group-hover:flex items-center gap-1">
-            <button onclick="replyToPost('${post.publicId}', '${escapeHtml(post.author.displayName)}')"
+            <button data-action="reply-to-post"
+                    data-post-id="${post.publicId}"
+                    data-author-name="${escapeHtml(post.author.displayName)}"
                     class="subtle-btn"
                     aria-label="Reply to ${escapeHtml(post.author.displayName)}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1365,7 +1370,10 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 </svg>
                 Reply
             </button>
-            <button onclick="quotePost('${post.publicId}', \`${escapeHtml(post.content).replace(/`/g, '\\`')}\`, '${escapeHtml(post.author.displayName)}')"
+            <button data-action="quote-post"
+                    data-post-id="${post.publicId}"
+                    data-content="${escapeHtml(post.content)}"
+                    data-author-name="${escapeHtml(post.author.displayName)}"
                     class="subtle-btn"
                     aria-label="Quote post by ${escapeHtml(post.author.displayName)}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1380,7 +1388,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     let ownerItems = '';
     if (isOwner) {
         ownerItems = `
-            <li><button onclick="editPost('${post.publicId}', '${currentUserId}')" class="text-sm">Edit</button></li>
+            <li><button data-action="edit-post" data-post-id="${post.publicId}" data-user-id="${currentUserId}" class="text-sm">Edit</button></li>
             <li>
                 <button hx-delete="/bff/posts/${post.publicId}"
                         hx-target="#post-${post.publicId}"
@@ -1396,12 +1404,12 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     if (isAuthenticated && !isOwner) {
         nonOwnerItems = `
             <li>
-                <button onclick="hidePostsFromUser('${post.author.publicId}', '${escapeHtml(post.author.displayName)}')" class="text-sm">
+                <button data-action="hide-posts-from-user" data-author-id="${post.author.publicId}" data-author-name="${escapeHtml(post.author.displayName)}" class="text-sm">
                     Hide posts from user
                 </button>
             </li>
             <li>
-                <button onclick="openReportModal('post', '${post.publicId}', 'this post')" class="text-sm text-error">
+                <button data-action="open-report-modal" data-report-type="post" data-report-id="${post.publicId}" data-report-label="this post" class="text-sm text-error">
                     Report post
                 </button>
             </li>`;
@@ -1419,7 +1427,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                     <button hx-get="/bff/posts/${post.publicId}/history"
                             hx-target="#history-modal-content"
                             hx-swap="innerHTML"
-                            onclick="history_modal.showModal()"
+                            data-modal-open="history_modal"
                             class="text-sm">
                         History
                     </button>
@@ -1433,7 +1441,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     const smileyPlaceholderHtml = canReact
         ? `<span class="hidden group-hover:inline" data-reaction-placeholder>${smileyPlaceholderSvg}</span>`
         : '';
-    const reactionsContainerHtml = `<div class="flex items-center gap-2 text-base text-muted${canReact ? ' cursor-pointer' : ''}" id="reactions-${post.publicId}" data-reaction-counts="{}" data-my-reactions="[]"${canReact ? ` onclick="event.preventDefault(); event.stopPropagation(); toggleReactionPicker('${post.publicId}'); return false;"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
+    const reactionsContainerHtml = `<div class="flex items-center gap-2 text-base text-muted${canReact ? ' cursor-pointer' : ''}" id="reactions-${post.publicId}" data-reaction-counts="{}" data-my-reactions="[]"${canReact ? ` data-action="toggle-reaction-picker" data-post-id="${post.publicId}"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
 
     // Build toolbar
     const editedTag = post.editedAt ? '<span>(edited)</span>' : '';
@@ -1461,7 +1469,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     let replyToHtml = '';
     if (hasReplyTo && post.replyTo) {
         replyToHtml = `
-            <a href="#post-${post.replyTo.postId}" class="editorial-quote block mb-4 text-sm" onclick="highlightPost('${post.replyTo.postId}')">
+            <a href="#post-${post.replyTo.postId}" class="editorial-quote block mb-4 text-sm" data-action="highlight-post" data-post-id="${post.replyTo.postId}">
                 <span class="quote-author">${escapeHtml(post.replyTo.authorName)} wrote:</span>
                 <p class="line-clamp-2 mt-1">${escapeHtml(post.replyTo.contentSnippet)}</p>
             </a>`;
@@ -2266,10 +2274,10 @@ document.addEventListener('click', async (e) => {
 
         // User actions
         case 'hide-posts-from-user':
-            hidePostsFromUser(action.dataset.userId || '', action.dataset.userName || '');
+            hidePostsFromUser(action.dataset.authorId || '', action.dataset.authorName || '');
             break;
         case 'unhide-user':
-            unhideUser(action.dataset.userId || '');
+            unhideUser(action.dataset.authorId || '');
             break;
 
         // Load actions
@@ -2293,36 +2301,20 @@ document.addEventListener('click', async (e) => {
         // Report actions
         case 'open-report-modal':
             openReportModal(
-                action.dataset.type || '',
-                action.dataset.targetId || '',
-                action.dataset.description || '',
+                action.dataset.reportType || '',
+                action.dataset.reportId || '',
+                action.dataset.reportLabel || '',
                 action.dataset.spaceId
             );
             break;
     }
 });
 
-// Handle form submissions with data-action
-document.addEventListener('submit', async (e) => {
-    const form = e.target as HTMLFormElement;
-    if (!form.dataset.action) return;
-
-    e.preventDefault();
-
-    switch (form.dataset.action) {
-        case 'submit-report':
-            await submitReport(e);
-            break;
-    }
-});
-
-// Handle textarea input for auto-grow (inline edit textareas)
-document.addEventListener('input', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.matches && target.matches('textarea[data-auto-grow]')) {
-        autoGrow(target as HTMLTextAreaElement);
-    }
-});
+// Register handlers with global delegation system (for data-submit-action and data-input-action)
+if (window.SnakkActions) {
+    window.SnakkActions.on('auto-grow', (el) => autoGrow(el as HTMLTextAreaElement));
+    window.SnakkActions.on('submit-report', (_el, e) => submitReport(e));
+}
 
 // Export minimal API for programmatic access
 (window as any).SnakkDiscussion = {
@@ -2331,22 +2323,43 @@ document.addEventListener('input', (e) => {
     loadMorePosts: loadMorePosts
 };
 
-// Expose legacy functions for backwards compatibility (can be removed later)
-// These are kept for any inline onclick handlers that haven't been migrated yet
-(window as any).autoGrow = autoGrow;
-(window as any).replyToPost = replyToPost;
-(window as any).quotePost = quotePost;
-(window as any).editPost = editPost;
-(window as any).submitEdit = submitEdit;
-(window as any).cancelEdit = cancelEdit;
-(window as any).toggleReaction = toggleReaction;
-(window as any).toggleReactionPicker = toggleReactionPicker;
-(window as any).toggleFollowDiscussion = toggleFollowDiscussion;
-(window as any).openReportModal = openReportModal;
-(window as any).submitReport = submitReport;
+// Keep initDiscussionPage on window for backwards compatibility with SPA navigation
 (window as any).initDiscussionPage = initDiscussionPage;
-(window as any).highlightPost = highlightPost;
-(window as any).unhideUser = unhideUser;
-(window as any).hidePostsFromUser = hidePostsFromUser;
+
+// ===== Self-initializing bootstrap (reads JSON config from Razor) =====
+function bootstrapFromPageConfig(): void {
+    const configEl = document.getElementById('discussion-page-config');
+    if (!configEl) return;
+
+    let config: DiscussionConfig;
+    try {
+        config = JSON.parse(configEl.textContent || '{}');
+    } catch {
+        return;
+    }
+
+    // Set body dataset properties (used by IntersectionObserver closures and other scripts)
+    if (config.discussionId) {
+        document.body.dataset.discussionId = config.discussionId;
+        document.body.dataset.discussionType = config.discussionType || '';
+        document.body.dataset.isAuthenticated = String(config.isAuthenticated);
+        document.body.dataset.currentUserId = config.currentUserId || '';
+        document.body.dataset.spaceSlug = config.spaceSlug || '';
+        document.body.dataset.hubSlug = config.hubSlug || '';
+
+        // Track in read history
+        if (window.SnakkReadHistory && (config as any).readHistory) {
+            window.SnakkReadHistory.addToHistory((config as any).readHistory);
+        }
+    }
+
+    initDiscussionPage(config);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapFromPageConfig);
+} else {
+    bootstrapFromPageConfig();
+}
 
 })();

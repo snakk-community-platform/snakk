@@ -15,6 +15,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     private readonly Mock<ITotpService> _mockTotpService;
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
     private readonly Mock<ITrustedDeviceService> _mockTrustedDeviceService;
+    private readonly Mock<ITwoFactorSecretProtector> _mockSecretProtector;
     private readonly Mock<ILogger<TwoFactorAuthService>> _mockLogger;
     private readonly TwoFactorAuthService _service;
 
@@ -27,13 +28,19 @@ public class TwoFactorAuthServiceTests : IDisposable
         _mockTotpService = new Mock<ITotpService>();
         _mockPasswordHasher = new Mock<IPasswordHasher>();
         _mockTrustedDeviceService = new Mock<ITrustedDeviceService>();
+        _mockSecretProtector = new Mock<ITwoFactorSecretProtector>();
         _mockLogger = new Mock<ILogger<TwoFactorAuthService>>();
+
+        // Secret protector pass-through for tests (encrypt/decrypt are identity functions)
+        _mockSecretProtector.Setup(p => p.Protect(It.IsAny<string>())).Returns<string>(s => $"ENC:{s}");
+        _mockSecretProtector.Setup(p => p.Unprotect(It.IsAny<string>())).Returns<string>(s => s.StartsWith("ENC:") ? s[4..] : s);
 
         _service = new TwoFactorAuthService(
             _context,
             _mockTotpService.Object,
             _mockPasswordHasher.Object,
             _mockTrustedDeviceService.Object,
+            _mockSecretProtector.Object,
             _mockLogger.Object);
     }
 

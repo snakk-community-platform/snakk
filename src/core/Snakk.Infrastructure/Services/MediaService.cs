@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -59,7 +60,15 @@ public class MediaService(
 
         try
         {
-            using var image = await Image.LoadAsync(rawStream, cancellationToken);
+            using var image = await Image.LoadAsync(new DecoderOptions { MaxFrames = 1 }, rawStream, cancellationToken);
+
+            // Guard against decompression bombs
+            const int MaxPixelDimension = 16384;
+            const long MaxTotalPixels = 100_000_000;
+            if (image.Width > MaxPixelDimension || image.Height > MaxPixelDimension)
+                throw new InvalidOperationException($"Image dimensions exceed maximum ({MaxPixelDimension}x{MaxPixelDimension})");
+            if ((long)image.Width * image.Height > MaxTotalPixels)
+                throw new InvalidOperationException("Image exceeds maximum pixel count");
 
             // Resize if either dimension exceeds the max
             if (image.Width > MaxImageDimension || image.Height > MaxImageDimension)
@@ -223,7 +232,7 @@ public class MediaService(
         // Extract storage paths from markdown image references
         // Matches patterns like: ![...](/storage/media/posts/2026/03/07/abc123.png)
         var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
-        var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)")
+        var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromMilliseconds(250))
             .Select(m => m.Groups[1].Value)
             .Where(url => url.StartsWith(urlPrefix, StringComparison.OrdinalIgnoreCase))
             .Select(url => url[urlPrefix.Length..]) // Strip URL base to get storage path
@@ -305,7 +314,7 @@ public class MediaService(
         if (string.IsNullOrEmpty(content)) return;
 
         var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
-        var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)")
+        var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromMilliseconds(250))
             .Select(m => m.Groups[1].Value)
             .Where(url => url.StartsWith(urlPrefix))
             .Select(url => url[urlPrefix.Length..])

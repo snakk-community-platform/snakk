@@ -21,6 +21,19 @@ builder.Services.AddScoped<SetupService>();
 
 var app = builder.Build();
 
+// Block all access if setup is already complete
+app.Use(async (context, next) =>
+{
+    if (File.Exists(Path.Combine(sharedConfigDir, ".setup-complete")))
+    {
+        context.Response.StatusCode = 403;
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync("Setup has already been completed. Access denied.");
+        return;
+    }
+    await next();
+});
+
 app.UseStaticFiles();
 app.UseSession();
 app.UseRouting();

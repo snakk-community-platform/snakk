@@ -56,7 +56,7 @@ public class TokenService(
         return RefreshToken.Rehydrate(tokenValue, userId, entity.ExpiresAt, entity.CreatedAt, null);
     }
 
-    public async Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress)
+    public async Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress, string? userAgent = null)
     {
         var tokenEntity = await context.RefreshTokens
             .AsTracking()
@@ -66,6 +66,16 @@ public class TokenService(
 
         if (tokenEntity is null || !tokenEntity.IsActive)
             return null;
+
+        // Device fingerprint validation — reject if UserAgent doesn't match stored value
+        if (!string.IsNullOrEmpty(tokenEntity.UserAgent) && !string.IsNullOrEmpty(userAgent)
+            && !tokenEntity.UserAgent.Equals(userAgent, StringComparison.Ordinal))
+        {
+            tokenEntity.RevokedAt = DateTime.UtcNow;
+            tokenEntity.RevocationReason = "Device fingerprint mismatch";
+            await context.SaveChangesAsync();
+            return null;
+        }
 
         tokenEntity.LastUsedAt = DateTime.UtcNow;
 

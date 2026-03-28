@@ -390,12 +390,12 @@ public class WebhookService(
 
         try
         {
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = httpClientFactory.CreateClient("WebhookService");
             httpClient.Timeout = TimeSpan.FromSeconds(webhook.TimeoutSeconds);
 
             var request = new HttpRequestMessage(HttpMethod.Post, webhook.Url);
 
-            // Add custom headers
+            // Add custom headers (block dangerous headers that could enable request smuggling or SSRF)
             if (!string.IsNullOrEmpty(webhook.CustomHeaders))
             {
                 var headers = JsonSerializer.Deserialize<Dictionary<string, string>>(webhook.CustomHeaders);
@@ -404,6 +404,12 @@ public class WebhookService(
                 {
                     foreach (var (key, value) in headers)
                     {
+                        if (IsBlockedHeader(key))
+                            continue;
+
+                        if (key.Length > 256 || value.Length > 4096)
+                            continue;
+
                         request.Headers.TryAddWithoutValidation(key, value);
                     }
                 }
@@ -596,6 +602,18 @@ public class WebhookService(
             }
         }
     }
+
+    private static readonly HashSet<string> BlockedHeaders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Host", "Authorization", "Cookie", "Set-Cookie",
+        "Content-Length", "Transfer-Encoding", "Connection", "Upgrade",
+        "TE", "Trailer", "Proxy-Authorization", "Proxy-Connection",
+        "Keep-Alive", "WWW-Authenticate", "Origin", "Referer",
+        "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto"
+    };
+
+    private static bool IsBlockedHeader(string headerName) =>
+        BlockedHeaders.Contains(headerName);
 
     private static bool IsPrivateOrReservedIp(IPAddress ip)
     {

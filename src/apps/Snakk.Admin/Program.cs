@@ -161,6 +161,17 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 // Health check for gateway probes
-app.MapGet("/health", () => Results.Ok()).AllowAnonymous();
+app.MapGet("/health", (Grpc.Net.Client.GrpcChannel channel) =>
+{
+    try
+    {
+        var state = channel.State;
+        return Results.Ok(new { status = "healthy", grpcChannel = state.ToString() });
+    }
+    catch
+    {
+        return Results.Ok(new { status = "degraded", grpcChannel = "unknown" });
+    }
+}).AllowAnonymous();
 
 app.Run();

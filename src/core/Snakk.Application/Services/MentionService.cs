@@ -41,6 +41,10 @@ public partial class MentionService(
 
         if (usernames.Count == 0) return;
 
+        // Cap mentions before any lookups to prevent timing enumeration
+        if (usernames.Count > 25)
+            usernames = usernames.Take(25).ToList();
+
         var discussion = await discussionRepository.GetByPublicIdAsync(discussionId);
 
         if (discussion is null) return;

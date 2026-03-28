@@ -55,7 +55,7 @@ else
 
                 <a href="@url"
                    class="new-discussion-type-card"
-                   onclick="stashDraftAndNavigate(event, '@url')">
+                   data-action="stash-draft-and-navigate" data-url="@url">
                     <div class="flex items-center gap-2 mb-1.5">
                         @if (!string.IsNullOrEmpty(icon))
                         {
@@ -79,11 +79,4 @@ else
     </div>
 }
 
-<script>
-    // Stash any previously entered title before navigating to a type page
-    function stashDraftAndNavigate(event, url) {
-        // Nothing to stash from the picker page itself,
-        // but future enhancement could stash from the title input
-        // For now, just navigate
-    }
-</script>
+<script src="@SnakkUrlHelper.Js("pages/new-discussion-picker")" asp-append-version="true"></script>

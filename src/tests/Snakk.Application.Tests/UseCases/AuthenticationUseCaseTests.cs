@@ -137,7 +137,7 @@ public class AuthenticationUseCaseTests
             .Returns("hashed");
 
         // Act
-        var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Pass1234", "TestUser", "https://example.com");
+        var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Pass123!", "TestUser", "https://example.com");
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
@@ -387,8 +387,8 @@ public class AuthenticationUseCaseTests
         const string token = "valid_token_123";
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", token);
 
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([user]);
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync(token))
+            .ReturnsAsync(user);
 
         // Act
         var result = await _useCase.VerifyEmailAsync(token);
@@ -414,8 +414,8 @@ public class AuthenticationUseCaseTests
     public async Task VerifyEmailAsync_WithInvalidToken_ReturnsFailure()
     {
         // Arrange
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([]);
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync("invalid_token"))
+            .ReturnsAsync((User?)null);
 
         // Act
         var result = await _useCase.VerifyEmailAsync("invalid_token");
@@ -430,18 +430,15 @@ public class AuthenticationUseCaseTests
     {
         // Arrange
         const string token = "token_123";
-        var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", token);
-        user.VerifyEmail(); // Already verified - this sets the token to null
 
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([user]);
+        // After verification, the token is set to null, so the repository returns null
+        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync(token))
+            .ReturnsAsync((User?)null);
 
         // Act
         var result = await _useCase.VerifyEmailAsync(token);
 
         // Assert
-        // Note: After verification, the token is set to null, so when we try to verify again
-        // with the same token, the user lookup by token returns null (no user has this token)
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Invalid or expired verification token");
     }

@@ -16,11 +16,13 @@ public class TestDataBuilder
     public async Task<UserDatabaseEntity> CreateUserAsync(string? displayName = null, string? email = null)
     {
         var id = NextId();
+        var resolvedEmail = email ?? $"user_{id}@test.com";
         var user = new UserDatabaseEntity
         {
             PublicId = $"u_{id}",
             DisplayName = displayName ?? $"User {id}",
-            Email = email ?? $"user_{id}@test.com",
+            Email = resolvedEmail,
+            EmailHash = resolvedEmail.Trim().ToLowerInvariant(),
             CreatedAt = DateTime.UtcNow
         };
         _context.Users.Add(user);

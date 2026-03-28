@@ -224,6 +224,9 @@ public class AuthGrpcService(
         if (user.Bio is not null)
             response.Bio = user.Bio;
 
+        if (user.FeedToken is not null)
+            response.FeedToken = user.FeedToken;
+
         if (user.DisplayNameChangedAt.HasValue)
             response.DisplayNameChangedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
                 DateTime.SpecifyKind(user.DisplayNameChangedAt.Value, DateTimeKind.Utc));
@@ -393,6 +396,44 @@ public class AuthGrpcService(
         }
 
         return response;
+    }
+
+    public override async Task<FeedTokenResponse> GenerateFeedToken(GenerateFeedTokenRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var user = await authUseCase.GetUserByIdAsync(userId);
+        if (!user.IsSuccess || user.Value is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+
+        var token = user.Value.GenerateFeedToken();
+        await authUseCase.UpdateUserAsync(user.Value);
+
+        return new FeedTokenResponse { Token = token };
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> RevokeFeedToken(RevokeFeedTokenRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var user = await authUseCase.GetUserByIdAsync(userId);
+        if (!user.IsSuccess || user.Value is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+
+        user.Value.RevokeFeedToken();
+        await authUseCase.UpdateUserAsync(user.Value);
+
+        return new Protos.Auth.MessageResponse { Message = "Feed token revoked" };
+    }
+
+    private UserId RequireAuth()
+    {
+        if (!currentUser.IsAuthenticated())
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var userId = currentUser.GetCurrentUserId();
+        if (userId is null)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        return UserId.From(userId);
     }
 
     // Shared helper to fetch roles for a user

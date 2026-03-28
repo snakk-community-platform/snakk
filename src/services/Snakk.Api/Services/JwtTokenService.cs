@@ -1,5 +1,6 @@
 namespace Snakk.Api.Services;
 
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Snakk.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
@@ -7,7 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using Snakk.Domain.Entities;
 
-public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
+public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCache) : IJwtTokenService
 {
     private readonly string _secretKey = configuration["Jwt:SecretKey"]
         ?? throw new InvalidOperationException("JWT SecretKey not configured");
@@ -15,10 +16,14 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
     private readonly string _audience = configuration["Jwt:Audience"] ?? "Snakk";
     private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 15); // 15 minutes default
 
+    private const string RevocationPrefix = "jwt:revoked:";
+
     public string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null)
     {
+        var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
         {
+            new(JwtRegisteredClaimNames.Jti, jti),
             new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Name, displayName),
             new("EmailVerified", emailVerified.ToString())
@@ -78,13 +83,41 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
                 ClockSkew = TimeSpan.Zero
             };
 
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+
+            // Check if this token has been revoked
+            var jti = principal.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            if (jti is not null && memoryCache.TryGetValue(RevocationPrefix + jti, out _))
+                return null;
 
             return principal;
         }
         catch
         {
             return null;
+        }
+    }
+
+    public void RevokeToken(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.ReadToken(token) is not JwtSecurityToken jwt) return;
+
+            var jti = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
+            if (jti is null) return;
+
+            // Cache the revocation until the token would have expired naturally
+            var expiry = jwt.ValidTo - DateTime.UtcNow;
+            if (expiry > TimeSpan.Zero)
+            {
+                memoryCache.Set(RevocationPrefix + jti, true, expiry);
+            }
+        }
+        catch
+        {
+            // Token couldn't be parsed — nothing to revoke
         }
     }
 }

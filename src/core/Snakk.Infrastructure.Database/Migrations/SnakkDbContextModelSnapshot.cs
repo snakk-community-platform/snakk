@@ -2518,11 +2518,20 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
+                    b.Property<string>("EmailHash")
+                        .HasColumnType("text");
+
                     b.Property<string>("EmailVerificationToken")
                         .HasColumnType("text");
 
                     b.Property<bool>("EmailVerified")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FeedToken")
+                        .HasColumnType("text");
 
                     b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
@@ -2540,6 +2549,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("NeedsProfileSetup")
@@ -2581,8 +2593,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DisplayName")
                         .HasDatabaseName("IX_User_DisplayName");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("EmailHash")
+                        .IsUnique()
+                        .HasFilter("\"EmailHash\" IS NOT NULL");
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_User_IsDeleted");

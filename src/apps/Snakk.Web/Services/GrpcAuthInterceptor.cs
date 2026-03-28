@@ -54,9 +54,20 @@ public class GrpcAuthInterceptor : Interceptor
         // If access token is expired but we have a refresh token, auto-refresh
         if (!string.IsNullOrEmpty(refreshToken) && IsTokenExpired(accessToken))
         {
-            // We need to refresh synchronously-ish here. Use blocking wait since gRPC
-            // interceptors don't have a clean async pattern for modifying headers.
-            var refreshResult = RefreshTokensAsync(refreshToken, httpContext).GetAwaiter().GetResult();
+            // gRPC interceptors don't support async header modification, so we must block.
+            // Bounded to 5 seconds to prevent thread pool starvation under load.
+            // Request coalescing (below) ensures only one refresh runs per token.
+            RefreshResult? refreshResult = null;
+            try
+            {
+                refreshResult = RefreshTokensAsync(refreshToken, httpContext)
+                    .WaitAsync(TimeSpan.FromSeconds(5))
+                    .GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogWarning("Token refresh timed out after 5 seconds in gRPC interceptor");
+            }
             if (refreshResult is not null)
             {
                 accessToken = refreshResult.AccessToken;

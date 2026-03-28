@@ -72,10 +72,20 @@ interface ActivityDataPoint {
         }
     };
 
-    /**
-     * Initialize profile page with data from server
-     */
-    function initializeProfile(userId: string, stats: UserStats): void {
+    // Read config from JSON tag
+    const configEl = document.getElementById('profile-page-config');
+    if (!configEl) return; // No profile data — nothing to initialize
+
+    const profileConfig: { userId: string } & UserStats = JSON.parse(configEl.textContent || '{}');
+    const userId = profileConfig.userId;
+    const stats: UserStats = {
+        totalActivity: profileConfig.totalActivity,
+        daysSinceJoined: profileConfig.daysSinceJoined,
+        discussionCount: profileConfig.discussionCount,
+        postCount: profileConfig.postCount
+    };
+
+    function initializeProfile(): void {
         // Load user stats
         async function loadUserStats(): Promise<void> {
             try {
@@ -575,6 +585,6 @@ interface ActivityDataPoint {
         });
     }
 
-    // Export only initializeProfile
-    window.initializeProfile = initializeProfile;
+    // Self-initialize
+    initializeProfile();
 })();

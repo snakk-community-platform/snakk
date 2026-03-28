@@ -28,7 +28,7 @@ public class TokenRefreshMiddleware(RequestDelegate next)
                         try
                         {
                             var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-                            var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress);
+                            var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress, context.Request.Headers.UserAgent.ToString());
 
                             if (newAccessToken is not null)
                             {

@@ -624,6 +624,26 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
+    public virtual async Task<string?> GenerateFeedTokenAsync()
+    {
+        try
+        {
+            var response = await authClient.GenerateFeedTokenAsync(new GenerateFeedTokenRequest());
+            return response.Token;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<bool> RevokeFeedTokenAsync()
+    {
+        try
+        {
+            await authClient.RevokeFeedTokenAsync(new RevokeFeedTokenRequest());
+            return true;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
+    }
+
     public virtual async Task LogoutAsync()
     {
         try { await authClient.LogoutAsync(new LogoutRequest()); }

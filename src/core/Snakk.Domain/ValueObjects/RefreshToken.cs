@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace Snakk.Domain.ValueObjects;
 
 public record RefreshToken
@@ -22,8 +24,7 @@ public record RefreshToken
 
     public static RefreshToken Create(UserId userId, int expirationDays = 30)
     {
-        var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray()) +
-                   Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
         return new RefreshToken(
             token,

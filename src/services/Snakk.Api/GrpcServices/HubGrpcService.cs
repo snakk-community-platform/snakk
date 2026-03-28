@@ -103,7 +103,7 @@ public class HubGrpcService(
         var counts = await dbContext.Hubs
             .Where(h => publicIds.Contains(h.PublicId))
             .Select(h => new { h.PublicId, h.SpaceCount, h.DiscussionCount, h.PostCount })
-            .ToDictionaryAsync(h => h.PublicId);
+            .ToDictionaryAsync(h => h.PublicId, context.CancellationToken);
 
         var response = new PagedHubList
         {

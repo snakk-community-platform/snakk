@@ -206,41 +206,38 @@ public class FollowRepositoryAdapter(
     {
         var entity = follow.ToPersistence();
 
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
-
-        if (user is null)
-            throw new InvalidOperationException($"User with PublicId '{follow.UserId}' not found");
-
-        entity.UserId = user.Id;
+        // Resolve foreign keys (sequential — EF Core DbContext is not thread-safe)
+        entity.UserId = await context.Users
+            .Where(u => u.PublicId == follow.UserId.Value)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"User with PublicId '{follow.UserId}' not found");
 
         if (follow.DiscussionId is not null)
         {
-            var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == follow.DiscussionId.Value);
-
-            if (discussion is null)
-                throw new InvalidOperationException($"Discussion with PublicId '{follow.DiscussionId}' not found");
-
-            entity.DiscussionId = discussion.Id;
+            entity.DiscussionId = await context.Discussions
+                .Where(d => d.PublicId == follow.DiscussionId.Value)
+                .Select(d => (int?)d.Id)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException($"Discussion with PublicId '{follow.DiscussionId}' not found");
         }
 
         if (follow.SpaceId is not null)
         {
-            var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == follow.SpaceId.Value);
-
-            if (space is null)
-                throw new InvalidOperationException($"Space with PublicId '{follow.SpaceId}' not found");
-
-            entity.SpaceId = space.Id;
+            entity.SpaceId = await context.Spaces
+                .Where(s => s.PublicId == follow.SpaceId.Value)
+                .Select(s => (int?)s.Id)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException($"Space with PublicId '{follow.SpaceId}' not found");
         }
 
         if (follow.FollowedUserId is not null)
         {
-            var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.FollowedUserId.Value);
-
-            if (followedUser is null)
-                throw new InvalidOperationException($"User with PublicId '{follow.FollowedUserId}' not found");
-
-            entity.FollowedUserId = followedUser.Id;
+            entity.FollowedUserId = await context.Users
+                .Where(u => u.PublicId == follow.FollowedUserId.Value)
+                .Select(u => (int?)u.Id)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException($"User with PublicId '{follow.FollowedUserId}' not found");
         }
 
         await databaseRepository.AddAsync(entity);

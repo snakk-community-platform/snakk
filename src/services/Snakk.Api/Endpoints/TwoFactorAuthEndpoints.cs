@@ -31,7 +31,8 @@ public static class TwoFactorAuthEndpoints
         group.MapPost("/verify", VerifyTwoFactorAsync)
             .WithName("Verify2FA")
             .Produces<TwoFactorVerifyResponse>()
-            .AllowAnonymous(); // Needed during login flow
+            .AllowAnonymous() // Needed during login flow
+            .RequireRateLimiting("auth");
 
         group.MapGet("/backup-codes", GetBackupCodesAsync)
             .WithName("GetBackupCodes")
@@ -107,6 +108,14 @@ public static class TwoFactorAuthEndpoints
 
         if (userIdClaim is null)
             return Results.Unauthorized();
+
+        // Verify TOTP code first (prevents account takeover via session hijacking)
+        if (string.IsNullOrWhiteSpace(request.TotpCode))
+            return Results.BadRequest(new { error = "A valid 2FA code is required to disable 2FA" });
+
+        var (isValid, _) = await twoFactorService.VerifyTwoFactorCodeAsync(userIdClaim.Value, request.TotpCode);
+        if (!isValid)
+            return Results.BadRequest(new { error = "Invalid 2FA code" });
 
         var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, request.Password);
 
@@ -327,7 +336,10 @@ public static class TwoFactorAuthEndpoints
         if (userIdClaim is null)
             return Results.Unauthorized();
 
-        await trustedDeviceService.RevokeDeviceAsync(deviceId, "User requested revocation");
+        // Verify the device belongs to this user before revoking (IDOR prevention)
+        var success = await trustedDeviceService.RevokeDeviceForUserAsync(deviceId, userIdClaim.Value, "User requested revocation");
+        if (!success)
+            return Results.NotFound();
 
         return TypedResults.Ok(new MessageResponse("Device trust revoked successfully"));
     }
@@ -335,7 +347,7 @@ public static class TwoFactorAuthEndpoints
 
 // Request DTOs
 public record EnableTwoFactorRequest(string Code);
-public record DisableTwoFactorRequest(string Password);
+public record DisableTwoFactorRequest(string Password, string TotpCode);
 public record VerifyTwoFactorRequest(string Email, string Code);
 public record RegenerateBackupCodesRequest(string Password);
 public record TrustDeviceRequest(int? ExpirationDays); // 7, 30, 90, or null for never

@@ -16,6 +16,9 @@ public class SearchGrpcService(
 {
     public override async Task<PagedDiscussionSearchResults> SearchDiscussions(SearchDiscussionsRequest request, ServerCallContext context)
     {
+        if (request.Query?.Length > 500)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Search query must be 500 characters or less"));
+
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         var result = await searchUseCase.SearchDiscussionsAsync(
@@ -78,6 +81,9 @@ public class SearchGrpcService(
 
     public override async Task<PagedPostSearchResults> SearchPosts(SearchPostsRequest request, ServerCallContext context)
     {
+        if (request.Query?.Length > 500)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Search query must be 500 characters or less"));
+
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         var result = await searchUseCase.SearchPostsAsync(

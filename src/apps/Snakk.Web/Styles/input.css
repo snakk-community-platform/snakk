@@ -3,11 +3,14 @@
 @source "../Views";
 @source "../wwwroot/js";
 
-/* Strip unused Tailwind defaults — daisyUI provides our semantic color palette */
+/* Strip unused Tailwind defaults — daisyUI provides our semantic color palette.
+   Each --*: initial removes the corresponding utility class from the output. */
 @theme {
     --color-*: initial;
     --drop-shadow-*: initial;
     --blur-*: initial;
+    --inset-shadow-*: initial;
+    --container-*: initial;
 }
 
 @plugin "daisyui" {

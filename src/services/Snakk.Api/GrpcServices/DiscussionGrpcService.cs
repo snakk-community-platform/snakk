@@ -57,6 +57,12 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionCreatedInfo> CreateDiscussion(CreateDiscussionRequest request, ServerCallContext context)
     {
+        if (request.Title?.Length > 300)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Title must be 300 characters or less"));
+
+        if (request.Content?.Length > 50000)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Content must be 50,000 characters or less"));
+
         var userId = RequireAuth();
 
         if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value))
@@ -464,8 +470,12 @@ public class DiscussionGrpcService(
 
     public override async Task<GalleryLayoutResponse> GetGalleryLayout(GetGalleryLayoutRequest request, ServerCallContext context)
     {
-        var layout = await typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
-        var images = await typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
+        var layoutTask = typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
+        var imagesTask = typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
+        await Task.WhenAll(layoutTask, imagesTask);
+
+        var layout = layoutTask.Result;
+        var images = imagesTask.Result;
 
         var response = new GalleryLayoutResponse { Layout = layout ?? "grid" };
         foreach (var img in images)
@@ -494,8 +504,8 @@ public class DiscussionGrpcService(
 
     public override async Task<SetPostDebatePositionResponse> SetPostDebatePosition(SetPostDebatePositionRequest request, ServerCallContext context)
     {
-        RequireAuth();
-        var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId);
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId, userId.Value);
         return new SetPostDebatePositionResponse { Success = success, Error = error };
     }
 

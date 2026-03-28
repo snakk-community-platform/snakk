@@ -1,4 +1,5 @@
 using Moq;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain;
@@ -24,6 +25,7 @@ public class PostLifecycleWorkflowTests
     private readonly Mock<ICounterService> _mockCounterService = new();
     private readonly Mock<IMediaService> _mockMediaService = new();
     private readonly Mock<IMarkupParser> _mockMarkupParser = new();
+    private readonly Mock<IModerationRepository> _mockModerationRepository = new();
     private Mock<ReactionUseCase> _mockReactionUseCase = null!;
     private PostUseCase _useCase = null!;
 
@@ -49,6 +51,7 @@ public class PostLifecycleWorkflowTests
             _mockCounterService.Object,
             _mockMediaService.Object,
             _mockMarkupParser.Object,
+            _mockModerationRepository.Object,
             _mockReactionUseCase.Object);
     }
 

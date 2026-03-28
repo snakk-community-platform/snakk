@@ -38,13 +38,13 @@
             @if (Model.Report.Status == "Pending")
             {
                 <div class="flex gap-2">
-                    <button onclick="document.getElementById('resolve-modal').showModal()" class="btn btn-success btn-sm">
+                    <button data-modal-open="resolve-modal" class="btn btn-success btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
                         Resolve
                     </button>
-                    <button onclick="document.getElementById('dismiss-modal').showModal()" class="btn btn-ghost btn-sm">
+                    <button data-modal-open="dismiss-modal" class="btn btn-ghost btn-sm">
                         Dismiss
                     </button>
                 </div>
@@ -269,7 +269,7 @@
                                   placeholder="Describe the action taken..."></textarea>
                     </div>
                     <div class="modal-action">
-                        <button type="button" onclick="document.getElementById('resolve-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="button" data-modal-close="resolve-modal" class="btn btn-ghost">Cancel</button>
                         <button type="submit" class="btn btn-success">Resolve</button>
                     </div>
                 </form>
@@ -295,7 +295,7 @@
                                   placeholder="Reason for dismissal..."></textarea>
                     </div>
                     <div class="modal-action">
-                        <button type="button" onclick="document.getElementById('dismiss-modal').close()" class="btn btn-ghost">Cancel</button>
+                        <button type="button" data-modal-close="dismiss-modal" class="btn btn-ghost">Cancel</button>
                         <button type="submit" class="btn">Dismiss Report</button>
                     </div>
                 </form>

@@ -25,6 +25,18 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 return RedirectToPage("/Login", new { error = "oauth_failed" });
             }
 
+            // Validate state parameter to prevent CSRF
+            var expectedState = HttpContext.Session.GetString("OAuth_State");
+            HttpContext.Session.Remove("OAuth_State");
+            string? returnedState = null;
+            authenticateResult.Properties?.Items.TryGetValue("state", out returnedState);
+
+            if (string.IsNullOrEmpty(expectedState) || expectedState != returnedState)
+            {
+                logger.LogWarning("OAuth state mismatch for provider: {Provider}", Provider);
+                return RedirectToPage("/Login", new { error = "oauth_failed" });
+            }
+
             // Extract user info from claims
             var claims = authenticateResult.Principal?.Claims;
             var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
@@ -53,20 +65,22 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 return RedirectToPage("/Login", new { error = "oauth_token_missing" });
             }
 
-            // Set auth cookies (access + refresh)
-            var cookieOptions = new CookieOptions
+            // Set auth cookies using dual-cookie pattern
+            var expiry = DateTimeOffset.UtcNow.AddDays(30);
+            var strictOptions = new CookieOptions
             {
-                HttpOnly = true,
-                Secure = true, // Always secure — browsers treat localhost as secure context
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddDays(30),
-                Path = "/"
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+            };
+            var laxOptions = new CookieOptions
+            {
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
             };
 
-            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, cookieOptions);
+            Response.Cookies.Append(".Snakk.Auth", response.AccessToken, strictOptions);
+            Response.Cookies.Append(".Snakk.Auth.Session", response.AccessToken, laxOptions);
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, cookieOptions);
+                Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
 
             // New users go to profile setup page to choose their display name

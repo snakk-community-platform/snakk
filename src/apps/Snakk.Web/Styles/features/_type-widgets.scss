@@ -426,7 +426,11 @@
     padding-right: 0.5rem;
 
     .gallery-upload-item {
-        cursor: pointer;
+        cursor: grab;
+
+        .gallery-upload-item-delete {
+            cursor: pointer;
+        }
     }
 
     // Hover lift only for grid-like layouts, not carousel

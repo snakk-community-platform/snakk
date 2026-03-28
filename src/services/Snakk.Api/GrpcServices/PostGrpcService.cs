@@ -111,6 +111,9 @@ public class PostGrpcService(
 
     public override async Task<PostCreatedInfo> CreatePost(CreatePostRequest request, ServerCallContext context)
     {
+        if (request.Content?.Length > 50000)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Content must be 50,000 characters or less"));
+
         var userId = RequireAuth();
 
         if (!await IsDiscussionAccessibleAsync(request.DiscussionId, userId.Value))

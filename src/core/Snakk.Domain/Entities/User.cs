@@ -19,6 +19,7 @@ public class User
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
     public string? Bio { get; private set; }
+    public string? FeedToken { get; private set; }
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime? DisplayNameChangedAt { get; private set; }
     public bool IsDisplayNameLocked { get; private set; }
@@ -29,6 +30,8 @@ public class User
     public DateTime? LastModifiedAt { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
+    public int FailedLoginAttempts { get; private set; }
+    public DateTime? LockoutEnd { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -59,11 +62,14 @@ public class User
         bool needsProfileSetup = false,
         string? timezone = null,
         string? bio = null,
+        string? feedToken = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
         DateTime? displayNameChangedAt = null,
-        bool isDisplayNameLocked = false)
+        bool isDisplayNameLocked = false,
+        int failedLoginAttempts = 0,
+        DateTime? lockoutEnd = null)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -79,12 +85,15 @@ public class User
         AutoFollowOnReply = autoFollowOnReply;
         Timezone = timezone;
         Bio = bio;
+        FeedToken = feedToken;
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
         FollowerCount = followerCount;
         DisplayNameChangedAt = displayNameChangedAt;
         IsDisplayNameLocked = isDisplayNameLocked;
+        FailedLoginAttempts = failedLoginAttempts;
+        LockoutEnd = lockoutEnd;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -203,11 +212,14 @@ public class User
         bool needsProfileSetup = false,
         string? timezone = null,
         string? bio = null,
+        string? feedToken = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
         DateTime? displayNameChangedAt = null,
-        bool isDisplayNameLocked = false) =>
+        bool isDisplayNameLocked = false,
+        int failedLoginAttempts = 0,
+        DateTime? lockoutEnd = null) =>
         new User(
             publicId,
             displayName,
@@ -228,11 +240,14 @@ public class User
             needsProfileSetup,
             timezone,
             bio,
+            feedToken,
             discussionCount,
             replyCount,
             followerCount,
             displayNameChangedAt,
-            isDisplayNameLocked);
+            isDisplayNameLocked,
+            failedLoginAttempts,
+            lockoutEnd);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -297,6 +312,17 @@ public class User
     {
         LastLoginAt = DateTime.UtcNow;
         LastSeenAt = DateTime.UtcNow;
+        FailedLoginAttempts = 0;
+        LockoutEnd = null;
+    }
+
+    public bool IsLockedOut => LockoutEnd.HasValue && LockoutEnd.Value > DateTime.UtcNow;
+
+    public void RecordFailedLogin(int maxAttempts = 10, int lockoutMinutes = 15)
+    {
+        FailedLoginAttempts++;
+        if (FailedLoginAttempts >= maxAttempts)
+            LockoutEnd = DateTime.UtcNow.AddMinutes(lockoutMinutes);
     }
 
     public void GenerateEmailVerificationToken()
@@ -338,6 +364,20 @@ public class User
     public void SetBio(string? bio)
     {
         Bio = bio?.Length > 300 ? bio[..300] : bio;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public string GenerateFeedToken()
+    {
+        FeedToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        LastModifiedAt = DateTime.UtcNow;
+        return FeedToken;
+    }
+
+    public void RevokeFeedToken()
+    {
+        FeedToken = null;
         LastModifiedAt = DateTime.UtcNow;
     }
 

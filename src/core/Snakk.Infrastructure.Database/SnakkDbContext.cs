@@ -868,10 +868,11 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(u => u.DisplayName)
             .HasDatabaseName("IX_User_DisplayName");
 
-        // Email index for lookups
+        // EmailHash index for lookups (deterministic SHA-256 hash of lowercased email)
         modelBuilder.Entity<UserDatabaseEntity>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
+            .HasIndex(u => u.EmailHash)
+            .IsUnique()
+            .HasFilter("\"EmailHash\" IS NOT NULL");
 
         // === Soft Delete Indexes ===
         // These indexes improve performance of global query filters

@@ -17,6 +17,9 @@ public class AuthenticationUseCase(
     IDisplayNameHistoryRepository displayNameHistoryRepository,
     ITurnstileService turnstileService) : UseCaseBase
 {
+    // Dummy BCrypt hash for timing equalization (prevents email enumeration)
+    private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
+
     public async Task<Result<User>> RegisterWithEmailAsync(
         string email,
         string password,
@@ -32,6 +35,15 @@ public class AuthenticationUseCase(
 
         if (password.Length < 8)
             return Result<User>.Failure("Password must be at least 8 characters");
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[A-Z]"))
+            return Result<User>.Failure("Password must contain at least one uppercase letter");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[a-z]"))
+            return Result<User>.Failure("Password must contain at least one lowercase letter");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"\d"))
+            return Result<User>.Failure("Password must contain at least one number");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[^a-zA-Z0-9]"))
+            return Result<User>.Failure("Password must contain at least one special character");
 
         if (string.IsNullOrWhiteSpace(displayName))
             return Result<User>.Failure("Display name is required");
@@ -82,13 +94,26 @@ public class AuthenticationUseCase(
         var user = await userRepository.GetByEmailAsync(email);
 
         if (user is null)
+        {
+            // Equalize timing: run BCrypt verify even when user doesn't exist
+            // to prevent email enumeration via response time differences
+            passwordHasher.VerifyPassword(password, DummyPasswordHash);
             return Result<User>.Failure("Invalid email or password");
+        }
+
+        // Check account lockout
+        if (user.IsLockedOut)
+            return Result<User>.Failure("Account is temporarily locked due to too many failed login attempts. Please try again later.");
 
         // Verify password
         if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
+        {
+            user.RecordFailedLogin(maxAttempts: 10, lockoutMinutes: 15);
+            await userRepository.UpdateAsync(user);
             return Result<User>.Failure("Invalid email or password");
+        }
 
-        // Update last login
+        // Update last login (also resets failed attempts + lockout)
         user.UpdateLastLogin();
         await userRepository.UpdateAsync(user);
 
@@ -149,9 +174,8 @@ public class AuthenticationUseCase(
         if (string.IsNullOrWhiteSpace(token))
             return Result.Failure("Verification token is required");
 
-        // Find user by token (need to add method to repository)
-        var users = await userRepository.GetAllAsync();
-        var user = users.FirstOrDefault(u => u.EmailVerificationToken == token);
+        // Find user by token
+        var user = await userRepository.GetByEmailVerificationTokenAsync(token);
 
         if (user is null)
             return Result.Failure("Invalid or expired verification token");
@@ -303,36 +327,30 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
+    public async Task UpdateUserAsync(User user) =>
+        await userRepository.UpdateAsync(user);
+
     private async Task<string> EnsureUniqueDisplayNameAsync(string displayName)
     {
-        // Check if display name is available (case-insensitive)
-        var users = await userRepository.GetAllAsync();
-        var existingUser = users.FirstOrDefault(u =>
-            u.DisplayName.Equals(displayName, StringComparison.OrdinalIgnoreCase));
+        // Check if display name is available (database-side, case-insensitive)
+        var existing = await userRepository.GetByDisplayNameAsync(displayName);
 
-        if (existingUser is null)
+        if (existing is null)
             return displayName;
 
         // Generate unique display name with random number
         var random = new Random();
-        var attempt = 0;
 
-        while (attempt < 10)
+        for (var attempt = 0; attempt < 10; attempt++)
         {
-            var suffix = random.Next(1000, 9999);
-            var suggestedName = $"{displayName}-{suffix}";
+            var suggestedName = $"{displayName}-{random.Next(1000, 9999)}";
 
-            existingUser = users.FirstOrDefault(u =>
-                u.DisplayName.Equals(suggestedName, StringComparison.OrdinalIgnoreCase));
-
-            if (existingUser is null)
+            if (await userRepository.GetByDisplayNameAsync(suggestedName) is null)
                 return suggestedName;
-
-            attempt++;
         }
 
         // Fallback to GUID
-        return $"{displayName}-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+        return $"{displayName}-{Guid.NewGuid().ToString("N")[..8]}";
     }
 
     public async Task<Result<RefreshToken>> CreateRefreshTokenAsync(UserId userId)

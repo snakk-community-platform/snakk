@@ -157,39 +157,33 @@ public class PostRepositoryAdapter(
     {
         var entity = post.ToPersistence();
 
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == post.DiscussionId.Value);
+        // Resolve foreign keys (sequential — EF Core DbContext is not thread-safe)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == post.DiscussionId.Value)
+            ?? throw new InvalidOperationException($"Discussion with PublicId '{post.DiscussionId}' not found");
 
-        if (discussion is null)
-            throw new InvalidOperationException($"Discussion with PublicId '{post.DiscussionId}' not found");
-
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == post.CreatedByUserId.Value);
-
-        if (user is null)
-            throw new InvalidOperationException($"User with PublicId '{post.CreatedByUserId}' not found");
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == post.CreatedByUserId.Value)
+            ?? throw new InvalidOperationException($"User with PublicId '{post.CreatedByUserId}' not found");
 
         entity.DiscussionId = discussion.Id;
         entity.CreatedByUserId = user.Id;
 
         if (post.ReplyToPostId is not null)
         {
-            var replyToPost = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == post.ReplyToPostId.Value);
-
-            if (replyToPost is not null)
-            {
-                entity.ReplyToPostId = replyToPost.Id;
-            }
+            entity.ReplyToPostId = await context.Posts
+                .Where(p => p.PublicId == post.ReplyToPostId.Value)
+                .Select(p => (int?)p.Id)
+                .FirstOrDefaultAsync();
         }
 
-        // Compute denormalized post flags
         entity.IsOp = discussion.CreatedByUserId == user.Id;
 
+        // Compute denormalized post flags (sequential — same DbContext)
         entity.IsUsersFirstPostInDiscussion = !await context.Posts
             .AnyAsync(p => p.DiscussionId == discussion.Id && p.CreatedByUserId == user.Id);
 
         entity.IsUsersFirstPostInSpace = !await context.Posts
             .AnyAsync(p => p.Discussion.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id);
 
-        // IsNecro: last post in discussion is older than configured threshold
         var necroDays = configuration.GetValue("PostFlags:NecroDays", 30);
         var lastPostDate = await context.Posts
             .Where(p => p.DiscussionId == discussion.Id && !p.IsDeleted)
@@ -200,17 +194,15 @@ public class PostRepositoryAdapter(
         entity.IsNecro = lastPostDate.HasValue
             && (DateTime.UtcNow - lastPostDate.Value).TotalDays >= necroDays;
 
-        // IsMilestone: post number matches configured thresholds
         var postCount = await context.Posts
             .Where(p => p.DiscussionId == discussion.Id)
             .CountAsync();
-        var postNumber = postCount + 1; // This will be the Nth post
 
         var milestoneThresholds = configuration
             .GetSection("PostFlags:MilestoneThresholds")
             .Get<int[]>() ?? [100, 500, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000];
 
-        entity.IsMilestone = milestoneThresholds.Contains(postNumber);
+        entity.IsMilestone = milestoneThresholds.Contains(postCount + 1);
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();

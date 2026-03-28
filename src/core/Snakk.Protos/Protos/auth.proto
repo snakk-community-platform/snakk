@@ -24,6 +24,10 @@ service AuthService {
   rpc UpdateProfile (UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc UpdatePreferences (UpdatePreferencesRequest) returns (MessageResponse);
 
+  // RSS feed token
+  rpc GenerateFeedToken (GenerateFeedTokenRequest) returns (FeedTokenResponse);
+  rpc RevokeFeedToken (RevokeFeedTokenRequest) returns (MessageResponse);
+
   // OAuth (server-to-server only — challenge/callback stay as HTTP redirects)
   rpc OAuthCallback (OAuthCallbackRequest) returns (OAuthCallbackResponse);
 
@@ -127,6 +131,7 @@ message CurrentUserResponse {
   bool has_password = 12;
   optional string avatar_url = 13;
   optional string bio = 14;
+  optional string feed_token = 15;
 }
 
 message UpdateProfileResponse {
@@ -172,4 +177,11 @@ message DisplayNameHistoryEntry {
 
 message DisplayNameHistoryResponse {
   repeated DisplayNameHistoryEntry entries = 1;
+}
+
+// RSS feed token
+message GenerateFeedTokenRequest {}
+message RevokeFeedTokenRequest {}
+message FeedTokenResponse {
+  string token = 1;
 }

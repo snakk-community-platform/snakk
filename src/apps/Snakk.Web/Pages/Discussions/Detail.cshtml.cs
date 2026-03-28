@@ -103,8 +103,16 @@ public class DetailModel(
 
         try
         {
-            // Load user info for auth-dependent features
-            var user = await _apiClient.GetCurrentUserAsync();
+            // Load user info, hub, space, and community in parallel
+            var userTask = _apiClient.GetCurrentUserAsync();
+            var hubTask = _apiClient.GetHubBySlugAsync(hubSlug, CommunityContext.CommunitySlug!);
+            var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug, hubSlug);
+            var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
+                ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
+                : Task.FromResult<CommunityInfo?>(null);
+            await Task.WhenAll(userTask, hubTask, spaceTask, communityTask);
+
+            var user = userTask.Result;
             IsAuthenticated = user is not null;
             CurrentUserId = user?.PublicId;
             CurrentUserDisplayName = user?.DisplayName;
@@ -128,20 +136,14 @@ public class DetailModel(
                 // If no unread or calculation failed, fall through to normal rendering
             }
 
-            // Load hub, space, community, discussion, and posts
-            var hubTask = _apiClient.GetHubBySlugAsync(hubSlug, CommunityContext.CommunitySlug!);
-            var spaceTask = _apiClient.GetSpaceBySlugAsync(spaceSlug, hubSlug);
-            var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
-                ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
-                : Task.FromResult<CommunityInfo?>(null);
-            await Task.WhenAll(hubTask, spaceTask, communityTask);
-
             Hub = hubTask.Result;
             Space = spaceTask.Result;
             CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
-            if (Space is not null)
-                SpaceStats = await _apiClient.GetSpaceStatsAsync(Space.PublicId);
+            // Space stats (depends on Space being loaded)
+            Task<SpaceStats?> spaceStatsTask = Space is not null
+                ? _apiClient.GetSpaceStatsAsync(Space.PublicId)
+                : Task.FromResult<SpaceStats?>(null);
 
             // Prefetch space rules and moderators for sidebar (inline if cache warm, HTMX fallback if cold)
             if (Space?.HasRules == true)
@@ -163,12 +165,16 @@ public class DetailModel(
                         "cache"));
             }
 
+            // Load discussion and posts (discussion must load first, posts depend on it)
             var discussionResult = await _apiClient.GetDiscussionResultAsync(PublicId);
             if (!discussionResult.IsSuccess)
                 return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
             Discussion = discussionResult.Value;
             CanonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+
+            // Await space stats (started earlier in parallel)
+            SpaceStats = await spaceStatsTask;
 
             Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
             HasCodeBlocks = Posts?.HasCodeBlocks ?? false;

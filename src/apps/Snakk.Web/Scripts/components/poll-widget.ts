@@ -76,7 +76,7 @@ interface PollData {
             const clickable = !pollData.isClosed && isAuthenticated && (!hasVoted || pollData.allowChangeVote || pollData.allowMultiple);
 
             html += `<div class="poll-option${selectedClass}${winnerClass}${closedClass}" data-option-id="${option.id}"
-                          ${clickable ? `onclick="window.SnakkPoll.toggleOption(${option.id})"` : ''}>`;
+                          ${clickable ? `data-action="poll-toggle-option" data-option-id="${option.id}"` : ''}>`;
 
             if (showResults) {
                 html += `<div class="poll-option-bar" style="width: ${percent}%"></div>`;
@@ -121,9 +121,9 @@ interface PollData {
         }
 
         if (!hasVoted && isAuthenticated && !pollData.isClosed) {
-            html += `<button class="btn btn-primary btn-sm" onclick="window.SnakkPoll.submitVote()">Vote</button>`;
+            html += `<button class="btn btn-primary btn-sm" data-action="poll-submit-vote">Vote</button>`;
         } else if (hasVoted && pollData.allowChangeVote && !pollData.isClosed) {
-            html += `<button class="btn btn-ghost btn-xs" onclick="window.SnakkPoll.changeVote()">Change vote</button>`;
+            html += `<button class="btn btn-ghost btn-xs" data-action="poll-change-vote">Change vote</button>`;
         }
 
         html += '</div>';
@@ -181,6 +181,16 @@ interface PollData {
     }
 
     (window as any).SnakkPoll = { loadPoll, toggleOption, submitVote, changeVote };
+
+    // Register with global action delegation
+    if (window.SnakkActions) {
+        window.SnakkActions.on('poll-toggle-option', (el) => {
+            const optionId = parseInt(el.dataset.optionId || '0', 10);
+            if (optionId) toggleOption(optionId);
+        });
+        window.SnakkActions.on('poll-submit-vote', () => submitVote());
+        window.SnakkActions.on('poll-change-vote', () => changeVote());
+    }
 
     // Auto-load on page ready
     if (document.readyState === 'loading') {

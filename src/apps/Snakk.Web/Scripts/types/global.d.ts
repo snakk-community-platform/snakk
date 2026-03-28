@@ -111,7 +111,15 @@ interface SnakkConfig {
     };
 }
 
+interface SnakkActionsAPI {
+    on(action: string, handler: (el: HTMLElement, event: Event) => void): void;
+    onAll(handlers: Record<string, (el: HTMLElement, event: Event) => void>): void;
+}
+
 interface Window {
+    // Action delegation
+    SnakkActions: SnakkActionsAPI;
+
     // Snakk modules
     SnakkAuth: any;
     SnakkUtils: any;
@@ -146,8 +154,6 @@ interface Window {
     SnakkConfig: SnakkConfig;
     FrontpageDiscussions: any;
     SnakkFrontpageDiscussions: any;
-    initializeProfile: (userId: string, stats: any) => void;
-
     // SignalR
     signalR: typeof signalR;
 

@@ -145,7 +145,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
     }
 
     public async Task<(bool Success, string? Error)> SetPostDebatePositionAsync(
-        string discussionPublicId, string postPublicId, int positionId)
+        string discussionPublicId, string postPublicId, int positionId, string userPublicId)
     {
         // Verify position belongs to this debate
         var debate = await context.DiscussionDebates
@@ -159,13 +159,18 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
         if (!debate.Positions.Any(p => p.Id == positionId))
             return (false, "Invalid position");
 
-        var postId = await context.Posts
+        var post = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
-            .Select(p => p.Id)
+            .Select(p => new { p.Id, CreatedByPublicId = p.CreatedByUser.PublicId })
             .FirstOrDefaultAsync();
 
-        if (postId == 0)
+        if (post is null)
             return (false, "Post not found");
+
+        if (post.CreatedByPublicId != userPublicId)
+            return (false, "You can only set the debate position on your own posts");
+
+        var postId = post.Id;
 
         // Upsert position
         var existing = await context.PostDebatePositions

@@ -21,7 +21,7 @@
     var unreadUrl = $"{baseUrl}?gotoUnread=true";
 }
 
-<div class="topic-item-wrapper">
+<div class="topic-item-wrapper h-entry">
     <img src="@discussion.Author.AvatarUrl"
          alt="@discussion.Author.DisplayName"
          width="40" height="40"
@@ -30,7 +30,7 @@
     <div class="topic-item">
         <div class="topic-content">
             <div class="topic-title">
-                <a href="@baseUrl" class="topic-title-link">@discussion.Title</a>
+                <a href="@baseUrl" class="topic-title-link u-url p-name">@discussion.Title</a>
             </div>
             <div class="topic-meta">
                 @if (Model.ShowCommunity)
@@ -81,7 +81,8 @@
                 {
                     <span class="topic-meta-separator">&middot;</span>
                 }
-                <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
+                <time class="dt-published" datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</time>
+                <span class="p-author h-card" hidden>@discussion.Author.DisplayName</span>
                 @if (!string.IsNullOrEmpty(discussion.Type) && discussion.Type != "Standard")
                 {
                     var (icon, label, cssClass) = GetTypeBadge(discussion.Type);

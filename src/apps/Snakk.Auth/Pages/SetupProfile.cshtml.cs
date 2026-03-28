@@ -52,15 +52,17 @@ public class SetupProfileModel(
             // Update the auth cookie if a new token was returned (with updated display name)
             if (!string.IsNullOrEmpty(response.Token))
             {
-                var cookieOptions = new CookieOptions
+                var expiry = DateTimeOffset.UtcNow.AddDays(30);
+                var strictOptions = new CookieOptions
                 {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTimeOffset.UtcNow.AddDays(30),
-                    Path = "/"
+                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
                 };
-                Response.Cookies.Append(".Snakk.Auth", response.Token, cookieOptions);
+                var laxOptions = new CookieOptions
+                {
+                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
+                };
+                Response.Cookies.Append(".Snakk.Auth", response.Token, strictOptions);
+                Response.Cookies.Append(".Snakk.Auth.Session", response.Token, laxOptions);
             }
 
             return Redirect("/");

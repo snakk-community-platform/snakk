@@ -2,6 +2,7 @@ namespace Snakk.Api;
 
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
@@ -29,11 +30,21 @@ public static class ServiceCollectionExtensions
         });
 
         // Database (PostgreSQL) with DbContext pooling for better performance
+        var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
+            configuration.GetConnectionString("DbConnection"))
+        {
+            MaxPoolSize = 200,
+            MinPoolSize = 5,
+            Timeout = 30,
+            ConnectionIdleLifetime = 300
+        }.ToString();
+
         services.AddDbContextPool<SnakkDbContext>(options =>
             options
                 .UseNpgsql(
-                    configuration.GetConnectionString("DbConnection"),
-                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+                    connectionString,
+                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                          .CommandTimeout(60))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
             poolSize: 128);
 
@@ -43,7 +54,8 @@ public static class ServiceCollectionExtensions
         // HybridCache for settings/permissions caching (stampede-safe, also registers IMemoryCache)
         services.AddHybridCache();
 
-        // JWT Service
+        // JWT Service (IMemoryCache used for token revocation blacklist)
+        services.AddMemoryCache();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         // Authentication
@@ -262,7 +274,8 @@ public static class ServiceCollectionExtensions
 
             if (!string.IsNullOrEmpty(apiKey))
                 client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-        });
+        })
+        .AddStandardResilienceHandler();
 
         services.AddScoped<IRealtimeNotifier, Infrastructure.Realtime.HttpRealtimeNotifier>();
 
@@ -276,7 +289,11 @@ public static class ServiceCollectionExtensions
         // Session Management
         services.AddScoped<Application.Services.ISessionManagementService, Infrastructure.Services.SessionManagementService>();
 
+        // Email encryption (at-rest protection for email addresses in the database)
+        services.AddSingleton<Application.Services.IEmailProtector, Infrastructure.Services.EmailProtector>();
+
         // Two-Factor Authentication
+        services.AddSingleton<Application.Services.ITwoFactorSecretProtector, Infrastructure.Services.TwoFactorSecretProtector>();
         services.AddScoped<Application.Services.ITwoFactorAuthService, Infrastructure.Services.TwoFactorAuthService>();
         services.AddScoped<Application.Services.ITurnstileService, Infrastructure.Services.TurnstileService>();
 
@@ -293,7 +310,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.IGroupAccessService, Infrastructure.Services.GroupAccessService>();
 
         // Webhook Services
-        services.AddHttpClient(); // Required for WebhookService HTTP calls
+        services.AddHttpClient("WebhookService", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        })
+        .AddStandardResilienceHandler();
         services.AddScoped<Application.Services.IWebhookService, Infrastructure.Services.WebhookService>();
 
         // Activity Broadcaster (for admin panel activity feed)
@@ -308,7 +329,8 @@ public static class ServiceCollectionExtensions
 
             if (!string.IsNullOrEmpty(apiKey))
                 client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-        });
+        })
+        .AddStandardResilienceHandler();
 
         services.AddSingleton<Application.Services.IActivityBroadcaster, Infrastructure.Realtime.HttpActivityBroadcaster>();
 

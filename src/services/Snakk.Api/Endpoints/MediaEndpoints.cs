@@ -14,7 +14,7 @@ public static class MediaEndpoints
             .WithName("UploadMedia")
             .RequireAuthorization()
             .RequireRateLimiting("api")
-            .DisableAntiforgery();
+            .DisableAntiforgery(); // File uploads via fetch() — CSRF mitigated by JWT auth
 
         group.MapDelete("/draft", DeleteDraftMediaAsync)
             .WithName("DeleteDraftMedia")
