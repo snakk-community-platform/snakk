@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
 using Snakk.Api.Tests.Helpers;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -14,6 +17,14 @@ public class AvatarEndpointTests : IAsyncDisposable
     private readonly TestWebServer _server = new();
 
     private const string TestUserId = "test-user-id";
+
+    private static byte[] CreateTestJpeg()
+    {
+        using var image = new Image<Rgba32>(2, 2, Color.Red);
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms, new JpegEncoder { Quality = 75 });
+        return ms.ToArray();
+    }
 
     /// <summary>
     /// Seeds a user into the InMemory database with a PublicId matching the JWT sub claim.
@@ -323,7 +334,7 @@ public class AvatarEndpointTests : IAsyncDisposable
         await SeedUserAsync();
         var client = _server.CreateAuthenticatedClient();
         var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46 });
+        var fileContent = new ByteArrayContent(CreateTestJpeg());
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
         content.Add(fileContent, "avatar", "test.jpg");
 
@@ -341,7 +352,7 @@ public class AvatarEndpointTests : IAsyncDisposable
         await SeedUserAsync();
         var client = _server.CreateAuthenticatedClient();
         var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46 });
+        var fileContent = new ByteArrayContent(CreateTestJpeg());
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
         content.Add(fileContent, "avatar", "avatar.jpg");
 
@@ -361,7 +372,7 @@ public class AvatarEndpointTests : IAsyncDisposable
         // Arrange — authenticated but user not seeded in DB
         var client = _server.CreateAuthenticatedClient();
         var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46 });
+        var fileContent = new ByteArrayContent(CreateTestJpeg());
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
         content.Add(fileContent, "avatar", "test.jpg");
 
