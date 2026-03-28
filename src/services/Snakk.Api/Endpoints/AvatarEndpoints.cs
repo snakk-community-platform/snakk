@@ -5,6 +5,9 @@ using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
 using Snakk.Api.Helpers;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 public static class AvatarEndpoints
 {
@@ -86,15 +89,23 @@ public static class AvatarEndpoints
                 File.Delete(oldPath);
         }
 
-        // Generate unique filename
-        var newFileName = $"{userId.Value}{extension}";
+        // Process: resize to 256x256 max, encode as WebP
+        var newFileName = $"{userId.Value}.webp";
         var newPath = Path.Combine(avatarsDir, newFileName);
 
-        // Save file
-        await using (var stream = new FileStream(newPath, FileMode.Create))
+        using var inputStream = file.OpenReadStream();
+        using var image = await Image.LoadAsync(inputStream);
+
+        if (image.Width > 256 || image.Height > 256)
         {
-            await file.CopyToAsync(stream);
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(256, 256),
+                Mode = ResizeMode.Max
+            }));
         }
+
+        await image.SaveAsWebpAsync(newPath, new WebpEncoder { Quality = 80 });
 
         // Update user
         user.SetAvatarFileName(newFileName);
