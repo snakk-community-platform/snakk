@@ -12,12 +12,14 @@ public class DatabaseSeeder(
     IPasswordHasher passwordHasher,
     IAvatarGenerationService avatarService,
     IMarkupParser markupParser,
+    IEmailProtector emailProtector,
     Microsoft.Extensions.Configuration.IConfiguration configuration)
 {
     private readonly SnakkDbContext _context = context;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly IAvatarGenerationService _avatarService = avatarService;
     private readonly IMarkupParser _markupParser = markupParser;
+    private readonly IEmailProtector _emailProtector = emailProtector;
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration = configuration;
 
     // Fixed seed for reproducibility
@@ -262,7 +264,8 @@ public class DatabaseSeeder(
         const string adminPublicId = "01JJQP000000000000000ADM1N";
 
         // Check if admin user already exists
-        var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail || u.PublicId == adminPublicId);
+        var adminHash = _emailProtector.ComputeHash(adminEmail);
+        var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.EmailHash == adminHash || u.PublicId == adminPublicId);
         if (adminUser is not null)
         {
             // Ensure they have GlobalAdmin role in UserRoles table (for permissions)
@@ -292,6 +295,7 @@ public class DatabaseSeeder(
         {
             PublicId = adminPublicId,
             Email = adminEmail,
+            EmailHash = _emailProtector.ComputeHash(adminEmail),
             PasswordHash = passwordHash,
             DisplayName = adminDisplayName,
             EmailVerified = true,
@@ -307,11 +311,42 @@ public class DatabaseSeeder(
             PublicId = Ulid.NewUlid().ToString(),
             UserId = newAdminUser.Id,
             RoleId = (int)UserRoleTypeEnum.GlobalAdmin,
-            AssignedByUserId = newAdminUser.Id, // Self-assigned
+            AssignedByUserId = newAdminUser.Id,
             AssignedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
         Console.WriteLine($"Admin user created: {adminEmail}");
+
+        // Create test users
+        var testUsers = new[]
+        {
+            ("alice@snakk.local", "Alice", "01JJQP000000000000000ALICE"),
+            ("bob@snakk.local", "Bob", "01JJQP00000000000000000BOB"),
+            ("charlie@snakk.local", "Charlie", "01JJQP0000000000000CHARLIE")
+        };
+
+        var testPasswordHash = _passwordHasher.HashPassword("test123!");
+
+        foreach (var (email, name, publicId) in testUsers)
+        {
+            var exists = await _context.Users.AnyAsync(u => u.PublicId == publicId);
+            if (exists) continue;
+
+            _context.Users.Add(new UserDatabaseEntity
+            {
+                PublicId = publicId,
+                Email = email,
+                EmailHash = _emailProtector.ComputeHash(email),
+                PasswordHash = testPasswordHash,
+                DisplayName = name,
+                EmailVerified = true,
+                CreatedAt = DateTime.UtcNow,
+                LastSeenAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine("Test users created: Alice, Bob, Charlie (password: test123!)");
     }
 
     private async Task<List<UserDatabaseEntity>> SeedUsersAsync()
@@ -334,6 +369,7 @@ public class DatabaseSeeder(
             .RuleFor(u => u.PublicId, _ => Ulid.NewUlid().ToString())
             .RuleFor(u => u.DisplayName, f => f.Name.FullName())
             .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.DisplayName.Split(' ')[0], u.DisplayName.Split(' ').Last()).ToLower())
+            .RuleFor(u => u.EmailHash, (_, u) => _emailProtector.ComputeHash(u.Email!))
             .RuleFor(u => u.CreatedAt, f => f.Date.Between(EarliestDate.AddDays(-30), Now.AddDays(-7)))
             .RuleFor(u => u.LastSeenAt, f => f.Date.Between(Now.AddDays(-14), Now));
 

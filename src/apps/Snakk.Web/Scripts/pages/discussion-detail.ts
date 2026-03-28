@@ -144,6 +144,11 @@ function initReplyEditor(): Promise<void> {
         const container = document.getElementById('editor-container');
         const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement;
         if (!container || !textarea) return;
+
+        // Wait for the lazy-loaded markdown-editor script
+        for (let i = 0; i < 50 && !(window as any).SnakkEditor; i++) {
+            await new Promise(r => setTimeout(r, 100));
+        }
         if (!(window as any).SnakkEditor) return;
 
         const editor = await (window as any).SnakkEditor.init({

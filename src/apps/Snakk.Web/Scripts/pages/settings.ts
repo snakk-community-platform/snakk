@@ -113,34 +113,23 @@ interface SettingsPageConfig {
             passwordField.style.display = 'none';
         }
 
-        // Update account info section
+        // Update account info sections (mobile + desktop use class selectors)
         if (data.email) {
-            const emailEl = document.getElementById('profile-email');
-            const emailBadge = document.getElementById('profile-email-badge');
-            const emailRow = document.getElementById('email-row');
-
-            if (emailEl) emailEl.textContent = data.email;
-            if (emailBadge) {
-                emailBadge.textContent = data.emailVerified ? 'Verified' : 'Not verified';
-                emailBadge.className = data.emailVerified
-                    ? 'badge badge-success badge-sm shrink-0'
-                    : 'badge badge-warning badge-sm shrink-0';
-            }
-            if (emailRow) emailRow.style.display = '';
+            document.querySelectorAll('.profile-email').forEach(el => el.textContent = data.email);
+            document.querySelectorAll('.profile-email-badge').forEach(el => {
+                el.textContent = data.emailVerified ? 'Verified' : 'Not verified';
+                el.className = data.emailVerified
+                    ? 'profile-email-badge badge badge-success badge-sm shrink-0'
+                    : 'profile-email-badge badge badge-warning badge-sm shrink-0';
+            });
         }
 
         if (data.oAuthProvider) {
-            const oauthEl = document.getElementById('profile-oauth');
-            const oauthRow = document.getElementById('oauth-row');
-
-            if (oauthEl) oauthEl.textContent = data.oAuthProvider;
-            if (oauthRow) oauthRow.style.display = '';
+            document.querySelectorAll('.profile-oauth').forEach(el => el.textContent = data.oAuthProvider);
+            document.querySelectorAll('.profile-oauth-row').forEach(el => (el as HTMLElement).style.display = '');
         }
 
-        const userIdEl = document.getElementById('profile-userid');
-        if (userIdEl) {
-            userIdEl.textContent = data.publicId;
-        }
+        document.querySelectorAll('.profile-userid').forEach(el => el.textContent = data.publicId);
     }
 
     function showStatus(message: string, isError: boolean = false): void {
@@ -694,17 +683,57 @@ interface SettingsPageConfig {
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initProfileSettings().then(() => { attachEventListeners(); loadDevices(); });
+    // --- Scrollspy ---
+
+    function initScrollspy(): void {
+        const navLinks = document.querySelectorAll<HTMLAnchorElement>('[data-scrollspy-link]');
+        if (navLinks.length === 0) return;
+
+        const sections: { id: string; el: HTMLElement; link: HTMLAnchorElement }[] = [];
+        navLinks.forEach(link => {
+            const id = link.getAttribute('href')?.replace('#', '') ?? '';
+            const el = document.getElementById(id);
+            if (el) sections.push({ id, el, link });
         });
+
+        // Click → smooth scroll
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = link.getAttribute('href')?.replace('#', '') ?? '';
+                const target = document.getElementById(id);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Scroll → highlight active
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === `#${id}`));
+                }
+            });
+        }, { rootMargin: '-20% 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s.el));
+    }
+
+    function boot(): void {
+        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); initScrollspy(); });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
     } else {
-        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); });
+        boot();
     }
 
     document.body.addEventListener('htmx:load', function () {
         if (document.getElementById('avatar-upload-form')) {
-            initProfileSettings().then(() => { attachEventListeners(); loadDevices(); });
+            boot();
         }
     });
 })();

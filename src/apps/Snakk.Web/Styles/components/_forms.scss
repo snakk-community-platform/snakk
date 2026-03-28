@@ -137,6 +137,28 @@ select:focus-visible {
     color: var(--text-tertiary);
 }
 
+// Settings scrollspy nav
+.settings-nav-item {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+
+    &:hover {
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+    }
+
+    &.active {
+        color: var(--link-primary);
+        border-left-color: var(--link-primary);
+        font-weight: 500;
+    }
+}
+
 // Skin tone preference swatches
 .skin-tone-swatch {
     font-size: 1.5rem;

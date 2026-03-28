@@ -32,40 +32,54 @@
         </div>
     }
 
-    <div class="flex flex-col lg:flex-row gap-3">
-        <!-- Sidebar: Account Info (first on small screens, right column on lg+) -->
-        <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last" hx-boost="false">
-        <div id="sidebar-inner">
-            <!-- Account Information -->
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">Account Information</h3>
-                <dl class="space-y-3 text-sm">
-                    <div class="flex items-center gap-2" id="email-row">
-                        <dt class="text-base-content/60 w-20 shrink-0">Email</dt>
-                        <dd class="flex items-center gap-2" id="profile-email-container">
-                            <span id="profile-email" class="truncate"></span>
-                            <span id="profile-email-badge" class="badge badge-sm shrink-0"></span>
-                        </dd>
-                    </div>
-
-                    <div class="flex items-center gap-2" id="oauth-row" style="display: none;">
-                        <dt class="text-base-content/60 w-20 shrink-0">Sign in</dt>
-                        <dd class="capitalize" id="profile-oauth"></dd>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <dt class="text-base-content/60 w-20 shrink-0">User ID</dt>
-                        <dd class="font-mono text-xs truncate" id="profile-userid"></dd>
-                    </div>
-                </dl>
+    <div class="flex gap-6">
+        <!-- Left: Scrollspy Nav (hidden on screens below xl) -->
+        <nav id="settings-scrollspy" class="hidden xl:block w-48 shrink-0">
+            <div class="sticky top-32">
+                <ul class="space-y-1 text-sm">
+                    <li><a href="#section-avatar" class="settings-nav-item active" data-scrollspy-link>Avatar</a></li>
+                    <li><a href="#section-bio" class="settings-nav-item" data-scrollspy-link>Bio</a></li>
+                    <li><a href="#section-display-name" class="settings-nav-item" data-scrollspy-link>Display Name</a></li>
+                    <li><a href="#section-behavior" class="settings-nav-item" data-scrollspy-link>Behavior</a></li>
+                    <li><a href="#section-display" class="settings-nav-item" data-scrollspy-link>Display</a></li>
+                    <li><a href="#section-rss" class="settings-nav-item" data-scrollspy-link>RSS Feeds</a></li>
+                    <li><a href="#section-devices" class="settings-nav-item" data-scrollspy-link>Devices</a></li>
+                </ul>
             </div>
-        </div>
-        </aside>
+        </nav>
 
-        <!-- Main Content -->
+        <!-- Middle: Settings Content -->
         <div class="flex-1 min-w-0">
+
+            <!-- Account info — visible only on small screens (below lg), inline before settings -->
+            <div class="lg:hidden mb-6">
+                <div class="section-header">
+                    <span class="section-title">Account Information</span>
+                </div>
+                <div class="clean-card">
+                    <div class="p-4">
+                        <dl class="space-y-3 text-sm">
+                            <div class="flex items-center gap-2" id="email-row-mobile">
+                                <dt class="text-base-content/60 w-20 shrink-0">Email</dt>
+                                <dd class="flex items-center gap-2">
+                                    <span class="profile-email truncate"></span>
+                                    <span class="profile-email-badge badge badge-sm shrink-0"></span>
+                                </dd>
+                            </div>
+                            <div class="flex items-center gap-2 profile-oauth-row" style="display: none;">
+                                <dt class="text-base-content/60 w-20 shrink-0">Sign in</dt>
+                                <dd class="capitalize profile-oauth"></dd>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <dt class="text-base-content/60 w-20 shrink-0">User ID</dt>
+                                <dd class="font-mono text-xs truncate profile-userid"></dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
                 <!-- Avatar Section -->
-                <div>
+                <div id="section-avatar">
                     <div class="section-header">
                         <span class="section-title">Avatar</span>
                     </div>
@@ -123,7 +137,7 @@
                 </div>
 
                 <!-- Bio Section -->
-                <div>
+                <div id="section-bio">
                     <div class="section-header">
                         <span class="section-title">Bio</span>
                     </div>
@@ -146,7 +160,7 @@
                 </div>
 
                 <!-- Display Name Section -->
-                <div>
+                <div id="section-display-name">
                     <div class="section-header">
                         <span class="section-title">Display Name</span>
                     </div>
@@ -196,9 +210,8 @@
                     </div>
                 </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <!-- Behavior -->
-                <div>
+                <div id="section-behavior">
                     <div class="section-header">
                         <span class="section-title">Behavior</span>
                     </div>
@@ -220,7 +233,7 @@
                 </div>
 
                 <!-- Display -->
-                <div>
+                <div id="section-display">
                     <div class="section-header">
                         <span class="section-title">Display</span>
                     </div>
@@ -483,10 +496,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
             <!-- RSS Feeds Section -->
-                <div>
+                <div id="section-rss">
                     <div class="section-header">
                         <span class="section-title">RSS Feeds</span>
                     </div>
@@ -542,7 +554,7 @@
                 </div>
 
             <!-- Trusted Devices Section -->
-            <div class="card bg-base-100 border border-subtle">
+            <div id="section-devices" class="card bg-base-100 border border-subtle">
                 <div class="card-body">
                     <h2 class="card-title text-lg">Trusted Devices</h2>
                     <p class="text-sm text-muted mb-4">Devices that have been trusted for this account. Revoking a device will require re-authentication on that device.</p>
@@ -554,6 +566,32 @@
                 </div>
             </div>
         </div>
+
+        <!-- Right: Account Sidebar (hidden below lg) -->
+        <aside class="hidden lg:block w-72 xl:w-80 shrink-0">
+            <div class="sticky top-32">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Account Information</h3>
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex items-center gap-2">
+                            <dt class="text-base-content/60 w-20 shrink-0">Email</dt>
+                            <dd class="flex items-center gap-2">
+                                <span class="profile-email truncate"></span>
+                                <span class="profile-email-badge badge badge-sm shrink-0"></span>
+                            </dd>
+                        </div>
+                        <div class="flex items-center gap-2 profile-oauth-row" style="display: none;">
+                            <dt class="text-base-content/60 w-20 shrink-0">Sign in</dt>
+                            <dd class="capitalize profile-oauth"></dd>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <dt class="text-base-content/60 w-20 shrink-0">User ID</dt>
+                            <dd class="font-mono text-xs truncate profile-userid"></dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </aside>
     </div>
 </div>
 

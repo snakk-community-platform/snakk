@@ -10,7 +10,6 @@
     --drop-shadow-*: initial;
     --blur-*: initial;
     --inset-shadow-*: initial;
-    --container-*: initial;
 }
 
 @plugin "daisyui" {

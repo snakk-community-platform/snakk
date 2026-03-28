@@ -470,12 +470,8 @@ public class DiscussionGrpcService(
 
     public override async Task<GalleryLayoutResponse> GetGalleryLayout(GetGalleryLayoutRequest request, ServerCallContext context)
     {
-        var layoutTask = typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
-        var imagesTask = typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
-        await Task.WhenAll(layoutTask, imagesTask);
-
-        var layout = layoutTask.Result;
-        var images = imagesTask.Result;
+        var layout = await typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
+        var images = await typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
 
         var response = new GalleryLayoutResponse { Layout = layout ?? "grid" };
         foreach (var img in images)
