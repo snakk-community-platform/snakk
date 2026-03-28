@@ -1,0 +1,1 @@
+"use strict";(function(){"use strict";window.SnakkActions.on("add-poll-option",()=>{const n=document.getElementById("poll-options-list");if(!n||n.children.length>=20)return;const t=document.createElement("input");t.type="text",t.name="PollOptions",t.className="input w-full input-sm",t.placeholder="Option "+(n.children.length+1),n.appendChild(t)})})();
