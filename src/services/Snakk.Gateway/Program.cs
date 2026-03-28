@@ -41,6 +41,7 @@ if (!setupComplete)
     builder.Configuration["ReverseProxy:Routes:static-css-route:ClusterId"] = "setup-cluster";
     builder.Configuration["ReverseProxy:Routes:static-js-route:ClusterId"] = "setup-cluster";
     builder.Configuration["ReverseProxy:Routes:static-images-route:ClusterId"] = "setup-cluster";
+    builder.Configuration["ReverseProxy:Routes:static-media-route:ClusterId"] = "setup-cluster";
 
     // Disable health checks on clusters not used during setup
     builder.Configuration["ReverseProxy:Clusters:auth-cluster:HealthCheck:Active:Enabled"] = "false";

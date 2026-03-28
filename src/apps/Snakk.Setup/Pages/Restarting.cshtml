@@ -1,4 +1,4 @@
-@page
+@page "/setup/restarting"
 @model Snakk.Setup.Pages.RestartingModel
 
 @Html.AntiForgeryToken()
@@ -74,7 +74,7 @@
                     var res = await fetch('/health', { method: 'GET', cache: 'no-store' });
                     if (res.ok) {
                         clearInterval(timer);
-                        window.location.href = '/';
+                        window.location.href = '/setup';
                         return;
                     }
                 } catch (e) {

@@ -1,4 +1,4 @@
-@page
+@page "/setup/install"
 @model Snakk.Setup.Pages.InstallModel
 
 @Html.AntiForgeryToken()
@@ -118,7 +118,7 @@
         }
 
         function showSuccess() {
-            window.location.href = '/restarting';
+            window.location.href = '/setup/restarting';
         }
 
         async function pollStatus() {
