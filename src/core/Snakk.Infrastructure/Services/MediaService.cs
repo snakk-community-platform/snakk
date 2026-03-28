@@ -90,18 +90,17 @@ public class MediaService(
             throw new InvalidOperationException("File is not a valid image.");
         }
 
-        // Compute SHA-256 hash of the processed (clean) image
+        // Compute SHA-256 hash of the processed (clean) image for deduplication
         processedStream.Position = 0;
         var hashBytes = await SHA256.HashDataAsync(processedStream, cancellationToken);
         var sha256Hash = Convert.ToHexStringLower(hashBytes);
 
-        // Check for existing file with same hash (deduplication on processed content)
+        // Check for existing file with same hash (deduplication)
         var existing = await db.Media
-            .FirstOrDefaultAsync(m => m.Sha256Hash == sha256Hash, cancellationToken);
+            .FirstOrDefaultAsync(m => m.Sha256Hash == sha256Hash && !m.IsDeleted, cancellationToken);
 
         if (existing is not null)
         {
-            // Verify the file still exists on disk — it may have been deleted manually
             if (!await fileStorage.ExistsAsync(existing.StoragePath, cancellationToken))
             {
                 logger.LogWarning("Deduplicated record {Hash} exists but file missing at {Path}, re-saving", sha256Hash, existing.StoragePath);
@@ -120,9 +119,10 @@ public class MediaService(
                 existing.BlurDataUri);
         }
 
-        // Build storage path: media/posts/{yyyy}/{MM}/{dd}/{sha256}.webp
+        // Build storage path using PublicId for short, clean URLs
         var now = DateTime.UtcNow;
-        var storagePath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{sha256Hash}.webp";
+        var publicId = Ulid.NewUlid().ToString();
+        var storagePath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}.webp";
 
         // Resolve uploader's internal user ID
         var user = await db.Users
@@ -157,7 +157,7 @@ public class MediaService(
                     Mode = ResizeMode.Max
                 }));
 
-                thumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{sha256Hash}_thumb.webp";
+                thumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_thumb.webp";
                 using var thumbStream = new MemoryStream();
                 await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 }, cancellationToken);
                 thumbStream.Position = 0;
@@ -193,7 +193,7 @@ public class MediaService(
         // Create database record — uploads start as drafts until linked to a discussion
         var media = new MediaDatabaseEntity
         {
-            PublicId = Ulid.NewUlid().ToString(),
+            PublicId = publicId,
             Sha256Hash = sha256Hash,
             OriginalFileName = Path.GetFileName(fileName),
             ContentType = "image/webp",
