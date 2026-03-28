@@ -100,7 +100,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         await _service.SetupTwoFactorAsync("setup_store");
 
         var user = await _context.Users.FirstAsync(u => u.PublicId == "setup_store");
-        await Assert.That(user.TwoFactorSecret).IsEqualTo("STOREDSECRET");
+        await Assert.That(user.TwoFactorSecret).StartsWith("ENC:");
     }
 
     [Test]

@@ -101,7 +101,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         var dbRecord = await _db.Media.FirstOrDefaultAsync();
         await Assert.That(dbRecord).IsNotNull();
-        await Assert.That(dbRecord!.ContentType).IsEqualTo("image/jpeg");
+        await Assert.That(dbRecord!.ContentType).IsEqualTo("image/webp");
         await Assert.That(dbRecord.SizeBytes).IsGreaterThan(0);
     }
 

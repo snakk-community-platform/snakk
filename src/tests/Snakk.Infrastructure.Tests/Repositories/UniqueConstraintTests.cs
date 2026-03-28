@@ -49,6 +49,7 @@ public class UniqueConstraintTests : IDisposable
             PublicId = $"u_{Guid.NewGuid():N}",
             DisplayName = "Another User",
             Email = "same@test.com",
+            EmailHash = "same@test.com",
             CreatedAt = DateTime.UtcNow
         });
 

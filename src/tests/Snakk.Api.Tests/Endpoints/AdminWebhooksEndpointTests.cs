@@ -58,7 +58,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
         return new
         {
             name = name ?? "Test Webhook",
-            url = url ?? "https://example.com/webhook",
+            url = url ?? "https://93.184.215.14/webhook",
             description = "A test webhook",
             eventTypes = new[] { "post.created" },
             secret = "test-secret-123",
@@ -101,7 +101,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task GetAllWebhooks_Authenticated_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync(BaseUrl);
@@ -135,7 +135,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     {
         // Arrange
         await EnsureDefaultTestUserSeededAsync();
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var payload = CreateValidWebhookPayload(name: "My New Webhook");
 
         // Act
@@ -147,7 +147,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
         await Assert.That(json.RootElement.GetProperty("name").GetString()).IsEqualTo("My New Webhook");
-        await Assert.That(json.RootElement.GetProperty("url").GetString()).IsEqualTo("https://example.com/webhook");
+        await Assert.That(json.RootElement.GetProperty("url").GetString()).IsEqualTo("https://93.184.215.14/webhook");
         await Assert.That(json.RootElement.GetProperty("isActive").GetBoolean()).IsTrue();
         await Assert.That(json.RootElement.TryGetProperty("id", out _)).IsTrue();
     }
@@ -158,7 +158,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task GetWebhookById_NonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var nonExistentId = Guid.NewGuid();
 
         // Act
@@ -188,7 +188,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task UpdateWebhook_NonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var nonExistentId = Guid.NewGuid();
         var updatePayload = new { name = "Updated Name" };
 
@@ -205,7 +205,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task DeleteWebhook_NonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var nonExistentId = Guid.NewGuid();
 
         // Act
@@ -221,7 +221,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task TestWebhook_NonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var nonExistentId = Guid.NewGuid();
         var testPayload = new { eventType = "post.created" };
 
@@ -238,7 +238,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task GetWebhookLogs_Authenticated_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var webhookId = await CreateWebhookAndGetId(client);
 
         // Act
@@ -271,7 +271,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task GetAvailableEventTypes_Authenticated_ReturnsList()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync($"{BaseUrl}/events/available");
@@ -290,7 +290,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task CreateThenGetWebhook_ReturnsConsistentData()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var webhookId = await CreateWebhookAndGetId(client, name: "Consistency Test Webhook");
 
         // Act
@@ -303,7 +303,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
         var json = JsonDocument.Parse(content);
         await Assert.That(json.RootElement.GetProperty("id").GetGuid()).IsEqualTo(webhookId);
         await Assert.That(json.RootElement.GetProperty("name").GetString()).IsEqualTo("Consistency Test Webhook");
-        await Assert.That(json.RootElement.GetProperty("url").GetString()).IsEqualTo("https://example.com/webhook");
+        await Assert.That(json.RootElement.GetProperty("url").GetString()).IsEqualTo("https://93.184.215.14/webhook");
         await Assert.That(json.RootElement.GetProperty("isActive").GetBoolean()).IsTrue();
     }
 
@@ -311,7 +311,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task CreateThenUpdateWebhook_UpdatesSuccessfully()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var webhookId = await CreateWebhookAndGetId(client, name: "Original Name");
         var updatePayload = new
         {
@@ -337,7 +337,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task CreateThenDeleteWebhook_DeleteReturnsNoContent()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var webhookId = await CreateWebhookAndGetId(client);
 
         // Act
@@ -351,7 +351,7 @@ public class AdminWebhooksEndpointTests : IAsyncDisposable
     public async Task DeleteWebhook_AfterDelete_GetReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var webhookId = await CreateWebhookAndGetId(client);
 
         // Delete the webhook first

@@ -48,7 +48,7 @@ public class WebhookServiceTests : IDisposable
 
     private async Task<WebhookDatabaseEntity> CreateWebhook(
         string name = "Test Webhook",
-        string url = "https://example.com/webhook",
+        string url = "https://93.184.215.14/webhook",
         string[]? eventTypes = null,
         bool isActive = true,
         string? secret = null)
@@ -80,7 +80,7 @@ public class WebhookServiceTests : IDisposable
         var request = new CreateWebhookRequest
         {
             Name = "New Webhook",
-            Url = "https://hooks.example.com/notify",
+            Url = "https://93.184.215.14/notify",
             EventTypes = ["UserRegistered", "PostCreated"],
             IsActive = true,
             MaxRetries = 5,
@@ -91,7 +91,7 @@ public class WebhookServiceTests : IDisposable
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result.Name).IsEqualTo("New Webhook");
-        await Assert.That(result.Url).IsEqualTo("https://hooks.example.com/notify");
+        await Assert.That(result.Url).IsEqualTo("https://93.184.215.14/notify");
         await Assert.That(result.EventTypes).Contains("UserRegistered");
         await Assert.That(result.IsActive).IsTrue();
 
@@ -105,7 +105,7 @@ public class WebhookServiceTests : IDisposable
         var request = new CreateWebhookRequest
         {
             Name = "Header Webhook",
-            Url = "https://hooks.example.com",
+            Url = "https://93.184.215.14",
             EventTypes = ["UserRegistered"],
             CustomHeaders = new Dictionary<string, string> { { "Authorization", "Bearer token123" } },
             IsActive = true
@@ -165,7 +165,7 @@ public class WebhookServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             Name = "Newer",
-            Url = "https://example.com",
+            Url = "https://93.184.215.14",
             EventTypes = "[]",
             CreatedAt = DateTime.UtcNow.AddMinutes(5),
             CreatedBy = "admin"
@@ -190,7 +190,7 @@ public class WebhookServiceTests : IDisposable
         var request = new UpdateWebhookRequest
         {
             Name = "Updated Name",
-            Url = "https://updated.example.com",
+            Url = "https://93.184.215.14/updated",
             IsActive = false
         };
 
@@ -198,7 +198,7 @@ public class WebhookServiceTests : IDisposable
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Name).IsEqualTo("Updated Name");
-        await Assert.That(result.Url).IsEqualTo("https://updated.example.com");
+        await Assert.That(result.Url).IsEqualTo("https://93.184.215.14/updated");
         await Assert.That(result.IsActive).IsFalse();
     }
 
@@ -213,7 +213,7 @@ public class WebhookServiceTests : IDisposable
     [Test]
     public async Task UpdateWebhookAsync_NullFields_DoNotOverwrite()
     {
-        var webhook = await CreateWebhook("Original Name", "https://original.com");
+        var webhook = await CreateWebhook("Original Name", "https://93.184.215.14/original");
 
         var request = new UpdateWebhookRequest
         {
@@ -224,7 +224,7 @@ public class WebhookServiceTests : IDisposable
         var result = await _service.UpdateWebhookAsync(webhook.Id, request);
 
         await Assert.That(result!.Name).IsEqualTo("Updated Name");
-        await Assert.That(result.Url).IsEqualTo("https://original.com");
+        await Assert.That(result.Url).IsEqualTo("https://93.184.215.14/original");
     }
 
     #endregion

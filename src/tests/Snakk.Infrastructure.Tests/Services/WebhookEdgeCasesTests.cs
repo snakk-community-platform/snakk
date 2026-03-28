@@ -52,7 +52,7 @@ public class WebhookEdgeCasesTests : IDisposable
 
     private async Task<WebhookDatabaseEntity> CreateWebhook(
         string name = "Test Webhook",
-        string url = "https://example.com/webhook",
+        string url = "https://93.184.215.14/webhook",
         string[]? eventTypes = null,
         bool isActive = true,
         string? secret = null,
@@ -408,7 +408,7 @@ public class WebhookEdgeCasesTests : IDisposable
         var request = new CreateWebhookRequest
         {
             Name = "Secret Webhook",
-            Url = "https://hooks.example.com/secret",
+            Url = "https://93.184.215.14/secret",
             EventTypes = ["UserRegistered"],
             Secret = "my-super-secret-key",
             IsActive = true,
@@ -429,7 +429,7 @@ public class WebhookEdgeCasesTests : IDisposable
     public async Task UpdateWebhook_PartialUpdate_OnlyChangesSpecifiedFields()
     {
         // Arrange
-        var webhook = await CreateWebhook("Original", "https://original.com", secret: "original-secret");
+        var webhook = await CreateWebhook("Original", "https://93.184.215.14/original", secret: "original-secret");
 
         var request = new UpdateWebhookRequest
         {
@@ -442,7 +442,7 @@ public class WebhookEdgeCasesTests : IDisposable
 
         // Assert
         await Assert.That(result!.Name).IsEqualTo("Updated Name");
-        await Assert.That(result.Url).IsEqualTo("https://original.com"); // Unchanged
+        await Assert.That(result.Url).IsEqualTo("https://93.184.215.14/original"); // Unchanged
     }
 
     [Test]
