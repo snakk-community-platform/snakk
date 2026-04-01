@@ -212,7 +212,7 @@ public class SecurityServiceTests : IDisposable
                 PublicId = Guid.NewGuid().ToString("N"),
                 Action = $"Action{i}",
                 Category = "Test",
-                CreatedAt = DateTime.UtcNow.AddMinutes(-i * 10),
+                CreatedAt = DateTime.UtcNow.AddMinutes(-i * 10d),
                 Success = true,
                 SeverityId = 1
             });

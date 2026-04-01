@@ -62,7 +62,7 @@ public class DashboardChartRepository(SnakkDbContext context) : IDashboardChartR
     public async Task<List<WeeklyModerationData>> GetWeeklyModerationAsync(
         string scopeType, string scopePublicId, int weeks)
     {
-        var since = StartOfWeek(DateTime.UtcNow).AddDays(-7 * weeks);
+        var since = StartOfWeek(DateTime.UtcNow).AddDays(-7d * weeks);
 
         var reportQuery = scopeType switch
         {

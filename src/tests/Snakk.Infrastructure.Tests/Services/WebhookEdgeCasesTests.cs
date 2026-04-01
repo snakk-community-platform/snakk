@@ -501,7 +501,7 @@ public class WebhookEdgeCasesTests : IDisposable
                 Url = webhook.Url,
                 IsSuccess = true,
                 AttemptNumber = 1,
-                CreatedAt = DateTime.UtcNow.AddMinutes(-i * 10)
+                CreatedAt = DateTime.UtcNow.AddMinutes(-i * 10d)
             });
         }
         await _context.SaveChangesAsync();

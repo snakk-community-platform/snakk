@@ -380,7 +380,12 @@ public class SetupService(IConfiguration configuration)
             var jwt = await GenerateAdminJwtAsync(state);
             InstallProgress.Jwt = jwt;
 
-            // Done — marker file is written by OnPostFinalize after JWT cookie is set
+            // Write setup-complete marker so Docker entrypoint knows install is done
+            // (snakk-config.json is written in step 1, but entrypoint must wait for
+            // the full install — migrations, seeding, JWT — before stopping the wizard)
+            var completeMarker = Path.Combine(state.AvatarStoragePath, "conf", "setup-complete");
+            File.WriteAllText(completeMarker, DateTime.UtcNow.ToString("O"));
+
             InstallProgress.Step = "complete";
             InstallProgress.Message = "Installation complete!";
             InstallProgress.IsRunning = false;

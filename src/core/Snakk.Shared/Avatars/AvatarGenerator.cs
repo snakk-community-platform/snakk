@@ -306,12 +306,12 @@ public static class AvatarGenerator
         if (isHappy)
         {
             // Happy smile arc
-            svg.Append($@"<path d=""M{faceX - mouthWidth / 2:F1} {mouthY:F1} Q {faceX:F1} {mouthY + 8:F1} {faceX + mouthWidth / 2:F1} {mouthY:F1}"" stroke=""{featureColor}"" stroke-width=""2"" fill=""none"" stroke-linecap=""round""/>");
+            svg.Append($@"<path d=""M{faceX - mouthWidth / 2.0:F1} {mouthY:F1} Q {faceX:F1} {mouthY + 8:F1} {faceX + mouthWidth / 2.0:F1} {mouthY:F1}"" stroke=""{featureColor}"" stroke-width=""2"" fill=""none"" stroke-linecap=""round""/>");
         }
         else
         {
             // Neutral or slight frown
-            svg.Append($@"<line x1=""{faceX - mouthWidth / 2:F1}"" y1=""{mouthY:F1}"" x2=""{faceX + mouthWidth / 2:F1}"" y2=""{mouthY + (hash[9] % 4) - 2:F1}"" stroke=""{featureColor}"" stroke-width=""2"" stroke-linecap=""round""/>");
+            svg.Append($@"<line x1=""{faceX - mouthWidth / 2.0:F1}"" y1=""{mouthY:F1}"" x2=""{faceX + mouthWidth / 2.0:F1}"" y2=""{mouthY + (hash[9] % 4) - 2:F1}"" stroke=""{featureColor}"" stroke-width=""2"" stroke-linecap=""round""/>");
         }
 
         svg.Append("</g>"); // rotate group

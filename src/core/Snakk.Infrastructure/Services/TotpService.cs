@@ -34,7 +34,7 @@ public class TotpService(IPasswordHasher passwordHasher) : ITotpService
 
             for (var i = -window; i <= window; i++)
             {
-                var testTime = now.AddSeconds(i * 30);
+                var testTime = now.AddSeconds(i * 30d);
                 var expectedCode = totp.ComputeTotp(testTime);
 
                 if (expectedCode == code)
