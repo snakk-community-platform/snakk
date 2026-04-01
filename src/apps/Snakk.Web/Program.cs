@@ -110,12 +110,26 @@ builder.Services.AddHttpClient("InternalApi", client =>
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 builder.Services.AddSingleton(sp =>
 {
+    var handler = new SocketsHttpHandler
+    {
+        EnableMultipleHttp2Connections = true
+    };
+
+    // When using plain HTTP (no TLS), force HTTP/2 cleartext (h2c) for gRPC.
+    // Without this, the client tries HTTP/2 via ALPN which requires TLS.
+    if (apiBaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+    {
+        return Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
+        {
+            HttpHandler = handler,
+            HttpVersion = new Version(2, 0),
+            HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact
+        });
+    }
+
     return Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
     {
-        HttpHandler = new SocketsHttpHandler
-        {
-            EnableMultipleHttp2Connections = true
-        }
+        HttpHandler = handler
     });
 });
 builder.Services.AddSingleton<GrpcAuthInterceptor>();

@@ -33,13 +33,17 @@ builder.Services.AddScoped<CircuitTokenProvider>();
 
 // gRPC channel (singleton — connection pooling with HTTP/2 multiplexing)
 var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
-var channel = Grpc.Net.Client.GrpcChannel.ForAddress(snakkApiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
+var grpcHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true };
+var grpcOptions = new Grpc.Net.Client.GrpcChannelOptions { HttpHandler = grpcHandler };
+
+// When using plain HTTP (no TLS), force HTTP/2 cleartext (h2c) for gRPC
+if (snakkApiBaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
 {
-    HttpHandler = new SocketsHttpHandler
-    {
-        EnableMultipleHttp2Connections = true
-    }
-});
+    grpcOptions.HttpVersion = new Version(2, 0);
+    grpcOptions.HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+}
+
+var channel = Grpc.Net.Client.GrpcChannel.ForAddress(snakkApiBaseUrl, grpcOptions);
 builder.Services.AddSingleton(channel);
 
 // gRPC auth interceptor (scoped — reads from CircuitTokenProvider per circuit)
