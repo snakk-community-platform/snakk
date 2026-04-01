@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # NuGet — all .csproj files are under src/
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      aspnetcore:
+        patterns: ["Microsoft.AspNetCore.*"]
+      efcore:
+        patterns: ["Microsoft.EntityFrameworkCore.*", "Npgsql.EntityFrameworkCore.*"]
+      grpc:
+        patterns: ["Grpc.*", "Google.Protobuf"]
+      testing:
+        patterns: ["NSubstitute", "TUnit*", "Microsoft.NET.Test.*"]
+      aspire:
+        patterns: ["Aspire.*"]
+
+  # npm — Snakk.Web (Tailwind, daisyUI, TypeScript)
+  - package-ecosystem: "npm"
+    directory: "/src/apps/Snakk.Web"
+    schedule:
+      interval: "weekly"
+
+  # npm — Snakk.Auth (Tailwind, daisyUI)
+  - package-ecosystem: "npm"
+    directory: "/src/apps/Snakk.Auth"
+    schedule:
+      interval: "weekly"
+
+  # npm — Snakk.Setup
+  - package-ecosystem: "npm"
+    directory: "/src/apps/Snakk.Setup"
+    schedule:
+      interval: "weekly"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
