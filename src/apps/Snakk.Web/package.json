@@ -37,7 +37,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@milkdown/kit": "^7.19.0",
+    "@milkdown/kit": "^7.20.0",
     "prismjs": "^1.30.0"
   }
 }
