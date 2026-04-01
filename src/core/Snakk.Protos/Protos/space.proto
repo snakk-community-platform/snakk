@@ -10,6 +10,7 @@ service SpaceService {
   rpc GetSpaceBySlug (GetSpaceBySlugRequest) returns (SpaceInfo);
   rpc GetSpace (GetSpaceRequest) returns (SpaceInfo);
   rpc ListSpacesByHub (ListSpacesByHubRequest) returns (PagedSpaceByHubList);
+  rpc SearchSpaces (SearchSpacesRequest) returns (SearchSpacesResponse);
   rpc GetSpaceRules (GetSpaceRulesRequest) returns (SpaceRulesResponse);
   rpc GetSpaceStats (GetSpaceStatsRequest) returns (SpaceStats);
 }
@@ -59,6 +60,8 @@ message SpaceInfo {
   repeated int32 allowed_discussion_types = 15;
   string team_revision = 16;
   bool is_restricted = 17;
+  string hub_slug = 18;
+  string community_slug = 19;
 }
 
 message LatestDiscussionRef {
@@ -110,4 +113,29 @@ message SpaceStats {
   int32 discussion_count = 5;
   int32 reply_count = 6;
   int32 follower_count = 7;
+}
+
+// --- Space search (for new-discussion space selector) ---
+
+message SearchSpacesRequest {
+  optional string query = 1;
+  optional string hub_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message SearchSpacesResponse {
+  repeated SpaceSearchItem items = 1;
+}
+
+message SpaceSearchItem {
+  string public_id = 1;
+  string name = 2;
+  string slug = 3;
+  string hub_slug = 4;
+  string hub_name = 5;
+  string community_slug = 6;
+  int32 discussion_count = 7;
+  string community_name = 8;
+  string avatar_url = 9;
 }

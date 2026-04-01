@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -13,55 +13,48 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class DiscussionUseCaseTests
 {
-    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
-    private readonly Mock<ISpaceRepository> _mockSpaceRepository = new();
-    private readonly Mock<IUserRepository> _mockUserRepository = new();
-    private readonly Mock<IPostRepository> _mockPostRepository = new();
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
-    private readonly Mock<ICounterService> _mockCounterService = new();
-    private readonly Mock<IMarkupParser> _mockMarkupParser = new();
-    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
-    private readonly Mock<IMediaService> _mockMediaService = new();
-    private readonly Mock<IModerationRepository> _mockModerationRepository = new();
+    private readonly IDiscussionRepository _discussionRepository = Substitute.For<IDiscussionRepository>();
+    private readonly ISpaceRepository _spaceRepository = Substitute.For<ISpaceRepository>();
+    private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
+    private readonly IPostRepository _postRepository = Substitute.For<IPostRepository>();
+    private readonly IDomainEventDispatcher _eventDispatcher = Substitute.For<IDomainEventDispatcher>();
+    private readonly ICounterService _counterService = Substitute.For<ICounterService>();
+    private readonly IMarkupParser _markupParser = Substitute.For<IMarkupParser>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IMediaService _mediaService = Substitute.For<IMediaService>();
+    private readonly IModerationRepository _moderationRepository = Substitute.For<IModerationRepository>();
     private DiscussionUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _mockMarkupParser.Setup(m => m.ToHtml(It.IsAny<string>()))
-            .Returns((string s) => $"<p>{s}</p>");
+        _markupParser.ToHtml(Arg.Any<string>())
+            .Returns(x => $"<p>{x.Arg<string>()}</p>");
 
-        _mockRealtimeNotifier
-            .Setup(n => n.NotifyDiscussionCreatedAsync(It.IsAny<DiscussionId>(), It.IsAny<SpaceId>(), It.IsAny<User>()))
+        _realtimeNotifier
+            .NotifyDiscussionCreatedAsync(Arg.Any<DiscussionId>(), Arg.Any<SpaceId>(), Arg.Any<User>())
             .Returns(Task.CompletedTask);
 
-        _mockRealtimeNotifier
-            .Setup(n => n.NotifyDiscussionLockedAsync(It.IsAny<DiscussionId>()))
+        _realtimeNotifier
+            .NotifyDiscussionLockedAsync(Arg.Any<DiscussionId>())
             .Returns(Task.CompletedTask);
 
-        _mockRealtimeNotifier
-            .Setup(n => n.NotifyDiscussionUnlockedAsync(It.IsAny<DiscussionId>()))
+        _realtimeNotifier
+            .NotifyDiscussionUnlockedAsync(Arg.Any<DiscussionId>())
             .Returns(Task.CompletedTask);
 
-        _mockRealtimeNotifier
-            .Setup(n => n.NotifyDiscussionPinnedAsync(It.IsAny<DiscussionId>(), It.IsAny<SpaceId>(), It.IsAny<bool>()))
+        _realtimeNotifier
+            .NotifyDiscussionPinnedAsync(Arg.Any<DiscussionId>(), Arg.Any<SpaceId>(), Arg.Any<bool>())
             .Returns(Task.CompletedTask);
 
-        _mockRealtimeNotifier
-            .Setup(n => n.NotifyDiscussionTitleUpdatedAsync(It.IsAny<DiscussionId>(), It.IsAny<string>()))
+        _realtimeNotifier
+            .NotifyDiscussionTitleUpdatedAsync(Arg.Any<DiscussionId>(), Arg.Any<string>())
             .Returns(Task.CompletedTask);
 
         _useCase = new DiscussionUseCase(
-            _mockDiscussionRepository.Object,
-            _mockSpaceRepository.Object,
-            _mockUserRepository.Object,
-            _mockPostRepository.Object,
-            _mockEventDispatcher.Object,
-            _mockCounterService.Object,
-            _mockMarkupParser.Object,
-            _mockRealtimeNotifier.Object,
-            _mockMediaService.Object,
-            _mockModerationRepository.Object);
+            _discussionRepository, _spaceRepository, _userRepository, _postRepository,
+            _eventDispatcher, _counterService, _markupParser, _realtimeNotifier,
+            _mediaService, _moderationRepository);
     }
 
     #region CreateDiscussionAsync Tests
@@ -69,25 +62,19 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task CreateDiscussionAsync_WithValidParameters_CreatesDiscussion()
     {
-        // Arrange
         var spaceId = SpaceId.New();
         var userId = UserId.New();
         const string title = "Test Discussion";
         const string slug = "test-discussion";
         const string firstPostContent = "This is the first post content.";
-
         var space = Space.Create(HubId.New(), "Test Space", "test-space");
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
-            .ReturnsAsync(user);
+        _spaceRepository.GetByPublicIdAsync(spaceId).Returns(space);
+        _userRepository.GetByPublicIdAsync(userId).Returns(user);
 
-        // Act
         var result = await _useCase.CreateDiscussionAsync(spaceId, userId, title, slug, firstPostContent);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsNotNull();
         await Assert.That(result.Value!.Title).IsEqualTo(title);
@@ -95,76 +82,57 @@ public class DiscussionUseCaseTests
         await Assert.That(result.Value.SpaceId).IsEqualTo(spaceId);
         await Assert.That(result.Value.CreatedByUserId).IsEqualTo(userId);
 
-        _mockDiscussionRepository.Verify(r => r.AddAsync(It.IsAny<Discussion>()), Times.Once);
-        _mockPostRepository.Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Once);
-        _mockCounterService.Verify(c => c.IncrementDiscussionCountAsync(spaceId), Times.Once);
-        _mockCounterService.Verify(c => c.IncrementPostCountAsync(It.IsAny<DiscussionId>()), Times.Once);
-        _mockEventDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IEnumerable<IDomainEvent>>()), Times.Exactly(2));
+        await _discussionRepository.Received(1).AddAsync(Arg.Any<Discussion>());
+        await _postRepository.Received(1).AddAsync(Arg.Any<Post>());
+        await _counterService.Received(1).IncrementDiscussionCountAsync(spaceId);
+        await _counterService.Received(1).IncrementPostCountAsync(Arg.Any<DiscussionId>());
+        await _eventDispatcher.Received(2).DispatchAsync(Arg.Any<IEnumerable<IDomainEvent>>());
     }
 
     [Test]
     public async Task CreateDiscussionAsync_WithNonExistentSpace_ReturnsFailure()
     {
-        // Arrange
         var spaceId = SpaceId.New();
         var userId = UserId.New();
+        _spaceRepository.GetByPublicIdAsync(spaceId).Returns((Space?)null);
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync((Space?)null);
-
-        // Act
         var result = await _useCase.CreateDiscussionAsync(spaceId, userId, "Title", "slug", "content");
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Space");
         await Assert.That(result.Error).Contains("not found");
-
-        _mockDiscussionRepository.Verify(r => r.AddAsync(It.IsAny<Discussion>()), Times.Never);
+        await _discussionRepository.DidNotReceive().AddAsync(Arg.Any<Discussion>());
     }
 
     [Test]
     public async Task CreateDiscussionAsync_WithNonExistentUser_ReturnsFailure()
     {
-        // Arrange
         var spaceId = SpaceId.New();
         var userId = UserId.New();
         var space = Space.Create(HubId.New(), "Test Space", "test-space");
+        _spaceRepository.GetByPublicIdAsync(spaceId).Returns(space);
+        _userRepository.GetByPublicIdAsync(userId).Returns((User?)null);
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
-            .ReturnsAsync((User?)null);
-
-        // Act
         var result = await _useCase.CreateDiscussionAsync(spaceId, userId, "Title", "slug", "content");
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("User");
         await Assert.That(result.Error).Contains("not found");
-
-        _mockDiscussionRepository.Verify(r => r.AddAsync(It.IsAny<Discussion>()), Times.Never);
+        await _discussionRepository.DidNotReceive().AddAsync(Arg.Any<Discussion>());
     }
 
     [Test]
     public async Task CreateDiscussionAsync_ClearsDomainEventsAfterDispatching()
     {
-        // Arrange
         var spaceId = SpaceId.New();
         var userId = UserId.New();
         var space = Space.Create(HubId.New(), "Test Space", "test-space");
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
+        _spaceRepository.GetByPublicIdAsync(spaceId).Returns(space);
+        _userRepository.GetByPublicIdAsync(userId).Returns(user);
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(userId))
-            .ReturnsAsync(user);
-
-        // Act
         var result = await _useCase.CreateDiscussionAsync(spaceId, userId, "Title", "slug", "content");
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DomainEvents).Count().IsEqualTo(0);
     }
@@ -176,17 +144,12 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetDiscussionAsync_WithExistingDiscussion_ReturnsDiscussion()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.GetDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsEqualTo(discussion);
     }
@@ -194,16 +157,11 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.GetDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -215,29 +173,17 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetDiscussionsBySpaceAsync_ReturnsPagedResults()
     {
-        // Arrange
         var spaceId = SpaceId.New();
         var discussions = new List<Discussion>
         {
             Discussion.Create(spaceId, UserId.New(), "Discussion 1", "discussion-1"),
             Discussion.Create(spaceId, UserId.New(), "Discussion 2", "discussion-2")
         };
+        var pagedResult = new PagedResult<Discussion> { Items = discussions, Offset = 0, PageSize = 20, HasMoreItems = false };
+        _discussionRepository.GetBySpaceIdAsync(spaceId, 0, 20).Returns(pagedResult);
 
-        var pagedResult = new PagedResult<Discussion>
-        {
-            Items = discussions,
-            Offset = 0,
-            PageSize = 20,
-            HasMoreItems = false
-        };
-
-        _mockDiscussionRepository.Setup(r => r.GetBySpaceIdAsync(spaceId, 0, 20))
-            .ReturnsAsync(pagedResult);
-
-        // Act
         var result = await _useCase.GetDiscussionsBySpaceAsync(spaceId, 0, 20);
 
-        // Assert
         await Assert.That(result).IsNotNull();
         await Assert.That(result.Items).Count().IsEqualTo(2);
     }
@@ -249,37 +195,26 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task UpdateDiscussionTitleAsync_WithValidParameters_UpdatesTitle()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Old Title", "old-title");
         var discussionId = discussion.PublicId;
         const string newTitle = "New Title";
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.UpdateDiscussionTitleAsync(discussionId, newTitle);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.Title).IsEqualTo(newTitle);
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
+        await _discussionRepository.Received(1).UpdateAsync(discussion);
     }
 
     [Test]
     public async Task UpdateDiscussionTitleAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.UpdateDiscussionTitleAsync(discussionId, "New Title");
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -287,21 +222,15 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task UpdateDiscussionTitleAsync_WithLockedDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Old Title", "old-title");
         discussion.Lock();
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.UpdateDiscussionTitleAsync(discussionId, "New Title");
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(It.IsAny<Discussion>()), Times.Never);
+        await _discussionRepository.DidNotReceive().UpdateAsync(Arg.Any<Discussion>());
     }
 
     #endregion
@@ -311,36 +240,25 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task PinDiscussionAsync_WithExistingDiscussion_PinsDiscussion()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.PinDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(discussion.IsPinned).IsTrue();
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
+        await _discussionRepository.Received(1).UpdateAsync(discussion);
     }
 
     [Test]
     public async Task PinDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.PinDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -352,37 +270,26 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task UnpinDiscussionAsync_WithPinnedDiscussion_UnpinsDiscussion()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         discussion.Pin();
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.UnpinDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(discussion.IsPinned).IsFalse();
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
+        await _discussionRepository.Received(1).UpdateAsync(discussion);
     }
 
     [Test]
     public async Task UnpinDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.UnpinDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -394,36 +301,25 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task LockDiscussionAsync_WithExistingDiscussion_LocksDiscussion()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.LockDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(discussion.IsLocked).IsTrue();
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
+        await _discussionRepository.Received(1).UpdateAsync(discussion);
     }
 
     [Test]
     public async Task LockDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.LockDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -435,37 +331,26 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task UnlockDiscussionAsync_WithLockedDiscussion_UnlocksDiscussion()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         discussion.Lock();
         var discussionId = discussion.PublicId;
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns(discussion);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-
-        // Act
         var result = await _useCase.UnlockDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(discussion.IsLocked).IsFalse();
-
-        _mockDiscussionRepository.Verify(r => r.UpdateAsync(discussion), Times.Once);
+        await _discussionRepository.Received(1).UpdateAsync(discussion);
     }
 
     [Test]
     public async Task UnlockDiscussionAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.UnlockDiscussionAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
     }
@@ -477,37 +362,15 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetPostNumberAsync_WithValidParameters_ReturnsPostNumber()
     {
-        // Arrange
-        var discussionId = DiscussionId.New();
-        var postId = PostId.New();
-        var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
-        var post = Post.Create(discussion.PublicId, UserId.New(), "Post content", "<p>Post content</p>");
-
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-        _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
-            .ReturnsAsync(post);
-        _mockPostRepository.Setup(r => r.GetPostNumberInDiscussionAsync(discussionId, post.CreatedAt))
-            .ReturnsAsync(3);
-
-        // We need the post's DiscussionId to match. Let's use the discussion's PublicId.
-        var matchingPost = Post.Create(discussionId, UserId.New(), "Post content", "<p>Post content</p>");
-        // But the post returned from repo must have DiscussionId == discussion.PublicId
-        // Since we're using Moq, we need proper setup:
         var realDiscussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
         var realPost = Post.Create(realDiscussion.PublicId, UserId.New(), "content", "<p>content</p>");
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(realDiscussion.PublicId))
-            .ReturnsAsync(realDiscussion);
-        _mockPostRepository.Setup(r => r.GetByPublicIdAsync(realPost.PublicId))
-            .ReturnsAsync(realPost);
-        _mockPostRepository.Setup(r => r.GetPostNumberInDiscussionAsync(realDiscussion.PublicId, realPost.CreatedAt))
-            .ReturnsAsync(5);
+        _discussionRepository.GetByPublicIdAsync(realDiscussion.PublicId).Returns(realDiscussion);
+        _postRepository.GetByPublicIdAsync(realPost.PublicId).Returns(realPost);
+        _postRepository.GetPostNumberInDiscussionAsync(realDiscussion.PublicId, realPost.CreatedAt).Returns(5);
 
-        // Act
         var result = await _useCase.GetPostNumberAsync(realDiscussion.PublicId, realPost.PublicId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsEqualTo(5);
     }
@@ -515,17 +378,12 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetPostNumberAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
         var postId = PostId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.GetPostNumberAsync(discussionId, postId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Discussion not found");
     }
@@ -533,19 +391,13 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetPostNumberAsync_WithNonExistentPost_ReturnsFailure()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
         var postId = PostId.New();
+        _discussionRepository.GetByPublicIdAsync(discussion.PublicId).Returns(discussion);
+        _postRepository.GetByPublicIdAsync(postId).Returns((Post?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
-            .ReturnsAsync(discussion);
-        _mockPostRepository.Setup(r => r.GetByPublicIdAsync(postId))
-            .ReturnsAsync((Post?)null);
-
-        // Act
         var result = await _useCase.GetPostNumberAsync(discussion.PublicId, postId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Post not found");
     }
@@ -553,20 +405,15 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetPostNumberAsync_WithPostInDifferentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Discussion 1", "discussion-1");
         var otherDiscussion = Discussion.Create(SpaceId.New(), UserId.New(), "Discussion 2", "discussion-2");
         var post = Post.Create(otherDiscussion.PublicId, UserId.New(), "Post in other discussion", "<p>Post in other discussion</p>");
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
-            .ReturnsAsync(discussion);
-        _mockPostRepository.Setup(r => r.GetByPublicIdAsync(post.PublicId))
-            .ReturnsAsync(post);
+        _discussionRepository.GetByPublicIdAsync(discussion.PublicId).Returns(discussion);
+        _postRepository.GetByPublicIdAsync(post.PublicId).Returns(post);
 
-        // Act
         var result = await _useCase.GetPostNumberAsync(discussion.PublicId, post.PublicId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Post does not belong to this discussion");
     }
@@ -578,19 +425,13 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetFirstPostPreviewAsync_WithExistingFirstPost_ReturnsContent()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
         var firstPost = Post.Create(discussion.PublicId, UserId.New(), "This is the first post content", "<p>This is the first post content</p>", isFirstPost: true);
+        _discussionRepository.GetByPublicIdAsync(discussion.PublicId).Returns(discussion);
+        _postRepository.GetFirstPostByDiscussionIdAsync(discussion.PublicId).Returns(firstPost);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
-            .ReturnsAsync(discussion);
-        _mockPostRepository.Setup(r => r.GetFirstPostByDiscussionIdAsync(discussion.PublicId))
-            .ReturnsAsync(firstPost);
-
-        // Act
         var result = await _useCase.GetFirstPostPreviewAsync(discussion.PublicId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsEqualTo("This is the first post content");
     }
@@ -598,16 +439,11 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetFirstPostPreviewAsync_WithNonExistentDiscussion_ReturnsFailure()
     {
-        // Arrange
         var discussionId = DiscussionId.New();
+        _discussionRepository.GetByPublicIdAsync(discussionId).Returns((Discussion?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
-
-        // Act
         var result = await _useCase.GetFirstPostPreviewAsync(discussionId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Discussion not found");
     }
@@ -615,18 +451,12 @@ public class DiscussionUseCaseTests
     [Test]
     public async Task GetFirstPostPreviewAsync_WithNoFirstPost_ReturnsFailure()
     {
-        // Arrange
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test", "test");
+        _discussionRepository.GetByPublicIdAsync(discussion.PublicId).Returns(discussion);
+        _postRepository.GetFirstPostByDiscussionIdAsync(discussion.PublicId).Returns((Post?)null);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussion.PublicId))
-            .ReturnsAsync(discussion);
-        _mockPostRepository.Setup(r => r.GetFirstPostByDiscussionIdAsync(discussion.PublicId))
-            .ReturnsAsync((Post?)null);
-
-        // Act
         var result = await _useCase.GetFirstPostPreviewAsync(discussion.PublicId);
 
-        // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("First post not found");
     }

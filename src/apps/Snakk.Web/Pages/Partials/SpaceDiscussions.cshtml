@@ -13,7 +13,7 @@
 
 @if (Model.HasMoreItems && Model.NextOffset < Model.MaxOffset)
 {
-    <div hx-get="/partials/space-discussions?spaceId=@Model.SpaceId&hubSlug=@Model.HubSlug&spaceSlug=@Model.SpaceSlug&offset=@Model.NextOffset&pageSize=20@(Model.TypeFilter.HasValue ? $"&typeFilter={Model.TypeFilter}" : "")"
+    <div hx-get="/partials/space-discussions?spaceId=@Model.SpaceId&offset=@Model.NextOffset&pageSize=20@(Model.TypeFilter.HasValue ? $"&typeFilter={Model.TypeFilter}" : "")"
          hx-trigger="revealed"
          hx-swap="outerHTML"
          hx-target="this"

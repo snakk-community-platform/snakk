@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -12,28 +12,28 @@ namespace Snakk.Application.Tests.Scenarios;
 /// </summary>
 public class UserRegistrationWorkflowTests
 {
-    private readonly Mock<IUserRepository> _mockUserRepository = new();
-    private readonly Mock<IPasswordHasher> _mockPasswordHasher = new();
-    private readonly Mock<IEmailSender> _mockEmailSender = new();
-    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository = new();
-    private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher = new();
-    private readonly Mock<IDisplayNameHistoryRepository> _mockDisplayNameHistoryRepository = new();
-    private readonly Mock<ITurnstileService> _mockTurnstileService = new();
+    private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
+    private readonly IPasswordHasher _passwordHasher = Substitute.For<IPasswordHasher>();
+    private readonly IEmailSender _emailSender = Substitute.For<IEmailSender>();
+    private readonly IRefreshTokenRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRepository>();
+    private readonly IDomainEventDispatcher _eventDispatcher = Substitute.For<IDomainEventDispatcher>();
+    private readonly IDisplayNameHistoryRepository _displayNameHistoryRepository = Substitute.For<IDisplayNameHistoryRepository>();
+    private readonly ITurnstileService _turnstileService = Substitute.For<ITurnstileService>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _mockTurnstileService.Setup(t => t.VerifyAsync(It.IsAny<string>(), It.IsAny<string?>())).ReturnsAsync(true);
+        _turnstileService.VerifyAsync(Arg.Any<string>(), Arg.Any<string?>()).Returns(true);
 
         _useCase = new AuthenticationUseCase(
-            _mockUserRepository.Object,
-            _mockPasswordHasher.Object,
-            _mockEmailSender.Object,
-            _mockRefreshTokenRepository.Object,
-            _mockEventDispatcher.Object,
-            _mockDisplayNameHistoryRepository.Object,
-            _mockTurnstileService.Object);
+            _userRepository,
+            _passwordHasher,
+            _emailSender,
+            _refreshTokenRepository,
+            _eventDispatcher,
+            _displayNameHistoryRepository,
+            _turnstileService);
     }
 
     [Test]
@@ -45,11 +45,11 @@ public class UserRegistrationWorkflowTests
         const string displayName = "NewUser";
         const string baseUrl = "https://example.com";
 
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([]);
-        _mockPasswordHasher.Setup(h => h.HashPassword(password))
+        _userRepository.GetByEmailAsync(email)
+            .Returns((User?)null);
+        _userRepository.GetAllAsync()
+            .Returns([]);
+        _passwordHasher.HashPassword(password)
             .Returns("hashed_password");
 
         // Step 1: Register
@@ -65,8 +65,8 @@ public class UserRegistrationWorkflowTests
         var verificationToken = registeredUser.EmailVerificationToken!;
 
         // Step 2: Verify email
-        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync(verificationToken))
-            .ReturnsAsync(registeredUser);
+        _userRepository.GetByEmailVerificationTokenAsync(verificationToken)
+            .Returns(registeredUser);
 
         var verifyResult = await _useCase.VerifyEmailAsync(verificationToken);
 
@@ -76,9 +76,9 @@ public class UserRegistrationWorkflowTests
         await Assert.That(registeredUser.EmailVerificationToken).IsNull();
 
         // Step 3: Login
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync(registeredUser);
-        _mockPasswordHasher.Setup(h => h.VerifyPassword(password, "hashed_password"))
+        _userRepository.GetByEmailAsync(email)
+            .Returns(registeredUser);
+        _passwordHasher.VerifyPassword(password, "hashed_password")
             .Returns(true);
 
         var loginResult = await _useCase.LoginWithEmailAsync(email, password);
@@ -88,11 +88,9 @@ public class UserRegistrationWorkflowTests
         await Assert.That(loginResult.Value).IsEqualTo(registeredUser);
 
         // Verify all expected calls were made
-        _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
-        _mockUserRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Exactly(2)); // Verify + Login
-        _mockEmailSender.Verify(
-            e => e.SendEmailVerificationAsync(email, displayName, It.IsAny<string>(), baseUrl),
-            Times.Once);
+        await _userRepository.Received(1).AddAsync(Arg.Any<User>());
+        await _userRepository.Received(2).UpdateAsync(Arg.Any<User>()); // Verify + Login
+        await _emailSender.Received(1).SendEmailVerificationAsync(email, displayName, Arg.Any<string>(), baseUrl);
     }
 
     [Test]
@@ -106,13 +104,13 @@ public class UserRegistrationWorkflowTests
 
         var existingUser = User.CreateWithEmail(displayName, existingEmail, "hash", "token");
 
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(displayName))
-            .ReturnsAsync(existingUser);
-        _mockUserRepository.Setup(r => r.GetByDisplayNameAsync(It.Is<string>(n => n != displayName)))
-            .ReturnsAsync((User?)null);
-        _mockPasswordHasher.Setup(h => h.HashPassword(password))
+        _userRepository.GetByEmailAsync(email)
+            .Returns((User?)null);
+        _userRepository.GetByDisplayNameAsync(displayName)
+            .Returns(existingUser);
+        _userRepository.GetByDisplayNameAsync(Arg.Is<string>(n => n != displayName))
+            .Returns((User?)null);
+        _passwordHasher.HashPassword(password)
             .Returns("hash");
 
         // Act
@@ -132,11 +130,11 @@ public class UserRegistrationWorkflowTests
         const string email = "unverified@example.com";
         const string password = "Password123!";
 
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([]);
-        _mockPasswordHasher.Setup(h => h.HashPassword(password))
+        _userRepository.GetByEmailAsync(email)
+            .Returns((User?)null);
+        _userRepository.GetAllAsync()
+            .Returns([]);
+        _passwordHasher.HashPassword(password)
             .Returns("hashed_password");
 
         // Step 1: Register
@@ -144,9 +142,9 @@ public class UserRegistrationWorkflowTests
         var user = registerResult.Value!;
 
         // Step 2: Try to login before verification
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync(user);
-        _mockPasswordHasher.Setup(h => h.VerifyPassword(password, "hashed_password"))
+        _userRepository.GetByEmailAsync(email)
+            .Returns(user);
+        _passwordHasher.VerifyPassword(password, "hashed_password")
             .Returns(true);
 
         var loginResult = await _useCase.LoginWithEmailAsync(email, password);
@@ -163,8 +161,8 @@ public class UserRegistrationWorkflowTests
         const string email = "test@example.com";
         var user = User.CreateWithEmail("TestUser", email, "hash", "verification_token");
 
-        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync("verification_token"))
-            .ReturnsAsync(user);
+        _userRepository.GetByEmailVerificationTokenAsync("verification_token")
+            .Returns(user);
 
         // Step 1: First verification (succeeds)
         var firstVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
@@ -173,8 +171,8 @@ public class UserRegistrationWorkflowTests
         await Assert.That(user.EmailVerified).IsTrue();
 
         // After verification, the token is set to null, so the repository returns null
-        _mockUserRepository.Setup(r => r.GetByEmailVerificationTokenAsync("verification_token"))
-            .ReturnsAsync((User?)null);
+        _userRepository.GetByEmailVerificationTokenAsync("verification_token")
+            .Returns((User?)null);
 
         // Step 2: Try to verify again
         var secondVerifyResult = await _useCase.VerifyEmailAsync("verification_token");
@@ -195,12 +193,12 @@ public class UserRegistrationWorkflowTests
         const string email = "oauth@example.com";
         const string displayName = "OAuthUser";
 
-        _mockUserRepository.Setup(r => r.GetByOAuthProviderIdAsync(oauthProviderId))
-            .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync((User?)null);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([]);
+        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId)
+            .Returns((User?)null);
+        _userRepository.GetByEmailAsync(email)
+            .Returns((User?)null);
+        _userRepository.GetAllAsync()
+            .Returns([]);
 
         // Act
         var loginResult = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, email, displayName);
@@ -214,8 +212,8 @@ public class UserRegistrationWorkflowTests
         await Assert.That(user.EmailVerified).IsTrue();
         await Assert.That(user.HasPassword()).IsFalse();
 
-        _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
-        _mockEmailSender.Verify(e => e.SendWelcomeEmailAsync(email, It.IsAny<string>()), Times.Once);
+        await _userRepository.Received(1).AddAsync(Arg.Any<User>());
+        await _emailSender.Received(1).SendWelcomeEmailAsync(email, Arg.Any<string>());
     }
 
     [Test]
@@ -226,8 +224,8 @@ public class UserRegistrationWorkflowTests
         const string oauthProviderId = "github_456";
         var existingUser = User.CreateWithOAuth("ExistingUser", "existing@example.com", oauthProvider, oauthProviderId);
 
-        _mockUserRepository.Setup(r => r.GetByOAuthProviderIdAsync(oauthProviderId))
-            .ReturnsAsync(existingUser);
+        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId)
+            .Returns(existingUser);
 
         // Act
         var loginResult = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, "existing@example.com", "ExistingUser");
@@ -236,9 +234,9 @@ public class UserRegistrationWorkflowTests
         await Assert.That(loginResult.IsSuccess).IsTrue();
         await Assert.That(loginResult.Value).IsEqualTo(existingUser);
 
-        _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never); // No new user created
-        _mockUserRepository.Verify(r => r.UpdateAsync(existingUser), Times.Once); // LastLogin updated
-        _mockEmailSender.Verify(e => e.SendWelcomeEmailAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        await _userRepository.DidNotReceive().AddAsync(Arg.Any<User>()); // No new user created
+        await _userRepository.Received(1).UpdateAsync(existingUser); // LastLogin updated
+        await _emailSender.DidNotReceive().SendWelcomeEmailAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Test]
@@ -248,11 +246,11 @@ public class UserRegistrationWorkflowTests
         var user = User.CreateWithEmail("OldName", "user@example.com", "hash", "token");
         const string newDisplayName = "NewName";
 
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
-            .ReturnsAsync(user);
-        _mockUserRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync([user]); // Only this user exists
-        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hash")).Returns(true);
+        _userRepository.GetByPublicIdAsync(user.PublicId)
+            .Returns(user);
+        _userRepository.GetAllAsync()
+            .Returns([user]); // Only this user exists
+        _passwordHasher.VerifyPassword("password", "hash").Returns(true);
 
         // Act
         var updateResult = await _useCase.UpdateDisplayNameAsync(user.PublicId, newDisplayName, "password", "token");
@@ -260,7 +258,7 @@ public class UserRegistrationWorkflowTests
         // Assert
         await Assert.That(updateResult.IsSuccess).IsTrue();
         await Assert.That(user.DisplayName).IsEqualTo(newDisplayName);
-        _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
+        await _userRepository.Received(1).UpdateAsync(user);
     }
 
     [Test]
@@ -269,8 +267,8 @@ public class UserRegistrationWorkflowTests
         // Arrange
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
 
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(user.PublicId))
-            .ReturnsAsync(user);
+        _userRepository.GetByPublicIdAsync(user.PublicId)
+            .Returns(user);
 
         // Act - Update auto-follow preference
         var updateResult = await _useCase.UpdatePreferencesAsync(user.PublicId, autoFollowOnReply: false);
@@ -278,6 +276,6 @@ public class UserRegistrationWorkflowTests
         // Assert
         await Assert.That(updateResult.IsSuccess).IsTrue();
         await Assert.That(user.AutoFollowOnReply).IsFalse();
-        _mockUserRepository.Verify(r => r.UpdateAsync(user), Times.Once);
+        await _userRepository.Received(1).UpdateAsync(user);
     }
 }

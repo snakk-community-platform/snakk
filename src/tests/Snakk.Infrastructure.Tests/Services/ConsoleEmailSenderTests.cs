@@ -1,18 +1,18 @@
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Services;
 
 namespace Snakk.Infrastructure.Tests.Services;
 
 public class ConsoleEmailSenderTests
 {
-    private readonly Mock<ILogger<ConsoleEmailSender>> _mockLogger;
+    private readonly ILogger<ConsoleEmailSender> _logger;
     private readonly ConsoleEmailSender _sender;
 
     public ConsoleEmailSenderTests()
     {
-        _mockLogger = new Mock<ILogger<ConsoleEmailSender>>();
-        _sender = new ConsoleEmailSender(_mockLogger.Object);
+        _logger = Substitute.For<ILogger<ConsoleEmailSender>>();
+        _sender = new ConsoleEmailSender(_logger);
     }
 
     [Test]

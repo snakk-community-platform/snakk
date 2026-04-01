@@ -99,16 +99,24 @@ public class SettingsService : ISettingsService
 
     public async Task<T?> GetSettingValueAsync<T>(string category, string key)
     {
-        var setting = await _context.SystemSettings
-            .FirstOrDefaultAsync(s =>
-                s.Category == category
-                && s.Key == key);
+        try
+        {
+            var setting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s =>
+                    s.Category == category
+                    && s.Key == key);
 
-        if (setting is null)
+            if (setting is null)
+                return default;
+
+            var value = setting.IsEncrypted ? DecryptValue(setting.Value) : setting.Value;
+            return DeserializeValue<T>(value, setting.ValueType);
+        }
+        catch (Npgsql.PostgresException)
+        {
+            // Database tables may not exist yet (pre-setup)
             return default;
-
-        var value = setting.IsEncrypted ? DecryptValue(setting.Value) : setting.Value;
-        return DeserializeValue<T>(value, setting.ValueType);
+        }
     }
 
     public async Task<SettingDto> UpdateSettingAsync(

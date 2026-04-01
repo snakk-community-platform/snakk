@@ -1,0 +1,70 @@
+@page "/setup/community"
+@model Snakk.Setup.Pages.CommunityModel
+
+<h2 class="text-xl font-semibold mb-4">Create Your Community</h2>
+<p class="text-base-content/70 mb-6">
+    Set up your first community with a hub and space. You can create more later from the admin panel.
+</p>
+
+<form method="post" class="space-y-4">
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" asp-for="CreateFirstCommunity" class="toggle toggle-primary" checked />
+            <div>
+                <span class="label-text font-semibold">Create a starter community</span>
+                <p class="text-sm text-base-content/50 mt-1">Recommended — creates a community, hub, and space so the platform is ready to use</p>
+            </div>
+        </label>
+    </div>
+
+    <div id="community-fields" class="space-y-4">
+        <div class="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div class="text-sm">
+                <strong>Community</strong> is the top level. A <strong>hub</strong> groups related spaces. A <strong>space</strong> is where discussions happen.
+            </div>
+        </div>
+
+        <div class="form-control">
+            <label class="label"><span class="label-text">Community Name</span></label>
+            <input type="text" asp-for="CommunityName" class="input w-full" placeholder="My Community" />
+        </div>
+
+        <div class="form-control">
+            <label class="label"><span class="label-text">Community Description</span></label>
+            <input type="text" asp-for="CommunityDescription" class="input w-full" placeholder="A place to discuss everything" />
+        </div>
+
+        <div class="divider text-sm text-base-content/40">First Hub</div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Hub Name</span></label>
+                <input type="text" asp-for="FirstHubName" class="input w-full" placeholder="General" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Hub Slug</span></label>
+                <input type="text" asp-for="FirstHubSlug" class="input w-full" placeholder="general" />
+            </div>
+        </div>
+
+        <div class="divider text-sm text-base-content/40">First Space</div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Space Name</span></label>
+                <input type="text" asp-for="FirstSpaceName" class="input w-full" placeholder="Discussions" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Space Slug</span></label>
+                <input type="text" asp-for="FirstSpaceSlug" class="input w-full" placeholder="discussions" />
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="flex justify-between">
+        <a asp-page="OAuth" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>

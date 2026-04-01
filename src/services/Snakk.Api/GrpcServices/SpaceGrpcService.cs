@@ -109,6 +109,37 @@ public class SpaceGrpcService(
         return response;
     }
 
+    public override async Task<SearchSpacesResponse> SearchSpaces(SearchSpacesRequest request, ServerCallContext context)
+    {
+        var userId = currentUser.GetCurrentUserId();
+        var items = await searchRepository.SearchSpacesAsync(
+            request.HasQuery ? request.Query : null,
+            request.HasHubId ? request.HubId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit > 0 ? request.Limit : 10,
+            userId);
+
+        var response = new SearchSpacesResponse();
+
+        foreach (var s in items)
+        {
+            response.Items.Add(new SpaceSearchItem
+            {
+                PublicId = s.PublicId,
+                Name = s.Name,
+                Slug = s.Slug,
+                HubSlug = s.HubSlug,
+                HubName = s.HubName,
+                CommunitySlug = s.CommunitySlug,
+                DiscussionCount = s.DiscussionCount,
+                CommunityName = s.CommunityName,
+                AvatarUrl = s.AvatarUrl
+            });
+        }
+
+        return response;
+    }
+
     public override async Task<SpaceRulesResponse> GetSpaceRules(GetSpaceRulesRequest request, ServerCallContext context)
     {
         var rules = await ruleService.GetRulesAsync("Space", request.SpaceId);
@@ -171,7 +202,7 @@ public class SpaceGrpcService(
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
-    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes);
+    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug);
     private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     private async Task PopulateRulesMetadata(SpaceInfo info, string publicId)
@@ -189,9 +220,11 @@ public class SpaceGrpcService(
                         s.ParentCommunityHasRules,
                         s.TeamRevision,
                         s.IsRestricted,
-                        AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList() })
+                        AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
+                        HubSlug = s.Hub.Slug,
+                        CommunitySlug = s.Hub.Community.Slug })
                     .FirstOrDefaultAsync(cancel);
-                return raw is null ? null : new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes);
+                return raw is null ? null : new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug);
             },
             MetaCacheOptions);
 
@@ -204,6 +237,8 @@ public class SpaceGrpcService(
             info.TeamRevision = data.TeamRevision ?? "";
             info.IsRestricted = data.IsRestricted;
             info.AllowedDiscussionTypes.AddRange(data.AllowedTypes);
+            info.HubSlug = data.HubSlug ?? "";
+            info.CommunitySlug = data.CommunitySlug ?? "";
         }
     }
 

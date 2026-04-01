@@ -160,6 +160,9 @@ public class DatabaseSeeder(
         _context.SpaceAllowedDiscussionTypes.RemoveRange(_context.SpaceAllowedDiscussionTypes);
         _context.HubAllowedDiscussionTypes.RemoveRange(_context.HubAllowedDiscussionTypes);
         _context.CommunityAllowedDiscussionTypes.RemoveRange(_context.CommunityAllowedDiscussionTypes);
+        _context.IamaBestQuestions.RemoveRange(_context.IamaBestQuestions);
+        _context.IamaOfficialAnswers.RemoveRange(_context.IamaOfficialAnswers);
+        _context.DiscussionIamas.RemoveRange(_context.DiscussionIamas);
         _context.JournalEntryPosts.RemoveRange(_context.JournalEntryPosts);
         _context.DiscussionJournals.RemoveRange(_context.DiscussionJournals);
         _context.PostDebatePositions.RemoveRange(_context.PostDebatePositions);
@@ -681,7 +684,7 @@ public class DatabaseSeeder(
         return hub;
     }
 
-    private static readonly int[] AllDiscussionTypes = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    private static readonly int[] AllDiscussionTypes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     private async Task<(SpaceDatabaseEntity Space, int[] AllowedTypes)> CreateSpaceAsync(
         HubDatabaseEntity hub, string name, string slug, string description)
@@ -1058,6 +1061,68 @@ public class DatabaseSeeder(
                     }
                     break;
                 }
+
+                case DiscussionTypeEnum.Iama:
+                {
+                    var isScheduled = _faker.Random.Bool(0.3f);
+                    var iama = new DiscussionIamaDatabaseEntity
+                    {
+                        DiscussionId = discussion.Id,
+                        Phase = _faker.Random.WeightedRandom([0, 1, 2, 3], [0.1f, 0.4f, 0.3f, 0.2f]),
+                        IsScheduled = isScheduled,
+                        ScheduledStartUtc = isScheduled
+                            ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7))
+                            : null,
+                        ScheduledEndUtc = isScheduled && _faker.Random.Bool(0.5f)
+                            ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7)).AddHours(_faker.Random.Int(1, 3))
+                            : null,
+                        VerificationNote = _faker.Random.Bool(0.6f)
+                            ? $"I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}. Proof: {_faker.Internet.Url()}"
+                            : null
+                    };
+                    _context.DiscussionIamas.Add(iama);
+                    await _context.SaveChangesAsync();
+
+                    // Mark ~40% of host replies as official answers to questions
+                    var hostReplies = replyPosts
+                        .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
+                        .ToList();
+                    var questions = replyPosts
+                        .Where(p => p.CreatedByUserId != discussion.CreatedByUserId && p.ReplyToPostId == null)
+                        .ToList();
+
+                    foreach (var question in questions)
+                    {
+                        if (hostReplies.Count > 0 && _faker.Random.Bool(0.4f))
+                        {
+                            var answer = _faker.PickRandom(hostReplies);
+                            _context.IamaOfficialAnswers.Add(new IamaOfficialAnswerDatabaseEntity
+                            {
+                                IamaId = iama.Id,
+                                QuestionPostId = question.Id,
+                                AnswerPostId = answer.Id
+                            });
+                        }
+                    }
+
+                    // Mark 1-3 best questions on ~30% of closed/archived AMAs
+                    if (iama.Phase >= 2 && questions.Count > 0 && _faker.Random.Bool(0.3f))
+                    {
+                        var bestCount = Math.Min(_faker.Random.Int(1, 3), questions.Count);
+                        var bestPicks = _faker.PickRandom(questions, bestCount).ToList();
+
+                        for (var i = 0; i < bestPicks.Count; i++)
+                        {
+                            _context.IamaBestQuestions.Add(new IamaBestQuestionDatabaseEntity
+                            {
+                                IamaId = iama.Id,
+                                PostId = bestPicks[i].Id,
+                                DisplayOrder = i
+                            });
+                        }
+                    }
+                    break;
+                }
             }
         }
 
@@ -1168,6 +1233,11 @@ public class DatabaseSeeder(
 
             DiscussionTypeEnum.Journal =>
                 $"## Entry 1\n\n{_faker.Lorem.Paragraphs(2, "\n\n")}",
+
+            DiscussionTypeEnum.Iama =>
+                $"Hi everyone! I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}.\n\n" +
+                $"{_faker.Lorem.Paragraph(2)}\n\n" +
+                "Ask me anything!",
 
             _ => GeneratePostContent(isOpeningPost: true)
         };

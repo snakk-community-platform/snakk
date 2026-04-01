@@ -34,6 +34,6 @@ public class OAuthModel : SetupPageBase
         state.DiscordClientSecret = DiscordClientSecret?.Trim() ?? "";
         SaveState(state);
 
-        return RedirectToPage("Review");
+        return RedirectToPage("Community");
     }
 }

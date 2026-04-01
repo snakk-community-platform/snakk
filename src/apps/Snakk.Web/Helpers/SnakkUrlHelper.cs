@@ -10,18 +10,14 @@ public static class SnakkUrlHelper
     /// Empty when single-community mode or custom domain (no prefix needed).
     /// </summary>
     private static string GetCommunityPrefix(ICommunityContext community)
-        => community.IsMultiCommunityEnabled && !community.IsCustomDomain && !string.IsNullOrEmpty(community.CommunitySlug)
-            ? $"/c/{community.CommunitySlug}"
-            : "";
+        => $"/c/{community.CommunitySlug}";
 
     /// <summary>
     /// Returns the /c/{slug} prefix for an explicit community slug.
     /// Used in cross-community listings where items may belong to different communities.
     /// </summary>
     private static string GetCommunityPrefix(string? communitySlug, ICommunityContext context)
-        => context.IsMultiCommunityEnabled && !context.IsCustomDomain && !string.IsNullOrEmpty(communitySlug)
-            ? $"/c/{communitySlug}"
-            : "";
+        => $"/c/{communitySlug}";
 
     /// <summary>
     /// Public accessor for the community prefix, used by inline JavaScript.

@@ -26,34 +26,30 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     });
 });
 
-// Load shared production config (written by setup wizard)
-var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
-builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+// Load shared config (written by setup wizard)
+var sharedConfigDir = builder.Configuration["FileStorage:BasePath"]
+    ?? Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH")
+    ?? "/app/storage";
+var confDir = Path.Combine(sharedConfigDir, "conf");
+builder.Configuration.AddJsonFile(Path.Combine(confDir, "snakk-config.json"), optional: true, reloadOnChange: true);
 
-// Setup mode: if first-run setup hasn't completed, route catch-all and static assets to Snakk.Setup
-// This check runs once at startup. After setup completes, entrypoint.sh restarts all services,
-// so the gateway re-launches and sees .setup-complete → normal routing.
-var setupComplete = builder.Environment.IsDevelopment()
-    || File.Exists(Path.Combine(sharedConfigDir, ".setup-complete"));
+// Setup mode: redirect all non-setup traffic to the setup wizard until setup is done.
+// The setup wizard writes conf/snakk-config.json as its final config artifact —
+// its existence means setup completed. A FileSystemWatcher flips the flag live so
+// no gateway restart is needed after setup finishes.
+var setupConfigPath = Path.Combine(confDir, "snakk-config.json");
+var setupComplete = File.Exists(setupConfigPath);
+
 if (!setupComplete)
 {
-    builder.Configuration["ReverseProxy:Routes:web-route:ClusterId"] = "setup-cluster";
-    builder.Configuration["ReverseProxy:Routes:static-css-route:ClusterId"] = "setup-cluster";
-    builder.Configuration["ReverseProxy:Routes:static-js-route:ClusterId"] = "setup-cluster";
-    builder.Configuration["ReverseProxy:Routes:static-images-route:ClusterId"] = "setup-cluster";
-    builder.Configuration["ReverseProxy:Routes:static-media-route:ClusterId"] = "setup-cluster";
+    Directory.CreateDirectory(confDir);
+    var watcher = new FileSystemWatcher(confDir, "snakk-config.json");
+    watcher.Created += (_, _) => setupComplete = true;
+    watcher.EnableRaisingEvents = true;
+}
 
-    // Disable health checks on clusters not used during setup
-    builder.Configuration["ReverseProxy:Clusters:auth-cluster:HealthCheck:Active:Enabled"] = "false";
-    builder.Configuration["ReverseProxy:Clusters:admin-cluster:HealthCheck:Active:Enabled"] = "false";
-    builder.Configuration["ReverseProxy:Clusters:web-cluster:HealthCheck:Active:Enabled"] = "false";
-    builder.Configuration["ReverseProxy:Clusters:realtime-cluster:HealthCheck:Active:Enabled"] = "false";
-}
-else
-{
-    // Setup app is stopped after first-run — stop polling its health endpoint
-    builder.Configuration["ReverseProxy:Clusters:setup-cluster:HealthCheck:Active:Enabled"] = "false";
-}
+// Setup cluster is only used during first-run — no need to health-check it
+builder.Configuration["ReverseProxy:Clusters:setup-cluster:HealthCheck:Active:Enabled"] = "false";
 
 //builder.AddSnakkDefaults();
 
@@ -173,6 +169,23 @@ app.UseRequestTimeouts();
 
 // Gateway's own health endpoint (not proxied — handled locally before YARP)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "gateway" }));
+
+// When setup hasn't completed, redirect all non-setup traffic to the wizard.
+// The setupComplete bool is flipped by a FileSystemWatcher — no restart required.
+app.Use(async (context, next) =>
+{
+    if (!setupComplete)
+    {
+        var path = context.Request.Path.Value ?? "";
+        if (!path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase)
+            && !path.Equals("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Redirect("/setup");
+            return;
+        }
+    }
+    await next();
+});
 
 app.MapReverseProxy();
 

@@ -1,0 +1,433 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
+using Snakk.Application.Services;
+
+namespace Snakk.Infrastructure.Services;
+
+public partial class LinkMetadataService(
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
+    IFileStorage fileStorage,
+    ILogger<LinkMetadataService> logger) : ILinkMetadataService
+{
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+    private const int MaxBodyBytes = 512_000; // 500KB — enough for <head>
+    private const int MaxImageBytes = 5 * 1024 * 1024; // 5MB
+    private const int MaxImageDimension = 800;
+    private const int BlurSize = 20;
+
+    public async Task<LinkMetadata?> FetchAsync(string url, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+
+        // Internal link detection — skip external fetch for our own URLs
+        if (IsInternalUrl(url))
+        {
+            var uri = new Uri(url);
+            return new LinkMetadata(
+                Title: null, Description: null, ImageUrl: null,
+                Domain: uri.Host, OEmbedHtml: null,
+                LocalImagePath: null, ImageBlurDataUri: null,
+                IsInternal: true);
+        }
+
+        try
+        {
+            // Proxy mode: delegate fetching to an external service
+            var proxyUrl = configuration["LinkMetadata:ProxyUrl"];
+            if (!string.IsNullOrWhiteSpace(proxyUrl))
+                return await FetchViaProxyAsync(url, proxyUrl, cancellationToken);
+
+            var uri = new Uri(url);
+            var domain = uri.Host.TrimStart('w', 'w', 'w', '.');
+
+            // Fetch HTML and parse OG tags
+            var html = await FetchHtmlAsync(url, cancellationToken);
+            var ogResult = html is not null ? ParseOgTags(html) : null;
+
+            // Try oEmbed for known providers
+            var oembedResult = await TryKnownOEmbedAsync(url, uri, cancellationToken);
+
+            if (ogResult is null && oembedResult is null)
+                return new LinkMetadata(null, null, null, domain, null, null, null);
+
+            var metadata = new LinkMetadata(
+                Title: oembedResult?.Title ?? ogResult?.Title,
+                Description: ogResult?.Description,
+                ImageUrl: oembedResult?.ThumbnailUrl ?? ogResult?.ImageUrl,
+                Domain: domain,
+                OEmbedHtml: oembedResult?.Html,
+                LocalImagePath: null,
+                ImageBlurDataUri: null);
+
+            // Download and process the preview image
+            metadata = await ProcessPreviewImageAsync(metadata, cancellationToken);
+
+            return metadata;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to fetch link metadata for {Url}", url);
+            return null;
+        }
+    }
+
+    private async Task<LinkMetadata?> FetchViaProxyAsync(string url, string proxyUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("LinkMetadata");
+            client.Timeout = Timeout;
+
+            var payload = new { url };
+            var response = await client.PostAsJsonAsync(proxyUrl, payload, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+
+            var title = json.TryGetProperty("title", out var t) ? t.GetString() : null;
+            var description = json.TryGetProperty("description", out var d) ? d.GetString() : null;
+            var imageUrl = json.TryGetProperty("imageUrl", out var i) ? i.GetString() : null;
+            var domain = json.TryGetProperty("domain", out var dm) ? dm.GetString() : null;
+            var oembedHtml = json.TryGetProperty("oembedHtml", out var o) ? o.GetString() : null;
+
+            var metadata = new LinkMetadata(title, description, imageUrl, domain, oembedHtml, null, null);
+
+            // Download and process the preview image
+            metadata = await ProcessPreviewImageAsync(metadata, cancellationToken);
+
+            return metadata;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Proxy fetch failed for {Url}", url);
+            return null;
+        }
+    }
+
+    private async Task<LinkMetadata> ProcessPreviewImageAsync(LinkMetadata metadata, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(metadata.ImageUrl))
+            return metadata;
+
+        try
+        {
+            var imageBytes = await DownloadImageAsync(metadata.ImageUrl, cancellationToken);
+            if (imageBytes is null)
+                return metadata;
+
+            using var image = Image.Load(imageBytes);
+
+            // Resize to max 800px on longest side
+            if (image.Width > MaxImageDimension || image.Height > MaxImageDimension)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(MaxImageDimension, MaxImageDimension),
+                    Mode = ResizeMode.Max
+                }));
+            }
+
+            // Encode as WebP quality 80
+            using var webpStream = new MemoryStream();
+            await image.SaveAsWebpAsync(webpStream, new WebpEncoder { Quality = 80 }, cancellationToken);
+
+            // Save to storage
+            var storagePath = $"media/link-previews/{Ulid.NewUlid()}.webp";
+            webpStream.Position = 0;
+            await fileStorage.SaveAsync(storagePath, webpStream, cancellationToken);
+
+            // Generate blur data URI (20px WebP, base64)
+            string? blurDataUri = null;
+            try
+            {
+                using var blurImage = image.Clone(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(BlurSize, BlurSize),
+                    Mode = ResizeMode.Max
+                }));
+
+                using var blurStream = new MemoryStream();
+                await blurImage.SaveAsWebpAsync(blurStream, new WebpEncoder { Quality = 20 }, cancellationToken);
+                blurDataUri = $"data:image/webp;base64,{Convert.ToBase64String(blurStream.ToArray())}";
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to generate blur placeholder for link preview image");
+            }
+
+            return metadata with
+            {
+                LocalImagePath = storagePath,
+                ImageBlurDataUri = blurDataUri
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to process link preview image from {ImageUrl}", metadata.ImageUrl);
+            return metadata;
+        }
+    }
+
+    private async Task<byte[]?> DownloadImageAsync(string imageUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("LinkMetadata");
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, imageUrl);
+            request.Headers.Add("User-Agent", "Snakk/1.0 (Link Preview)");
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+
+            // Check content type
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            // Check content length
+            if (response.Content.Headers.ContentLength > MaxImageBytes)
+                return null;
+
+            // Read with size limit
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var memoryStream = new MemoryStream();
+            var buffer = new byte[8192];
+            int totalRead = 0;
+            int bytesRead;
+
+            while ((bytesRead = await stream.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                totalRead += bytesRead;
+                if (totalRead > MaxImageBytes)
+                    return null;
+
+                memoryStream.Write(buffer, 0, bytesRead);
+            }
+
+            return memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to download image from {ImageUrl}", imageUrl);
+            return null;
+        }
+    }
+
+    private async Task<string?> FetchHtmlAsync(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("LinkMetadata");
+            client.Timeout = Timeout;
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("User-Agent", "Snakk/1.0 (Link Preview)");
+            request.Headers.Add("Accept", "text/html");
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!contentType.Contains("html", StringComparison.OrdinalIgnoreCase)) return null;
+
+            // Read limited body
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var buffer = new byte[MaxBodyBytes];
+            var bytesRead = await stream.ReadAtLeastAsync(buffer, MaxBodyBytes, false, cancellationToken);
+            return System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to fetch HTML from {Url}", url);
+            return null;
+        }
+    }
+
+    private static OgTags? ParseOgTags(string html)
+    {
+        string? title = null;
+        string? description = null;
+        string? imageUrl = null;
+
+        // Parse og: meta tags
+        var metaMatches = MetaTagRegex().Matches(html);
+        foreach (Match match in metaMatches)
+        {
+            var property = match.Groups["prop"].Value.ToLowerInvariant();
+            var content = System.Net.WebUtility.HtmlDecode(match.Groups["content"].Value);
+
+            switch (property)
+            {
+                case "og:title": title ??= content; break;
+                case "og:description": description ??= content; break;
+                case "og:image": imageUrl ??= content; break;
+                case "twitter:title": title ??= content; break;
+                case "twitter:description": description ??= content; break;
+                case "twitter:image": imageUrl ??= content; break;
+            }
+        }
+
+        // Fallback: <title> tag
+        if (title is null)
+        {
+            var titleMatch = TitleTagRegex().Match(html);
+            if (titleMatch.Success)
+                title = System.Net.WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim());
+        }
+
+        // Fallback: <meta name="description">
+        if (description is null)
+        {
+            var descMatch = DescriptionMetaRegex().Match(html);
+            if (descMatch.Success)
+                description = System.Net.WebUtility.HtmlDecode(descMatch.Groups[1].Value);
+        }
+
+        if (title is null && description is null && imageUrl is null)
+            return null;
+
+        return new OgTags(title, description, imageUrl);
+    }
+
+    /// <summary>
+    /// Try oEmbed for known whitelisted providers only.
+    /// </summary>
+    private async Task<OEmbedResult?> TryKnownOEmbedAsync(string url, Uri uri, CancellationToken cancellationToken)
+    {
+        var endpoint = GetKnownOEmbedEndpoint(url, uri);
+        if (endpoint is null) return null;
+
+        return await FetchOEmbedResponseAsync(endpoint, cancellationToken);
+    }
+
+    /// <summary>
+    /// Known oEmbed providers — whitelisted by host, returns endpoint URL.
+    /// </summary>
+    private static string? GetKnownOEmbedEndpoint(string url, Uri uri)
+    {
+        var host = uri.Host.ToLowerInvariant().TrimStart('w', 'w', 'w', '.');
+        var encodedUrl = Uri.EscapeDataString(url);
+
+        return host switch
+        {
+            // Video
+            "youtube.com" or "youtu.be"
+                => $"https://www.youtube.com/oembed?url={encodedUrl}&format=json",
+            "vimeo.com"
+                => $"https://vimeo.com/api/oembed.json?url={encodedUrl}",
+            "tiktok.com"
+                => $"https://www.tiktok.com/oembed?url={encodedUrl}",
+
+            // Social
+            "twitter.com" or "x.com"
+                => $"https://publish.twitter.com/oembed?url={encodedUrl}",
+            "bsky.app"
+                => $"https://embed.bsky.app/oembed?url={encodedUrl}&format=json",
+            "reddit.com" or "old.reddit.com"
+                => $"https://www.reddit.com/oembed?url={encodedUrl}",
+
+            // Audio
+            "open.spotify.com"
+                => $"https://open.spotify.com/oembed?url={encodedUrl}",
+            "soundcloud.com"
+                => $"https://soundcloud.com/oembed?url={encodedUrl}&format=json",
+
+            // Images
+            "imgur.com" or "i.imgur.com"
+                => $"https://api.imgur.com/oembed.json?url={encodedUrl}",
+
+            // Streaming
+            "twitch.tv"
+                => $"https://api.twitch.tv/v5/oembed?url={encodedUrl}",
+
+            // Music — includes artist subdomains (artist.bandcamp.com)
+            _ when host == "bandcamp.com" || host.EndsWith(".bandcamp.com")
+                => $"https://bandcamp.com/oembed?url={encodedUrl}&format=json",
+
+            // Code / Design
+            "codepen.io"
+                => $"https://codepen.io/api/oembed?url={encodedUrl}&format=json",
+            "canva.com"
+                => $"https://www.canva.com/api/v1/oembed?url={encodedUrl}",
+
+            _ => null
+        };
+    }
+
+    private async Task<OEmbedResult?> FetchOEmbedResponseAsync(string oembedUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("LinkMetadata");
+            client.Timeout = Timeout;
+
+            var response = await client.GetFromJsonAsync<OEmbedResponse>(oembedUrl, cancellationToken);
+            if (response is null) return null;
+
+            return new OEmbedResult(
+                Title: response.title,
+                Html: response.html,
+                ThumbnailUrl: response.thumbnail_url);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "oEmbed fetch failed for {Url}", oembedUrl);
+            return null;
+        }
+    }
+
+    // Regex patterns compiled at build time
+    [GeneratedRegex("""<meta\s+(?:property|name)=["'](?<prop>[^"']+)["']\s+content=["'](?<content>[^"']*)["']""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex MetaTagRegex();
+
+    [GeneratedRegex("""<title[^>]*>([^<]+)</title>""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex TitleTagRegex();
+
+    [GeneratedRegex("""<meta\s+name=["']description["']\s+content=["']([^"']*)["']""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex DescriptionMetaRegex();
+
+    private bool IsInternalUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+
+        var host = uri.Host.ToLowerInvariant();
+
+        // Check against configured domain
+        var siteDomain = configuration["Snakk:Domain"]?.ToLowerInvariant();
+        if (!string.IsNullOrEmpty(siteDomain) && host == siteDomain)
+            return true;
+
+        // Check against all configured primary domains
+        var primaryDomains = configuration.GetSection("Snakk:PrimaryDomains").Get<string[]>();
+        if (primaryDomains is not null)
+        {
+            foreach (var d in primaryDomains)
+            {
+                if (host == d.ToLowerInvariant()) return true;
+            }
+        }
+
+        // localhost is always internal (dev)
+        if (host is "localhost" or "127.0.0.1") return true;
+
+        return false;
+    }
+
+    private sealed record OgTags(string? Title, string? Description, string? ImageUrl);
+    private sealed record OEmbedResult(string? Title, string? Html, string? ThumbnailUrl);
+
+    // oEmbed JSON response (snake_case matches the standard)
+    private sealed record OEmbedResponse(
+        string? title,
+        string? html,
+        string? thumbnail_url);
+}

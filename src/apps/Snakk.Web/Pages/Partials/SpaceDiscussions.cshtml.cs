@@ -19,18 +19,21 @@ public class SpaceDiscussionsModel(
     public string SpaceSlug { get; set; } = string.Empty;
     public int? TypeFilter { get; set; }
 
-    public async Task OnGetAsync(string spaceId, string hubSlug, string spaceSlug, int offset = 0, int pageSize = 20, int? typeFilter = null)
+    public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null)
     {
         Response.Headers.CacheControl = "public, max-age=5";
 
         SpaceId = spaceId;
-        HubSlug = hubSlug;
-        SpaceSlug = spaceSlug;
         TypeFilter = typeFilter;
         pageSize = Math.Clamp(pageSize, 1, 50);
 
         var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 20);
         MaxOffset = maxPages * pageSize;
+
+        // Look up space to get hub/space slugs for URL generation
+        var space = await apiClient.GetSpaceAsync(spaceId);
+        HubSlug = space?.HubSlug ?? "";
+        SpaceSlug = space?.Slug ?? "";
 
         try
         {

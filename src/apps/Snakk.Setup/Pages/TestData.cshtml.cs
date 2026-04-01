@@ -8,7 +8,7 @@ public class TestDataModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 6;
+        ViewData["SetupStep"] = 10;
         var state = GetState();
         SeedTestData = state.SeedTestData;
     }
@@ -19,6 +19,6 @@ public class TestDataModel : SetupPageBase
         state.SeedTestData = SeedTestData;
         SaveState(state);
 
-        return RedirectToPage("Security");
+        return RedirectToPage("Review");
     }
 }

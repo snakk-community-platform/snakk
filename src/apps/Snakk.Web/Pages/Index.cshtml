@@ -14,6 +14,17 @@
     <div class="flex flex-col lg:flex-row gap-3">
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="flex justify-end mb-4">
+                    <a href="/new" class="btn btn-primary btn-sm" hx-boost="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Discussion
+                    </a>
+                </div>
+            }
             @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
             {
                 <div class="clean-card">
@@ -157,15 +168,6 @@
                 </inline-or-htmx>
             </div>
 
-            <a href="/communities" class="sidebar-section block">
-                <span class="sidebar-title flex items-center justify-between hover:text-primary transition-colors mb-0 border-b-0 pb-0">
-                    <span>Show communities</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                </span>
-            </a>
         </div>
         </aside>
     </div>

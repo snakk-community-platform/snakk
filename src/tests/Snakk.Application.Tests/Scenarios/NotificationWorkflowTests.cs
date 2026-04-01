@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
@@ -13,18 +13,18 @@ namespace Snakk.Application.Tests.Scenarios;
 /// </summary>
 public class NotificationWorkflowTests
 {
-    private readonly Mock<INotificationRepository> _mockNotificationRepository = new();
-    private readonly Mock<IRealtimeNotifier> _mockRealtimeNotifier = new();
-    private readonly Mock<ICounterService> _mockCounterService = new();
+    private readonly INotificationRepository _notificationRepository = Substitute.For<INotificationRepository>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly ICounterService _counterService = Substitute.For<ICounterService>();
     private NotificationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
         _useCase = new NotificationUseCase(
-            _mockNotificationRepository.Object,
-            _mockRealtimeNotifier.Object,
-            _mockCounterService.Object);
+            _notificationRepository,
+            _realtimeNotifier,
+            _counterService);
     }
 
     #region User Follows Discussion -> New Post -> Notification Created
@@ -46,8 +46,8 @@ public class NotificationWorkflowTests
         await _useCase.CreateNotificationAsync(notification);
 
         // Assert - notification was persisted and real-time delivery happened
-        _mockNotificationRepository.Verify(r => r.AddAsync(notification), Times.Once);
-        _mockRealtimeNotifier.Verify(r => r.NotifyUserAsync(recipientUserId, It.IsAny<object>()), Times.Once);
+        await _notificationRepository.Received(1).AddAsync(notification);
+        await _realtimeNotifier.Received(1).NotifyUserAsync(recipientUserId, Arg.Any<object>());
 
         // Verify notification properties
         await Assert.That(notification.Type).IsEqualTo(NotificationType.NewPostInFollowedDiscussion);
@@ -64,8 +64,8 @@ public class NotificationWorkflowTests
         // Arrange
         var userId = UserId.New();
 
-        _mockNotificationRepository.Setup(r => r.GetUnreadCountAsync(userId))
-            .ReturnsAsync(5);
+        _notificationRepository.GetUnreadCountAsync(userId)
+            .Returns(5);
 
         // Act
         var unreadCount = await _useCase.GetUnreadCountAsync(userId);
@@ -95,8 +95,8 @@ public class NotificationWorkflowTests
         await _useCase.CreateNotificationAsync(notification);
 
         // Assert
-        _mockNotificationRepository.Verify(r => r.AddAsync(notification), Times.Once);
-        _mockRealtimeNotifier.Verify(r => r.NotifyUserAsync(recipientUserId, It.IsAny<object>()), Times.Once);
+        await _notificationRepository.Received(1).AddAsync(notification);
+        await _realtimeNotifier.Received(1).NotifyUserAsync(recipientUserId, Arg.Any<object>());
 
         await Assert.That(notification.Type).IsEqualTo(NotificationType.Mention);
         await Assert.That(notification.Title).Contains("MentionerUser");
@@ -120,8 +120,8 @@ public class NotificationWorkflowTests
             HasMoreItems = false
         };
 
-        _mockNotificationRepository.Setup(r => r.GetByUserIdAsync(recipientUserId, 0, 20))
-            .ReturnsAsync(pagedResult);
+        _notificationRepository.GetByUserIdAsync(recipientUserId, 0, 20)
+            .Returns(pagedResult);
 
         // Act
         var result = await _useCase.GetNotificationsAsync(recipientUserId, 0, 20);
@@ -144,8 +144,8 @@ public class NotificationWorkflowTests
         var userId = UserId.New();
 
         // Step 1: User has unread notifications
-        _mockNotificationRepository.Setup(r => r.GetUnreadCountAsync(userId))
-            .ReturnsAsync(7);
+        _notificationRepository.GetUnreadCountAsync(userId)
+            .Returns(7);
 
         var unreadBefore = await _useCase.GetUnreadCountAsync(userId);
         await Assert.That(unreadBefore).IsEqualTo(7);
@@ -154,8 +154,8 @@ public class NotificationWorkflowTests
         await _useCase.MarkAllAsReadAsync(userId);
 
         // Assert
-        _mockNotificationRepository.Verify(r => r.MarkAllAsReadAsync(userId), Times.Once);
-        _mockRealtimeNotifier.Verify(r => r.NotifyUnreadCountUpdatedAsync(userId, 0), Times.Once);
+        await _notificationRepository.Received(1).MarkAllAsReadAsync(userId);
+        await _realtimeNotifier.Received(1).NotifyUnreadCountUpdatedAsync(userId, 0);
     }
 
     [Test]
@@ -167,10 +167,10 @@ public class NotificationWorkflowTests
             userId, UserId.New(), PostId.New(), DiscussionId.New(),
             "Replier", "Discussion");
 
-        _mockNotificationRepository.Setup(r => r.GetByPublicIdAsync(notification.PublicId))
-            .ReturnsAsync(notification);
-        _mockNotificationRepository.Setup(r => r.GetUnreadCountAsync(userId))
-            .ReturnsAsync(2);
+        _notificationRepository.GetByPublicIdAsync(notification.PublicId)
+            .Returns(notification);
+        _notificationRepository.GetUnreadCountAsync(userId)
+            .Returns(2);
 
         // Act
         var result = await _useCase.MarkAsReadAsync(notification.PublicId, userId);
@@ -178,8 +178,8 @@ public class NotificationWorkflowTests
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(notification.IsRead).IsTrue();
-        _mockNotificationRepository.Verify(r => r.UpdateAsync(notification), Times.Once);
-        _mockRealtimeNotifier.Verify(r => r.NotifyUnreadCountUpdatedAsync(userId, 2), Times.Once);
+        await _notificationRepository.Received(1).UpdateAsync(notification);
+        await _realtimeNotifier.Received(1).NotifyUnreadCountUpdatedAsync(userId, 2);
     }
 
     [Test]
@@ -192,8 +192,8 @@ public class NotificationWorkflowTests
             ownerUserId, UserId.New(), PostId.New(), DiscussionId.New(),
             "Mentioner", "Discussion");
 
-        _mockNotificationRepository.Setup(r => r.GetByPublicIdAsync(notification.PublicId))
-            .ReturnsAsync(notification);
+        _notificationRepository.GetByPublicIdAsync(notification.PublicId)
+            .Returns(notification);
 
         // Act
         var result = await _useCase.MarkAsReadAsync(notification.PublicId, otherUserId);
@@ -234,8 +234,8 @@ public class NotificationWorkflowTests
         await _useCase.CreateNotificationAsync(newDiscussion);
 
         // Assert
-        _mockNotificationRepository.Verify(r => r.AddAsync(It.IsAny<Notification>()), Times.Exactly(4));
-        _mockRealtimeNotifier.Verify(r => r.NotifyUserAsync(recipientUserId, It.IsAny<object>()), Times.Exactly(4));
+        await _notificationRepository.Received(4).AddAsync(Arg.Any<Notification>());
+        await _realtimeNotifier.Received(4).NotifyUserAsync(recipientUserId, Arg.Any<object>());
     }
 
     [Test]
@@ -262,8 +262,8 @@ public class NotificationWorkflowTests
             HasMoreItems = false
         };
 
-        _mockNotificationRepository.Setup(r => r.GetByUserIdAsync(userId, 0, 20))
-            .ReturnsAsync(pagedResult);
+        _notificationRepository.GetByUserIdAsync(userId, 0, 20)
+            .Returns(pagedResult);
 
         // Act
         var result = await _useCase.GetNotificationsAsync(userId, 0, 20);
@@ -287,8 +287,8 @@ public class NotificationWorkflowTests
     {
         // Arrange
         var notificationId = NotificationId.New();
-        _mockNotificationRepository.Setup(r => r.GetByPublicIdAsync(notificationId))
-            .ReturnsAsync((Notification?)null);
+        _notificationRepository.GetByPublicIdAsync(notificationId)
+            .Returns((Notification?)null);
 
         // Act
         var result = await _useCase.MarkAsReadAsync(notificationId, UserId.New());

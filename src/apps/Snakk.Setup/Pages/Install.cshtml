@@ -123,7 +123,7 @@
 
         async function pollStatus() {
             try {
-                var res = await fetch('/install?handler=Status');
+                var res = await fetch('/setup/install?handler=Status');
                 if (!res.ok) return null;
                 return await res.json();
             } catch (e) {
@@ -133,7 +133,7 @@
 
         async function finalize() {
             try {
-                var res = await fetch('/install?handler=Finalize', {
+                var res = await fetch('/setup/install?handler=Finalize', {
                     method: 'POST',
                     headers: { 'RequestVerificationToken': csrfToken }
                 });
@@ -198,7 +198,7 @@
             markStep('config', 'active');
 
             try {
-                var res = await fetch('/install', {
+                var res = await fetch('/setup/install', {
                     method: 'POST',
                     headers: { 'RequestVerificationToken': csrfToken }
                 });

@@ -4,13 +4,13 @@ using Snakk.Web.Services;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 using Snakk.Protos.Community;
-using Snakk.Shared.Enums;
 
 namespace Snakk.Web.Pages.Spaces;
 
 /// <summary>
 /// Shared base for all "new discussion" type-specific pages.
-/// Handles auth, space/hub loading, group access, and discussion creation.
+/// All pages use /new/{type}?spaceId={publicId} routing.
+/// Resolves space, hub, and community from the space's public ID.
 /// </summary>
 public abstract class NewDiscussionBaseModel(
     SnakkApiClient apiClient,
@@ -24,63 +24,70 @@ public abstract class NewDiscussionBaseModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
+    public string CommunitySlug { get; set; } = string.Empty;
 
     [BindProperty] public string? NewTitle { get; set; }
     [BindProperty] public string? NewContent { get; set; }
+    [BindProperty] public string? SpaceId { get; set; }
     public string? CreateError { get; set; }
 
     /// <summary>The DiscussionTypeEnum integer value for this page.</summary>
     protected abstract int DiscussionType { get; }
 
-    public async Task<IActionResult> OnGetAsync(string hubSlug, string spaceSlug)
+    /// <summary>URL slug for this type (e.g. "standard", "question", "poll").</summary>
+    protected abstract string TypeSlug { get; }
+
+    public async Task<IActionResult> OnGetAsync([FromQuery] string spaceId)
     {
-        HubSlug = hubSlug;
-        SpaceSlug = spaceSlug;
+        SpaceId = spaceId;
+
+        if (string.IsNullOrEmpty(spaceId))
+            return Redirect("/new");
 
         if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         {
-            var returnUrl = $"{SnakkUrlHelper.NewDiscussion(CommunityContext, hubSlug, spaceSlug)}/{TypeSlug}";
+            var returnUrl = BuildReturnUrl();
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
         }
 
-        return await LoadPageData(hubSlug, spaceSlug);
+        return await LoadPageData();
     }
 
-    public async Task<IActionResult> OnPostAsync(string hubSlug, string spaceSlug)
+    public async Task<IActionResult> OnPostAsync()
     {
-        HubSlug = hubSlug;
-        SpaceSlug = spaceSlug;
+        SpaceId ??= string.Empty;
+
+        if (string.IsNullOrEmpty(SpaceId))
+            return Redirect("/new");
 
         if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         {
-            var returnUrl = $"{SnakkUrlHelper.NewDiscussion(CommunityContext, hubSlug, spaceSlug)}/{TypeSlug}";
+            var returnUrl = BuildReturnUrl();
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
         }
 
         if (string.IsNullOrWhiteSpace(NewTitle) || string.IsNullOrWhiteSpace(NewContent))
         {
             CreateError = "Title and content are required.";
-            return await LoadPageData(hubSlug, spaceSlug);
+            return await LoadPageData();
         }
 
-        var spaceResult = await ApiClient.GetSpaceBySlugResultAsync(spaceSlug, hubSlug);
-        if (!spaceResult.IsSuccess || spaceResult.Value is null)
-            return NotFound();
-
-        Space = spaceResult.Value;
+        // Load space for creation
+        var loadResult = await LoadPageData();
+        if (Space is null) return loadResult;
 
         var result = await CreateDiscussionAsync();
 
         if (result is null)
         {
             CreateError = "Failed to create discussion. Please try again.";
-            return await LoadPageData(hubSlug, spaceSlug);
+            return Page();
         }
 
         var discussionUrl = SnakkUrlHelper.Discussion(
             CommunityContext,
-            hubSlug,
-            spaceSlug,
+            HubSlug,
+            SpaceSlug,
             SnakkUrlHelper.DiscussionSlugId(result.Slug, result.PublicId));
 
         return Redirect(discussionUrl);
@@ -97,28 +104,38 @@ public abstract class NewDiscussionBaseModel(
             NewContent!,
             DiscussionType);
 
-    /// <summary>URL slug for this type (e.g. "standard", "question", "poll").</summary>
-    protected abstract string TypeSlug { get; }
+    private string BuildReturnUrl()
+        => $"/new/{TypeSlug}?spaceId={Uri.EscapeDataString(SpaceId ?? "")}";
 
-    private async Task<IActionResult> LoadPageData(string hubSlug, string spaceSlug)
+    private async Task<IActionResult> LoadPageData()
     {
-        var hubTask = ApiClient.GetHubBySlugResultAsync(hubSlug, CommunityContext.CommunitySlug!);
-        var spaceTask = Space is not null
-            ? Task.FromResult(GrpcResult<SpaceInfo>.Ok(Space))
-            : ApiClient.GetSpaceBySlugResultAsync(spaceSlug, hubSlug);
-        var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
-            ? ApiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
+        // Look up space by public ID — derives hub/community slugs from the response
+        if (Space is null)
+        {
+            Space = await ApiClient.GetSpaceAsync(SpaceId!);
+            if (Space is null)
+                return NotFound();
+        }
+
+        SpaceSlug = Space.Slug;
+        HubSlug = Space.HubSlug;
+        CommunitySlug = Space.CommunitySlug;
+
+        // Set community context so URL helpers work
+        if (!string.IsNullOrEmpty(CommunitySlug))
+            CommunityContext.SetCommunity(CommunitySlug);
+
+        var hubTask = !string.IsNullOrEmpty(HubSlug) && !string.IsNullOrEmpty(CommunitySlug)
+            ? ApiClient.GetHubBySlugResultAsync(HubSlug, CommunitySlug)
+            : Task.FromResult(GrpcResult<HubInfo>.NotFound());
+        var communityTask = !string.IsNullOrEmpty(CommunitySlug)
+            ? ApiClient.GetCommunityBySlugAsync(CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
 
-        await Task.WhenAll(hubTask, spaceTask, communityTask);
+        await Task.WhenAll(hubTask, communityTask);
 
         Hub = hubTask.Result.IsSuccess ? hubTask.Result.Value : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
-
-        if (!spaceTask.Result.IsSuccess)
-            return spaceTask.Result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
-
-        Space = spaceTask.Result.Value!;
 
         // Group access check
         if (CommunityDetail is not null

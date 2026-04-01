@@ -20,7 +20,9 @@ public class SetupState
     public string Timezone { get; set; } = "UTC";
 
     // Step 4: Storage
-    public string AvatarStoragePath { get; set; } = "/app/storage";
+    public string AvatarStoragePath { get; set; } = OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Snakk", "storage")
+        : "/app/storage";
     public string StorageProvider { get; set; } = "Local"; // "Local" or "S3"
     public string S3Endpoint { get; set; } = "";
     public string S3AccessKey { get; set; } = "";
@@ -33,12 +35,25 @@ public class SetupState
     public string AdminDisplayName { get; set; } = "";
     public string AdminPassword { get; set; } = "";
 
-    // Step 6: Test Data
+    // Step 6: Email/SMTP
+    public string SmtpHost { get; set; } = "";
+    public int SmtpPort { get; set; } = 587;
+    public string SmtpUsername { get; set; } = "";
+    public string SmtpPassword { get; set; } = "";
+    public string SmtpSenderEmail { get; set; } = "";
+    public string SmtpSenderName { get; set; } = "Snakk";
+    public bool SmtpEnabled { get; set; }
+
+    // Step 10: Test Data
     public bool SeedTestData { get; set; }
 
     // Step 7: Security
     public string JwtSecretKey { get; set; } = "";
     public string RealtimeApiKey { get; set; } = "";
+
+    // Turnstile (captcha)
+    public string TurnstileSiteKey { get; set; } = "";
+    public string TurnstileSecretKey { get; set; } = "";
 
     // Step 8: OAuth
     public string GoogleClientId { get; set; } = "";
@@ -47,6 +62,15 @@ public class SetupState
     public string GitHubClientSecret { get; set; } = "";
     public string DiscordClientId { get; set; } = "";
     public string DiscordClientSecret { get; set; } = "";
+
+    // Step 9: First Community
+    public string CommunityName { get; set; } = "";
+    public string CommunityDescription { get; set; } = "";
+    public string FirstHubName { get; set; } = "";
+    public string FirstHubSlug { get; set; } = "";
+    public string FirstSpaceName { get; set; } = "";
+    public string FirstSpaceSlug { get; set; } = "";
+    public bool CreateFirstCommunity { get; set; } = true;
 
     public string GetConnectionString() =>
         $"Host={DbHost};Port={DbPort};Database={DbName};Username={DbUsername};Password={DbPassword}";

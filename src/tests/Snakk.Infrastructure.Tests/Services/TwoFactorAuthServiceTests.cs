@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -12,11 +12,11 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class TwoFactorAuthServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly Mock<ITotpService> _mockTotpService;
-    private readonly Mock<IPasswordHasher> _mockPasswordHasher;
-    private readonly Mock<ITrustedDeviceService> _mockTrustedDeviceService;
-    private readonly Mock<ITwoFactorSecretProtector> _mockSecretProtector;
-    private readonly Mock<ILogger<TwoFactorAuthService>> _mockLogger;
+    private readonly ITotpService _totpService;
+    private readonly IPasswordHasher _passwordHasher;
+    private readonly ITrustedDeviceService _trustedDeviceService;
+    private readonly ITwoFactorSecretProtector _secretProtector;
+    private readonly ILogger<TwoFactorAuthService> _logger;
     private readonly TwoFactorAuthService _service;
 
     public TwoFactorAuthServiceTests()
@@ -25,23 +25,23 @@ public class TwoFactorAuthServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"TwoFactorAuthTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _mockTotpService = new Mock<ITotpService>();
-        _mockPasswordHasher = new Mock<IPasswordHasher>();
-        _mockTrustedDeviceService = new Mock<ITrustedDeviceService>();
-        _mockSecretProtector = new Mock<ITwoFactorSecretProtector>();
-        _mockLogger = new Mock<ILogger<TwoFactorAuthService>>();
+        _totpService = Substitute.For<ITotpService>();
+        _passwordHasher = Substitute.For<IPasswordHasher>();
+        _trustedDeviceService = Substitute.For<ITrustedDeviceService>();
+        _secretProtector = Substitute.For<ITwoFactorSecretProtector>();
+        _logger = Substitute.For<ILogger<TwoFactorAuthService>>();
 
         // Secret protector pass-through for tests (encrypt/decrypt are identity functions)
-        _mockSecretProtector.Setup(p => p.Protect(It.IsAny<string>())).Returns<string>(s => $"ENC:{s}");
-        _mockSecretProtector.Setup(p => p.Unprotect(It.IsAny<string>())).Returns<string>(s => s.StartsWith("ENC:") ? s[4..] : s);
+        _secretProtector.Protect(Arg.Any<string>()).Returns(callInfo => $"ENC:{callInfo.ArgAt<string>(0)}");
+        _secretProtector.Unprotect(Arg.Any<string>()).Returns(callInfo => { var s = callInfo.ArgAt<string>(0); return s.StartsWith("ENC:") ? s[4..] : s; });
 
         _service = new TwoFactorAuthService(
             _context,
-            _mockTotpService.Object,
-            _mockPasswordHasher.Object,
-            _mockTrustedDeviceService.Object,
-            _mockSecretProtector.Object,
-            _mockLogger.Object);
+            _totpService,
+            _passwordHasher,
+            _trustedDeviceService,
+            _secretProtector,
+            _logger);
     }
 
     public void Dispose()
@@ -78,8 +78,8 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task SetupTwoFactorAsync_ReturnsSecretAndQrCode()
     {
         await CreateTestUser("setup_user");
-        _mockTotpService.Setup(s => s.GenerateSecret()).Returns("TESTSECRET");
-        _mockTotpService.Setup(s => s.GenerateQrCodeUri("TESTSECRET", It.IsAny<string>(), "Snakk"))
+        _totpService.GenerateSecret().Returns("TESTSECRET");
+        _totpService.GenerateQrCodeUri("TESTSECRET", Arg.Any<string>(), "Snakk")
             .Returns("otpauth://totp/Snakk:test@example.com?secret=TESTSECRET");
 
         var result = await _service.SetupTwoFactorAsync("setup_user");
@@ -93,8 +93,8 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task SetupTwoFactorAsync_StoresSecretOnUser()
     {
         await CreateTestUser("setup_store");
-        _mockTotpService.Setup(s => s.GenerateSecret()).Returns("STOREDSECRET");
-        _mockTotpService.Setup(s => s.GenerateQrCodeUri(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _totpService.GenerateSecret().Returns("STOREDSECRET");
+        _totpService.GenerateQrCodeUri(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns("otpauth://test");
 
         await _service.SetupTwoFactorAsync("setup_store");
@@ -127,9 +127,9 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task EnableTwoFactorAsync_WithValidCode_EnablesAndReturnsBackupCodes()
     {
         await CreateTestUser("enable_user", twoFactorSecret: "SECRET123");
-        _mockTotpService.Setup(s => s.VerifyCode("SECRET123", "123456", It.IsAny<int>())).Returns(true);
-        _mockTotpService.Setup(s => s.GenerateBackupCodes(10)).Returns(["CODE1", "CODE2", "CODE3"]);
-        _mockTotpService.Setup(s => s.HashBackupCode(It.IsAny<string>())).Returns("hashed");
+        _totpService.VerifyCode("SECRET123", "123456", Arg.Any<int>()).Returns(true);
+        _totpService.GenerateBackupCodes(10).Returns(["CODE1", "CODE2", "CODE3"]);
+        _totpService.HashBackupCode(Arg.Any<string>()).Returns("hashed");
 
         var (success, backupCodes, error) = await _service.EnableTwoFactorAsync("enable_user", "123456");
 
@@ -146,7 +146,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task EnableTwoFactorAsync_WithInvalidCode_ReturnsFalse()
     {
         await CreateTestUser("enable_invalid", twoFactorSecret: "SECRET123");
-        _mockTotpService.Setup(s => s.VerifyCode("SECRET123", "000000", It.IsAny<int>())).Returns(false);
+        _totpService.VerifyCode("SECRET123", "000000", Arg.Any<int>()).Returns(false);
 
         var (success, backupCodes, error) = await _service.EnableTwoFactorAsync("enable_invalid", "000000");
 
@@ -189,12 +189,12 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task EnableTwoFactorAsync_StoresBackupCodesInDatabase()
     {
         await CreateTestUser("enable_backup", twoFactorSecret: "SECRET");
-        _mockTotpService.Setup(s => s.VerifyCode(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(true);
-        _mockTotpService.Setup(s => s.GenerateBackupCodes(10)).Returns(
+        _totpService.VerifyCode(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>()).Returns(true);
+        _totpService.GenerateBackupCodes(10).Returns(
             Enumerable.Range(1, 10)
                 .Select(i => $"CODE{i}")
                 .ToList());
-        _mockTotpService.Setup(s => s.HashBackupCode(It.IsAny<string>())).Returns("hashed");
+        _totpService.HashBackupCode(Arg.Any<string>()).Returns("hashed");
 
         await _service.EnableTwoFactorAsync("enable_backup", "123456");
 
@@ -223,7 +223,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hashedpw")).Returns(true);
+        _passwordHasher.VerifyPassword("password", "hashedpw").Returns(true);
 
         var result = await _service.DisableTwoFactorAsync("disable_user", "password");
 
@@ -239,7 +239,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task DisableTwoFactorAsync_WithWrongPassword_ReturnsFalse()
     {
         await CreateTestUser("disable_wrongpw", twoFactorEnabled: true, passwordHash: "hashedpw");
-        _mockPasswordHasher.Setup(p => p.VerifyPassword("wrong", "hashedpw")).Returns(false);
+        _passwordHasher.VerifyPassword("wrong", "hashedpw").Returns(false);
 
         var result = await _service.DisableTwoFactorAsync("disable_wrongpw", "wrong");
 
@@ -315,7 +315,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task VerifyTwoFactorCodeAsync_WithValidTotpCode_ReturnsValid()
     {
         await CreateTestUser("verify_totp", twoFactorEnabled: true, twoFactorSecret: "SECRET");
-        _mockTotpService.Setup(s => s.VerifyCode("SECRET", "123456", It.IsAny<int>())).Returns(true);
+        _totpService.VerifyCode("SECRET", "123456", Arg.Any<int>()).Returns(true);
 
         var (isValid, usedBackup) = await _service.VerifyTwoFactorCodeAsync("verify_totp", "123456");
 
@@ -327,8 +327,8 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task VerifyTwoFactorCodeAsync_WithValidBackupCode_ReturnsValidAndMarksUsed()
     {
         var user = await CreateTestUser("verify_backup", twoFactorEnabled: true, twoFactorSecret: "SECRET");
-        _mockTotpService.Setup(s => s.VerifyCode(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(false);
-        _mockTotpService.Setup(s => s.VerifyBackupCode("BACKUPCODE", "backhash")).Returns(true);
+        _totpService.VerifyCode(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>()).Returns(false);
+        _totpService.VerifyBackupCode("BACKUPCODE", "backhash").Returns(true);
 
         _context.BackupCodes.Add(new BackupCodeDatabaseEntity
         {
@@ -353,7 +353,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task VerifyTwoFactorCodeAsync_WithInvalidCode_ReturnsFalse()
     {
         await CreateTestUser("verify_invalid", twoFactorEnabled: true, twoFactorSecret: "SECRET");
-        _mockTotpService.Setup(s => s.VerifyCode(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(false);
+        _totpService.VerifyCode(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>()).Returns(false);
 
         var (isValid, _) = await _service.VerifyTwoFactorCodeAsync("verify_invalid", "000000");
 
@@ -395,9 +395,9 @@ public class TwoFactorAuthServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        _mockPasswordHasher.Setup(p => p.VerifyPassword("password", "hashedpw")).Returns(true);
-        _mockTotpService.Setup(s => s.GenerateBackupCodes(10)).Returns(["NEW1", "NEW2"]);
-        _mockTotpService.Setup(s => s.HashBackupCode(It.IsAny<string>())).Returns("newhash");
+        _passwordHasher.VerifyPassword("password", "hashedpw").Returns(true);
+        _totpService.GenerateBackupCodes(10).Returns(["NEW1", "NEW2"]);
+        _totpService.HashBackupCode(Arg.Any<string>()).Returns("newhash");
 
         var codes = await _service.RegenerateBackupCodesAsync("regen_user", "password");
 
@@ -413,7 +413,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task RegenerateBackupCodesAsync_WithWrongPassword_Throws()
     {
         await CreateTestUser("regen_wrongpw", twoFactorEnabled: true, passwordHash: "hashedpw");
-        _mockPasswordHasher.Setup(p => p.VerifyPassword("wrong", "hashedpw")).Returns(false);
+        _passwordHasher.VerifyPassword("wrong", "hashedpw").Returns(false);
 
         var act = async () => await _service.RegenerateBackupCodesAsync("regen_wrongpw", "wrong");
 
@@ -439,16 +439,14 @@ public class TwoFactorAuthServiceTests : IDisposable
     {
         await _service.TrustDeviceAsync("user1", "fp123", "Chrome", "1.2.3.4", 30);
 
-        _mockTrustedDeviceService.Verify(
-            s => s.TrustDeviceAsync(It.IsAny<UserId>(), "fp123", "Chrome", "1.2.3.4", 30),
-            Times.Once);
+        _trustedDeviceService.Received(1).TrustDeviceAsync(Arg.Any<UserId>(), "fp123", "Chrome", "1.2.3.4", 30);
     }
 
     [Test]
     public async Task IsDeviceTrustedAsync_DelegatesToTrustedDeviceService()
     {
-        _mockTrustedDeviceService.Setup(s => s.IsDeviceTrustedAsync(It.IsAny<UserId>(), "fp123"))
-            .ReturnsAsync(true);
+        _trustedDeviceService.IsDeviceTrustedAsync(Arg.Any<UserId>(), "fp123")
+            .Returns(true);
 
         var result = await _service.IsDeviceTrustedAsync("user1", "fp123");
 
@@ -460,7 +458,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     {
         await _service.RevokeDeviceAsync("device123", "User request");
 
-        _mockTrustedDeviceService.Verify(s => s.RevokeDeviceAsync("device123", "User request"), Times.Once);
+        _trustedDeviceService.Received(1).RevokeDeviceAsync("device123", "User request");
     }
 
     #endregion

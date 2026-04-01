@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -20,7 +20,7 @@ public class CommunityManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"CommunityManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new CommunityManagementService(_context, new Mock<ILogger<CommunityManagementService>>().Object);
+        _service = new CommunityManagementService(_context, Substitute.For<ILogger<CommunityManagementService>>());
     }
 
     public void Dispose()

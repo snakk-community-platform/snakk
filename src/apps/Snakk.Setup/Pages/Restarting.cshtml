@@ -1,8 +1,6 @@
 @page "/setup/restarting"
 @model Snakk.Setup.Pages.RestartingModel
 
-@Html.AntiForgeryToken()
-
 <div class="text-center space-y-6">
     <div id="status-icon">
         <span class="loading loading-spinner loading-lg text-primary"></span>
@@ -35,19 +33,15 @@
     (function () {
         'use strict';
 
-        var csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         var detailEl = document.getElementById('status-detail');
         var initialDelay = 10;
         var maxPollTime = 60;
         var pollInterval = 3;
 
-        // Fire-and-forget: trigger service restart
-        fetch('/restarting?handler=Restart', {
-            method: 'POST',
-            headers: { 'RequestVerificationToken': csrfToken }
-        }).catch(function () {}); // Ignore — process may die before responding
+        // The gateway detects conf/snakk-config.json via FileSystemWatcher
+        // and starts routing normally. We poll / until Snakk.Web responds.
 
-        // Phase 1: Wait for services to shut down (10 seconds)
+        // Phase 1: Wait for services to start (10 seconds)
         var remaining = initialDelay;
         detailEl.textContent = 'Waiting for services to restart... (' + remaining + 's)';
 
@@ -71,10 +65,10 @@
                 var secondsLeft = maxPollTime - elapsed;
 
                 try {
-                    var res = await fetch('/health', { method: 'GET', cache: 'no-store' });
+                    var res = await fetch('/', { method: 'GET', cache: 'no-store' });
                     if (res.ok) {
                         clearInterval(timer);
-                        window.location.href = '/setup';
+                        window.location.href = '/';
                         return;
                     }
                 } catch (e) {

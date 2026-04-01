@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Snakk.Application.Services;
 using Snakk.Worker.Workers;
 
@@ -9,29 +10,30 @@ namespace Snakk.Infrastructure.Tests.Workers;
 
 public class AvatarGenerationHostedServiceTests
 {
-    private readonly Mock<IServiceProvider> _mockServiceProvider;
-    private readonly Mock<IServiceScope> _mockScope;
-    private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
-    private readonly Mock<ILogger<AvatarGenerationHostedService>> _mockLogger;
-    private readonly Mock<IAvatarGenerationService> _mockAvatarService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScope _scope;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<AvatarGenerationHostedService> _logger;
+    private readonly IAvatarGenerationService _avatarService;
 
     public AvatarGenerationHostedServiceTests()
     {
-        _mockServiceProvider = new Mock<IServiceProvider>();
-        _mockScope = new Mock<IServiceScope>();
-        _mockScopeFactory = new Mock<IServiceScopeFactory>();
-        _mockLogger = new Mock<ILogger<AvatarGenerationHostedService>>();
-        _mockAvatarService = new Mock<IAvatarGenerationService>();
+        _serviceProvider = Substitute.For<IServiceProvider>();
+        _scope = Substitute.For<IServiceScope>();
+        _scopeFactory = Substitute.For<IServiceScopeFactory>();
+        _logger = Substitute.For<ILogger<AvatarGenerationHostedService>>();
+        _avatarService = Substitute.For<IAvatarGenerationService>();
 
         // Setup service provider hierarchy
-        _mockScope.Setup(x => x.ServiceProvider).Returns(Mock.Of<IServiceProvider>(sp =>
-            sp.GetService(typeof(IAvatarGenerationService)) == _mockAvatarService.Object));
+        var scopeServiceProvider = Substitute.For<IServiceProvider>();
+        scopeServiceProvider.GetService(typeof(IAvatarGenerationService)).Returns(_avatarService);
+        _scope.ServiceProvider.Returns(scopeServiceProvider);
 
-        _mockServiceProvider
-            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
-            .Returns(_mockScopeFactory.Object);
+        _serviceProvider
+            .GetService(typeof(IServiceScopeFactory))
+            .Returns(_scopeFactory);
 
-        _mockScopeFactory.Setup(x => x.CreateScope()).Returns(_mockScope.Object);
+        _scopeFactory.CreateScope().Returns(_scope);
     }
 
     private IConfiguration CreateConfiguration(bool generateOnStartup)
@@ -51,18 +53,18 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService.Setup(x => x.GenerateAllMissingAvatarsAsync()).ReturnsAsync(42);
+        _avatarService.GenerateAllMissingAvatarsAsync().Returns(42);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockAvatarService.Verify(x => x.GenerateAllMissingAvatarsAsync(), Times.Once);
+        await _avatarService.Received(1).GenerateAllMissingAvatarsAsync();
     }
 
     [Test]
@@ -72,15 +74,15 @@ public class AvatarGenerationHostedServiceTests
         var configuration = CreateConfiguration(generateOnStartup: false);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockAvatarService.Verify(x => x.GenerateAllMissingAvatarsAsync(), Times.Never);
+        await _avatarService.DidNotReceive().GenerateAllMissingAvatarsAsync();
     }
 
     [Test]
@@ -89,25 +91,23 @@ public class AvatarGenerationHostedServiceTests
         // Arrange
         var avatarCount = 100;
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService.Setup(x => x.GenerateAllMissingAvatarsAsync()).ReturnsAsync(avatarCount);
+        _avatarService.GenerateAllMissingAvatarsAsync().Returns(avatarCount);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Successfully generated")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(v => v.ToString()!.Contains("Successfully generated")),
+            null,
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Test]
@@ -115,13 +115,13 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService
-            .Setup(x => x.GenerateAllMissingAvatarsAsync())
-            .ThrowsAsync(new IOException("Disk full"));
+        _avatarService
+            .GenerateAllMissingAvatarsAsync()
+            .Throws(new IOException("Disk full"));
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act & Assert
@@ -135,27 +135,25 @@ public class AvatarGenerationHostedServiceTests
         // Arrange
         var exception = new IOException("Disk full");
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService
-            .Setup(x => x.GenerateAllMissingAvatarsAsync())
-            .ThrowsAsync(exception);
+        _avatarService
+            .GenerateAllMissingAvatarsAsync()
+            .Throws(exception);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to generate avatars")),
-                exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(v => v.ToString()!.Contains("Failed to generate avatars")),
+            exception,
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Test]
@@ -163,25 +161,23 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService.Setup(x => x.GenerateAllMissingAvatarsAsync()).ReturnsAsync(10);
+        _avatarService.GenerateAllMissingAvatarsAsync().Returns(10);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting avatar generation")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(v => v.ToString()!.Contains("Starting avatar generation")),
+            null,
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Test]
@@ -191,22 +187,20 @@ public class AvatarGenerationHostedServiceTests
         var configuration = CreateConfiguration(generateOnStartup: false);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("disabled")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(v => v.ToString()!.Contains("disabled")),
+            null,
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Test]
@@ -215,8 +209,8 @@ public class AvatarGenerationHostedServiceTests
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: false);
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act & Assert
@@ -229,18 +223,18 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService.Setup(x => x.GenerateAllMissingAvatarsAsync()).ReturnsAsync(10);
+        _avatarService.GenerateAllMissingAvatarsAsync().Returns(10);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockScopeFactory.Verify(x => x.CreateScope(), Times.Once);
+        _scopeFactory.Received(1).CreateScope();
     }
 
     [Test]
@@ -248,18 +242,18 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService.Setup(x => x.GenerateAllMissingAvatarsAsync()).ReturnsAsync(10);
+        _avatarService.GenerateAllMissingAvatarsAsync().Returns(10);
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockScope.Verify(x => x.Dispose(), Times.Once);
+        _scope.Received(1).Dispose();
     }
 
     [Test]
@@ -267,30 +261,28 @@ public class AvatarGenerationHostedServiceTests
     {
         // Arrange
         var configuration = CreateConfiguration(generateOnStartup: true);
-        _mockAvatarService
-            .Setup(x => x.GenerateAllMissingAvatarsAsync())
-            .Returns(async () =>
+        _avatarService
+            .GenerateAllMissingAvatarsAsync()
+            .Returns(async _ =>
             {
                 await Task.Delay(100); // Simulate work
                 return 50;
             });
 
         var service = new AvatarGenerationHostedService(
-            _mockServiceProvider.Object,
-            _mockLogger.Object,
+            _serviceProvider,
+            _logger,
             configuration);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("ms")), // Should log milliseconds
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.AtLeastOnce);
+        _logger.Received().Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(v => v.ToString()!.Contains("ms")), // Should log milliseconds
+            null,
+            Arg.Any<Func<object, Exception?, string>>());
     }
 }

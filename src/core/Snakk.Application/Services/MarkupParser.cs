@@ -26,6 +26,7 @@ public class MarkupParser : IMarkupParser
         .UseAdvancedExtensions()
         .DisableHtml()
         .Use(new SpoilerExtension())
+        .Use(new EntityLinkExtension())
         .Build();
 
     private static readonly MarkdownPipeline PlainTextPipeline = new MarkdownPipelineBuilder()
@@ -79,6 +80,26 @@ public class MarkupParser : IMarkupParser
             if (!IsValidUrl(link.Url))
             {
                 link.Url = "";
+            }
+            else if (IsInternalPath(link.Url))
+            {
+                // Internal links get entity-link styling, no target="_blank"
+                link.GetAttributes().AddClass("entity-link");
+
+                // For auto-linked full URLs, rewrite href and text to just the path
+                if (Uri.TryCreate(link.Url, UriKind.Absolute, out var internalUri)
+                    && (internalUri.Scheme == "http" || internalUri.Scheme == "https"))
+                {
+                    var path = internalUri.AbsolutePath;
+                    link.Url = path;
+
+                    // Replace the auto-linked text (full URL) with just the path
+                    if (link.FirstChild is LiteralInline literal
+                        && literal.Content.ToString().StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        literal.Content = new Markdig.Helpers.StringSlice(path);
+                    }
+                }
             }
             else
             {
@@ -260,6 +281,41 @@ public class MarkupParser : IMarkupParser
         return false;
     }
 
+    /// <summary>
+    /// Checks whether a URL points to an internal entity path (/c/..., /u/...).
+    /// Handles both relative paths and absolute URLs with a domain.
+    /// </summary>
+    private static bool IsInternalPath(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return false;
+
+        var path = url;
+
+        // Extract path from absolute URLs
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && (uri.Scheme == "http" || uri.Scheme == "https"))
+        {
+            path = uri.AbsolutePath;
+        }
+
+        return InternalPathRegex.IsMatch(path);
+    }
+
+    // Matches internal entity paths: /c/{slug}/h/{hub}, /c/{slug}/h/{hub}/{space},
+    // /c/{slug}/h/{hub}/{space}/{slug}~{id}, and /u/{id}
+    private static readonly Regex InternalPathRegex = new(
+        @"^(/c/[\w-]+(/h/[\w-]+(/([\w-]+(/([\w-]+~[\w]+))?)?)?)?|/u/[\w]+)$",
+        RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(100));
+
+    // Matches bare internal paths or full URLs containing internal paths in plain text.
+    // Used by the EntityLinkParser to detect unlinked references.
+    private static readonly Regex EntityLinkPatternRegex = new(
+        @"(https?://[^\s/]+)?(/c/[\w-]+(/h/[\w-]+(/([\w-]+(/([\w-]+~[\w]+))?)?)?)?)|(https?://[^\s/]+)?(/u/[\w]+)",
+        RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(250));
+
     // =========================================================================
     // Spoiler extension — renders ||text|| as <span class="spoiler">text</span>
     // =========================================================================
@@ -317,6 +373,103 @@ public class MarkupParser : IMarkupParser
         {
             if (renderer is HtmlRenderer htmlRenderer)
                 htmlRenderer.ObjectRenderers.AddIfNotAlready<SpoilerRenderer>();
+        }
+    }
+
+    // =========================================================================
+    // Entity link extension — auto-links internal paths and URLs
+    // Detects bare /c/... /u/... paths and full http(s):// URLs pointing to them
+    // =========================================================================
+
+    private sealed class EntityLinkInline : LeafInline
+    {
+        /// <summary>
+        /// The internal path (always relative, e.g. /c/gaming/h/fps).
+        /// </summary>
+        public string Path { get; set; } = "";
+    }
+
+    private sealed class EntityLinkParser : InlineParser
+    {
+        public EntityLinkParser()
+        {
+            // Trigger on '/' (bare paths) and 'h' (http/https URLs)
+            OpeningCharacters = ['/', 'h'];
+        }
+
+        public override bool Match(InlineProcessor processor, ref StringSlice slice)
+        {
+            var start = slice.Start;
+            var text = slice.Text;
+
+            // Don't match if preceded by an alphanumeric char (we want word boundaries)
+            if (start > 0 && char.IsLetterOrDigit(text[start - 1]))
+                return false;
+
+            // Extract remaining text from current position to end of line or whitespace
+            var remaining = text.AsSpan(start);
+            var endIdx = 0;
+            while (endIdx < remaining.Length && !char.IsWhiteSpace(remaining[endIdx]))
+                endIdx++;
+
+            if (endIdx == 0)
+                return false;
+
+            var candidate = remaining[..endIdx].ToString();
+
+            // Try to match against entity link pattern
+            var match = EntityLinkPatternRegex.Match(candidate);
+            if (!match.Success || match.Index != 0)
+                return false;
+
+            var fullMatch = match.Value;
+            string path;
+
+            // Extract the path portion
+            if (fullMatch.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                // Full URL — extract path from URI
+                if (!Uri.TryCreate(fullMatch, UriKind.Absolute, out var uri))
+                    return false;
+
+                path = uri.AbsolutePath;
+            }
+            else
+            {
+                path = fullMatch;
+            }
+
+            // Validate it's a real internal path
+            if (!InternalPathRegex.IsMatch(path))
+                return false;
+
+            processor.Inline = new EntityLinkInline { Path = path };
+            slice.Start = start + fullMatch.Length;
+            return true;
+        }
+    }
+
+    private sealed class EntityLinkRenderer : HtmlObjectRenderer<EntityLinkInline>
+    {
+        protected override void Write(HtmlRenderer renderer, EntityLinkInline obj)
+        {
+            renderer.Write("<a href=\"");
+            renderer.WriteEscapeUrl(obj.Path);
+            renderer.Write("\" class=\"entity-link\">");
+            renderer.WriteEscape(obj.Path);
+            renderer.Write("</a>");
+        }
+    }
+
+    private sealed class EntityLinkExtension : IMarkdownExtension
+    {
+        public void Setup(MarkdownPipelineBuilder pipeline) =>
+            pipeline.InlineParsers.AddIfNotAlready<EntityLinkParser>();
+
+        public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
+        {
+            if (renderer is HtmlRenderer htmlRenderer)
+                htmlRenderer.ObjectRenderers.AddIfNotAlready<EntityLinkRenderer>();
         }
     }
 }

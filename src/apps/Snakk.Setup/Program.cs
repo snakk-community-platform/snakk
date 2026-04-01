@@ -2,10 +2,13 @@ using Snakk.Setup.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load shared production config (written by the setup wizard itself)
-var sharedConfigDir = Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH") ?? "/app/storage";
+// Load shared config (written by the setup wizard itself)
+var sharedConfigDir = builder.Configuration["FileStorage:BasePath"]
+    ?? Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH")
+    ?? "/app/storage";
+var confDir = Path.Combine(sharedConfigDir, "conf");
 builder.Configuration.AddJsonFile(
-    Path.Combine(sharedConfigDir, "appsettings.Production.json"),
+    Path.Combine(confDir, "snakk-config.json"),
     optional: true, reloadOnChange: true);
 
 // Session (wizard state across pages)
@@ -24,7 +27,12 @@ var app = builder.Build();
 // Block all access if setup is already complete
 app.Use(async (context, next) =>
 {
-    if (File.Exists(Path.Combine(sharedConfigDir, ".setup-complete")))
+    var path = context.Request.Path.Value ?? "";
+    if (File.Exists(Path.Combine(confDir, "snakk-config.json"))
+        && !path.StartsWith("/setup/install", StringComparison.OrdinalIgnoreCase)
+        && !path.StartsWith("/setup/restarting", StringComparison.OrdinalIgnoreCase)
+        && !path.StartsWith("/setup/css", StringComparison.OrdinalIgnoreCase)
+        && !path.Equals("/health", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 403;
         context.Response.ContentType = "text/plain";
@@ -34,7 +42,13 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseStaticFiles();
+// Redirect root to /setup (pages now live under /setup/*)
+app.MapGet("/", () => Results.Redirect("/setup"));
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/setup"
+});
 app.UseSession();
 app.UseRouting();
 app.MapRazorPages();

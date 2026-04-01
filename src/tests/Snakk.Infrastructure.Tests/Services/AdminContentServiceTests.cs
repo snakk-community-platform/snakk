@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -16,7 +16,7 @@ public class AdminContentServiceTests : IDisposable
     private readonly SnakkDbContext _context;
     private readonly AdminContentService _service;
     private readonly ServiceProvider _cacheServiceProvider;
-    private readonly Mock<ISecurityService> _mockSecurityService;
+    private readonly ISecurityService _securityService;
 
     public AdminContentServiceTests()
     {
@@ -28,21 +28,20 @@ public class AdminContentServiceTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _mockSecurityService = new Mock<ISecurityService>();
+        _securityService = Substitute.For<ISecurityService>();
 
-        _mockSecurityService
-            .Setup(x => x.LogAuditAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>(),
-                It.IsAny<AuditLogSeverityEnum>()))
+        _securityService.LogAuditAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool>(),
+                Arg.Any<AuditLogSeverityEnum>())
             .Returns(Task.CompletedTask);
 
         _service = new AdminContentService(
             _context,
             cache,
-            _mockSecurityService.Object,
-            new Mock<ILogger<AdminContentService>>().Object);
+            _securityService,
+            Substitute.For<ILogger<AdminContentService>>());
     }
 
     public void Dispose()

@@ -68,7 +68,7 @@ public class DetailModel(
         {
             // Get read state from API
             var readState = await _apiClient.GetReadStateAsync(CurrentUserId, discussionPublicId);
-            if (readState?.LastReadPostId is null)
+            if (string.IsNullOrEmpty(readState?.LastReadPostId))
                 return null;
 
             // Calculate post number of last read post

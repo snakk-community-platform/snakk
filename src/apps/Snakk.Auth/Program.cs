@@ -10,10 +10,10 @@ AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load shared production config (written by setup wizard)
+// Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(
-    Path.Combine(sharedConfigDir, "appsettings.Production.json"),
+    Path.Combine(sharedConfigDir, "conf", "snakk-config.json"),
     optional: true,
     reloadOnChange: true);
 

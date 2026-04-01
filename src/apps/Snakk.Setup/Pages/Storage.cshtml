@@ -27,7 +27,8 @@
     <!-- Local Storage Path (always shown — also used for config file storage) -->
     <div class="form-control">
         <label class="label"><span class="label-text">Storage Path</span></label>
-        <input type="text" asp-for="AvatarStoragePath" class="input w-full" placeholder="/app/storage" />
+        <input type="text" asp-for="AvatarStoragePath" class="input w-full"
+               placeholder="@(OperatingSystem.IsWindows() ? @"C:\Users\...\AppData\Local\Snakk\storage" : "/app/storage")" />
         <label class="label"><span class="label-text-alt text-base-content/50">
             Absolute path for local file storage and configuration. In Docker, use a mounted volume.
         </span></label>
@@ -83,7 +84,7 @@
 
     <div class="alert alert-info">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <span>The storage path directory will also store the generated <code>appsettings.Production.json</code> configuration file, shared by all services.</span>
+        <span>The storage path directory will also store the generated configuration file (<code>conf/snakk-config.json</code>), shared by all services.</span>
     </div>
 
     <div class="divider"></div>

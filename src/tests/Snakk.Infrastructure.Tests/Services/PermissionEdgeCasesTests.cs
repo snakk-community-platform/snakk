@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -19,8 +19,8 @@ public class PermissionEdgeCasesTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly ServiceProvider _cacheServiceProvider;
-    private readonly Mock<ILogger<PermissionService>> _mockLogger;
-    private readonly Mock<ISecurityService> _mockSecurityService;
+    private readonly ILogger<PermissionService> _logger;
+    private readonly ISecurityService _securityService;
     private readonly PermissionService _service;
 
     public PermissionEdgeCasesTests()
@@ -33,10 +33,10 @@ public class PermissionEdgeCasesTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _mockLogger = new Mock<ILogger<PermissionService>>();
-        _mockSecurityService = new Mock<ISecurityService>();
+        _logger = Substitute.For<ILogger<PermissionService>>();
+        _securityService = Substitute.For<ISecurityService>();
 
-        _service = new PermissionService(_context, cache, _mockLogger.Object, _mockSecurityService.Object);
+        _service = new PermissionService(_context, cache, _logger, _securityService);
     }
 
     public void Dispose()

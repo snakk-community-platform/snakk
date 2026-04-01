@@ -4,7 +4,9 @@ namespace Snakk.Setup.Pages;
 
 public class StorageModel : SetupPageBase
 {
-    [BindProperty] public string AvatarStoragePath { get; set; } = "/app/storage";
+    [BindProperty] public string AvatarStoragePath { get; set; } = OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Snakk", "storage")
+        : "/app/storage";
     [BindProperty] public string StorageProvider { get; set; } = "Local";
     [BindProperty] public string S3Endpoint { get; set; } = "";
     [BindProperty] public string S3AccessKey { get; set; } = "";
@@ -56,11 +58,11 @@ public class StorageModel : SetupPageBase
         var state = GetState();
         state.AvatarStoragePath = AvatarStoragePath.Trim();
         state.StorageProvider = StorageProvider;
-        state.S3Endpoint = S3Endpoint.Trim();
-        state.S3AccessKey = S3AccessKey.Trim();
-        state.S3SecretKey = S3SecretKey.Trim();
-        state.S3BucketName = S3BucketName.Trim();
-        state.S3PublicUrlBase = S3PublicUrlBase.TrimEnd('/');
+        state.S3Endpoint = S3Endpoint?.Trim();
+        state.S3AccessKey = S3AccessKey?.Trim();
+        state.S3SecretKey = S3SecretKey?.Trim();
+        state.S3BucketName = S3BucketName?.Trim();
+        state.S3PublicUrlBase = S3PublicUrlBase?.TrimEnd('/');
         SaveState(state);
 
         return RedirectToPage("AdminAccount");

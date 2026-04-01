@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Snakk.Application.Services;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
@@ -9,7 +10,7 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Avatars;
 
 public class EntityAvatarEventHandlersTests
 {
-    private readonly Mock<IAvatarGenerationService> _mockAvatarService = new();
+    private readonly IAvatarGenerationService _avatarService = Substitute.For<IAvatarGenerationService>();
 
     #region Hub Event Handlers Tests
 
@@ -19,18 +20,17 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var hubId = HubId.From("h_newhub");
         var @event = new HubCreatedEvent(hubId);
-        var logger = new Mock<ILogger<HubCreatedAvatarGenerationHandler>>();
-        var handler = new HubCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<HubCreatedAvatarGenerationHandler>>();
+        var handler = new HubCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()))
-            .ReturnsAsync("/path/to/hub-avatar.svg");
+        _avatarService.GenerateHubAvatarAsync(hubId.Value, Arg.Any<int>())
+            .Returns("/path/to/hub-avatar.svg");
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()), Times.Once);
+        _avatarService.Received(1).GenerateHubAvatarAsync(hubId.Value, Arg.Any<int>());
     }
 
     [Test]
@@ -39,14 +39,14 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var hubId = HubId.From("h_deletedhub");
         var @event = new HubDeletedEvent(hubId);
-        var logger = new Mock<ILogger<HubDeletedAvatarCleanupHandler>>();
-        var handler = new HubDeletedAvatarCleanupHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<HubDeletedAvatarCleanupHandler>>();
+        var handler = new HubDeletedAvatarCleanupHandler(_avatarService, logger);
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.DeleteAvatarAsync("hub", hubId.Value), Times.Once);
+        _avatarService.Received(1).DeleteAvatarAsync("hub", hubId.Value);
     }
 
     [Test]
@@ -55,12 +55,11 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var hubId = HubId.From("h_failhub");
         var @event = new HubCreatedEvent(hubId);
-        var logger = new Mock<ILogger<HubCreatedAvatarGenerationHandler>>();
-        var handler = new HubCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<HubCreatedAvatarGenerationHandler>>();
+        var handler = new HubCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()))
-            .ThrowsAsync(new IOException("Error"));
+        _avatarService.GenerateHubAvatarAsync(hubId.Value, Arg.Any<int>())
+            .Throws(new IOException("Error"));
 
         // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
@@ -77,18 +76,17 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var spaceId = SpaceId.From("s_newspace");
         var @event = new SpaceCreatedEvent(spaceId);
-        var logger = new Mock<ILogger<SpaceCreatedAvatarGenerationHandler>>();
-        var handler = new SpaceCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<SpaceCreatedAvatarGenerationHandler>>();
+        var handler = new SpaceCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateSpaceAvatarAsync(spaceId.Value, It.IsAny<int>()))
-            .ReturnsAsync("/path/to/space-avatar.svg");
+        _avatarService.GenerateSpaceAvatarAsync(spaceId.Value, Arg.Any<int>())
+            .Returns("/path/to/space-avatar.svg");
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.GenerateSpaceAvatarAsync(spaceId.Value, It.IsAny<int>()), Times.Once);
+        _avatarService.Received(1).GenerateSpaceAvatarAsync(spaceId.Value, Arg.Any<int>());
     }
 
     [Test]
@@ -97,14 +95,14 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var spaceId = SpaceId.From("s_deletedspace");
         var @event = new SpaceDeletedEvent(spaceId);
-        var logger = new Mock<ILogger<SpaceDeletedAvatarCleanupHandler>>();
-        var handler = new SpaceDeletedAvatarCleanupHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<SpaceDeletedAvatarCleanupHandler>>();
+        var handler = new SpaceDeletedAvatarCleanupHandler(_avatarService, logger);
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.DeleteAvatarAsync("space", spaceId.Value), Times.Once);
+        _avatarService.Received(1).DeleteAvatarAsync("space", spaceId.Value);
     }
 
     [Test]
@@ -113,12 +111,11 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var spaceId = SpaceId.From("s_failspace");
         var @event = new SpaceCreatedEvent(spaceId);
-        var logger = new Mock<ILogger<SpaceCreatedAvatarGenerationHandler>>();
-        var handler = new SpaceCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<SpaceCreatedAvatarGenerationHandler>>();
+        var handler = new SpaceCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateSpaceAvatarAsync(spaceId.Value, It.IsAny<int>()))
-            .ThrowsAsync(new IOException("Error"));
+        _avatarService.GenerateSpaceAvatarAsync(spaceId.Value, Arg.Any<int>())
+            .Throws(new IOException("Error"));
 
         // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
@@ -135,18 +132,17 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var communityId = CommunityId.From("c_newcomm");
         var @event = new CommunityCreatedEvent(communityId);
-        var logger = new Mock<ILogger<CommunityCreatedAvatarGenerationHandler>>();
-        var handler = new CommunityCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<CommunityCreatedAvatarGenerationHandler>>();
+        var handler = new CommunityCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateCommunityAvatarAsync(communityId.Value, It.IsAny<int>()))
-            .ReturnsAsync("/path/to/community-avatar.svg");
+        _avatarService.GenerateCommunityAvatarAsync(communityId.Value, Arg.Any<int>())
+            .Returns("/path/to/community-avatar.svg");
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.GenerateCommunityAvatarAsync(communityId.Value, It.IsAny<int>()), Times.Once);
+        _avatarService.Received(1).GenerateCommunityAvatarAsync(communityId.Value, Arg.Any<int>());
     }
 
     [Test]
@@ -155,14 +151,14 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var communityId = CommunityId.From("c_deletedcomm");
         var @event = new CommunityDeletedEvent(communityId);
-        var logger = new Mock<ILogger<CommunityDeletedAvatarCleanupHandler>>();
-        var handler = new CommunityDeletedAvatarCleanupHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<CommunityDeletedAvatarCleanupHandler>>();
+        var handler = new CommunityDeletedAvatarCleanupHandler(_avatarService, logger);
 
         // Act
         await handler.HandleAsync(@event);
 
         // Assert
-        _mockAvatarService.Verify(x => x.DeleteAvatarAsync("community", communityId.Value), Times.Once);
+        _avatarService.Received(1).DeleteAvatarAsync("community", communityId.Value);
     }
 
     [Test]
@@ -171,12 +167,11 @@ public class EntityAvatarEventHandlersTests
         // Arrange
         var communityId = CommunityId.From("c_failcomm");
         var @event = new CommunityCreatedEvent(communityId);
-        var logger = new Mock<ILogger<CommunityCreatedAvatarGenerationHandler>>();
-        var handler = new CommunityCreatedAvatarGenerationHandler(_mockAvatarService.Object, logger.Object);
+        var logger = Substitute.For<ILogger<CommunityCreatedAvatarGenerationHandler>>();
+        var handler = new CommunityCreatedAvatarGenerationHandler(_avatarService, logger);
 
-        _mockAvatarService
-            .Setup(x => x.GenerateCommunityAvatarAsync(communityId.Value, It.IsAny<int>()))
-            .ThrowsAsync(new IOException("Error"));
+        _avatarService.GenerateCommunityAvatarAsync(communityId.Value, Arg.Any<int>())
+            .Throws(new IOException("Error"));
 
         // Act & Assert
         var act = async () => await handler.HandleAsync(@event);
@@ -195,24 +190,21 @@ public class EntityAvatarEventHandlersTests
         // Arrange & Act & Assert for Hub
         var hubId = HubId.From("h_errorhub");
         var hubEvent = new HubCreatedEvent(hubId);
-        var hubLogger = new Mock<ILogger<HubCreatedAvatarGenerationHandler>>();
-        var hubHandler = new HubCreatedAvatarGenerationHandler(_mockAvatarService.Object, hubLogger.Object);
+        var hubLogger = Substitute.For<ILogger<HubCreatedAvatarGenerationHandler>>();
+        var hubHandler = new HubCreatedAvatarGenerationHandler(_avatarService, hubLogger);
 
         var exception = new IOException("Test error");
-        _mockAvatarService
-            .Setup(x => x.GenerateHubAvatarAsync(hubId.Value, It.IsAny<int>()))
-            .ThrowsAsync(exception);
+        _avatarService.GenerateHubAvatarAsync(hubId.Value, Arg.Any<int>())
+            .Throws(exception);
 
         await hubHandler.HandleAsync(hubEvent);
 
-        hubLogger.Verify(
-            x => x.Log(
+        hubLogger.Received(1).Log(
                 LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => true),
+                Arg.Any<EventId>(),
+                Arg.Any<object>(),
                 exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+                Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Test]
@@ -223,24 +215,21 @@ public class EntityAvatarEventHandlersTests
         // Arrange & Act & Assert for Space
         var spaceId = SpaceId.From("s_errorspace");
         var spaceEvent = new SpaceDeletedEvent(spaceId);
-        var spaceLogger = new Mock<ILogger<SpaceDeletedAvatarCleanupHandler>>();
-        var spaceHandler = new SpaceDeletedAvatarCleanupHandler(_mockAvatarService.Object, spaceLogger.Object);
+        var spaceLogger = Substitute.For<ILogger<SpaceDeletedAvatarCleanupHandler>>();
+        var spaceHandler = new SpaceDeletedAvatarCleanupHandler(_avatarService, spaceLogger);
 
         var exception = new IOException("Test error");
-        _mockAvatarService
-            .Setup(x => x.DeleteAvatarAsync("space", spaceId.Value))
-            .ThrowsAsync(exception);
+        _avatarService.DeleteAvatarAsync("space", spaceId.Value)
+            .Throws(exception);
 
         await spaceHandler.HandleAsync(spaceEvent);
 
-        spaceLogger.Verify(
-            x => x.Log(
+        spaceLogger.Received(1).Log(
                 LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => true),
+                Arg.Any<EventId>(),
+                Arg.Any<object>(),
                 exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+                Arg.Any<Func<object, Exception?, string>>());
     }
 
     #endregion

@@ -2,8 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
-using Moq.Protected;
+using NSubstitute;
 using Snakk.Application.DTOs.Webhooks;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -14,8 +13,8 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class WebhookServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
-    private readonly Mock<ILogger<WebhookService>> _mockLogger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<WebhookService> _logger;
     private readonly WebhookService _service;
 
     public WebhookServiceTests()
@@ -24,10 +23,10 @@ public class WebhookServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"WebhookTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
-        _mockLogger = new Mock<ILogger<WebhookService>>();
+        _httpClientFactory = Substitute.For<IHttpClientFactory>();
+        _logger = Substitute.For<ILogger<WebhookService>>();
 
-        _service = new WebhookService(_context, _mockHttpClientFactory.Object, _mockLogger.Object);
+        _service = new WebhookService(_context, _httpClientFactory, _logger);
 
         // Create the admin user referenced by webhook CreatedBy FK
         _context.Users.Add(new UserDatabaseEntity

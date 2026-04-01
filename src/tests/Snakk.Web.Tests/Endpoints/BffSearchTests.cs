@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Google.Protobuf.WellKnownTypes;
-using Moq;
+using NSubstitute;
 using Snakk.Protos;
 using Snakk.Protos.Search;
 using Snakk.Web.Tests.Helpers;
@@ -53,10 +53,10 @@ public class BffSearchTests
         });
 
         app.MockApiClient
-            .Setup(c => c.SearchDiscussionsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(searchResults);
+            .SearchDiscussionsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -78,10 +78,10 @@ public class BffSearchTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SearchDiscussionsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync((PagedDiscussionSearchResults?)null);
+            .SearchDiscussionsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns((PagedDiscussionSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -142,10 +142,10 @@ public class BffSearchTests
         });
 
         app.MockApiClient
-            .Setup(c => c.SearchPostsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(searchResults);
+            .SearchPostsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -168,10 +168,10 @@ public class BffSearchTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SearchPostsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync((PagedPostSearchResults?)null);
+            .SearchPostsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns((PagedPostSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -192,10 +192,10 @@ public class BffSearchTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SearchDiscussionsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(new PagedDiscussionSearchResults
+            .SearchDiscussionsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(new PagedDiscussionSearchResults
             {
                 Offset = 0,
                 PageSize = 20,
@@ -208,15 +208,13 @@ public class BffSearchTests
         await client.GetAsync("/bff/search/discussions?authorPublicId=user-123&pageSize=20&offset=0");
 
         // Assert - verify the API client received the correct parameters
-        app.MockApiClient.Verify(
-            c => c.SearchDiscussionsAsync(
-                It.IsAny<string?>(),
-                "user-123",
-                null,
-                null,
-                It.IsAny<int>(),
-                20),
-            Times.Once);
+        await app.MockApiClient.Received(1).SearchDiscussionsAsync(
+            Arg.Any<string?>(),
+            "user-123",
+            null,
+            null,
+            Arg.Any<int>(),
+            20);
     }
 
     [Test]
@@ -225,10 +223,10 @@ public class BffSearchTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SearchPostsAsync(
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(new PagedPostSearchResults
+            .SearchPostsAsync(
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(new PagedPostSearchResults
             {
                 Offset = 0,
                 PageSize = 15,
@@ -241,14 +239,12 @@ public class BffSearchTests
         await client.GetAsync("/bff/search/posts?authorPublicId=user-456&pageSize=15&offset=0");
 
         // Assert - verify the API client received the correct parameters
-        app.MockApiClient.Verify(
-            c => c.SearchPostsAsync(
-                It.IsAny<string?>(),
-                "user-456",
-                null,
-                null,
-                It.IsAny<int>(),
-                15),
-            Times.Once);
+        await app.MockApiClient.Received(1).SearchPostsAsync(
+            Arg.Any<string?>(),
+            "user-456",
+            null,
+            null,
+            Arg.Any<int>(),
+            15);
     }
 }

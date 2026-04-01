@@ -22,7 +22,8 @@ public class DiscussionGrpcService(
     IAllowedTypesService allowedTypesService,
     IDiscussionExtensionService extensionService,
     IPollService pollService,
-    IDiscussionTypeQueryService typeQueryService) : DiscussionService.DiscussionServiceBase
+    IDiscussionTypeQueryService typeQueryService,
+    IFileStorage fileStorage) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -129,6 +130,11 @@ public class DiscussionGrpcService(
                 if (!request.HasLinkUrl || string.IsNullOrWhiteSpace(request.LinkUrl))
                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Link discussions require a URL"));
                 break;
+                
+            case DiscussionTypeEnum.Iama:
+                if (request.IamaIsScheduled && request.IamaScheduledStart is null)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Scheduled AMAs require a start time"));
+                break;
         }
     }
 
@@ -175,6 +181,15 @@ public class DiscussionGrpcService(
                     discussionPublicId,
                     request.HasGalleryLayout ? request.GalleryLayout : "grid",
                     request.GalleryImageUrls.Count > 0 ? request.GalleryImageUrls.ToList() : null);
+                break;
+
+            case DiscussionTypeEnum.Iama:
+                await extensionService.CreateIamaAsync(
+                    discussionPublicId,
+                    request.IamaIsScheduled,
+                    request.IamaScheduledStart is not null ? request.IamaScheduledStart.ToDateTime() : null,
+                    request.IamaScheduledEnd is not null ? request.IamaScheduledEnd.ToDateTime() : null,
+                    request.HasIamaVerificationNote ? request.IamaVerificationNote : null);
                 break;
         }
     }
@@ -463,6 +478,10 @@ public class DiscussionGrpcService(
         if (link.Description is not null) response.Description = link.Description;
         if (link.ImageUrl is not null) response.ImageUrl = link.ImageUrl;
         if (link.Domain is not null) response.Domain = link.Domain;
+        if (link.OEmbedHtml is not null) response.OembedHtml = link.OEmbedHtml;
+        if (link.LocalImagePath is not null) response.LocalImageUrl = fileStorage.GetPublicUrl(link.LocalImagePath);
+        if (link.BlurDataUri is not null) response.BlurDataUri = link.BlurDataUri;
+        response.IsInternal = link.IsInternal;
         return response;
     }
 
@@ -510,6 +529,58 @@ public class DiscussionGrpcService(
         var userId = RequireAuth();
         var (success, error) = await typeQueryService.AddJournalEntryAsync(request.DiscussionId, request.PostPublicId, userId.Value);
         return new AddJournalEntryResponse { Success = success, Error = error };
+    }
+
+    // --- IAMA RPCs ---
+
+    public override async Task<IamaInfoResponse> GetIamaInfo(GetIamaInfoRequest request, ServerCallContext context)
+    {
+        var info = await typeQueryService.GetIamaInfoAsync(request.DiscussionId);
+        if (info is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "AMA not found"));
+
+        var response = new IamaInfoResponse
+        {
+            Phase = info.Phase,
+            IsScheduled = info.IsScheduled,
+            VerificationNote = info.VerificationNote
+        };
+
+        if (info.ScheduledStartUtc.HasValue)
+            response.ScheduledStartUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(info.ScheduledStartUtc.Value, DateTimeKind.Utc));
+
+        if (info.ScheduledEndUtc.HasValue)
+            response.ScheduledEndUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(info.ScheduledEndUtc.Value, DateTimeKind.Utc));
+
+        response.OfficialAnswers.Add(info.OfficialAnswers);
+        response.BestQuestionPostPublicIds.AddRange(info.BestQuestionPostPublicIds);
+        return response;
+    }
+
+    public override async Task<MarkIamaOfficialAnswerResponse> MarkIamaOfficialAnswer(MarkIamaOfficialAnswerRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.MarkIamaOfficialAnswerAsync(
+            request.DiscussionId, request.QuestionPostPublicId, request.AnswerPostPublicId, userId.Value);
+        return new MarkIamaOfficialAnswerResponse { Success = success, Error = error };
+    }
+
+    public override async Task<SetIamaBestQuestionsResponse> SetIamaBestQuestions(SetIamaBestQuestionsRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.SetIamaBestQuestionsAsync(
+            request.DiscussionId, request.PostPublicIds.ToList(), userId.Value);
+        return new SetIamaBestQuestionsResponse { Success = success, Error = error };
+    }
+
+    public override async Task<TransitionIamaPhaseResponse> TransitionIamaPhase(TransitionIamaPhaseRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var (success, error) = await typeQueryService.TransitionIamaPhaseAsync(
+            request.DiscussionId, request.NewPhase, userId.Value);
+        return new TransitionIamaPhaseResponse { Success = success, Error = error };
     }
 
     private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)

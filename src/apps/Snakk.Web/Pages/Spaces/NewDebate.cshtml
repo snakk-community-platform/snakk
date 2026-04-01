@@ -1,4 +1,4 @@
-@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/new/debate"
+@page "/new/debate"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Spaces.NewDebateModel
@@ -9,13 +9,13 @@
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
         <a href="/">Home</a>
-        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a> }
+        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
         <span class="breadcrumb-separator">/</span>
         <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
         <span class="breadcrumb-separator">/</span>
         <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
         <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)">New</a>
+        <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
         <span class="breadcrumb-separator">/</span>
         <span>Debate</span>
     </nav>
@@ -27,15 +27,10 @@
     @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
     <form method="post" id="new-discussion-form" hx-boost="false">
+        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
         <div class="space-y-4">
             <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
                    class="input w-full text-lg" required maxlength="200" placeholder="Debate topic (e.g. Should we...)" />
-
-            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-            <div id="editor-container" data-hide-image="true">
-                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:200px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-            </div>
 
             <!-- Debate positions -->
             <div class="space-y-3">
@@ -52,8 +47,14 @@
                 </label>
             </div>
 
+            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+            <div id="editor-container" data-hide-image="true" data-placeholder="Set the stage for the debate...">
+                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+            </div>
+
             <div class="flex items-center justify-between">
-                <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
+                <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
                 <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Debate</button>
             </div>
         </div>
@@ -86,6 +87,6 @@
     </div>
 </div>
 
-<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
-<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
-<script src="@SnakkUrlHelper.Js("pages/new-debate")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/new-debate")" asp-append-version="true" defer></script>

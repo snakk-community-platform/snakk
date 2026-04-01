@@ -52,6 +52,9 @@
         const actionEl = target.closest<HTMLElement>('[data-action]');
         if (actionEl) {
             const name = actionEl.dataset.action!;
+            // Built-in actions
+            if (name === 'go-back') { history.back(); return; }
+
             const handler = handlers[name];
             if (handler) {
                 handler(actionEl, e);
@@ -143,5 +146,30 @@
     // Re-run after HTMX swaps (new content may contain blur-up images)
     document.addEventListener('htmx:afterSettle', () => {
         document.querySelectorAll<HTMLImageElement>('img[data-blur-up]:not(.gallery-loaded)').forEach(attachBlurUp);
+    });
+
+    // ========================================================================
+    // Double-submit protection — disable submit buttons on form submit
+    // ========================================================================
+
+    document.addEventListener('submit', (e) => {
+        const form = e.target as HTMLFormElement;
+        if (!form || form.dataset.allowResubmit) return;
+
+        const buttons = form.querySelectorAll<HTMLButtonElement>('button[type="submit"], input[type="submit"]');
+        buttons.forEach(btn => {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent || '';
+            btn.textContent = btn.dataset.submittingText || 'Submitting...';
+        });
+
+        // Re-enable after 8 seconds (safety net for failed submissions)
+        setTimeout(() => {
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+            });
+        }, 8000);
     });
 })();

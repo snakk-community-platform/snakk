@@ -10,9 +10,9 @@ using Snakk.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load shared production config (written by setup wizard)
+// Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
-builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
 
@@ -41,12 +41,12 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
     var jwtKey = builder.Configuration["Jwt:SecretKey"];
 
     if (string.IsNullOrEmpty(jwtKey) || jwtKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in appsettings.Production.json.");
+        throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in snakk-config.json.");
 
     var realtimeKey = builder.Configuration["Realtime:ApiKey"];
 
     if (string.IsNullOrEmpty(realtimeKey) || realtimeKey.Contains("CHANGE_IN_PRODUCTION", StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production. Set it in appsettings.Production.json.");
+        throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production. Set it in snakk-config.json.");
 }
 
 // Add services to the container

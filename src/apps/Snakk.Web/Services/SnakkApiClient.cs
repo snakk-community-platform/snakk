@@ -103,6 +103,12 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task<CommunityInfo?> GetCommunityAsync(string publicId)
+    {
+        try { return await communityClient.GetCommunityAsync(new GetCommunityRequest { PublicId = publicId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     public virtual async Task<PagedHubList?> GetHubsByCommunityAsync(string communityId, int offset = 0, int pageSize = 20)
     {
         try
@@ -131,6 +137,12 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task<HubInfo?> GetHubAsync(string publicId)
+    {
+        try { return await hubClient.GetHubAsync(new GetHubRequest { PublicId = publicId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // ==================== Space ====================
 
     public virtual async Task<PagedSpaceByHubList?> GetSpacesByHubAsync(string hubId, int offset = 0, int pageSize = 20)
@@ -147,9 +159,29 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task<SearchSpacesResponse?> SearchSpacesAsync(
+        string? query = null, string? hubId = null, string? communityId = null, int limit = 10)
+    {
+        try
+        {
+            var request = new SearchSpacesRequest { Limit = limit };
+            if (!string.IsNullOrEmpty(query)) request.Query = query;
+            if (!string.IsNullOrEmpty(hubId)) request.HubId = hubId;
+            if (!string.IsNullOrEmpty(communityId)) request.CommunityId = communityId;
+            return await spaceClient.SearchSpacesAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     public virtual async Task<SpaceInfo?> GetSpaceBySlugAsync(string slug, string hubSlug)
     {
         try { return await spaceClient.GetSpaceBySlugAsync(new GetSpaceBySlugRequest { Slug = slug, HubSlug = hubSlug }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SpaceInfo?> GetSpaceAsync(string publicId)
+    {
+        try { return await spaceClient.GetSpaceAsync(new GetSpaceRequest { PublicId = publicId }); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
@@ -223,7 +255,12 @@ public class SnakkApiClient(
         bool debateAllowNeutral = false,
         // Gallery extension
         string? galleryLayout = null,
-        IEnumerable<string>? galleryImageUrls = null)
+        IEnumerable<string>? galleryImageUrls = null,
+        // IAMA extension
+        bool iamaIsScheduled = false,
+        DateTime? iamaScheduledStart = null,
+        DateTime? iamaScheduledEnd = null,
+        string? iamaVerificationNote = null)
     {
         try
         {
@@ -238,6 +275,10 @@ public class SnakkApiClient(
             request.DebateAllowNeutral = debateAllowNeutral;
             if (galleryLayout is not null) request.GalleryLayout = galleryLayout;
             if (galleryImageUrls is not null) request.GalleryImageUrls.AddRange(galleryImageUrls);
+            request.IamaIsScheduled = iamaIsScheduled;
+            if (iamaScheduledStart.HasValue) request.IamaScheduledStart = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledStart.Value, DateTimeKind.Utc));
+            if (iamaScheduledEnd.HasValue) request.IamaScheduledEnd = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledEnd.Value, DateTimeKind.Utc));
+            if (iamaVerificationNote is not null) request.IamaVerificationNote = iamaVerificationNote;
             return await discussionClient.CreateDiscussionAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }

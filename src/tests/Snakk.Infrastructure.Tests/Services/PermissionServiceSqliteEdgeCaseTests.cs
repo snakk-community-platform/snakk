@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Services;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -32,8 +32,8 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         _service = new PermissionService(
             _db.Context,
             cache,
-            Mock.Of<ILogger<PermissionService>>(),
-            Mock.Of<ISecurityService>());
+            Substitute.For<ILogger<PermissionService>>(),
+            Substitute.For<ISecurityService>());
     }
 
     public void Dispose()

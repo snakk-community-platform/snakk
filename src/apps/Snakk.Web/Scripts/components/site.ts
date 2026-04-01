@@ -32,6 +32,12 @@ interface EntityStats {
     hubCount?: number;
 }
 
+interface EntityResolveResult {
+    type: string;
+    publicId: string;
+    name: string;
+}
+
 // ============================================================================
 // Implementation
 // ============================================================================
@@ -45,6 +51,7 @@ class SnakkPopup {
     private hideTimeout: ReturnType<typeof setTimeout> | null = null;
     private currentTrigger: HTMLElement | null = null;
     private statsCache: Map<string, EntityStats | null> = new Map();
+    private resolveCache: Map<string, EntityResolveResult | null> = new Map();
 
     private _mouseOverHandler: ((e: Event) => void) | null = null;
     private _mouseOutHandler: ((e: Event) => void) | null = null;
@@ -158,6 +165,33 @@ class SnakkPopup {
             return data;
         } catch (err) {
             console.error('[SnakkPopup] Error fetching stats:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Resolve an internal entity path to type, publicId, and name.
+     * Used for .entity-link elements that don't have data-popup-* attributes.
+     */
+    async resolveEntityPath(path: string): Promise<EntityResolveResult | null> {
+        if (this.resolveCache.has(path)) {
+            return this.resolveCache.get(path) || null;
+        }
+
+        try {
+            const response = await fetch(`/bff/entity/resolve?path=${encodeURIComponent(path)}`, {
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                this.resolveCache.set(path, null);
+                return null;
+            }
+            const data = await response.json() as EntityResolveResult;
+            this.resolveCache.set(path, data);
+            return data;
+        } catch (err) {
+            console.error('[SnakkPopup] Error resolving entity path:', err);
+            this.resolveCache.set(path, null);
             return null;
         }
     }
@@ -357,10 +391,33 @@ class SnakkPopup {
     }
 
     /**
+     * Show popup for an entity-link element by resolving its href path first.
+     * Once resolved, sets the data-popup-* attributes and delegates to showPopup.
+     */
+    async showEntityLinkPopup(triggerEl: HTMLElement): Promise<void> {
+        const path = triggerEl.getAttribute('href');
+        if (!path) return;
+
+        const resolved = await this.resolveEntityPath(path);
+        if (!resolved || this.currentTrigger !== triggerEl) return;
+
+        // Set popup attributes so showPopup can use the standard flow
+        triggerEl.dataset.popupType = resolved.type;
+        triggerEl.dataset.popupId = resolved.publicId;
+        triggerEl.dataset.popupName = resolved.name;
+
+        await this.showPopup(triggerEl);
+    }
+
+    /**
      * Handle mouse over on trigger elements (mouseover bubbles, mouseenter doesn't)
      */
     handleMouseOver(e: Event): void {
-        const triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;
+        // Check for standard popup triggers or entity-link elements
+        let triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;
+        const isEntityLink = !triggerEl
+            && !!(triggerEl = (e.target as HTMLElement).closest('a.entity-link') as HTMLElement | null);
+
         if (!triggerEl) {
             return;
         }
@@ -383,7 +440,11 @@ class SnakkPopup {
 
         this.currentTrigger = triggerEl;
         this.showTimeout = setTimeout(() => {
-            this.showPopup(triggerEl);
+            if (isEntityLink && !triggerEl!.dataset.popupType) {
+                this.showEntityLinkPopup(triggerEl!);
+            } else {
+                this.showPopup(triggerEl!);
+            }
         }, this.popupDelay);
     }
 
@@ -391,7 +452,7 @@ class SnakkPopup {
      * Handle mouse out on trigger elements
      */
     handleMouseOut(e: Event): void {
-        const triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;
+        const triggerEl = (e.target as HTMLElement).closest('[data-popup-type], a.entity-link') as HTMLElement | null;
         if (!triggerEl) return;
 
         // Check if we're moving to a child element within the same trigger
@@ -451,6 +512,7 @@ class SnakkPopup {
      */
     clearCache(): void {
         this.statsCache.clear();
+        this.resolveCache.clear();
     }
 
     /**
@@ -478,6 +540,7 @@ class SnakkPopup {
         // Clear state
         this.currentTrigger = null;
         this.statsCache.clear();
+        this.resolveCache.clear();
         this._mouseOverHandler = null;
         this._mouseOutHandler = null;
     }
@@ -497,5 +560,34 @@ if (document.readyState === 'loading') {
 } else {
     (window as any).SnakkPopupInstance.init();
 }
+
+// --- Feed dropdown (lazy populate before first open) ---
+document.addEventListener('pointerdown', (e: Event) => {
+    const btn = (e.target as HTMLElement).closest('.feed-dropdown-btn') as HTMLElement | null;
+    if (!btn) return;
+
+    const menu = btn.nextElementSibling as HTMLElement | null;
+    if (!menu || menu.children.length > 0) return;
+
+    const base = btn.dataset.feedBase || '';
+    const items = [
+        { href: `${base}.xml`,  label: 'RSS',  color: 'text-orange-500', icon: '<path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>', fill: true },
+        { href: `${base}.atom`, label: 'Atom', color: 'text-purple-500', icon: '<circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>', fill: false },
+        { href: `${base}.json`, label: 'JSON', color: 'text-green-500', icon: '<path d="M7 4a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2"/>', fill: false },
+    ];
+
+    for (const item of items) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = item.href;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        const strokeAttr = item.fill ? '' : ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
+        const fillAttr = item.fill ? ' fill="currentColor"' : '';
+        a.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ${item.color} shrink-0" viewBox="0 0 24 24"${fillAttr}${strokeAttr}>${item.icon}</svg>${item.label}`;
+        li.appendChild(a);
+        menu.appendChild(li);
+    }
+});
 
 })();

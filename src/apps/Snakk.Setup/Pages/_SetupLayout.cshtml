@@ -1,6 +1,6 @@
 @{
     var currentStep = (int)(ViewData["SetupStep"] ?? 1);
-    var stepNames = new[] { "", "Welcome", "Database", "Site Config", "Storage", "Admin Account", "Test Data", "Security", "OAuth", "Review", "Installing", "Restarting" };
+    var stepNames = new[] { "", "Welcome", "Database", "Site Config", "Storage", "Admin Account", "Email", "Security", "OAuth", "Community", "Test Data", "Review", "Installing", "Restarting" };
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="lofi">
@@ -8,20 +8,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Snakk Setup — @stepNames[currentStep]</title>
-    <link rel="stylesheet" href="/css/setup.css" />
+    <link rel="stylesheet" href="/setup/css/setup.css" />
 </head>
 <body class="min-h-screen bg-base-200 flex items-center justify-center p-4">
     <div class="w-full max-w-2xl">
         <!-- Header -->
         <div class="text-center mb-6">
             <h1 class="text-3xl font-bold">Snakk Setup</h1>
-            @if (currentStep >= 2 && currentStep <= 9)
+            @if (currentStep >= 2 && currentStep <= 11)
             {
-                <p class="text-sm text-muted mt-1">Step @currentStep of 9 — @stepNames[currentStep]</p>
+                <p class="text-sm text-muted mt-1">Step @currentStep of 11 — @stepNames[currentStep]</p>
                 <!-- Progress bar -->
                 <div class="w-full bg-base-300 rounded-full h-2 mt-3">
                     <div class="bg-primary rounded-full h-2 transition-all duration-300"
-                         style="width: @(Math.Round((currentStep - 1) / 8.0 * 100))%"></div>
+                         style="width: @(Math.Round((currentStep - 1) / 10.0 * 100))%"></div>
                 </div>
             }
         </div>

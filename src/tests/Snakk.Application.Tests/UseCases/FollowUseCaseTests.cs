@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
@@ -9,22 +9,22 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class FollowUseCaseTests
 {
-    private readonly Mock<IFollowRepository> _mockFollowRepository = new();
-    private readonly Mock<IDiscussionRepository> _mockDiscussionRepository = new();
-    private readonly Mock<ISpaceRepository> _mockSpaceRepository = new();
-    private readonly Mock<IUserRepository> _mockUserRepository = new();
-    private readonly Mock<ICounterService> _mockCounterService = new();
+    private readonly IFollowRepository _followRepository = Substitute.For<IFollowRepository>();
+    private readonly IDiscussionRepository _discussionRepository = Substitute.For<IDiscussionRepository>();
+    private readonly ISpaceRepository _spaceRepository = Substitute.For<ISpaceRepository>();
+    private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
+    private readonly ICounterService _counterService = Substitute.For<ICounterService>();
     private FollowUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
         _useCase = new FollowUseCase(
-            _mockFollowRepository.Object,
-            _mockDiscussionRepository.Object,
-            _mockSpaceRepository.Object,
-            _mockUserRepository.Object,
-            _mockCounterService.Object);
+            _followRepository,
+            _discussionRepository,
+            _spaceRepository,
+            _userRepository,
+            _counterService);
     }
 
     #region ToggleFollowDiscussionAsync Tests
@@ -37,10 +37,10 @@ public class FollowUseCaseTests
         var discussionId = DiscussionId.New();
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-        _mockFollowRepository.Setup(r => r.GetByUserAndDiscussionAsync(userId, discussionId))
-            .ReturnsAsync((Follow?)null); // Not following
+        _discussionRepository.GetByPublicIdAsync(discussionId)
+            .Returns(discussion);
+        _followRepository.GetByUserAndDiscussionAsync(userId, discussionId)
+            .Returns((Follow?)null); // Not following
 
         // Act
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
@@ -49,8 +49,8 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsTrue();
 
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
-        _mockFollowRepository.Verify(r => r.DeleteAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.Received(1).AddAsync(Arg.Any<Follow>());
+        await _followRepository.DidNotReceive().DeleteAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -62,10 +62,10 @@ public class FollowUseCaseTests
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var existingFollow = Follow.CreateForDiscussion(userId, discussionId);
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync(discussion);
-        _mockFollowRepository.Setup(r => r.GetByUserAndDiscussionAsync(userId, discussionId))
-            .ReturnsAsync(existingFollow); // Already following
+        _discussionRepository.GetByPublicIdAsync(discussionId)
+            .Returns(discussion);
+        _followRepository.GetByUserAndDiscussionAsync(userId, discussionId)
+            .Returns(existingFollow); // Already following
 
         // Act
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
@@ -74,8 +74,8 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsFalse();
 
-        _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.Received(1).DeleteAsync(existingFollow);
+        await _followRepository.DidNotReceive().AddAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -85,8 +85,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
 
-        _mockDiscussionRepository.Setup(r => r.GetByPublicIdAsync(discussionId))
-            .ReturnsAsync((Discussion?)null);
+        _discussionRepository.GetByPublicIdAsync(discussionId)
+            .Returns((Discussion?)null);
 
         // Act
         var result = await _useCase.ToggleFollowDiscussionAsync(userId, discussionId);
@@ -94,7 +94,7 @@ public class FollowUseCaseTests
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Discussion not found");
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.DidNotReceive().AddAsync(Arg.Any<Follow>());
     }
 
     #endregion
@@ -109,10 +109,10 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var space = Space.Create(HubId.New(), "Test Space", "test-space", "Description");
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync((Follow?)null); // Not following
+        _spaceRepository.GetByPublicIdAsync(spaceId)
+            .Returns(space);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns((Follow?)null); // Not following
 
         // Act
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId, FollowLevel.DiscussionsOnly);
@@ -121,9 +121,9 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsTrue();
 
-        _mockFollowRepository.Verify(r => r.AddAsync(It.Is<Follow>(f =>
+        await _followRepository.Received(1).AddAsync(Arg.Is<Follow>(f =>
             f.SpaceId == spaceId
-            && f.Level == FollowLevel.DiscussionsOnly)), Times.Once);
+            && f.Level == FollowLevel.DiscussionsOnly));
     }
 
     [Test]
@@ -135,10 +135,10 @@ public class FollowUseCaseTests
         var space = Space.Create(HubId.New(), "Test Space", "test-space", "Description");
         var existingFollow = Follow.CreateForSpace(userId, spaceId);
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync(existingFollow); // Already following
+        _spaceRepository.GetByPublicIdAsync(spaceId)
+            .Returns(space);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns(existingFollow); // Already following
 
         // Act
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
@@ -147,8 +147,8 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsFalse();
 
-        _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.Received(1).DeleteAsync(existingFollow);
+        await _followRepository.DidNotReceive().AddAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -158,8 +158,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var spaceId = SpaceId.New();
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync((Space?)null);
+        _spaceRepository.GetByPublicIdAsync(spaceId)
+            .Returns((Space?)null);
 
         // Act
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
@@ -177,18 +177,18 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var space = Space.Create(HubId.New(), "Test Space", "test-space", "Description");
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync((Follow?)null);
+        _spaceRepository.GetByPublicIdAsync(spaceId)
+            .Returns(space);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns((Follow?)null);
 
         // Act
         var result = await _useCase.ToggleFollowSpaceAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
 
         // Assert
         await Assert.That(result.IsSuccess).IsTrue();
-        _mockFollowRepository.Verify(r => r.AddAsync(It.Is<Follow>(f =>
-            f.Level == FollowLevel.DiscussionsAndPosts)), Times.Once);
+        await _followRepository.Received(1).AddAsync(Arg.Is<Follow>(f =>
+            f.Level == FollowLevel.DiscussionsAndPosts));
     }
 
     #endregion
@@ -203,10 +203,10 @@ public class FollowUseCaseTests
         var followedUserId = UserId.New();
         var targetUser = User.CreateWithEmail("TargetUser", "target@example.com", "hash", "token");
 
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(followedUserId))
-            .ReturnsAsync(targetUser);
-        _mockFollowRepository.Setup(r => r.GetByUserAndFollowedUserAsync(userId, followedUserId))
-            .ReturnsAsync((Follow?)null); // Not following
+        _userRepository.GetByPublicIdAsync(followedUserId)
+            .Returns(targetUser);
+        _followRepository.GetByUserAndFollowedUserAsync(userId, followedUserId)
+            .Returns((Follow?)null); // Not following
 
         // Act
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
@@ -215,7 +215,7 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsTrue();
 
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
+        await _followRepository.Received(1).AddAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -227,10 +227,10 @@ public class FollowUseCaseTests
         var targetUser = User.CreateWithEmail("TargetUser", "target@example.com", "hash", "token");
         var existingFollow = Follow.CreateForUser(userId, followedUserId);
 
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(followedUserId))
-            .ReturnsAsync(targetUser);
-        _mockFollowRepository.Setup(r => r.GetByUserAndFollowedUserAsync(userId, followedUserId))
-            .ReturnsAsync(existingFollow); // Already following
+        _userRepository.GetByPublicIdAsync(followedUserId)
+            .Returns(targetUser);
+        _followRepository.GetByUserAndFollowedUserAsync(userId, followedUserId)
+            .Returns(existingFollow); // Already following
 
         // Act
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
@@ -239,7 +239,7 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsFalse();
 
-        _mockFollowRepository.Verify(r => r.DeleteAsync(existingFollow), Times.Once);
+        await _followRepository.Received(1).DeleteAsync(existingFollow);
     }
 
     [Test]
@@ -254,7 +254,7 @@ public class FollowUseCaseTests
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Cannot follow yourself");
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.DidNotReceive().AddAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -264,8 +264,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var followedUserId = UserId.New();
 
-        _mockUserRepository.Setup(r => r.GetByPublicIdAsync(followedUserId))
-            .ReturnsAsync((User?)null);
+        _userRepository.GetByPublicIdAsync(followedUserId)
+            .Returns((User?)null);
 
         // Act
         var result = await _useCase.ToggleFollowUserAsync(userId, followedUserId);
@@ -287,8 +287,8 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var existingFollow = Follow.CreateForSpace(userId, spaceId, FollowLevel.DiscussionsOnly);
 
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync(existingFollow);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns(existingFollow);
 
         // Act
         var result = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
@@ -297,7 +297,7 @@ public class FollowUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value).IsEqualTo(FollowLevel.DiscussionsAndPosts);
         await Assert.That(existingFollow.Level).IsEqualTo(FollowLevel.DiscussionsAndPosts);
-        _mockFollowRepository.Verify(r => r.UpdateAsync(existingFollow), Times.Once);
+        await _followRepository.Received(1).UpdateAsync(existingFollow);
     }
 
     [Test]
@@ -307,8 +307,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var spaceId = SpaceId.New();
 
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync((Follow?)null); // Not following
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns((Follow?)null); // Not following
 
         // Act
         var result = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
@@ -316,7 +316,7 @@ public class FollowUseCaseTests
         // Assert
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("Not following this space");
-        _mockFollowRepository.Verify(r => r.UpdateAsync(It.IsAny<Follow>()), Times.Never);
+        await _followRepository.DidNotReceive().UpdateAsync(Arg.Any<Follow>());
     }
 
     #endregion
@@ -330,8 +330,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
 
-        _mockFollowRepository.Setup(r => r.IsFollowingDiscussionAsync(userId, discussionId))
-            .ReturnsAsync(true);
+        _followRepository.IsFollowingDiscussionAsync(userId, discussionId)
+            .Returns(true);
 
         // Act
         var result = await _useCase.IsFollowingDiscussionAsync(userId, discussionId);
@@ -347,8 +347,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var discussionId = DiscussionId.New();
 
-        _mockFollowRepository.Setup(r => r.IsFollowingDiscussionAsync(userId, discussionId))
-            .ReturnsAsync(false);
+        _followRepository.IsFollowingDiscussionAsync(userId, discussionId)
+            .Returns(false);
 
         // Act
         var result = await _useCase.IsFollowingDiscussionAsync(userId, discussionId);
@@ -364,8 +364,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var spaceId = SpaceId.New();
 
-        _mockFollowRepository.Setup(r => r.IsFollowingSpaceAsync(userId, spaceId))
-            .ReturnsAsync(true);
+        _followRepository.IsFollowingSpaceAsync(userId, spaceId)
+            .Returns(true);
 
         // Act
         var result = await _useCase.IsFollowingSpaceAsync(userId, spaceId);
@@ -381,8 +381,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var followedUserId = UserId.New();
 
-        _mockFollowRepository.Setup(r => r.IsFollowingUserAsync(userId, followedUserId))
-            .ReturnsAsync(true);
+        _followRepository.IsFollowingUserAsync(userId, followedUserId)
+            .Returns(true);
 
         // Act
         var result = await _useCase.IsFollowingUserAsync(userId, followedUserId);
@@ -399,8 +399,8 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var follow = Follow.CreateForSpace(userId, spaceId, FollowLevel.DiscussionsAndPosts);
 
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync(follow);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns(follow);
 
         // Act
         var (isFollowing, level) = await _useCase.GetSpaceFollowStatusAsync(userId, spaceId);
@@ -417,8 +417,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var spaceId = SpaceId.New();
 
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync((Follow?)null);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns((Follow?)null);
 
         // Act
         var (isFollowing, level) = await _useCase.GetSpaceFollowStatusAsync(userId, spaceId);
@@ -435,8 +435,8 @@ public class FollowUseCaseTests
         var discussionId = DiscussionId.New();
         var followerIds = new List<UserId> { UserId.New(), UserId.New(), UserId.New() };
 
-        _mockFollowRepository.Setup(r => r.GetFollowersOfDiscussionAsync(discussionId))
-            .ReturnsAsync(followerIds);
+        _followRepository.GetFollowersOfDiscussionAsync(discussionId)
+            .Returns(followerIds);
 
         // Act
         var result = await _useCase.GetFollowersOfDiscussionAsync(discussionId);
@@ -452,8 +452,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         const int expectedCount = 42;
 
-        _mockFollowRepository.Setup(r => r.GetFollowerCountOfUserAsync(userId))
-            .ReturnsAsync(expectedCount);
+        _followRepository.GetFollowerCountOfUserAsync(userId)
+            .Returns(expectedCount);
 
         // Act
         var result = await _useCase.GetFollowerCountOfUserAsync(userId);
@@ -469,8 +469,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var spaceIds = new List<SpaceId> { SpaceId.New(), SpaceId.New() };
 
-        _mockFollowRepository.Setup(r => r.GetFollowedSpacesByUserAsync(userId))
-            .ReturnsAsync(spaceIds);
+        _followRepository.GetFollowedSpacesByUserAsync(userId)
+            .Returns(spaceIds);
 
         // Act
         var result = await _useCase.GetFollowedSpacesAsync(userId);
@@ -486,8 +486,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var discussionIds = new List<DiscussionId> { DiscussionId.New(), DiscussionId.New(), DiscussionId.New() };
 
-        _mockFollowRepository.Setup(r => r.GetFollowedDiscussionsByUserAsync(userId))
-            .ReturnsAsync(discussionIds);
+        _followRepository.GetFollowedDiscussionsByUserAsync(userId)
+            .Returns(discussionIds);
 
         // Act
         var result = await _useCase.GetFollowedDiscussionsAsync(userId);
@@ -503,8 +503,8 @@ public class FollowUseCaseTests
         var userId = UserId.New();
         var followedUserIds = new List<UserId> { UserId.New(), UserId.New() };
 
-        _mockFollowRepository.Setup(r => r.GetFollowedUsersByUserAsync(userId))
-            .ReturnsAsync(followedUserIds);
+        _followRepository.GetFollowedUsersByUserAsync(userId)
+            .Returns(followedUserIds);
 
         // Act
         var result = await _useCase.GetFollowedUsersAsync(userId);
@@ -525,12 +525,12 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var space = Space.Create(HubId.New(), "Test Space", "test-space", "Description");
 
-        _mockSpaceRepository.Setup(r => r.GetByPublicIdAsync(spaceId))
-            .ReturnsAsync(space);
+        _spaceRepository.GetByPublicIdAsync(spaceId)
+            .Returns(space);
 
         // First call - not following
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync((Follow?)null);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns((Follow?)null);
 
         // Act - First toggle (follow)
         var firstResult = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
@@ -541,8 +541,8 @@ public class FollowUseCaseTests
 
         // Arrange - Second call - now following
         var createdFollow = Follow.CreateForSpace(userId, spaceId);
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync(createdFollow);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns(createdFollow);
 
         // Act - Second toggle (unfollow)
         var secondResult = await _useCase.ToggleFollowSpaceAsync(userId, spaceId);
@@ -551,8 +551,8 @@ public class FollowUseCaseTests
         await Assert.That(secondResult.IsSuccess).IsTrue();
         await Assert.That(secondResult.Value).IsFalse();
 
-        _mockFollowRepository.Verify(r => r.AddAsync(It.IsAny<Follow>()), Times.Once);
-        _mockFollowRepository.Verify(r => r.DeleteAsync(It.IsAny<Follow>()), Times.Once);
+        await _followRepository.Received(1).AddAsync(Arg.Any<Follow>());
+        await _followRepository.Received(1).DeleteAsync(Arg.Any<Follow>());
     }
 
     [Test]
@@ -563,8 +563,8 @@ public class FollowUseCaseTests
         var spaceId = SpaceId.New();
         var follow = Follow.CreateForSpace(userId, spaceId, FollowLevel.DiscussionsOnly);
 
-        _mockFollowRepository.Setup(r => r.GetByUserAndSpaceAsync(userId, spaceId))
-            .ReturnsAsync(follow);
+        _followRepository.GetByUserAndSpaceAsync(userId, spaceId)
+            .Returns(follow);
 
         // Act & Assert - Toggle to DiscussionsAndPosts
         var result1 = await _useCase.UpdateSpaceFollowLevelAsync(userId, spaceId, FollowLevel.DiscussionsAndPosts);
@@ -576,7 +576,7 @@ public class FollowUseCaseTests
         await Assert.That(result2.IsSuccess).IsTrue();
         await Assert.That(follow.Level).IsEqualTo(FollowLevel.DiscussionsOnly);
 
-        _mockFollowRepository.Verify(r => r.UpdateAsync(follow), Times.Exactly(2));
+        await _followRepository.Received(2).UpdateAsync(follow);
     }
 
     #endregion

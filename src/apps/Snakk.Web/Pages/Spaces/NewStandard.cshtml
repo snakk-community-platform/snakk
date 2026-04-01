@@ -1,4 +1,4 @@
-@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/new/standard"
+@page "/new/standard"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Spaces.NewStandardModel
@@ -9,13 +9,13 @@
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
         <a href="/">Home</a>
-        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.Community.CommunitySlug">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a> }
+        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
         <span class="breadcrumb-separator">/</span>
         <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
         <span class="breadcrumb-separator">/</span>
         <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
         <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)">New</a>
+        <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
         <span class="breadcrumb-separator">/</span>
         <span>Discussion</span>
     </nav>
@@ -27,6 +27,7 @@
     @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
     <form method="post" id="new-discussion-form" hx-boost="false">
+        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
         <div class="space-y-4">
             <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
                    class="input w-full text-lg" required maxlength="200" placeholder="Discussion title" />
@@ -38,7 +39,7 @@
             </div>
 
             <div class="flex items-center justify-between">
-                <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="btn btn-ghost btn-sm">Back</a>
+                <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
                 <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Discussion</button>
             </div>
         </div>
@@ -68,5 +69,5 @@
     </div>
 </div>
 
-<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true"></script>
-<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>

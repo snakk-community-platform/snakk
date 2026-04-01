@@ -26,4 +26,5 @@ namespace Snakk.Web.Models.Bff;
 [JsonSerializable(typeof(BffDailyActivityResponse))]
 [JsonSerializable(typeof(BffUserFollowStatusResponse))]
 [JsonSerializable(typeof(BffUserStatsResponse))]
+[JsonSerializable(typeof(BffEntityResolveResponse))]
 public partial class BffJsonContext : JsonSerializerContext;

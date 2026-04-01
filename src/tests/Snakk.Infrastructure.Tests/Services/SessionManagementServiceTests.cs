@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -11,7 +11,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class SessionManagementServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly Mock<ITokenService> _mockTokenService;
+    private readonly ITokenService _tokenService;
     private readonly SessionManagementService _service;
 
     public SessionManagementServiceTests()
@@ -20,11 +20,11 @@ public class SessionManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SessionManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _mockTokenService = new Mock<ITokenService>();
+        _tokenService = Substitute.For<ITokenService>();
         _service = new SessionManagementService(
             _context,
-            _mockTokenService.Object,
-            new Mock<ILogger<SessionManagementService>>().Object);
+            _tokenService,
+            Substitute.For<ILogger<SessionManagementService>>());
     }
 
     public void Dispose()
@@ -265,8 +265,7 @@ public class SessionManagementServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        _mockTokenService
-            .Setup(x => x.RevokeRefreshTokenAsync(tokenValue, "User requested revocation"))
+        _tokenService.RevokeRefreshTokenAsync(tokenValue, "User requested revocation")
             .Returns(Task.CompletedTask);
 
         // Act
@@ -274,9 +273,7 @@ public class SessionManagementServiceTests : IDisposable
 
         // Assert
         await Assert.That(result).IsTrue();
-        _mockTokenService.Verify(
-            x => x.RevokeRefreshTokenAsync(tokenValue, "User requested revocation"),
-            Times.Once);
+        _tokenService.Received(1).RevokeRefreshTokenAsync(tokenValue, "User requested revocation");
     }
 
     [Test]
@@ -287,9 +284,7 @@ public class SessionManagementServiceTests : IDisposable
 
         // Assert
         await Assert.That(result).IsFalse();
-        _mockTokenService.Verify(
-            x => x.RevokeRefreshTokenAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
+        _tokenService.DidNotReceive().RevokeRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Test]
@@ -332,9 +327,7 @@ public class SessionManagementServiceTests : IDisposable
 
         // Assert
         await Assert.That(result).IsFalse();
-        _mockTokenService.Verify(
-            x => x.RevokeRefreshTokenAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
+        _tokenService.DidNotReceive().RevokeRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     #endregion

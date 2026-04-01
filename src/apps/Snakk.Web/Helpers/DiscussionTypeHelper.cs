@@ -13,6 +13,7 @@ public static class DiscussionTypeHelper
             "Guide" => ("📖", "Guide", "type-guide"),
             "Debate" => ("⚖️", "Debate", "type-debate"),
             "Journal" => ("📓", "Journal", "type-journal"),
+            "Iama" => ("🎤", "AMA", "type-iama"),
             _ => ("", type, "type-standard")
         };
 
@@ -28,6 +29,7 @@ public static class DiscussionTypeHelper
             6 => "Guide",
             7 => "Debate",
             8 => "Journal",
+            9 => "Iama",
             _ => "Standard"
         };
 }

@@ -41,7 +41,7 @@ public class SetupService(IConfiguration configuration)
     }
 
     /// <summary>
-    /// Write the appsettings.Production.json file with all setup values.
+    /// Write the snakk-config.json file with all setup values.
     /// </summary>
     public void WriteProductionConfig(SetupState state)
     {
@@ -86,6 +86,30 @@ public class SetupService(IConfiguration configuration)
             }
         };
 
+        // Add SMTP if enabled
+        if (state.SmtpEnabled && !string.IsNullOrWhiteSpace(state.SmtpHost))
+        {
+            config["Smtp"] = new Dictionary<string, object>
+            {
+                ["Host"] = state.SmtpHost,
+                ["Port"] = state.SmtpPort,
+                ["Username"] = state.SmtpUsername,
+                ["Password"] = state.SmtpPassword,
+                ["SenderEmail"] = state.SmtpSenderEmail,
+                ["SenderName"] = state.SmtpSenderName
+            };
+        }
+
+        // Add Turnstile if configured
+        if (!string.IsNullOrWhiteSpace(state.TurnstileSiteKey))
+        {
+            config["Turnstile"] = new Dictionary<string, string>
+            {
+                ["SiteKey"] = state.TurnstileSiteKey,
+                ["SecretKey"] = state.TurnstileSecretKey
+            };
+        }
+
         // Add OAuth if provided
         var auth = new Dictionary<string, object>();
         if (!string.IsNullOrWhiteSpace(state.GoogleClientId))
@@ -120,7 +144,7 @@ public class SetupService(IConfiguration configuration)
             WriteIndented = true
         });
 
-        var configPath = Path.Combine(state.AvatarStoragePath, "appsettings.Production.json");
+        var configPath = Path.Combine(state.AvatarStoragePath, "conf", "snakk-config.json");
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
         File.WriteAllText(configPath, json);
 
@@ -169,6 +193,13 @@ public class SetupService(IConfiguration configuration)
                 ["Setup__AdminEmail"] = state.AdminEmail,
                 ["Setup__AdminPassword"] = state.AdminPassword,
                 ["Setup__AdminDisplayName"] = state.AdminDisplayName,
+                ["Setup__CommunityName"] = state.CommunityName,
+                ["Setup__CommunityDescription"] = state.CommunityDescription,
+                ["Setup__FirstHubName"] = state.FirstHubName,
+                ["Setup__FirstHubSlug"] = state.FirstHubSlug,
+                ["Setup__FirstSpaceName"] = state.FirstSpaceName,
+                ["Setup__FirstSpaceSlug"] = state.FirstSpaceSlug,
+                ["Setup__CreateFirstCommunity"] = state.CreateFirstCommunity.ToString(),
                 ["Snakk__SiteTimezone"] = state.Timezone
             }
         };
@@ -192,19 +223,15 @@ public class SetupService(IConfiguration configuration)
     }
 
     /// <summary>
-    /// Create the .setup-complete marker file and scrub sensitive data from config.
+    /// Scrub sensitive data from the production config after setup completes.
     /// </summary>
-    public void MarkSetupComplete(string storagePath)
+    public void ScrubSensitiveConfig(string storagePath)
     {
-        var markerPath = Path.Combine(storagePath, ".setup-complete");
-        File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
-
-        // Remove plaintext admin password from production config (already hashed in DB)
         RemoveAdminPasswordFromConfig(storagePath);
     }
 
     /// <summary>
-    /// Remove the Setup:AdminPassword field from appsettings.Production.json.
+    /// Remove the Setup:AdminPassword field from snakk-config.json.
     /// The password is only needed during initial DB seeding — once the admin account
     /// exists (with a bcrypt hash), keeping the plaintext is a security risk.
     /// </summary>
@@ -212,7 +239,7 @@ public class SetupService(IConfiguration configuration)
     {
         try
         {
-            var configPath = Path.Combine(storagePath, "appsettings.Production.json");
+            var configPath = Path.Combine(storagePath, "conf", "snakk-config.json");
             if (!File.Exists(configPath)) return;
 
             var json = File.ReadAllText(configPath);
@@ -397,7 +424,14 @@ public class SetupService(IConfiguration configuration)
                 ["FileStorage__S3__PublicUrlBase"] = state.S3PublicUrlBase,
                 ["Setup__AdminEmail"] = state.AdminEmail,
                 ["Setup__AdminPassword"] = state.AdminPassword,
-                ["Setup__AdminDisplayName"] = state.AdminDisplayName
+                ["Setup__AdminDisplayName"] = state.AdminDisplayName,
+                ["Setup__CommunityName"] = state.CommunityName,
+                ["Setup__CommunityDescription"] = state.CommunityDescription,
+                ["Setup__FirstHubName"] = state.FirstHubName,
+                ["Setup__FirstHubSlug"] = state.FirstHubSlug,
+                ["Setup__FirstSpaceName"] = state.FirstSpaceName,
+                ["Setup__FirstSpaceSlug"] = state.FirstSpaceSlug,
+                ["Setup__CreateFirstCommunity"] = state.CreateFirstCommunity.ToString()
             }
         };
 

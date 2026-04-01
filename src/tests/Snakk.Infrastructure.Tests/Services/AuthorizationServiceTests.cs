@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -20,7 +20,7 @@ public class AuthorizationServiceTests : IDisposable
         _context = new SnakkDbContext(options);
         _service = new AuthorizationService(
             _context,
-            new Mock<ILogger<AuthorizationService>>().Object);
+            Substitute.For<ILogger<AuthorizationService>>());
     }
 
     public void Dispose()

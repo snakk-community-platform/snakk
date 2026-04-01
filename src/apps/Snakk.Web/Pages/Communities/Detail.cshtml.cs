@@ -5,6 +5,7 @@ using Snakk.Web.Services;
 using Snakk.Protos.Community;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Hub;
+using Snakk.Protos.Space;
 
 namespace Snakk.Web.Pages.Communities;
 
@@ -18,7 +19,7 @@ public class DetailModel(
 
     public CommunityInfo? CommunityDetail { get; set; }
     public PagedHubList? Hubs { get; set; }
-    public PagedRecentDiscussionList? RecentDiscussions { get; set; }
+    public Dictionary<string, PagedSpaceByHubList> SpacesByHub { get; set; } = new();
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "community";
@@ -72,19 +73,28 @@ public class DetailModel(
         ResolveSidebarData();
 
         var hubsTask = _apiClient.GetHubsByCommunityAsync(CommunityDetail.PublicId, 0, 50);
-        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId: CommunityDetail.PublicId);
         var announcementsTask = _apiClient.GetActiveBannersForCommunityAsync(CommunityDetail.PublicId);
         var statsTask = _apiClient.GetCommunityStatsAsync(CommunityDetail.PublicId);
 
-        await Task.WhenAll(hubsTask, discussionsTask, announcementsTask, statsTask);
+        await Task.WhenAll(hubsTask, announcementsTask, statsTask);
 
         Hubs = hubsTask.IsCompletedSuccessfully ? hubsTask.Result : null;
-        RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
         Banners = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
 
         var stats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;
         if (stats is not null)
             InlineCommunityStats = new(stats.SpaceCount, stats.DiscussionCount, stats.ReplyCount, "fresh");
+
+        // Fetch spaces for each hub (sequential to avoid DbContext concurrency)
+        if (Hubs?.Items != null)
+        {
+            foreach (var hub in Hubs.Items)
+            {
+                var spaces = await _apiClient.GetSpacesByHubAsync(hub.PublicId, 0, 50);
+                if (spaces != null)
+                    SpacesByHub[hub.PublicId] = spaces;
+            }
+        }
 
         return Page();
     }

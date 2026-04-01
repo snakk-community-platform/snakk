@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
-using Moq;
+using NSubstitute;
 using Snakk.Realtime.Hubs;
 using Snakk.Realtime.Models;
 using System.Text.Json;
@@ -9,23 +9,19 @@ namespace Snakk.Realtime.Tests;
 
 public class BroadcastEndpointTests
 {
-    private readonly Mock<IHubContext<RealtimeHub>> _mockHubContext;
-    private readonly Mock<IHubClients> _mockClients;
-    private readonly Mock<IClientProxy> _mockClientProxy;
+    private readonly IHubContext<RealtimeHub> _hubContext;
+    private readonly IHubClients _clients;
+    private readonly IClientProxy _clientProxy;
 
     public BroadcastEndpointTests()
     {
-        _mockHubContext = new Mock<IHubContext<RealtimeHub>>();
-        _mockClients = new Mock<IHubClients>();
-        _mockClientProxy = new Mock<IClientProxy>();
+        _hubContext = Substitute.For<IHubContext<RealtimeHub>>();
+        _clients = Substitute.For<IHubClients>();
+        _clientProxy = Substitute.For<IClientProxy>();
 
-        _mockClients
-            .Setup(c => c.Group(It.IsAny<string>()))
-            .Returns(_mockClientProxy.Object);
+        _clients.Group(Arg.Any<string>()).Returns(_clientProxy);
 
-        _mockHubContext
-            .Setup(h => h.Clients)
-            .Returns(_mockClients.Object);
+        _hubContext.Clients.Returns(_clients);
     }
 
     /// <summary>
@@ -63,16 +59,14 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        await BroadcastEndpoints.BroadcastEvent(request, _mockHubContext.Object);
+        await BroadcastEndpoints.BroadcastEvent(request, _hubContext);
 
         // Assert
-        _mockClients.Verify(c => c.Group("discussion:disc-123"), Times.Once);
-        _mockClientProxy.Verify(
-            p => p.SendCoreAsync(
-                "ReceiveUpdate",
-                It.Is<object?[]>(args => args.Length == 1),
-                default),
-            Times.Once);
+        _clients.Received(1).Group("discussion:disc-123");
+        await _clientProxy.Received(1).SendCoreAsync(
+            "ReceiveUpdate",
+            Arg.Is<object?[]>(args => args.Length == 1),
+            default);
     }
 
     [Test]
@@ -89,7 +83,7 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        var result = await BroadcastEndpoints.BroadcastEvent(request, _mockHubContext.Object);
+        var result = await BroadcastEndpoints.BroadcastEvent(request, _hubContext);
 
         // Assert - verify it's an Ok result with success and targetGroup
         var value = GetOkResultValue(result);
@@ -115,15 +109,13 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        var result = await BroadcastEndpoints.BroadcastEvent(request, _mockHubContext.Object);
+        var result = await BroadcastEndpoints.BroadcastEvent(request, _hubContext);
 
         // Assert
-        _mockClientProxy.Verify(
-            p => p.SendCoreAsync(
-                "ReceiveUpdate",
-                It.IsAny<object?[]>(),
-                default),
-            Times.Once);
+        await _clientProxy.Received(1).SendCoreAsync(
+            "ReceiveUpdate",
+            Arg.Any<object?[]>(),
+            default);
 
         var value = GetOkResultValue(result);
         var success = value.GetProperty("success").GetBoolean();
@@ -144,10 +136,10 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        await BroadcastEndpoints.BroadcastEvent(request, _mockHubContext.Object);
+        await BroadcastEndpoints.BroadcastEvent(request, _hubContext);
 
         // Assert
-        _mockClients.Verify(c => c.Group("space:tech:programming"), Times.Once);
+        _clients.Received(1).Group("space:tech:programming");
     }
 
     #endregion
@@ -166,16 +158,14 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        await BroadcastEndpoints.BroadcastActivity(request, _mockHubContext.Object);
+        await BroadcastEndpoints.BroadcastActivity(request, _hubContext);
 
         // Assert
-        _mockClients.Verify(c => c.Group("global"), Times.Once);
-        _mockClientProxy.Verify(
-            p => p.SendCoreAsync(
-                "ReceiveActivity",
-                It.Is<object?[]>(args => args.Length == 1),
-                default),
-            Times.Once);
+        _clients.Received(1).Group("global");
+        await _clientProxy.Received(1).SendCoreAsync(
+            "ReceiveActivity",
+            Arg.Is<object?[]>(args => args.Length == 1),
+            default);
     }
 
     [Test]
@@ -190,7 +180,7 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        var result = await BroadcastEndpoints.BroadcastActivity(request, _mockHubContext.Object);
+        var result = await BroadcastEndpoints.BroadcastActivity(request, _hubContext);
 
         // Assert
         var value = GetOkResultValue(result);
@@ -212,10 +202,10 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        await BroadcastEndpoints.BroadcastActivity(request, _mockHubContext.Object);
+        await BroadcastEndpoints.BroadcastActivity(request, _hubContext);
 
         // Assert
-        _mockClients.Verify(c => c.Group("user:admin-456"), Times.Once);
+        _clients.Received(1).Group("user:admin-456");
     }
 
     [Test]
@@ -237,15 +227,13 @@ public class BroadcastEndpointTests
         };
 
         // Act
-        var result = await BroadcastEndpoints.BroadcastActivity(request, _mockHubContext.Object);
+        var result = await BroadcastEndpoints.BroadcastActivity(request, _hubContext);
 
         // Assert
-        _mockClientProxy.Verify(
-            p => p.SendCoreAsync(
-                "ReceiveActivity",
-                It.IsAny<object?[]>(),
-                default),
-            Times.Once);
+        await _clientProxy.Received(1).SendCoreAsync(
+            "ReceiveActivity",
+            Arg.Any<object?[]>(),
+            default);
 
         var value = GetOkResultValue(result);
         var success = value.GetProperty("success").GetBoolean();

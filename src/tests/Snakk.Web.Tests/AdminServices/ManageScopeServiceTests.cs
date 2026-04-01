@@ -2,7 +2,7 @@ extern alias Admin;
 
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Admin::Snakk.Admin.Services;
 using Snakk.Application.DTOs.Management;
 using Snakk.Protos.Manage;

@@ -1,12 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Infrastructure.Services;
 
-public class DiscussionExtensionService(SnakkDbContext context, IConfiguration configuration) : IDiscussionExtensionService
+public class DiscussionExtensionService(
+    SnakkDbContext context,
+    IConfiguration configuration,
+    ILinkMetadataService linkMetadataService,
+    Microsoft.Extensions.Logging.ILogger<DiscussionExtensionService> logger) : IDiscussionExtensionService
 {
     private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "/storage";
     public async Task CreateQuestionAsync(string discussionPublicId)
@@ -132,14 +137,52 @@ public class DiscussionExtensionService(SnakkDbContext context, IConfiguration c
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
+        // Dedup: check if we already have metadata for this exact URL
+        var existing = await context.DiscussionLinks
+            .AsNoTracking()
+            .Where(l => l.Url == url && l.Title != null)
+            .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.LocalImagePath, l.ImageBlurDataUri })
+            .FirstOrDefaultAsync();
+
+        LinkMetadata? metadata = null;
+
+        if (existing is not null)
+        {
+            // Reuse metadata from a previous link to the same URL
+            metadata = new LinkMetadata(
+                existing.Title, existing.Description, existing.ImageUrl,
+                existing.Domain, existing.OEmbedHtml,
+                existing.LocalImagePath, existing.ImageBlurDataUri);
+        }
+        else
+        {
+            // Fetch fresh metadata
+            try
+            {
+                metadata = await linkMetadataService.FetchAsync(url);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to fetch link metadata for {Url}", url);
+            }
+        }
+
+        var parsedDomain = domain;
+        if (string.IsNullOrEmpty(parsedDomain) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            parsedDomain = uri.Host.TrimStart('w', 'w', 'w', '.');
+
         context.DiscussionLinks.Add(new DiscussionLinkDatabaseEntity
         {
             DiscussionId = discussionId,
             Url = url,
-            Title = title,
-            Description = description,
-            ImageUrl = imageUrl,
-            Domain = domain
+            Title = title ?? metadata?.Title,
+            Description = description ?? metadata?.Description,
+            ImageUrl = imageUrl ?? metadata?.ImageUrl,
+            Domain = parsedDomain ?? metadata?.Domain,
+            OEmbedHtml = metadata?.OEmbedHtml,
+            LocalImagePath = metadata?.LocalImagePath,
+            ImageBlurDataUri = metadata?.ImageBlurDataUri,
+            IsInternal = metadata?.IsInternal ?? false
         });
 
         await context.SaveChangesAsync();
@@ -227,6 +270,28 @@ public class DiscussionExtensionService(SnakkDbContext context, IConfiguration c
         {
             PostId = postId,
             JournalId = journal.Id
+        });
+
+        await context.SaveChangesAsync();
+    }
+
+    public async Task CreateIamaAsync(
+        string discussionPublicId,
+        bool isScheduled = false,
+        DateTime? scheduledStartUtc = null,
+        DateTime? scheduledEndUtc = null,
+        string? verificationNote = null)
+    {
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+
+        context.DiscussionIamas.Add(new DiscussionIamaDatabaseEntity
+        {
+            DiscussionId = discussionId,
+            Phase = isScheduled ? 0 : 1, // Announced if scheduled, Live if open-ended
+            IsScheduled = isScheduled,
+            ScheduledStartUtc = scheduledStartUtc,
+            ScheduledEndUtc = scheduledEndUtc,
+            VerificationNote = verificationNote
         });
 
         await context.SaveChangesAsync();

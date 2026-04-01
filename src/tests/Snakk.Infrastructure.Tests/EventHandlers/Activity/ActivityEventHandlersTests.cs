@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
@@ -13,7 +13,7 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Activity;
 public class ActivityEventHandlersTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly Mock<IActivityBroadcaster> _mockBroadcaster;
+    private readonly IActivityBroadcaster _broadcaster;
 
     public ActivityEventHandlersTests()
     {
@@ -21,7 +21,7 @@ public class ActivityEventHandlersTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"ActivityHandlerTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _mockBroadcaster = new Mock<IActivityBroadcaster>();
+        _broadcaster = Substitute.For<IActivityBroadcaster>();
     }
 
     public void Dispose()
@@ -107,7 +107,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
 
-        var handler = new PostCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new PostCreatedActivityHandler(_broadcaster, _context);
         var @event = new PostCreatedEvent(
             PostId.From("post_act"),
             DiscussionId.From("disc_post_act"),
@@ -115,7 +115,7 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastPostCreated(
+        _broadcaster.Received(1).BroadcastPostCreated(
             "user_activity",
             "ActivityUser",
             "post_act",
@@ -123,13 +123,13 @@ public class ActivityEventHandlersTests : IDisposable
             "Discussion for Post",
             "Activity Community",
             "Activity Hub",
-            "Activity Space"), Times.Once);
+            "Activity Space");
     }
 
     [Test]
     public async Task PostCreatedActivityHandler_PostNotFound_DoesNotBroadcast()
     {
-        var handler = new PostCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new PostCreatedActivityHandler(_broadcaster, _context);
         var @event = new PostCreatedEvent(
             PostId.From("nonexistent_post"),
             DiscussionId.From("nonexistent_disc"),
@@ -137,10 +137,10 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastPostCreated(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastPostCreated(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>());
     }
 
     #endregion
@@ -163,7 +163,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Discussions.Add(discussion);
         await _context.SaveChangesAsync();
 
-        var handler = new DiscussionCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new DiscussionCreatedActivityHandler(_broadcaster, _context);
         var @event = new DiscussionCreatedEvent(
             DiscussionId.From("disc_created_act"),
             SpaceId.From("space_act"),
@@ -171,20 +171,20 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastDiscussionCreated(
+        _broadcaster.Received(1).BroadcastDiscussionCreated(
             "user_activity",
             "ActivityUser",
             "disc_created_act",
             "New Discussion",
             "Activity Community",
             "Activity Hub",
-            "Activity Space"), Times.Once);
+            "Activity Space");
     }
 
     [Test]
     public async Task DiscussionCreatedActivityHandler_DiscussionNotFound_DoesNotBroadcast()
     {
-        var handler = new DiscussionCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new DiscussionCreatedActivityHandler(_broadcaster, _context);
         var @event = new DiscussionCreatedEvent(
             DiscussionId.From("nonexistent"),
             SpaceId.From("nonexistent"),
@@ -192,10 +192,10 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastDiscussionCreated(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastDiscussionCreated(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>());
     }
 
     #endregion
@@ -215,27 +215,27 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        var handler = new UserCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new UserCreatedActivityHandler(_broadcaster, _context);
         var @event = new UserCreatedEvent(UserId.From("new_user_act"));
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastUserRegistered(
+        _broadcaster.Received(1).BroadcastUserRegistered(
             "new_user_act",
             "NewUser",
-            "newuser@example.com"), Times.Once);
+            "newuser@example.com");
     }
 
     [Test]
     public async Task UserCreatedActivityHandler_UserNotFound_DoesNotBroadcast()
     {
-        var handler = new UserCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new UserCreatedActivityHandler(_broadcaster, _context);
         var @event = new UserCreatedEvent(UserId.From("nonexistent"));
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastUserRegistered(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastUserRegistered(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Test]
@@ -251,15 +251,15 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        var handler = new UserCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new UserCreatedActivityHandler(_broadcaster, _context);
         var @event = new UserCreatedEvent(UserId.From("no_email_user"));
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastUserRegistered(
+        _broadcaster.Received(1).BroadcastUserRegistered(
             "no_email_user",
             "NoEmail",
-            ""), Times.Once);
+            "");
     }
 
     #endregion
@@ -305,7 +305,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_act"),
             PostId.From("post_react_act"),
@@ -314,19 +314,19 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+        _broadcaster.Received(1).BroadcastReactionAdded(
             "user_activity",
             "ActivityUser",
             "Agree",
             "post",
             "post_react_act",
-            "Reaction Discussion"), Times.Once);
+            "Reaction Discussion");
     }
 
     [Test]
     public async Task ReactionAddedActivityHandler_ReactionNotFound_DoesNotBroadcast()
     {
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("nonexistent"),
             PostId.From("nonexistent"),
@@ -335,9 +335,9 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastReactionAdded(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     #endregion
@@ -376,7 +376,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Follows.Add(follow);
         await _context.SaveChangesAsync();
 
-        var handler = new FollowCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new FollowCreatedActivityHandler(_broadcaster, _context);
         var @event = new FollowCreatedEvent(
             FollowId.From("follow_act"),
             UserId.From("follower"),
@@ -385,18 +385,18 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastFollowAdded(
+        _broadcaster.Received(1).BroadcastFollowAdded(
             "follower",
             "Follower",
             "user",
             "followed",
-            "Followed User"), Times.Once);
+            "Followed User");
     }
 
     [Test]
     public async Task FollowCreatedActivityHandler_FollowNotFound_DoesNotBroadcast()
     {
-        var handler = new FollowCreatedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new FollowCreatedActivityHandler(_broadcaster, _context);
         var @event = new FollowCreatedEvent(
             FollowId.From("nonexistent"),
             UserId.From("nonexistent"),
@@ -405,9 +405,9 @@ public class ActivityEventHandlersTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastFollowAdded(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastFollowAdded(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string?>());
     }
 
     #endregion

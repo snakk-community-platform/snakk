@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -25,7 +25,7 @@ public class AdminUserServiceTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _service = new AdminUserService(_context, cache, new Mock<ILogger<AdminUserService>>().Object);
+        _service = new AdminUserService(_context, cache, Substitute.For<ILogger<AdminUserService>>());
     }
 
     public void Dispose()

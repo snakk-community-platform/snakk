@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -20,7 +20,7 @@ public class HubManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"HubManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new HubManagementService(_context, new Mock<ILogger<HubManagementService>>().Object);
+        _service = new HubManagementService(_context, Substitute.For<ILogger<HubManagementService>>());
     }
 
     public void Dispose()

@@ -8,9 +8,9 @@ using Snakk.ServiceDefaults;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Load shared production config (written by setup wizard)
+// Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
-builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "appsettings.Production.json"), optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
 
@@ -38,6 +38,10 @@ builder.Services.AddHybridCache();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
 // Services needed by workers
+builder.Services.AddDataProtection();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IEmailProtector, EmailProtector>();
+builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddScoped<AchievementService>();

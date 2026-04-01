@@ -220,7 +220,7 @@ To enable social login, register OAuth applications:
 - **GitHub**: [GitHub Developer Settings](https://github.com/settings/developers)
 - **Discord**: [Discord Developer Portal](https://discord.com/developers/applications)
 
-Configure via the setup wizard or in `appsettings.Production.json`.
+Configure via the setup wizard or in `conf/snakk-config.json` (under the storage path).
 
 ## Development
 

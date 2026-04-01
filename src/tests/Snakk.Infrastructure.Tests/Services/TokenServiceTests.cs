@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -16,7 +16,7 @@ public class TokenServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
     private readonly TokenService _tokenService;
-    private readonly Mock<IJwtTokenService> _jwtTokenServiceMock;
+    private readonly IJwtTokenService _jwtTokenService;
 
     public TokenServiceTests()
     {
@@ -25,18 +25,17 @@ public class TokenServiceTests : IDisposable
             .Options;
         _context = new SnakkDbContext(options);
 
-        _jwtTokenServiceMock = new Mock<IJwtTokenService>();
-        _jwtTokenServiceMock
-            .Setup(s => s.GenerateToken(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<bool>(),
-                It.IsAny<string?>(),
-                It.IsAny<string?>()))
+        _jwtTokenService = Substitute.For<IJwtTokenService>();
+        _jwtTokenService.GenerateToken(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>())
             .Returns("mock-jwt-token");
 
-        _tokenService = new TokenService(_context, _jwtTokenServiceMock.Object);
+        _tokenService = new TokenService(_context, _jwtTokenService);
     }
 
     public void Dispose()

@@ -172,3 +172,20 @@
         color: var(--link-primary);
     }
 }
+
+// Internal entity link styling — visually distinct from regular links
+a.entity-link {
+    color: var(--link-primary);
+    text-decoration: none;
+    padding: 0.0625rem 0.25rem;
+    margin: 0 0.0625rem;
+    border-radius: 0.1875rem;
+    background-color: color-mix(in srgb, var(--link-primary) 8%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--link-primary) 30%, transparent);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--link-primary) 16%, transparent);
+        border-bottom-color: var(--link-primary);
+    }
+}

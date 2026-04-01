@@ -54,6 +54,17 @@ public interface ISearchRepository
         string? userId = null);
 
     /// <summary>
+    /// Searches spaces by name, optionally scoped to a hub or community,
+    /// sorted by discussion count descending.
+    /// </summary>
+    Task<List<SpaceSearchItemDto>> SearchSpacesAsync(
+        string? query = null,
+        string? hubPublicId = null,
+        string? communityPublicId = null,
+        int limit = 10,
+        string? userId = null);
+
+    /// <summary>
     /// Gets all discussions for sitemap generation
     /// </summary>
     Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize);
@@ -187,3 +198,14 @@ public record RecentDiscussionDto(
     int PostCount,
     int ReactionCount,
     string[] Tags);
+
+public record SpaceSearchItemDto(
+    string PublicId,
+    string Name,
+    string Slug,
+    string HubSlug,
+    string HubName,
+    string CommunitySlug,
+    int DiscussionCount,
+    string CommunityName,
+    string AvatarUrl);

@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Community;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Hub;
@@ -31,8 +31,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetHubStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new HubStats
+            .GetHubStatsAsync(Arg.Any<string>())
+            .Returns(new HubStats
             {
                 PublicId = "hub-001",
                 Name = "Test Hub",
@@ -68,8 +68,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetHubStatsAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetHubStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync((HubStats?)null);
+            .GetHubStatsAsync(Arg.Any<string>())
+            .Returns((HubStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -88,8 +88,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetSpaceStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new SpaceStats
+            .GetSpaceStatsAsync(Arg.Any<string>())
+            .Returns(new SpaceStats
             {
                 PublicId = "space-001",
                 Name = "Test Space",
@@ -125,8 +125,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetSpaceStatsAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetSpaceStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync((SpaceStats?)null);
+            .GetSpaceStatsAsync(Arg.Any<string>())
+            .Returns((SpaceStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -145,8 +145,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetCommunityStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new CommunityStats
+            .GetCommunityStatsAsync(Arg.Any<string>())
+            .Returns(new CommunityStats
             {
                 PublicId = "comm-001",
                 Name = "Test Community",
@@ -184,8 +184,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetCommunityStatsAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetCommunityStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync((CommunityStats?)null);
+            .GetCommunityStatsAsync(Arg.Any<string>())
+            .Returns((CommunityStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -204,8 +204,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new UserStats
+            .GetUserStatsAsync(Arg.Any<string>())
+            .Returns(new UserStats
             {
                 PublicId = "user-001",
                 DisplayName = "Test User",
@@ -241,8 +241,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetUserStatsAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync((UserStats?)null);
+            .GetUserStatsAsync(Arg.Any<string>())
+            .Returns((UserStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -261,8 +261,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetDiscussionStatsForPopupAsync(It.IsAny<string>()))
-            .ReturnsAsync(new DiscussionStats
+            .GetDiscussionStatsForPopupAsync(Arg.Any<string>())
+            .Returns(new DiscussionStats
             {
                 PublicId = "disc-001",
                 Title = "Test Discussion",
@@ -290,8 +290,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetDiscussionStatsForPopupAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetDiscussionStatsForPopupAsync(It.IsAny<string>()))
-            .ReturnsAsync((DiscussionStats?)null);
+            .GetDiscussionStatsForPopupAsync(Arg.Any<string>())
+            .Returns((DiscussionStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -310,8 +310,8 @@ public class BffEntityStatsTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new UserStats
+            .GetUserStatsAsync(Arg.Any<string>())
+            .Returns(new UserStats
             {
                 PublicId = "user-002",
                 DisplayName = "Another User",
@@ -347,8 +347,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetUserStatsAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetUserStatsAsync(It.IsAny<string>()))
-            .ReturnsAsync((UserStats?)null);
+            .GetUserStatsAsync(Arg.Any<string>())
+            .Returns((UserStats?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -372,8 +372,8 @@ public class BffEntityStatsTests
         activityHistory.Data.Add(new ActivityDay { Date = "2026-02-27", Posts = 0, Discussions = 0, Total = 0 });
 
         app.MockApiClient
-            .Setup(c => c.GetUserActivityHistoryAsync(It.IsAny<string>(), It.IsAny<int>()))
-            .ReturnsAsync(activityHistory);
+            .GetUserActivityHistoryAsync(Arg.Any<string>(), Arg.Any<int>())
+            .Returns(activityHistory);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -400,8 +400,8 @@ public class BffEntityStatsTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetUserActivityHistoryAsync catches RpcException and returns null
         app.MockApiClient
-            .Setup(c => c.GetUserActivityHistoryAsync(It.IsAny<string>(), It.IsAny<int>()))
-            .ReturnsAsync((UserActivityHistory?)null);
+            .GetUserActivityHistoryAsync(Arg.Any<string>(), Arg.Any<int>())
+            .Returns((UserActivityHistory?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 

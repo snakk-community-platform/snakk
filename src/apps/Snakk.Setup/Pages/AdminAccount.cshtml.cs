@@ -42,6 +42,6 @@ public class AdminAccountModel : SetupPageBase
         state.AdminPassword = AdminPassword;
         SaveState(state);
 
-        return RedirectToPage("TestData");
+        return RedirectToPage("Email");
     }
 }

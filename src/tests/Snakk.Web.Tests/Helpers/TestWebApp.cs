@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Auth;
 using Snakk.Web.Services;
 
@@ -10,21 +10,21 @@ namespace Snakk.Web.Tests.Helpers;
 
 /// <summary>
 /// Custom WebApplicationFactory for Snakk.Web integration tests.
-/// Replaces the real SnakkApiClient with a Moq mock so BFF endpoints
+/// Replaces the real SnakkApiClient with an NSubstitute mock so BFF endpoints
 /// can be tested without a running Snakk.Api gRPC instance.
 /// Also stubs out gRPC channels, community resolution, and the setup wizard.
 /// </summary>
 public class TestWebApp : WebApplicationFactory<Program>
 {
     /// <summary>
-    /// Moq mock for SnakkApiClient. Configure return values before making test requests.
+    /// NSubstitute mock for SnakkApiClient. Configure return values before making test requests.
     /// </summary>
-    public Mock<SnakkApiClient> MockApiClient { get; }
+    public SnakkApiClient MockApiClient { get; }
 
     /// <summary>
-    /// Moq mock for AuthServiceClient (used directly by RefreshToken endpoint).
+    /// NSubstitute mock for AuthServiceClient (used directly by RefreshToken endpoint).
     /// </summary>
-    public Mock<AuthService.AuthServiceClient> MockAuthClient { get; }
+    public AuthService.AuthServiceClient MockAuthClient { get; }
 
     /// <summary>
     /// HTTP mock handler for tests that use direct HttpClient (e.g., ManageScopeService).
@@ -33,30 +33,8 @@ public class TestWebApp : WebApplicationFactory<Program>
 
     public TestWebApp()
     {
-        // Create dummy gRPC channel — only needed for SnakkApiClient constructor param types
-        var dummyChannel = Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:19999");
-
-        MockApiClient = new Mock<SnakkApiClient>(
-            MockBehavior.Loose,
-            new Snakk.Protos.Community.CommunityService.CommunityServiceClient(dummyChannel),
-            new Snakk.Protos.Hub.HubService.HubServiceClient(dummyChannel),
-            new Snakk.Protos.Space.SpaceService.SpaceServiceClient(dummyChannel),
-            new Snakk.Protos.Discussion.DiscussionService.DiscussionServiceClient(dummyChannel),
-            new Snakk.Protos.Post.PostService.PostServiceClient(dummyChannel),
-            new Snakk.Protos.Follow.FollowService.FollowServiceClient(dummyChannel),
-            new Snakk.Protos.Reaction.ReactionService.ReactionServiceClient(dummyChannel),
-            new Snakk.Protos.Notification.NotificationService.NotificationServiceClient(dummyChannel),
-            new Snakk.Protos.Moderation.ModerationService.ModerationServiceClient(dummyChannel),
-            new Snakk.Protos.Search.SearchService.SearchServiceClient(dummyChannel),
-            new Snakk.Protos.Statistics.StatisticsService.StatisticsServiceClient(dummyChannel),
-            new Snakk.Protos.User.UserService.UserServiceClient(dummyChannel),
-            new Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient(dummyChannel),
-            new Snakk.Protos.Markup.MarkupService.MarkupServiceClient(dummyChannel),
-            new AuthService.AuthServiceClient(dummyChannel),
-            new Snakk.Protos.Banner.BannerService.BannerServiceClient(dummyChannel),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<SnakkApiClient>.Instance);
-
-        MockAuthClient = new Mock<AuthService.AuthServiceClient>(dummyChannel);
+        MockApiClient = Substitute.For<SnakkApiClient>();
+        MockAuthClient = Substitute.For<AuthService.AuthServiceClient>();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -65,9 +43,10 @@ public class TestWebApp : WebApplicationFactory<Program>
         builder.UseSetting("SkipFrontendBuild", "true");
 
         // Ensure the setup wizard thinks setup is complete so it doesn't redirect
+        // (setup completion is detected by the presence of conf/snakk-config.json)
         var tempStorage = Path.Combine(Path.GetTempPath(), "snakk-tests-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempStorage);
-        File.WriteAllText(Path.Combine(tempStorage, ".setup-complete"), "test");
+        Directory.CreateDirectory(Path.Combine(tempStorage, "conf"));
+        File.WriteAllText(Path.Combine(tempStorage, "conf", "snakk-config.json"), "{}");
 
         builder.UseSetting("FileStorage:BasePath", tempStorage);
 
@@ -89,11 +68,11 @@ public class TestWebApp : WebApplicationFactory<Program>
         {
             // Replace SnakkApiClient with mock
             services.RemoveAll<SnakkApiClient>();
-            services.AddSingleton(MockApiClient.Object);
+            services.AddSingleton(MockApiClient);
 
             // Replace AuthServiceClient with mock (used by RefreshToken endpoint)
             services.RemoveAll<AuthService.AuthServiceClient>();
-            services.AddSingleton(MockAuthClient.Object);
+            services.AddSingleton(MockAuthClient);
 
             // Replace gRPC channel with a dummy (prevents connection attempts to real API)
             var dummyChannel = Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:19999");

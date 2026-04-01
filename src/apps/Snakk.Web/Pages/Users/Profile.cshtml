@@ -59,12 +59,7 @@ else
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h1>@Model.Profile.DisplayName</h1>
-                        <a href="/u/@UlidBase62.Encode(Model.Profile.PublicId)/feed.xml"
-                           class="btn btn-ghost btn-sm btn-square" title="RSS Feed" target="_blank" rel="noopener">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
-                            </svg>
-                        </a>
+                        <partial name="Shared/_FeedDropdown" model="@($"/u/{UlidBase62.Encode(Model.Profile.PublicId)}/feed")" />
                         <div id="profile-actions" class="ml-auto">
                             <div class="skeleton h-8 w-24"></div>
                         </div>

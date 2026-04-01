@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Google.Protobuf.WellKnownTypes;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Post;
 using Snakk.Web.Services;
@@ -53,8 +53,8 @@ public class BffDiscussionTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetRecentDiscussionsAsync(0, 20, null))
-            .ReturnsAsync(pagedResult);
+            .GetRecentDiscussionsAsync(0, 20, null)
+            .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -85,8 +85,8 @@ public class BffDiscussionTests
         };
 
         app.MockApiClient
-            .Setup(c => c.GetRecentDiscussionsAsync(20, 10, "comm-001"))
-            .ReturnsAsync(pagedResult);
+            .GetRecentDiscussionsAsync(20, 10, "comm-001")
+            .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -97,9 +97,7 @@ public class BffDiscussionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called with the correct parameters
-        app.MockApiClient.Verify(
-            c => c.GetRecentDiscussionsAsync(20, 10, "comm-001"),
-            Times.Once);
+        await app.MockApiClient.Received(1).GetRecentDiscussionsAsync(20, 10, "comm-001");
     }
 
     // ==================== Space Discussions ====================
@@ -126,8 +124,8 @@ public class BffDiscussionTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetSpaceDiscussionsAsync("space-001", 0, 20))
-            .ReturnsAsync(pagedResult);
+            .GetSpaceDiscussionsAsync("space-001", 0, 20)
+            .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -151,8 +149,8 @@ public class BffDiscussionTests
 
         // SnakkApiClient.GetSpaceDiscussionsAsync catches exceptions and returns null
         app.MockApiClient
-            .Setup(c => c.GetSpaceDiscussionsAsync("space-bad", 0, 20))
-            .ReturnsAsync((PagedDiscussionBySpaceList?)null);
+            .GetSpaceDiscussionsAsync("space-bad", 0, 20)
+            .Returns((PagedDiscussionBySpaceList?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -201,8 +199,8 @@ public class BffDiscussionTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetDiscussionPostsAsync("disc-001", 0, 20))
-            .ReturnsAsync(pagedResult);
+            .GetDiscussionPostsAsync("disc-001", 0, 20)
+            .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -226,8 +224,8 @@ public class BffDiscussionTests
 
         // GetDiscussionPostsAsync returns null when no posts found
         app.MockApiClient
-            .Setup(c => c.GetDiscussionPostsAsync("disc-missing", 0, 20))
-            .ReturnsAsync((PagedEnrichedPostList?)null);
+            .GetDiscussionPostsAsync("disc-missing", 0, 20)
+            .Returns((PagedEnrichedPostList?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -247,8 +245,8 @@ public class BffDiscussionTests
         await using var app = new TestWebApp();
 
         app.MockApiClient
-            .Setup(c => c.EditPostResultAsync("post-001", "Updated content"))
-            .ReturnsAsync(GrpcResult<EditPostResponse>.Ok(new EditPostResponse
+            .EditPostResultAsync("post-001", "Updated content")
+            .Returns(GrpcResult<EditPostResponse>.Ok(new EditPostResponse
             {
                 RenderedHtml = "<p>Updated content</p>"
             }));
@@ -262,9 +260,7 @@ public class BffDiscussionTests
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        app.MockApiClient.Verify(
-            c => c.EditPostResultAsync("post-001", "Updated content"),
-            Times.Once);
+        await app.MockApiClient.Received(1).EditPostResultAsync("post-001", "Updated content");
     }
 
     [Test]
@@ -275,8 +271,8 @@ public class BffDiscussionTests
 
         // InvalidArgument maps to BadRequest via MapGrpcError
         app.MockApiClient
-            .Setup(c => c.EditPostResultAsync("post-001", "Bad content"))
-            .ReturnsAsync(GrpcResult<EditPostResponse>.InvalidArgument("Content is invalid"));
+            .EditPostResultAsync("post-001", "Bad content")
+            .Returns(GrpcResult<EditPostResponse>.InvalidArgument("Content is invalid"));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -296,8 +292,8 @@ public class BffDiscussionTests
 
         // ServerError maps to 503 via MapGrpcError
         app.MockApiClient
-            .Setup(c => c.EditPostResultAsync("post-001", "Some content"))
-            .ReturnsAsync(GrpcResult<EditPostResponse>.ServerError("Internal error"));
+            .EditPostResultAsync("post-001", "Some content")
+            .Returns(GrpcResult<EditPostResponse>.ServerError("Internal error"));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -318,8 +314,8 @@ public class BffDiscussionTests
         await using var app = new TestWebApp();
 
         app.MockApiClient
-            .Setup(c => c.GetDiscussionPreviewAsync("disc-001"))
-            .ReturnsAsync(new DiscussionPreviewInfo
+            .GetDiscussionPreviewAsync("disc-001")
+            .Returns(new DiscussionPreviewInfo
             {
                 Content = "<p>This is a preview of the discussion</p>"
             });
@@ -345,8 +341,8 @@ public class BffDiscussionTests
 
         // GetDiscussionPreviewAsync returns null when discussion not found
         app.MockApiClient
-            .Setup(c => c.GetDiscussionPreviewAsync("disc-missing"))
-            .ReturnsAsync((DiscussionPreviewInfo?)null);
+            .GetDiscussionPreviewAsync("disc-missing")
+            .Returns((DiscussionPreviewInfo?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -366,7 +362,7 @@ public class BffDiscussionTests
         await using var app = new TestWebApp();
 
         app.MockApiClient
-            .Setup(c => c.MarkDiscussionAsReadAsync("disc-001", "test-user-001", "post-005"))
+            .MarkDiscussionAsReadAsync("disc-001", "test-user-001", "post-005")
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -379,8 +375,6 @@ public class BffDiscussionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called with the correct parameters
-        app.MockApiClient.Verify(
-            c => c.MarkDiscussionAsReadAsync("disc-001", "test-user-001", "post-005"),
-            Times.Once);
+        await app.MockApiClient.Received(1).MarkDiscussionAsReadAsync("disc-001", "test-user-001", "post-005");
     }
 }

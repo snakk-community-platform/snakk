@@ -59,6 +59,7 @@ message HubInfo {
   bool parent_community_has_rules = 13;
   string team_revision = 14;
   bool is_restricted = 15;
+  string community_slug = 16;
 }
 
 message PagedHubList {

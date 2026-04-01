@@ -63,6 +63,12 @@
 .breadcrumb-separator {
     color: var(--breadcrumb-text);
     opacity: 0.5;
+    font-size: 0;
+
+    &::before {
+        content: "›";
+        font-size: 0.875rem;
+    }
 }
 
 .breadcrumb-list {

@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Follow;
 using Snakk.Web.Services;
 using Snakk.Web.Tests.Helpers;
@@ -31,8 +31,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetSpaceFollowStatusAsync(It.IsAny<string>()))
-            .ReturnsAsync(new SpaceFollowStatusResponse { IsFollowing = true, Level = "AllActivity" });
+            .GetSpaceFollowStatusAsync(Arg.Any<string>())
+            .Returns(new SpaceFollowStatusResponse { IsFollowing = true, Level = "AllActivity" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -53,8 +53,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetSpaceFollowStatusAsync(It.IsAny<string>()))
-            .ReturnsAsync(new SpaceFollowStatusResponse { IsFollowing = false });
+            .GetSpaceFollowStatusAsync(Arg.Any<string>())
+            .Returns(new SpaceFollowStatusResponse { IsFollowing = false });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -74,8 +74,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.ToggleSpaceFollowResultAsync(It.IsAny<string>(), It.IsAny<string?>()))
-            .ReturnsAsync(GrpcResult<SpaceFollowToggleResponse>.Ok(
+            .ToggleSpaceFollowResultAsync(Arg.Any<string>(), Arg.Any<string?>())
+            .Returns(GrpcResult<SpaceFollowToggleResponse>.Ok(
                 new SpaceFollowToggleResponse { IsFollowing = true, Level = "DiscussionsOnly" }));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -97,8 +97,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.ToggleSpaceFollowResultAsync(It.IsAny<string>(), It.IsAny<string?>()))
-            .ReturnsAsync(GrpcResult<SpaceFollowToggleResponse>.ServerError());
+            .ToggleSpaceFollowResultAsync(Arg.Any<string>(), Arg.Any<string?>())
+            .Returns(GrpcResult<SpaceFollowToggleResponse>.ServerError());
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -115,8 +115,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SetSpaceFollowLevelAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(new FollowLevelResponse { Level = "AllActivity" });
+            .SetSpaceFollowLevelAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new FollowLevelResponse { Level = "AllActivity" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -138,8 +138,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetDiscussionFollowStatusAsync(It.IsAny<string>()))
-            .ReturnsAsync(new FollowToggleResponse { IsFollowing = true });
+            .GetDiscussionFollowStatusAsync(Arg.Any<string>())
+            .Returns(new FollowToggleResponse { IsFollowing = true });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -159,8 +159,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.ToggleDiscussionFollowResultAsync(It.IsAny<string>()))
-            .ReturnsAsync(GrpcResult<FollowToggleResponse>.Ok(
+            .ToggleDiscussionFollowResultAsync(Arg.Any<string>())
+            .Returns(GrpcResult<FollowToggleResponse>.Ok(
                 new FollowToggleResponse { IsFollowing = false }));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -183,8 +183,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetUserFollowStatusAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(new FollowToggleResponse { IsFollowing = true });
+            .GetUserFollowStatusAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new FollowToggleResponse { IsFollowing = true });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -204,8 +204,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.ToggleUserFollowResultAsync(It.IsAny<string>()))
-            .ReturnsAsync(GrpcResult<FollowToggleResponse>.Ok(
+            .ToggleUserFollowResultAsync(Arg.Any<string>())
+            .Returns(GrpcResult<FollowToggleResponse>.Ok(
                 new FollowToggleResponse { IsFollowing = true }));
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -226,8 +226,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.ToggleUserFollowResultAsync(It.IsAny<string>()))
-            .ReturnsAsync(GrpcResult<FollowToggleResponse>.ServerError());
+            .ToggleUserFollowResultAsync(Arg.Any<string>())
+            .Returns(GrpcResult<FollowToggleResponse>.ServerError());
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -246,8 +246,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetFollowedSpacesAsync())
-            .ReturnsAsync(new List<string> { "space-001", "space-002", "space-003" });
+            .GetFollowedSpacesAsync()
+            .Returns(new List<string> { "space-001", "space-002", "space-003" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -268,8 +268,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetFollowedDiscussionsAsync())
-            .ReturnsAsync(new List<string> { "disc-001", "disc-002" });
+            .GetFollowedDiscussionsAsync()
+            .Returns(new List<string> { "disc-001", "disc-002" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -290,8 +290,8 @@ public class BffFollowTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetFollowedUsersAsync())
-            .ReturnsAsync(new List<string> { "user-001" });
+            .GetFollowedUsersAsync()
+            .Returns(new List<string> { "user-001" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -313,8 +313,8 @@ public class BffFollowTests
         await using var app = new TestWebApp();
         // Mock returns empty list (simulating unauthenticated user getting no results)
         app.MockApiClient
-            .Setup(c => c.GetFollowedSpacesAsync())
-            .ReturnsAsync(new List<string>());
+            .GetFollowedSpacesAsync()
+            .Returns(new List<string>());
 
         var client = app.CreateClient();
 

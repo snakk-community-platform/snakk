@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -20,7 +20,7 @@ public class SpaceManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SpaceManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new SpaceManagementService(_context, new Mock<ILogger<SpaceManagementService>>().Object);
+        _service = new SpaceManagementService(_context, Substitute.For<ILogger<SpaceManagementService>>());
     }
 
     public void Dispose()

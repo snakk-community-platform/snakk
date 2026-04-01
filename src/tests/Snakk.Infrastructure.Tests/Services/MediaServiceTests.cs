@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -17,7 +17,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class MediaServiceTests : IAsyncDisposable
 {
     private readonly SnakkDbContext _db;
-    private readonly Mock<IFileStorage> _fileStorage;
+    private readonly IFileStorage _fileStorage;
     private readonly MediaService _service;
     private readonly string _testUserPublicId = Guid.NewGuid().ToString();
 
@@ -28,7 +28,7 @@ public class MediaServiceTests : IAsyncDisposable
             .Options;
 
         _db = new SnakkDbContext(options);
-        _fileStorage = new Mock<IFileStorage>();
+        _fileStorage = Substitute.For<IFileStorage>();
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -37,8 +37,8 @@ public class MediaServiceTests : IAsyncDisposable
             })
             .Build();
 
-        var logger = new Mock<ILogger<MediaService>>();
-        _service = new MediaService(_db, _fileStorage.Object, config, logger.Object);
+        var logger = Substitute.For<ILogger<MediaService>>();
+        _service = new MediaService(_db, _fileStorage, config, logger);
 
         // Seed a test user
         _db.Users.Add(new UserDatabaseEntity
@@ -94,10 +94,10 @@ public class MediaServiceTests : IAsyncDisposable
         await Assert.That(result.Url).Contains(".webp");
         await Assert.That(result.PublicId).IsNotNull();
 
-        _fileStorage.Verify(f => f.SaveAsync(
-            It.Is<string>(p => p.StartsWith("media/posts/") && p.EndsWith(".webp")),
-            It.IsAny<Stream>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(
+            Arg.Is<string>(p => p.StartsWith("media/posts/") && p.EndsWith(".webp")),
+            Arg.Any<Stream>(),
+            Arg.Any<CancellationToken>());
 
         var dbRecord = await _db.Media.FirstOrDefaultAsync();
         await Assert.That(dbRecord).IsNotNull();
@@ -109,8 +109,8 @@ public class MediaServiceTests : IAsyncDisposable
     public async Task UploadAsync_DeduplicatesByHash()
     {
         // Arrange — create identical images (same pixels = same re-encoded output)
-        _fileStorage.Setup(f => f.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
 
         using var content1 = CreateTestImage(5, 5, "png");
         var data = content1.ToArray();
@@ -121,10 +121,10 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Assert — same URL, file saved only once
         await Assert.That(result1.Url).IsEqualTo(result2.Url);
-        _fileStorage.Verify(f => f.SaveAsync(
-            It.IsAny<string>(),
-            It.IsAny<Stream>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(
+            Arg.Any<string>(),
+            Arg.Any<Stream>(),
+            Arg.Any<CancellationToken>());
 
         var mediaCount = await _db.Media.CountAsync();
         await Assert.That(mediaCount).IsEqualTo(1);
@@ -216,13 +216,12 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Assert — verify the saved file is smaller than the input (resized)
         Stream? savedStream = null;
-        _fileStorage.Setup(f => f.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((_, s, _) =>
+        _fileStorage.SaveAsync(Arg.Any<string>(), Arg.Do<Stream>(s =>
             {
                 savedStream = new MemoryStream();
                 s.CopyTo(savedStream);
                 savedStream.Position = 0;
-            });
+            }), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // The DB record should exist with smaller size than original
         var dbRecord = await _db.Media.FirstAsync();

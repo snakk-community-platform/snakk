@@ -682,4 +682,103 @@ public class MarkupParserTests
     }
 
     #endregion
+
+    #region Entity Link Tests
+
+    [Test]
+    public async Task ToHtml_WithBareCommunityPath_CreatesEntityLink()
+    {
+        var result = _parser.ToHtml("Check out /c/gaming for more");
+
+        await Assert.That(result).Contains("<a href=\"/c/gaming\" class=\"entity-link\">/c/gaming</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithBareHubPath_CreatesEntityLink()
+    {
+        var result = _parser.ToHtml("Visit /c/gaming/h/fps");
+
+        await Assert.That(result).Contains("<a href=\"/c/gaming/h/fps\" class=\"entity-link\">/c/gaming/h/fps</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithBareSpacePath_CreatesEntityLink()
+    {
+        var result = _parser.ToHtml("See /c/gaming/h/fps/csgo");
+
+        await Assert.That(result).Contains("<a href=\"/c/gaming/h/fps/csgo\" class=\"entity-link\">/c/gaming/h/fps/csgo</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithBareDiscussionPath_CreatesEntityLink()
+    {
+        var result = _parser.ToHtml("Read /c/gaming/h/fps/csgo/tips~abc123");
+
+        await Assert.That(result).Contains("class=\"entity-link\"");
+        await Assert.That(result).Contains("/c/gaming/h/fps/csgo/tips~abc123</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithBareUserPath_CreatesEntityLink()
+    {
+        var result = _parser.ToHtml("Profile: /u/abc123def");
+
+        await Assert.That(result).Contains("<a href=\"/u/abc123def\" class=\"entity-link\">/u/abc123def</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithFullUrl_CreatesEntityLinkWithPathText()
+    {
+        var result = _parser.ToHtml("Visit https://example.com/c/gaming/h/fps");
+
+        await Assert.That(result).Contains("class=\"entity-link\"");
+        await Assert.That(result).Contains(">/c/gaming/h/fps</a>");
+    }
+
+    [Test]
+    public async Task ToHtml_WithMarkdownLinkToInternalPath_AddsEntityLinkClass()
+    {
+        var result = _parser.ToHtml("[FPS Hub](/c/gaming/h/fps)");
+
+        await Assert.That(result).Contains("class=\"entity-link\"");
+        await Assert.That(result).Contains(">FPS Hub</a>");
+        await Assert.That(result).DoesNotContain("target=\"_blank\"");
+    }
+
+    [Test]
+    public async Task ToHtml_WithEntityLink_DoesNotAddTargetBlank()
+    {
+        var result = _parser.ToHtml("Check /c/gaming/h/fps");
+
+        await Assert.That(result).DoesNotContain("target=\"_blank\"");
+        await Assert.That(result).DoesNotContain("nofollow");
+    }
+
+    [Test]
+    public async Task ToHtml_WithEntityLinkInCodeBlock_DoesNotConvert()
+    {
+        var result = _parser.ToHtml("```\n/c/gaming/h/fps\n```");
+
+        await Assert.That(result).DoesNotContain("entity-link");
+        await Assert.That(result).Contains("/c/gaming/h/fps");
+    }
+
+    [Test]
+    public async Task ToHtml_WithEntityLinkInInlineCode_DoesNotConvert()
+    {
+        var result = _parser.ToHtml("Use the path `/c/gaming/h/fps` to navigate");
+
+        await Assert.That(result).DoesNotContain("entity-link");
+    }
+
+    [Test]
+    public async Task ToHtml_WithNonEntityRelativePath_DoesNotCreateEntityLink()
+    {
+        var result = _parser.ToHtml("[Link](/some/other/path)");
+
+        await Assert.That(result).DoesNotContain("entity-link");
+        await Assert.That(result).Contains("target=\"_blank\"");
+    }
+
+    #endregion
 }

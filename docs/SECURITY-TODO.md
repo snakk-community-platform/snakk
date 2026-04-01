@@ -164,3 +164,28 @@ This document tracks the remaining HIGH and MEDIUM severity items.
 | C5 | @Html.Raw() on user content | False positive — Markdig `.DisableHtml()` escapes raw HTML |
 | C6 | SSRF via webhook URLs | Added URL validation blocking private IPs, localhost, non-http schemes |
 | C7 | SQL injection in MetricsService | False positive — EF Core auto-parameterizes FormattableString |
+| H1 | No account lockout | Added FailedLoginAttempts + LockoutEnd to User entity; locks after 10 failures for 15 min |
+| H2 | No rate limit on 2FA verify | Added `.RequireRateLimiting("auth")` to verify endpoint |
+| H3 | No JWT revocation | Added jti claim + IMemoryCache blacklist; `RevokeToken()` on IJwtTokenService |
+| H4 | IDOR: trusted device revocation | New `RevokeDeviceForUserAsync` verifies device ownership |
+| H5 | IDOR: BFF follow-status | `currentUserId` now read from auth claims, not query param |
+| H6 | IDOR: BFF mark-as-read | `userId` now read from auth claims, not query param |
+| H7 | 2FA disable without TOTP | DisableTwoFactorRequest now requires TotpCode; verified before disable |
+| H8 | OAuth: no state param | Crypto random state generated in Challenge, validated in Callback |
+| H9 | Refresh token uses GUID | Replaced with `RandomNumberGenerator.GetBytes(32)` |
+| H10 | Path traversal in LocalFileStorage | `ResolveSafePath()` validates path stays within base directory |
+| H11 | Timing attack on API key | Replaced `!=` with `CryptographicOperations.FixedTimeEquals` |
+| H12 | 2FA secrets in plaintext | Encrypted with ASP.NET Data Protection API via `ITwoFactorSecretProtector` |
+| H13 | CSRF disabled on uploads | Restored `.DisableAntiforgery()` — these are fetch() API calls protected by JWT auth, not form submissions |
+| M1 | SameSite=Lax on auth cookies | Dual-cookie pattern: Strict for mutations, Lax for personalization |
+| M2 | AllowedHosts: "*" | Changed to "localhost" in all base appsettings.json |
+| M3 | Email enumeration via timing | Dummy BCrypt verify when email not found |
+| M4 | Email enumeration via 2FA | Already returns same error for both cases |
+| M6 | 90-day refresh token | Already 30 days — no change needed |
+| M7 | Debug pane in base config | Set ShowCommunityDebugPane to false |
+| M8 | PII in logs | MaskEmail helper in AuthAuditLogger (j***n@example.com) |
+| M9 | Emails unencrypted | Data Protection API via IEmailProtector + SHA-256 EmailHash for lookups |
+| M11 | Webhook endpoints no role | Added RequireRole("Admin") to webhook admin group |
+| M12 | Password complexity on gRPC | Moved regex validation to AuthenticationUseCase.RegisterWithEmailAsync |
+| M13 | Inefficient token lookup | Added GetByEmailVerificationTokenAsync to IUserRepository |
+| M15 | Device fingerprint + management | UserAgent validation on token refresh; device list + revoke UI in settings |

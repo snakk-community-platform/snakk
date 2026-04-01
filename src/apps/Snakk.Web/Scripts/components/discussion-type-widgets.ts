@@ -21,6 +21,7 @@
         if (discussionType === 'Debate') initDebateActions(discussionId, isAuthenticated);
         if (discussionType === 'Journal') initJournalActions(discussionId, isAuthenticated);
         if (discussionType === 'Guide') initGuideToc();
+        if (discussionType === 'Link') initLinkEmbed();
     }
 
     if (document.readyState === 'loading') {
@@ -291,6 +292,92 @@
         tocHtml += '</ul></div>';
 
         container.innerHTML = tocHtml;
+    }
+
+    // ─── Link: oEmbed toggle ──────────────────────────────────
+
+    const OEMBED_ALLOWED_DOMAINS = [
+        'youtube.com', 'www.youtube.com',
+        'vimeo.com', 'player.vimeo.com',
+        'open.spotify.com',
+        'codepen.io',
+        'twitter.com', 'platform.twitter.com', 'x.com',
+        'reddit.com', 'www.reddit.com', 'embed.reddit.com',
+        'imgur.com', 'i.imgur.com',
+        'tiktok.com', 'www.tiktok.com',
+        'bsky.app', 'embed.bsky.app',
+        'canva.com', 'www.canva.com',
+        'soundcloud.com', 'w.soundcloud.com',
+        'twitch.tv', 'player.twitch.tv', 'clips.twitch.tv',
+        'bandcamp.com'
+    ];
+
+    function extractIframeSrc(html: string): string | null {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const iframe = doc.querySelector('iframe');
+        if (!iframe) return null;
+
+        const src = iframe.getAttribute('src');
+        if (!src) return null;
+
+        try {
+            const url = new URL(src);
+            const hostname = url.hostname.toLowerCase();
+            if (OEMBED_ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))) {
+                return src;
+            }
+        } catch {
+            // invalid URL
+        }
+
+        return null;
+    }
+
+    function initLinkEmbed(): void {
+        const container = document.getElementById('link-preview-container');
+        if (!container) return;
+
+        const embedBtn = container.querySelector('.link-embed-btn') as HTMLButtonElement | null;
+        if (!embedBtn) return;
+
+        const oembedHtml = embedBtn.dataset.oembedHtml || '';
+
+        embedBtn.addEventListener('click', () => {
+            const iframeSrc = extractIframeSrc(oembedHtml);
+            if (!iframeSrc) return;
+
+            const card = container.querySelector('.link-preview-card') as HTMLElement | null;
+
+            // Hide card and embed button
+            if (card) card.style.display = 'none';
+            embedBtn.style.display = 'none';
+
+            // Build embed container
+            const embedContainer = document.createElement('div');
+            embedContainer.className = 'link-embed-container';
+
+            const iframe = document.createElement('iframe');
+            iframe.src = iframeSrc;
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('allow', 'autoplay; encrypted-media');
+            iframe.style.aspectRatio = '16 / 9';
+            embedContainer.appendChild(iframe);
+
+            // Back button
+            const backBtn = document.createElement('button');
+            backBtn.className = 'link-embed-btn';
+            backBtn.textContent = 'Show link card';
+            backBtn.addEventListener('click', () => {
+                embedContainer.remove();
+                backBtn.remove();
+                if (card) card.style.display = '';
+                embedBtn.style.display = '';
+            });
+
+            container.appendChild(embedContainer);
+            container.appendChild(backBtn);
+        });
     }
 
     // Expose for Razor onclick

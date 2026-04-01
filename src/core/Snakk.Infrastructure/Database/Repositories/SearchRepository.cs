@@ -304,6 +304,51 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         };
     }
 
+    public async Task<List<SpaceSearchItemDto>> SearchSpacesAsync(
+        string? query = null,
+        string? hubPublicId = null,
+        string? communityPublicId = null,
+        int limit = 10,
+        string? userId = null)
+    {
+        var baseQuery = _context.Spaces.AsQueryable();
+        baseQuery = await WithSpaceAccessFilterAsync(baseQuery, userId);
+
+        if (!string.IsNullOrEmpty(hubPublicId))
+            baseQuery = baseQuery.Where(s => s.Hub.PublicId == hubPublicId);
+        else if (!string.IsNullOrEmpty(communityPublicId))
+            baseQuery = baseQuery.Where(s => s.Hub.Community.PublicId == communityPublicId);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var pattern = $"%{EscapeLikePattern(query.Trim())}%";
+            baseQuery = baseQuery.Where(s => EF.Functions.ILike(s.Name, pattern));
+        }
+
+        var raw = await baseQuery
+            .OrderByDescending(s => s.DiscussionCount)
+            .ThenBy(s => s.Name)
+            .Take(limit)
+            .Select(s => new
+            {
+                s.PublicId,
+                s.Name,
+                s.Slug,
+                HubSlug = s.Hub.Slug,
+                HubName = s.Hub.Name,
+                CommunitySlug = s.Hub.Community.Slug,
+                s.DiscussionCount,
+                CommunityName = s.Hub.Community.Name
+            })
+            .ToListAsync();
+
+        return raw.Select(s => new SpaceSearchItemDto(
+            s.PublicId, s.Name, s.Slug, s.HubSlug, s.HubName,
+            s.CommunitySlug, s.DiscussionCount, s.CommunityName,
+            Snakk.Shared.Helpers.AvatarHelper.GetAvatarUrl(s.PublicId, Snakk.Shared.Helpers.AvatarEntityType.Space, 0)))
+            .ToList();
+    }
+
     public async Task<PagedResult<SpaceListItemDto>> GetSpacesByHubAsync(
         string hubPublicId,
         int offset = 0,

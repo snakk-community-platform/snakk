@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -16,7 +16,7 @@ public class SettingsServiceTests : IDisposable
     private readonly SnakkDbContext _context;
     private readonly ServiceProvider _cacheServiceProvider;
     private readonly IConfiguration _configuration;
-    private readonly Mock<ISecurityService> _mockSecurityService;
+    private readonly ISecurityService _securityService;
     private readonly SettingsService _service;
 
     public SettingsServiceTests()
@@ -41,7 +41,7 @@ public class SettingsServiceTests : IDisposable
             .AddInMemoryCollection(configValues)
             .Build();
 
-        _mockSecurityService = new Mock<ISecurityService>();
+        _securityService = Substitute.For<ISecurityService>();
 
         // Use EphemeralDataProtectionProvider for testing
         var dataProtectionProvider = new EphemeralDataProtectionProvider();
@@ -51,7 +51,7 @@ public class SettingsServiceTests : IDisposable
             cache,
             dataProtectionProvider,
             _configuration,
-            _mockSecurityService.Object);
+            _securityService);
     }
 
     public void Dispose()
@@ -248,17 +248,17 @@ public class SettingsServiceTests : IDisposable
 
         // Should not be in cache anymore (would need to re-query)
         // Verify audit log was created
-        _mockSecurityService.Verify(s => s.LogAuditAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<bool>(),
-            It.IsAny<Snakk.Shared.Enums.AuditLogSeverityEnum>()), Times.Once);
+        _securityService.Received(1).LogAuditAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<bool>(),
+            Arg.Any<Snakk.Shared.Enums.AuditLogSeverityEnum>());
     }
 
     #endregion

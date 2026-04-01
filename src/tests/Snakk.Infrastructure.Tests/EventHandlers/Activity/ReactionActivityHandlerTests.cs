@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
@@ -13,7 +13,7 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Activity;
 public class ReactionActivityHandlerTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly Mock<IActivityBroadcaster> _mockBroadcaster;
+    private readonly IActivityBroadcaster _broadcaster;
 
     public ReactionActivityHandlerTests()
     {
@@ -21,7 +21,7 @@ public class ReactionActivityHandlerTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"ReactionActivityHandlerTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _mockBroadcaster = new Mock<IActivityBroadcaster>();
+        _broadcaster = Substitute.For<IActivityBroadcaster>();
     }
 
     public void Dispose()
@@ -103,7 +103,7 @@ public class ReactionActivityHandlerTests : IDisposable
     [Test]
     public async Task HandleAsync_ReactionNotFound_DoesNotBroadcast()
     {
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("nonexistent"),
             PostId.From("nonexistent"),
@@ -112,9 +112,9 @@ public class ReactionActivityHandlerTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _broadcaster.DidNotReceive().BroadcastReactionAdded(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Test]
@@ -133,7 +133,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_agree"),
             PostId.From("post_react"),
@@ -142,13 +142,13 @@ public class ReactionActivityHandlerTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+        _broadcaster.Received(1).BroadcastReactionAdded(
             "user_react",
             "ReactUser",
             "Agree",
             "post",
             "post_react",
-            "Reaction Discussion"), Times.Once);
+            "Reaction Discussion");
     }
 
     [Test]
@@ -167,7 +167,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_love"),
             PostId.From("post_react"),
@@ -176,13 +176,13 @@ public class ReactionActivityHandlerTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+        _broadcaster.Received(1).BroadcastReactionAdded(
             "user_react",
             "ReactUser",
             "Love",
             "post",
             "post_react",
-            "Reaction Discussion"), Times.Once);
+            "Reaction Discussion");
     }
 
     [Test]
@@ -201,7 +201,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_target"),
             PostId.From("post_react"),
@@ -210,13 +210,13 @@ public class ReactionActivityHandlerTests : IDisposable
 
         await handler.HandleAsync(@event);
 
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
+        _broadcaster.Received(1).BroadcastReactionAdded(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
             "post",
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+            Arg.Any<string>(),
+            Arg.Any<string>());
     }
 
     [Test]
@@ -235,7 +235,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_userid"),
             PostId.From("post_react"),
@@ -245,13 +245,13 @@ public class ReactionActivityHandlerTests : IDisposable
         await handler.HandleAsync(@event);
 
         // Verify the userId comes from the event, not from the database lookup
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
+        _broadcaster.Received(1).BroadcastReactionAdded(
             "user_react",
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>());
     }
 
     [Test]
@@ -270,7 +270,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_display"),
             PostId.From("post_react"),
@@ -280,13 +280,13 @@ public class ReactionActivityHandlerTests : IDisposable
         await handler.HandleAsync(@event);
 
         // Verify the display name "ReactUser" is resolved from the database entity
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
-            It.IsAny<string>(),
+        _broadcaster.Received(1).BroadcastReactionAdded(
+            Arg.Any<string>(),
             "ReactUser",
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>());
     }
 
     [Test]
@@ -305,7 +305,7 @@ public class ReactionActivityHandlerTests : IDisposable
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedActivityHandler(_mockBroadcaster.Object, _context);
+        var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_title"),
             PostId.From("post_react"),
@@ -315,12 +315,12 @@ public class ReactionActivityHandlerTests : IDisposable
         await handler.HandleAsync(@event);
 
         // Verify discussion title is resolved through the post -> discussion relationship
-        _mockBroadcaster.Verify(b => b.BroadcastReactionAdded(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            "Reaction Discussion"), Times.Once);
+        _broadcaster.Received(1).BroadcastReactionAdded(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            "Reaction Discussion");
     }
 }

@@ -102,6 +102,8 @@
             <!-- Brand -->
             <a class="brand-text" href="/">@(CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null ? CommunityContext.CommunityName : "Snakk")</a>
 
+            <a href="/communities" class="btn btn-ghost btn-sm hidden sm:inline-flex text-sm">Communities</a>
+
             <!-- Desktop Search -->
             <form method="get" action="/search" class="hidden sm:flex items-center gap-1 flex-1 max-w-md" hx-boost="false" id="search-form">
                 <div class="relative flex-1" id="search-wrapper">

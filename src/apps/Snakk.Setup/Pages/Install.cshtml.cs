@@ -5,11 +5,11 @@ namespace Snakk.Setup.Pages;
 
 public class InstallModel(SetupService setupService) : SetupPageBase
 {
-    public void OnGet() => ViewData["SetupStep"] = 10;
+    public void OnGet() => ViewData["SetupStep"] = 12;
 
     public IActionResult OnPost()
     {
-        ViewData["SetupStep"] = 10;
+        ViewData["SetupStep"] = 12;
         var state = GetState();
         setupService.StartInstallInBackground(state);
 
@@ -42,9 +42,9 @@ public class InstallModel(SetupService setupService) : SetupPageBase
             MaxAge = TimeSpan.FromHours(1)
         });
 
-        // Write .setup-complete marker file (triggers Docker entrypoint to restart services)
+        // Scrub sensitive data from config (snakk-config.json is already written)
         var state = GetState();
-        setupService.MarkSetupComplete(state.AvatarStoragePath);
+        setupService.ScrubSensitiveConfig(state.AvatarStoragePath);
 
         // Clear session and progress
         HttpContext.Session.Clear();

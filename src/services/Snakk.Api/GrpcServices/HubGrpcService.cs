@@ -187,7 +187,7 @@ public class HubGrpcService(
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
-    private sealed record HubMeta(bool HasRules, string? RulesRevision, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted);
+    private sealed record HubMeta(bool HasRules, string? RulesRevision, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, string? CommunitySlug);
     private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     private async Task PopulateRulesMetadata(HubInfo info, string publicId)
@@ -198,9 +198,9 @@ public class HubGrpcService(
             {
                 var raw = await dbContext.Hubs
                     .Where(h => h.PublicId == publicId)
-                    .Select(h => new { h.HasRules, h.RulesRevision, h.ParentCommunityHasRules, h.TeamRevision, h.IsRestricted })
+                    .Select(h => new { h.HasRules, h.RulesRevision, h.ParentCommunityHasRules, h.TeamRevision, h.IsRestricted, CommunitySlug = h.Community.Slug })
                     .FirstOrDefaultAsync(cancel);
-                return raw is null ? null : new HubMeta(raw.HasRules, raw.RulesRevision, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted);
+                return raw is null ? null : new HubMeta(raw.HasRules, raw.RulesRevision, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.CommunitySlug);
             },
             MetaCacheOptions);
 
@@ -211,6 +211,7 @@ public class HubGrpcService(
             info.ParentCommunityHasRules = data.ParentCommunityHasRules;
             info.TeamRevision = data.TeamRevision ?? "";
             info.IsRestricted = data.IsRestricted;
+            info.CommunitySlug = data.CommunitySlug ?? "";
         }
     }
 

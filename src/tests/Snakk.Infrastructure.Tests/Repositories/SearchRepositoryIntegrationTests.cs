@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -22,10 +22,10 @@ public class SearchRepositoryIntegrationTests : IDisposable
     {
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
-        var mockGrants = new Mock<IUserGrantsCacheService>();
-        mockGrants.Setup(g => g.GetGrantsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new UserGrants([], [], []));
-        _repository = new SearchRepository(_db.Context, mockGrants.Object);
+        var mockGrants = Substitute.For<IUserGrantsCacheService>();
+        mockGrants.GetGrantsAsync(Arg.Any<string>())
+            .Returns(new UserGrants([], [], []));
+        _repository = new SearchRepository(_db.Context, mockGrants);
     }
 
     public void Dispose() => _db.Dispose();

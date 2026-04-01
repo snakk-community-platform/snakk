@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Moq;
+using NSubstitute;
 using Snakk.Protos;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Follow;
@@ -76,20 +76,20 @@ public class BffMiscTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetRecentDiscussionsAsync(0, 10, null))
-            .ReturnsAsync(recentDiscussions);
+            .GetRecentDiscussionsAsync(0, 10, null)
+            .Returns(recentDiscussions);
 
         app.MockApiClient
-            .Setup(c => c.GetTopActiveDiscussionsAsync(null))
-            .ReturnsAsync(topActiveDiscussions);
+            .GetTopActiveDiscussionsAsync(null)
+            .Returns(topActiveDiscussions);
 
         app.MockApiClient
-            .Setup(c => c.GetTopActiveSpacesAsync(null))
-            .ReturnsAsync(topActiveSpaces);
+            .GetTopActiveSpacesAsync(null)
+            .Returns(topActiveSpaces);
 
         app.MockApiClient
-            .Setup(c => c.GetTopContributorsAsync(null))
-            .ReturnsAsync(topContributors);
+            .GetTopContributorsAsync(null)
+            .Returns(topContributors);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -164,21 +164,21 @@ public class BffMiscTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetRecentDiscussionsAsync(0, 10, null))
-            .ReturnsAsync(recentDiscussions);
+            .GetRecentDiscussionsAsync(0, 10, null)
+            .Returns(recentDiscussions);
 
         // GetTopActiveDiscussionsAsync returns null (simulating gRPC failure caught by SnakkApiClient)
         app.MockApiClient
-            .Setup(c => c.GetTopActiveDiscussionsAsync(null))
-            .ReturnsAsync((TopActiveDiscussionsList?)null);
+            .GetTopActiveDiscussionsAsync(null)
+            .Returns((TopActiveDiscussionsList?)null);
 
         app.MockApiClient
-            .Setup(c => c.GetTopActiveSpacesAsync(null))
-            .ReturnsAsync(topActiveSpaces);
+            .GetTopActiveSpacesAsync(null)
+            .Returns(topActiveSpaces);
 
         app.MockApiClient
-            .Setup(c => c.GetTopContributorsAsync(null))
-            .ReturnsAsync(topContributors);
+            .GetTopContributorsAsync(null)
+            .Returns(topContributors);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -211,8 +211,8 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.PreviewMarkupAsync(It.IsAny<string>()))
-            .ReturnsAsync("<p>This is <strong>bold</strong> text</p>");
+            .PreviewMarkupAsync(Arg.Any<string>())
+            .Returns("<p>This is <strong>bold</strong> text</p>");
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -233,8 +233,8 @@ public class BffMiscTests
         await using var app = new TestWebApp();
         // PreviewMarkupAsync catches RpcException and returns null → BFF maps to empty string
         app.MockApiClient
-            .Setup(c => c.PreviewMarkupAsync(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .PreviewMarkupAsync(Arg.Any<string>())
+            .Returns((string?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -256,8 +256,8 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.CreateReportAsync(It.IsAny<CreateReportRequest>()))
-            .ReturnsAsync(new ReportDto(
+            .CreateReportAsync(Arg.Any<CreateReportRequest>())
+            .Returns(new ReportDto(
                 "report-001", "Pending", "test-user-001",
                 null, null, null, null, null,
                 DateTime.UtcNow, null, null, null));
@@ -277,9 +277,7 @@ public class BffMiscTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client received the call
-        app.MockApiClient.Verify(
-            c => c.CreateReportAsync(It.IsAny<CreateReportRequest>()),
-            Times.Once);
+        await app.MockApiClient.Received(1).CreateReportAsync(Arg.Any<CreateReportRequest>());
     }
 
     // ==================== Report Reasons ====================
@@ -297,8 +295,8 @@ public class BffMiscTests
         };
 
         app.MockApiClient
-            .Setup(c => c.GetReportReasonsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync(reasons);
+            .GetReportReasonsAsync(Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>())
+            .Returns(reasons);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -322,8 +320,8 @@ public class BffMiscTests
         await using var app = new TestWebApp();
         // GetReportReasonsAsync catches RpcException and returns null → BFF returns empty array
         app.MockApiClient
-            .Setup(c => c.GetReportReasonsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((IEnumerable<ReportReasonDto>?)null);
+            .GetReportReasonsAsync(Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>())
+            .Returns((IEnumerable<ReportReasonDto>?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -346,7 +344,7 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.BatchUpdateReadStatesAsync(It.IsAny<List<(string, string)>>()))
+            .BatchUpdateReadStatesAsync(Arg.Any<List<(string, string)>>())
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -365,9 +363,7 @@ public class BffMiscTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client received the batch request
-        app.MockApiClient.Verify(
-            c => c.BatchUpdateReadStatesAsync(It.Is<List<(string, string)>>(l => l.Count == 2)),
-            Times.Once);
+        await app.MockApiClient.Received(1).BatchUpdateReadStatesAsync(Arg.Is<List<(string, string)>>(l => l.Count == 2));
     }
 
     // ==================== Set Space Follow Level ====================
@@ -378,8 +374,8 @@ public class BffMiscTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.SetSpaceFollowLevelAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(new FollowLevelResponse { Level = "AllActivity" });
+            .SetSpaceFollowLevelAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new FollowLevelResponse { Level = "AllActivity" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -401,8 +397,8 @@ public class BffMiscTests
         await using var app = new TestWebApp();
         // SetSpaceFollowLevelAsync catches RpcException and returns null → BFF returns BadRequest
         app.MockApiClient
-            .Setup(c => c.SetSpaceFollowLevelAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((FollowLevelResponse?)null);
+            .SetSpaceFollowLevelAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns((FollowLevelResponse?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 

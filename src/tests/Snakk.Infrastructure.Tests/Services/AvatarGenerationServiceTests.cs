@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -11,27 +11,27 @@ namespace Snakk.Infrastructure.Tests.Services;
 
 public class AvatarGenerationServiceTests
 {
-    private Mock<IFileStorage> _mockFileStorage = null!;
+    private IFileStorage _fileStorage = null!;
     private IConfiguration _configuration = null!;
-    private Mock<ILogger<AvatarGenerationService>> _mockLogger = null!;
-    private Mock<IUserRepository> _mockUserRepository = null!;
-    private Mock<IHubRepository> _mockHubRepository = null!;
-    private Mock<ISpaceRepository> _mockSpaceRepository = null!;
-    private Mock<ICommunityRepository> _mockCommunityRepository = null!;
+    private ILogger<AvatarGenerationService> _logger = null!;
+    private IUserRepository _userRepository = null!;
+    private IHubRepository _hubRepository = null!;
+    private ISpaceRepository _spaceRepository = null!;
+    private ICommunityRepository _communityRepository = null!;
     private AvatarGenerationService _service = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _mockFileStorage = new Mock<IFileStorage>();
+        _fileStorage = Substitute.For<IFileStorage>();
 
         // Default: file does not exist
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // Return a public URL for any path
-        _mockFileStorage.Setup(x => x.GetPublicUrl(It.IsAny<string>()))
-            .Returns<string>(path => $"/storage/{path}");
+        _fileStorage.GetPublicUrl(Arg.Any<string>())
+            .Returns<string>(callInfo => $"/storage/{callInfo.Arg<string>()}");
 
         var configValues = new Dictionary<string, string?>
         {
@@ -41,20 +41,20 @@ public class AvatarGenerationServiceTests
             .AddInMemoryCollection(configValues)
             .Build();
 
-        _mockLogger = new Mock<ILogger<AvatarGenerationService>>();
-        _mockUserRepository = new Mock<IUserRepository>();
-        _mockHubRepository = new Mock<IHubRepository>();
-        _mockSpaceRepository = new Mock<ISpaceRepository>();
-        _mockCommunityRepository = new Mock<ICommunityRepository>();
+        _logger = Substitute.For<ILogger<AvatarGenerationService>>();
+        _userRepository = Substitute.For<IUserRepository>();
+        _hubRepository = Substitute.For<IHubRepository>();
+        _spaceRepository = Substitute.For<ISpaceRepository>();
+        _communityRepository = Substitute.For<ICommunityRepository>();
 
         _service = new AvatarGenerationService(
-            _mockFileStorage.Object,
+            _fileStorage,
             _configuration,
-            _mockLogger.Object,
-            _mockUserRepository.Object,
-            _mockHubRepository.Object,
-            _mockSpaceRepository.Object,
-            _mockCommunityRepository.Object);
+            _logger,
+            _userRepository,
+            _hubRepository,
+            _spaceRepository,
+            _communityRepository);
     }
 
     #region GenerateUserAvatarAsync Tests
@@ -69,8 +69,8 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateUserAvatarAsync(userId);
 
         // Assert - Verify file was saved via IFileStorage
-        _mockFileStorage.Verify(x => x.ExistsAsync(It.Is<string>(p => p.Contains("users")), It.IsAny<CancellationToken>()), Times.Once);
-        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("users")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).ExistsAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -79,14 +79,14 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var userId = "u_test456";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true); // File already exists
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true); // File already exists
 
         // Act
         var url = await _service.GenerateUserAvatarAsync(userId);
 
         // Assert - SaveAsync should NOT be called since file exists
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -100,7 +100,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateUserAvatarAsync(userId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.GetPublicUrl(It.IsAny<string>()), Times.Once);
+        _fileStorage.Received(1).GetPublicUrl(Arg.Any<string>());
         await Assert.That(url).StartsWith("/storage/");
     }
 
@@ -110,14 +110,13 @@ public class AvatarGenerationServiceTests
         // Arrange
         var userId = "u_deterministic";
         Stream? savedStream = null;
-        _mockFileStorage.Setup(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((path, stream, ct) =>
+        _fileStorage.SaveAsync(Arg.Any<string>(), Arg.Do<Stream>(stream =>
             {
                 // Capture the stream content
                 savedStream = new MemoryStream();
                 stream.CopyTo(savedStream);
                 savedStream.Position = 0;
-            });
+            }), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // Act
         await _service.GenerateUserAvatarAsync(userId);
@@ -144,7 +143,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateHubAvatarAsync(hubId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("hub")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("hub")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -153,14 +152,14 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var hubId = "h_existing";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _service.GenerateHubAvatarAsync(hubId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -177,7 +176,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateSpaceAvatarAsync(spaceId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("space")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("space")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -195,7 +194,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateCommunityAvatarAsync(communityId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.SaveAsync(It.Is<string>(p => p.Contains("communit")), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("communit")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -208,15 +207,15 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var userId = "u_exists";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         var exists = await _service.AvatarExistsAsync("user", userId);
 
         // Assert
         await Assert.That(exists).IsTrue();
-        _mockFileStorage.Verify(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -224,8 +223,8 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var userId = "u_notexists";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // Act
         var exists = await _service.AvatarExistsAsync("user", userId);
@@ -243,14 +242,14 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var userId = "u_delete";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _service.DeleteAvatarAsync("user", userId);
 
         // Assert
-        _mockFileStorage.Verify(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -258,13 +257,13 @@ public class AvatarGenerationServiceTests
     {
         // Arrange
         var userId = "u_notexists";
-        _mockFileStorage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _fileStorage.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // Act & Assert - should not throw
         var act = async () => await _service.DeleteAvatarAsync("user", userId);
         await Assert.That(act).ThrowsNothing();
-        _mockFileStorage.Verify(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _fileStorage.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -281,9 +280,9 @@ public class AvatarGenerationServiceTests
             CreateUser("user2"),
             CreateUser("user3")
         };
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _userRepository.GetAllAsync().Returns(users);
+        _hubRepository.GetAllAsync().Returns([]);
+        _spaceRepository.GetAllAsync().Returns([]);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
@@ -291,7 +290,7 @@ public class AvatarGenerationServiceTests
         // Assert
         await Assert.That(count).IsEqualTo(3);
         // SaveAsync should be called 3 times (once per user)
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -302,16 +301,16 @@ public class AvatarGenerationServiceTests
         var hubs = new[] { CreateHub("hub1") };
         var spaces = new[] { CreateSpace("space1") };
 
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(hubs);
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(spaces);
+        _userRepository.GetAllAsync().Returns(users);
+        _hubRepository.GetAllAsync().Returns(hubs);
+        _spaceRepository.GetAllAsync().Returns(spaces);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
         // Assert
         await Assert.That(count).IsEqualTo(3);
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -323,14 +322,14 @@ public class AvatarGenerationServiceTests
             CreateUser("user1"),
             CreateUser("user2")
         };
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _userRepository.GetAllAsync().Returns(users);
+        _hubRepository.GetAllAsync().Returns([]);
+        _spaceRepository.GetAllAsync().Returns([]);
 
         // First user's avatar already exists (both in GenerateAllMissing check AND in GenerateUserAvatar check)
         var user1Path = Snakk.Shared.Helpers.AvatarHelper.GetFullRelativePath(users[0].PublicId.Value, Snakk.Shared.Helpers.AvatarEntityType.User, 0);
-        _mockFileStorage.Setup(x => x.ExistsAsync(user1Path, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _fileStorage.ExistsAsync(user1Path, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
@@ -343,16 +342,16 @@ public class AvatarGenerationServiceTests
     public async Task GenerateAllMissingAvatarsAsync_HandlesEmptyRepositories()
     {
         // Arrange
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _userRepository.GetAllAsync().Returns([]);
+        _hubRepository.GetAllAsync().Returns([]);
+        _spaceRepository.GetAllAsync().Returns([]);
 
         // Act
         var count = await _service.GenerateAllMissingAvatarsAsync();
 
         // Assert
         await Assert.That(count).IsEqualTo(0);
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -364,14 +363,14 @@ public class AvatarGenerationServiceTests
             CreateUser("u_user1"),
             CreateUser("u_user2")
         };
-        _mockUserRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(users);
-        _mockHubRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
-        _mockSpaceRepository.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+        _userRepository.GetAllAsync().Returns(users);
+        _hubRepository.GetAllAsync().Returns([]);
+        _spaceRepository.GetAllAsync().Returns([]);
 
         // Make SaveAsync throw for the first user's path
         var callCount = 0;
-        _mockFileStorage.Setup(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Returns<string, Stream, CancellationToken>((path, stream, ct) =>
+        _fileStorage.SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
             {
                 if (Interlocked.Increment(ref callCount) == 1)
                     throw new IOException("Simulated failure");
@@ -400,7 +399,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateUserAvatarAsync(userId, customSize);
 
         // Assert
-        _mockFileStorage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        _fileStorage.Received(1).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 

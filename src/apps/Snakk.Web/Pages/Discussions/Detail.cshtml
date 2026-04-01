@@ -377,18 +377,44 @@
 
     @if (Model.Discussion.Type == "Link" && Model.LinkInfo is not null)
     {
-        <div class="type-widget-container">
-            <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-card">
-                @if (Model.LinkInfo.HasImageUrl)
+        var linkDomain = Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host;
+        var linkImageSrc = Model.LinkInfo.HasLocalImageUrl ? Model.LinkInfo.LocalImageUrl
+                         : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
+                         : null;
+        <div class="type-widget-container" id="link-preview-container">
+            <div class="link-preview-card">
+                @if (linkImageSrc is not null)
                 {
-                    <img src="@Model.LinkInfo.ImageUrl" class="link-preview-image" alt="" />
+                    <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"background-image:url({Model.LinkInfo.BlurDataUri})\"" : "")>
+                        <img src="@linkImageSrc" alt="" class="link-preview-img" onload="this.parentElement.classList.add('loaded')" />
+                    </div>
                 }
                 <div class="link-preview-content">
-                    @if (Model.LinkInfo.HasTitle) { <div class="link-preview-title">@Model.LinkInfo.Title</div> }
-                    @if (Model.LinkInfo.HasDescription) { <div class="link-preview-description">@Model.LinkInfo.Description</div> }
-                    <div class="link-preview-domain">@(Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host)</div>
+                    @if (Model.LinkInfo.IsInternal)
+                    {
+                        <a href="@Model.LinkInfo.Url" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
+                    }
+                    else
+                    {
+                        <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
+                    }
+                    @if (Model.LinkInfo.HasDescription)
+                    {
+                        <p class="link-preview-description">@Model.LinkInfo.Description</p>
+                    }
+                    <span class="link-preview-domain">
+                        @if (!Model.LinkInfo.IsInternal)
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        }
+                        @(Model.LinkInfo.IsInternal ? "Internal link" : linkDomain)
+                    </span>
                 </div>
-            </a>
+            </div>
+            @if (Model.LinkInfo.HasOembedHtml)
+            {
+                <button class="link-embed-btn" data-oembed-html="@Model.LinkInfo.OembedHtml" data-domain="@linkDomain">&#9654; Load embed from @linkDomain</button>
+            }
         </div>
     }
 
@@ -1070,7 +1096,7 @@
                 </a>
                 <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                  model="Model.InlineSpaceRules"
-                                 htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentHubHasRules=@(Model.Space.ParentHubHasRules)&parentCommunityHasRules=@(Model.Space.ParentCommunityHasRules)&rev=@Model.Space.RulesRevision">
+                                 htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
                     <div class="flex flex-col gap-2">
                         <div class="skeleton h-4 w-full"></div>
                         <div class="skeleton h-4 w-5/6"></div>

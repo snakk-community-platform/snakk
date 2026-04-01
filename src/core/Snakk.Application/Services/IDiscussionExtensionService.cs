@@ -29,4 +29,11 @@ public interface IDiscussionExtensionService
     Task CreateJournalAsync(string discussionPublicId);
     Task AddJournalEntryAsync(string discussionPublicId, string postPublicId);
     Task MarkQuestionSolvedAsync(string discussionPublicId, string acceptedPostPublicId);
+
+    Task CreateIamaAsync(
+        string discussionPublicId,
+        bool isScheduled = false,
+        DateTime? scheduledStartUtc = null,
+        DateTime? scheduledEndUtc = null,
+        string? verificationNote = null);
 }

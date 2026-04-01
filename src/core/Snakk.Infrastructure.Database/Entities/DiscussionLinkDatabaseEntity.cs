@@ -15,4 +15,8 @@ public class DiscussionLinkDatabaseEntity
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
     public string? Domain { get; set; }
+    public string? OEmbedHtml { get; set; }
+    public string? LocalImagePath { get; set; }
+    public string? ImageBlurDataUri { get; set; }
+    public bool IsInternal { get; set; }
 }

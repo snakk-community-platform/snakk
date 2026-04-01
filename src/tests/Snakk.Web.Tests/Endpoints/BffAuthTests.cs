@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Grpc.Core;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Auth;
 using Snakk.Web.Tests.Helpers;
 
@@ -25,8 +25,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetAuthStatusAsync())
-            .ReturnsAsync(new AuthStatusResponse
+            .GetAuthStatusAsync()
+            .Returns(new AuthStatusResponse
             {
                 IsAuthenticated = true,
                 PublicId = "user-001",
@@ -59,8 +59,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetAuthStatusAsync())
-            .ReturnsAsync(new AuthStatusResponse { IsAuthenticated = false });
+            .GetAuthStatusAsync()
+            .Returns(new AuthStatusResponse { IsAuthenticated = false });
 
         var client = app.CreateClient();
 
@@ -80,8 +80,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetAuthStatusAsync())
-            .ReturnsAsync((AuthStatusResponse?)null);
+            .GetAuthStatusAsync()
+            .Returns((AuthStatusResponse?)null);
 
         var client = app.CreateClient();
 
@@ -100,7 +100,7 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.LogoutAsync())
+            .LogoutAsync()
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -112,7 +112,7 @@ public class BffAuthTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API logout was called
-        app.MockApiClient.Verify(c => c.LogoutAsync(), Times.Once);
+        await app.MockApiClient.Received(1).LogoutAsync();
     }
 
     // ==================== Refresh Token ====================
@@ -126,11 +126,11 @@ public class BffAuthTests
         var newRefreshToken = "new-refresh-token-abc";
 
         app.MockAuthClient
-            .Setup(c => c.RefreshTokenAsync(
-                It.IsAny<RefreshTokenRequest>(),
-                It.IsAny<Metadata>(),
-                It.IsAny<DateTime?>(),
-                It.IsAny<CancellationToken>()))
+            .RefreshTokenAsync(
+                Arg.Any<RefreshTokenRequest>(),
+                Arg.Any<Metadata>(),
+                Arg.Any<DateTime?>(),
+                Arg.Any<CancellationToken>())
             .Returns(TestGrpcHelpers.CreateAsyncUnaryCall(new RefreshTokenResponse
             {
                 AccessToken = newAccessToken,
@@ -176,11 +176,11 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockAuthClient
-            .Setup(c => c.RefreshTokenAsync(
-                It.IsAny<RefreshTokenRequest>(),
-                It.IsAny<Metadata>(),
-                It.IsAny<DateTime?>(),
-                It.IsAny<CancellationToken>()))
+            .RefreshTokenAsync(
+                Arg.Any<RefreshTokenRequest>(),
+                Arg.Any<Metadata>(),
+                Arg.Any<DateTime?>(),
+                Arg.Any<CancellationToken>())
             .Returns(TestGrpcHelpers.CreateAsyncUnaryCall(new RefreshTokenResponse
             {
                 AccessToken = "",
@@ -203,11 +203,11 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockAuthClient
-            .Setup(c => c.RefreshTokenAsync(
-                It.IsAny<RefreshTokenRequest>(),
-                It.IsAny<Metadata>(),
-                It.IsAny<DateTime?>(),
-                It.IsAny<CancellationToken>()))
+            .RefreshTokenAsync(
+                Arg.Any<RefreshTokenRequest>(),
+                Arg.Any<Metadata>(),
+                Arg.Any<DateTime?>(),
+                Arg.Any<CancellationToken>())
             .Returns(TestGrpcHelpers.CreateFailedAsyncUnaryCall<RefreshTokenResponse>(
                 StatusCode.Unauthenticated, "Token expired"));
 
@@ -229,8 +229,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync(new Snakk.Protos.Auth.UpdateProfileResponse { Success = true, Message = "OK" });
+            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>())
+            .Returns(new Snakk.Protos.Auth.UpdateProfileResponse { Success = true, Message = "OK" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Display Name" };
@@ -240,7 +240,7 @@ public class BffAuthTests
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        app.MockApiClient.Verify(c => c.UpdateProfileAsync("New Display Name", null, null), Times.Once);
+        await app.MockApiClient.Received(1).UpdateProfileAsync("New Display Name", null, null);
     }
 
     [Test]
@@ -249,8 +249,8 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync(new Snakk.Protos.Auth.UpdateProfileResponse { Success = false, Message = "Failed" });
+            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>())
+            .Returns(new Snakk.Protos.Auth.UpdateProfileResponse { Success = false, Message = "Failed" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
         var request = new { displayName = "New Name" };

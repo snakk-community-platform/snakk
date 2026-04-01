@@ -46,8 +46,8 @@ h1, h2, h3, h4, h5, h6 {
         }
     }
 
-    p {
-        margin: 0.5em 0;
+    p, h1, h2, h3, h4, h5, h6 {
+        margin: 0;
     }
 
     code {
@@ -60,7 +60,6 @@ h1, h2, h3, h4, h5, h6 {
 
     .code-block-wrapper {
         position: relative;
-        margin: 0.75rem 0;
 
         pre {
             margin: 0;
@@ -90,7 +89,7 @@ h1, h2, h3, h4, h5, h6 {
         border-radius: 0.5rem;
         padding: 1rem;
         overflow-x: auto;
-        margin: 0.75rem 0;
+        margin: 0;
         position: relative;
         font-size: 0.8125rem;
         line-height: 1.6;
@@ -111,6 +110,7 @@ h1, h2, h3, h4, h5, h6 {
     blockquote {
         border-left: 3px solid var(--border-primary);
         padding-left: 1rem;
+        margin: 0;
         font-style: italic;
         color: var(--text-secondary);
     }
@@ -118,11 +118,13 @@ h1, h2, h3, h4, h5, h6 {
     ul {
         list-style-type: disc;
         padding-left: 1.5rem;
+        margin: 0;
     }
 
     ol {
         list-style-type: decimal;
         padding-left: 1.5rem;
+        margin: 0;
     }
 
     .table-scroll {
@@ -132,7 +134,6 @@ h1, h2, h3, h4, h5, h6 {
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 0.75rem 0;
         font-size: 0.875rem;
     }
 

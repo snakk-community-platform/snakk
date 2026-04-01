@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -9,13 +9,13 @@ namespace Snakk.Application.Tests.UseCases;
 
 public class CommunityUseCaseTests
 {
-    private readonly Mock<ICommunityRepository> _mockCommunityRepository = new();
+    private readonly ICommunityRepository _communityRepository = Substitute.For<ICommunityRepository>();
     private CommunityUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new CommunityUseCase(_mockCommunityRepository.Object);
+        _useCase = new CommunityUseCase(_communityRepository);
     }
 
     #region CreateCommunityAsync Tests
@@ -28,8 +28,8 @@ public class CommunityUseCaseTests
         const string slug = "test-community";
         const string description = "A test community";
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.CreateCommunityAsync(name, slug, description);
@@ -43,7 +43,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.Value.Visibility).IsEqualTo(CommunityVisibility.PublicListed);
         await Assert.That(result.Value.ExposeToPlatformFeed).IsTrue();
 
-        _mockCommunityRepository.Verify(r => r.AddAsync(It.IsAny<Community>()), Times.Once);
+        await _communityRepository.Received(1).AddAsync(Arg.Any<Community>());
     }
 
     [Test]
@@ -53,8 +53,8 @@ public class CommunityUseCaseTests
         const string slug = "existing-slug";
         var existingCommunity = Community.Create("Existing", slug);
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync(existingCommunity);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns(existingCommunity);
 
         // Act
         var result = await _useCase.CreateCommunityAsync("New Community", slug);
@@ -63,7 +63,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("already exists");
 
-        _mockCommunityRepository.Verify(r => r.AddAsync(It.IsAny<Community>()), Times.Never);
+        await _communityRepository.DidNotReceive().AddAsync(Arg.Any<Community>());
     }
 
     [Test]
@@ -73,8 +73,8 @@ public class CommunityUseCaseTests
         const string name = "Unlisted Community";
         const string slug = "unlisted-community";
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.CreateCommunityAsync(name, slug, visibility: CommunityVisibility.PublicUnlisted);
@@ -91,8 +91,8 @@ public class CommunityUseCaseTests
         const string name = "Private Community";
         const string slug = "private-community";
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.CreateCommunityAsync(name, slug, exposeToPlatformFeed: false);
@@ -106,8 +106,8 @@ public class CommunityUseCaseTests
     public async Task CreateCommunityAsync_WithNullDescription_Succeeds()
     {
         // Arrange
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync("test"))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetBySlugAsync("test")
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.CreateCommunityAsync("Test", "test", description: null);
@@ -128,8 +128,8 @@ public class CommunityUseCaseTests
         var community = Community.Create("Test Community", "test-community");
         var communityId = community.PublicId;
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.GetCommunityAsync(communityId);
@@ -145,8 +145,8 @@ public class CommunityUseCaseTests
         // Arrange
         var communityId = CommunityId.New();
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.GetCommunityAsync(communityId);
@@ -167,8 +167,8 @@ public class CommunityUseCaseTests
         const string slug = "test-community";
         var community = Community.Create("Test Community", slug);
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync(community);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns(community);
 
         // Act
         var result = await _useCase.GetCommunityBySlugAsync(slug);
@@ -184,8 +184,8 @@ public class CommunityUseCaseTests
         // Arrange
         const string slug = "non-existent";
 
-        _mockCommunityRepository.Setup(r => r.GetBySlugAsync(slug))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetBySlugAsync(slug)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.GetCommunityBySlugAsync(slug);
@@ -206,8 +206,8 @@ public class CommunityUseCaseTests
         const string domain = "example.com";
         var community = Community.Create("Test Community", "test-community");
 
-        _mockCommunityRepository.Setup(r => r.GetByDomainAsync(domain))
-            .ReturnsAsync(community);
+        _communityRepository.GetByDomainAsync(domain)
+            .Returns(community);
 
         // Act
         var result = await _useCase.GetCommunityByDomainAsync(domain);
@@ -223,8 +223,8 @@ public class CommunityUseCaseTests
         // Arrange
         const string domain = "nonexistent.com";
 
-        _mockCommunityRepository.Setup(r => r.GetByDomainAsync(domain))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByDomainAsync(domain)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.GetCommunityByDomainAsync(domain);
@@ -256,8 +256,8 @@ public class CommunityUseCaseTests
             HasMoreItems = false
         };
 
-        _mockCommunityRepository.Setup(r => r.GetPublicListedAsync(0, 20))
-            .ReturnsAsync(pagedResult);
+        _communityRepository.GetPublicListedAsync(0, 20)
+            .Returns(pagedResult);
 
         // Act
         var result = await _useCase.GetPublicCommunitiesAsync(0, 20);
@@ -280,8 +280,8 @@ public class CommunityUseCaseTests
             HasMoreItems = true
         };
 
-        _mockCommunityRepository.Setup(r => r.GetPublicListedAsync(10, 5))
-            .ReturnsAsync(pagedResult);
+        _communityRepository.GetPublicListedAsync(10, 5)
+            .Returns(pagedResult);
 
         // Act
         var result = await _useCase.GetPublicCommunitiesAsync(10, 5);
@@ -313,8 +313,8 @@ public class CommunityUseCaseTests
             HasMoreItems = false
         };
 
-        _mockCommunityRepository.Setup(r => r.GetForPlatformFeedAsync(0, 20))
-            .ReturnsAsync(pagedResult);
+        _communityRepository.GetForPlatformFeedAsync(0, 20)
+            .Returns(pagedResult);
 
         // Act
         var result = await _useCase.GetCommunitiesForPlatformFeedAsync(0, 20);
@@ -336,8 +336,8 @@ public class CommunityUseCaseTests
         var communityId = community.PublicId;
         const string newName = "New Name";
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.UpdateCommunityNameAsync(communityId, newName);
@@ -346,7 +346,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.Name).IsEqualTo(newName);
 
-        _mockCommunityRepository.Verify(r => r.UpdateAsync(community), Times.Once);
+        await _communityRepository.Received(1).UpdateAsync(community);
     }
 
     [Test]
@@ -355,8 +355,8 @@ public class CommunityUseCaseTests
         // Arrange
         var communityId = CommunityId.New();
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.UpdateCommunityNameAsync(communityId, "New Name");
@@ -365,7 +365,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Error).Contains("not found");
 
-        _mockCommunityRepository.Verify(r => r.UpdateAsync(It.IsAny<Community>()), Times.Never);
+        await _communityRepository.DidNotReceive().UpdateAsync(Arg.Any<Community>());
     }
 
     #endregion
@@ -380,8 +380,8 @@ public class CommunityUseCaseTests
         var communityId = community.PublicId;
         const string newDescription = "New Description";
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.UpdateCommunityDescriptionAsync(communityId, newDescription);
@@ -390,7 +390,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.Description).IsEqualTo(newDescription);
 
-        _mockCommunityRepository.Verify(r => r.UpdateAsync(community), Times.Once);
+        await _communityRepository.Received(1).UpdateAsync(community);
     }
 
     [Test]
@@ -400,8 +400,8 @@ public class CommunityUseCaseTests
         var community = Community.Create("Test", "test", "Some Description");
         var communityId = community.PublicId;
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.UpdateCommunityDescriptionAsync(communityId, null);
@@ -417,8 +417,8 @@ public class CommunityUseCaseTests
         // Arrange
         var communityId = CommunityId.New();
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.UpdateCommunityDescriptionAsync(communityId, "New Description");
@@ -439,8 +439,8 @@ public class CommunityUseCaseTests
         var community = Community.Create("Test", "test");
         var communityId = community.PublicId;
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.UpdateCommunityVisibilityAsync(communityId, CommunityVisibility.PublicUnlisted);
@@ -449,7 +449,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.Visibility).IsEqualTo(CommunityVisibility.PublicUnlisted);
 
-        _mockCommunityRepository.Verify(r => r.UpdateAsync(community), Times.Once);
+        await _communityRepository.Received(1).UpdateAsync(community);
     }
 
     [Test]
@@ -458,8 +458,8 @@ public class CommunityUseCaseTests
         // Arrange
         var communityId = CommunityId.New();
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.UpdateCommunityVisibilityAsync(communityId, CommunityVisibility.PublicUnlisted);
@@ -480,8 +480,8 @@ public class CommunityUseCaseTests
         var community = Community.Create("Test", "test");
         var communityId = community.PublicId;
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync(community);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns(community);
 
         // Act
         var result = await _useCase.SetExposeToPlatformFeedAsync(communityId, false);
@@ -490,7 +490,7 @@ public class CommunityUseCaseTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.ExposeToPlatformFeed).IsFalse();
 
-        _mockCommunityRepository.Verify(r => r.UpdateAsync(community), Times.Once);
+        await _communityRepository.Received(1).UpdateAsync(community);
     }
 
     [Test]
@@ -499,8 +499,8 @@ public class CommunityUseCaseTests
         // Arrange
         var communityId = CommunityId.New();
 
-        _mockCommunityRepository.Setup(r => r.GetByPublicIdAsync(communityId))
-            .ReturnsAsync((Community?)null);
+        _communityRepository.GetByPublicIdAsync(communityId)
+            .Returns((Community?)null);
 
         // Act
         var result = await _useCase.SetExposeToPlatformFeedAsync(communityId, true);

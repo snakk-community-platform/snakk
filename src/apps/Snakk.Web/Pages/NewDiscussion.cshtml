@@ -1,0 +1,61 @@
+@page "/new"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.NewDiscussionModel
+@{
+    ViewData["Title"] = "New Discussion";
+    ViewData["DisableHtmxBoost"] = true;
+}
+
+<div class="breadcrumb-bar">
+    <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">/</span>
+        <span>New Discussion</span>
+    </nav>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-xl font-semibold mb-6">New Discussion</h1>
+
+    <!-- Space Selector -->
+    <div class="mb-6">
+        <label class="text-sm font-medium text-base-content/70 mb-2 block">Space <span class="text-error">*</span></label>
+        <div id="space-selector"
+             class="relative"
+             data-scope-hub-id="@(Model.ScopeHubId ?? "")"
+             data-scope-community-id="@(Model.ScopeCommunityId ?? "")"
+             data-scope-hub-name="@(Model.ScopeHubName ?? "")"
+             data-scope-community-name="@(Model.ScopeCommunityName ?? "")"
+             data-preselected-space-id="@(Model.PreselectedSpaceId ?? "")">
+            <div>
+                <input type="text"
+                       id="space-search-input"
+                       class="input w-full"
+                       placeholder="Search for a space..."
+                       autocomplete="off" />
+                <input type="hidden" id="selected-space-id" />
+                <input type="hidden" id="selected-space-slug" />
+                <input type="hidden" id="selected-hub-slug" />
+                <input type="hidden" id="selected-community-slug" />
+            </div>
+
+            <!-- Dropdown -->
+            <div id="space-dropdown" class="absolute z-50 w-full mt-1 bg-base-100 border border-base-content/10 rounded-lg shadow-lg max-h-64 overflow-y-auto hidden">
+            </div>
+        </div>
+    </div>
+
+    <!-- Type Picker (shown after space is selected) -->
+    <div id="type-picker-section" class="hidden">
+        <p class="text-sm text-base-content/60 mb-4">What would you like to create?</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="type-cards">
+        </div>
+    </div>
+
+    <div class="mt-6">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="go-back">Cancel</button>
+    </div>
+</div>
+
+<script src="@SnakkUrlHelper.Js("pages/new-discussion-entry")" asp-append-version="true"></script>

@@ -1,27 +1,10 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-
 namespace Snakk.Setup.Pages;
 
 public class RestartingModel : SetupPageBase
 {
-    public void OnGet() => ViewData["SetupStep"] = 11;
+    public void OnGet() => ViewData["SetupStep"] = 13;
 
-    public IActionResult OnPostRestart()
-    {
-        // Spawn a detached process that restarts all services after a brief delay.
-        // The sleep ensures this HTTP response reaches the browser before the process dies.
-        // Because supervisord doesn't use stopasgroup/killasgroup, the child sh process
-        // survives when supervisord kills the setup dotnet process.
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "/bin/sh",
-            Arguments = "-c 'sleep 2 && supervisorctl -c /etc/supervisor/conf.d/snakk.conf stop setup && supervisorctl -c /etc/supervisor/conf.d/snakk.conf restart gateway api web auth admin realtime worker'",
-            UseShellExecute = false,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false
-        });
-
-        return new JsonResult(new { ok = true });
-    }
+    // No restart action needed — the gateway detects conf/snakk-config.json
+    // via FileSystemWatcher and starts routing to the web app automatically.
+    // In Docker, entrypoint.sh also watches for this file and starts services.
 }

@@ -7,6 +7,8 @@ public class SecurityModel : SetupPageBase
 {
     [BindProperty] public string JwtSecretKey { get; set; } = "";
     [BindProperty] public string RealtimeApiKey { get; set; } = "";
+    [BindProperty] public string TurnstileSiteKey { get; set; } = "";
+    [BindProperty] public string TurnstileSecretKey { get; set; } = "";
 
     public void OnGet()
     {
@@ -22,6 +24,8 @@ public class SecurityModel : SetupPageBase
         SaveState(state);
         JwtSecretKey = state.JwtSecretKey;
         RealtimeApiKey = state.RealtimeApiKey;
+        TurnstileSiteKey = state.TurnstileSiteKey;
+        TurnstileSecretKey = state.TurnstileSecretKey;
     }
 
     public IActionResult OnPost()
@@ -37,6 +41,8 @@ public class SecurityModel : SetupPageBase
         var state = GetState();
         state.JwtSecretKey = JwtSecretKey;
         state.RealtimeApiKey = RealtimeApiKey;
+        state.TurnstileSiteKey = TurnstileSiteKey?.Trim() ?? "";
+        state.TurnstileSecretKey = TurnstileSecretKey?.Trim() ?? "";
         SaveState(state);
 
         return RedirectToPage("OAuth");

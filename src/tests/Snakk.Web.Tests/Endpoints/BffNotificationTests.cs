@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Google.Protobuf.WellKnownTypes;
-using Moq;
+using NSubstitute;
 using Snakk.Protos.Notification;
 using Snakk.Web.Tests.Helpers;
 
@@ -40,8 +40,8 @@ public class BffNotificationTests
         });
 
         app.MockApiClient
-            .Setup(c => c.GetNotificationsAsync(It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync(notificationList);
+            .GetNotificationsAsync(Arg.Any<int>(), Arg.Any<int>())
+            .Returns(notificationList);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -69,8 +69,8 @@ public class BffNotificationTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetNotificationsAsync(It.IsAny<int>(), It.IsAny<int>()))
-            .ReturnsAsync((PagedNotificationList?)null);
+            .GetNotificationsAsync(Arg.Any<int>(), Arg.Any<int>())
+            .Returns((PagedNotificationList?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -91,8 +91,8 @@ public class BffNotificationTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.GetUnreadNotificationCountAsync())
-            .ReturnsAsync(new UnreadCountResponse { Count = 5 });
+            .GetUnreadNotificationCountAsync()
+            .Returns(new UnreadCountResponse { Count = 5 });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -113,8 +113,8 @@ public class BffNotificationTests
         await using var app = new TestWebApp();
         // SnakkApiClient.GetUnreadNotificationCountAsync returns UnreadCountResponse(0) on failure
         app.MockApiClient
-            .Setup(c => c.GetUnreadNotificationCountAsync())
-            .ReturnsAsync((UnreadCountResponse?)null);
+            .GetUnreadNotificationCountAsync()
+            .Returns((UnreadCountResponse?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
@@ -134,7 +134,7 @@ public class BffNotificationTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.MarkNotificationAsReadAsync(It.IsAny<string>()))
+            .MarkNotificationAsReadAsync(Arg.Any<string>())
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -146,9 +146,7 @@ public class BffNotificationTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called with the correct notification ID
-        app.MockApiClient.Verify(
-            c => c.MarkNotificationAsReadAsync("notif-001"),
-            Times.Once);
+        await app.MockApiClient.Received(1).MarkNotificationAsReadAsync("notif-001");
     }
 
     [Test]
@@ -157,7 +155,7 @@ public class BffNotificationTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .Setup(c => c.MarkAllNotificationsAsReadAsync())
+            .MarkAllNotificationsAsReadAsync()
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -169,8 +167,6 @@ public class BffNotificationTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called
-        app.MockApiClient.Verify(
-            c => c.MarkAllNotificationsAsReadAsync(),
-            Times.Once);
+        await app.MockApiClient.Received(1).MarkAllNotificationsAsReadAsync();
     }
 }

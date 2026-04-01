@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Events;
 using Snakk.Domain.Events;
 using Snakk.Infrastructure.Services;

@@ -13,5 +13,6 @@ public enum DiscussionTypeEnum
     Gallery = 5,
     Guide = 6,
     Debate = 7,
-    Journal = 8
+    Journal = 8,
+    Iama = 9
 }

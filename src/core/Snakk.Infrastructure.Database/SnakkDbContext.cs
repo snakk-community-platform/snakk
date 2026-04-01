@@ -87,6 +87,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<PostDebatePositionDatabaseEntity> PostDebatePositions { get; set; } = null!;
     public DbSet<DiscussionJournalDatabaseEntity> DiscussionJournals { get; set; } = null!;
     public DbSet<JournalEntryPostDatabaseEntity> JournalEntryPosts { get; set; } = null!;
+    public DbSet<DiscussionIamaDatabaseEntity> DiscussionIamas { get; set; } = null!;
+    public DbSet<IamaOfficialAnswerDatabaseEntity> IamaOfficialAnswers { get; set; } = null!;
+    public DbSet<IamaBestQuestionDatabaseEntity> IamaBestQuestions { get; set; } = null!;
 
     // Note: Lookup tables removed - now using enums directly (see Snakk.Shared.Enums)
 
@@ -1437,6 +1440,59 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany(j => j.Entries)
             .HasForeignKey(x => x.JournalId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // DiscussionIama: one-to-one with Discussion
+        modelBuilder.Entity<DiscussionIamaDatabaseEntity>()
+            .HasIndex(x => x.DiscussionId)
+            .IsUnique();
+
+        modelBuilder.Entity<DiscussionIamaDatabaseEntity>()
+            .HasOne(x => x.Discussion)
+            .WithMany()
+            .HasForeignKey(x => x.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IamaOfficialAnswer: belongs to Iama, references QuestionPost and AnswerPost
+        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+            .HasOne(x => x.Iama)
+            .WithMany(i => i.OfficialAnswers)
+            .HasForeignKey(x => x.IamaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+            .HasOne(x => x.QuestionPost)
+            .WithMany()
+            .HasForeignKey(x => x.QuestionPostId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+            .HasOne(x => x.AnswerPost)
+            .WithMany()
+            .HasForeignKey(x => x.AnswerPostId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+            .HasIndex(x => new { x.IamaId, x.QuestionPostId })
+            .IsUnique()
+            .HasDatabaseName("IX_IamaOfficialAnswer_IamaId_QuestionPostId");
+
+        // IamaBestQuestion: belongs to Iama, references Post
+        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+            .HasOne(x => x.Iama)
+            .WithMany(i => i.BestQuestions)
+            .HasForeignKey(x => x.IamaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+            .HasOne(x => x.Post)
+            .WithMany()
+            .HasForeignKey(x => x.PostId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+            .HasIndex(x => new { x.IamaId, x.DisplayOrder })
+            .IsUnique()
+            .HasDatabaseName("IX_IamaBestQuestion_IamaId_DisplayOrder");
 
         // === Media Configuration ===
 

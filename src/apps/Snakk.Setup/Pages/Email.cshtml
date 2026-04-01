@@ -1,0 +1,61 @@
+@page "/setup/email"
+@model Snakk.Setup.Pages.EmailModel
+
+<h2 class="text-xl font-semibold mb-4">Email Configuration</h2>
+<p class="text-base-content/70 mb-6">
+    Configure SMTP to send verification emails, password resets, and notifications.
+    You can skip this and configure it later.
+</p>
+
+<form method="post" class="space-y-4">
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" asp-for="SmtpEnabled" class="toggle toggle-primary" />
+            <div>
+                <span class="label-text font-semibold">Enable email sending</span>
+                <p class="text-sm text-base-content/50 mt-1">Required for email verification and password resets</p>
+            </div>
+        </label>
+    </div>
+
+    <div id="smtp-fields" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">SMTP Host</span></label>
+                <input type="text" asp-for="SmtpHost" class="input w-full" placeholder="smtp.example.com" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Port</span></label>
+                <input type="number" asp-for="SmtpPort" class="input w-full" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Username</span></label>
+                <input type="text" asp-for="SmtpUsername" class="input w-full" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Password</span></label>
+                <input type="password" asp-for="SmtpPassword" class="input w-full" autocomplete="off" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Sender Email</span></label>
+                <input type="email" asp-for="SmtpSenderEmail" class="input w-full" placeholder="noreply@example.com" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Sender Name</span></label>
+                <input type="text" asp-for="SmtpSenderName" class="input w-full" placeholder="Snakk" />
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="flex justify-between">
+        <a asp-page="AdminAccount" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>

@@ -81,12 +81,7 @@ else
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h1>@Model.Space.Name</h1>
-                                <a href="/c/@(Model.Community.CommunitySlug)/h/@(Model.HubSlug)/@(Model.Slug)/feed.xml"
-                                   class="btn btn-ghost btn-sm btn-square" title="RSS Feed" target="_blank" rel="noopener">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
-                                    </svg>
-                                </a>
+                                <partial name="Shared/_FeedDropdown" model="@($"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed")" />
                                 @if (Model.IsAuthenticated)
                                 {
                                     <!-- Follow Button Group -->
@@ -139,8 +134,8 @@ else
                     <span class="section-title">Discussions</span>
                     @if (Model.IsAuthenticated)
                     {
-                        <a href="@SnakkUrlHelper.NewDiscussion(Model.Community, Model.HubSlug, Model.Slug)"
-                           class="btn btn-primary btn-sm">
+                        <a href="/new?spaceId=@Model.Space.PublicId"
+                           class="btn btn-primary btn-sm" hx-boost="false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
@@ -171,7 +166,7 @@ else
                         {
                             var nextOffset = Model.Discussions.Offset + Model.Discussions.PageSize;
 
-                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&spaceSlug=@Model.Slug&offset=@nextOffset&pageSize=20"
+                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&offset=@nextOffset&pageSize=20"
                                  hx-trigger="revealed"
                                  hx-swap="outerHTML"
                                  hx-target="this"
@@ -250,7 +245,7 @@ else
                         </a>
                         <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                          model="Model.InlineSpaceRules"
-                                         htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&hubSlug=@Model.HubSlug&communitySlug=@(Model.Community.CommunitySlug ?? "")&parentHubHasRules=@Model.Space.ParentHubHasRules&parentCommunityHasRules=@Model.Space.ParentCommunityHasRules&rev=@Model.Space.RulesRevision">
+                                         htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
                             <div class="flex flex-col gap-2">
                                 <div class="skeleton h-4 w-full"></div>
                                 <div class="skeleton h-4 w-5/6"></div>

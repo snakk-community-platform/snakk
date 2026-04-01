@@ -39,6 +39,12 @@ service DiscussionService {
 
   // Journal
   rpc GetJournalEntries (GetJournalEntriesRequest) returns (JournalEntriesResponse);
+
+  // IAMA
+  rpc GetIamaInfo (GetIamaInfoRequest) returns (IamaInfoResponse);
+  rpc MarkIamaOfficialAnswer (MarkIamaOfficialAnswerRequest) returns (MarkIamaOfficialAnswerResponse);
+  rpc SetIamaBestQuestions (SetIamaBestQuestionsRequest) returns (SetIamaBestQuestionsResponse);
+  rpc TransitionIamaPhase (TransitionIamaPhaseRequest) returns (TransitionIamaPhaseResponse);
 }
 
 // --- Requests ---
@@ -70,6 +76,12 @@ message CreateDiscussionRequest {
   // Gallery extension fields
   optional string gallery_layout = 13; // grid, masonry, justified, carousel, hero
   repeated string gallery_image_urls = 14;
+
+  // IAMA extension fields
+  bool iama_is_scheduled = 15;
+  optional google.protobuf.Timestamp iama_scheduled_start = 16;
+  optional google.protobuf.Timestamp iama_scheduled_end = 17;
+  optional string iama_verification_note = 18;
 }
 
 message GetRecentDiscussionsRequest {
@@ -268,6 +280,10 @@ message DiscussionLinkResponse {
   optional string description = 3;
   optional string image_url = 4;
   optional string domain = 5;
+  optional string oembed_html = 6;
+  optional string local_image_url = 7;
+  optional string blur_data_uri = 8;
+  bool is_internal = 9;
 }
 
 // --- Journal ---
@@ -320,4 +336,52 @@ message GalleryImageProto {
   string url = 1;
   optional string thumbnail_url = 2;
   optional string blur_data_uri = 3;
+}
+
+// --- IAMA ---
+
+message GetIamaInfoRequest {
+  string discussion_id = 1;
+}
+
+message IamaInfoResponse {
+  int32 phase = 1;
+  bool is_scheduled = 2;
+  optional google.protobuf.Timestamp scheduled_start_utc = 3;
+  optional google.protobuf.Timestamp scheduled_end_utc = 4;
+  optional string verification_note = 5;
+  // Map of question_post_public_id → answer_post_public_id
+  map<string, string> official_answers = 6;
+  repeated string best_question_post_public_ids = 7;
+}
+
+message MarkIamaOfficialAnswerRequest {
+  string discussion_id = 1;
+  string question_post_public_id = 2;
+  string answer_post_public_id = 3;
+}
+
+message MarkIamaOfficialAnswerResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+message SetIamaBestQuestionsRequest {
+  string discussion_id = 1;
+  repeated string post_public_ids = 2;
+}
+
+message SetIamaBestQuestionsResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+message TransitionIamaPhaseRequest {
+  string discussion_id = 1;
+  int32 new_phase = 2;
+}
+
+message TransitionIamaPhaseResponse {
+  bool success = 1;
+  optional string error = 2;
 }

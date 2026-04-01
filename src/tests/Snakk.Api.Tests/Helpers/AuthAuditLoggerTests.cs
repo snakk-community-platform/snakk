@@ -1,19 +1,19 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Api.Helpers;
 
 namespace Snakk.Api.Tests.Helpers;
 
 public class AuthAuditLoggerTests
 {
-    private readonly Mock<ILogger> _loggerMock = new();
+    private readonly ILogger _logger = Substitute.For<ILogger>();
 
     [Test]
     public async Task LogLoginSuccess_DoesNotThrow()
     {
         await Assert.That(() =>
-            AuthAuditLogger.LogLoginSuccess(_loggerMock.Object, "test@test.com", "127.0.0.1", "TestAgent"))
+            AuthAuditLogger.LogLoginSuccess(_logger, "test@test.com", "127.0.0.1", "TestAgent"))
             .ThrowsNothing();
     }
 
@@ -21,7 +21,7 @@ public class AuthAuditLoggerTests
     public async Task LogLoginFailure_DoesNotThrow()
     {
         await Assert.That(() =>
-            AuthAuditLogger.LogLoginFailure(_loggerMock.Object, "test@test.com", "127.0.0.1", "TestAgent"))
+            AuthAuditLogger.LogLoginFailure(_logger, "test@test.com", "127.0.0.1", "TestAgent"))
             .ThrowsNothing();
     }
 
@@ -29,7 +29,7 @@ public class AuthAuditLoggerTests
     public async Task LogRegistration_DoesNotThrow()
     {
         await Assert.That(() =>
-            AuthAuditLogger.LogRegistration(_loggerMock.Object, "test@test.com", "127.0.0.1", "TestAgent"))
+            AuthAuditLogger.LogRegistration(_logger, "test@test.com", "127.0.0.1", "TestAgent"))
             .ThrowsNothing();
     }
 
@@ -37,7 +37,7 @@ public class AuthAuditLoggerTests
     public async Task LogOAuthLogin_DoesNotThrow()
     {
         await Assert.That(() =>
-            AuthAuditLogger.LogOAuthLogin(_loggerMock.Object, "Google", "test@test.com", "127.0.0.1", "TestAgent"))
+            AuthAuditLogger.LogOAuthLogin(_logger, "Google", "test@test.com", "127.0.0.1", "TestAgent"))
             .ThrowsNothing();
     }
 
@@ -45,7 +45,7 @@ public class AuthAuditLoggerTests
     public async Task LogLogout_DoesNotThrow()
     {
         await Assert.That(() =>
-            AuthAuditLogger.LogLogout(_loggerMock.Object, "user-1", "127.0.0.1", "TestAgent"))
+            AuthAuditLogger.LogLogout(_logger, "user-1", "127.0.0.1", "TestAgent"))
             .ThrowsNothing();
     }
 

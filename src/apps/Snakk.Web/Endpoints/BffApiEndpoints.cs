@@ -178,6 +178,15 @@ public static class BffApiEndpoints
         group.MapGet("/search/posts", SearchPostsAsync)
             .WithName("BffSearchPosts");
 
+        group.MapGet("/search/spaces", SearchSpacesAsync)
+            .WithName("BffSearchSpaces");
+
+        group.MapGet("/spaces/{spaceId}/allowed-types", GetSpaceAllowedTypesAsync)
+            .WithName("BffGetSpaceAllowedTypes");
+
+        group.MapGet("/spaces/{spaceId}/info", GetSpaceInfoAsync)
+            .WithName("BffGetSpaceInfo");
+
         // Post operations
         group.MapGet("/discussions/{discussionId}/posts", GetDiscussionPostsAsync)
             .WithName("BffGetDiscussionPosts");
@@ -211,6 +220,10 @@ public static class BffApiEndpoints
         group.MapGet("/discussions/{publicId}/stats", GetDiscussionStatsForPopupAsync)
             .WithName("BffGetDiscussionStats");
 
+        // Entity path resolution (for entity-link hover popups)
+        group.MapGet("/entity/resolve", ResolveEntityPathAsync)
+            .WithName("BffResolveEntityPath");
+
         // Moderation report reasons
         group.MapGet("/moderation/reports/reasons", GetModerationReportReasonsAsync)
             .WithName("BffGetModerationReportReasons");
@@ -229,6 +242,12 @@ public static class BffApiEndpoints
         group.MapDelete("/avatars", DeleteAvatarBffAsync)
             .WithName("BffDeleteAvatar");
     }
+
+    /// <summary>
+    /// Returns true if the request has a valid access token cookie.
+    /// </summary>
+    private static bool IsAuthenticated(HttpContext httpContext)
+        => !string.IsNullOrEmpty(httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]);
 
     private static async Task<IResult> GetHomepageDataAsync(
         [FromQuery] string? communityId,
@@ -256,8 +275,11 @@ public static class BffApiEndpoints
     private static async Task<IResult> GetNotificationsAsync(
         [FromQuery] int offset,
         [FromQuery] int pageSize,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetNotificationsAsync(offset, pageSize);
         if (apiResult?.Items is null)
         {
@@ -285,8 +307,11 @@ public static class BffApiEndpoints
         return Results.Ok(bffResponse);
     }
 
-    private static async Task<IResult> GetUnreadNotificationCountAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GetUnreadNotificationCountAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetUnreadNotificationCountAsync();
 
         // Map API DTO → BFF DTO
@@ -300,22 +325,31 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> MarkNotificationAsReadAsync(
         string notificationId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         await apiClient.MarkNotificationAsReadAsync(notificationId);
         return Results.Ok();
     }
 
-    private static async Task<IResult> MarkAllNotificationsAsReadAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> MarkAllNotificationsAsReadAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         await apiClient.MarkAllNotificationsAsReadAsync();
         return Results.Ok();
     }
 
     private static async Task<IResult> GetSpaceFollowStatusAsync(
         string spaceId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetSpaceFollowStatusAsync(spaceId);
         if (apiResult is null) return Results.NotFound();
 
@@ -331,8 +365,11 @@ public static class BffApiEndpoints
     private static async Task<IResult> ToggleSpaceFollowAsync(
         string spaceId,
         [FromQuery] string? level,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.ToggleSpaceFollowResultAsync(spaceId, level);
 
         if (!result.IsSuccess)
@@ -350,8 +387,11 @@ public static class BffApiEndpoints
     private static async Task<IResult> SetSpaceFollowLevelAsync(
         string spaceId,
         [FromQuery] string level,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.SetSpaceFollowLevelAsync(spaceId, level);
         if (apiResult is null) return Results.BadRequest();
 
@@ -366,8 +406,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> GetDiscussionFollowStatusAsync(
         string discussionId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetDiscussionFollowStatusAsync(discussionId);
         if (apiResult is null) return Results.NotFound();
 
@@ -382,8 +425,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> ToggleDiscussionFollowAsync(
         string discussionId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.ToggleDiscussionFollowResultAsync(discussionId);
 
         if (!result.IsSuccess)
@@ -404,6 +450,8 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         SnakkApiClient apiClient)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         // Read userId from auth claims, not query params (IDOR prevention)
         var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         await apiClient.MarkDiscussionAsReadAsync(discussionId, userId, postId);
@@ -426,8 +474,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> GetMyPostReactionsAsync(
         string postId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetMyPostReactionsAsync(postId);
 
         var bffResponse = new Models.Bff.BffMyReactionsResponse
@@ -441,16 +492,22 @@ public static class BffApiEndpoints
     private static async Task<IResult> TogglePostReactionAsync(
         string postId,
         [FromBody] ToggleReactionRequest request,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         await apiClient.TogglePostReactionAsync(postId, request.Type);
         return Results.Ok();
     }
 
     private static async Task<IResult> PreviewMarkupAsync(
         [FromBody] PreviewMarkupRequest request,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var html = await apiClient.PreviewMarkupAsync(request.Content);
 
         var bffResponse = new Models.Bff.BffMarkupPreviewResponse
@@ -463,8 +520,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> CreateReportAsync(
         [FromBody] BffCreateReportRequest request,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiRequest = new Models.CreateReportRequest(
             request.EntityType,
             request.EntityId,
@@ -496,8 +556,11 @@ public static class BffApiEndpoints
         return Results.Ok(result);
     }
 
-    private static async Task<IResult> GetFollowedSpacesAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GetFollowedSpacesAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetFollowedSpacesAsync();
 
         var bffResponse = new Models.Bff.BffFollowedEntitiesResponse
@@ -508,8 +571,11 @@ public static class BffApiEndpoints
         return Results.Ok(bffResponse);
     }
 
-    private static async Task<IResult> GetFollowedDiscussionsAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GetFollowedDiscussionsAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetFollowedDiscussionsAsync();
 
         var bffResponse = new Models.Bff.BffFollowedEntitiesResponse
@@ -520,8 +586,11 @@ public static class BffApiEndpoints
         return Results.Ok(bffResponse);
     }
 
-    private static async Task<IResult> GetFollowedUsersAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GetFollowedUsersAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var apiResult = await apiClient.GetFollowedUsersAsync();
 
         var bffResponse = new Models.Bff.BffFollowedEntitiesResponse
@@ -534,8 +603,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> BatchUpdateReadStatesAsync(
         [FromBody] BatchUpdateReadStatesRequest request,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         await apiClient.BatchUpdateReadStatesAsync(request.Updates.Select(u => (u.DiscussionId, u.PostId)).ToList());
         return Results.Ok();
     }
@@ -567,6 +639,8 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> LogoutAsync(SnakkApiClient apiClient, HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         await apiClient.LogoutAsync();
         AuthCookieHelper.DeleteAuthCookies(httpContext);
 
@@ -652,8 +726,11 @@ public static class BffApiEndpoints
         });
     }
 
-    private static async Task<IResult> GetDisplayNameHistoryAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GetDisplayNameHistoryAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.GetDisplayNameHistoryAsync();
         if (result is null)
             return Results.Ok(new { entries = Array.Empty<object>() });
@@ -670,8 +747,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> UpdateProfileMeAsync(
         [FromBody] UpdateProfileRequestDto request,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.UpdateProfileAsync(request.DisplayName, request.Password, request.TurnstileToken);
 
         if (result is null)
@@ -692,6 +772,8 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient,
         HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
 
@@ -750,6 +832,8 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         SnakkApiClient apiClient)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         // Read currentUserId from auth claims, not query params (IDOR prevention)
         var currentUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         var apiResult = await apiClient.GetUserFollowStatusAsync(userId, currentUserId);
@@ -765,8 +849,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> ToggleUserFollowAsync(
         string userId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.ToggleUserFollowResultAsync(userId);
 
         if (!result.IsSuccess)
@@ -870,6 +957,108 @@ public static class BffApiEndpoints
         });
     }
 
+    private static async Task<IResult> GetSpaceAllowedTypesAsync(
+        string spaceId,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        var space = await apiClient.GetSpaceAsync(spaceId);
+
+        if (space is null)
+            return Results.NotFound();
+        var allowedTypes = (space.AllowedDiscussionTypes.Count > 0
+            ? space.AllowedDiscussionTypes.ToList()
+            : new List<int> { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 })
+            .Where(t => t != 3)
+            .OrderBy(t => t)
+            .ToList();
+
+        return Results.Ok(new { allowedTypes });
+    }
+
+    private static async Task<IResult> GetSpaceInfoAsync(
+        string spaceId,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var space = await apiClient.GetSpaceAsync(spaceId);
+        if (space is null) return Results.NotFound();
+
+        // Access check — verify user can see this space (restricted spaces/hubs/communities)
+        if (space.IsRestricted)
+        {
+            var community2 = !string.IsNullOrEmpty(space.CommunitySlug)
+                ? await apiClient.GetCommunityBySlugAsync(space.CommunitySlug)
+                : null;
+            var hub2 = !string.IsNullOrEmpty(space.HubSlug)
+                ? (await apiClient.GetHubBySlugResultAsync(space.HubSlug, space.CommunitySlug))
+                : null;
+
+            var access = await apiClient.CheckGroupAccessAsync(
+                community2?.PublicId,
+                hub2?.IsSuccess == true ? hub2.Value?.PublicId : null,
+                space.PublicId);
+
+            if (access is not null && !access.CanRead)
+                return Results.NotFound(); // Don't reveal existence
+        }
+
+        // Get hub and community names
+        var hub = !string.IsNullOrEmpty(space.HubSlug)
+            ? await apiClient.GetHubBySlugResultAsync(space.HubSlug, space.CommunitySlug)
+            : null;
+        var community = !string.IsNullOrEmpty(space.CommunitySlug)
+            ? await apiClient.GetCommunityBySlugAsync(space.CommunitySlug)
+            : null;
+
+        return Results.Ok(new
+        {
+            publicId = space.PublicId,
+            name = space.Name,
+            slug = space.Slug,
+            hubSlug = space.HubSlug,
+            hubName = hub?.IsSuccess == true ? hub.Value?.Name ?? "" : "",
+            communitySlug = space.CommunitySlug,
+            discussionCount = space.DiscussionCount,
+            communityName = community?.Name ?? "",
+            avatarUrl = Snakk.Shared.Helpers.AvatarHelper.GetAvatarUrl(space.PublicId, Snakk.Shared.Helpers.AvatarEntityType.Space, 0)
+        });
+    }
+
+    private static async Task<IResult> SearchSpacesAsync(
+        SnakkApiClient apiClient,
+        [FromQuery] string? q = null,
+        [FromQuery] string? hubId = null,
+        [FromQuery] string? communityId = null,
+        [FromQuery] int limit = 10)
+    {
+        var result = await apiClient.SearchSpacesAsync(q, hubId, communityId, Math.Min(limit, 20));
+
+        if (result is null)
+            return Results.Ok(Array.Empty<object>());
+
+        var items = result.Items.Select(s => new
+        {
+            publicId = s.PublicId,
+            name = s.Name,
+            slug = s.Slug,
+            hubSlug = s.HubSlug,
+            hubName = s.HubName,
+            communitySlug = s.CommunitySlug,
+            discussionCount = s.DiscussionCount,
+            communityName = s.CommunityName,
+            avatarUrl = s.AvatarUrl
+        });
+
+        return Results.Ok(items);
+    }
+
     // Post endpoints
     private static async Task<IResult> GetDiscussionPostsAsync(
         string discussionId,
@@ -934,8 +1123,11 @@ public static class BffApiEndpoints
     private static async Task<IResult> EditPostAsync(
         string postId,
         [FromQuery] string content,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.EditPostResultAsync(postId, content);
 
         if (!result.IsSuccess)
@@ -946,8 +1138,11 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> DeletePostAsync(
         string postId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var success = await apiClient.DeletePostAsync(postId);
 
         if (!success)
@@ -1095,6 +1290,129 @@ public static class BffApiEndpoints
         return result is not null ? Results.Ok(result) : Results.NotFound();
     }
 
+    /// <summary>
+    /// Resolves an internal entity path (e.g. /c/gaming/h/fps) to its type, publicId, and name.
+    /// Used by the frontend to attach hover popups to entity-link elements in post content.
+    /// </summary>
+    private static async Task<IResult> ResolveEntityPathAsync(
+        [FromQuery] string path,
+        SnakkApiClient apiClient,
+        IConfiguration configuration)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return Results.BadRequest();
+
+        path = path.TrimEnd('/');
+        var defaultCommunitySlug = configuration["Snakk:DefaultCommunitySlug"] ?? "main";
+
+        // Discussion: /c/{community}/h/{hub}/{space}/{slug~id} or /h/{hub}/{space}/{slug~id}
+        var match = System.Text.RegularExpressions.Regex.Match(
+            path, @"^(?:/c/[^/]+)?/h/[^/]+/[^/]+/([^/]+~([^/]+))$");
+        if (match.Success)
+        {
+            var base62Id = match.Groups[2].Value;
+            var publicId = Snakk.Shared.Helpers.UlidBase62.Decode(base62Id);
+            var discussion = await apiClient.GetDiscussionAsync(publicId);
+            if (discussion is not null)
+            {
+                return Results.Ok(new Models.Bff.BffEntityResolveResponse
+                {
+                    Type = "discussion",
+                    PublicId = discussion.PublicId,
+                    Name = discussion.Title,
+                });
+            }
+
+            return Results.NotFound();
+        }
+
+        // Space: /c/{community}/h/{hub}/{space} or /h/{hub}/{space}
+        match = System.Text.RegularExpressions.Regex.Match(
+            path, @"^(?:/c/[^/]+)?/h/([^/]+)/([^/]+)$");
+        if (match.Success && !match.Groups[2].Value.Contains('~'))
+        {
+            var hubSlug = match.Groups[1].Value;
+            var spaceSlug = match.Groups[2].Value;
+            var space = await apiClient.GetSpaceBySlugAsync(spaceSlug, hubSlug);
+            if (space is not null)
+            {
+                return Results.Ok(new Models.Bff.BffEntityResolveResponse
+                {
+                    Type = "space",
+                    PublicId = space.PublicId,
+                    Name = space.Name,
+                });
+            }
+
+            return Results.NotFound();
+        }
+
+        // Hub: /c/{community}/h/{hub} or /h/{hub}
+        match = System.Text.RegularExpressions.Regex.Match(
+            path, @"^(?:/c/([^/]+))?/h/([^/]+)$");
+        if (match.Success)
+        {
+            var communitySlug = match.Groups[1].Value;
+            if (string.IsNullOrEmpty(communitySlug))
+                communitySlug = defaultCommunitySlug;
+
+            var hubSlug = match.Groups[2].Value;
+            var hub = await apiClient.GetHubBySlugAsync(hubSlug, communitySlug);
+            if (hub is not null)
+            {
+                return Results.Ok(new Models.Bff.BffEntityResolveResponse
+                {
+                    Type = "hub",
+                    PublicId = hub.PublicId,
+                    Name = hub.Name,
+                });
+            }
+
+            return Results.NotFound();
+        }
+
+        // Community: /c/{slug}
+        match = System.Text.RegularExpressions.Regex.Match(path, @"^/c/([^/]+)$");
+        if (match.Success)
+        {
+            var slug = match.Groups[1].Value;
+            var community = await apiClient.GetCommunityBySlugAsync(slug);
+            if (community is not null)
+            {
+                return Results.Ok(new Models.Bff.BffEntityResolveResponse
+                {
+                    Type = "community",
+                    PublicId = community.PublicId,
+                    Name = community.Name,
+                });
+            }
+
+            return Results.NotFound();
+        }
+
+        // User: /u/{base62Id}
+        match = System.Text.RegularExpressions.Regex.Match(path, @"^/u/([^/]+)$");
+        if (match.Success)
+        {
+            var base62Id = match.Groups[1].Value;
+            var publicId = Snakk.Shared.Helpers.UlidBase62.Decode(base62Id);
+            var profile = await apiClient.GetUserProfileAsync(publicId);
+            if (profile is not null)
+            {
+                return Results.Ok(new Models.Bff.BffEntityResolveResponse
+                {
+                    Type = "user",
+                    PublicId = publicId,
+                    Name = profile.DisplayName,
+                });
+            }
+
+            return Results.NotFound();
+        }
+
+        return Results.NotFound();
+    }
+
     // Moderation report reasons
     private static async Task<IResult> GetModerationReportReasonsAsync(
         [FromQuery] string? reportType,
@@ -1225,8 +1543,11 @@ public static class BffApiEndpoints
         });
     }
 
-    private static async Task<IResult> MarkQuestionSolvedBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient)
+    private static async Task<IResult> MarkQuestionSolvedBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.MarkQuestionSolvedAsync(discussionId, postPublicId);
         if (result is null) return Results.StatusCode(503);
         return result.Success
@@ -1250,8 +1571,11 @@ public static class BffApiEndpoints
 
     // --- Debate: Set position ---
 
-    private static async Task<IResult> SetPostDebatePositionBffAsync(string discussionId, string postPublicId, int positionId, SnakkApiClient apiClient)
+    private static async Task<IResult> SetPostDebatePositionBffAsync(string discussionId, string postPublicId, int positionId, SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.SetPostDebatePositionAsync(discussionId, postPublicId, positionId);
         if (result is null) return Results.StatusCode(503);
         return result.Success
@@ -1261,8 +1585,11 @@ public static class BffApiEndpoints
 
     // --- Journal: Add entry ---
 
-    private static async Task<IResult> AddJournalEntryBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient)
+    private static async Task<IResult> AddJournalEntryBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.AddJournalEntryAsync(discussionId, postPublicId);
         if (result is null) return Results.StatusCode(503);
         return result.Success
@@ -1282,7 +1609,11 @@ public static class BffApiEndpoints
             title = link.HasTitle ? link.Title : null,
             description = link.HasDescription ? link.Description : null,
             imageUrl = link.HasImageUrl ? link.ImageUrl : null,
-            domain = link.HasDomain ? link.Domain : null
+            domain = link.HasDomain ? link.Domain : null,
+            localImageUrl = link.HasLocalImageUrl ? link.LocalImageUrl : null,
+            blurDataUri = link.HasBlurDataUri ? link.BlurDataUri : null,
+            oembedHtml = link.HasOembedHtml ? link.OembedHtml : null,
+            isInternal = link.IsInternal
         });
     }
 
@@ -1315,8 +1646,11 @@ public static class BffApiEndpoints
         });
     }
 
-    private static async Task<IResult> VotePollAsync(string discussionId, int optionId, SnakkApiClient apiClient)
+    private static async Task<IResult> VotePollAsync(string discussionId, int optionId, SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.VotePollAsync(discussionId, optionId);
         if (result is null)
             return Results.StatusCode(503);
@@ -1326,8 +1660,11 @@ public static class BffApiEndpoints
             : Results.BadRequest(new { error = result.HasError ? result.Error : "Vote failed" });
     }
 
-    private static async Task<IResult> RemovePollVoteAsync(string discussionId, int optionId, SnakkApiClient apiClient)
+    private static async Task<IResult> RemovePollVoteAsync(string discussionId, int optionId, SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var result = await apiClient.RemovePollVoteAsync(discussionId, optionId);
         if (result is null)
             return Results.StatusCode(503);
@@ -1388,15 +1725,21 @@ public static class BffApiEndpoints
         _ => Results.StatusCode(503)
     };
 
-    private static async Task<IResult> GenerateFeedTokenAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> GenerateFeedTokenAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var token = await apiClient.GenerateFeedTokenAsync();
         if (token is null) return Results.StatusCode(503);
         return Results.Ok(new { token });
     }
 
-    private static async Task<IResult> RevokeFeedTokenAsync(SnakkApiClient apiClient)
+    private static async Task<IResult> RevokeFeedTokenAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
         var success = await apiClient.RevokeFeedTokenAsync();
         return success ? Results.Ok() : Results.StatusCode(503);
     }

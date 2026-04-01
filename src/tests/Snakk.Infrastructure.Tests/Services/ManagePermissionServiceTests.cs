@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -27,7 +27,7 @@ public class ManagePermissionServiceTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _service = new ManagePermissionService(_context, cache, new Mock<ILogger<ManagePermissionService>>().Object);
+        _service = new ManagePermissionService(_context, cache, Substitute.For<ILogger<ManagePermissionService>>());
     }
 
     public void Dispose()

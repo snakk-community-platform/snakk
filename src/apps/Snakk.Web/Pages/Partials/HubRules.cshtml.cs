@@ -15,12 +15,14 @@ public class HubRulesModel(
     public string CommunitySlug { get; set; } = string.Empty;
     public bool ParentCommunityHasRules { get; set; }
 
-    public async Task OnGetAsync(string hubId, string communitySlug = "", bool parentCommunityHasRules = false, string rev = "")
+    public async Task OnGetAsync(string hubId, string rev = "")
     {
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
-        CommunitySlug = communitySlug;
-        ParentCommunityHasRules = parentCommunityHasRules;
+        // Derive community slug and rule flags from the hub
+        var hub = await apiClient.GetHubAsync(hubId);
+        CommunitySlug = hub?.CommunitySlug ?? "";
+        ParentCommunityHasRules = hub?.ParentCommunityHasRules ?? false;
 
         var cacheKey = $"hub-rules:{hubId}";
 

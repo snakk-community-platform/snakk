@@ -204,6 +204,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMediaService, Infrastructure.Services.MediaService>();
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
         services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
+        services.AddHttpClient("LinkMetadata");
+        services.AddScoped<ILinkMetadataService, Infrastructure.Services.LinkMetadataService>();
         services.AddScoped<IDiscussionExtensionService, Infrastructure.Services.DiscussionExtensionService>();
         services.AddScoped<IPollService, Infrastructure.Services.PollService>();
         services.AddScoped<IDiscussionTypeQueryService, Infrastructure.Services.DiscussionTypeQueryService>();
