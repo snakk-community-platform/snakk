@@ -2,7 +2,7 @@
   "compilerOptions": {
     // Target modern browsers
     "target": "ES2020",
-    "module": "None",
+    "module": "Preserve",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
 
     // Output configuration
@@ -11,8 +11,8 @@
     "sourceMap": true,
     "declaration": false,
 
-    // Module resolution (for type checking imports like SignalR)
-    "moduleResolution": "node",
+    // Module resolution
+    "moduleResolution": "bundler",
 
     // Type checking
     "strict": true,

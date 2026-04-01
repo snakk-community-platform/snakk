@@ -28,16 +28,16 @@
   "type": "commonjs",
   "devDependencies": {
     "@microsoft/signalr": "^8.0.7",
-    "@tailwindcss/cli": "^4.0.0",
+    "@tailwindcss/cli": "^4.2.2",
     "@types/node": "^22.10.2",
     "daisyui": "^5.0.0",
-    "esbuild": "^0.25.0",
-    "htmx.org": "^2.0.4",
+    "esbuild": "^0.27.4",
+    "htmx.org": "^2.0.8",
     "sass": "^1.97.3",
-    "typescript": "^5.7.2"
+    "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@milkdown/kit": "^7.19.0",
+    "@milkdown/kit": "^7.20.0",
     "prismjs": "^1.30.0"
   }
 }
