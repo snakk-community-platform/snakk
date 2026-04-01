@@ -8,7 +8,7 @@
     "watch:css": "npx @tailwindcss/cli -i Styles/input.css -o wwwroot/css/auth.css --watch"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.0.0",
+    "@tailwindcss/cli": "^4.2.2",
     "daisyui": "^5.0.0"
   }
 }
