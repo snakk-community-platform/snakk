@@ -31,7 +31,7 @@
     "@tailwindcss/cli": "^4.0.0",
     "@types/node": "^22.10.2",
     "daisyui": "^5.0.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.27.4",
     "htmx.org": "^2.0.4",
     "sass": "^1.97.3",
     "typescript": "^5.7.2"
