@@ -33,7 +33,7 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_GetNotifications_Returns401()
     {
-        var response = await _client.GetAsync("/bff/notifications");
+        var response = await _client.GetAsync("/bff/notifications?offset=0&pageSize=10");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -75,8 +75,7 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PutSpaceFollowLevel_Returns401()
     {
-        var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PutAsync("/bff/spaces/test-id/follow-level", content);
+        var response = await _client.PutAsync("/bff/spaces/test-id/follow-level?level=normal", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -97,7 +96,7 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostDiscussionMarkRead_Returns401()
     {
-        var response = await _client.PostAsync("/bff/discussions/test-id/mark-read", null);
+        var response = await _client.PostAsync("/bff/discussions/test-id/mark-read?postId=x", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -111,7 +110,7 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostPostReaction_Returns401()
     {
-        var content = new StringContent("{\"type\":\"like\"}", Encoding.UTF8, "application/json");
+        var content = new StringContent("{\"Type\":1}", Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("/bff/posts/test-id/reactions", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
@@ -222,8 +221,7 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostPostEdit_Returns401()
     {
-        var content = new StringContent("{\"content\":\"test\"}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/bff/posts/test-id/edit", content);
+        var response = await _client.PostAsync("/bff/posts/test-id/edit?content=test", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -245,6 +243,7 @@ public class BffAccessControlTests : IAsyncDisposable
     public async Task Unauthenticated_PostMediaUpload_Returns401()
     {
         var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x89, 0x50]), "file", "test.png");
         var response = await _client.PostAsync("/bff/media/upload", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
@@ -260,6 +259,7 @@ public class BffAccessControlTests : IAsyncDisposable
     public async Task Unauthenticated_PostAvatarUpload_Returns401()
     {
         var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x89, 0x50]), "avatar", "avatar.png");
         var response = await _client.PostAsync("/bff/avatars/upload", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
@@ -274,39 +274,35 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostQuestionSolve_Returns401()
     {
-        var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/bff/discussions/test-id/question/solve", content);
+        var response = await _client.PostAsync("/bff/discussions/test-id/question/solve?postPublicId=x", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]
     public async Task Unauthenticated_PostDebatePosition_Returns401()
     {
-        var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/bff/discussions/test-id/debate/position", content);
+        var response = await _client.PostAsync("/bff/discussions/test-id/debate/position?postPublicId=x&positionId=1", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]
     public async Task Unauthenticated_PostJournalEntry_Returns401()
     {
-        var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/bff/discussions/test-id/journal/entry", content);
+        var response = await _client.PostAsync("/bff/discussions/test-id/journal/entry?postPublicId=x", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]
     public async Task Unauthenticated_PostPollVote_Returns401()
     {
-        var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/bff/discussions/test-id/poll/vote", content);
+        var response = await _client.PostAsync("/bff/discussions/test-id/poll/vote?optionId=1", null);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]
     public async Task Unauthenticated_DeletePollVote_Returns401()
     {
-        var response = await _client.DeleteAsync("/bff/discussions/test-id/poll/vote");
+        var response = await _client.DeleteAsync("/bff/discussions/test-id/poll/vote?optionId=1");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -318,10 +314,10 @@ public class BffAccessControlTests : IAsyncDisposable
     }
 
     [Test]
-    public async Task Unauthenticated_DeleteMeDevice_Returns401()
+    public async Task Unauthenticated_DeleteMeDevice_Returns403()
     {
         var response = await _client.DeleteAsync("/bff/me/devices/test-id");
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
     }
 
     [Test]

@@ -307,25 +307,16 @@ public class BffFollowTests
     }
 
     [Test]
-    public async Task GetFollowedSpaces_WhenNotAuthenticated_ReturnsEmptyList()
+    public async Task GetFollowedSpaces_WhenNotAuthenticated_Returns401()
     {
         // Arrange
         await using var app = new TestWebApp();
-        // Mock returns empty list (simulating unauthenticated user getting no results)
-        app.MockApiClient
-            .GetFollowedSpacesAsync()
-            .Returns(new List<string>());
-
         var client = app.CreateClient();
 
         // Act
         var response = await client.GetAsync("/bff/follows/spaces");
 
-        // Assert
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        var items = body.GetProperty("items");
-        await Assert.That(items.GetArrayLength()).IsEqualTo(0);
+        // Assert — endpoint requires authentication
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 }

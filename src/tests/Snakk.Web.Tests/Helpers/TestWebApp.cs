@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Snakk.Protos.Auth;
 using Snakk.Web.Services;
@@ -33,7 +34,24 @@ public class TestWebApp : WebApplicationFactory<Program>
 
     public TestWebApp()
     {
-        MockApiClient = Substitute.For<SnakkApiClient>();
+        MockApiClient = Substitute.For<SnakkApiClient>(
+            Substitute.For<Snakk.Protos.Community.CommunityService.CommunityServiceClient>(),
+            Substitute.For<Snakk.Protos.Hub.HubService.HubServiceClient>(),
+            Substitute.For<Snakk.Protos.Space.SpaceService.SpaceServiceClient>(),
+            Substitute.For<Snakk.Protos.Discussion.DiscussionService.DiscussionServiceClient>(),
+            Substitute.For<Snakk.Protos.Post.PostService.PostServiceClient>(),
+            Substitute.For<Snakk.Protos.Follow.FollowService.FollowServiceClient>(),
+            Substitute.For<Snakk.Protos.Reaction.ReactionService.ReactionServiceClient>(),
+            Substitute.For<Snakk.Protos.Notification.NotificationService.NotificationServiceClient>(),
+            Substitute.For<Snakk.Protos.Moderation.ModerationService.ModerationServiceClient>(),
+            Substitute.For<Snakk.Protos.Search.SearchService.SearchServiceClient>(),
+            Substitute.For<Snakk.Protos.Statistics.StatisticsService.StatisticsServiceClient>(),
+            Substitute.For<Snakk.Protos.User.UserService.UserServiceClient>(),
+            Substitute.For<Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient>(),
+            Substitute.For<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(),
+            Substitute.For<AuthService.AuthServiceClient>(),
+            Substitute.For<Snakk.Protos.Banner.BannerService.BannerServiceClient>(),
+            Substitute.For<ILogger<SnakkApiClient>>());
         MockAuthClient = Substitute.For<AuthService.AuthServiceClient>();
     }
 
