@@ -32,7 +32,7 @@
     "@types/node": "^22.10.2",
     "daisyui": "^5.0.0",
     "esbuild": "^0.25.0",
-    "htmx.org": "^2.0.4",
+    "htmx.org": "^2.0.8",
     "sass": "^1.97.3",
     "typescript": "^5.7.2"
   },
