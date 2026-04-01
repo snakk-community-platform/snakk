@@ -34,7 +34,7 @@
     "esbuild": "^0.25.0",
     "htmx.org": "^2.0.4",
     "sass": "^1.97.3",
-    "typescript": "^5.7.2"
+    "typescript": "^6.0.2"
   },
   "dependencies": {
     "@milkdown/kit": "^7.19.0",
