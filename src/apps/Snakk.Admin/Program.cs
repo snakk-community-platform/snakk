@@ -23,8 +23,8 @@ builder.Configuration.AddJsonFile(
     reloadOnChange: true);
 
 // Add services to the container
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
 builder.Services.AddHttpContextAccessor();
 
@@ -63,6 +63,13 @@ void AddGrpcClient<T>(IServiceCollection services) where T : class
 
 AddGrpcClient<AuthService.AuthServiceClient>(builder.Services);
 AddGrpcClient<ManageService.ManageServiceClient>(builder.Services);
+
+// Named HttpClient for REST calls to internal API (file uploads, etc.)
+builder.Services.AddHttpClient("SnakkApi", client =>
+{
+    client.BaseAddress = new Uri(snakkApiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // ManageScopeService (scoped — uses gRPC client)
 builder.Services.AddScoped<ManageScopeService>();
@@ -129,6 +136,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // Session for temp data
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -159,10 +167,11 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
-app.MapRazorPages();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapRazorComponents<Snakk.Admin.App>()
+    .AddInteractiveServerRenderMode()
+    .WithStaticAssets();
 
 // Health check for gateway probes
 app.MapGet("/health", (Grpc.Net.Client.GrpcChannel channel) =>

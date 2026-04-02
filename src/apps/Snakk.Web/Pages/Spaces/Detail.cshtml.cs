@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
@@ -10,6 +11,7 @@ using Snakk.Protos.Discussion;
 
 namespace Snakk.Web.Pages.Spaces;
 
+[OutputCache(PolicyName = "AnonymousPage")]
 public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

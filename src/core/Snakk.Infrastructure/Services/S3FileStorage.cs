@@ -40,6 +40,7 @@ public class S3FileStorage : IFileStorage
     public async Task SaveAsync(
         string relativePath,
         Stream content,
+        string? cacheControl = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
@@ -55,6 +56,9 @@ public class S3FileStorage : IFileStorage
             ContentType = GetContentType(key),
             DisablePayloadSigning = true // Required for R2
         };
+
+        if (!string.IsNullOrEmpty(cacheControl))
+            request.Headers.CacheControl = cacheControl;
 
         await _s3Client.PutObjectAsync(request, cancellationToken);
     }

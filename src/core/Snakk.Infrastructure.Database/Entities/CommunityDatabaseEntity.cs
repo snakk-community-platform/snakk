@@ -24,7 +24,8 @@ public class CommunityDatabaseEntity
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 
-    // Avatar revision number (incremented when avatar changes)
+    // Avatar
+    public string? AvatarFileName { get; set; }
     public int AvatarRevision { get; set; } = 0;
 
     // Timezone (IANA timezone ID, e.g. "Europe/London"; null = use site-wide setting)

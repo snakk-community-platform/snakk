@@ -141,7 +141,7 @@ public partial class LinkMetadataService(
             // Save to storage
             var storagePath = $"media/link-previews/{Ulid.NewUlid()}.webp";
             webpStream.Position = 0;
-            await fileStorage.SaveAsync(storagePath, webpStream, cancellationToken);
+            await fileStorage.SaveAsync(storagePath, webpStream, "public, max-age=31536000, immutable", cancellationToken);
 
             // Generate blur data URI (20px WebP, base64)
             string? blurDataUri = null;

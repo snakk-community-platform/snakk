@@ -186,7 +186,7 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(
-        string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null)
+        string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null)
     {
         try
         {
@@ -199,6 +199,8 @@ public class SnakkApiClient(
 
             if (typeFilter.HasValue)
                 request.TypeFilter = typeFilter.Value;
+            if (cursor is not null)
+                request.Cursor = cursor;
 
             return await discussionClient.GetDiscussionsBySpaceAsync(request);
         }
@@ -285,13 +287,14 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? cursor = null)
     {
         try
         {
             var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
+            if (cursor is not null) request.Cursor = cursor;
 
             return await discussionClient.GetRecentDiscussionsAsync(request);
         }
@@ -876,8 +879,8 @@ public class SnakkApiClient(
     }
 
     // Endless scroll (alias for GetDiscussionsBySpaceAsync)
-    public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize)
-        => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize);
+    public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize, string? cursor = null)
+        => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, cursor: cursor);
 
     // ==================== Moderation ====================
 

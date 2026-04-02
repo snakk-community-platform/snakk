@@ -97,6 +97,7 @@ public class MediaServiceTests : IAsyncDisposable
         _fileStorage.Received(1).SaveAsync(
             Arg.Is<string>(p => p.StartsWith("media/posts/") && p.EndsWith(".webp")),
             Arg.Any<Stream>(),
+            Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
 
         var dbRecord = await _db.Media.FirstOrDefaultAsync();
@@ -124,6 +125,7 @@ public class MediaServiceTests : IAsyncDisposable
         _fileStorage.Received(1).SaveAsync(
             Arg.Any<string>(),
             Arg.Any<Stream>(),
+            Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
 
         var mediaCount = await _db.Media.CountAsync();
@@ -221,7 +223,7 @@ public class MediaServiceTests : IAsyncDisposable
                 savedStream = new MemoryStream();
                 s.CopyTo(savedStream);
                 savedStream.Position = 0;
-            }), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+            }), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // The DB record should exist with smaller size than original
         var dbRecord = await _db.Media.FirstAsync();

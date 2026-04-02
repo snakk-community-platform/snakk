@@ -19,7 +19,9 @@ public static class CommunityMapper
             entity.CreatedAt,
             entity.LastModifiedAt,
             hubs: [],
-            timezone: entity.Timezone);
+            timezone: entity.Timezone,
+            avatarFileName: entity.AvatarFileName,
+            avatarRevision: entity.AvatarRevision);
 
     public static CommunityDatabaseEntity ToPersistence(this Community community) =>
         new()
@@ -31,6 +33,8 @@ public static class CommunityMapper
             VisibilityId = (int)community.Visibility.ToShared(),
             ExposeToPlatformFeed = community.ExposeToPlatformFeed,
             CreatedAt = community.CreatedAt,
-            LastModifiedAt = community.LastModifiedAt
+            LastModifiedAt = community.LastModifiedAt,
+            AvatarFileName = community.AvatarFileName,
+            AvatarRevision = community.AvatarRevision
         };
 }

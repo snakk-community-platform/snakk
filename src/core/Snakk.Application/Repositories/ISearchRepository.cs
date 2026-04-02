@@ -34,7 +34,8 @@ public interface ISearchRepository
         int offset = 0,
         int pageSize = 20,
         int? typeFilter = null,
-        string? userId = null);
+        string? userId = null,
+        string? cursor = null);
 
     /// <summary>
     /// Gets all hubs with their statistics

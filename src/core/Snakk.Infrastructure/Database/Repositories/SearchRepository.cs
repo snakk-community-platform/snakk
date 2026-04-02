@@ -214,7 +214,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int offset = 0,
         int pageSize = 20,
         int? typeFilter = null,
-        string? userId = null)
+        string? userId = null,
+        string? cursor = null)
     {
         var baseQuery = _context.Discussions
             .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
@@ -224,29 +225,57 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (typeFilter.HasValue)
             baseQuery = baseQuery.Where(d => d.Type == typeFilter.Value);
 
-        var query = baseQuery
-            .OrderByDescending(d => d.IsPinned)
-            .ThenByDescending(d => d.LastActivityAt);
+        // Apply keyset pagination if cursor provided.
+        // The sort order is IsPinned DESC, LastActivityAt DESC.
+        // Pinned items only appear on the first page (no cursor), so when a
+        // cursor is present we filter them out and paginate on (LastActivityAt, Id).
+        var cursorData = Cursor.Decode(cursor);
 
-        var items = await query
-            .Skip(offset)
+        if (cursorData.HasValue)
+        {
+            var (cursorDate, cursorId) = cursorData.Value;
+
+            // Exclude pinned items — they were already returned on the first page
+            baseQuery = baseQuery.Where(d => !d.IsPinned);
+
+            // Keyset WHERE clause for ORDER BY LastActivityAt DESC, Id DESC
+            baseQuery = baseQuery.Where(d =>
+                d.LastActivityAt < cursorDate
+                || (d.LastActivityAt == cursorDate && d.Id < cursorId));
+        }
+
+        var orderedQuery = baseQuery
+            .OrderByDescending(d => d.IsPinned)
+            .ThenByDescending(d => d.LastActivityAt)
+            .ThenByDescending(d => d.Id);
+
+        // Only apply offset-based skip when no cursor is provided;
+        // the cursor's WHERE clause already positions the query.
+        if (!cursorData.HasValue)
+            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+
+        var items = await orderedQuery
             .Take(pageSize + 1)
-            .Select(d => new DiscussionListItemDto(
-                d.PublicId,
-                d.Space.PublicId,
-                d.Title,
-                d.Slug,
-                d.Type,
-                d.CreatedAt,
-                d.LastActivityAt,
-                d.IsPinned,
-                d.IsLocked,
-                d.PostCount,
-                d.ReactionCount,
-                d.CreatedByUser.PublicId,
-                d.CreatedByUser.DisplayName,
-                d.CreatedByUser.AvatarFileName,
-                d.Tags))
+            .Select(d => new
+            {
+                d.Id,
+                Dto = new DiscussionListItemDto(
+                    d.PublicId,
+                    d.Space.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.PostCount,
+                    d.ReactionCount,
+                    d.CreatedByUser.PublicId,
+                    d.CreatedByUser.DisplayName,
+                    d.CreatedByUser.AvatarFileName,
+                    d.Tags)
+            })
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
@@ -256,12 +285,22 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 .ToList()
             : items;
 
+        // Generate next cursor from last item
+        string? nextCursor = null;
+
+        if (hasMoreItems && resultItems.Count > 0)
+        {
+            var lastItem = resultItems[^1];
+            nextCursor = Cursor.Encode(lastItem.Dto.LastActivityAt, lastItem.Id);
+        }
+
         return new PagedResult<DiscussionListItemDto>
         {
-            Items = resultItems,
+            Items = resultItems.Select(x => x.Dto),
             Offset = offset,
             PageSize = pageSize,
-            HasMoreItems = hasMoreItems
+            HasMoreItems = hasMoreItems,
+            NextCursor = nextCursor
         };
     }
 
@@ -580,10 +619,16 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.LastActivityAt < cursorDate
                 || (d.LastActivityAt == cursorDate && d.Id < cursorId));
         }
-        var items = await query
+        var orderedQuery = query
             .OrderByDescending(d => d.LastActivityAt)
-            .ThenByDescending(d => d.Id)
-            .Skip(offset)
+            .ThenByDescending(d => d.Id);
+
+        // Only apply offset-based skip when no cursor is provided;
+        // the cursor's WHERE clause already positions the query.
+        if (!cursorData.HasValue)
+            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+
+        var items = await orderedQuery
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,

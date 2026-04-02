@@ -17,7 +17,9 @@ public static class SpaceMapper
             entity.RequireEmailConfirmation,
             entity.CreatedAt,
             entity.LastModifiedAt,
-            discussions: []);
+            discussions: [],
+            avatarFileName: entity.AvatarFileName,
+            avatarRevision: entity.AvatarRevision);
 
     public static SpaceDatabaseEntity ToPersistence(this Space space) =>
         new()
@@ -29,7 +31,9 @@ public static class SpaceMapper
             AllowAnonymousReading = space.AllowAnonymousReading,
             RequireEmailConfirmation = space.RequireEmailConfirmation,
             CreatedAt = space.CreatedAt,
-            LastModifiedAt = space.LastModifiedAt
+            LastModifiedAt = space.LastModifiedAt,
+            AvatarFileName = space.AvatarFileName,
+            AvatarRevision = space.AvatarRevision
             // HubId will be set by repository adapter
         };
 }

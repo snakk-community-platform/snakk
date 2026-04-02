@@ -40,7 +40,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 h.Description,
                 h.SpaceCount,
                 h.DiscussionCount,
-                h.PostCount - h.DiscussionCount))
+                h.PostCount - h.DiscussionCount,
+                h.AvatarFileName))
             .FirstOrDefaultAsync();
 
     public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId) =>
@@ -55,7 +56,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 s.PostCount - s.DiscussionCount,
                 _context.Follows.Count(f =>
                     f.SpaceId == s.Id
-                    && f.TargetTypeId == (int)FollowTargetTypeEnum.Space)))
+                    && f.TargetTypeId == (int)FollowTargetTypeEnum.Space),
+                s.AvatarFileName))
             .FirstOrDefaultAsync();
 
     public async Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId) =>
@@ -69,7 +71,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 c.HubCount,
                 c.SpaceCount,
                 c.DiscussionCount,
-                c.PostCount - c.DiscussionCount))
+                c.PostCount - c.DiscussionCount,
+                c.AvatarFileName))
             .FirstOrDefaultAsync();
 
     public async Task<UserStatsDto?> GetUserStatsAsync(string publicId) => await _context.Users

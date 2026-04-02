@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Protos.Discussion;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Partials;
 
+[OutputCache(PolicyName = "AnonymousPartial")]
 public class DiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -13,6 +15,7 @@ public class DiscussionsModel(
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
     public int MaxOffset { get; set; }
+    public string? NextCursor { get; set; }
     public bool ShowCommunity { get; set; }
     public bool ShowHub { get; set; } = true;
     public bool ShowSpace { get; set; } = true;
@@ -28,7 +31,8 @@ public class DiscussionsModel(
         string? communityId = null,
         string? hubId = null,
         bool hideCommunity = false,
-        bool hideHub = false)
+        bool hideHub = false,
+        string? cursor = null)
     {
         Response.Headers.CacheControl = "public, max-age=5";
 
@@ -49,10 +53,11 @@ public class DiscussionsModel(
 
         try
         {
-            var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId);
+            var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, cursor);
             Items = result?.Items ?? [];
             HasMoreItems = result?.HasMoreItems ?? false;
             NextOffset = offset + pageSize;
+            NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
         }
         catch
         {

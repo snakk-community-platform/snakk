@@ -90,14 +90,14 @@ public static class SnakkUrlHelper
 
     // ===== Avatar & Asset URLs =====
 
-    public static string HubAvatar(string publicId, int revision = 0)
-        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Hub, revision);
+    public static string HubAvatar(string publicId, int revision = 0, string? avatarFileName = null)
+        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Hub, revision, avatarFileName);
 
-    public static string SpaceAvatar(string publicId, int revision = 0)
-        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Space, revision);
+    public static string SpaceAvatar(string publicId, int revision = 0, string? avatarFileName = null)
+        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Space, revision, avatarFileName);
 
-    public static string CommunityAvatar(string publicId, int revision = 0)
-        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Community, revision);
+    public static string CommunityAvatar(string publicId, int revision = 0, string? avatarFileName = null)
+        => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Community, revision, avatarFileName);
 
     public static string UserAvatar(string publicId, int revision = 0, string? avatarFileName = null)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.User, revision, avatarFileName);

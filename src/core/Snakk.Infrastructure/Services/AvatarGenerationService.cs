@@ -36,7 +36,7 @@ public class AvatarGenerationService(
 
         // Write SVG to storage
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg));
-        await fileStorage.SaveAsync(relativePath, stream);
+        await fileStorage.SaveAsync(relativePath, stream, "public, max-age=31536000, immutable");
 
         logger.LogInformation("Generated avatar for user {UserId} at {RelativePath}", userId, relativePath);
 
@@ -57,7 +57,7 @@ public class AvatarGenerationService(
         var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"hub:{hubId}", size);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg));
-        await fileStorage.SaveAsync(relativePath, stream);
+        await fileStorage.SaveAsync(relativePath, stream, "public, max-age=31536000, immutable");
 
         logger.LogInformation("Generated avatar for hub {HubId} at {RelativePath}", hubId, relativePath);
 
@@ -78,7 +78,7 @@ public class AvatarGenerationService(
         var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"space:{spaceId}", size);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg));
-        await fileStorage.SaveAsync(relativePath, stream);
+        await fileStorage.SaveAsync(relativePath, stream, "public, max-age=31536000, immutable");
 
         logger.LogInformation("Generated avatar for space {SpaceId} at {RelativePath}", spaceId, relativePath);
 
@@ -99,7 +99,7 @@ public class AvatarGenerationService(
         var svg = Snakk.Shared.Avatars.AvatarGenerator.Generate($"community:{communityId}", size);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg));
-        await fileStorage.SaveAsync(relativePath, stream);
+        await fileStorage.SaveAsync(relativePath, stream, "public, max-age=31536000, immutable");
 
         logger.LogInformation("Generated avatar for community {CommunityId} at {RelativePath}", communityId, relativePath);
 

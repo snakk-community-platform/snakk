@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Discussion;
 
 namespace Snakk.Web.Pages;
 
+[OutputCache(PolicyName = "AnonymousPage")]
 public class IndexModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

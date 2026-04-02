@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Users;
 
+[OutputCache(PolicyName = "AnonymousProfile")]
 public class ProfileModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

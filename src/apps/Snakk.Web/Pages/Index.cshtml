@@ -44,12 +44,12 @@
                                  model="new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community)" />
                     }
 
-                    @if (Model.RecentDiscussions.HasMoreItems)
+                    @if (Model.RecentDiscussions.HasMoreItems && Model.RecentDiscussions.HasNextCursor)
                     {
-                        var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
+                        var nextCursor = Model.RecentDiscussions.NextCursor;
                         var communityParam = Model.SidebarScopeType == "community" ? $"&communityId={Model.SidebarScopeId}" : "";
 
-                        <div hx-get="/partials/discussions?offset=@nextOffset&pageSize=20@(communityParam)"
+                        <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20@(communityParam)"
                              hx-trigger="revealed"
                              hx-swap="outerHTML"
                              hx-target="this"

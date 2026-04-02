@@ -20,7 +20,8 @@ public class CommunityRepositoryAdapter(
             .Select(c => new CommunityProjection(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
-                c.CreatedAt, c.LastModifiedAt))
+                c.CreatedAt, c.LastModifiedAt,
+                c.AvatarFileName, c.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -32,7 +33,8 @@ public class CommunityRepositoryAdapter(
             .Select(c => new CommunityProjection(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
-                c.CreatedAt, c.LastModifiedAt))
+                c.CreatedAt, c.LastModifiedAt,
+                c.AvatarFileName, c.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -46,7 +48,8 @@ public class CommunityRepositoryAdapter(
             .Select(d => new CommunityProjection(
                 d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
-                d.Community.CreatedAt, d.Community.LastModifiedAt))
+                d.Community.CreatedAt, d.Community.LastModifiedAt,
+                d.Community.AvatarFileName, d.Community.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -115,6 +118,8 @@ public class CommunityRepositoryAdapter(
         entity.VisibilityId = (int)community.Visibility.ToShared();
         entity.ExposeToPlatformFeed = community.ExposeToPlatformFeed;
         entity.LastModifiedAt = community.LastModifiedAt;
+        entity.AvatarFileName = community.AvatarFileName;
+        entity.AvatarRevision = community.AvatarRevision;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -128,13 +133,17 @@ public class CommunityRepositoryAdapter(
         int VisibilityId,
         bool ExposeToPlatformFeed,
         DateTime CreatedAt,
-        DateTime? LastModifiedAt)
+        DateTime? LastModifiedAt,
+        string? AvatarFileName,
+        int AvatarRevision)
     {
         public Community ToDomain() => Community.Rehydrate(
             CommunityId.From(PublicId),
             Name, Slug, Description,
             ((CommunityVisibilityEnum)VisibilityId).ToDomain(),
             ExposeToPlatformFeed,
-            CreatedAt, LastModifiedAt, hubs: []);
+            CreatedAt, LastModifiedAt, hubs: [],
+            avatarFileName: AvatarFileName,
+            avatarRevision: AvatarRevision);
     }
 }

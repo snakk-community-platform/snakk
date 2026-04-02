@@ -11,9 +11,9 @@
              model="new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace)" />
 }
 
-@if (Model.HasMoreItems && Model.NextOffset < Model.MaxOffset)
+@if (Model.HasMoreItems && Model.NextCursor != null)
 {
-    <div hx-get="/partials/discussions?offset=@Model.NextOffset&pageSize=20@(Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "")@(Model.HubId != null ? $"&hubId={Model.HubId}" : "")@(Model.HideCommunity ? "&hideCommunity=true" : "")@(Model.HideHub ? "&hideHub=true" : "")"
+    <div hx-get="/partials/discussions?cursor=@Model.NextCursor&pageSize=20@(Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "")@(Model.HubId != null ? $"&hubId={Model.HubId}" : "")@(Model.HideCommunity ? "&hideCommunity=true" : "")@(Model.HideHub ? "&hideHub=true" : "")"
          hx-trigger="revealed"
          hx-swap="outerHTML"
          hx-target="this"

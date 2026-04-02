@@ -71,6 +71,7 @@ builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = Comp
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 
 // Gateway-level rate limiting (per real client IP)
+var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
@@ -164,7 +165,8 @@ if (!app.Environment.IsProduction())
 // Middleware pipeline (order matters)
 app.UseResponseCompression();
 app.UseRouting();
-app.UseRateLimiter();
+if (!disableRateLimiting)
+    app.UseRateLimiter();
 app.UseRequestTimeouts();
 
 // Gateway's own health endpoint (not proxied — handled locally before YARP)

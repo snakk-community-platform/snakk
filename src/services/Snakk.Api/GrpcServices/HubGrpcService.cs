@@ -141,7 +141,7 @@ public class HubGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
-            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Hub, 0),
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Hub, 0, stats.AvatarFileName),
             SpaceCount = stats.SpaceCount,
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount

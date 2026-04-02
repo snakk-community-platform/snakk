@@ -175,11 +175,11 @@ else
                                      model="new DiscussionListItemVM(discussion, false, Model.Community, ShowHub: false)" />
                         }
 
-                        @if (Model.RecentDiscussions.HasMoreItems)
+                        @if (Model.RecentDiscussions.HasMoreItems && Model.RecentDiscussions.HasNextCursor)
                         {
-                            var nextOffset = Model.RecentDiscussions.Offset + Model.RecentDiscussions.PageSize;
+                            var nextCursor = Model.RecentDiscussions.NextCursor;
 
-                            <div hx-get="/partials/discussions?offset=@nextOffset&pageSize=20&hubId=@Model.Hub.PublicId&hideCommunity=true&hideHub=true"
+                            <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&hubId=@Model.Hub.PublicId&hideCommunity=true&hideHub=true"
                                  hx-trigger="revealed"
                                  hx-swap="outerHTML"
                                  hx-target="this"

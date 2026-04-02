@@ -105,7 +105,7 @@ public class MediaService(
             {
                 logger.LogWarning("Deduplicated record {Hash} exists but file missing at {Path}, re-saving", sha256Hash, existing.StoragePath);
                 processedStream.Position = 0;
-                await fileStorage.SaveAsync(existing.StoragePath, processedStream, cancellationToken);
+                await fileStorage.SaveAsync(existing.StoragePath, processedStream, "public, max-age=31536000, immutable", cancellationToken);
             }
             else
             {
@@ -140,7 +140,7 @@ public class MediaService(
 
         // Save processed file to storage
         processedStream.Position = 0;
-        await fileStorage.SaveAsync(storagePath, processedStream, cancellationToken);
+        await fileStorage.SaveAsync(storagePath, processedStream, "public, max-age=31536000, immutable", cancellationToken);
 
         // Generate thumbnail (300px longest side)
         string? thumbnailPath = null;
@@ -161,7 +161,7 @@ public class MediaService(
                 using var thumbStream = new MemoryStream();
                 await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 }, cancellationToken);
                 thumbStream.Position = 0;
-                await fileStorage.SaveAsync(thumbnailPath, thumbStream, cancellationToken);
+                await fileStorage.SaveAsync(thumbnailPath, thumbStream, "public, max-age=31536000, immutable", cancellationToken);
             }
         }
         catch (Exception ex)

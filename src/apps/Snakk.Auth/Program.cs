@@ -24,11 +24,18 @@ builder.Services.AddRazorPages();
 
 // gRPC client for calling Snakk.Api
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+var grpcHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true };
+var grpcOptions = new Grpc.Net.Client.GrpcChannelOptions { HttpHandler = grpcHandler };
+
+// Plain HTTP (Docker): force HTTP/2 cleartext (h2c) for gRPC
+if (apiBaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+{
+    grpcOptions.HttpVersion = new Version(2, 0);
+    grpcOptions.HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+}
+
 builder.Services.AddSingleton(_ =>
-    Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, new Grpc.Net.Client.GrpcChannelOptions
-    {
-        HttpHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-    }));
+    Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, grpcOptions));
 builder.Services.AddScoped(sp =>
     new Snakk.Protos.Auth.AuthService.AuthServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 

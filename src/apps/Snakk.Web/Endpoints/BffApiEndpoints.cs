@@ -241,6 +241,13 @@ public static class BffApiEndpoints
             .DisableAntiforgery();
         group.MapDelete("/avatars", DeleteAvatarBffAsync)
             .WithName("BffDeleteAvatar");
+
+        // Entity avatar upload + delete (proxy to internal API)
+        group.MapPost("/avatars/upload/{entityType}/{entityId}", UploadEntityAvatarBffAsync)
+            .WithName("BffUploadEntityAvatar")
+            .DisableAntiforgery();
+        group.MapDelete("/avatars/{entityType}/{entityId}", DeleteEntityAvatarBffAsync)
+            .WithName("BffDeleteEntityAvatar");
     }
 
     /// <summary>
@@ -1479,6 +1486,61 @@ public static class BffApiEndpoints
         // Refresh JWT so the AvatarFileName claim is cleared from the cookie
         if (response.IsSuccessStatusCode)
             await RefreshAuthCookiesAsync(httpContext, authClient);
+
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    // --- Entity avatar upload proxy ---
+
+    private static async Task<IResult> UploadEntityAvatarBffAsync(
+        string entityType,
+        string entityId,
+        IFormFile avatar,
+        IHttpClientFactory httpClientFactory,
+        HttpContext httpContext)
+    {
+        if (avatar is null || avatar.Length == 0)
+            return Results.BadRequest(new { error = "No file provided." });
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        using var content = new MultipartFormDataContent();
+        using var fileStream = avatar.OpenReadStream();
+        using var streamContent = new StreamContent(fileStream);
+        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
+        content.Add(streamContent, "avatar", avatar.FileName);
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/avatars/upload/{entityType}/{entityId}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = content;
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    // --- Entity avatar delete proxy ---
+
+    private static async Task<IResult> DeleteEntityAvatarBffAsync(
+        string entityType,
+        string entityId,
+        IHttpClientFactory httpClientFactory,
+        HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken))
+            return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/avatars/{entityType}/{entityId}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
 
         return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }

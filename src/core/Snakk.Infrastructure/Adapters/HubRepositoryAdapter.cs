@@ -18,7 +18,8 @@ public class HubRepositoryAdapter(
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
-                h.CreatedAt, h.LastModifiedAt))
+                h.CreatedAt, h.LastModifiedAt,
+                h.AvatarFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -30,7 +31,8 @@ public class HubRepositoryAdapter(
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
-                h.CreatedAt, h.LastModifiedAt))
+                h.CreatedAt, h.LastModifiedAt,
+                h.AvatarFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -42,7 +44,8 @@ public class HubRepositoryAdapter(
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
-                h.CreatedAt, h.LastModifiedAt))
+                h.CreatedAt, h.LastModifiedAt,
+                h.AvatarFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -53,7 +56,8 @@ public class HubRepositoryAdapter(
             .Select(h => new HubProjection(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
-                h.CreatedAt, h.LastModifiedAt))
+                h.CreatedAt, h.LastModifiedAt,
+                h.AvatarFileName, h.AvatarRevision))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -150,6 +154,8 @@ public class HubRepositoryAdapter(
         entity.AllowAnonymousReading = hub.AllowAnonymousReading;
         entity.RequireEmailConfirmation = hub.RequireEmailConfirmation;
         entity.LastModifiedAt = hub.LastModifiedAt;
+        entity.AvatarFileName = hub.AvatarFileName;
+        entity.AvatarRevision = hub.AvatarRevision;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -164,13 +170,17 @@ public class HubRepositoryAdapter(
         bool AllowAnonymousReading,
         bool RequireEmailConfirmation,
         DateTime CreatedAt,
-        DateTime? LastModifiedAt)
+        DateTime? LastModifiedAt,
+        string? AvatarFileName,
+        int AvatarRevision)
     {
         public Hub ToDomain() => Hub.Rehydrate(
             HubId.From(PublicId),
             CommunityId.From(CommunityPublicId),
             Name, Slug, Description,
             AllowAnonymousReading, RequireEmailConfirmation,
-            CreatedAt, LastModifiedAt, spaces: []);
+            CreatedAt, LastModifiedAt, spaces: [],
+            avatarFileName: AvatarFileName,
+            avatarRevision: AvatarRevision);
     }
 }

@@ -1,7 +1,9 @@
-@using Snakk.Application.DTOs.Management
-@using Snakk.Shared.Enums
+@using Snakk.Shared.Helpers
 @using Snakk.Protos.Manage
+@using System.Net.Http.Headers
 @inject ManageService.ManageServiceClient ManageClient
+@inject IHttpClientFactory HttpClientFactory
+@inject CircuitTokenProvider TokenProvider
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h5">@Scope?.ScopeType Settings</MudText>
@@ -19,6 +21,68 @@
     else
     {
         <MudStack Spacing="4" Style="max-width: 600px;">
+
+            @* --- Avatar Section --- *@
+            <div>
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Avatar</MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+                    <MudAvatar Size="Size.Large" Style="width: 80px; height: 80px;">
+                        <MudImage Src="@_currentAvatarUrl" Alt="@($"{Scope?.ScopeName} avatar")"
+                                  Width="80" Height="80" ObjectFit="ObjectFit.Cover" />
+                    </MudAvatar>
+                    <MudStack Spacing="2">
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept=".jpg,.jpeg,.png,.webp"
+                                       MaximumFileCount="1"
+                                       OnFilesChanged="OnAvatarFileSelected">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                                           Disabled="@_avatarUploading"
+                                           OnClick="@context.OpenFilePickerAsync">
+                                    Choose Image
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+                        @if (_selectedAvatarFile is not null)
+                        {
+                            <MudText Typo="Typo.caption">@_selectedAvatarFile.Name (@FormatFileSize(_selectedAvatarFile.Size))</MudText>
+                        }
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="UploadAvatar"
+                                       Disabled="@(_selectedAvatarFile is null || _avatarUploading)"
+                                       Size="Size.Small">
+                                @if (_avatarUploading)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                Upload
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Default"
+                                       OnClick="DeleteAvatar"
+                                       Disabled="@(!_hasUploadedAvatar || _avatarUploading)"
+                                       Size="Size.Small">
+                                Use Generated
+                            </MudButton>
+                        </MudStack>
+                    </MudStack>
+                </MudStack>
+                @if (_avatarSuccess is not null)
+                {
+                    <MudAlert Severity="Severity.Success" Class="mt-2">@_avatarSuccess</MudAlert>
+                }
+                @if (_avatarError is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-2">@_avatarError</MudAlert>
+                }
+            </div>
+
+            <MudDivider Class="my-2" />
+
             <MudTextField @bind-Value="_name" Label="Name" />
             <MudTextField @bind-Value="_description" Label="Description" Lines="4" />
 
@@ -148,6 +212,16 @@
     private string? _saveError;
     private string? _typeError;
 
+    // Avatar state
+    private string _currentAvatarUrl = "";
+    private bool _hasUploadedAvatar;
+    private IBrowserFile? _selectedAvatarFile;
+    private bool _avatarUploading;
+    private string? _avatarSuccess;
+    private string? _avatarError;
+
+    private const long MaxAvatarSize = 2 * 1024 * 1024; // 2 MB
+
     protected override async Task OnParametersSetAsync()
     {
         if (Scope == null) return;
@@ -225,8 +299,188 @@
             _description = "";
         }
 
+        // Set avatar URL
+        _hasUploadedAvatar = !string.IsNullOrEmpty(Scope.ScopeAvatarUrl);
+        _currentAvatarUrl = GetAvatarDisplayUrl();
+
         _loading = false;
     }
+
+    private string GetAvatarDisplayUrl()
+    {
+        if (Scope is null) return "";
+
+        // If scope has an avatar URL from the server, use it
+        if (!string.IsNullOrEmpty(Scope.ScopeAvatarUrl))
+            return Scope.ScopeAvatarUrl;
+
+        // Fall back to generated SVG avatar
+        var entityType = Scope.ScopeType switch
+        {
+            "Community" => AvatarEntityType.Community,
+            "Hub" => AvatarEntityType.Hub,
+            "Space" => AvatarEntityType.Space,
+            _ => AvatarEntityType.Community
+        };
+
+        return AvatarHelper.GetAvatarUrl(Scope.ScopePublicId, entityType);
+    }
+
+    private void OnAvatarFileSelected(InputFileChangeEventArgs e)
+    {
+        _avatarSuccess = null;
+        _avatarError = null;
+
+        var file = e.File;
+
+        if (file.Size > MaxAvatarSize)
+        {
+            _avatarError = "File too large. Maximum size is 2 MB.";
+            _selectedAvatarFile = null;
+            return;
+        }
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            _avatarError = "Invalid file type. Allowed: JPEG, PNG, WebP.";
+            _selectedAvatarFile = null;
+            return;
+        }
+
+        _selectedAvatarFile = file;
+    }
+
+    private async Task UploadAvatar()
+    {
+        if (_selectedAvatarFile is null || Scope is null) return;
+
+        _avatarUploading = true;
+        _avatarSuccess = null;
+        _avatarError = null;
+
+        try
+        {
+            var entityType = Scope.ScopeType.ToLowerInvariant();
+            var entityId = Scope.ScopePublicId;
+
+            using var content = new MultipartFormDataContent();
+            using var fileStream = _selectedAvatarFile.OpenReadStream(MaxAvatarSize);
+            using var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(_selectedAvatarFile.ContentType);
+            content.Add(streamContent, "avatar", _selectedAvatarFile.Name);
+
+            var client = HttpClientFactory.CreateClient("SnakkApi");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"/avatars/upload/{entityType}/{entityId}");
+
+            var token = TokenProvider.Token;
+            if (!string.IsNullOrEmpty(token))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            request.Content = content;
+
+            var response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+
+                // Parse avatarUrl from the JSON response
+                try
+                {
+                    var json = System.Text.Json.JsonDocument.Parse(body);
+                    if (json.RootElement.TryGetProperty("avatarUrl", out var urlProp))
+                    {
+                        _currentAvatarUrl = urlProp.GetString() ?? GetAvatarDisplayUrl();
+                        _hasUploadedAvatar = true;
+                    }
+                }
+                catch
+                {
+                    _currentAvatarUrl = GetAvatarDisplayUrl();
+                }
+
+                _avatarSuccess = "Avatar uploaded successfully.";
+                _selectedAvatarFile = null;
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var json = System.Text.Json.JsonDocument.Parse(errorBody);
+                    if (json.RootElement.TryGetProperty("error", out var errorProp))
+                        _avatarError = errorProp.GetString() ?? "Upload failed.";
+                    else
+                        _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}).";
+                }
+                catch
+                {
+                    _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}).";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _avatarError = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            _avatarUploading = false;
+        }
+    }
+
+    private async Task DeleteAvatar()
+    {
+        if (Scope is null) return;
+
+        _avatarUploading = true;
+        _avatarSuccess = null;
+        _avatarError = null;
+
+        try
+        {
+            var entityType = Scope.ScopeType.ToLowerInvariant();
+            var entityId = Scope.ScopePublicId;
+
+            var client = HttpClientFactory.CreateClient("SnakkApi");
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"/avatars/{entityType}/{entityId}");
+
+            var token = TokenProvider.Token;
+            if (!string.IsNullOrEmpty(token))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _hasUploadedAvatar = false;
+                _currentAvatarUrl = GetAvatarDisplayUrl();
+                _avatarSuccess = "Avatar removed. Using generated avatar.";
+                _selectedAvatarFile = null;
+            }
+            else
+            {
+                _avatarError = $"Failed to remove avatar (HTTP {(int)response.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _avatarError = $"Failed to remove avatar: {ex.Message}";
+        }
+        finally
+        {
+            _avatarUploading = false;
+        }
+    }
+
+    private static string FormatFileSize(long bytes) =>
+        bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+            _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+        };
 
     private void ToggleType(DiscussionTypeEnum type, bool enabled)
     {

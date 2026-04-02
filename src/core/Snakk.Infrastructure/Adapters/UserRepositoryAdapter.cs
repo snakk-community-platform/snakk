@@ -132,6 +132,7 @@ public class UserRepositoryAdapter(
         entity.Email = plainEmail is not null ? emailProtector.Protect(plainEmail) : null;
         entity.EmailHash = plainEmail is not null ? emailProtector.ComputeHash(plainEmail) : null;
         entity.AvatarFileName = user.AvatarFileName;
+        entity.AvatarRevision = user.AvatarRevision;
         entity.AutoFollowOnReply = user.AutoFollowOnReply;
         entity.Timezone = user.Timezone;
         entity.Bio = user.Bio;

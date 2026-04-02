@@ -45,6 +45,7 @@ public class LocalFileStorage : IFileStorage
     public async Task SaveAsync(
         string relativePath,
         Stream content,
+        string? cacheControl = null,
         CancellationToken cancellationToken = default)
     {
         var fullPath = ResolveSafePath(relativePath);

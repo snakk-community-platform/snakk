@@ -11,6 +11,8 @@ public class Hub
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public string? AvatarFileName { get; private set; }
+    public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
 
@@ -34,7 +36,9 @@ public class Hub
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Space>? spaces = null)
+        List<Space>? spaces = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0)
     {
         PublicId = publicId;
         CommunityId = communityId;
@@ -43,6 +47,8 @@ public class Hub
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        AvatarFileName = avatarFileName;
+        AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         _spaces = spaces ?? [];
@@ -83,7 +89,9 @@ public class Hub
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Space>? spaces = null) =>
+        List<Space>? spaces = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0) =>
         new Hub(
             publicId,
             communityId,
@@ -94,7 +102,9 @@ public class Hub
             requireEmailConfirmation,
             createdAt,
             lastModifiedAt,
-            spaces);
+            spaces,
+            avatarFileName,
+            avatarRevision);
 
     public static Hub RehydrateForList(
         HubId publicId,
@@ -138,6 +148,20 @@ public class Hub
             throw new ArgumentException("Hub slug cannot be empty", nameof(slug));
 
         Slug = slug;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAvatarFileName(string? fileName)
+    {
+        AvatarFileName = fileName;
+        AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void ClearAvatar()
+    {
+        AvatarFileName = null;
+        AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

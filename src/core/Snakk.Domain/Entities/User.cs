@@ -340,12 +340,14 @@ public class User
     public void SetAvatarFileName(string? fileName)
     {
         AvatarFileName = fileName;
+        AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
 
     public void ClearAvatar()
     {
         AvatarFileName = null;
+        AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
 

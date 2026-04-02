@@ -173,7 +173,7 @@ public class SpaceGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
-            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Space, 0),
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Space, 0, stats.AvatarFileName),
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount,
             FollowerCount = stats.FollowerCount

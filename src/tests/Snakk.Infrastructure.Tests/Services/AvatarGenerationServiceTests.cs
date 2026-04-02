@@ -70,7 +70,7 @@ public class AvatarGenerationServiceTests
 
         // Assert - Verify file was saved via IFileStorage
         _fileStorage.Received(1).ExistsAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<CancellationToken>());
-        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -86,7 +86,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateUserAvatarAsync(userId);
 
         // Assert - SaveAsync should NOT be called since file exists
-        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -116,7 +116,7 @@ public class AvatarGenerationServiceTests
                 savedStream = new MemoryStream();
                 stream.CopyTo(savedStream);
                 savedStream.Position = 0;
-            }), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+            }), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // Act
         await _service.GenerateUserAvatarAsync(userId);
@@ -143,7 +143,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateHubAvatarAsync(hubId);
 
         // Assert
-        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("hub")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("hub")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -159,7 +159,7 @@ public class AvatarGenerationServiceTests
         await _service.GenerateHubAvatarAsync(hubId);
 
         // Assert
-        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -176,7 +176,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateSpaceAvatarAsync(spaceId);
 
         // Assert
-        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("space")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("space")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -194,7 +194,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateCommunityAvatarAsync(communityId);
 
         // Assert
-        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("communit")), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("communit")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 
@@ -290,7 +290,7 @@ public class AvatarGenerationServiceTests
         // Assert
         await Assert.That(count).IsEqualTo(3);
         // SaveAsync should be called 3 times (once per user)
-        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -310,7 +310,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         await Assert.That(count).IsEqualTo(3);
-        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(3).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -351,7 +351,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         await Assert.That(count).IsEqualTo(0);
-        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -369,7 +369,7 @@ public class AvatarGenerationServiceTests
 
         // Make SaveAsync throw for the first user's path
         var callCount = 0;
-        _fileStorage.SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+        _fileStorage.SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 if (Interlocked.Increment(ref callCount) == 1)
@@ -399,7 +399,7 @@ public class AvatarGenerationServiceTests
         var url = await _service.GenerateUserAvatarAsync(userId, customSize);
 
         // Assert
-        _fileStorage.Received(1).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        _fileStorage.Received(1).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await Assert.That(url).Contains("/storage/");
     }
 

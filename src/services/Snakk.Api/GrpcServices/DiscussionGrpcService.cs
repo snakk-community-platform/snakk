@@ -201,7 +201,7 @@ public class DiscussionGrpcService(
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             request.HasHubId ? request.HubId : null,
-            null,
+            request.HasCursor ? request.Cursor : null,
             currentUser.GetCurrentUserId());
 
         var response = new PagedRecentDiscussionList
@@ -210,6 +210,9 @@ public class DiscussionGrpcService(
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
         };
+
+        if (result.NextCursor is not null)
+            response.NextCursor = result.NextCursor;
 
         foreach (var d in result.Items)
         {
@@ -271,7 +274,8 @@ public class DiscussionGrpcService(
             request.Offset,
             request.PageSize,
             typeFilter,
-            currentUser.GetCurrentUserId());
+            currentUser.GetCurrentUserId(),
+            request.HasCursor ? request.Cursor : null);
 
         var response = new PagedDiscussionBySpaceList
         {
@@ -279,6 +283,9 @@ public class DiscussionGrpcService(
             PageSize = result.PageSize,
             HasMoreItems = result.HasMoreItems
         };
+
+        if (result.NextCursor is not null)
+            response.NextCursor = result.NextCursor;
 
         foreach (var d in result.Items)
         {

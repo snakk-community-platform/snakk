@@ -11,6 +11,8 @@ public class Space
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public string? AvatarFileName { get; private set; }
+    public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
 
@@ -34,7 +36,9 @@ public class Space
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Discussion>? discussions = null)
+        List<Discussion>? discussions = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0)
     {
         PublicId = publicId;
         HubId = hubId;
@@ -43,6 +47,8 @@ public class Space
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        AvatarFileName = avatarFileName;
+        AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         _discussions = discussions ?? [];
@@ -83,7 +89,9 @@ public class Space
         bool requireEmailConfirmation,
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
-        List<Discussion>? discussions = null) =>
+        List<Discussion>? discussions = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0) =>
         new Space(
             publicId,
             hubId,
@@ -94,7 +102,9 @@ public class Space
             requireEmailConfirmation,
             createdAt,
             lastModifiedAt,
-            discussions);
+            discussions,
+            avatarFileName,
+            avatarRevision);
 
     public static Space RehydrateForList(
         SpaceId publicId,
@@ -138,6 +148,20 @@ public class Space
             throw new ArgumentException("Space slug cannot be empty", nameof(slug));
 
         Slug = slug;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAvatarFileName(string? fileName)
+    {
+        AvatarFileName = fileName;
+        AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void ClearAvatar()
+    {
+        AvatarFileName = null;
+        AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

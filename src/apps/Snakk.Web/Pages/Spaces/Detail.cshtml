@@ -162,11 +162,11 @@ else
                                      model="new SpaceDiscussionListItemVM(discussion, Model.Community, Model.HubSlug, Model.Slug)" />
                         }
 
-                        @if (Model.Discussions.HasMoreItems)
+                        @if (Model.Discussions.HasMoreItems && Model.Discussions.HasNextCursor)
                         {
-                            var nextOffset = Model.Discussions.Offset + Model.Discussions.PageSize;
+                            var nextCursor = Model.Discussions.NextCursor;
 
-                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&offset=@nextOffset&pageSize=20"
+                            <div hx-get="/partials/space-discussions?spaceId=@Model.Space.PublicId&cursor=@nextCursor&pageSize=20"
                                  hx-trigger="revealed"
                                  hx-swap="outerHTML"
                                  hx-target="this"

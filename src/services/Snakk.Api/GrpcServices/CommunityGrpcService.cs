@@ -118,7 +118,7 @@ public class CommunityGrpcService(
             PublicId = stats.PublicId,
             Name = stats.Name,
             Description = stats.Description ?? "",
-            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Community, 0),
+            AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.Community, 0, stats.AvatarFileName),
             HubCount = stats.HubCount,
             SpaceCount = stats.SpaceCount,
             DiscussionCount = stats.DiscussionCount,

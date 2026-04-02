@@ -11,6 +11,8 @@ public class Community
     public string? Timezone { get; private set; }
     public CommunityVisibility Visibility { get; private set; }
     public bool ExposeToPlatformFeed { get; private set; }
+    public string? AvatarFileName { get; private set; }
+    public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
 
@@ -34,7 +36,9 @@ public class Community
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         List<Hub>? hubs = null,
-        string? timezone = null)
+        string? timezone = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0)
     {
         PublicId = publicId;
         Name = name;
@@ -43,6 +47,8 @@ public class Community
         Timezone = timezone;
         Visibility = visibility;
         ExposeToPlatformFeed = exposeToPlatformFeed;
+        AvatarFileName = avatarFileName;
+        AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         _hubs = hubs ?? [];
@@ -81,7 +87,9 @@ public class Community
         DateTime createdAt,
         DateTime? lastModifiedAt = null,
         List<Hub>? hubs = null,
-        string? timezone = null) =>
+        string? timezone = null,
+        string? avatarFileName = null,
+        int avatarRevision = 0) =>
         new Community(
             publicId,
             name,
@@ -92,7 +100,9 @@ public class Community
             createdAt,
             lastModifiedAt,
             hubs,
-            timezone);
+            timezone,
+            avatarFileName,
+            avatarRevision);
 
     public static Community RehydrateForList(
         CommunityId publicId,
@@ -146,6 +156,20 @@ public class Community
     public void SetExposeToPlatformFeed(bool expose)
     {
         ExposeToPlatformFeed = expose;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAvatarFileName(string? fileName)
+    {
+        AvatarFileName = fileName;
+        AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void ClearAvatar()
+    {
+        AvatarFileName = null;
+        AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

@@ -82,6 +82,33 @@ builder.Services.AddHttpContextAccessor();
 // HybridCache for caching (stampede-safe, also registers IMemoryCache for domain cache)
 builder.Services.AddHybridCache();
 
+// Output cache for anonymous visitors — cached responses bypass the full gRPC pipeline
+builder.Services.AddOutputCache(options =>
+{
+    // Pages: 30s cache for anonymous visitors
+    // Vary by HX-Request header so HTMX boosted requests get separate cache entries
+    options.AddPolicy("AnonymousPage", builder => builder
+        .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
+        .Expire(TimeSpan.FromSeconds(30))
+        .SetVaryByHeader("HX-Request")
+        .SetVaryByQuery("cursor", "offset", "pageSize", "typeFilter")
+        .SetVaryByRouteValue("communitySlug", "hubSlug", "spaceSlug", "discussionSlugId", "publicId"));
+
+    // HTMX partials: 10s cache for anonymous visitors
+    options.AddPolicy("AnonymousPartial", builder => builder
+        .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
+        .Expire(TimeSpan.FromSeconds(10))
+        .SetVaryByHeader("HX-Request")
+        .SetVaryByQuery("cursor", "offset", "pageSize", "communityId", "hubId", "spaceId", "typeFilter", "hideCommunity", "hideHub"));
+
+    // User profiles: 60s cache for anonymous visitors
+    options.AddPolicy("AnonymousProfile", builder => builder
+        .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
+        .Expire(TimeSpan.FromSeconds(60))
+        .SetVaryByHeader("HX-Request")
+        .SetVaryByRouteValue("publicId"));
+});
+
 // Community context (scoped per request)
 builder.Services.AddScoped<ICommunityContext, CommunityContext>();
 
@@ -99,15 +126,16 @@ builder.Services.AddWebOptimizer(pipeline =>
 });
 
 // Configure HttpClient for Internal API (for avatar proxy and other BFF endpoints)
+// In Docker, REST uses a separate port (HTTP/1.1) from gRPC (HTTP/2)
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+var apiRestBaseUrl = builder.Configuration["ApiRestBaseUrl"] ?? apiBaseUrl;
+
 builder.Services.AddHttpClient("InternalApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100");
+    client.BaseAddress = new Uri(apiRestBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddStandardResilienceHandler();
-
-// gRPC channel + clients for API communication
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
 builder.Services.AddSingleton(sp =>
 {
     var handler = new SocketsHttpHandler
@@ -245,7 +273,9 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS when not behind a local reverse proxy (Docker/gateway)
+if (!builder.Configuration.GetValue<bool>("ASPNETCORE_FORWARDEDHEADERS_ENABLED"))
+    app.UseHttpsRedirection();
 
 // Security headers — CSP, clickjacking, MIME sniffing, referrer, permissions
 app.Use(async (context, next) =>
@@ -412,6 +442,26 @@ app.Use(async (context, next) =>
 
 // Redirect unauthenticated users to SSO login for protected actions
 app.UseAuthRedirect();
+
+// Output cache for anonymous visitors (after auth so we can check cookies)
+app.UseOutputCache();
+
+// CDN cache headers for anonymous page responses (Cloudflare, etc.)
+// Logged-in users get private/no-store; anonymous get s-maxage for edge caching.
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == 200
+        && !context.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName)
+        && !context.Request.Path.StartsWithSegments("/bff")
+        && !context.Request.Path.StartsWithSegments("/partials")
+        && context.Response.ContentType?.StartsWith("text/html") == true)
+    {
+        context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
+        context.Response.Headers.Vary = "HX-Request";
+    }
+});
 
 app.MapRazorPages();
 

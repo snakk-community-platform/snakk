@@ -11,8 +11,9 @@ public interface IFileStorage
     /// </summary>
     /// <param name="relativePath">Relative path from storage root (e.g., "avatars/generated/users/u_123.svg")</param>
     /// <param name="content">Stream containing the file content</param>
+    /// <param name="cacheControl">HTTP Cache-Control header for CDN caching (e.g., "public, max-age=31536000, immutable")</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    Task SaveAsync(string relativePath, Stream content, CancellationToken cancellationToken = default);
+    Task SaveAsync(string relativePath, Stream content, string? cacheControl = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reads a file from storage

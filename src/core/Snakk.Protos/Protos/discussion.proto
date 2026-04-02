@@ -89,6 +89,7 @@ message GetRecentDiscussionsRequest {
   int32 page_size = 2;
   optional string community_id = 3;
   optional string hub_id = 4;
+  optional string cursor = 5;
 }
 
 message GetDiscussionsBySpaceRequest {
@@ -96,6 +97,7 @@ message GetDiscussionsBySpaceRequest {
   int32 offset = 2;
   int32 page_size = 3;
   optional int32 type_filter = 4;
+  optional string cursor = 5;
 }
 
 message GetDiscussionPreviewRequest {
@@ -152,6 +154,7 @@ message PagedRecentDiscussionList {
   int32 offset = 2;
   int32 page_size = 3;
   bool has_more_items = 4;
+  optional string next_cursor = 5;
 }
 
 message DiscussionBySpaceInfo {
@@ -175,6 +178,7 @@ message PagedDiscussionBySpaceList {
   int32 offset = 2;
   int32 page_size = 3;
   bool has_more_items = 4;
+  optional string next_cursor = 5;
 }
 
 message DiscussionPreviewInfo {

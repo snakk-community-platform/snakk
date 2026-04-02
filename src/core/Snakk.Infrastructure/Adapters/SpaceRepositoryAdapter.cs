@@ -20,7 +20,8 @@ public class SpaceRepositoryAdapter(
             .Select(s => new SpaceProjection(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
-                s.CreatedAt, s.LastModifiedAt))
+                s.CreatedAt, s.LastModifiedAt,
+                s.AvatarFileName, s.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -32,7 +33,8 @@ public class SpaceRepositoryAdapter(
             .Select(s => new SpaceProjection(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
-                s.CreatedAt, s.LastModifiedAt))
+                s.CreatedAt, s.LastModifiedAt,
+                s.AvatarFileName, s.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -44,7 +46,8 @@ public class SpaceRepositoryAdapter(
             .Select(s => new SpaceProjection(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
-                s.CreatedAt, s.LastModifiedAt))
+                s.CreatedAt, s.LastModifiedAt,
+                s.AvatarFileName, s.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -81,7 +84,8 @@ public class SpaceRepositoryAdapter(
             .Select(s => new SpaceProjection(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
-                s.CreatedAt, s.LastModifiedAt))
+                s.CreatedAt, s.LastModifiedAt,
+                s.AvatarFileName, s.AvatarRevision))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -126,6 +130,8 @@ public class SpaceRepositoryAdapter(
         entity.AllowAnonymousReading = space.AllowAnonymousReading;
         entity.RequireEmailConfirmation = space.RequireEmailConfirmation;
         entity.LastModifiedAt = space.LastModifiedAt;
+        entity.AvatarFileName = space.AvatarFileName;
+        entity.AvatarRevision = space.AvatarRevision;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -140,13 +146,17 @@ public class SpaceRepositoryAdapter(
         bool AllowAnonymousReading,
         bool RequireEmailConfirmation,
         DateTime CreatedAt,
-        DateTime? LastModifiedAt)
+        DateTime? LastModifiedAt,
+        string? AvatarFileName,
+        int AvatarRevision)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
             HubId.From(HubPublicId),
             Name, Slug, Description,
             AllowAnonymousReading, RequireEmailConfirmation,
-            CreatedAt, LastModifiedAt, discussions: []);
+            CreatedAt, LastModifiedAt, discussions: [],
+            avatarFileName: AvatarFileName,
+            avatarRevision: AvatarRevision);
     }
 }

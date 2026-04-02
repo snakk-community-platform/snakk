@@ -29,18 +29,28 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     kestrel.Limits.Http2.InitialConnectionWindowSize = 1024 * 1024;     // 1 MB
     kestrel.Limits.Http2.InitialStreamWindowSize = 768 * 1024;          // 768 KB
 
-    kestrel.ConfigureEndpointDefaults(listenOptions =>
+    // Docker (plain HTTP): gRPC needs HTTP/2 (h2c), REST proxy needs HTTP/1.1.
+    // When RestPort is set, bind both ports explicitly with correct protocols.
+    // When not set (dev/Aspire with HTTPS), use default with ALPN negotiation.
+    var restPort = builder.Configuration["RestPort"];
+    if (!string.IsNullOrEmpty(restPort) && int.TryParse(restPort, out var rp))
     {
-        // Without TLS, HTTP/2 requires h2c (cleartext) which needs Http2-only mode.
-        // With TLS, ALPN negotiates HTTP/2 so Http1AndHttp2 works fine.
-        var urls = builder.Configuration["ASPNETCORE_URLS"] ?? builder.Configuration["urls"] ?? "";
-        var isPlainHttp = urls.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-            && !urls.Contains("https://", StringComparison.OrdinalIgnoreCase);
+        var mainUrl = builder.Configuration["ASPNETCORE_URLS"] ?? "http://127.0.0.1:5242";
+        var mainUri = new Uri(mainUrl);
 
-        listenOptions.Protocols = isPlainHttp
-            ? HttpProtocols.Http2
-            : HttpProtocols.Http1AndHttp2;
-    });
+        // gRPC port — HTTP/2 only (h2c for cleartext)
+        kestrel.Listen(System.Net.IPAddress.Parse(mainUri.Host), mainUri.Port, lo =>
+            lo.Protocols = HttpProtocols.Http2);
+
+        // REST port — HTTP/1.1 for file uploads and other proxy calls
+        kestrel.Listen(System.Net.IPAddress.Loopback, rp, lo =>
+            lo.Protocols = HttpProtocols.Http1);
+    }
+    else
+    {
+        kestrel.ConfigureEndpointDefaults(lo =>
+            lo.Protocols = HttpProtocols.Http1AndHttp2);
+    }
 });
 
 // Fail-fast: reject insecure default secrets in production
@@ -61,7 +71,7 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 builder.Services.AddSnakkServices(builder.Configuration);
-builder.Services.AddRateLimiting();
+// Rate limiting is handled at the gateway level — API only receives trusted internal requests
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
 
@@ -86,7 +96,6 @@ app.UseSecurityHeaders();
 
 app.UseCors();
 
-app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseMiddleware<Snakk.Api.Middleware.TokenRefreshMiddleware>();

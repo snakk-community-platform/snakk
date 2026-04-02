@@ -64,7 +64,8 @@ public record HubStatsDto(
     string? Description,
     int SpaceCount,
     int DiscussionCount,
-    int ReplyCount);
+    int ReplyCount,
+    string? AvatarFileName = null);
 
 public record SpaceStatsDto(
     string PublicId,
@@ -72,7 +73,8 @@ public record SpaceStatsDto(
     string? Description,
     int DiscussionCount,
     int ReplyCount,
-    int FollowerCount);
+    int FollowerCount,
+    string? AvatarFileName = null);
 
 public record CommunityStatsDto(
     string PublicId,
@@ -81,7 +83,8 @@ public record CommunityStatsDto(
     int HubCount,
     int SpaceCount,
     int DiscussionCount,
-    int ReplyCount);
+    int ReplyCount,
+    string? AvatarFileName = null);
 
 public record UserStatsDto(
     string PublicId,

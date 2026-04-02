@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Protos.Discussion;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Partials;
 
+[OutputCache(PolicyName = "AnonymousPartial")]
 public class SpaceDiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -13,13 +15,14 @@ public class SpaceDiscussionsModel(
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
     public int MaxOffset { get; set; }
+    public string? NextCursor { get; set; }
     public ICommunityContext Community => communityContext;
     public string SpaceId { get; set; } = string.Empty;
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
     public int? TypeFilter { get; set; }
 
-    public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null)
+    public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null)
     {
         Response.Headers.CacheControl = "public, max-age=5";
 
@@ -37,10 +40,11 @@ public class SpaceDiscussionsModel(
 
         try
         {
-            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter);
+            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, cursor);
             Items = result?.Items ?? [];
             HasMoreItems = result?.HasMoreItems ?? false;
             NextOffset = offset + pageSize;
+            NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
         }
         catch
         {

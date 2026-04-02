@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
@@ -9,6 +10,7 @@ using Snakk.Protos.Space;
 
 namespace Snakk.Web.Pages.Hubs;
 
+[OutputCache(PolicyName = "AnonymousPage")]
 public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

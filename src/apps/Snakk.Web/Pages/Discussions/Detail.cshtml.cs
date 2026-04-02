@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 using Snakk.Web.Pages.ViewModels;
@@ -11,6 +12,7 @@ using Snakk.Protos.Post;
 
 namespace Snakk.Web.Pages.Discussions;
 
+[OutputCache(PolicyName = "AnonymousPage")]
 public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,

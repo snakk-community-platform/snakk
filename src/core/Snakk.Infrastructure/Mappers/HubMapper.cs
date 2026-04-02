@@ -17,7 +17,9 @@ public static class HubMapper
             entity.RequireEmailConfirmation,
             entity.CreatedAt,
             entity.LastModifiedAt,
-            spaces: []);
+            spaces: [],
+            avatarFileName: entity.AvatarFileName,
+            avatarRevision: entity.AvatarRevision);
 
     public static Hub FromPersistenceWithCommunityId(
         this HubDatabaseEntity entity,
@@ -32,7 +34,9 @@ public static class HubMapper
             entity.RequireEmailConfirmation,
             entity.CreatedAt,
             entity.LastModifiedAt,
-            spaces: []);
+            spaces: [],
+            avatarFileName: entity.AvatarFileName,
+            avatarRevision: entity.AvatarRevision);
 
     public static HubDatabaseEntity ToPersistence(this Hub hub, int communityDbId) =>
         new()
@@ -45,6 +49,8 @@ public static class HubMapper
             AllowAnonymousReading = hub.AllowAnonymousReading,
             RequireEmailConfirmation = hub.RequireEmailConfirmation,
             CreatedAt = hub.CreatedAt,
-            LastModifiedAt = hub.LastModifiedAt
+            LastModifiedAt = hub.LastModifiedAt,
+            AvatarFileName = hub.AvatarFileName,
+            AvatarRevision = hub.AvatarRevision
         };
 }
