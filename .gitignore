@@ -73,6 +73,7 @@ appsettings.*.json
 !appsettings.json
 secrets.json
 *.secrets.json
+.env
 
 # Database
 *.db

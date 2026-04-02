@@ -70,13 +70,15 @@ RUN cd apps/Snakk.Auth && npm run build:css
 # --- Build the entire solution (resolves shared dependencies once) ---
 RUN dotnet build Snakk.Docker.slnx -c Release --no-restore -p:SkipBuildCSS=true -p:SkipFrontendBuild=true
 
-# --- Publish all 9 projects in parallel (no compilation, just copy) ---
+# --- Publish Blazor admin (full publish — needs restore for _framework static web assets) ---
+RUN dotnet publish apps/Snakk.Admin/Snakk.Admin.csproj -c Release -o /publish/admin
+
+# --- Publish remaining projects in parallel (no compilation, just copy) ---
 RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-build --no-restore & \
     dotnet publish services/Snakk.Api/Snakk.Api.csproj -c Release -o /publish/api --no-build --no-restore & \
     dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-build --no-restore & \
     dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-build --no-restore & \
     dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-build --no-restore & \
-    dotnet publish apps/Snakk.Admin/Snakk.Admin.csproj -c Release -o /publish/admin --no-build --no-restore & \
     dotnet publish apps/Snakk.Setup/Snakk.Setup.csproj -c Release -o /publish/setup --no-build --no-restore & \
     dotnet publish tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj -c Release -o /publish/dbseeder --no-build --no-restore & \
     dotnet publish apps/Snakk.Web/Snakk.Web.csproj -c Release -o /publish/web --no-build --no-restore & \
