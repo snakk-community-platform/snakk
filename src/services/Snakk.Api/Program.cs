@@ -31,7 +31,15 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 
     kestrel.ConfigureEndpointDefaults(listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+        // Without TLS, HTTP/2 requires h2c (cleartext) which needs Http2-only mode.
+        // With TLS, ALPN negotiates HTTP/2 so Http1AndHttp2 works fine.
+        var urls = builder.Configuration["ASPNETCORE_URLS"] ?? builder.Configuration["urls"] ?? "";
+        var isPlainHttp = urls.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            && !urls.Contains("https://", StringComparison.OrdinalIgnoreCase);
+
+        listenOptions.Protocols = isPlainHttp
+            ? HttpProtocols.Http2
+            : HttpProtocols.Http1AndHttp2;
     });
 });
 
