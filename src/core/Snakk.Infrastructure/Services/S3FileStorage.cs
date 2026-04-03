@@ -48,11 +48,16 @@ public class S3FileStorage : IFileStorage
 
         var key = NormalizeKey(relativePath);
 
+        // Copy to a separate stream so the AWS SDK doesn't close the caller's stream
+        using var uploadStream = new MemoryStream();
+        await content.CopyToAsync(uploadStream, cancellationToken);
+        uploadStream.Position = 0;
+
         var request = new PutObjectRequest
         {
             BucketName = _bucketName,
             Key = key,
-            InputStream = content,
+            InputStream = uploadStream,
             ContentType = GetContentType(key),
             DisablePayloadSigning = true // Required for R2
         };
