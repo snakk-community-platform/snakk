@@ -1,0 +1,1196 @@
+// ============================================
+// Frontpage Layout (isolated redesign)
+// ============================================
+
+.fp-layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) 59.5rem minmax(20rem, 1fr);
+    min-height: calc(100vh - 3.5rem);
+}
+
+// ── Left Column (Navigation) ──────────────────
+.fp-left {
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.fp-left-sticky {
+    width: 16rem;
+    position: sticky;
+    top: 3.5rem;
+    height: calc(100vh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.fp-left-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 1rem 0;
+}
+
+.fp-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0 0.5rem;
+}
+
+.fp-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+
+    &:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    &.active {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    svg {
+        width: 1.125rem;
+        height: 1.125rem;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+}
+
+.fp-nav-btn {
+    margin: 0.75rem 0.75rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: var(--link-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.9; }
+
+    svg {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.fp-nav-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0.5rem 0.75rem;
+}
+
+.fp-nav-heading {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    padding: 0.75rem 0.75rem 0.25rem;
+}
+
+// Trending spaces list in left column
+.fp-spaces-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0 0.5rem;
+}
+
+.fp-space-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.1s;
+
+    &:hover {
+        background: var(--bg-tertiary);
+    }
+
+    img {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .fp-space-count {
+        margin-left: auto;
+        font-size: 0.6875rem;
+        color: var(--text-tertiary);
+    }
+}
+
+// Bottom nav links (same style as main nav, pinned to bottom)
+.fp-left-footer {
+    margin-top: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+// ── Center Column (Discussions) ───────────────
+.fp-center {
+    position: relative;
+    background: linear-gradient(to bottom, #efefef 3.5rem, white calc(3.5rem + 2rem)) fixed;
+}
+
+.fp-center-inner {
+    padding: 1.25rem 1.5rem;
+}
+
+.fp-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+    }
+}
+
+// ── Discussion Card ───────────────────────────
+#discussions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fp-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.355rem;
+}
+
+.fp-card + .fp-card {
+    border-top: 1px solid var(--border-secondary);
+    padding-top: 1rem;
+}
+
+.fp-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fp-card-avatar {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fp-card-author {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+
+    &:hover { color: var(--text-primary); }
+}
+
+.fp-card-dot {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+.fp-card-time {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+}
+
+.fp-card-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.fp-card-path-sep {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.fp-card-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    background: var(--sidebar-bg);
+    color: var(--link-primary);
+    white-space: nowrap;
+
+    &:hover { color: var(--link-hover); }
+}
+
+.fp-card-path-link {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    text-decoration: none;
+
+    &:hover { color: var(--link-primary); }
+}
+
+.fp-card-tag-light {
+    background: color-mix(in srgb, var(--sidebar-bg) 50%, white);
+}
+
+.fp-card-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.35;
+
+    a {
+        color: var(--text-primary);
+        text-decoration: none;
+
+        &:hover { color: var(--link-primary); }
+    }
+}
+
+.fp-card-type-meta {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    vertical-align: middle;
+}
+
+.fp-card-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 0.25rem;
+    margin-left: 0.375rem;
+    vertical-align: middle;
+    background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
+    color: var(--text-secondary);
+}
+
+// ── Poll Preview ──────────────────────────────
+.fp-poll-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-poll-bar {
+    position: relative;
+    height: 1.375rem;
+    border-radius: 0.25rem;
+    background: var(--bg-secondary);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.fp-poll-bar-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--sidebar-bg);
+    border-radius: 0.25rem;
+    transition: width 0.3s ease;
+}
+
+.fp-poll-bar-label {
+    position: relative;
+    z-index: 1;
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    padding: 0 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.fp-poll-bar-pct {
+    position: relative;
+    z-index: 1;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--link-primary);
+    padding-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+// ── Debate Preview (single stacked bar) ───────
+.fp-debate-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-debate-bar {
+    display: flex;
+    height: 1.375rem;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.fp-debate-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+
+    span {
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 0 0.25rem;
+    }
+}
+
+.fp-debate-labels {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.fp-debate-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+.fp-debate-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+// ── Images Preview (carousel) ────────────────
+.fp-images-preview {
+    position: relative;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    aspect-ratio: 16 / 6;
+    background: var(--bg-secondary);
+}
+
+.fp-images-track {
+    display: flex;
+    transition: transform 0.35s ease;
+    height: 100%;
+}
+
+.fp-images-slide-wrapper {
+    flex: 0 0 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.fp-images-slide {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+// Full-bleed blurred background behind contain-fit images
+.fp-images-blur {
+    position: absolute;
+    inset: -10px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(20px) brightness(0.75);
+    transform: scale(1.2);
+    z-index: 0;
+}
+
+.fp-images-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    .fp-images-preview:hover & { opacity: 1; }
+
+    &:hover { background: rgba(0, 0, 0, 0.6); }
+
+    svg {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.fp-images-prev { left: 0.375rem; }
+.fp-images-next { right: 0.375rem; }
+
+.fp-images-counter {
+    position: absolute;
+    bottom: 0.375rem;
+    right: 0.375rem;
+    z-index: 2;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: white;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+}
+
+.fp-poll-more {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+.fp-poll-votes {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+// ── Link Preview Card ─────────────────────────
+.fp-link-card {
+    display: flex;
+    gap: 0.625rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.375rem;
+    text-decoration: none;
+    transition: border-color 0.15s;
+
+    &:hover {
+        border-color: var(--border-subtle);
+        .fp-link-card-title { color: var(--link-primary); }
+    }
+}
+
+.fp-link-card-img {
+    min-width: 4rem;
+    max-width: 6rem;
+    height: 4rem;
+    flex-shrink: 0;
+    border-radius: 0.25rem;
+    object-fit: cover;
+}
+
+.fp-link-card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.fp-link-card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fp-link-card-desc {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+}
+
+.fp-link-card-domain {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: auto;
+}
+
+// ── IAMA Preview ─────────────────────────
+.fp-iama-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
+}
+
+.fp-iama-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.fp-iama-phase {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+
+    &--announced {
+        background: color-mix(in srgb, #f59e0b 20%, transparent);
+        color: #b45309;
+    }
+    &--live {
+        background: color-mix(in srgb, #10b981 20%, transparent);
+        color: #047857;
+    }
+    &--closed {
+        background: color-mix(in srgb, var(--text-tertiary) 20%, transparent);
+        color: var(--text-secondary);
+    }
+    &--archived {
+        background: color-mix(in srgb, var(--text-tertiary) 15%, transparent);
+        color: var(--text-tertiary);
+    }
+}
+
+.fp-iama-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--link-primary);
+}
+
+.fp-iama-stat {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+}
+
+.fp-iama-countdown {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.fp-iama-countdown-label {
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: lowercase;
+}
+
+.fp-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: -0.15rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.fp-card-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+}
+
+.fp-card-comments {
+    margin-left: auto;
+    color: var(--link-primary);
+    font-weight: 500;
+    text-decoration: none;
+
+    svg { color: var(--link-primary); }
+
+    &:hover {
+        color: var(--link-hover);
+        svg { color: var(--link-hover); }
+    }
+}
+
+.fp-card-reactions {
+    margin-left: auto;
+    background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+// ── Right Column (Sidebar) ────────────────────
+.fp-right {
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--bg-secondary) 80%, #e0e0e0), var(--bg-secondary) 2rem);
+}
+
+.fp-right-sticky {
+    width: 20rem;
+    position: sticky;
+    top: 3.5rem;
+    height: calc(100vh - 3.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: transparent;
+        border-radius: 2px;
+        transition: background 0.2s;
+    }
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+
+    &:hover {
+        &::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+
+            &:hover { background: var(--border-primary); }
+        }
+        scrollbar-color: var(--border-subtle) transparent;
+    }
+}
+
+.fp-spaces-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fp-right-empty {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.fp-right-subsection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fp-right-subtitle {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.fp-right-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fp-right-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+    }
+}
+
+// Stats box with green background
+.fp-stats-box {
+    background: var(--sidebar-bg);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.fp-stat-item {
+    .fp-stat-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .fp-stat-label {
+        font-size: 0.6875rem;
+        color: var(--text-secondary);
+    }
+}
+
+// Trending items in right column
+.fp-trending-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+// Trending discussion item
+.fp-trending-discussion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-decoration: none;
+    transition: color 0.1s;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child { border-bottom: none; }
+    &:first-child { padding-top: 0; }
+    &:hover .fp-trending-discussion-title { color: var(--link-primary); }
+}
+
+.fp-trending-discussion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+
+    img {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .fp-tag-sm { margin-left: auto; }
+}
+
+.fp-trending-discussion-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+}
+
+.fp-trending-discussion-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Trending contributor item
+.fp-trending-contributor {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: color 0.1s;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child { border-bottom: none; }
+    &:first-child { padding-top: 0; }
+    &:hover .fp-trending-contributor-name { color: var(--link-primary); }
+
+    img {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .fp-tag-sm { margin-left: auto; }
+}
+
+.fp-trending-contributor-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fp-tag-sm {
+    font-size: 0.7rem;
+    padding: 0.0625rem 0.3125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.fp-avatar-square { border-radius: 0.25rem; }
+
+// ============================================
+// Profile Page
+// ============================================
+
+.fp-profile-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--sidebar-bg);
+    border-radius: 0.5rem;
+}
+
+.fp-profile-avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fp-profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fp-profile-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.fp-profile-bio {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.fp-profile-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.fp-profile-section {
+    margin-bottom: 1.5rem;
+}
+
+// Stats grid (2x2) + activity chart side-by-side
+.fp-stats-activity-row {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
+}
+
+.fp-stats-grid {
+    flex: 0 0 calc(50% - 0.5rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    > .stats {
+        flex: 1;
+    }
+}
+
+.fp-activity-chart-wrapper {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border-radius: 0.5rem;
+}
+
+.fp-activity-chart-title {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.fp-activity-chart-subtitle {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-tertiary);
+}
+
+.fp-activity-chart-body {
+    flex: 1;
+    min-height: 0;
+}
+
+// ============================================
+// Settings Pages
+// ============================================
+
+.fp-settings-header {
+    padding: 1rem 0.75rem 0.5rem;
+}
+
+.fp-settings-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.fp-settings-subtitle {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+}
+
+.fp-settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.fp-settings-section {
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.fp-settings-section-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem;
+}
+
+// Scrollspy in right column
+.fp-scrollspy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-scrollspy-item {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-left: 2px solid transparent;
+    transition: color 0.1s, border-color 0.1s;
+
+    &:hover {
+        color: var(--text-primary);
+    }
+
+    &.active {
+        color: var(--link-primary);
+        border-left-color: var(--link-primary);
+        font-weight: 500;
+    }
+}
+
+.fp-show-more {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--link-primary);
+    text-decoration: none;
+    margin-top: 0.75rem;
+
+    &:hover { color: var(--link-hover); }
+}
+
+// ── Navbar overrides for frontpage ─────────────
+// Uses the same grid as .fp-layout so the left brand area
+// aligns perfectly with the left column below.
+.fp-navbar {
+    height: 3.5rem;
+    background: linear-gradient(to bottom, #e8e8e8, white 2rem);
+    border-bottom: 1px solid var(--bg-secondary);
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) 59.5rem minmax(20rem, 1fr);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+// Left brand area — fills the 1fr, has the grey bg matching left column
+.fp-navbar-brand {
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-left: 0.5rem;
+    padding-right: 1rem;
+
+    a {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-decoration: none;
+        width: 15rem; // 16rem left sticky minus 1rem padding
+    }
+}
+
+// Content area — spans center + right columns
+// Width matches center(59.5rem) + right sticky(20rem) = 79.5rem
+.fp-navbar-content {
+    grid-column: 2 / 4;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem 0 1rem;
+    max-width: calc(59.5rem + 20rem);
+}
+
+.fp-navbar-link {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.25rem;
+
+    &:hover {
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+    }
+}
+
+.fp-navbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fp-navbar-search {
+    position: relative;
+
+    input {
+        font-size: 0.8125rem;
+        padding: 0.375rem 0.75rem 0.375rem 2rem;
+        border: 1px solid var(--border-primary);
+        border-radius: 0.375rem;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        width: 22rem;
+        outline: none;
+        transition: border-color 0.15s, width 0.2s;
+
+        &:focus {
+            border-color: var(--link-primary);
+            width: 28rem;
+        }
+
+        &::placeholder { color: var(--text-tertiary); }
+    }
+
+    svg {
+        position: absolute;
+        left: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+        pointer-events: none;
+    }
+}

@@ -294,7 +294,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_act",
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -302,7 +302,7 @@ public class ActivityEventHandlersTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -364,7 +364,7 @@ public class ActivityEventHandlersTests : IDisposable
         _context.Users.AddRange(follower, followed);
         await _context.SaveChangesAsync();
 
-        var follow = new FollowDatabaseEntity
+        var follow = new UserFollowDatabaseEntity
         {
             PublicId = "follow_act",
             TargetTypeId = (int)FollowTargetTypeEnum.User,
@@ -373,7 +373,7 @@ public class ActivityEventHandlersTests : IDisposable
             FollowedUserId = followed.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Follows.Add(follow);
+        _context.UserFollows.Add(follow);
         await _context.SaveChangesAsync();
 
         var handler = new FollowCreatedActivityHandler(_broadcaster, _context);

@@ -156,7 +156,7 @@ public class CascadeBehaviorTests : IDisposable
     {
         var (user, community, hub, space, discussion, post) = await _builder.CreateFullHierarchyAsync();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = $"react_{Guid.NewGuid():N}",
             PostId = post.Id,
@@ -164,12 +164,12 @@ public class CascadeBehaviorTests : IDisposable
             TypeId = 1,
             CreatedAt = DateTime.UtcNow
         };
-        _db.Context.Reactions.Add(reaction);
+        _db.Context.PostReactions.Add(reaction);
         await _db.Context.SaveChangesAsync();
 
         // Verify the reaction exists
         using var verifyContext = _db.CreateSeparateContext();
-        var reactionsBefore = await verifyContext.Reactions
+        var reactionsBefore = await verifyContext.PostReactions
             .Where(r => r.PostId == post.Id)
             .ToListAsync();
         await Assert.That(reactionsBefore.Count).IsEqualTo(1);
@@ -180,7 +180,7 @@ public class CascadeBehaviorTests : IDisposable
 
         // Verify that reactions were cascade-deleted
         using var readContext = _db.CreateSeparateContext();
-        var reactionsAfter = await readContext.Reactions
+        var reactionsAfter = await readContext.PostReactions
             .Where(r => r.PostId == post.Id)
             .ToListAsync();
         await Assert.That(reactionsAfter.Count).IsEqualTo(0);

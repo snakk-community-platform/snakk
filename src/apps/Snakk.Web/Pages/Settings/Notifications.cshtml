@@ -1,0 +1,62 @@
+@page "/settings/notifications"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Settings.NotificationsModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Notification Settings";
+}
+
+@section LeftColumn {
+<aside class="fp-left">
+<div class="fp-left-sticky">
+    <partial name="Shared/_SettingsNav" />
+</div>
+</aside>
+}
+
+<!-- Center Column -->
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="fp-settings-content">
+
+            <!-- Auto-follow -->
+            <div id="section-auto-follow" class="fp-settings-section">
+                <h3 class="fp-settings-section-title">Auto-follow on Reply</h3>
+                <label class="flex items-center gap-4 cursor-pointer">
+                    <input type="checkbox"
+                           name="autoFollowOnReply"
+                           class="toggle toggle-primary" />
+                    <span>
+                        <span class="font-medium text-sm">Follow discussions automatically</span>
+                        <span class="block text-sm" style="color: var(--text-tertiary)">
+                            When you post a reply, you will automatically follow that discussion and receive notifications for new replies.
+                        </span>
+                    </span>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    <div class="fp-right-section">
+        <div class="fp-right-title">On this page</div>
+        <nav class="fp-scrollspy">
+            <a href="#section-auto-follow" class="fp-scrollspy-item active">Auto-follow</a>
+        </nav>
+    </div>
+    <div class="fp-right-section">
+        <div class="fp-right-title">Help</div>
+        <div class="text-sm" style="color: var(--text-tertiary)">
+            <p><strong>Auto-follow</strong> means you'll get notified when others reply to discussions you've participated in.</p>
+            <p class="mt-2">You can always manually unfollow any discussion from the discussion page.</p>
+        </div>
+    </div>
+</div>
+</aside>
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true" defer></script>
+}

@@ -22,9 +22,7 @@ public class SettingsModel(SnakkApiClient apiClient, IConfiguration configuratio
 
     public IActionResult OnGetAsync()
     {
-        // Authentication check handled client-side via profile.js
-        // since JWT tokens are stored in localStorage (not accessible server-side)
-        return Page();
+        return Redirect("/settings/account");
     }
 
     // Form posts are removed - all profile updates now happen via client-side fetch

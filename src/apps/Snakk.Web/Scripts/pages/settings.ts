@@ -58,6 +58,11 @@ interface SettingsPageConfig {
             autoFollowCheckbox.checked = data.autoFollowOnReply !== false;
         }
 
+        const adultContentCheckbox = document.querySelector('input[name="allowAdultContent"]') as HTMLInputElement | null;
+        if (adultContentCheckbox) {
+            adultContentCheckbox.checked = data.allowAdultContent === true;
+        }
+
         // Update timezone select
         const timezoneSelect = document.getElementById('timezone-select') as HTMLSelectElement | null;
         if (timezoneSelect) {
@@ -506,6 +511,27 @@ interface SettingsPageConfig {
         }
     }
 
+    async function handleAdultContentPreferenceChange(checkbox: HTMLInputElement): Promise<void> {
+        const allowAdultContent = checkbox.checked;
+
+        try {
+            const response = await fetch('/bff/me/preferences', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ allowAdultContent })
+            });
+
+            if (!response.ok) {
+                showMessage('Failed to update preference', true);
+                checkbox.checked = !allowAdultContent;
+            }
+        } catch (error) {
+            showMessage('Network error. Please try again.', true);
+            checkbox.checked = !allowAdultContent;
+        }
+    }
+
     // --- Device Management ---
     async function loadDevices(): Promise<void> {
         const container = document.getElementById('devices-list');
@@ -574,6 +600,36 @@ interface SettingsPageConfig {
         return div.innerHTML;
     }
 
+    function initEmbedPreferences(): void {
+        const container = document.getElementById('embed-providers');
+        if (!container) return;
+
+        const storageKey = 'snakk:embed-providers';
+        let prefs: Record<string, boolean> = {};
+        try {
+            prefs = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        } catch { /* ignore */ }
+
+        const toggles = container.querySelectorAll<HTMLInputElement>('input[data-embed-provider]');
+        toggles.forEach(toggle => {
+            const provider = toggle.dataset.embedProvider || '';
+            toggle.checked = !!prefs[provider];
+        });
+
+        container.addEventListener('change', (e) => {
+            const toggle = (e.target as HTMLElement).closest('input[data-embed-provider]') as HTMLInputElement | null;
+            if (!toggle) return;
+
+            const provider = toggle.dataset.embedProvider || '';
+            prefs[provider] = toggle.checked;
+
+            // Clean up false entries
+            if (!prefs[provider]) delete prefs[provider];
+
+            localStorage.setItem(storageKey, JSON.stringify(prefs));
+        });
+    }
+
     function initSkinTonePicker(): void {
         const picker = document.getElementById('skin-tone-picker');
         if (!picker) return;
@@ -597,6 +653,7 @@ interface SettingsPageConfig {
 
     function attachEventListeners(): void {
         initSkinTonePicker();
+        initEmbedPreferences();
 
         const avatarForm = document.getElementById('avatar-upload-form') as HTMLFormElement | null;
         const deleteBtn = document.getElementById('delete-avatar-btn') as HTMLButtonElement | null;
@@ -629,6 +686,12 @@ interface SettingsPageConfig {
         if (autoFollowCheckbox && !autoFollowCheckbox.dataset.initialized) {
             autoFollowCheckbox.dataset.initialized = 'true';
             autoFollowCheckbox.addEventListener('change', (e) => handleAutoFollowPreferenceChange(e.target as HTMLInputElement));
+        }
+
+        const adultContentCheckbox = document.querySelector('input[name="allowAdultContent"][type="checkbox"]') as HTMLInputElement | null;
+        if (adultContentCheckbox && !adultContentCheckbox.dataset.initialized) {
+            adultContentCheckbox.dataset.initialized = 'true';
+            adultContentCheckbox.addEventListener('change', (e) => handleAdultContentPreferenceChange(e.target as HTMLInputElement));
         }
 
         const timezoneSelect = document.getElementById('timezone-select') as HTMLSelectElement | null;
@@ -721,8 +784,179 @@ interface SettingsPageConfig {
         sections.forEach(s => observer.observe(s.el));
     }
 
+    // ===== Two-Factor Authentication =====
+
+    function show2FAMessage(text: string, isError = false): void {
+        const el = document.getElementById('2fa-status-message');
+        if (!el) return;
+        el.textContent = text;
+        el.className = `mt-3 text-sm ${isError ? 'text-error' : 'text-success'}`;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+
+    function show2FAPanel(panelId: string): void {
+        ['2fa-loading', '2fa-disabled', '2fa-setup', '2fa-backup-codes', '2fa-enabled']
+            .forEach(id => document.getElementById(id)?.classList.add('hidden'));
+        document.getElementById(panelId)?.classList.remove('hidden');
+    }
+
+    async function load2FAStatus(): Promise<void> {
+        try {
+            const response = await fetch('/bff/auth/2fa/status', { credentials: 'include' });
+            if (!response.ok) { show2FAPanel('2fa-disabled'); return; }
+            const data = await response.json();
+            if (data.isEnabled) {
+                show2FAPanel('2fa-enabled');
+                const backupStatus = document.getElementById('2fa-backup-status');
+                if (backupStatus && data.unusedBackupCodes !== undefined) {
+                    backupStatus.textContent = `${data.unusedBackupCodes} backup codes remaining`;
+                }
+            } else {
+                show2FAPanel('2fa-disabled');
+            }
+        } catch {
+            show2FAPanel('2fa-disabled');
+        }
+    }
+
+    async function handle2FASetup(): Promise<void> {
+        const btn = document.getElementById('2fa-setup-btn') as HTMLButtonElement | null;
+        if (btn) { btn.disabled = true; btn.textContent = 'Setting up...'; }
+        try {
+            const response = await fetch('/bff/auth/2fa/setup', { method: 'POST', credentials: 'include' });
+            const data = await response.json();
+            if (!response.ok) { show2FAMessage(data.error || 'Setup failed', true); return; }
+
+            const qrImg = document.getElementById('2fa-qr-img') as HTMLImageElement | null;
+            const manualKey = document.getElementById('2fa-manual-key');
+            if (qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qrCodeUri)}`;
+            if (manualKey) manualKey.textContent = data.secret;
+
+            show2FAPanel('2fa-setup');
+        } catch {
+            show2FAMessage('Network error', true);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Enable 2FA'; }
+        }
+    }
+
+    async function handle2FAVerify(): Promise<void> {
+        const codeInput = document.getElementById('2fa-verify-code') as HTMLInputElement | null;
+        const btn = document.getElementById('2fa-verify-btn') as HTMLButtonElement | null;
+        if (!codeInput?.value) { show2FAMessage('Enter a code', true); return; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Verifying...'; }
+
+        try {
+            const response = await fetch('/bff/auth/2fa/enable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ code: codeInput.value.trim() })
+            });
+            const data = await response.json();
+            if (!response.ok) { show2FAMessage(data.error || 'Invalid code', true); return; }
+
+            // Show backup codes
+            const grid = document.getElementById('2fa-codes-grid');
+            if (grid && data.backupCodes) {
+                grid.innerHTML = '';
+                (data.backupCodes as string[]).forEach(code => {
+                    const el = document.createElement('div');
+                    el.className = 'p-1 text-center';
+                    el.textContent = code;
+                    grid.appendChild(el);
+                });
+            }
+            show2FAPanel('2fa-backup-codes');
+        } catch {
+            show2FAMessage('Network error', true);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Verify & Enable'; }
+        }
+    }
+
+    async function handle2FADisable(): Promise<void> {
+        const code = prompt('Enter your current 2FA code to disable:');
+        if (!code) return;
+        const password = prompt('Enter your password to confirm:');
+        if (!password) return;
+
+        try {
+            const response = await fetch('/bff/auth/2fa/disable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ password, totpCode: code })
+            });
+            if (response.ok) {
+                show2FAMessage('2FA disabled');
+                show2FAPanel('2fa-disabled');
+            } else {
+                const data = await response.json();
+                show2FAMessage(data.error || 'Failed to disable', true);
+            }
+        } catch {
+            show2FAMessage('Network error', true);
+        }
+    }
+
+    async function handle2FARegenerate(): Promise<void> {
+        const password = prompt('Enter your password to regenerate backup codes:');
+        if (!password) return;
+
+        try {
+            const response = await fetch('/bff/auth/2fa/backup-codes/regenerate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ password })
+            });
+            const data = await response.json();
+            if (!response.ok) { show2FAMessage(data.error || 'Failed', true); return; }
+
+            const grid = document.getElementById('2fa-codes-grid');
+            if (grid && data.backupCodes) {
+                grid.innerHTML = '';
+                (data.backupCodes as string[]).forEach(code => {
+                    const el = document.createElement('div');
+                    el.className = 'p-1 text-center';
+                    el.textContent = code;
+                    grid.appendChild(el);
+                });
+            }
+            show2FAPanel('2fa-backup-codes');
+        } catch {
+            show2FAMessage('Network error', true);
+        }
+    }
+
+    function init2FA(): void {
+        const section = document.getElementById('two-factor-section');
+        if (!section || section.dataset.initialized) return;
+        section.dataset.initialized = 'true';
+
+        document.getElementById('2fa-setup-btn')?.addEventListener('click', handle2FASetup);
+        document.getElementById('2fa-verify-btn')?.addEventListener('click', handle2FAVerify);
+        document.getElementById('2fa-cancel-btn')?.addEventListener('click', () => show2FAPanel('2fa-disabled'));
+        document.getElementById('2fa-codes-done-btn')?.addEventListener('click', () => { show2FAPanel('2fa-enabled'); load2FAStatus(); });
+        document.getElementById('2fa-disable-btn')?.addEventListener('click', handle2FADisable);
+        document.getElementById('2fa-regen-btn')?.addEventListener('click', handle2FARegenerate);
+        document.getElementById('2fa-copy-codes-btn')?.addEventListener('click', () => {
+            const grid = document.getElementById('2fa-codes-grid');
+            if (grid) navigator.clipboard.writeText(grid.textContent?.replace(/\s+/g, '\n') || '');
+        });
+
+        // Also allow Enter key in verify code input
+        document.getElementById('2fa-verify-code')?.addEventListener('keydown', (e) => {
+            if ((e as KeyboardEvent).key === 'Enter') handle2FAVerify();
+        });
+
+        load2FAStatus();
+    }
+
     function boot(): void {
-        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); initScrollspy(); });
+        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); });
     }
 
     if (document.readyState === 'loading') {

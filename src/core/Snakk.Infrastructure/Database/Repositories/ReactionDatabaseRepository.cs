@@ -5,20 +5,20 @@ using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
 public class ReactionDatabaseRepository(SnakkDbContext context)
-    : GenericDatabaseRepository<ReactionDatabaseEntity>(context), IReactionDatabaseRepository
+    : GenericDatabaseRepository<PostReactionDatabaseEntity>(context), IReactionDatabaseRepository
 {
-    public async Task<ReactionDatabaseEntity?> GetByUserPostAndTypeAsync(int userId, int postId, int typeId) =>
+    public async Task<PostReactionDatabaseEntity?> GetByUserPostAndTypeAsync(int userId, int postId, int typeId) =>
         await _dbSet.FirstOrDefaultAsync(r =>
             r.UserId == userId
             && r.PostId == postId
             && r.TypeId == typeId);
 
-    public async Task<ReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId) =>
+    public async Task<PostReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId) =>
         await _dbSet.FirstOrDefaultAsync(r =>
             r.UserId == userId
             && r.PostId == postId);
 
-    public async Task<IEnumerable<ReactionDatabaseEntity>> GetByPostIdAsync(int postId) =>
+    public async Task<IEnumerable<PostReactionDatabaseEntity>> GetByPostIdAsync(int postId) =>
         await _dbSet
             .Where(r => r.PostId == postId)
             .ToListAsync();

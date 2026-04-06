@@ -12,7 +12,8 @@ public class IndexModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
+    IPrefetchCacheService prefetchCache,
+    ILogger<IndexModel> logger) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -43,6 +44,7 @@ public class IndexModel(
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
 
+
     public async Task OnGetAsync(int offset = 0)
     {
         // Determine if we need to scope to a community
@@ -64,6 +66,9 @@ public class IndexModel(
         // Check cache for sidebar data — inline if warm, prefetch if cold
         ResolveSidebarData(communityId);
 
+        // Eagerly fetch any sidebar data that wasn't in cache
+        await EnsureSidebarDataAsync(communityId);
+
         try
         {
             RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId);
@@ -72,6 +77,93 @@ public class IndexModel(
         {
             // Continue with null
         }
+
+    }
+
+    private async Task EnsureSidebarDataAsync(string? communityId)
+    {
+        var tasks = new List<Task>();
+
+        if (InlinePlatformStats is null)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(communityId))
+                    {
+                        var data = await _apiClient.GetCommunityStatsAsync(communityId);
+                        if (data is not null)
+                            InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                    }
+                    else
+                    {
+                        var data = await _apiClient.GetPlatformStatsAsync();
+                        if (data is not null)
+                            InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                    }
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
+            }));
+        }
+
+        if (ShowTrendingDiscussions && InlineTrendingDiscussions is null)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var data = await _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId);
+                    if (data is not null)
+                        InlineTrendingDiscussions = new(data, CommunityContext, "eager");
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending discussions"); }
+            }));
+        }
+
+        if (ShowTrendingSpaces && InlineTrendingSpaces is null)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var data = await _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId);
+                    if (data is not null)
+                        InlineTrendingSpaces = new(data, CommunityContext, "eager");
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending spaces"); }
+            }));
+        }
+
+        if (ShowTrendingContributors && InlineTrendingContributors is null)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var data = await _apiClient.GetTopContributorsTodayAsync(communityId: communityId);
+                    if (data is not null)
+                        InlineTrendingContributors = new(data, CommunityContext, "eager");
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending contributors"); }
+            }));
+        }
+
+        if (InlineSiteRules is null)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var data = await _apiClient.GetSiteRulesAsync();
+                    if (data is not null)
+                        InlineSiteRules = new(data, "eager");
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch site rules"); }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
     }
 
     private void ResolveSidebarData(string? communityId)

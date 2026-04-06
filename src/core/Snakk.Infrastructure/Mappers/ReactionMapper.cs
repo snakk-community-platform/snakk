@@ -8,7 +8,7 @@ using Snakk.Shared.Enums;
 
 public static class ReactionMapper
 {
-    public static Reaction FromPersistence(this ReactionDatabaseEntity entity) =>
+    public static Reaction FromPersistence(this PostReactionDatabaseEntity entity) =>
         Reaction.Rehydrate(
             ReactionId.From(entity.PublicId),
             PostId.From(entity.Post.PublicId),
@@ -16,7 +16,7 @@ public static class ReactionMapper
             ((ReactionTypeEnum)entity.TypeId).ToDomain(),
             entity.CreatedAt);
 
-    public static ReactionDatabaseEntity ToPersistence(this Reaction reaction) =>
+    public static PostReactionDatabaseEntity ToPersistence(this Reaction reaction) =>
         new()
         {
             PublicId = reaction.PublicId,

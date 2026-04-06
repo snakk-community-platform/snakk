@@ -15,7 +15,7 @@ public class MentionRepositoryAdapter(
 {
     public async Task<IEnumerable<Mention>> GetByPostIdAsync(PostId postId)
     {
-        var projections = await context.Mentions
+        var projections = await context.PostMentions
             .Where(m => m.Post.PublicId == postId.Value)
             .Select(m => new MentionProjection(
                 m.PublicId, m.Post.PublicId, m.MentionedUser.PublicId, m.CreatedAt))
@@ -43,7 +43,7 @@ public class MentionRepositoryAdapter(
             .Select(u => new { u.PublicId, u.Id })
             .ToDictionaryAsync(u => u.PublicId, u => u.Id);
 
-        var entities = new List<MentionDatabaseEntity>();
+        var entities = new List<PostMentionDatabaseEntity>();
 
         foreach (var mention in mentionList)
         {

@@ -114,7 +114,7 @@ public class MentionDatabaseRepositoryTests : IDisposable
         var mentioned1 = await _builder.CreateUserAsync("Bulk1");
         var mentioned2 = await _builder.CreateUserAsync("Bulk2");
 
-        var mentions = new List<MentionDatabaseEntity>
+        var mentions = new List<PostMentionDatabaseEntity>
         {
             new()
             {

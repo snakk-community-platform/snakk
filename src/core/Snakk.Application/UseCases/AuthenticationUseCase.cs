@@ -306,7 +306,7 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
-    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? autoFollowOnReply, string? timezone = null, string? bio = null)
+    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? autoFollowOnReply, string? timezone = null, string? bio = null, bool? allowAdultContent = null)
     {
         var user = await userRepository.GetByPublicIdAsync(userId);
 
@@ -321,6 +321,9 @@ public class AuthenticationUseCase(
 
         if (bio is not null)
             user.SetBio(bio == "" ? null : bio);
+
+        if (allowAdultContent.HasValue)
+            user.SetAllowAdultContent(allowAdultContent.Value);
 
         await userRepository.UpdateAsync(user);
 

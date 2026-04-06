@@ -12,7 +12,7 @@ public class FollowCreatedActivityHandler(
 {
     public async Task HandleAsync(FollowCreatedEvent @event)
     {
-        var data = await context.Follows
+        var data = await context.UserFollows
             .Where(f => f.PublicId == @event.FollowId.Value)
             .Select(f => new {
                 Username = f.User.DisplayName,

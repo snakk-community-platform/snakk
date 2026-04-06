@@ -1,0 +1,72 @@
+@page
+@model Snakk.Auth.Pages.TwoFactorVerifyModel
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+}
+
+<div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Brand Panel -->
+    <div class="auth-brand-panel lg:w-[45%] xl:w-[50%] flex items-center justify-center px-8 py-12 lg:py-0 shrink-0">
+        <div class="auth-brand-content text-center lg:text-left">
+            <div class="auth-brand-wordmark">snakk</div>
+            <p class="auth-brand-tagline mt-3 mx-auto lg:mx-0">
+                Where communities come together to discuss, share, and connect.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="auth-form-panel flex-1 px-6 py-12 lg:py-0">
+        <div class="auth-form-card p-8">
+            <h1 class="text-xl font-bold tracking-tight text-center mb-2">Two-factor authentication</h1>
+            <p class="text-sm text-base-content/60 text-center mb-8">
+                Enter the 6-digit code from your authenticator app
+            </p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="auth-alert-error mb-6">@Model.ErrorMessage</div>
+            }
+
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="Email" value="@Model.Email" />
+                <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+                <div>
+                    <label class="auth-label" asp-for="Input.Code">Authentication Code</label>
+                    <input asp-for="Input.Code"
+                           type="text"
+                           class="auth-input text-center text-lg tracking-widest"
+                           placeholder="000 000"
+                           autofocus
+                           autocomplete="one-time-code"
+                           inputmode="numeric" />
+                    <span asp-validation-for="Input.Code" class="text-error text-xs mt-1 block"></span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input asp-for="Input.TrustDevice" type="checkbox" class="auth-checkbox w-4 h-4 rounded" />
+                    <label asp-for="Input.TrustDevice" class="text-sm text-base-content/60 cursor-pointer select-none">
+                        Don't ask again on this device for 30 days
+                    </label>
+                </div>
+
+                <button type="submit" class="auth-btn-primary">
+                    Verify
+                </button>
+            </form>
+
+            <p class="text-center mt-6 text-xs text-base-content/40">
+                You can also enter a backup code in the field above.
+            </p>
+
+            <p class="text-center mt-2 text-sm text-base-content/50">
+                <a href="/auth/login?returnUrl=@Model.ReturnUrl" class="auth-link">Back to sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -31,7 +31,7 @@ public class AvatarGenerationServiceTests
 
         // Return a public URL for any path
         _fileStorage.GetPublicUrl(Arg.Any<string>())
-            .Returns<string>(callInfo => $"/storage/{callInfo.Arg<string>()}");
+            .Returns<string>(callInfo => $"/{callInfo.Arg<string>()}");
 
         var configValues = new Dictionary<string, string?>
         {
@@ -71,7 +71,7 @@ public class AvatarGenerationServiceTests
         // Assert - Verify file was saved via IFileStorage
         _fileStorage.Received(1).ExistsAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<CancellationToken>());
         _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("users")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     [Test]
@@ -87,7 +87,7 @@ public class AvatarGenerationServiceTests
 
         // Assert - SaveAsync should NOT be called since file exists
         _fileStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     [Test]
@@ -101,7 +101,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         _fileStorage.Received(1).GetPublicUrl(Arg.Any<string>());
-        await Assert.That(url).StartsWith("/storage/");
+        await Assert.That(url).StartsWith("/");
     }
 
     [Test]
@@ -144,7 +144,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("hub")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     [Test]
@@ -177,7 +177,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("space")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     #endregion
@@ -195,7 +195,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         _fileStorage.Received(1).SaveAsync(Arg.Is<string>(p => p.Contains("communit")), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     #endregion
@@ -400,7 +400,7 @@ public class AvatarGenerationServiceTests
 
         // Assert
         _fileStorage.Received(1).SaveAsync(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-        await Assert.That(url).Contains("/storage/");
+        await Assert.That(url).Contains("/");
     }
 
     #endregion

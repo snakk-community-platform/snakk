@@ -42,10 +42,12 @@ import {
 import { history } from '@milkdown/kit/plugin/history';
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener';
 import { upload, uploadConfig } from '@milkdown/kit/plugin/upload';
-import { replaceAll, getMarkdown, callCommand, $inputRule, $markAttr, $markSchema, $command, $remark } from '@milkdown/kit/utils';
+import { replaceAll, getMarkdown, callCommand, $inputRule, $markAttr, $markSchema, $command, $remark, $prose } from '@milkdown/kit/utils';
 import { markRule } from '@milkdown/kit/prose';
 import { toggleMark } from '@milkdown/kit/prose/commands';
 import { Decoration } from '@milkdown/kit/prose/view';
+import { Plugin, PluginKey } from '@milkdown/kit/prose/state';
+import { Slice, Fragment } from '@milkdown/kit/prose/model';
 import type { Node } from '@milkdown/kit/prose/model';
 
 // ============================================================================
@@ -348,6 +350,58 @@ function splitTextNode(text: string): any[] {
 const remarkEmphasisExtras = $remark('emphasisExtras', () => emphasisExtrasRemarkPluginFn);
 
 // ============================================================================
+// Paste Sanitization Plugin
+// Strips disallowed nodes (images, iframes, etc.) from pasted HTML content.
+// Images should only come from our upload flow, not from external paste.
+// ============================================================================
+
+const ALLOWED_NODE_TYPES = new Set([
+    'doc', 'paragraph', 'heading', 'blockquote', 'bullet_list', 'ordered_list',
+    'list_item', 'code_block', 'horizontal_rule', 'table', 'table_row',
+    'table_header', 'table_cell', 'text', 'hard_break',
+]);
+
+function sanitizePastedFragment(fragment: Fragment): Fragment {
+    const sanitized: Node[] = [];
+    fragment.forEach((node) => {
+        if (node.isText) {
+            sanitized.push(node);
+            return;
+        }
+
+        if (!ALLOWED_NODE_TYPES.has(node.type.name)) {
+            // For disallowed block nodes (image, etc.), extract any text content as plain text
+            if (node.textContent) {
+                const textNode = node.type.schema.text(node.textContent);
+                sanitized.push(textNode);
+            }
+            return;
+        }
+
+        // Recurse into allowed container nodes
+        if (node.childCount > 0) {
+            const cleanedContent = sanitizePastedFragment(node.content);
+            const copy = node.copy(cleanedContent);
+            sanitized.push(copy);
+        } else {
+            sanitized.push(node.copy());
+        }
+    });
+
+    return Fragment.from(sanitized);
+}
+
+const pasteSanitize = $prose(() => new Plugin({
+    key: new PluginKey('paste-sanitize'),
+    props: {
+        transformPasted(slice) {
+            const cleaned = sanitizePastedFragment(slice.content);
+            return new Slice(cleaned, slice.openStart, slice.openEnd);
+        },
+    },
+}));
+
+// ============================================================================
 // Toolbar Definition
 // ============================================================================
 
@@ -495,10 +549,22 @@ function showGroupDropdown(editor: Editor, triggerBtn: HTMLElement, children: To
         text.textContent = child.title;
         btn.appendChild(text);
 
+        btn.title = child.title;
         btn.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            child.action(editor);
+
+            // Check if source mode is active — if so, use source action
+            const editorEl = triggerBtn.closest('.milkdown-editor') as HTMLElement | null;
+            const srcActions = editorEl ? (editorEl as any).__sourceActions as Record<string, () => void> | undefined : undefined;
+            const srcMode = editorEl ? (editorEl as any).__isSourceMode as (() => boolean) | undefined : undefined;
+
+            if (srcMode?.() && srcActions?.[child.title]) {
+                srcActions[child.title]();
+            } else {
+                child.action(editor);
+            }
+
             closeGroupDropdown();
         });
 
@@ -2125,6 +2191,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 .use(history)
                 .use(listener)
                 .use(upload)
+                .use(pasteSanitize)
                 .create();
 
             // Build toolbar, footer and assemble the editor
@@ -2132,15 +2199,205 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             const footer = document.createElement('div');
             footer.className = 'milkdown-footer';
 
+            // Source mode toggle
+            const sourceTextarea = document.createElement('textarea');
+            sourceTextarea.className = 'milkdown-source';
+            sourceTextarea.style.display = 'none';
+            sourceTextarea.spellcheck = false;
+            if (height) sourceTextarea.style.minHeight = height;
+
+            // Eye icon (visual) / code icon (source)
+            const eyeIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>';
+            const codeIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>';
+            const helpIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+
+            const modeJoin = document.createElement('div');
+            modeJoin.className = 'join';
+
+            const visualBtn = document.createElement('button');
+            visualBtn.type = 'button';
+            visualBtn.className = 'join-item md-mode-btn';
+            visualBtn.innerHTML = eyeIcon + ' Visual';
+
+            const sourceBtn = document.createElement('button');
+            sourceBtn.type = 'button';
+            sourceBtn.className = 'join-item md-mode-btn';
+            sourceBtn.innerHTML = codeIcon + ' Source';
+
+            modeJoin.appendChild(visualBtn);
+            modeJoin.appendChild(sourceBtn);
+
             const helpLink = document.createElement('button');
             helpLink.type = 'button';
-            helpLink.className = 'md-help-link';
-            helpLink.textContent = 'Markdown help';
+            helpLink.className = 'md-footer-btn';
+            helpLink.innerHTML = helpIcon + ' Markdown';
             helpLink.addEventListener('click', showMarkdownHelp);
-            footer.appendChild(helpLink);
+
+            let isSourceMode = localStorage.getItem('snakk:editor-mode') === 'source';
+
+            // Source mode markdown insertion helper
+            function sourceInsert(before: string, after: string = '', blockPrefix = false): void {
+                const ta = sourceTextarea;
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                const selected = ta.value.substring(start, end);
+
+                let insertion: string;
+                if (blockPrefix) {
+                    if (selected) {
+                        insertion = selected.split('\n').map(line => before + line).join('\n');
+                    } else {
+                        insertion = before;
+                    }
+                } else {
+                    insertion = before + selected + after;
+                }
+
+                ta.setRangeText(insertion, start, end, 'select');
+
+                // If no text was selected and there's a closing tag, place cursor between the tags
+                if (!selected && after) {
+                    const cursorPos = start + before.length;
+                    ta.setSelectionRange(cursorPos, cursorPos);
+                }
+
+                ta.focus();
+                textarea.value = ta.value;
+                onChange?.(ta.value);
+            }
+
+            // Map toolbar titles to source-mode markdown insertions
+            const sourceActions: Record<string, () => void> = {
+                'Bold (Ctrl+B)':                () => sourceInsert('**', '**'),
+                'Italic (Ctrl+I)':              () => sourceInsert('*', '*'),
+                'Strikethrough (Ctrl+Shift+X)': () => sourceInsert('~~', '~~'),
+                'Subscript':                    () => sourceInsert('~', '~'),
+                'Superscript':                  () => sourceInsert('^', '^'),
+                'Inserted':                     () => sourceInsert('++', '++'),
+                'Highlight':                    () => sourceInsert('==', '=='),
+                'Spoiler':                      () => sourceInsert('||', '||'),
+                'Heading 1':                    () => sourceInsert('# ', '', true),
+                'Heading 2':                    () => sourceInsert('## ', '', true),
+                'Heading 3':                    () => sourceInsert('### ', '', true),
+                'Bullet List':                  () => sourceInsert('- ', '', true),
+                'Ordered List':                 () => sourceInsert('1. ', '', true),
+                'Task List':                    () => sourceInsert('- [ ] ', '', true),
+                'Blockquote':                   () => sourceInsert('> ', '', true),
+                'Inline Code':                  () => sourceInsert('`', '`'),
+                'Code Block':                   () => sourceInsert('```\n', '\n```'),
+                'Horizontal Rule':              () => sourceInsert('\n---\n'),
+                'Link':                         () => sourceInsert('[', '](url)'),
+                'Table':                        () => sourceInsert('\n| Column 1 | Column 2 |\n| --- | --- |\n| Cell | Cell |\n'),
+            };
+
+            // Expose source mode state on the wrapper element for dropdown access
+            (editorWrapper as any).__sourceActions = sourceActions;
+            (editorWrapper as any).__isSourceMode = () => isSourceMode;
+
+            // Intercept toolbar mousedown in source mode (toolbar buttons use mousedown, not click)
+            toolbar.addEventListener('mousedown', (e) => {
+                if (!isSourceMode) return;
+
+                const btn = (e.target as HTMLElement).closest('button[title]') as HTMLButtonElement | null;
+                if (!btn) return;
+
+                const title = btn.getAttribute('title') || '';
+
+                // For group buttons (Headings, Lists, Text Effects) — let dropdown open normally
+                if (btn.classList.contains('toolbar-group-btn')) return;
+
+                // For Image button — block in source mode
+                if (title === 'Image') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    return;
+                }
+
+                // For Link — show a prompt instead of the visual modal
+                if (title === 'Link') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const url = prompt('URL:');
+                    if (!url) return;
+                    const ta = sourceTextarea;
+                    const start = ta.selectionStart;
+                    const end = ta.selectionEnd;
+                    const selected = ta.value.substring(start, end) || 'link text';
+                    ta.setRangeText(`[${selected}](${url})`, start, end, 'end');
+                    ta.focus();
+                    textarea.value = ta.value;
+                    onChange?.(ta.value);
+                    return;
+                }
+
+                const handler = sourceActions[title];
+                if (handler) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handler();
+                }
+            }, true); // Capture phase to intercept before toolbar's own mousedown
+
+            // Hide image button in source mode
+            const imageBtn = toolbar.querySelector('button[title="Image"]') as HTMLElement | null;
+
+            function applyMode(): void {
+                if (isSourceMode) {
+                    sourceTextarea.value = textarea.value;
+                    editorRoot.style.display = 'none';
+                    sourceTextarea.style.display = '';
+                    sourceBtn.classList.add('md-mode-active');
+                    visualBtn.classList.remove('md-mode-active');
+                    helpLink.style.display = '';
+                    if (imageBtn) imageBtn.style.display = 'none';
+                } else {
+                    editorRoot.style.display = '';
+                    sourceTextarea.style.display = 'none';
+                    visualBtn.classList.add('md-mode-active');
+                    sourceBtn.classList.remove('md-mode-active');
+                    helpLink.style.display = 'none';
+                    if (imageBtn) imageBtn.style.display = '';
+                }
+            }
+
+            function switchToSource(): void {
+                if (isSourceMode) return;
+                sourceTextarea.value = wrapper.getMarkdown();
+                isSourceMode = true;
+                localStorage.setItem('snakk:editor-mode', 'source');
+                applyMode();
+            }
+
+            function switchToVisual(): void {
+                if (!isSourceMode) return;
+                const md = sourceTextarea.value;
+                editor.action(replaceAll(md));
+                textarea.value = md;
+                isSourceMode = false;
+                localStorage.setItem('snakk:editor-mode', 'visual');
+                applyMode();
+            }
+
+            visualBtn.addEventListener('click', switchToVisual);
+            sourceBtn.addEventListener('click', switchToSource);
+
+            applyMode();
+
+            // Sync source textarea changes to the hidden form textarea
+            sourceTextarea.addEventListener('input', () => {
+                textarea.value = sourceTextarea.value;
+                onChange?.(sourceTextarea.value);
+            });
+
+            const footerLeft = document.createElement('div');
+            footerLeft.className = 'md-footer-left';
+            footerLeft.appendChild(modeJoin);
+            footerLeft.appendChild(helpLink);
+            footer.appendChild(footerLeft);
 
             editorWrapper.appendChild(toolbar);
             editorWrapper.appendChild(editorRoot);
+            editorWrapper.appendChild(sourceTextarea);
             editorWrapper.appendChild(footer);
 
             // Update toolbar button states on selection changes (e.g. disable block items in tables)

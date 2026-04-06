@@ -2,11 +2,11 @@ namespace Snakk.Infrastructure.Database.Repositories;
 
 using Snakk.Infrastructure.Database.Entities;
 
-public interface IFollowDatabaseRepository : IGenericDatabaseRepository<FollowDatabaseEntity>
+public interface IFollowDatabaseRepository : IGenericDatabaseRepository<UserFollowDatabaseEntity>
 {
-    Task<FollowDatabaseEntity?> GetByUserAndDiscussionAsync(int userId, int discussionId);
-    Task<FollowDatabaseEntity?> GetByUserAndSpaceAsync(int userId, int spaceId);
-    Task<FollowDatabaseEntity?> GetByUserAndFollowedUserAsync(int userId, int followedUserId);
+    Task<UserFollowDatabaseEntity?> GetByUserAndDiscussionAsync(int userId, int discussionId);
+    Task<UserFollowDatabaseEntity?> GetByUserAndSpaceAsync(int userId, int spaceId);
+    Task<UserFollowDatabaseEntity?> GetByUserAndFollowedUserAsync(int userId, int followedUserId);
     Task<IEnumerable<int>> GetFollowerUserIdsOfDiscussionAsync(int discussionId);
     Task<IEnumerable<int>> GetFollowerUserIdsOfSpaceAsync(int spaceId);
     Task<IEnumerable<int>> GetFollowerUserIdsOfUserAsync(int userId);

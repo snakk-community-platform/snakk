@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.TwoFactor";
+
+package snakk.twofactor;
+
+service TwoFactorService {
+  rpc SetupTwoFactor (SetupTwoFactorRequest) returns (SetupTwoFactorResponse);
+  rpc EnableTwoFactor (EnableTwoFactorRequest) returns (EnableTwoFactorResponse);
+  rpc DisableTwoFactor (DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+  rpc VerifyTwoFactorLogin (VerifyTwoFactorLoginRequest) returns (VerifyTwoFactorLoginResponse);
+  rpc GetTwoFactorStatus (GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
+  rpc GetBackupCodesStatus (GetBackupCodesStatusRequest) returns (GetBackupCodesStatusResponse);
+  rpc RegenerateBackupCodes (RegenerateBackupCodesRequest) returns (RegenerateBackupCodesResponse);
+}
+
+// --- Requests ---
+
+message SetupTwoFactorRequest {}
+
+message EnableTwoFactorRequest {
+  string code = 1;
+}
+
+message DisableTwoFactorRequest {
+  string password = 1;
+  string totp_code = 2;
+}
+
+message VerifyTwoFactorLoginRequest {
+  string email = 1;
+  string code = 2;
+  bool trust_device = 3;
+}
+
+message GetTwoFactorStatusRequest {}
+
+message GetBackupCodesStatusRequest {}
+
+message RegenerateBackupCodesRequest {
+  string password = 1;
+}
+
+// --- Responses ---
+
+message SetupTwoFactorResponse {
+  string secret = 1;
+  string qr_code_uri = 2;
+}
+
+message EnableTwoFactorResponse {
+  bool success = 1;
+  repeated string backup_codes = 2;
+  string error = 3;
+}
+
+message DisableTwoFactorResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message VerifyTwoFactorLoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string error = 3;
+}
+
+message GetTwoFactorStatusResponse {
+  bool is_enabled = 1;
+  int32 unused_backup_codes = 2;
+}
+
+message GetBackupCodesStatusResponse {
+  int32 total_codes = 1;
+  int32 unused_codes = 2;
+}
+
+message RegenerateBackupCodesResponse {
+  bool success = 1;
+  repeated string backup_codes = 2;
+  string error = 3;
+}

@@ -122,7 +122,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_agree",
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -130,7 +130,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -156,7 +156,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, discussion, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_love",
             TypeId = (int)ReactionTypeEnum.Love,
@@ -164,7 +164,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -190,7 +190,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_target",
             TypeId = (int)ReactionTypeEnum.Watching,
@@ -198,7 +198,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -224,7 +224,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_userid",
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -232,7 +232,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -259,7 +259,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_display",
             TypeId = (int)ReactionTypeEnum.MindBlown,
@@ -267,7 +267,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);
@@ -294,7 +294,7 @@ public class ReactionActivityHandlerTests : IDisposable
     {
         var (user, _, _, _, _, post) = await SetupFullHierarchyWithPost();
 
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = "react_title",
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -302,7 +302,7 @@ public class ReactionActivityHandlerTests : IDisposable
             UserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Reactions.Add(reaction);
+        _context.PostReactions.Add(reaction);
         await _context.SaveChangesAsync();
 
         var handler = new ReactionAddedActivityHandler(_broadcaster, _context);

@@ -190,6 +190,7 @@ AddGrpcClient<Snakk.Protos.User.UserService.UserServiceClient>(builder.Services)
 AddGrpcClient<Snakk.Protos.ReadState.ReadStateService.ReadStateServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Banner.BannerService.BannerServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>(builder.Services);
 
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
@@ -290,7 +291,7 @@ app.Use(async (context, next) =>
         "img-src 'self' data: https:; " +
         "font-src 'self'; " +
         "connect-src 'self' wss: ws:; " +
-        "frame-src 'self' https://challenges.cloudflare.com; " +
+        "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://*.vimeo.com https://vimeo.com; " +
         "frame-ancestors 'self'; " +
         "base-uri 'self'; " +
         "form-action 'self'");
@@ -395,7 +396,7 @@ Directory.CreateDirectory(mediaStoragePath);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(mediaStoragePath),
-    RequestPath = "/storage/media",
+    RequestPath = "/media",
     OnPrepareResponse = ctx =>
     {
         // Media files are content-addressed (SHA-256 hash) — immutable
@@ -473,6 +474,24 @@ app.MapRealtimeTokenEndpoints();
 app.MapSitemapEndpoints();
 app.MapOEmbedEndpoints();
 app.MapRssFeedEndpoints();
+
+// Adult content confirmation (sets session cookie)
+app.MapPost("/bff/adult-confirm", (HttpContext ctx) =>
+{
+    ctx.Response.Cookies.Append("snakk.adult-confirmed", "1", new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Strict,
+        Path = "/",
+        IsEssential = true
+        // No Expires = session cookie, cleared when browser closes
+    });
+
+    var returnUrl = ctx.Request.Form["returnUrl"].FirstOrDefault() ?? "/";
+    if (!returnUrl.StartsWith("/")) returnUrl = "/";
+    return Results.Redirect(returnUrl);
+}).DisableAntiforgery();
 
 // Health check for gateway probes (verifies gRPC channel connectivity)
 app.MapGet("/health", async (Grpc.Net.Client.GrpcChannel channel) =>

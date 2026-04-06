@@ -590,11 +590,18 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? communityId = null,
         string? hubId = null,
         string? cursor = null,
-        string? userId = null)
+        string? userId = null,
+        string? authorId = null)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId);
+
+        // Filter by author if specified
+        if (!string.IsNullOrEmpty(authorId))
+        {
+            query = query.Where(d => d.CreatedByUser.PublicId == authorId);
+        }
 
         // Filter by hub if specified (more specific than community)
         if (!string.IsNullOrEmpty(hubId))
@@ -666,6 +673,15 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 .ToList()
             : items;
 
+        // Batch-fetch preview data for typed discussions (max 4 queries, not N+1)
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
+
+        var finalItems = resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview)
+                ? x.Dto with { Preview = preview }
+                : x.Dto).ToList();
+
         // Generate next cursor from last item
         string? nextCursor = null;
 
@@ -677,11 +693,173 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
         return new PagedResult<Application.Repositories.RecentDiscussionDto>
         {
-            Items = resultItems.Select(x => x.Dto),
+            Items = finalItems,
             Offset = offset,
             PageSize = pageSize,
             HasMoreItems = hasMoreItems,
             NextCursor = nextCursor
         };
+    }
+
+    private async Task<Dictionary<string, Application.Repositories.DiscussionPreviewDto>> BatchFetchPreviewsAsync(
+        List<(int Id, string PublicId, int Type)> discussions)
+    {
+        var result = new Dictionary<string, Application.Repositories.DiscussionPreviewDto>();
+
+        // Group by type
+        var pollIds = discussions.Where(d => d.Type == 2).ToList();
+        var linkIds = discussions.Where(d => d.Type == 4).ToList();
+        var imagesIds = discussions.Where(d => d.Type == 5).ToList();
+        var debateIds = discussions.Where(d => d.Type == 7).ToList();
+        var iamaIds = discussions.Where(d => d.Type == 9).ToList();
+
+        // Polls: fetch options with vote counts
+        if (pollIds.Count > 0)
+        {
+            var ids = pollIds.Select(d => d.Id).ToList();
+            var polls = await _context.DiscussionPolls
+                .Where(p => ids.Contains(p.DiscussionId))
+                .Select(p => new
+                {
+                    p.DiscussionId,
+                    Options = p.Options
+                        .OrderBy(o => o.DisplayOrder)
+                        .Select(o => new { o.Text, o.VoteCount })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            foreach (var poll in polls)
+            {
+                var publicId = pollIds.First(d => d.Id == poll.DiscussionId).PublicId;
+                var options = poll.Options
+                    .Select(o => new Application.Repositories.PollOptionPreviewDto(o.Text, o.VoteCount))
+                    .ToList();
+                result[publicId] = new(Poll: new(options, options.Sum(o => o.VoteCount)));
+            }
+        }
+
+        // Debates: fetch positions with post counts
+        if (debateIds.Count > 0)
+        {
+            var ids = debateIds.Select(d => d.Id).ToList();
+            var debates = await _context.DiscussionDebates
+                .Where(db => ids.Contains(db.DiscussionId))
+                .Select(db => new
+                {
+                    db.DiscussionId,
+                    Positions = db.Positions
+                        .OrderBy(p => p.Index)
+                        .Select(p => new
+                        {
+                            p.Label,
+                            p.Index,
+                            PostCount = _context.DiscussionDebatePostPositions.Count(pdp => pdp.PositionId == p.Id)
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            foreach (var debate in debates)
+            {
+                var publicId = debateIds.First(d => d.Id == debate.DiscussionId).PublicId;
+                var positions = debate.Positions
+                    .Select(p => new Application.Repositories.DebatePositionPreviewDto(p.Label, p.Index, p.PostCount))
+                    .ToList();
+                result[publicId] = new(Debate: new(positions));
+            }
+        }
+
+        // Links: fetch metadata
+        if (linkIds.Count > 0)
+        {
+            var ids = linkIds.Select(d => d.Id).ToList();
+            var links = await _context.DiscussionLinks
+                .Where(l => ids.Contains(l.DiscussionId))
+                .Select(l => new
+                {
+                    l.DiscussionId,
+                    l.Url, l.Title, l.Description, l.Domain,
+                    l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal
+                })
+                .ToListAsync();
+
+            foreach (var link in links)
+            {
+                var publicId = linkIds.First(d => d.Id == link.DiscussionId).PublicId;
+                result[publicId] = new(Link: new(
+                    link.Url, link.Title, link.Description, link.Domain,
+                    link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal));
+            }
+        }
+
+        // Images: fetch image URLs via Media join
+        if (imagesIds.Count > 0)
+        {
+            var ids = imagesIds.Select(d => d.Id).ToList();
+            var images = await _context.DiscussionImages
+                .Where(g => ids.Contains(g.DiscussionId))
+                .Select(g => new
+                {
+                    g.DiscussionId,
+                    Items = g.Images
+                        .OrderBy(i => i.DisplayOrder)
+                        .Select(i => new
+                        {
+                            Url = i.Image.StoragePath,
+                            ThumbnailUrl = i.Image.ThumbnailPath,
+                            MediumThumbnailUrl = i.Image.MediumThumbnailPath,
+                            i.Image.BlurDataUri
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            foreach (var img in images)
+            {
+                var publicId = imagesIds.First(d => d.Id == img.DiscussionId).PublicId;
+                var items = img.Items
+                    .Select(i => new Application.Repositories.ImagePreviewItemDto(
+                        "/" + i.Url,
+                        i.ThumbnailUrl is not null ? "/" + i.ThumbnailUrl : null,
+                        i.MediumThumbnailUrl is not null ? "/" + i.MediumThumbnailUrl : null,
+                        i.BlurDataUri))
+                    .ToList();
+                result[publicId] = new(Images: new(items.Count, items));
+            }
+        }
+
+        // IAMAs: fetch phase, schedule, and activity counts
+        if (iamaIds.Count > 0)
+        {
+            var ids = iamaIds.Select(d => d.Id).ToList();
+            var iamas = await _context.DiscussionIamas
+                .Where(i => ids.Contains(i.DiscussionId))
+                .Select(i => new
+                {
+                    i.DiscussionId,
+                    i.Phase,
+                    i.ScheduledStartUtc,
+                    i.ScheduledEndUtc,
+                    OfficialAnswerCount = i.OfficialAnswers.Count,
+                    BestQuestionCount = i.BestQuestions.Count,
+                    IsVerified = i.VerificationNote != null && i.VerificationNote != ""
+                })
+                .ToListAsync();
+
+            foreach (var iama in iamas)
+            {
+                var publicId = iamaIds.First(d => d.Id == iama.DiscussionId).PublicId;
+                result[publicId] = new(Iama: new(
+                    iama.Phase,
+                    iama.ScheduledStartUtc,
+                    iama.ScheduledEndUtc,
+                    iama.OfficialAnswerCount,
+                    iama.BestQuestionCount,
+                    iama.IsVerified));
+            }
+        }
+
+        return result;
     }
 }

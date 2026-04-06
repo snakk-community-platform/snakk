@@ -17,7 +17,7 @@ public class NotificationRepositoryAdapter(
 {
     public async Task<Notification?> GetByPublicIdAsync(NotificationId notificationId)
     {
-        var projection = await context.Notifications
+        var projection = await context.UserNotifications
             .Where(n => n.PublicId == notificationId.Value)
             .Select(n => new NotificationProjection(
                 n.PublicId, n.RecipientUser.PublicId, n.TypeId,
@@ -44,7 +44,7 @@ public class NotificationRepositoryAdapter(
         if (userDbId is null)
             return new PagedResult<Notification> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
-        var projections = await context.Notifications
+        var projections = await context.UserNotifications
             .Where(n => n.RecipientUserId == userDbId.Value)
             .OrderByDescending(n => n.CreatedAt)
             .Skip(offset)
@@ -121,7 +121,7 @@ public class NotificationRepositoryAdapter(
 
     public async Task UpdateAsync(Notification notification)
     {
-        var entity = await context.Notifications.FirstOrDefaultAsync(n => n.PublicId == notification.PublicId.Value);
+        var entity = await context.UserNotifications.FirstOrDefaultAsync(n => n.PublicId == notification.PublicId.Value);
 
         if (entity is null)
             throw new InvalidOperationException($"Notification with PublicId '{notification.PublicId}' not found");

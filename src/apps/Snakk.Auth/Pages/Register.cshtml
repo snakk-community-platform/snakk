@@ -97,6 +97,35 @@
                     <div class="cf-turnstile" data-sitekey="@Model.TurnstileSiteKey" data-theme="auto"></div>
                 }
 
+                @if (Model.RequiredConsents.Count > 0)
+                {
+                    <div class="space-y-3 pt-2">
+                        @foreach (var consent in Model.RequiredConsents)
+                        {
+                            <input type="hidden" name="consentVersionId" value="@consent.LatestVersionId" />
+                            <div class="flex items-start gap-3">
+                                <input type="checkbox" name="consent_@consent.Slug" class="auth-checkbox w-4 h-4 rounded mt-0.5" required />
+                                <label class="text-sm text-base-content/70">
+                                    @if (!string.IsNullOrEmpty(consent.ShortLabel) && !string.IsNullOrEmpty(consent.LinkUrl))
+                                    {
+                                        @Html.Raw(consent.ShortLabel
+                                            .Replace("{link}", $"<a href=\"{consent.LinkUrl}\" target=\"_blank\" class=\"auth-link\">")
+                                            .Replace("{/link}", "</a>"))
+                                    }
+                                    else if (!string.IsNullOrEmpty(consent.ShortLabel))
+                                    {
+                                        @consent.ShortLabel
+                                    }
+                                    else
+                                    {
+                                        @consent.Name
+                                    }
+                                </label>
+                            </div>
+                        }
+                    </div>
+                }
+
                 <button type="submit" class="auth-btn-primary">
                     Create Account
                 </button>

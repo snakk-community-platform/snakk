@@ -1,0 +1,68 @@
+@page
+@model Snakk.Auth.Pages.ConsentModel
+@{
+    ViewData["Title"] = "Agreements Required";
+}
+
+<div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Brand Panel -->
+    <div class="auth-brand-panel lg:w-[45%] xl:w-[50%] flex items-center justify-center px-8 py-12 lg:py-0 shrink-0">
+        <div class="auth-brand-content text-center lg:text-left">
+            <div class="auth-brand-wordmark">snakk</div>
+            <p class="auth-brand-tagline mt-3 mx-auto lg:mx-0">
+                Where communities come together to discuss, share, and connect.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="auth-form-panel flex-1 px-6 py-12 lg:py-0">
+        <div class="auth-form-card p-8">
+            <h1 class="text-xl font-bold tracking-tight text-center mb-2">Agreements Required</h1>
+            <p class="text-sm text-base-content/60 text-center mb-8">
+                Please review and accept the following to continue using Snakk.
+            </p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="auth-alert-error mb-6">@Model.ErrorMessage</div>
+            }
+
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+                @foreach (var consent in Model.PendingConsents)
+                {
+                    <input type="hidden" name="versionId" value="@consent.VersionId" />
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" name="accepted" value="@consent.Slug"
+                               class="auth-checkbox w-4 h-4 rounded mt-0.5" required />
+                        <label class="text-sm">
+                            @if (!string.IsNullOrEmpty(consent.ShortLabel))
+                            {
+                                @if (!string.IsNullOrEmpty(consent.LinkUrl))
+                                {
+                                    @Html.Raw(consent.ShortLabel
+                                        .Replace("{link}", $"<a href=\"{consent.LinkUrl}\" target=\"_blank\" class=\"auth-link\">")
+                                        .Replace("{/link}", "</a>"))
+                                }
+                                else
+                                {
+                                    @consent.ShortLabel
+                                }
+                            }
+                            else
+                            {
+                                @consent.Name
+                            }
+                        </label>
+                    </div>
+                }
+
+                <button type="submit" class="auth-btn-primary">
+                    Continue
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

@@ -176,11 +176,11 @@ public class DiscussionGrpcService(
                 await extensionService.CreateJournalAsync(discussionPublicId);
                 break;
 
-            case DiscussionTypeEnum.Gallery:
-                await extensionService.CreateGalleryAsync(
+            case DiscussionTypeEnum.Images:
+                await extensionService.CreateImagesAsync(
                     discussionPublicId,
-                    request.HasGalleryLayout ? request.GalleryLayout : "grid",
-                    request.GalleryImageUrls.Count > 0 ? request.GalleryImageUrls.ToList() : null);
+                    request.HasImagesLayout ? request.ImagesLayout : "grid",
+                    request.ImagesImageUrls.Count > 0 ? request.ImagesImageUrls.ToList() : null);
                 break;
 
             case DiscussionTypeEnum.Iama:
@@ -202,7 +202,8 @@ public class DiscussionGrpcService(
             request.HasCommunityId ? request.CommunityId : null,
             request.HasHubId ? request.HubId : null,
             request.HasCursor ? request.Cursor : null,
-            currentUser.GetCurrentUserId());
+            currentUser.GetCurrentUserId(),
+            request.HasAuthorId ? request.AuthorId : null);
 
         var response = new PagedRecentDiscussionList
         {
@@ -258,6 +259,68 @@ public class DiscussionGrpcService(
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
             item.Tags.AddRange(d.Tags ?? []);
+
+            // Map preview data
+            if (d.Preview is not null)
+            {
+                var preview = new DiscussionPreview();
+
+                if (d.Preview.Poll is not null)
+                {
+                    preview.Poll = new PollPreview { TotalVotes = d.Preview.Poll.TotalVotes };
+                    preview.Poll.Options.AddRange(d.Preview.Poll.Options.Select(o =>
+                        new PollPreviewOption { Text = o.Text, VoteCount = o.VoteCount }));
+                }
+
+                if (d.Preview.Debate is not null)
+                {
+                    preview.Debate = new DebatePreview();
+                    preview.Debate.Positions.AddRange(d.Preview.Debate.Positions.Select(p =>
+                        new DebatePreviewPosition { Label = p.Label, Index = p.Index, PostCount = p.PostCount }));
+                }
+
+                if (d.Preview.Link is not null)
+                {
+                    var lp = d.Preview.Link;
+                    preview.Link = new LinkPreview { Url = lp.Url, IsInternal = lp.IsInternal };
+                    if (lp.Title is not null) preview.Link.Title = lp.Title;
+                    if (lp.Description is not null) preview.Link.Description = lp.Description;
+                    if (lp.Domain is not null) preview.Link.Domain = lp.Domain;
+                    if (lp.ImageUrl is not null) preview.Link.ImageUrl = lp.ImageUrl;
+                    if (lp.ImagePath is not null) preview.Link.ImagePathUrl = fileStorage.GetPublicUrl(lp.ImagePath);
+                    if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
+                    if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
+                }
+
+                if (d.Preview.Images is not null)
+                {
+                    preview.Images = new ImagesPreview { ImageCount = d.Preview.Images.ImageCount };
+                    preview.Images.Items.AddRange(d.Preview.Images.Items.Select(i =>
+                    {
+                        var pi = new ImagesPreviewItem { Url = i.Url };
+                        if (i.ThumbnailUrl is not null) pi.ThumbnailUrl = i.ThumbnailUrl;
+                        if (i.MediumThumbnailUrl is not null) pi.MediumThumbnailUrl = i.MediumThumbnailUrl;
+                        if (i.BlurDataUri is not null) pi.BlurDataUri = i.BlurDataUri;
+                        return pi;
+                    }));
+                }
+
+                if (d.Preview.Iama is not null)
+                {
+                    var ip = d.Preview.Iama;
+                    preview.Iama = new IamaPreview
+                    {
+                        Phase = ip.Phase,
+                        OfficialAnswerCount = ip.OfficialAnswerCount,
+                        BestQuestionCount = ip.BestQuestionCount,
+                        IsVerified = ip.IsVerified
+                    };
+                    if (ip.ScheduledStartUtc.HasValue) preview.Iama.ScheduledStartUtc = ToTimestamp(ip.ScheduledStartUtc.Value);
+                    if (ip.ScheduledEndUtc.HasValue) preview.Iama.ScheduledEndUtc = ToTimestamp(ip.ScheduledEndUtc.Value);
+                }
+
+                item.Preview = preview;
+            }
 
             response.Items.Add(item);
         }
@@ -486,23 +549,23 @@ public class DiscussionGrpcService(
         if (link.ImageUrl is not null) response.ImageUrl = link.ImageUrl;
         if (link.Domain is not null) response.Domain = link.Domain;
         if (link.OEmbedHtml is not null) response.OembedHtml = link.OEmbedHtml;
-        if (link.LocalImagePath is not null) response.LocalImageUrl = fileStorage.GetPublicUrl(link.LocalImagePath);
+        if (link.ImagePath is not null) response.ImagePathUrl = fileStorage.GetPublicUrl(link.ImagePath);
         if (link.BlurDataUri is not null) response.BlurDataUri = link.BlurDataUri;
         response.IsInternal = link.IsInternal;
         return response;
     }
 
-    // --- Gallery RPCs ---
+    // --- Images RPCs ---
 
-    public override async Task<GalleryLayoutResponse> GetGalleryLayout(GetGalleryLayoutRequest request, ServerCallContext context)
+    public override async Task<ImagesLayoutResponse> GetImagesLayout(GetImagesLayoutRequest request, ServerCallContext context)
     {
-        var layout = await typeQueryService.GetGalleryLayoutAsync(request.DiscussionId);
-        var images = await typeQueryService.GetGalleryImagesAsync(request.DiscussionId);
+        var layout = await typeQueryService.GetImagesLayoutAsync(request.DiscussionId);
+        var images = await typeQueryService.GetImagesListAsync(request.DiscussionId);
 
-        var response = new GalleryLayoutResponse { Layout = layout ?? "grid" };
+        var response = new ImagesLayoutResponse { Layout = layout ?? "grid" };
         foreach (var img in images)
         {
-            var proto = new GalleryImageProto { Url = img.Url };
+            var proto = new ImagesImageProto { Url = img.Url };
             if (img.ThumbnailUrl != null) proto.ThumbnailUrl = img.ThumbnailUrl;
             if (img.BlurDataUri != null) proto.BlurDataUri = img.BlurDataUri;
             response.Images.Add(proto);

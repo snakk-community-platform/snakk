@@ -38,6 +38,7 @@ public class UserDatabaseEntity
     public string? Timezone { get; set; }
     public string? Bio { get; set; }
     public string? FeedToken { get; set; }
+    public bool AllowAdultContent { get; set; }
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }
@@ -62,8 +63,8 @@ public class UserDatabaseEntity
     public DateTime? TwoFactorEnabledAt { get; set; }
 
     // Navigation properties
-    public virtual ICollection<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = [];
-    public virtual ICollection<BackupCodeDatabaseEntity> BackupCodes { get; set; } = [];
+    public virtual ICollection<TwoFactorTrustedDeviceDatabaseEntity> TwoFactorTrustedDevices { get; set; } = [];
+    public virtual ICollection<TwoFactorBackupCodeDatabaseEntity> TwoFactorBackupCodes { get; set; } = [];
     public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = [];
     public virtual ICollection<UserRoleDatabaseEntity> Roles { get; set; } = [];
 }

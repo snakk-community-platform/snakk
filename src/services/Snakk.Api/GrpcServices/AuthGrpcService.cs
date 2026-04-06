@@ -22,7 +22,8 @@ public class AuthGrpcService(
     ILogger<AuthGrpcService> logger,
     IUserGrantsCacheService grantsCache,
     IDisplayNameHistoryRepository displayNameHistoryRepository,
-    ITurnstileService turnstileService) : AuthService.AuthServiceBase
+    ITurnstileService turnstileService,
+    IConsentService consentService) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -91,6 +92,30 @@ public class AuthGrpcService(
         var user = result.Value!;
         var roles = await GetUserRolesAsync(user.PublicId.Value);
 
+        // Check if 2FA is enabled — domain entity doesn't have this, so query DB
+        var has2FA = await context.Users
+            .Where(u => u.PublicId == user.PublicId.Value)
+            .Select(u => u.TwoFactorEnabled)
+            .FirstOrDefaultAsync();
+
+        if (has2FA)
+        {
+            logger.LogInformation("Login requires 2FA for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
+            return new AuthTokenResponse
+            {
+                TwoFactorRequired = true,
+                Message = "Two-factor authentication required",
+                User = new Protos.Auth.UserInfo
+                {
+                    Id = user.PublicId.Value,
+                    Email = user.Email,
+                    DisplayName = user.DisplayName,
+                    EmailVerified = user.EmailVerified,
+                    Roles = { roles }
+                }
+            };
+        }
+
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
             user.DisplayName,
@@ -153,10 +178,13 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName);
 
+        var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
+
         return new Protos.Auth.RefreshTokenResponse
         {
             AccessToken = jwt,
-            RefreshToken = newRefreshToken.Value
+            RefreshToken = newRefreshToken.Value,
+            NeedsConsent = needsConsent
         };
     }
 
@@ -218,7 +246,8 @@ public class AuthGrpcService(
             Timezone = user.Timezone ?? "",
             IsDisplayNameLocked = user.IsDisplayNameLocked,
             HasPassword = user.PasswordHash is not null,
-            AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId.Value, AvatarEntityType.User, 0, user.AvatarFileName)
+            AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId.Value, AvatarEntityType.User, 0, user.AvatarFileName),
+            AllowAdultContent = user.AllowAdultContent,
         };
 
         if (user.Bio is not null)
@@ -297,8 +326,9 @@ public class AuthGrpcService(
         bool? autoFollowOnReply = request.HasAutoFollowOnReply ? request.AutoFollowOnReply : null;
         string? timezone = request.HasTimezone ? request.Timezone : null;
         string? bio = request.HasBio ? request.Bio : null;
+        bool? allowAdultContent = request.HasAllowAdultContent ? request.AllowAdultContent : null;
 
-        var result = await authUseCase.UpdatePreferencesAsync(userId, autoFollowOnReply, timezone, bio);
+        var result = await authUseCase.UpdatePreferencesAsync(userId, autoFollowOnReply, timezone, bio, allowAdultContent);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
@@ -319,6 +349,31 @@ public class AuthGrpcService(
 
         var user = result.Value!;
         var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
+
+        // Check if 2FA is enabled
+        var has2FA = await context.Users
+            .Where(u => u.PublicId == user.PublicId.Value)
+            .Select(u => u.TwoFactorEnabled)
+            .FirstOrDefaultAsync();
+
+        if (has2FA)
+        {
+            logger.LogInformation("OAuth login requires 2FA for {Email} from {Ip}", request.Email, request.IpAddress);
+            return new OAuthCallbackResponse
+            {
+                TwoFactorRequired = true,
+                IsNewUser = isNewUser,
+                User = new Protos.Auth.UserInfo
+                {
+                    Id = user.PublicId.Value,
+                    Email = user.Email,
+                    DisplayName = user.DisplayName,
+                    EmailVerified = user.EmailVerified,
+                    Roles = { roles }
+                }
+            };
+        }
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -333,8 +388,6 @@ public class AuthGrpcService(
 
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
-
-        var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
         logger.LogInformation(
             "OAuth {Provider} login for {Email} from {Ip} (new user: {IsNew})",

@@ -1,0 +1,325 @@
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using static Snakk.Web.Helpers.DisplayHelper
+@using static Snakk.Web.Helpers.DiscussionTypeHelper
+@model DiscussionListItemVM
+@{
+    var discussion = Model.Discussion;
+    var baseUrl = Model.ShowCommunity
+        ? SnakkUrlHelper.Discussion(
+            discussion.Community.Slug, Model.Community,
+            discussion.Hub.Slug, discussion.Space.Slug,
+            SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId))
+        : SnakkUrlHelper.Discussion(
+            Model.Community, discussion.Hub.Slug, discussion.Space.Slug,
+            SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
+
+    var communityUrl = Model.ShowCommunity
+        ? SnakkUrlHelper.Community(discussion.Community.Slug, Model.Community)
+        : null;
+    var hubUrl = Model.ShowCommunity
+        ? SnakkUrlHelper.Hub(discussion.Community.Slug, Model.Community, discussion.Hub.Slug)
+        : SnakkUrlHelper.Hub(Model.Community, discussion.Hub.Slug);
+    var spaceUrl = Model.ShowCommunity
+        ? SnakkUrlHelper.Space(discussion.Community.Slug, Model.Community, discussion.Hub.Slug, discussion.Space.Slug)
+        : SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug);
+
+    var replyCount = Math.Max(0, discussion.PostCount - 1);
+}
+
+<article class="fp-card h-entry">
+    <div class="fp-card-header">
+        <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" />
+        <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
+           data-popup-type="user"
+           data-popup-id="@discussion.Author.PublicId"
+           data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
+        <span class="fp-card-dot">&middot;</span>
+        <time class="fp-card-time dt-published"
+              datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</time>
+        @{
+            var preview = discussion.Preview;
+            var pollPreview = preview?.Poll;
+            var debatePreview = preview?.Debate;
+            var galleryPreview = preview?.Images;
+            var linkPreview = preview?.Link;
+            var iamaPreview = preview?.Iama;
+        }
+        @if (!string.IsNullOrEmpty(discussion.Type) && discussion.Type != "Standard")
+        {
+            var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
+            <span class="fp-card-type-badge @cssClass">@icon @label</span>
+            @if (discussion.Type == "Poll" && pollPreview != null)
+            {
+                <span class="fp-card-type-meta">(@pollPreview.TotalVotes votes)</span>
+            }
+            @if (discussion.Type == "Debate" && debatePreview != null)
+            {
+                var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
+                <span class="fp-card-type-meta">(@totalPosts posts)</span>
+            }
+            @if (discussion.Type == "Images" && galleryPreview != null)
+            {
+                <span class="fp-card-type-meta">(@galleryPreview.ImageCount @(galleryPreview.ImageCount == 1 ? "image" : "images"))</span>
+            }
+            @if (discussion.Type == "Iama" && iamaPreview != null)
+            {
+                var phaseLabel = iamaPreview.Phase switch { 0 => "Announced", 1 => "Live", 2 => "Closed", 3 => "Archived", _ => "" };
+                <span class="fp-card-type-meta">(@phaseLabel)</span>
+            }
+        }
+        @if (discussion.ReactionCount > 0)
+        {
+            <span class="fp-card-stat fp-card-reactions">
+                <span class="fp-reaction-emoji">❤️</span>
+                @discussion.ReactionCount
+            </span>
+        }
+    </div>
+
+    <div class="fp-card-title">
+        <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
+    </div>
+
+    <div class="fp-card-stats">
+        <span class="fp-card-path">
+            @if (Model.ShowCommunity)
+            {
+                <a href="@communityUrl" class="fp-card-path-link"
+                   data-popup-type="community"
+                   data-popup-id="@discussion.Community.PublicId"
+                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
+                <span class="fp-card-path-sep">&rsaquo;</span>
+            }
+            <a href="@hubUrl" class="fp-card-path-link"
+               data-popup-type="hub"
+               data-popup-id="@discussion.Hub.PublicId"
+               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+            <span class="fp-card-path-sep">&rsaquo;</span>
+            <a href="@spaceUrl" class="fp-card-tag"
+               data-popup-type="space"
+               data-popup-id="@discussion.Space.PublicId"
+               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+        </span>
+        <a href="@baseUrl" class="fp-card-stat fp-card-comments">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 00-1.032-.211 50.89 50.89 0 00-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 002.433 3.984L7.28 21.53A.75.75 0 016 21v-4.03a48.527 48.527 0 01-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979z" />
+                <path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 001.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0015.75 7.5z" />
+            </svg>
+            @replyCount comments
+        </a>
+    </div>
+
+    @if (pollPreview != null || debatePreview != null || (galleryPreview != null && galleryPreview.Items.Count > 0) || linkPreview != null || iamaPreview != null)
+    {
+        <div class="fp-card-preview">
+            @if (pollPreview != null && pollPreview.Options.Count > 0)
+            {
+                var totalVotes = pollPreview.TotalVotes;
+                var maxToShow = Math.Min(pollPreview.Options.Count, 4);
+                var sortedOptions = pollPreview.Options.OrderByDescending(o => o.VoteCount).ToList();
+
+                <div class="fp-poll-preview">
+                    @for (var i = 0; i < maxToShow; i++)
+                    {
+                        var option = sortedOptions[i];
+                        var pct = totalVotes > 0 ? (int)Math.Round(100.0 * option.VoteCount / totalVotes) : 0;
+
+                        <div class="fp-poll-bar">
+                            <div class="fp-poll-bar-fill" style="width: @(pct)%"></div>
+                            <span class="fp-poll-bar-label">@option.Text</span>
+                            <span class="fp-poll-bar-pct">@(pct)%</span>
+                        </div>
+                    }
+                    @if (pollPreview.Options.Count > 4)
+                    {
+                        <span class="fp-poll-more">+@(pollPreview.Options.Count - 4) more</span>
+                    }
+                </div>
+            }
+            @if (debatePreview != null && debatePreview.Positions.Count > 0)
+            {
+                var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
+                var sortedPositions = debatePreview.Positions.OrderBy(p => p.Index).ToList();
+                var debateColors = new[] { "var(--link-primary)", "var(--border-subtle)", "var(--text-tertiary)" };
+
+                <div class="fp-debate-preview">
+                    <div class="fp-debate-bar">
+                        @for (var i = 0; i < sortedPositions.Count; i++)
+                        {
+                            var position = sortedPositions[i];
+                            var pct = totalPosts > 0 ? Math.Max(1, (int)Math.Round(100.0 * position.PostCount / totalPosts)) : (int)Math.Round(100.0 / sortedPositions.Count);
+                            var color = debateColors[i % debateColors.Length];
+                            var isFirst = i == 0;
+                            var isLast = i == sortedPositions.Count - 1;
+                            var radius = isFirst && isLast ? "0.25rem"
+                                : isFirst ? "0.25rem 0 0 0.25rem"
+                                : isLast ? "0 0.25rem 0.25rem 0"
+                                : "0";
+
+                            <div class="fp-debate-segment"
+                                 style="width: @(pct)%; background: @color; border-radius: @radius;"
+                                 title="@position.Label: @(totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0)%">
+                                @if (pct >= 15)
+                                {
+                                    <span>@position.Label</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="fp-debate-labels">
+                        @for (var i = 0; i < sortedPositions.Count; i++)
+                        {
+                            var position = sortedPositions[i];
+                            var pct = totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0;
+                            var color = debateColors[i % debateColors.Length];
+
+                            <span class="fp-debate-label">
+                                <span class="fp-debate-dot" style="background: @color;"></span>
+                                @position.Label @(pct)%
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+            @if (galleryPreview != null && galleryPreview.Items.Count > 0)
+            {
+                var images = galleryPreview.Items;
+                string bestSrc(Snakk.Protos.Discussion.ImagesPreviewItem img) =>
+                    img.HasMediumThumbnailUrl ? img.MediumThumbnailUrl
+                    : img.HasThumbnailUrl ? img.ThumbnailUrl
+                    : img.Url;
+                var firstSrc = bestSrc(images[0]);
+                var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
+
+                <div class="fp-images-preview" data-image-count="@images.Count">
+                    <div class="fp-images-track">
+                        @for (var i = 0; i < images.Count; i++)
+                        {
+                            var img = images[i];
+                            var src = bestSrc(img);
+                            var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
+
+                            <div class="fp-images-slide-wrapper">
+                                @if (blur != null)
+                                {
+                                    <div class="fp-images-blur" style="background-image: url(@blur);"></div>
+                                }
+                                @if (i == 0)
+                                {
+                                    <img class="fp-images-slide"
+                                         src="@src"
+                                         data-src="@src"
+                                         data-loaded="1"
+                                         alt="" />
+                                }
+                                else
+                                {
+                                    <img class="fp-images-slide"
+                                         data-src="@src"
+                                         alt="" />
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (images.Count > 1)
+                    {
+                        <button class="fp-images-btn fp-images-prev" type="button" aria-label="Previous">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <button class="fp-images-btn fp-images-next" type="button" aria-label="Next"
+                                @if (secondSrc != null) { <text>data-preload="@secondSrc"</text> }>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 6 15 12 9 18"></polyline>
+                            </svg>
+                        </button>
+                        <span class="fp-images-counter">1 / @images.Count</span>
+                    }
+                </div>
+            }
+            @if (iamaPreview != null)
+            {
+                var iamaPhaseLabel = iamaPreview.Phase switch { 0 => "Announced", 1 => "Live", 2 => "Closed", 3 => "Archived", _ => "Unknown" };
+                var iamaPhaseClass = iamaPreview.Phase switch { 0 => "fp-iama-phase--announced", 1 => "fp-iama-phase--live", 2 => "fp-iama-phase--closed", 3 => "fp-iama-phase--archived", _ => "" };
+                DateTime? countdownTarget = null;
+                string? countdownLabel = null;
+                if (iamaPreview.Phase == 0 && iamaPreview.ScheduledStartUtc != null)
+                {
+                    countdownTarget = iamaPreview.ScheduledStartUtc.ToDateTime();
+                    countdownLabel = "starts in";
+                }
+                else if (iamaPreview.Phase == 1 && iamaPreview.ScheduledEndUtc != null)
+                {
+                    countdownTarget = iamaPreview.ScheduledEndUtc.ToDateTime();
+                    countdownLabel = "ends in";
+                }
+
+                <div class="fp-iama-preview">
+                    <div class="fp-iama-header">
+                        <span class="fp-iama-phase @iamaPhaseClass">@iamaPhaseLabel</span>
+                        @if (iamaPreview.IsVerified)
+                        {
+                            <span class="fp-iama-verified" title="Verified">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                                Verified
+                            </span>
+                        }
+                        @if (iamaPreview.OfficialAnswerCount > 0)
+                        {
+                            <span class="fp-iama-stat">@iamaPreview.OfficialAnswerCount official @(iamaPreview.OfficialAnswerCount == 1 ? "answer" : "answers")</span>
+                        }
+                        @if (iamaPreview.BestQuestionCount > 0)
+                        {
+                            <span class="fp-iama-stat">@iamaPreview.BestQuestionCount best @(iamaPreview.BestQuestionCount == 1 ? "question" : "questions")</span>
+                        }
+                    </div>
+                    @if (countdownTarget.HasValue && countdownTarget.Value > DateTime.UtcNow)
+                    {
+                        <div class="fp-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
+                            <span class="fp-iama-countdown-label">@countdownLabel</span>
+                            <span class="countdown font-mono text-lg">
+                                <span data-unit="days" style="--value:0;" aria-live="polite">0</span>d
+                                <span data-unit="hours" style="--value:0;" aria-live="polite">0</span>h
+                                <span data-unit="minutes" style="--value:0;" aria-live="polite">0</span>m
+                                <span data-unit="seconds" style="--value:0;" aria-live="polite">0</span>s
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+            @if (linkPreview != null)
+            {
+                var linkThumbSrc = linkPreview.HasImageThumbnailUrl ? linkPreview.ImageThumbnailUrl
+                    : linkPreview.HasImagePathUrl ? linkPreview.ImagePathUrl
+                    : linkPreview.HasImageUrl ? linkPreview.ImageUrl : null;
+                <a href="@linkPreview.Url" target="_blank" rel="nofollow noopener noreferrer" class="fp-link-card">
+                    @if (linkThumbSrc != null)
+                    {
+                        <img src="@linkThumbSrc" alt="" class="fp-link-card-img" />
+                    }
+                    <div class="fp-link-card-content">
+                        @if (linkPreview.HasTitle)
+                        {
+                            <span class="fp-link-card-title">@linkPreview.Title</span>
+                        }
+                        @if (linkPreview.HasDescription)
+                        {
+                            <span class="fp-link-card-desc">@linkPreview.Description</span>
+                        }
+                        <span class="fp-link-card-domain">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            @(linkPreview.HasDomain ? linkPreview.Domain : linkPreview.Url)
+                        </span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</article>

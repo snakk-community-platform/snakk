@@ -18,7 +18,7 @@ public class MentionMapperTests
         var userPublicId = Guid.NewGuid().ToString();
         var createdAt = new DateTime(2025, 8, 5, 12, 0, 0, DateTimeKind.Utc);
 
-        var entity = new MentionDatabaseEntity
+        var entity = new PostMentionDatabaseEntity
         {
             Id = 1,
             PublicId = mentionPublicId,
@@ -52,7 +52,7 @@ public class MentionMapperTests
         var postNavPublicId = "post_nav_public_id";
         var userNavPublicId = "user_nav_public_id";
 
-        var entity = new MentionDatabaseEntity
+        var entity = new PostMentionDatabaseEntity
         {
             Id = 2,
             PublicId = Guid.NewGuid().ToString(),

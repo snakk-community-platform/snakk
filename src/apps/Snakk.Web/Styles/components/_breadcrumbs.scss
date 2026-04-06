@@ -4,13 +4,13 @@
 
 .breadcrumb-bar {
     position: sticky;
-    top: 4rem; // below navbar (daisyUI navbar min-height)
+    top: 3.5rem; // below fp-navbar height
     z-index: 40;
     background: var(--breadcrumb-bg);
     border-bottom: 1px solid var(--breadcrumb-border);
 
     .breadcrumb {
-        max-width: 90rem; // matches max-w-[90rem] / navbar
+        max-width: 90rem;
         margin: 0 auto;
         padding: 0.5rem 1rem;
         margin-bottom: 0;

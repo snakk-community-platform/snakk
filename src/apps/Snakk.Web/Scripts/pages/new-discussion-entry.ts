@@ -32,7 +32,7 @@
         { type: 1, slug: 'question', icon: '❓', label: 'Question', description: 'Ask the community a question. The best answer can be marked as the accepted solution.', features: 'Accepted answer highlighting, mark as solved' },
         { type: 2, slug: 'poll', icon: '📊', label: 'Poll', description: 'Put a question to a vote. Add options and see how the community feels in real time.', features: 'Single or multi-vote, optional end date, live results' },
         { type: 4, slug: 'link', icon: '🔗', label: 'Link', description: 'Share an interesting link with the community and start a discussion around it.', features: 'URL with preview, commentary, link metadata' },
-        { type: 5, slug: 'gallery', icon: '🖼️', label: 'Gallery', description: 'Share a collection of images with descriptions.', features: 'Image uploads, captions, gallery layout' },
+        { type: 5, slug: 'gallery', icon: '🖼️', label: 'Images', description: 'Share a collection of images with descriptions.', features: 'Image uploads, captions, layout options' },
         { type: 6, slug: 'guide', icon: '📖', label: 'Guide', description: 'Write a structured how-to guide or tutorial with step-by-step instructions.', features: 'Summary, prerequisites, numbered steps' },
         { type: 7, slug: 'debate', icon: '⚖️', label: 'Debate', description: 'Pose a topic and let the community argue different sides.', features: '2-3 defined positions, colored labels, filter by side' },
         { type: 8, slug: 'journal', icon: '📓', label: 'Journal', description: 'A living thread where the author posts timestamped updates over time.', features: 'Append-only updates, progress tracking' },

@@ -38,6 +38,10 @@ builder.Services.AddSingleton(_ =>
     Grpc.Net.Client.GrpcChannel.ForAddress(apiBaseUrl, grpcOptions));
 builder.Services.AddScoped(sp =>
     new Snakk.Protos.Auth.AuthService.AuthServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
+builder.Services.AddScoped(sp =>
+    new Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
+builder.Services.AddScoped(sp =>
+    new Snakk.Protos.Consent.ConsentService.ConsentServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 
 // Cookie-based session for auth flow (before JWT is issued)
 builder.Services.AddSession(options =>

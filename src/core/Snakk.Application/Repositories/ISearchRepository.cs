@@ -79,7 +79,8 @@ public interface ISearchRepository
         string? communityId = null,
         string? hubId = null,
         string? cursor = null,
-        string? userId = null);
+        string? userId = null,
+        string? authorId = null);
 }
 
 public record HubListItemDto(
@@ -198,7 +199,37 @@ public record RecentDiscussionDto(
     string? CreatedByUserAvatarFileName,
     int PostCount,
     int ReactionCount,
-    string[] Tags);
+    string[] Tags,
+    DiscussionPreviewDto? Preview = null);
+
+// ── Discussion preview sub-DTOs ──
+public record DiscussionPreviewDto(
+    PollPreviewDto? Poll = null,
+    DebatePreviewDto? Debate = null,
+    LinkPreviewDto? Link = null,
+    ImagesPreviewDto? Images = null,
+    IamaPreviewDto? Iama = null);
+
+public record PollPreviewDto(IReadOnlyList<PollOptionPreviewDto> Options, int TotalVotes);
+public record PollOptionPreviewDto(string Text, int VoteCount);
+
+public record DebatePreviewDto(IReadOnlyList<DebatePositionPreviewDto> Positions);
+public record DebatePositionPreviewDto(string Label, int Index, int PostCount);
+
+public record LinkPreviewDto(
+    string Url, string? Title, string? Description, string? Domain,
+    string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal);
+
+public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items);
+public record ImagePreviewItemDto(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
+
+public record IamaPreviewDto(
+    int Phase,
+    DateTime? ScheduledStartUtc,
+    DateTime? ScheduledEndUtc,
+    int OfficialAnswerCount,
+    int BestQuestionCount,
+    bool IsVerified);
 
 public record SpaceSearchItemDto(
     string PublicId,

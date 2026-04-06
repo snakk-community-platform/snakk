@@ -8,7 +8,7 @@ using Snakk.Shared.Enums;
 
 public static class NotificationMapper
 {
-    public static Notification FromPersistence(this NotificationDatabaseEntity entity) =>
+    public static Notification FromPersistence(this UserNotificationDatabaseEntity entity) =>
         Notification.Rehydrate(
             NotificationId.From(entity.PublicId),
             UserId.From(entity.RecipientUser.PublicId),
@@ -23,7 +23,7 @@ public static class NotificationMapper
             entity.CreatedAt,
             entity.ReadAt);
 
-    public static NotificationDatabaseEntity ToPersistence(this Notification notification) =>
+    public static UserNotificationDatabaseEntity ToPersistence(this Notification notification) =>
         new()
         {
             PublicId = notification.PublicId,

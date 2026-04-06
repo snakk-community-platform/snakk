@@ -54,7 +54,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 s.Description,
                 s.DiscussionCount,
                 s.PostCount - s.DiscussionCount,
-                _context.Follows.Count(f =>
+                _context.UserFollows.Count(f =>
                     f.SpaceId == s.Id
                     && f.TargetTypeId == (int)FollowTargetTypeEnum.Space),
                 s.AvatarFileName))

@@ -16,7 +16,7 @@ public class FollowMapperTests
         var userPublicId = Guid.NewGuid().ToString();
         var discussionPublicId = Guid.NewGuid().ToString();
 
-        var entity = new FollowDatabaseEntity
+        var entity = new UserFollowDatabaseEntity
         {
             PublicId = "follow_disc",
             TargetTypeId = (int)FollowTargetTypeEnum.Discussion,
@@ -63,7 +63,7 @@ public class FollowMapperTests
         var userPublicId = Guid.NewGuid().ToString();
         var spacePublicId = Guid.NewGuid().ToString();
 
-        var entity = new FollowDatabaseEntity
+        var entity = new UserFollowDatabaseEntity
         {
             PublicId = "follow_space",
             TargetTypeId = (int)FollowTargetTypeEnum.Space,
@@ -109,7 +109,7 @@ public class FollowMapperTests
         var followerPublicId = Guid.NewGuid().ToString();
         var followedPublicId = Guid.NewGuid().ToString();
 
-        var entity = new FollowDatabaseEntity
+        var entity = new UserFollowDatabaseEntity
         {
             PublicId = "follow_user",
             TargetTypeId = (int)FollowTargetTypeEnum.User,

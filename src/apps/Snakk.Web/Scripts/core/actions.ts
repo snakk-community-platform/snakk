@@ -119,12 +119,12 @@
     });
 
     // --- image blur-up load handler -----------------------------------------
-    // For images with data-blur-up: add 'gallery-loaded' class on load/error.
+    // For images with data-blur-up: add 'images-loaded' class on load/error.
     // Runs on DOMContentLoaded and observes for dynamically added images.
     function attachBlurUp(img: HTMLImageElement): void {
         const done = () => {
-            img.classList.add('gallery-loaded');
-            img.parentElement?.classList.add('gallery-item-loaded');
+            img.classList.add('images-loaded');
+            img.parentElement?.classList.add('images-item-loaded');
         };
         if (img.complete) done();
         else {
@@ -145,7 +145,7 @@
 
     // Re-run after HTMX swaps (new content may contain blur-up images)
     document.addEventListener('htmx:afterSettle', () => {
-        document.querySelectorAll<HTMLImageElement>('img[data-blur-up]:not(.gallery-loaded)').forEach(attachBlurUp);
+        document.querySelectorAll<HTMLImageElement>('img[data-blur-up]:not(.images-loaded)').forEach(attachBlurUp);
     });
 
     // ========================================================================

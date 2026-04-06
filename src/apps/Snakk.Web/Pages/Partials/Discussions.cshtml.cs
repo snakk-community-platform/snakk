@@ -25,6 +25,7 @@ public class DiscussionsModel(
     public bool HideCommunity { get; set; }
     public bool HideHub { get; set; }
 
+
     public async Task OnGetAsync(
         int offset = 0,
         int pageSize = 20,
@@ -63,5 +64,6 @@ public class DiscussionsModel(
         {
             // Return empty on failure
         }
+
     }
 }

@@ -8,10 +8,10 @@ public record DebateInfo(List<DebatePositionData> Positions, bool AllowNeutral, 
 public record DebatePositionData(int Id, string Label, int Index, int PostCount);
 
 // Link
-public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? LocalImagePath, string? BlurDataUri, bool IsInternal);
+public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? ImagePath, string? BlurDataUri, bool IsInternal);
 
-// Gallery
-public record GalleryImageInfo(string Url, string? ThumbnailUrl, string? BlurDataUri);
+// Images
+public record ImagesImageInfo(string Url, string? ThumbnailUrl, string? BlurDataUri);
 
 // Journal
 public record JournalInfo(List<string> EntryPostPublicIds);
@@ -32,9 +32,9 @@ public interface IDiscussionTypeQueryService
     Task<QuestionStatus?> GetQuestionStatusAsync(string discussionPublicId);
     Task<(bool Success, string? Error)> MarkQuestionSolvedAsync(string discussionPublicId, string postPublicId, string userPublicId);
 
-    // Gallery
-    Task<string?> GetGalleryLayoutAsync(string discussionPublicId);
-    Task<List<GalleryImageInfo>> GetGalleryImagesAsync(string discussionPublicId);
+    // Images
+    Task<string?> GetImagesLayoutAsync(string discussionPublicId);
+    Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId);
 
     // Debate
     Task<DebateInfo?> GetDebateInfoAsync(string discussionPublicId);

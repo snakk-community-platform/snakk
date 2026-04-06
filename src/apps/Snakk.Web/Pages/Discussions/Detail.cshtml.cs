@@ -52,8 +52,8 @@ public class DetailModel(
     public Snakk.Protos.Discussion.DebateInfoResponse? DebateInfo { get; set; }
     public Snakk.Protos.Discussion.DiscussionLinkResponse? LinkInfo { get; set; }
     public Snakk.Protos.Discussion.JournalEntriesResponse? JournalInfo { get; set; }
-    public string? GalleryLayout { get; set; }
-    public List<Snakk.Protos.Discussion.GalleryImageProto> GalleryImages { get; set; } = [];
+    public string? ImagesLayout { get; set; }
+    public List<Snakk.Protos.Discussion.ImagesImageProto> ImagesItems { get; set; } = [];
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -196,10 +196,10 @@ public class DetailModel(
                 case "Journal":
                     JournalInfo = await _apiClient.GetJournalEntriesAsync(PublicId);
                     break;
-                case "Gallery":
-                    var galleryData = await _apiClient.GetGalleryDataAsync(PublicId);
-                    GalleryLayout = galleryData?.Layout ?? "grid";
-                    GalleryImages = galleryData?.Images?.ToList() ?? [];
+                case "Images":
+                    var imagesData = await _apiClient.GetImagesDataAsync(PublicId);
+                    ImagesLayout = imagesData?.Layout ?? "grid";
+                    ImagesItems = imagesData?.Images?.ToList() ?? [];
                     break;
             }
         }

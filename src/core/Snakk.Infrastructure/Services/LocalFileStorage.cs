@@ -18,7 +18,7 @@ public class LocalFileStorage : IFileStorage
         _basePath = configuration["FileStorage:BasePath"]
             ?? throw new InvalidOperationException("FileStorage:BasePath is not configured");
         _resolvedBasePath = Path.GetFullPath(_basePath);
-        _publicUrlBase = configuration["FileStorage:PublicUrlBase"] ?? "/storage";
+        _publicUrlBase = configuration["FileStorage:PublicUrlBase"] ?? "";
 
         // Ensure the base directory exists
         if (!Directory.Exists(_resolvedBasePath))
@@ -107,6 +107,6 @@ public class LocalFileStorage : IFileStorage
 
         // Normalize path separators for URLs (always use forward slashes)
         var normalizedPath = relativePath.Replace('\\', '/');
-        return $"{_publicUrlBase}/{normalizedPath}";
+        return $"/{normalizedPath}";
     }
 }

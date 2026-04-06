@@ -25,7 +25,7 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
                 .FirstOrDefaultAsync();
         }
 
-        context.DisplayNameHistories.Add(new DisplayNameHistoryDatabaseEntity
+        context.UserDisplayNameHistories.Add(new UserDisplayNameHistoryDatabaseEntity
         {
             UserId = userId,
             PreviousName = previousName,
@@ -38,13 +38,13 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
     }
 
     public async Task<bool> WasNameEverUsedAsync(string displayName)
-        => await context.DisplayNameHistories
+        => await context.UserDisplayNameHistories
             .AnyAsync(h =>
                 h.NewName.ToLower() == displayName.ToLower()
                 || h.PreviousName.ToLower() == displayName.ToLower());
 
     public async Task<List<DisplayNameHistoryDto>> GetHistoryForUserAsync(string userPublicId, int limit = 20)
-        => await context.DisplayNameHistories
+        => await context.UserDisplayNameHistories
             .Where(h => h.User.PublicId == userPublicId)
             .OrderByDescending(h => h.ChangedAt)
             .Take(limit)

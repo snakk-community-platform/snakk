@@ -79,7 +79,7 @@ public class ReactionMapperTests
         // Arrange
         var postPublicId = Guid.NewGuid().ToString();
         var userPublicId = Guid.NewGuid().ToString();
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -117,7 +117,7 @@ public class ReactionMapperTests
     public async Task FromPersistence_WithLoveTypeId_ReconstructsLoveReaction()
     {
         // Arrange
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Love,
@@ -150,7 +150,7 @@ public class ReactionMapperTests
     public async Task FromPersistence_WithWatchingTypeId_ReconstructsWatchingReaction()
     {
         // Arrange
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Watching,
@@ -184,7 +184,7 @@ public class ReactionMapperTests
     {
         // Arrange
         var postPublicId = Guid.NewGuid().ToString();
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Agree,
@@ -218,7 +218,7 @@ public class ReactionMapperTests
     {
         // Arrange
         var userPublicId = Guid.NewGuid().ToString();
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Love,
@@ -414,7 +414,7 @@ public class ReactionMapperTests
     {
         // Arrange
         var specificTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc);
-        var entity = new ReactionDatabaseEntity
+        var entity = new PostReactionDatabaseEntity
         {
             PublicId = Guid.NewGuid().ToString(),
             TypeId = (int)ReactionTypeEnum.Watching,

@@ -198,7 +198,7 @@ public class TwoFactorAuthServiceTests : IDisposable
 
         await _service.EnableTwoFactorAsync("enable_backup", "123456");
 
-        var codes = await _context.BackupCodes
+        var codes = await _context.TwoFactorBackupCodes
             .Where(bc => bc.User.PublicId == "enable_backup")
             .ToListAsync();
         await Assert.That(codes.Count).IsEqualTo(10);
@@ -214,7 +214,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         var user = await CreateTestUser("disable_user", twoFactorEnabled: true, twoFactorSecret: "SECRET", passwordHash: "hashedpw");
 
         // Add backup codes
-        _context.BackupCodes.Add(new BackupCodeDatabaseEntity
+        _context.TwoFactorBackupCodes.Add(new TwoFactorBackupCodeDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
@@ -272,14 +272,14 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task GetTwoFactorStatusAsync_ReturnsStatus()
     {
         var user = await CreateTestUser("status_user", twoFactorEnabled: true);
-        _context.BackupCodes.Add(new BackupCodeDatabaseEntity
+        _context.TwoFactorBackupCodes.Add(new TwoFactorBackupCodeDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
             CodeHash = "hash1",
             CreatedAt = DateTime.UtcNow
         });
-        _context.BackupCodes.Add(new BackupCodeDatabaseEntity
+        _context.TwoFactorBackupCodes.Add(new TwoFactorBackupCodeDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
@@ -330,7 +330,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         _totpService.VerifyCode(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>()).Returns(false);
         _totpService.VerifyBackupCode("BACKUPCODE", "backhash").Returns(true);
 
-        _context.BackupCodes.Add(new BackupCodeDatabaseEntity
+        _context.TwoFactorBackupCodes.Add(new TwoFactorBackupCodeDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
@@ -344,7 +344,7 @@ public class TwoFactorAuthServiceTests : IDisposable
         await Assert.That(isValid).IsTrue();
         await Assert.That(usedBackup).IsTrue();
 
-        var code = await _context.BackupCodes.FirstAsync(bc => bc.User.PublicId == "verify_backup");
+        var code = await _context.TwoFactorBackupCodes.FirstAsync(bc => bc.User.PublicId == "verify_backup");
         await Assert.That(code.IsUsed).IsTrue();
         await Assert.That(code.UsedIp).IsEqualTo("1.2.3.4");
     }
@@ -386,7 +386,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task RegenerateBackupCodesAsync_ReplacesOldCodes()
     {
         var user = await CreateTestUser("regen_user", twoFactorEnabled: true, passwordHash: "hashedpw");
-        _context.BackupCodes.Add(new BackupCodeDatabaseEntity
+        _context.TwoFactorBackupCodes.Add(new TwoFactorBackupCodeDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             UserId = user.Id,
@@ -403,7 +403,7 @@ public class TwoFactorAuthServiceTests : IDisposable
 
         await Assert.That(codes.Count).IsEqualTo(2);
 
-        var dbCodes = await _context.BackupCodes
+        var dbCodes = await _context.TwoFactorBackupCodes
             .Where(bc => bc.UserId == user.Id)
             .ToListAsync();
         await Assert.That(dbCodes.Count).IsEqualTo(2);

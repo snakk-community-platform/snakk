@@ -149,32 +149,32 @@ public class DatabaseSeeder(
         _context.GroupMembers.RemoveRange(_context.GroupMembers);
         _context.Groups.RemoveRange(_context.Groups);
         _context.Rules.RemoveRange(_context.Rules);
-        _context.Follows.RemoveRange(_context.Follows);
+        _context.UserFollows.RemoveRange(_context.UserFollows);
         _context.ReportComments.RemoveRange(_context.ReportComments);
         _context.Reports.RemoveRange(_context.Reports);
         _context.PostRevisions.RemoveRange(_context.PostRevisions);
-        _context.Reactions.RemoveRange(_context.Reactions);
+        _context.PostReactions.RemoveRange(_context.PostReactions);
         _context.UserBans.RemoveRange(_context.UserBans);
         _context.ReportReasons.RemoveRange(_context.ReportReasons);
         _context.Banners.RemoveRange(_context.Banners);
         _context.SpaceAllowedDiscussionTypes.RemoveRange(_context.SpaceAllowedDiscussionTypes);
         _context.HubAllowedDiscussionTypes.RemoveRange(_context.HubAllowedDiscussionTypes);
         _context.CommunityAllowedDiscussionTypes.RemoveRange(_context.CommunityAllowedDiscussionTypes);
-        _context.IamaBestQuestions.RemoveRange(_context.IamaBestQuestions);
-        _context.IamaOfficialAnswers.RemoveRange(_context.IamaOfficialAnswers);
+        _context.DiscussionIamaBestQuestions.RemoveRange(_context.DiscussionIamaBestQuestions);
+        _context.DiscussionIamaOfficialAnswers.RemoveRange(_context.DiscussionIamaOfficialAnswers);
         _context.DiscussionIamas.RemoveRange(_context.DiscussionIamas);
-        _context.JournalEntryPosts.RemoveRange(_context.JournalEntryPosts);
+        _context.DiscussionJournalEntryPosts.RemoveRange(_context.DiscussionJournalEntryPosts);
         _context.DiscussionJournals.RemoveRange(_context.DiscussionJournals);
-        _context.PostDebatePositions.RemoveRange(_context.PostDebatePositions);
+        _context.DiscussionDebatePostPositions.RemoveRange(_context.DiscussionDebatePostPositions);
         _context.DiscussionDebatePositions.RemoveRange(_context.DiscussionDebatePositions);
         _context.DiscussionDebates.RemoveRange(_context.DiscussionDebates);
-        _context.PollVotes.RemoveRange(_context.PollVotes);
-        _context.PollOptions.RemoveRange(_context.PollOptions);
+        _context.DiscussionPollVotes.RemoveRange(_context.DiscussionPollVotes);
+        _context.DiscussionPollOptions.RemoveRange(_context.DiscussionPollOptions);
         _context.DiscussionPolls.RemoveRange(_context.DiscussionPolls);
         _context.DiscussionQuestions.RemoveRange(_context.DiscussionQuestions);
         _context.DiscussionGuides.RemoveRange(_context.DiscussionGuides);
         _context.DiscussionLinks.RemoveRange(_context.DiscussionLinks);
-        _context.DiscussionGalleries.RemoveRange(_context.DiscussionGalleries);
+        _context.DiscussionImages.RemoveRange(_context.DiscussionImages);
         _context.Posts.RemoveRange(_context.Posts);
         _context.Discussions.RemoveRange(_context.Discussions);
         _context.Spaces.RemoveRange(_context.Spaces);
@@ -908,7 +908,7 @@ public class DatabaseSeeder(
             {
                 case DiscussionTypeEnum.Question:
                 {
-                    var question = new DiscussionQuestionDatabaseEntity { DiscussionId = discussion.Id };
+                    var question = new DiscussionTypeQuestionDatabaseEntity { DiscussionId = discussion.Id };
 
                     // ~40% of questions are solved with an accepted answer
                     if (replyPosts.Count > 0 && _faker.Random.Bool(0.4f))
@@ -923,7 +923,7 @@ public class DatabaseSeeder(
                 }
 
                 case DiscussionTypeEnum.Guide:
-                    _context.DiscussionGuides.Add(new DiscussionGuideDatabaseEntity
+                    _context.DiscussionGuides.Add(new DiscussionTypeGuideDatabaseEntity
                     {
                         DiscussionId = discussion.Id
                     });
@@ -931,7 +931,7 @@ public class DatabaseSeeder(
 
                 case DiscussionTypeEnum.Poll:
                 {
-                    var poll = new DiscussionPollDatabaseEntity
+                    var poll = new DiscussionTypePollDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
                         AllowMultipleChoices = _faker.Random.Bool(0.2f),
@@ -944,16 +944,16 @@ public class DatabaseSeeder(
                     await _context.SaveChangesAsync();
 
                     var optionCount = _faker.Random.Int(2, 6);
-                    var options = new List<PollOptionDatabaseEntity>();
+                    var options = new List<DiscussionTypePollOptionDatabaseEntity>();
                     for (var o = 0; o < optionCount; o++)
                     {
-                        var option = new PollOptionDatabaseEntity
+                        var option = new DiscussionTypePollOptionDatabaseEntity
                         {
                             PollId = poll.Id,
                             Text = _faker.Lorem.Sentence(2, 4).TrimEnd('.'),
                             DisplayOrder = o
                         };
-                        _context.PollOptions.Add(option);
+                        _context.DiscussionPollOptions.Add(option);
                         options.Add(option);
                     }
                     await _context.SaveChangesAsync();
@@ -968,7 +968,7 @@ public class DatabaseSeeder(
                     foreach (var voterId in voters)
                     {
                         var chosenOption = _faker.PickRandom(options);
-                        _context.PollVotes.Add(new PollVoteDatabaseEntity
+                        _context.DiscussionPollVotes.Add(new DiscussionTypePollVoteDatabaseEntity
                         {
                             OptionId = chosenOption.Id,
                             UserId = voterId,
@@ -980,7 +980,7 @@ public class DatabaseSeeder(
                 }
 
                 case DiscussionTypeEnum.Link:
-                    _context.DiscussionLinks.Add(new DiscussionLinkDatabaseEntity
+                    _context.DiscussionLinks.Add(new DiscussionTypeLinkDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
                         Url = _faker.Internet.Url(),
@@ -992,7 +992,7 @@ public class DatabaseSeeder(
 
                 case DiscussionTypeEnum.Debate:
                 {
-                    var debate = new DiscussionDebateDatabaseEntity
+                    var debate = new DiscussionTypeDebateDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
                         AllowNeutral = _faker.Random.Bool(0.5f)
@@ -1005,10 +1005,10 @@ public class DatabaseSeeder(
                         ? new[] { "For", "Against" }
                         : new[] { "For", "Against", "Undecided" };
 
-                    var positions = new List<DiscussionDebatePositionDatabaseEntity>();
+                    var positions = new List<DiscussionTypeDebatePositionDatabaseEntity>();
                     for (var p = 0; p < positionCount; p++)
                     {
-                        var pos = new DiscussionDebatePositionDatabaseEntity
+                        var pos = new DiscussionTypeDebatePositionDatabaseEntity
                         {
                             DebateId = debate.Id,
                             Index = p,
@@ -1024,7 +1024,7 @@ public class DatabaseSeeder(
                     {
                         if (_faker.Random.Bool(0.7f))
                         {
-                            _context.PostDebatePositions.Add(new PostDebatePositionDatabaseEntity
+                            _context.DiscussionDebatePostPositions.Add(new DiscussionTypeDebatePostPositionDatabaseEntity
                             {
                                 PostId = reply.Id,
                                 PositionId = _faker.PickRandom(positions).Id
@@ -1036,7 +1036,7 @@ public class DatabaseSeeder(
 
                 case DiscussionTypeEnum.Journal:
                 {
-                    var journal = new DiscussionJournalDatabaseEntity
+                    var journal = new DiscussionTypeJournalDatabaseEntity
                     {
                         DiscussionId = discussion.Id
                     };
@@ -1052,7 +1052,7 @@ public class DatabaseSeeder(
                     {
                         if (_faker.Random.Bool(0.5f))
                         {
-                            _context.JournalEntryPosts.Add(new JournalEntryPostDatabaseEntity
+                            _context.DiscussionJournalEntryPosts.Add(new DiscussionTypeJournalEntryPostDatabaseEntity
                             {
                                 PostId = opReply.Id,
                                 JournalId = journal.Id
@@ -1065,7 +1065,7 @@ public class DatabaseSeeder(
                 case DiscussionTypeEnum.Iama:
                 {
                     var isScheduled = _faker.Random.Bool(0.3f);
-                    var iama = new DiscussionIamaDatabaseEntity
+                    var iama = new DiscussionTypeIamaDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
                         Phase = _faker.Random.WeightedRandom([0, 1, 2, 3], [0.1f, 0.4f, 0.3f, 0.2f]),
@@ -1096,7 +1096,7 @@ public class DatabaseSeeder(
                         if (hostReplies.Count > 0 && _faker.Random.Bool(0.4f))
                         {
                             var answer = _faker.PickRandom(hostReplies);
-                            _context.IamaOfficialAnswers.Add(new IamaOfficialAnswerDatabaseEntity
+                            _context.DiscussionIamaOfficialAnswers.Add(new DiscussionTypeIamaOfficialAnswerDatabaseEntity
                             {
                                 IamaId = iama.Id,
                                 QuestionPostId = question.Id,
@@ -1113,7 +1113,7 @@ public class DatabaseSeeder(
 
                         for (var i = 0; i < bestPicks.Count; i++)
                         {
-                            _context.IamaBestQuestions.Add(new IamaBestQuestionDatabaseEntity
+                            _context.DiscussionIamaBestQuestions.Add(new DiscussionTypeIamaBestQuestionDatabaseEntity
                             {
                                 IamaId = iama.Id,
                                 PostId = bestPicks[i].Id,
@@ -1588,7 +1588,7 @@ public class DatabaseSeeder(
 
         Console.WriteLine($"  Distributing reactions across {posts.Count} posts...");
 
-        var reactions = new List<ReactionDatabaseEntity>();
+        var reactions = new List<PostReactionDatabaseEntity>();
 
         // Track reaction counts for denormalized updates: postId -> count, discussionId -> count
         var postReactionCounts = new Dictionary<int, int>();
@@ -1617,7 +1617,7 @@ public class DatabaseSeeder(
 
             foreach (var user in reactors)
             {
-                reactions.Add(new ReactionDatabaseEntity
+                reactions.Add(new PostReactionDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     PostId = post.Id,
@@ -1635,7 +1635,7 @@ public class DatabaseSeeder(
         const int chunkSize = 1000;
         for (var i = 0; i < reactions.Count; i += chunkSize)
         {
-            _context.Reactions.AddRange(reactions.Skip(i).Take(chunkSize));
+            _context.PostReactions.AddRange(reactions.Skip(i).Take(chunkSize));
             await _context.SaveChangesAsync();
             Console.WriteLine($"  Inserted reactions {Math.Min(i + chunkSize, reactions.Count)}/{reactions.Count}");
         }
@@ -1738,7 +1738,7 @@ public class DatabaseSeeder(
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
 
-        var userFollowerCounts = await _context.Follows
+        var userFollowerCounts = await _context.UserFollows
             .Where(f => f.TargetTypeId == (int)FollowTargetTypeEnum.User)
             .GroupBy(f => f.FollowedUserId!.Value)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
@@ -2034,7 +2034,7 @@ public class DatabaseSeeder(
     {
         Console.WriteLine("Seeding follows...");
 
-        var follows = new List<FollowDatabaseEntity>();
+        var follows = new List<UserFollowDatabaseEntity>();
         var discussions = await _context.Discussions.ToListAsync();
         var spaces = await _context.Spaces.ToListAsync();
 
@@ -2045,7 +2045,7 @@ public class DatabaseSeeder(
             var pickedDiscussions = _faker.PickRandom(discussions, Math.Min(discussionCount, discussions.Count));
             foreach (var discussion in pickedDiscussions)
             {
-                follows.Add(new FollowDatabaseEntity
+                follows.Add(new UserFollowDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
@@ -2061,7 +2061,7 @@ public class DatabaseSeeder(
             var pickedSpaces = _faker.PickRandom(spaces, Math.Min(spaceCount, spaces.Count));
             foreach (var space in pickedSpaces)
             {
-                follows.Add(new FollowDatabaseEntity
+                follows.Add(new UserFollowDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
@@ -2080,7 +2080,7 @@ public class DatabaseSeeder(
             var pickedUsers = _faker.PickRandom(otherUsers, Math.Min(userFollowCount, otherUsers.Count));
             foreach (var followed in pickedUsers)
             {
-                follows.Add(new FollowDatabaseEntity
+                follows.Add(new UserFollowDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
@@ -2092,7 +2092,7 @@ public class DatabaseSeeder(
             }
         }
 
-        _context.Follows.AddRange(follows);
+        _context.UserFollows.AddRange(follows);
         await _context.SaveChangesAsync();
 
         var discussionFollows = follows.Count(f => f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion);

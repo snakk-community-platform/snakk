@@ -5,12 +5,68 @@
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Discussions.DetailModel
 
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = Model.Discussion?.Title ?? "Discussion";
+}
+
 @section Styles {
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" />
 }
 
-@{
-    ViewData["Title"] = Model.Discussion?.Title ?? "Discussion";
+@section LeftColumn {
+<aside class="fp-left">
+<div class="fp-left-sticky">
+    <div class="fp-left-inner">
+        <nav class="fp-nav">
+            <a href="/" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Home
+            </a>
+            <a href="/trending" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Trending
+            </a>
+            <a href="/communities" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Communities
+            </a>
+            <a href="/saved" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                Saved
+            </a>
+        </nav>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a href="/new" class="fp-nav-btn" hx-boost="false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                New Discussion
+            </a>
+        }
+
+        <div class="fp-left-footer">
+            <a href="/settings" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+            </a>
+        </div>
+    </div>
+</div>
+</aside>
 }
 
 @section Meta {
@@ -128,6 +184,9 @@
     }
 }
 
+<!-- Center Column -->
+<div class="fp-center">
+
 @if (Model.Discussion != null)
 {
     <!-- Realtime context — JS reads these to subscribe to the correct groups -->
@@ -136,7 +195,7 @@
          data-space-id="@Model.Space?.PublicId"
          hidden></div>
 
-    <!-- Breadcrumb -->
+    <!-- Breadcrumb (inside fp-center, outside fp-center-inner) -->
     <div class="breadcrumb-bar">
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol class="breadcrumb-list" itemscope itemtype="https://schema.org/BreadcrumbList">
@@ -199,92 +258,65 @@
         </button>
     </div>
 
-    @if (Model.Discussion != null && Model.Discussion.PostCount > 1)
-    {
-        <!-- Thread Navigation Bar -->
-        <div id="thread-nav" class="thread-nav hidden">
-            <div class="thread-nav-progress-track">
-                <div id="thread-nav-progress" class="thread-nav-progress-bar"></div>
-            </div>
-            <div class="thread-nav-controls">
-                <button class="thread-nav-btn" data-nav="first" title="First post" aria-label="Jump to first post">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
-                </button>
-                <button class="thread-nav-btn" data-nav="prev" title="Back 20 posts" aria-label="Back 20 posts">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-                <div class="thread-nav-position">
-                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="Current post" />
-                    <span class="thread-nav-separator">/</span>
-                    <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
-                </div>
-                <button class="thread-nav-btn" data-nav="next" title="Forward 20 posts" aria-label="Forward 20 posts">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
-                <button class="thread-nav-btn" data-nav="last" title="Last post" aria-label="Jump to last post">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-                </button>
-            </div>
-        </div>
-    }
-
-    <!-- Two Column Layout -->
-    <div class="max-w-[90rem] mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-3">
-    <!-- Left Column: Posts + Reply -->
-    <div class="flex-1 min-w-0">
-
+    <div class="fp-center-inner">
     @{
         var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
     }
 
     <!-- Thread Header -->
     <header class="discussion-header">
+        <!-- Author + Time row -->
+        <div class="flex items-center gap-2 mb-2 text-sm">
+            @if (firstPostItem != null)
+            {
+                @if (!firstPostItem.Author.IsDeleted)
+                {
+                    <img src="@firstPostItem.Author.AvatarUrl"
+                         alt="@firstPostItem.Author.DisplayName"
+                         width="24" height="24"
+                         class="rounded-full" />
+                    <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
+                       class="font-medium hover:underline"
+                       data-popup-type="user"
+                       data-popup-id="@firstPostItem.Author.PublicId"
+                       data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
+                }
+                else
+                {
+                    <span class="deleted">@firstPostItem.Author.DisplayName</span>
+                }
+                @if (firstPostItem.Author.Role == "admin")
+                {
+                    <span class="badge badge-error badge-xs">Admin</span>
+                }
+                else if (firstPostItem.Author.Role == "mod")
+                {
+                    <span class="badge badge-info badge-xs">Mod</span>
+                }
+            }
+            <span class="text-base-content/40">·</span>
+            <time class="text-base-content/50" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
+                @FormatRelativeTime(Model.Discussion.CreatedAt.ToDateTime())
+            </time>
+            @if (Model.Discussion.IsPinned)
+            {
+                <span class="badge badge-primary badge-xs">Pinned</span>
+            }
+            @if (Model.Discussion.IsLocked)
+            {
+                <span class="badge badge-warning badge-xs">Locked</span>
+            }
+            @if (Model.Discussion.Type != "Standard")
+            {
+                var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
+                <span class="discussion-type-badge badge-xs @cssClass">@icon @label</span>
+            }
+            <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
+        </div>
+
+        <!-- Title -->
         <div class="flex items-start justify-between">
-            <div>
-                <h1 class="title">@Model.Discussion.Title</h1>
-                <div class="discussion-author">
-                    @if (Model.Discussion.IsPinned)
-                    {
-                        <span class="badge badge-primary badge-sm">📌 Pinned</span>
-                    }
-                    @if (Model.Discussion.IsLocked)
-                    {
-                        <span class="badge badge-warning badge-sm">🔒 Locked</span>
-                    }
-                    <span id="viewer-count" class="badge badge-ghost badge-sm hidden"></span>
-                    @if (firstPostItem != null)
-                    {
-                        @if (!firstPostItem.Author.IsDeleted)
-                        {
-                            <img src="@firstPostItem.Author.AvatarUrl"
-                                 alt="@firstPostItem.Author.DisplayName"
-                                 width="20" height="20" />
-                            <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
-                               data-popup-type="user"
-                               data-popup-id="@firstPostItem.Author.PublicId"
-                               data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
-                        }
-                        else
-                        {
-                            <span class="deleted">@firstPostItem.Author.DisplayName</span>
-                        }
-                        @if (firstPostItem.Author.Role == "admin")
-                        {
-                            <span class="badge badge-error badge-xs">Admin</span>
-                        }
-                        else if (firstPostItem.Author.Role == "mod")
-                        {
-                            <span class="badge badge-info badge-xs">Mod</span>
-                        }
-                    }
-                    @if (Model.Discussion.Type != "Standard")
-                    {
-                        var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
-                        <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
-                    }
-                </div>
-            </div>
+            <h1 class="text-xl font-bold" style="color: var(--color-primary)">@Model.Discussion.Title</h1>
             <div class="flex items-center gap-2">
                 <!-- Share dropdown (visible to all users) -->
                 <div class="dropdown dropdown-end">
@@ -378,7 +410,7 @@
     @if (Model.Discussion.Type == "Link" && Model.LinkInfo is not null)
     {
         var linkDomain = Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host;
-        var linkImageSrc = Model.LinkInfo.HasLocalImageUrl ? Model.LinkInfo.LocalImageUrl
+        var linkImageSrc = Model.LinkInfo.HasImagePathUrl ? Model.LinkInfo.ImagePathUrl
                          : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
                          : null;
         <div class="type-widget-container" id="link-preview-container">
@@ -386,7 +418,7 @@
                 @if (linkImageSrc is not null)
                 {
                     <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"background-image:url({Model.LinkInfo.BlurDataUri})\"" : "")>
-                        <img src="@linkImageSrc" alt="" class="link-preview-img" onload="this.parentElement.classList.add('loaded')" />
+                        <img src="@linkImageSrc" alt="" class="link-preview-img" />
                     </div>
                 }
                 <div class="link-preview-content">
@@ -467,82 +499,86 @@
         </div>
     }
 
-    @* Gallery — server-rendered outside .prose so layout CSS works *@
-    @if (Model.Discussion.Type == "Gallery" && Model.GalleryImages.Count > 0)
+    @* Images — server-rendered outside .prose so layout CSS works *@
+    @if (Model.Discussion.Type == "Images" && Model.ImagesItems.Count > 0)
     {
-        var layout = Model.GalleryLayout ?? "grid";
-        <div class="gallery-display type-widget-container">
+        var layout = Model.ImagesLayout ?? "grid";
+        <div class="images-display type-widget-container">
             @if (layout == "carousel")
             {
-                <div class="gup-carousel" id="gallery-carousel">
-                    <div class="gup-carousel-track" id="gallery-carousel-track">
-                        @for (var i = 0; i < Model.GalleryImages.Count; i++)
+                <div class="gup-carousel" id="images-carousel">
+                    <div class="gup-carousel-track" id="images-carousel-track">
+                        @for (var i = 0; i < Model.ImagesItems.Count; i++)
                         {
-                            var img = Model.GalleryImages[i];
+                            var img = Model.ImagesItems[i];
                             var isFirst = i == 0;
                             var isAdjacent = i == 1;
                             var src = (isFirst || isAdjacent) ? img.Url : (img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url);
                             var blurStyle = img.HasBlurDataUri
                                 ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
                                 : "";
-                            <div class="gallery-upload-item" data-index="@i" style="@blurStyle">
+                            <div class="images-upload-item" data-index="@i" style="@blurStyle">
                                 <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
-                                     class="gallery-blur-up" data-blur-up />
+                                     class="images-blur-up" data-blur-up />
                             </div>
                         }
                     </div>
-                    @if (Model.GalleryImages.Count > 1)
+                    @if (Model.ImagesItems.Count > 1)
                     {
                         <button type="button" class="gup-carousel-arrow gup-carousel-prev" id="gup-prev"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
                         <button type="button" class="gup-carousel-arrow gup-carousel-next" id="gup-next"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
+                        <span class="gup-carousel-counter" id="images-carousel-counter">1 / @Model.ImagesItems.Count</span>
                     }
                 </div>
-                @if (Model.GalleryImages.Count > 1)
-                {
-                    <div class="gup-carousel-dots" id="gallery-carousel-dots">
-                        @for (var i = 0; i < Model.GalleryImages.Count; i++)
-                        {
-                            <span class="gup-carousel-dot@(i == 0 ? " gup-carousel-dot-active" : "")" data-idx="@i"></span>
-                        }
-                    </div>
-                }
             }
             else if (layout == "hero")
             {
                 <div class="gup-hero">
-                    @{ var heroFirst = Model.GalleryImages[0]; }
-                    <div class="gallery-upload-item"
+                    @{ var heroFirst = Model.ImagesItems[0]; }
+                    <div class="images-upload-item"
                          style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
                         <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
-                             class="gallery-blur-up" data-blur-up />
+                             class="images-blur-up" data-blur-up />
                     </div>
-                    @if (Model.GalleryImages.Count > 1)
+                    @if (Model.ImagesItems.Count > 1)
                     {
                         <div class="gup-hero-grid">
-                            @for (var i = 1; i < Model.GalleryImages.Count; i++)
+                            @for (var i = 1; i < Model.ImagesItems.Count; i++)
                             {
-                                var img = Model.GalleryImages[i];
-                                <div class="gallery-upload-item"
+                                var img = Model.ImagesItems[i];
+                                <div class="images-upload-item"
                                      style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                                     <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                         class="gallery-blur-up" data-blur-up />
+                                         class="images-blur-up" data-blur-up />
                                 </div>
                             }
                         </div>
                     }
                 </div>
             }
+            else if (Model.ImagesItems.Count == 1)
+            {
+                @* Single image — full-width contain preview *@
+                var singleImg = Model.ImagesItems[0];
+                <div class="gup-single">
+                    <div class="images-upload-item"
+                         style="@(singleImg.HasBlurDataUri ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                        <img src="@singleImg.Url" data-full="@singleImg.Url" alt=""
+                             class="images-blur-up" data-blur-up />
+                    </div>
+                </div>
+            }
             else
             {
                 @* Grid / Masonry / Justified — all use the same item structure *@
                 <div class="gup-@layout">
-                    @for (var i = 0; i < Model.GalleryImages.Count; i++)
+                    @for (var i = 0; i < Model.ImagesItems.Count; i++)
                     {
-                        var img = Model.GalleryImages[i];
-                        <div class="gallery-upload-item"
+                        var img = Model.ImagesItems[i];
+                        <div class="images-upload-item"
                              style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                             <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                 class="gallery-blur-up" data-blur-up />
+                                 class="images-blur-up" data-blur-up />
                         </div>
                     }
                 </div>
@@ -1055,99 +1091,132 @@
         </div>
     }
 
-    </div> <!-- End left column -->
+    </div> <!-- End fp-center-inner -->
 
-    <!-- Right Column: Sidebar -->
-    <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-boost="false">
-    <div id="sidebar-inner" style="max-height: calc(100vh - 12.5rem)">
-        <!-- Space Info -->
-        @if (Model.Space != null)
-        {
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">About this Space</h3>
-                @if (!string.IsNullOrEmpty(Model.Space.Description))
-                {
-                    <p class="text-sm text-base-content/70 mb-3">@Model.Space.Description</p>
-                }
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.DiscussionCount ?? 0)</div>
-                        <div class="text-xs text-base-content/50">Discussions</div>
-                    </div>
-                    <div>
-                        <div class="text-lg font-semibold">@FormatCount(Model.SpaceStats?.ReplyCount ?? 0)</div>
-                        <div class="text-xs text-base-content/50">Replies</div>
-                    </div>
+    @if (Model.Discussion.PostCount > 1)
+    {
+        <!-- Thread Navigation Bar (sticky bottom, inside fp-center but outside fp-center-inner) -->
+        <div id="thread-nav" class="thread-nav hidden">
+            <div class="thread-nav-progress-track">
+                <div id="thread-nav-progress" class="thread-nav-progress-bar"></div>
+            </div>
+            <div class="thread-nav-controls">
+                <button class="thread-nav-btn" data-nav="first" title="First post" aria-label="Jump to first post">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                </button>
+                <button class="thread-nav-btn" data-nav="prev" title="Back 20 posts" aria-label="Back 20 posts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <div class="thread-nav-position">
+                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="Current post" />
+                    <span class="thread-nav-separator">/</span>
+                    <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
+                </div>
+                <button class="thread-nav-btn" data-nav="next" title="Forward 20 posts" aria-label="Forward 20 posts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button class="thread-nav-btn" data-nav="last" title="Last post" aria-label="Jump to last post">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                </button>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="fp-center-inner">
+        <div class="max-w-xl mx-auto empty-state-simple">
+            <h3>Discussion not found</h3>
+            <p>This discussion may have been removed or the link might be incorrect.</p>
+            <a href="/hubs" class="btn btn-primary btn-sm mt-4">Back to Hubs</a>
+        </div>
+    </div>
+}
+
+</div> <!-- End fp-center -->
+
+<!-- Right Column -->
+<aside class="fp-right" hx-boost="false">
+<div class="fp-right-sticky">
+    @if (Model.Space != null)
+    {
+        <div class="fp-right-section">
+            <div class="fp-right-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                About this Space
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Space.Description))
+            {
+                <p class="text-sm text-base-content/70 mb-3">@Model.Space.Description</p>
+            }
+            <div class="fp-stats-box">
+                <div class="fp-stat-item">
+                    <div class="fp-stat-value">@FormatCount(Model.SpaceStats?.DiscussionCount ?? 0)</div>
+                    <div class="fp-stat-label">Discussions</div>
+                </div>
+                <div class="fp-stat-item">
+                    <div class="fp-stat-value">@FormatCount(Model.SpaceStats?.ReplyCount ?? 0)</div>
+                    <div class="fp-stat-label">Replies</div>
                 </div>
             </div>
-        }
+        </div>
+    }
 
-        <!-- Rules -->
-        @if (Model.Space?.HasRules == true)
-        {
-            <div class="sidebar-section">
-                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
-                   class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
-                    <span>@Model.Space!.Name Rules</span>
+    @if (Model.Space?.HasRules == true)
+    {
+        <div class="fp-right-section">
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
+               class="fp-right-title flex items-center justify-between hover:text-primary transition-colors">
+                <span>@Model.Space!.Name Rules</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+            <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
+                             model="Model.InlineSpaceRules"
+                             htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
+                <div class="flex flex-col gap-2">
+                    <div class="skeleton h-4 w-full"></div>
+                    <div class="skeleton h-4 w-5/6"></div>
+                    <div class="skeleton h-4 w-4/6"></div>
+                </div>
+            </inline-or-htmx>
+        </div>
+    }
+
+    @if (Model.Space != null)
+    {
+        <div class="fp-right-section">
+            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
+               class="fp-right-title flex items-center justify-between hover:text-primary transition-colors">
+                <span>Moderators</span>
+                <span class="flex items-center gap-1">
+                    @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                    {
+                        <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
+                    }
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                </a>
-                <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
-                                 model="Model.InlineSpaceRules"
-                                 htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                    <div class="flex flex-col gap-2">
-                        <div class="skeleton h-4 w-full"></div>
-                        <div class="skeleton h-4 w-5/6"></div>
-                        <div class="skeleton h-4 w-4/6"></div>
-                    </div>
-                </inline-or-htmx>
-            </div>
-        }
-
-        <!-- Moderators -->
-        @if (Model.Space != null)
-        {
-            <div class="sidebar-section">
-                <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
-                   class="sidebar-title flex items-center justify-between hover:text-primary transition-colors">
-                    <span>Moderators</span>
-                    <span class="flex items-center gap-1">
-                        @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
-                        {
-                            <span class="text-xs text-base-content/50 font-normal">(@modCount)</span>
-                        }
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </span>
-                </a>
-                <inline-or-htmx partial="Shared/Sidebar/_Moderators"
-                                 model="Model.InlineModerators"
-                                 htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-                        <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
-                    </div>
-                </inline-or-htmx>
-            </div>
-        }
-    </div>
-    </aside>
-    </div> <!-- End flex row -->
-    </div> <!-- End max-w wrapper -->
-}
-else
-{
-    <div class="max-w-xl mx-auto empty-state-simple">
-        <h3>Discussion not found</h3>
-        <p>This discussion may have been removed or the link might be incorrect.</p>
-        <a href="/hubs" class="btn btn-primary btn-sm mt-4">Back to Hubs</a>
-    </div>
-}
+                </span>
+            </a>
+            <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                             model="Model.InlineModerators"
+                             htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
+                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
+                </div>
+            </inline-or-htmx>
+        </div>
+    }
+</div>
+</aside>
 
 <!-- History Modal -->
 <dialog id="history_modal" class="modal modal-bottom sm:modal-middle">
@@ -1254,7 +1323,7 @@ else
 {
     <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true"></script>
 }
-@if (Model.Discussion?.Type == "Gallery")
+@if (Model.Discussion?.Type == "Images")
 {
     <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true"></script>
 }

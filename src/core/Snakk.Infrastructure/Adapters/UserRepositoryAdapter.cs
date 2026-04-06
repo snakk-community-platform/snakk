@@ -134,6 +134,7 @@ public class UserRepositoryAdapter(
         entity.AvatarFileName = user.AvatarFileName;
         entity.AvatarRevision = user.AvatarRevision;
         entity.AutoFollowOnReply = user.AutoFollowOnReply;
+        entity.AllowAdultContent = user.AllowAdultContent;
         entity.Timezone = user.Timezone;
         entity.Bio = user.Bio;
         entity.FeedToken = user.FeedToken;
@@ -158,6 +159,7 @@ public class UserRepositoryAdapter(
         public string? AvatarFileName { get; init; }
         public int AvatarRevision { get; init; }
         public bool AutoFollowOnReply { get; init; }
+        public bool AllowAdultContent { get; init; }
         public string? Timezone { get; init; }
         public string? Bio { get; init; }
         public string? FeedToken { get; init; }
@@ -185,6 +187,7 @@ public class UserRepositoryAdapter(
             AvatarFileName = u.AvatarFileName;
             AvatarRevision = u.AvatarRevision;
             AutoFollowOnReply = u.AutoFollowOnReply;
+            AllowAdultContent = u.AllowAdultContent;
             Timezone = u.Timezone;
             Bio = u.Bio;
             FeedToken = u.FeedToken;
@@ -218,6 +221,7 @@ public class UserRepositoryAdapter(
                 CreatedAt, LastModifiedAt, LastSeenAt, LastLoginAt,
                 NeedsProfileSetup, Timezone, bio: Bio,
                 feedToken: FeedToken,
+                allowAdultContent: AllowAdultContent,
                 discussionCount: DiscussionCount,
                 replyCount: ReplyCount);
         }

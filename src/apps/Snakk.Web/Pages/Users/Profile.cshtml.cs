@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
+using Snakk.Protos.Discussion;
 using Snakk.Shared.Helpers;
 using Snakk.Web.Services;
 using Snakk.Protos.User;
@@ -16,6 +17,7 @@ public class ProfileModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public UserProfileInfo? Profile { get; set; }
+    public PagedRecentDiscussionList? RecentDiscussions { get; set; }
 
     public string FormatDate(DateTimeOffset? dateTime)
     {
@@ -35,6 +37,14 @@ public class ProfileModel(
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Profile = profileResult.Value;
+
+        // Fetch recent discussions with preview data (same format as frontpage)
+        try
+        {
+            RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(
+                offset: 0, pageSize: 5, authorId: decodedPublicId);
+        }
+        catch { }
 
         return Page();
     }

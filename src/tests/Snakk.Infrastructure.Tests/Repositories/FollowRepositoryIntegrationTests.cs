@@ -22,9 +22,9 @@ public class FollowRepositoryIntegrationTests : IDisposable
 
     #region Helper Methods
 
-    private async Task<FollowDatabaseEntity> CreateDiscussionFollowAsync(int userId, int discussionId)
+    private async Task<UserFollowDatabaseEntity> CreateDiscussionFollowAsync(int userId, int discussionId)
     {
-        var follow = new FollowDatabaseEntity
+        var follow = new UserFollowDatabaseEntity
         {
             PublicId = $"follow_{Guid.NewGuid():N}",
             UserId = userId,
@@ -33,15 +33,15 @@ public class FollowRepositoryIntegrationTests : IDisposable
             LevelId = 1,
             CreatedAt = DateTime.UtcNow
         };
-        _db.Context.Follows.Add(follow);
+        _db.Context.UserFollows.Add(follow);
         await _db.Context.SaveChangesAsync();
 
         return follow;
     }
 
-    private async Task<FollowDatabaseEntity> CreateSpaceFollowAsync(int userId, int spaceId, int levelId = 1)
+    private async Task<UserFollowDatabaseEntity> CreateSpaceFollowAsync(int userId, int spaceId, int levelId = 1)
     {
-        var follow = new FollowDatabaseEntity
+        var follow = new UserFollowDatabaseEntity
         {
             PublicId = $"follow_{Guid.NewGuid():N}",
             UserId = userId,
@@ -50,15 +50,15 @@ public class FollowRepositoryIntegrationTests : IDisposable
             LevelId = levelId,
             CreatedAt = DateTime.UtcNow
         };
-        _db.Context.Follows.Add(follow);
+        _db.Context.UserFollows.Add(follow);
         await _db.Context.SaveChangesAsync();
 
         return follow;
     }
 
-    private async Task<FollowDatabaseEntity> CreateUserFollowAsync(int userId, int followedUserId)
+    private async Task<UserFollowDatabaseEntity> CreateUserFollowAsync(int userId, int followedUserId)
     {
-        var follow = new FollowDatabaseEntity
+        var follow = new UserFollowDatabaseEntity
         {
             PublicId = $"follow_{Guid.NewGuid():N}",
             UserId = userId,
@@ -67,7 +67,7 @@ public class FollowRepositoryIntegrationTests : IDisposable
             LevelId = 1,
             CreatedAt = DateTime.UtcNow
         };
-        _db.Context.Follows.Add(follow);
+        _db.Context.UserFollows.Add(follow);
         await _db.Context.SaveChangesAsync();
 
         return follow;

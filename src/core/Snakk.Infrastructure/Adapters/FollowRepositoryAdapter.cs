@@ -16,7 +16,7 @@ public class FollowRepositoryAdapter(
 {
     public async Task<Follow?> GetByUserAndDiscussionAsync(UserId userId, DiscussionId discussionId)
     {
-        var projection = await context.Follows
+        var projection = await context.UserFollows
             .Where(f =>
                 f.User.PublicId == userId.Value
                 && f.Discussion != null
@@ -33,7 +33,7 @@ public class FollowRepositoryAdapter(
 
     public async Task<Follow?> GetByUserAndSpaceAsync(UserId userId, SpaceId spaceId)
     {
-        var projection = await context.Follows
+        var projection = await context.UserFollows
             .Where(f =>
                 f.User.PublicId == userId.Value
                 && f.Space != null
@@ -50,7 +50,7 @@ public class FollowRepositoryAdapter(
 
     public async Task<Follow?> GetByUserAndFollowedUserAsync(UserId userId, UserId followedUserId)
     {
-        var projection = await context.Follows
+        var projection = await context.UserFollows
             .Where(f =>
                 f.User.PublicId == userId.Value
                 && f.FollowedUser != null
@@ -250,7 +250,7 @@ public class FollowRepositoryAdapter(
 
         if (user is null) return;
 
-        Database.Entities.FollowDatabaseEntity? entity = null;
+        Database.Entities.UserFollowDatabaseEntity? entity = null;
 
         if (follow.DiscussionId is not null)
         {
@@ -287,7 +287,7 @@ public class FollowRepositoryAdapter(
 
         if (user is null) return;
 
-        Database.Entities.FollowDatabaseEntity? entity = null;
+        Database.Entities.UserFollowDatabaseEntity? entity = null;
 
         if (follow.DiscussionId is not null)
         {

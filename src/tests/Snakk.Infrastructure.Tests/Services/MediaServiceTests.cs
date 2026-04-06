@@ -33,7 +33,7 @@ public class MediaServiceTests : IAsyncDisposable
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["FileStorage:MediaUrlBase"] = "/storage"
+                ["FileStorage:MediaUrlBase"] = ""
             })
             .Build();
 
@@ -90,7 +90,7 @@ public class MediaServiceTests : IAsyncDisposable
         var result = await _service.UploadAsync(content, "photo.jpg", "image/jpeg", _testUserPublicId);
 
         // Assert
-        await Assert.That(result.Url).Contains("/storage/media/posts/");
+        await Assert.That(result.Url).Contains("/media/posts/");
         await Assert.That(result.Url).Contains(".webp");
         await Assert.That(result.PublicId).IsNotNull();
 
@@ -100,7 +100,7 @@ public class MediaServiceTests : IAsyncDisposable
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
 
-        var dbRecord = await _db.Media.FirstOrDefaultAsync();
+        var dbRecord = await _db.Images.FirstOrDefaultAsync();
         await Assert.That(dbRecord).IsNotNull();
         await Assert.That(dbRecord!.ContentType).IsEqualTo("image/webp");
         await Assert.That(dbRecord.SizeBytes).IsGreaterThan(0);
@@ -128,7 +128,7 @@ public class MediaServiceTests : IAsyncDisposable
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
 
-        var mediaCount = await _db.Media.CountAsync();
+        var mediaCount = await _db.Images.CountAsync();
         await Assert.That(mediaCount).IsEqualTo(1);
     }
 
@@ -188,7 +188,7 @@ public class MediaServiceTests : IAsyncDisposable
         var result = await _service.UploadAsync(content, "photo.webp", "image/webp", _testUserPublicId);
 
         // Assert — path follows media/posts/{yyyy}/{MM}/{dd}/{hash}.{ext}
-        var dbRecord = await _db.Media.FirstAsync();
+        var dbRecord = await _db.Images.FirstAsync();
         var expectedPrefix = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/";
         await Assert.That(dbRecord.StoragePath).StartsWith(expectedPrefix);
         await Assert.That(dbRecord.StoragePath).EndsWith(".webp");
@@ -226,7 +226,7 @@ public class MediaServiceTests : IAsyncDisposable
             }), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // The DB record should exist with smaller size than original
-        var dbRecord = await _db.Media.FirstAsync();
+        var dbRecord = await _db.Images.FirstAsync();
         await Assert.That(dbRecord.SizeBytes).IsGreaterThan(0);
         await Assert.That(result.Url).Contains(".webp");
     }

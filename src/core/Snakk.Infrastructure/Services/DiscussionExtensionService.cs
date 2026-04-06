@@ -13,12 +13,12 @@ public class DiscussionExtensionService(
     ILinkMetadataService linkMetadataService,
     Microsoft.Extensions.Logging.ILogger<DiscussionExtensionService> logger) : IDiscussionExtensionService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "/storage";
+    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     public async Task CreateQuestionAsync(string discussionPublicId)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        context.DiscussionQuestions.Add(new DiscussionQuestionDatabaseEntity
+        context.DiscussionQuestions.Add(new DiscussionTypeQuestionDatabaseEntity
         {
             DiscussionId = discussionId
         });
@@ -30,7 +30,7 @@ public class DiscussionExtensionService(
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        context.DiscussionGuides.Add(new DiscussionGuideDatabaseEntity
+        context.DiscussionGuides.Add(new DiscussionTypeGuideDatabaseEntity
         {
             DiscussionId = discussionId
         });
@@ -38,17 +38,17 @@ public class DiscussionExtensionService(
         await context.SaveChangesAsync();
     }
 
-    public async Task CreateGalleryAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null)
+    public async Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        var gallery = new DiscussionGalleryDatabaseEntity
+        var images = new DiscussionTypeImageDatabaseEntity
         {
             DiscussionId = discussionId,
             Layout = layout
         };
 
-        context.DiscussionGalleries.Add(gallery);
+        context.DiscussionImages.Add(images);
         await context.SaveChangesAsync();
 
         // Resolve image URLs to Media records and create ordered links
@@ -62,7 +62,7 @@ public class DiscussionExtensionService(
 
             if (storagePaths.Count > 0)
             {
-                var mediaRecords = await context.Media
+                var mediaRecords = await context.Images
                     .AsTracking()
                     .Where(m => storagePaths.Contains(m.StoragePath) && !m.IsDeleted)
                     .ToListAsync();
@@ -73,10 +73,10 @@ public class DiscussionExtensionService(
                 {
                     if (mediaByPath.TryGetValue(storagePaths[i], out var media))
                     {
-                        context.GalleryImages.Add(new GalleryImageDatabaseEntity
+                        context.DiscussionImageAttachments.Add(new DiscussionTypeImageAttachmentDatabaseEntity
                         {
-                            GalleryId = gallery.Id,
-                            MediaId = media.Id,
+                            DiscussionTypeImageId = images.Id,
+                            ImageId = media.Id,
                             DisplayOrder = i
                         });
 
@@ -103,7 +103,7 @@ public class DiscussionExtensionService(
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        var poll = new DiscussionPollDatabaseEntity
+        var poll = new DiscussionTypePollDatabaseEntity
         {
             DiscussionId = discussionId,
             AllowMultipleChoices = allowMultipleChoices,
@@ -116,7 +116,7 @@ public class DiscussionExtensionService(
 
         for (var i = 0; i < options.Count; i++)
         {
-            context.PollOptions.Add(new PollOptionDatabaseEntity
+            context.DiscussionPollOptions.Add(new DiscussionTypePollOptionDatabaseEntity
             {
                 PollId = poll.Id,
                 Text = options[i],
@@ -141,7 +141,7 @@ public class DiscussionExtensionService(
         var existing = await context.DiscussionLinks
             .AsNoTracking()
             .Where(l => l.Url == url && l.Title != null)
-            .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.LocalImagePath, l.ImageBlurDataUri })
+            .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageThumbnailPath, l.ImageBlurDataUri })
             .FirstOrDefaultAsync();
 
         LinkMetadata? metadata = null;
@@ -152,7 +152,7 @@ public class DiscussionExtensionService(
             metadata = new LinkMetadata(
                 existing.Title, existing.Description, existing.ImageUrl,
                 existing.Domain, existing.OEmbedHtml,
-                existing.LocalImagePath, existing.ImageBlurDataUri);
+                existing.ImagePath, existing.ImageThumbnailPath, existing.ImageBlurDataUri);
         }
         else
         {
@@ -171,7 +171,7 @@ public class DiscussionExtensionService(
         if (string.IsNullOrEmpty(parsedDomain) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
             parsedDomain = uri.Host.TrimStart('w', 'w', 'w', '.');
 
-        context.DiscussionLinks.Add(new DiscussionLinkDatabaseEntity
+        context.DiscussionLinks.Add(new DiscussionTypeLinkDatabaseEntity
         {
             DiscussionId = discussionId,
             Url = url,
@@ -180,7 +180,8 @@ public class DiscussionExtensionService(
             ImageUrl = imageUrl ?? metadata?.ImageUrl,
             Domain = parsedDomain ?? metadata?.Domain,
             OEmbedHtml = metadata?.OEmbedHtml,
-            LocalImagePath = metadata?.LocalImagePath,
+            ImagePath = metadata?.ImagePath,
+            ImageThumbnailPath = metadata?.ImageThumbnailPath,
             ImageBlurDataUri = metadata?.ImageBlurDataUri,
             IsInternal = metadata?.IsInternal ?? false
         });
@@ -195,7 +196,7 @@ public class DiscussionExtensionService(
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        var debate = new DiscussionDebateDatabaseEntity
+        var debate = new DiscussionTypeDebateDatabaseEntity
         {
             DiscussionId = discussionId,
             AllowNeutral = allowNeutral
@@ -206,7 +207,7 @@ public class DiscussionExtensionService(
 
         for (var i = 0; i < positionLabels.Count; i++)
         {
-            context.DiscussionDebatePositions.Add(new DiscussionDebatePositionDatabaseEntity
+            context.DiscussionDebatePositions.Add(new DiscussionTypeDebatePositionDatabaseEntity
             {
                 DebateId = debate.Id,
                 Index = i,
@@ -243,7 +244,7 @@ public class DiscussionExtensionService(
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        context.DiscussionJournals.Add(new DiscussionJournalDatabaseEntity
+        context.DiscussionJournals.Add(new DiscussionTypeJournalDatabaseEntity
         {
             DiscussionId = discussionId
         });
@@ -266,7 +267,7 @@ public class DiscussionExtensionService(
         if (postId == 0)
             throw new InvalidOperationException("Post not found");
 
-        context.JournalEntryPosts.Add(new JournalEntryPostDatabaseEntity
+        context.DiscussionJournalEntryPosts.Add(new DiscussionTypeJournalEntryPostDatabaseEntity
         {
             PostId = postId,
             JournalId = journal.Id
@@ -284,7 +285,7 @@ public class DiscussionExtensionService(
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
-        context.DiscussionIamas.Add(new DiscussionIamaDatabaseEntity
+        context.DiscussionIamas.Add(new DiscussionTypeIamaDatabaseEntity
         {
             DiscussionId = discussionId,
             Phase = isScheduled ? 0 : 1, // Announced if scheduled, Live if open-ended

@@ -16,6 +16,9 @@ public static class TwoFactorAuthEndpoints
             .WithTags("Two-Factor Authentication")
             .RequireAuthorization();
 
+        group.MapGet("/status", GetTwoFactorStatusAsync)
+            .WithName("Get2FAStatus");
+
         group.MapPost("/setup", SetupTwoFactorAsync)
             .WithName("Setup2FA")
             .Produces<TwoFactorSetupResponse>();
@@ -52,6 +55,24 @@ public static class TwoFactorAuthEndpoints
         group.MapDelete("/trusted-devices/{deviceId}", RevokeTrustedDeviceAsync)
             .WithName("RevokeTrustedDevice")
             .Produces<MessageResponse>();
+    }
+
+    private static async Task<IResult> GetTwoFactorStatusAsync(
+        HttpContext httpContext,
+        ITwoFactorAuthService twoFactorService)
+    {
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Results.Unauthorized();
+
+        var status = await twoFactorService.GetTwoFactorStatusAsync(userIdClaim.Value);
+        if (status is null)
+            return Results.Ok(new { isEnabled = false, unusedBackupCodes = 0 });
+
+        return Results.Ok(new
+        {
+            status.IsEnabled,
+            unusedBackupCodes = status.TotalBackupCodes - status.UsedBackupCodesCount
+        });
     }
 
     private static async Task<IResult> SetupTwoFactorAsync(
@@ -128,6 +149,7 @@ public static class TwoFactorAuthEndpoints
     private static async Task<IResult> VerifyTwoFactorAsync(
         [FromBody] VerifyTwoFactorRequest request,
         ITotpService totpService,
+        ITwoFactorSecretProtector secretProtector,
         ITokenService tokenService,
         IJwtTokenService jwtTokenService,
         ITrustedDeviceService trustedDeviceService,
@@ -138,7 +160,7 @@ public static class TwoFactorAuthEndpoints
         // User provides email/password first, gets a temporary token, then verifies 2FA
 
         var user = await context.Users
-            .Include(u => u.BackupCodes)
+            .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
@@ -150,13 +172,14 @@ public static class TwoFactorAuthEndpoints
         // Try TOTP code first
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
         {
-            isValid = totpService.VerifyCode(user.TwoFactorSecret, request.Code);
+            var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+            isValid = totpService.VerifyCode(decryptedSecret, request.Code);
         }
 
         // If TOTP fails, try backup codes
         if (!isValid)
         {
-            var unusedBackupCodes = user.BackupCodes
+            var unusedBackupCodes = user.TwoFactorBackupCodes
                 .Where(bc => !bc.IsUsed)
                 .ToList();
 

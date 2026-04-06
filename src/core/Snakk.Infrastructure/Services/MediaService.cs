@@ -22,7 +22,7 @@ public class MediaService(
     IConfiguration configuration,
     ILogger<MediaService> logger) : IMediaService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "/storage";
+    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
     private const int MaxUploadsPerUserPerDay = 50;
     private const int MaxImageDimension = 2048;
@@ -96,7 +96,7 @@ public class MediaService(
         var sha256Hash = Convert.ToHexStringLower(hashBytes);
 
         // Check for existing file with same hash (deduplication)
-        var existing = await db.Media
+        var existing = await db.Images
             .FirstOrDefaultAsync(m => m.Sha256Hash == sha256Hash && !m.IsDeleted, cancellationToken);
 
         if (existing is not null)
@@ -116,6 +116,7 @@ public class MediaService(
                 existing.PublicId,
                 GetMediaUrl(existing.StoragePath),
                 existing.ThumbnailPath is not null ? GetMediaUrl(existing.ThumbnailPath) : null,
+                existing.MediumThumbnailPath is not null ? GetMediaUrl(existing.MediumThumbnailPath) : null,
                 existing.BlurDataUri);
         }
 
@@ -132,7 +133,7 @@ public class MediaService(
 
         // Per-user daily upload quota
         var dayAgo = DateTime.UtcNow.AddHours(-24);
-        var recentUploadCount = await db.Media
+        var recentUploadCount = await db.Images
             .CountAsync(m => m.UploadedByUserId == user.Id && m.CreatedAt >= dayAgo, cancellationToken);
 
         if (recentUploadCount >= MaxUploadsPerUserPerDay)
@@ -142,13 +143,31 @@ public class MediaService(
         processedStream.Position = 0;
         await fileStorage.SaveAsync(storagePath, processedStream, "public, max-age=31536000, immutable", cancellationToken);
 
-        // Generate thumbnail (300px longest side)
+        // Generate thumbnails (300px small, 600px medium)
         string? thumbnailPath = null;
+        string? mediumThumbnailPath = null;
         try
         {
             processedStream.Position = 0;
             using var thumbImage = await Image.LoadAsync(processedStream, cancellationToken);
 
+            // Medium thumbnail (600px) — for carousels and larger previews
+            if (thumbImage.Width > 600 || thumbImage.Height > 600)
+            {
+                using var medImage = thumbImage.Clone(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(600, 600),
+                    Mode = ResizeMode.Max
+                }));
+
+                mediumThumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_med.webp";
+                using var medStream = new MemoryStream();
+                await medImage.SaveAsWebpAsync(medStream, new WebpEncoder { Quality = 80 }, cancellationToken);
+                medStream.Position = 0;
+                await fileStorage.SaveAsync(mediumThumbnailPath, medStream, "public, max-age=31536000, immutable", cancellationToken);
+            }
+
+            // Small thumbnail (300px) — for grid items and small previews
             if (thumbImage.Width > 300 || thumbImage.Height > 300)
             {
                 thumbImage.Mutate(x => x.Resize(new ResizeOptions
@@ -166,7 +185,7 @@ public class MediaService(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to generate thumbnail for {Hash}", sha256Hash);
+            logger.LogWarning(ex, "Failed to generate thumbnails for {Hash}", sha256Hash);
         }
 
         // Generate blur placeholder (~20px, base64 data URI)
@@ -191,7 +210,7 @@ public class MediaService(
         }
 
         // Create database record — uploads start as drafts until linked to a discussion
-        var media = new MediaDatabaseEntity
+        var media = new ImageDatabaseEntity
         {
             PublicId = publicId,
             Sha256Hash = sha256Hash,
@@ -200,20 +219,22 @@ public class MediaService(
             SizeBytes = processedStream.Length,
             StoragePath = storagePath,
             ThumbnailPath = thumbnailPath,
+            MediumThumbnailPath = mediumThumbnailPath,
             BlurDataUri = blurDataUri,
             CreatedAt = now,
             UploadedByUserId = user.Id,
             IsDraft = true
         };
 
-        db.Media.Add(media);
+        db.Images.Add(media);
         await db.SaveChangesAsync(cancellationToken);
 
         var publicUrl = GetMediaUrl(storagePath);
         var thumbnailUrl = thumbnailPath is not null ? GetMediaUrl(thumbnailPath) : null;
+        var mediumThumbnailUrl = mediumThumbnailPath is not null ? GetMediaUrl(mediumThumbnailPath) : null;
         logger.LogInformation("Media uploaded: {PublicId} ({Size} bytes) → {Path}", media.PublicId, media.SizeBytes, storagePath);
 
-        return new MediaUploadResult(media.PublicId, publicUrl, thumbnailUrl, blurDataUri);
+        return new MediaUploadResult(media.PublicId, publicUrl, thumbnailUrl, mediumThumbnailUrl, blurDataUri);
     }
 
     public async Task LinkMediaToPostAsync(
@@ -230,7 +251,7 @@ public class MediaService(
             return;
 
         // Extract storage paths from markdown image references
-        // Matches patterns like: ![...](/storage/media/posts/2026/03/07/abc123.png)
+        // Matches patterns like: ![...](/media/posts/2026/03/07/abc123.png)
         var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
         var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromMilliseconds(250))
             .Select(m => m.Groups[1].Value)
@@ -240,7 +261,7 @@ public class MediaService(
 
         // Look up media records by storage path
         var mediaRecords = storagePaths.Count > 0
-            ? await db.Media
+            ? await db.Images
                 .Where(m => storagePaths.Contains(m.StoragePath))
                 .Select(m => new { m.Id })
                 .ToListAsync(cancellationToken)
@@ -249,28 +270,28 @@ public class MediaService(
         var newMediaIds = mediaRecords.Select(m => m.Id).ToHashSet();
 
         // Get existing links for this post
-        var existingLinks = await db.PostMedia
+        var existingLinks = await db.PostImages
             .Where(pm => pm.PostId == post.Id)
             .ToListAsync(cancellationToken);
 
-        var existingMediaIds = existingLinks.Select(pm => pm.MediaId).ToHashSet();
+        var existingMediaIds = existingLinks.Select(pm => pm.ImageId).ToHashSet();
 
         // Remove stale links (media no longer referenced in content)
-        var toRemove = existingLinks.Where(pm => !newMediaIds.Contains(pm.MediaId)).ToList();
+        var toRemove = existingLinks.Where(pm => !newMediaIds.Contains(pm.ImageId)).ToList();
         if (toRemove.Count > 0)
-            db.PostMedia.RemoveRange(toRemove);
+            db.PostImages.RemoveRange(toRemove);
 
         // Add new links
         var toAdd = newMediaIds.Except(existingMediaIds)
-            .Select(mediaId => new PostMediaDatabaseEntity
+            .Select(mediaId => new PostImageDatabaseEntity
             {
                 PostId = post.Id,
-                MediaId = mediaId
+                ImageId = mediaId
             })
             .ToList();
 
         if (toAdd.Count > 0)
-            db.PostMedia.AddRange(toAdd);
+            db.PostImages.AddRange(toAdd);
 
         if (toRemove.Count > 0 || toAdd.Count > 0)
             await db.SaveChangesAsync(cancellationToken);
@@ -287,7 +308,7 @@ public class MediaService(
         if (!mediaUrl.StartsWith(urlPrefix)) return false;
         var storagePath = mediaUrl[urlPrefix.Length..];
 
-        var media = await db.Media
+        var media = await db.Images
             .AsTracking()
             .FirstOrDefaultAsync(m => m.StoragePath == storagePath && m.IsDraft, cancellationToken);
 
@@ -323,7 +344,7 @@ public class MediaService(
         if (storagePaths.Count == 0) return;
 
         var now = DateTime.UtcNow;
-        await db.Media
+        await db.Images
             .Where(m => m.IsDraft && !m.IsDeleted && storagePaths.Contains(m.StoragePath))
             .ExecuteUpdateAsync(s => s
                 .SetProperty(m => m.IsDraft, false)
@@ -343,12 +364,12 @@ public class MediaService(
         var cutoff = now.AddHours(-12);
 
         // Step 1: Mark stale unpublished drafts as ready for deletion
-        await db.Media
+        await db.Images
             .Where(m => m.IsDraft && !m.IsReadyForDeletion && !m.IsDeleted && m.CreatedAt < cutoff)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsReadyForDeletion, true), cancellationToken);
 
         // Step 2: Find all records ready for deletion (user-deleted + stale drafts)
-        var toDelete = await db.Media
+        var toDelete = await db.Images
             .AsTracking()
             .Where(m => m.IsReadyForDeletion && !m.IsDeleted)
             .Take(100)

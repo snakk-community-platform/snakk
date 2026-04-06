@@ -23,10 +23,10 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<DiscussionReadStateDatabaseEntity> DiscussionReadStates { get; set; } = null!;
 
     // Social features
-    public DbSet<ReactionDatabaseEntity> Reactions { get; set; } = null!;
-    public DbSet<NotificationDatabaseEntity> Notifications { get; set; } = null!;
-    public DbSet<FollowDatabaseEntity> Follows { get; set; } = null!;
-    public DbSet<MentionDatabaseEntity> Mentions { get; set; } = null!;
+    public DbSet<PostReactionDatabaseEntity> PostReactions { get; set; } = null!;
+    public DbSet<UserNotificationDatabaseEntity> UserNotifications { get; set; } = null!;
+    public DbSet<UserFollowDatabaseEntity> UserFollows { get; set; } = null!;
+    public DbSet<PostMentionDatabaseEntity> PostMentions { get; set; } = null!;
 
     // Moderation
     public DbSet<UserRoleDatabaseEntity> UserRoles { get; set; } = null!;
@@ -36,7 +36,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ReportReasonDatabaseEntity> ReportReasons { get; set; } = null!;
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
     public DbSet<AuditLogDatabaseEntity> AuditLogs { get; set; } = null!;
-    public DbSet<DisplayNameHistoryDatabaseEntity> DisplayNameHistories { get; set; } = null!;
+    public DbSet<UserDisplayNameHistoryDatabaseEntity> UserDisplayNameHistories { get; set; } = null!;
 
     // Permissions
     public DbSet<PermissionDatabaseEntity> Permissions { get; set; } = null!;
@@ -45,8 +45,10 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
     // Authentication & 2FA
     public DbSet<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = null!;
-    public DbSet<TrustedDeviceDatabaseEntity> TrustedDevices { get; set; } = null!;
-    public DbSet<BackupCodeDatabaseEntity> BackupCodes { get; set; } = null!;
+    public DbSet<TwoFactorTrustedDeviceDatabaseEntity> TwoFactorTrustedDevices { get; set; } = null!;
+    public DbSet<TwoFactorBackupCodeDatabaseEntity> TwoFactorBackupCodes { get; set; } = null!;
+    public DbSet<PasswordResetTokenDatabaseEntity> PasswordResetTokens { get; set; } = null!;
+    public DbSet<PasswordResetRequestDatabaseEntity> PasswordResetRequests { get; set; } = null!;
 
     // Settings
     public DbSet<SystemSettingDatabaseEntity> SystemSettings { get; set; } = null!;
@@ -61,12 +63,17 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<UserAchievementProgressDatabaseEntity> UserAchievementProgress { get; set; } = null!;
     public DbSet<UserMetricDatabaseEntity> UserMetrics { get; set; } = null!;
 
-    // Media
-    public DbSet<MediaDatabaseEntity> Media { get; set; } = null!;
-    public DbSet<PostMediaDatabaseEntity> PostMedia { get; set; } = null!;
+    // Images
+    public DbSet<ImageDatabaseEntity> Images { get; set; } = null!;
+    public DbSet<PostImageDatabaseEntity> PostImages { get; set; } = null!;
 
     // Banners
     public DbSet<BannerDatabaseEntity> Banners { get; set; } = null!;
+
+    // Consent
+    public DbSet<ConsentTypeDatabaseEntity> ConsentTypes { get; set; } = null!;
+    public DbSet<ConsentTypeVersionDatabaseEntity> ConsentTypeVersions { get; set; } = null!;
+    public DbSet<UserConsentDatabaseEntity> UserConsents { get; set; } = null!;
 
     // Discussion types — allowed type permissions
     public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
@@ -74,22 +81,22 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<SpaceAllowedDiscussionTypeDatabaseEntity> SpaceAllowedDiscussionTypes { get; set; } = null!;
 
     // Discussion types — extension data
-    public DbSet<DiscussionLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
-    public DbSet<DiscussionGalleryDatabaseEntity> DiscussionGalleries { get; set; } = null!;
-    public DbSet<GalleryImageDatabaseEntity> GalleryImages { get; set; } = null!;
-    public DbSet<DiscussionPollDatabaseEntity> DiscussionPolls { get; set; } = null!;
-    public DbSet<PollOptionDatabaseEntity> PollOptions { get; set; } = null!;
-    public DbSet<PollVoteDatabaseEntity> PollVotes { get; set; } = null!;
-    public DbSet<DiscussionQuestionDatabaseEntity> DiscussionQuestions { get; set; } = null!;
-    public DbSet<DiscussionGuideDatabaseEntity> DiscussionGuides { get; set; } = null!;
-    public DbSet<DiscussionDebateDatabaseEntity> DiscussionDebates { get; set; } = null!;
-    public DbSet<DiscussionDebatePositionDatabaseEntity> DiscussionDebatePositions { get; set; } = null!;
-    public DbSet<PostDebatePositionDatabaseEntity> PostDebatePositions { get; set; } = null!;
-    public DbSet<DiscussionJournalDatabaseEntity> DiscussionJournals { get; set; } = null!;
-    public DbSet<JournalEntryPostDatabaseEntity> JournalEntryPosts { get; set; } = null!;
-    public DbSet<DiscussionIamaDatabaseEntity> DiscussionIamas { get; set; } = null!;
-    public DbSet<IamaOfficialAnswerDatabaseEntity> IamaOfficialAnswers { get; set; } = null!;
-    public DbSet<IamaBestQuestionDatabaseEntity> IamaBestQuestions { get; set; } = null!;
+    public DbSet<DiscussionTypeLinkDatabaseEntity> DiscussionLinks { get; set; } = null!;
+    public DbSet<DiscussionTypeImageDatabaseEntity> DiscussionImages { get; set; } = null!;
+    public DbSet<DiscussionTypeImageAttachmentDatabaseEntity> DiscussionImageAttachments { get; set; } = null!;
+    public DbSet<DiscussionTypePollDatabaseEntity> DiscussionPolls { get; set; } = null!;
+    public DbSet<DiscussionTypePollOptionDatabaseEntity> DiscussionPollOptions { get; set; } = null!;
+    public DbSet<DiscussionTypePollVoteDatabaseEntity> DiscussionPollVotes { get; set; } = null!;
+    public DbSet<DiscussionTypeQuestionDatabaseEntity> DiscussionQuestions { get; set; } = null!;
+    public DbSet<DiscussionTypeGuideDatabaseEntity> DiscussionGuides { get; set; } = null!;
+    public DbSet<DiscussionTypeDebateDatabaseEntity> DiscussionDebates { get; set; } = null!;
+    public DbSet<DiscussionTypeDebatePositionDatabaseEntity> DiscussionDebatePositions { get; set; } = null!;
+    public DbSet<DiscussionTypeDebatePostPositionDatabaseEntity> DiscussionDebatePostPositions { get; set; } = null!;
+    public DbSet<DiscussionTypeJournalDatabaseEntity> DiscussionJournals { get; set; } = null!;
+    public DbSet<DiscussionTypeJournalEntryPostDatabaseEntity> DiscussionJournalEntryPosts { get; set; } = null!;
+    public DbSet<DiscussionTypeIamaDatabaseEntity> DiscussionIamas { get; set; } = null!;
+    public DbSet<DiscussionTypeIamaOfficialAnswerDatabaseEntity> DiscussionIamaOfficialAnswers { get; set; } = null!;
+    public DbSet<DiscussionTypeIamaBestQuestionDatabaseEntity> DiscussionIamaBestQuestions { get; set; } = null!;
 
     // Note: Lookup tables removed - now using enums directly (see Snakk.Shared.Enums)
 
@@ -355,117 +362,117 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         // === Social Features Configuration ===
 
         // Reaction: unique constraint (one reaction type per user per post)
-        modelBuilder.Entity<ReactionDatabaseEntity>()
+        modelBuilder.Entity<PostReactionDatabaseEntity>()
             .HasIndex(r => new { r.PostId, r.UserId, r.TypeId })
             .IsUnique();
 
-        modelBuilder.Entity<ReactionDatabaseEntity>()
+        modelBuilder.Entity<PostReactionDatabaseEntity>()
             .HasIndex(r => r.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<ReactionDatabaseEntity>()
+        modelBuilder.Entity<PostReactionDatabaseEntity>()
             .HasOne(r => r.Post)
             .WithMany()
             .HasForeignKey(r => r.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Use NoAction to avoid cascade path conflicts with User
-        modelBuilder.Entity<ReactionDatabaseEntity>()
+        modelBuilder.Entity<PostReactionDatabaseEntity>()
             .HasOne(r => r.User)
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.NoAction);
 
         // Follow: unique constraint (one follow per user per target)
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasIndex(f => new { f.UserId, f.TargetTypeId, f.DiscussionId, f.SpaceId, f.FollowedUserId })
             .IsUnique();
 
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasIndex(f => f.PublicId)
             .IsUnique();
 
         // Use NoAction to avoid multiple cascade path issues
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasOne(f => f.User)
             .WithMany()
             .HasForeignKey(f => f.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasOne(f => f.Discussion)
             .WithMany()
             .HasForeignKey(f => f.DiscussionId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasOne(f => f.Space)
             .WithMany()
             .HasForeignKey(f => f.SpaceId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<FollowDatabaseEntity>()
+        modelBuilder.Entity<UserFollowDatabaseEntity>()
             .HasOne(f => f.FollowedUser)
             .WithMany()
             .HasForeignKey(f => f.FollowedUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
         // Mention: unique constraint (one mention per user per post)
-        modelBuilder.Entity<MentionDatabaseEntity>()
+        modelBuilder.Entity<PostMentionDatabaseEntity>()
             .HasIndex(m => new { m.PostId, m.MentionedUserId })
             .IsUnique();
 
-        modelBuilder.Entity<MentionDatabaseEntity>()
+        modelBuilder.Entity<PostMentionDatabaseEntity>()
             .HasIndex(m => m.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<MentionDatabaseEntity>()
+        modelBuilder.Entity<PostMentionDatabaseEntity>()
             .HasOne(m => m.Post)
             .WithMany()
             .HasForeignKey(m => m.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Use NoAction to avoid cascade path conflicts
-        modelBuilder.Entity<MentionDatabaseEntity>()
+        modelBuilder.Entity<PostMentionDatabaseEntity>()
             .HasOne(m => m.MentionedUser)
             .WithMany()
             .HasForeignKey(m => m.MentionedUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
         // Notification indexes for efficient querying
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasIndex(n => new { n.RecipientUserId, n.IsRead, n.CreatedAt });
 
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasIndex(n => n.PublicId)
             .IsUnique();
 
         // Use NoAction for all Notification FKs to avoid multiple cascade paths
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasOne(n => n.RecipientUser)
             .WithMany()
             .HasForeignKey(n => n.RecipientUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasOne(n => n.SourcePost)
             .WithMany()
             .HasForeignKey(n => n.SourcePostId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasOne(n => n.SourceDiscussion)
             .WithMany()
             .HasForeignKey(n => n.SourceDiscussionId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasOne(n => n.SourceSpace)
             .WithMany()
             .HasForeignKey(n => n.SourceSpaceId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<NotificationDatabaseEntity>()
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
             .HasOne(n => n.ActorUser)
             .WithMany()
             .HasForeignKey(n => n.ActorUserId)
@@ -936,30 +943,60 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(r => r.ReplacedByTokenId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // === 2FA Configuration ===
+        // === PasswordResetToken Configuration ===
 
-        // TrustedDevice configuration
-        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+        modelBuilder.Entity<PasswordResetTokenDatabaseEntity>()
             .HasIndex(t => t.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+        modelBuilder.Entity<PasswordResetTokenDatabaseEntity>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<PasswordResetTokenDatabaseEntity>()
+            .HasIndex(t => t.UserId)
+            .HasDatabaseName("IX_PasswordResetToken_UserId");
+
+        modelBuilder.Entity<PasswordResetTokenDatabaseEntity>()
             .HasOne(t => t.User)
-            .WithMany(u => u.TrustedDevices)
+            .WithMany()
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<TrustedDeviceDatabaseEntity>()
+        // === PasswordResetRequest Configuration ===
+
+        modelBuilder.Entity<PasswordResetRequestDatabaseEntity>()
+            .HasIndex(r => new { r.IpAddress, r.RequestedAt })
+            .HasDatabaseName("IX_PasswordResetRequest_IpAddress_RequestedAt");
+
+        modelBuilder.Entity<PasswordResetRequestDatabaseEntity>()
+            .HasIndex(r => r.RequestedAt)
+            .HasDatabaseName("IX_PasswordResetRequest_RequestedAt");
+
+        // === 2FA Configuration ===
+
+        // TrustedDevice configuration
+        modelBuilder.Entity<TwoFactorTrustedDeviceDatabaseEntity>()
+            .HasIndex(t => t.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<TwoFactorTrustedDeviceDatabaseEntity>()
+            .HasOne(t => t.User)
+            .WithMany(u => u.TwoFactorTrustedDevices)
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TwoFactorTrustedDeviceDatabaseEntity>()
             .HasIndex(t => new { t.UserId, t.DeviceFingerprint });
 
         // BackupCode configuration
-        modelBuilder.Entity<BackupCodeDatabaseEntity>()
+        modelBuilder.Entity<TwoFactorBackupCodeDatabaseEntity>()
             .HasIndex(b => b.PublicId)
             .IsUnique();
 
-        modelBuilder.Entity<BackupCodeDatabaseEntity>()
+        modelBuilder.Entity<TwoFactorBackupCodeDatabaseEntity>()
             .HasOne(b => b.User)
-            .WithMany(u => u.BackupCodes)
+            .WithMany(u => u.TwoFactorBackupCodes)
             .HasForeignKey(b => b.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -1160,23 +1197,23 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // === Display Name History ===
 
-        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+        modelBuilder.Entity<UserDisplayNameHistoryDatabaseEntity>()
             .HasOne(h => h.User)
             .WithMany()
             .HasForeignKey(h => h.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+        modelBuilder.Entity<UserDisplayNameHistoryDatabaseEntity>()
             .HasOne(h => h.ChangedByUser)
             .WithMany()
             .HasForeignKey(h => h.ChangedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+        modelBuilder.Entity<UserDisplayNameHistoryDatabaseEntity>()
             .HasIndex(h => h.UserId)
             .HasDatabaseName("IX_DisplayNameHistory_UserId");
 
-        modelBuilder.Entity<DisplayNameHistoryDatabaseEntity>()
+        modelBuilder.Entity<UserDisplayNameHistoryDatabaseEntity>()
             .HasIndex(h => h.NewName)
             .HasDatabaseName("IX_DisplayNameHistory_NewName");
 
@@ -1258,85 +1295,85 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionLink: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeLinkDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeLinkDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionLinkDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeLinkDatabaseEntity>()
             .Property(x => x.Url)
             .HasMaxLength(2048)
             .IsRequired();
 
-        // DiscussionGalleries: one-to-one with Discussion (gallery layout settings)
-        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
+        // DiscussionImages: one-to-one with Discussion (images layout settings)
+        modelBuilder.Entity<DiscussionTypeImageDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionGalleryDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeImageDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // GalleryImages: ordered images linking Gallery → Media
-        modelBuilder.Entity<GalleryImageDatabaseEntity>()
-            .HasOne(x => x.Gallery)
+        // ImageAttachments: ordered join between DiscussionTypeImage and Image
+        modelBuilder.Entity<DiscussionTypeImageAttachmentDatabaseEntity>()
+            .HasOne(x => x.DiscussionTypeImage)
             .WithMany(g => g.Images)
-            .HasForeignKey(x => x.GalleryId)
+            .HasForeignKey(x => x.DiscussionTypeImageId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<GalleryImageDatabaseEntity>()
-            .HasOne(x => x.Media)
+        modelBuilder.Entity<DiscussionTypeImageAttachmentDatabaseEntity>()
+            .HasOne(x => x.Image)
             .WithMany()
-            .HasForeignKey(x => x.MediaId)
+            .HasForeignKey(x => x.ImageId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionPoll: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionPollDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionPollDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // PollOption: belongs to Poll
-        modelBuilder.Entity<PollOptionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollOptionDatabaseEntity>()
             .HasOne(x => x.Poll)
             .WithMany(p => p.Options)
             .HasForeignKey(x => x.PollId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PollOptionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollOptionDatabaseEntity>()
             .Property(x => x.Text)
             .HasMaxLength(500)
             .IsRequired();
 
-        modelBuilder.Entity<PollOptionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollOptionDatabaseEntity>()
             .HasIndex(x => new { x.PollId, x.DisplayOrder })
-            .HasDatabaseName("IX_PollOption_PollId_DisplayOrder");
+            .HasDatabaseName("IX_DiscussionTypePollOption_PollId_DisplayOrder");
 
         // PollVote: belongs to Option and User
-        modelBuilder.Entity<PollVoteDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollVoteDatabaseEntity>()
             .HasIndex(x => new { x.OptionId, x.UserId })
             .IsUnique()
-            .HasDatabaseName("IX_PollVote_OptionId_UserId");
+            .HasDatabaseName("IX_DiscussionTypePollVote_OptionId_UserId");
 
-        modelBuilder.Entity<PollVoteDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollVoteDatabaseEntity>()
             .HasOne(x => x.Option)
             .WithMany(o => o.Votes)
             .HasForeignKey(x => x.OptionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PollVoteDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypePollVoteDatabaseEntity>()
             .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
@@ -1348,217 +1385,217 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasDatabaseName("IX_Discussion_SpaceId_Type");
 
         // DiscussionQuestion: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeQuestionDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeQuestionDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeQuestionDatabaseEntity>()
             .HasOne(x => x.AcceptedPost)
             .WithMany()
             .HasForeignKey(x => x.AcceptedPostId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // DiscussionGuide: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionGuideDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeGuideDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionGuideDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeGuideDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionDebate: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionDebateDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebateDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionDebateDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebateDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionDebatePosition: belongs to Debate
-        modelBuilder.Entity<DiscussionDebatePositionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebatePositionDatabaseEntity>()
             .HasOne(x => x.Debate)
             .WithMany(d => d.Positions)
             .HasForeignKey(x => x.DebateId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DiscussionDebatePositionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebatePositionDatabaseEntity>()
             .HasIndex(x => new { x.DebateId, x.Index })
             .IsUnique()
             .HasDatabaseName("IX_DebatePosition_DebateId_Index");
 
         // PostDebatePosition: one-to-one with Post (PostId is PK)
-        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebatePostPositionDatabaseEntity>()
             .HasKey(x => x.PostId);
 
-        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebatePostPositionDatabaseEntity>()
             .HasOne(x => x.Post)
             .WithMany()
             .HasForeignKey(x => x.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PostDebatePositionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeDebatePostPositionDatabaseEntity>()
             .HasOne(x => x.Position)
             .WithMany()
             .HasForeignKey(x => x.PositionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionJournal: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionJournalDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeJournalDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionJournalDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeJournalDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // JournalEntryPost: one-to-one with Post (PostId is PK)
-        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeJournalEntryPostDatabaseEntity>()
             .HasKey(x => x.PostId);
 
-        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeJournalEntryPostDatabaseEntity>()
             .HasOne(x => x.Post)
             .WithMany()
             .HasForeignKey(x => x.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<JournalEntryPostDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeJournalEntryPostDatabaseEntity>()
             .HasOne(x => x.Journal)
             .WithMany(j => j.Entries)
             .HasForeignKey(x => x.JournalId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // DiscussionIama: one-to-one with Discussion
-        modelBuilder.Entity<DiscussionIamaDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaDatabaseEntity>()
             .HasIndex(x => x.DiscussionId)
             .IsUnique();
 
-        modelBuilder.Entity<DiscussionIamaDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaDatabaseEntity>()
             .HasOne(x => x.Discussion)
             .WithMany()
             .HasForeignKey(x => x.DiscussionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // IamaOfficialAnswer: belongs to Iama, references QuestionPost and AnswerPost
-        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaOfficialAnswerDatabaseEntity>()
             .HasOne(x => x.Iama)
             .WithMany(i => i.OfficialAnswers)
             .HasForeignKey(x => x.IamaId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaOfficialAnswerDatabaseEntity>()
             .HasOne(x => x.QuestionPost)
             .WithMany()
             .HasForeignKey(x => x.QuestionPostId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaOfficialAnswerDatabaseEntity>()
             .HasOne(x => x.AnswerPost)
             .WithMany()
             .HasForeignKey(x => x.AnswerPostId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<IamaOfficialAnswerDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaOfficialAnswerDatabaseEntity>()
             .HasIndex(x => new { x.IamaId, x.QuestionPostId })
             .IsUnique()
             .HasDatabaseName("IX_IamaOfficialAnswer_IamaId_QuestionPostId");
 
         // IamaBestQuestion: belongs to Iama, references Post
-        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaBestQuestionDatabaseEntity>()
             .HasOne(x => x.Iama)
             .WithMany(i => i.BestQuestions)
             .HasForeignKey(x => x.IamaId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaBestQuestionDatabaseEntity>()
             .HasOne(x => x.Post)
             .WithMany()
             .HasForeignKey(x => x.PostId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<IamaBestQuestionDatabaseEntity>()
+        modelBuilder.Entity<DiscussionTypeIamaBestQuestionDatabaseEntity>()
             .HasIndex(x => new { x.IamaId, x.DisplayOrder })
             .IsUnique()
             .HasDatabaseName("IX_IamaBestQuestion_IamaId_DisplayOrder");
 
-        // === Media Configuration ===
+        // === Image Configuration ===
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .HasIndex(m => m.PublicId)
             .IsUnique()
-            .HasDatabaseName("IX_Media_PublicId");
+            .HasDatabaseName("IX_Image_PublicId");
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .HasIndex(m => m.Sha256Hash)
-            .HasDatabaseName("IX_Media_Sha256Hash");
+            .HasDatabaseName("IX_Image_Sha256Hash");
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .HasOne(m => m.UploadedByUser)
             .WithMany()
             .HasForeignKey(m => m.UploadedByUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .Property(m => m.PublicId)
             .HasMaxLength(36)
             .IsRequired();
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .Property(m => m.Sha256Hash)
             .HasMaxLength(64)
             .IsRequired();
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .Property(m => m.ContentType)
             .HasMaxLength(100)
             .IsRequired();
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .Property(m => m.OriginalFileName)
             .HasMaxLength(255)
             .IsRequired();
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .Property(m => m.StoragePath)
             .HasMaxLength(500)
             .IsRequired();
 
         // Cleanup indexes
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .HasIndex(m => m.IsReadyForDeletion)
-            .HasDatabaseName("IX_Media_IsReadyForDeletion");
+            .HasDatabaseName("IX_Image_IsReadyForDeletion");
 
-        modelBuilder.Entity<MediaDatabaseEntity>()
+        modelBuilder.Entity<ImageDatabaseEntity>()
             .HasIndex(m => m.IsDeleted)
-            .HasDatabaseName("IX_Media_IsDeleted");
+            .HasDatabaseName("IX_Image_IsDeleted");
 
-        // PostMedia: composite PK (join table)
-        modelBuilder.Entity<PostMediaDatabaseEntity>()
-            .HasKey(pm => new { pm.PostId, pm.MediaId });
+        // PostImage: composite PK (join table)
+        modelBuilder.Entity<PostImageDatabaseEntity>()
+            .HasKey(pm => new { pm.PostId, pm.ImageId });
 
-        modelBuilder.Entity<PostMediaDatabaseEntity>()
+        modelBuilder.Entity<PostImageDatabaseEntity>()
             .HasOne(pm => pm.Post)
             .WithMany()
             .HasForeignKey(pm => pm.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PostMediaDatabaseEntity>()
-            .HasOne(pm => pm.Media)
+        modelBuilder.Entity<PostImageDatabaseEntity>()
+            .HasOne(pm => pm.Image)
             .WithMany()
-            .HasForeignKey(pm => pm.MediaId)
+            .HasForeignKey(pm => pm.ImageId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // === Banner Configuration ===
@@ -1575,5 +1612,37 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .WithMany()
             .HasForeignKey(a => a.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // === Consent Configuration ===
+
+        modelBuilder.Entity<ConsentTypeDatabaseEntity>()
+            .HasIndex(c => c.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<ConsentTypeVersionDatabaseEntity>()
+            .HasOne(v => v.ConsentType)
+            .WithMany(c => c.Versions)
+            .HasForeignKey(v => v.ConsentTypeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ConsentTypeVersionDatabaseEntity>()
+            .HasIndex(v => new { v.ConsentTypeId, v.VersionNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<UserConsentDatabaseEntity>()
+            .HasOne(uc => uc.User)
+            .WithMany()
+            .HasForeignKey(uc => uc.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserConsentDatabaseEntity>()
+            .HasOne(uc => uc.ConsentTypeVersion)
+            .WithMany()
+            .HasForeignKey(uc => uc.ConsentTypeVersionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserConsentDatabaseEntity>()
+            .HasIndex(uc => new { uc.UserId, uc.ConsentTypeVersionId })
+            .IsUnique();
     }
 }

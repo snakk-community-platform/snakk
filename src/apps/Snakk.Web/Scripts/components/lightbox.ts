@@ -1,6 +1,6 @@
 /**
  * Lightbox — full-screen image viewer with prev/next navigation.
- * Opens when clicking gallery images that have a data-full attribute.
+ * Opens when clicking images that have a data-full attribute.
  */
 
 (function() {
@@ -109,6 +109,6 @@
         p.src = url;
     }
 
-    // Expose for use by gallery code
+    // Expose for use by images code
     (window as any).SnakkLightbox = { open, preloadUrl };
 })();

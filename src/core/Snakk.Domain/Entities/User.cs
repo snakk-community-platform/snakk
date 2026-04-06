@@ -20,6 +20,7 @@ public class User
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
     public string? Bio { get; private set; }
     public string? FeedToken { get; private set; }
+    public bool AllowAdultContent { get; private set; }
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime? DisplayNameChangedAt { get; private set; }
     public bool IsDisplayNameLocked { get; private set; }
@@ -63,6 +64,7 @@ public class User
         string? timezone = null,
         string? bio = null,
         string? feedToken = null,
+        bool allowAdultContent = false,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
@@ -86,6 +88,7 @@ public class User
         Timezone = timezone;
         Bio = bio;
         FeedToken = feedToken;
+        AllowAdultContent = allowAdultContent;
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
@@ -213,6 +216,7 @@ public class User
         string? timezone = null,
         string? bio = null,
         string? feedToken = null,
+        bool allowAdultContent = false,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
@@ -241,6 +245,7 @@ public class User
             timezone,
             bio,
             feedToken,
+            allowAdultContent,
             discussionCount,
             replyCount,
             followerCount,
@@ -354,6 +359,12 @@ public class User
     public void SetAutoFollowOnReply(bool autoFollow)
     {
         AutoFollowOnReply = autoFollow;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAllowAdultContent(bool allow)
+    {
+        AllowAdultContent = allow;
         LastModifiedAt = DateTime.UtcNow;
     }
 

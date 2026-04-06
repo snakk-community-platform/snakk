@@ -1,9 +1,11 @@
 @page "/u/{publicId}"
 @using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
 @using Snakk.Shared.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
 @model ProfileModel
 @{
+    Layout = "_Layout";
     ViewData["Title"] = Model.Profile?.DisplayName ?? "User Profile";
 }
 
@@ -21,44 +23,112 @@
     }
 }
 
-@section Styles {
-}
+@section LeftColumn {
+<aside class="fp-left">
+<div class="fp-left-sticky">
+    <div class="fp-left-inner">
+        <nav class="fp-nav">
+            <a href="/" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Home
+            </a>
+            <a href="/trending" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Trending
+            </a>
+            <a href="/communities" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Communities
+            </a>
+            <a href="/saved" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                Saved
+            </a>
+            <a href="/rules" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Rules
+            </a>
+            <a href="/moderation" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Moderators
+            </a>
+        </nav>
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">Home</a>
-    </nav>
-</div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a href="/new" class="fp-nav-btn" hx-boost="false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                New Discussion
+            </a>
+        }
 
-@if (Model.Profile == null)
-{
-    <div class="max-w-xl mx-auto">
-        <div class="clean-card">
-            <div class="empty-state-simple">
-                <h3>User not found</h3>
-                <p>This profile may have been removed or the link might be incorrect.</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
-            </div>
+        <div class="fp-left-footer">
+            <a href="/settings" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+            </a>
+            <a href="/help" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help
+            </a>
+            <a href="/privacy" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Privacy Policy
+            </a>
+            <a href="/cookies" class="fp-nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Cookies
+            </a>
         </div>
     </div>
+</div>
+</aside>
 }
-else
-{
-    var daysSinceJoined = (DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days;
-    var totalActivity = Model.Profile.DiscussionCount + Model.Profile.ReplyCount;
-    var avgPerDay = daysSinceJoined > 0 ? totalActivity / (double)daysSinceJoined : 0;
 
-    <div class="max-w-[90rem] mx-auto px-4 py-8">
-        <!-- Profile Header (full width) -->
-        <div class="page-header">
-            <div class="flex items-start gap-4">
+<!-- Center Column -->
+<div class="fp-center">
+    <div class="fp-center-inner">
+        @if (Model.Profile == null)
+        {
+            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
+                <p>User not found. This profile may have been removed or the link might be incorrect.</p>
+                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+            </div>
+        }
+        else
+        {
+            <!-- Profile Card -->
+            <div class="fp-profile-card">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
                      alt="@Model.Profile.DisplayName"
-                     width="64" height="64"
-                     class="w-16 h-16 rounded-full shrink-0" />
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h1>@Model.Profile.DisplayName</h1>
+                     width="80" height="80"
+                     class="fp-profile-avatar" />
+                <div class="fp-profile-info">
+                    <div class="fp-profile-name-row">
+                        <h1 class="fp-profile-name">@Model.Profile.DisplayName</h1>
                         <partial name="Shared/_FeedDropdown" model="@($"/u/{UlidBase62.Encode(Model.Profile.PublicId)}/feed")" />
                         <div id="profile-actions" class="ml-auto">
                             <div class="skeleton h-8 w-24"></div>
@@ -66,166 +136,165 @@ else
                     </div>
                     @if (Model.Profile.HasBio && !string.IsNullOrWhiteSpace(Model.Profile.Bio))
                     {
-                        <p class="text-sm text-base-content/70 mt-2">@Model.Profile.Bio</p>
+                        <p class="fp-profile-bio">@Model.Profile.Bio</p>
                     }
-                    <div class="flex items-center gap-3 text-sm text-base-content/60 mt-1">
-                        <span class="flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Joined @Model.FormatDate(Model.Profile.JoinedAt?.ToDateTime())
-                        </span>
+                    <div class="fp-profile-meta">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Joined @Model.FormatDate(Model.Profile.JoinedAt?.ToDateTime())
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="flex flex-col lg:flex-row gap-3">
-            <!-- Sidebar (renders first on small screens, right column on lg+) -->
-            <!-- Sidebar: first on small screens, right column on lg+ -->
-            <aside id="sticky-sidebar" class="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last" hx-boost="false">
-            <div id="sidebar-inner">
-                <!-- Stats -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Stats</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <div class="text-lg font-semibold">@FormatCount(Model.Profile.DiscussionCount)</div>
-                            <div class="text-xs text-base-content/50">Discussions</div>
+            <!-- Stats + Activity Chart -->
+            <div class="fp-stats-activity-row">
+                <div class="fp-stats-grid">
+                    <div class="stats stats-horizontal w-full">
+                        <div class="stat">
+                            <div class="stat-title">Discussions</div>
+                            <div class="stat-value">@FormatCount(Model.Profile.DiscussionCount)</div>
                         </div>
-                        <div>
-                            <div class="text-lg font-semibold" id="stat-replies">@FormatCount(Model.Profile.ReplyCount)</div>
-                            <div class="text-xs text-base-content/50">Replies</div>
+                        <div class="stat">
+                            <div class="stat-title">Replies</div>
+                            <div class="stat-value" id="stat-replies">@FormatCount(Model.Profile.ReplyCount)</div>
                         </div>
-                        <div>
-                            <div class="text-lg font-semibold">@FormatCount(totalActivity)</div>
-                            <div class="text-xs text-base-content/50">Total Activity</div>
+                    </div>
+                    <div class="stats stats-horizontal w-full">
+                        <div class="stat">
+                            <div class="stat-title">Followers</div>
+                            <div class="stat-value" id="stat-followers">@FormatCount(Model.Profile.FollowerCount)</div>
                         </div>
-                        <div>
-                            <div class="text-lg font-semibold" id="stat-followers">@FormatCount(Model.Profile.FollowerCount)</div>
-                            <div class="text-xs text-base-content/50">Followers</div>
+                        <div class="stat">
+                            <div class="stat-title">Total Activity</div>
+                            <div class="stat-value">@FormatCount(Model.Profile.DiscussionCount + Model.Profile.ReplyCount)</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Achievements -->
-                <div class="sidebar-section hidden" id="achievements-section">
-                    <h3 class="sidebar-title">Achievements</h3>
-                    <div id="achievements-grid" class="grid grid-cols-3 gap-3"></div>
-                </div>
-
-                <!-- Membership -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Membership</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center justify-between">
-                            <span class="text-base-content/60">Member for</span>
-                            <span class="font-medium">@daysSinceJoined days</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-base-content/60">Avg. activity</span>
-                            <span class="font-medium">~@avgPerDay.ToString("F1")/day</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Recent Activity</h3>
-                    <div class="text-sm">
-                        @if (Model.Profile.LastSeenAt != null)
-                        {
-                            <div class="flex items-center gap-2 text-base-content/60">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt?.ToDateTime())</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <span class="text-base-content/60">No recent activity</span>
-                        }
-                    </div>
-                </div>
-
-                <!-- Name History (own profile only, populated by JS) -->
-                <div class="sidebar-section hidden" id="name-history-section">
-                    <h3 class="sidebar-title">Name History</h3>
-                    <div id="name-history-list"></div>
-                </div>
-
-                <!-- Activity History (sidebar, lg+ only) -->
-                <div class="sidebar-section hidden lg:block">
-                    <h3 class="sidebar-title flex items-center justify-between">
+                <div class="fp-activity-chart-wrapper">
+                    <div class="fp-activity-chart-title">
                         Activity History
-                        <span class="text-sm font-normal text-base-content/50">Last 30 days</span>
-                    </h3>
-                    <div id="activity-chart-sidebar">
-                        <div class="space-y-3">
-                            <div class="skeleton h-32 w-full"></div>
-                            <div class="flex justify-center gap-3">
-                                <div class="skeleton h-3 w-16"></div>
-                                <div class="skeleton h-3 w-16"></div>
-                            </div>
-                        </div>
+                        <span class="fp-activity-chart-subtitle">Last 30 days</span>
+                    </div>
+                    <div id="activity-chart-sidebar" class="fp-activity-chart-body">
+                        <div class="skeleton h-full w-full rounded"></div>
                     </div>
                 </div>
             </div>
-            </aside>
 
-            <!-- Main content lists -->
-            <div class="flex-1 min-w-0 space-y-4">
-                <!-- Activity History (small screens only) -->
-                <div class="lg:hidden">
-                    <div class="section-header">
-                        <span class="section-title">Activity History</span>
-                        <span class="text-sm font-normal text-base-content/50">Last 30 days</span>
-                    </div>
-                    <div class="clean-card">
-                        <div id="activity-chart-main" class="p-6">
-                            <div class="space-y-3">
-                                <div class="skeleton h-48 w-full"></div>
-                                <div class="flex justify-center gap-4">
-                                    <div class="skeleton h-4 w-24"></div>
-                                    <div class="skeleton h-4 w-24"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Discussions -->
-                <div class="section-header">
-                    <span class="section-title">Recent Discussions</span>
-                </div>
+            <!-- Recent Discussions -->
+            <div class="fp-profile-section">
+                <h2 class="fp-section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Recent Discussions
+                </h2>
                 <div id="recent-discussions">
-                    <div class="clean-card p-4">
-                        <div class="space-y-4">
-                            <div class="skeleton h-16 w-full"></div>
-                            <div class="skeleton h-16 w-full"></div>
-                            <div class="skeleton h-16 w-full"></div>
+                    @if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
+                    {
+                        <div id="discussions-container">
+                            @foreach (var discussion in Model.RecentDiscussions.Items)
+                            {
+                                @await Html.PartialAsync("Shared/_FrontpageDiscussionCard",
+                                    new DiscussionListItemVM(discussion, true, Model.Community))
+                            }
                         </div>
-                    </div>
+                        @if (Model.RecentDiscussions.HasMoreItems)
+                        {
+                            <a href="/search?type=discussion&authorId=@Model.Profile!.PublicId" class="fp-show-more">
+                                Show more discussions
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-sm" style="color: var(--text-tertiary)">No discussions yet.</p>
+                    }
                 </div>
+            </div>
 
-                <!-- Recent Posts -->
-                <div class="section-header">
-                    <span class="section-title">Recent Posts</span>
-                </div>
+            <!-- Recent Posts -->
+            <div class="fp-profile-section">
+                <h2 class="fp-section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                    Recent Posts
+                </h2>
                 <div id="recent-posts">
-                    <div class="clean-card p-4">
-                        <div class="space-y-4">
-                            <div class="skeleton h-20 w-full"></div>
-                            <div class="skeleton h-20 w-full"></div>
-                            <div class="skeleton h-20 w-full"></div>
-                        </div>
+                    <div class="flex flex-col gap-3">
+                        <div class="skeleton h-20 w-full rounded"></div>
+                        <div class="skeleton h-20 w-full rounded"></div>
+                        <div class="skeleton h-20 w-full rounded"></div>
                     </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    @if (Model.Profile != null)
+    {
+        var daysSinceJoined = (DateTime.UtcNow - Model.Profile!.JoinedAt!.ToDateTime()).Days;
+        var totalActivity = Model.Profile.DiscussionCount + Model.Profile.ReplyCount;
+        var avgPerDay = daysSinceJoined > 0 ? totalActivity / (double)daysSinceJoined : 0;
+
+        <!-- Achievements -->
+        <div class="fp-right-section hidden" id="achievements-section">
+            <div class="fp-right-title">Achievements</div>
+            <div id="achievements-grid" class="grid grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Membership -->
+        <div class="fp-right-section">
+            <div class="fp-right-title">Membership</div>
+            <div class="flex flex-col gap-1 text-sm">
+                <div class="flex items-center justify-between">
+                    <span style="color: var(--text-tertiary)">Member for</span>
+                    <span class="font-medium">@daysSinceJoined days</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span style="color: var(--text-tertiary)">Avg. activity</span>
+                    <span class="font-medium">~@avgPerDay.ToString("F1")/day</span>
                 </div>
             </div>
         </div>
-    </div>
-}
+
+        <!-- Recent Activity -->
+        <div class="fp-right-section">
+            <div class="fp-right-title">Recent Activity</div>
+            <div class="text-sm">
+                @if (Model.Profile.LastSeenAt != null)
+                {
+                    <div class="flex items-center gap-2" style="color: var(--text-tertiary)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt?.ToDateTime())</span>
+                    </div>
+                }
+                else
+                {
+                    <span style="color: var(--text-tertiary)">No recent activity</span>
+                }
+            </div>
+        </div>
+
+        <!-- Name History (own profile only) -->
+        <div class="fp-right-section hidden" id="name-history-section">
+            <div class="fp-right-title">Name History</div>
+            <div id="name-history-list"></div>
+        </div>
+    }
+</div>
+</aside>
 
 @section Scripts {
     @if (Model.Profile != null)
@@ -242,4 +311,6 @@ else
         </script>
     }
     <script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("pages/images-carousel")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/iama-countdown")" asp-append-version="true" defer></script>
 }

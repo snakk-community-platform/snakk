@@ -124,7 +124,7 @@ public class SpaceManagementServiceTests : IDisposable
         _context.Users.Add(follower);
         await _context.SaveChangesAsync();
 
-        _context.Follows.Add(new FollowDatabaseEntity
+        _context.UserFollows.Add(new UserFollowDatabaseEntity
         {
             PublicId = $"follow-{Guid.NewGuid():N}",
             UserId = follower.Id,

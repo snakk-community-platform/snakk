@@ -40,7 +40,7 @@ public class PollService(SnakkDbContext context) : IPollService
             if (userId > 0)
             {
                 var optionIds = poll.Options.Select(o => o.Id).ToList();
-                userVotedIds = await context.PollVotes
+                userVotedIds = await context.DiscussionPollVotes
                     .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
                     .Select(v => v.OptionId)
                     .ToListAsync();
@@ -84,7 +84,7 @@ public class PollService(SnakkDbContext context) : IPollService
             return (false, "User not found");
 
         // Check existing votes
-        var existingVotes = await context.PollVotes
+        var existingVotes = await context.DiscussionPollVotes
             .Where(v => poll.Options.Select(o => o.Id).Contains(v.OptionId) && v.UserId == userId)
             .ToListAsync();
 
@@ -100,7 +100,7 @@ public class PollService(SnakkDbContext context) : IPollService
                 {
                     var oldOption = poll.Options.First(o => o.Id == old.OptionId);
                     oldOption.VoteCount = Math.Max(0, oldOption.VoteCount - 1);
-                    context.PollVotes.Remove(old);
+                    context.DiscussionPollVotes.Remove(old);
                 }
             }
             else if (poll.AllowMultipleChoices)
@@ -111,7 +111,7 @@ public class PollService(SnakkDbContext context) : IPollService
             }
         }
 
-        context.PollVotes.Add(new PollVoteDatabaseEntity
+        context.DiscussionPollVotes.Add(new DiscussionTypePollVoteDatabaseEntity
         {
             OptionId = optionId,
             UserId = userId,
@@ -156,7 +156,7 @@ public class PollService(SnakkDbContext context) : IPollService
         if (userId == 0)
             return (false, "User not found");
 
-        var vote = await context.PollVotes
+        var vote = await context.DiscussionPollVotes
             .FirstOrDefaultAsync(v => v.OptionId == optionId && v.UserId == userId);
 
         if (vote is null)
@@ -166,7 +166,7 @@ public class PollService(SnakkDbContext context) : IPollService
         if (option is not null)
             option.VoteCount = Math.Max(0, option.VoteCount - 1);
 
-        context.PollVotes.Remove(vote);
+        context.DiscussionPollVotes.Remove(vote);
         await context.SaveChangesAsync();
 
         return (true, null);

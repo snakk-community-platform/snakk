@@ -8,6 +8,7 @@ namespace Snakk.Auth.Pages;
 
 public class RegisterModel(
     AuthService.AuthServiceClient authClient,
+    Snakk.Protos.Consent.ConsentService.ConsentServiceClient consentClient,
     IConfiguration configuration,
     ILogger<RegisterModel> logger) : PageModel
 {
@@ -25,6 +26,8 @@ public class RegisterModel(
     public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
     public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
     public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
+
+    public List<Snakk.Protos.Consent.ConsentTypeInfo> RequiredConsents { get; set; } = [];
 
     public class InputModel
     {
@@ -49,10 +52,18 @@ public class RegisterModel(
         public string ConfirmPassword { get; set; } = "";
     }
 
-    public IActionResult OnGet()
+    public async Task<IActionResult> OnGet()
     {
         if (Request.Cookies.ContainsKey(".Snakk.Auth"))
             return Redirect("/");
+
+        try
+        {
+            var consents = await consentClient.GetRequiredConsentsAsync(
+                new Snakk.Protos.Consent.GetRequiredConsentsRequest());
+            RequiredConsents = consents.Consents.ToList();
+        }
+        catch { /* Don't block registration page load */ }
 
         return Page();
     }
@@ -102,6 +113,30 @@ public class RegisterModel(
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
+            }
+
+            // Record consents
+            var versionIds = Request.Form["consentVersionId"]
+                .Select(v => int.TryParse(v, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .ToList();
+
+            if (versionIds.Count > 0)
+            {
+                try
+                {
+                    var consentHeaders = new Grpc.Core.Metadata { { "authorization", $"Bearer {response.AccessToken}" } };
+                    await consentClient.AcceptConsentsAsync(
+                        new Snakk.Protos.Consent.AcceptConsentsRequest
+                        {
+                            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                            VersionIds = { versionIds }
+                        }, headers: consentHeaders);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to record consents during registration");
+                }
             }
 
             var returnUrl = ReturnUrl ?? "/";

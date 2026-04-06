@@ -83,6 +83,7 @@ message UpdatePreferencesRequest {
   optional bool auto_follow_on_reply = 2;
   optional string timezone = 3;
   optional string bio = 4;
+  optional bool allow_adult_content = 5;
 }
 
 message OAuthCallbackRequest {
@@ -101,11 +102,13 @@ message AuthTokenResponse {
   string refresh_token = 2;
   UserInfo user = 3;
   string message = 4; // Optional message (e.g., "Please verify email")
+  bool two_factor_required = 5;
 }
 
 message RefreshTokenResponse {
   string access_token = 1;
   string refresh_token = 2;
+  bool needs_consent = 3;
 }
 
 message AuthStatusResponse {
@@ -132,6 +135,7 @@ message CurrentUserResponse {
   optional string avatar_url = 13;
   optional string bio = 14;
   optional string feed_token = 15;
+  bool allow_adult_content = 16;
 }
 
 message UpdateProfileResponse {
@@ -146,6 +150,7 @@ message OAuthCallbackResponse {
   string refresh_token = 2;
   bool is_new_user = 3;
   UserInfo user = 4;
+  bool two_factor_required = 5;
 }
 
 message UserInfo {

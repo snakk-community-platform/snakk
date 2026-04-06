@@ -1,0 +1,38 @@
+@* Adult content interstitial — shown when accessing adult-only content without opt-in *@
+@{
+    var returnUrl = ViewBag.ReturnUrl as string ?? Context.Request.Path + Context.Request.QueryString;
+}
+
+<div class="max-w-lg mx-auto mt-16 px-4">
+    <div class="clean-card">
+        <div class="p-8 text-center space-y-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+
+            <h2 class="text-lg font-bold">Adult Content</h2>
+
+            <p class="text-sm text-base-content/60">
+                This content has been marked as adults only. You must confirm that you are at least 18 years old to continue.
+            </p>
+
+            <div class="flex flex-col gap-2 pt-2">
+                <form method="post" action="/bff/adult-confirm">
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <button type="submit" class="btn btn-primary btn-sm w-full">
+                        I am 18 or older — continue
+                    </button>
+                </form>
+
+                <a href="/" class="btn btn-ghost btn-sm">Go back</a>
+            </div>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <p class="text-xs text-base-content/40 pt-2">
+                    You can enable "Show adult content" in <a href="/settings#section-behavior" class="underline">Settings</a> to skip this prompt.
+                </p>
+            }
+        </div>
+    </div>
+</div>

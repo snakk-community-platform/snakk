@@ -9,14 +9,14 @@ public class NewGalleryModel(
     ICommunityContext communityContext) : NewDiscussionBaseModel(apiClient, configuration, communityContext)
 {
     protected override int DiscussionType => 5;
-    protected override string TypeSlug => "gallery";
+    protected override string TypeSlug => "images";
 
-    [BindProperty] public List<string> GalleryImageUrls { get; set; } = [];
-    [BindProperty] public string GalleryLayout { get; set; } = "grid";
+    [BindProperty] public List<string> ImagesImageUrls { get; set; } = [];
+    [BindProperty] public string ImagesLayout { get; set; } = "masonry";
 
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
-        var imageUrls = GalleryImageUrls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? [];
+        var imageUrls = ImagesImageUrls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? [];
         var content = NewContent?.Trim();
         if (string.IsNullOrWhiteSpace(content))
             content = " ";
@@ -26,7 +26,7 @@ public class NewGalleryModel(
             NewTitle!.Trim(),
             content,
             DiscussionType,
-            galleryLayout: GalleryLayout,
-            galleryImageUrls: imageUrls);
+            imagesLayout: ImagesLayout,
+            imagesImageUrls: imageUrls);
     }
 }

@@ -215,7 +215,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
         var user = await _builder.CreateUserAsync("TargetUser");
         var follower = await _builder.CreateUserAsync("Follower");
 
-        _db.Context.Follows.Add(new FollowDatabaseEntity
+        _db.Context.UserFollows.Add(new UserFollowDatabaseEntity
         {
             PublicId = $"follow_{Guid.NewGuid():N}",
             UserId = follower.Id,
@@ -275,7 +275,7 @@ public class StatsRepositoryIntegrationTests : IDisposable
         var (user, community, hub, space, discussion, firstPost) = await _builder.CreateFullHierarchyAsync();
         var follower = await _builder.CreateUserAsync("Follower");
 
-        _db.Context.Follows.Add(new FollowDatabaseEntity
+        _db.Context.UserFollows.Add(new UserFollowDatabaseEntity
         {
             PublicId = $"follow_{Guid.NewGuid():N}",
             UserId = follower.Id,

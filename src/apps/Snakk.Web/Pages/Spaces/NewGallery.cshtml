@@ -2,7 +2,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Spaces.NewGalleryModel
-@{ ViewData["Title"] = $"New Gallery — {Model.Space?.Name}"; }
+@{ ViewData["Title"] = $"New Images — {Model.Space?.Name}"; }
 
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
@@ -17,12 +17,12 @@
         <span class="breadcrumb-separator">/</span>
         <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
         <span class="breadcrumb-separator">/</span>
-        <span>Gallery</span>
+        <span>Images</span>
     </nav>
 </div>
 
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-semibold mb-6">New Gallery</h1>
+    <h1 class="text-xl font-semibold mb-6">New Images</h1>
 
     @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -30,48 +30,49 @@
         <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
         <div class="space-y-4">
             <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                   class="input w-full text-lg" required maxlength="200" placeholder="Gallery title" autofocus />
+                   class="input w-full text-lg" required maxlength="200" placeholder="Images title" autofocus />
 
-            <!-- Layout picker -->
-            <div>
+            <!-- Layout picker (hidden until 2+ images) -->
+            <div id="images-layout-section" class="images-layout-section images-layout-section-hidden">
                 <div class="text-sm font-medium mb-2">Layout</div>
-                <div class="flex gap-3" id="gallery-layout-picker">
-                    <label class="gallery-layout-option gallery-layout-active" data-layout="masonry">
-                        <input type="radio" name="GalleryLayout" value="masonry" checked class="hidden" />
-                        <div class="gallery-layout-preview">
+                <div class="flex gap-3" id="images-layout-picker">
+                    <label class="images-layout-option images-layout-active" data-layout="masonry">
+                        <input type="radio" name="ImagesLayout" value="masonry" checked class="hidden" />
+                        <div class="images-layout-preview">
                             <div class="glp glp-masonry"><div></div><div></div><div></div></div>
                         </div>
                         <span class="text-xs mt-1">Masonry</span>
                     </label>
-                    <label class="gallery-layout-option" data-layout="grid">
-                        <input type="radio" name="GalleryLayout" value="grid" class="hidden" />
-                        <div class="gallery-layout-preview">
+                    <label class="images-layout-option" data-layout="grid">
+                        <input type="radio" name="ImagesLayout" value="grid" class="hidden" />
+                        <div class="images-layout-preview">
                             <div class="glp glp-grid"><div></div><div></div><div></div><div></div></div>
                         </div>
                         <span class="text-xs mt-1">Grid</span>
                     </label>
-                    <label class="gallery-layout-option" data-layout="justified">
-                        <input type="radio" name="GalleryLayout" value="justified" class="hidden" />
-                        <div class="gallery-layout-preview">
+                    <label class="images-layout-option" data-layout="justified">
+                        <input type="radio" name="ImagesLayout" value="justified" class="hidden" />
+                        <div class="images-layout-preview">
                             <div class="glp glp-justified"><div></div><div></div><div></div></div>
                         </div>
                         <span class="text-xs mt-1">Justified</span>
                     </label>
-                    <label class="gallery-layout-option" data-layout="carousel">
-                        <input type="radio" name="GalleryLayout" value="carousel" class="hidden" />
-                        <div class="gallery-layout-preview">
+                    <label class="images-layout-option" data-layout="carousel">
+                        <input type="radio" name="ImagesLayout" value="carousel" class="hidden" />
+                        <div class="images-layout-preview">
                             <div class="glp glp-carousel"><span>‹</span><div></div><span>›</span></div>
                         </div>
                         <span class="text-xs mt-1">Carousel</span>
                     </label>
-                    <label class="gallery-layout-option" data-layout="hero">
-                        <input type="radio" name="GalleryLayout" value="hero" class="hidden" />
-                        <div class="gallery-layout-preview">
+                    <label class="images-layout-option" data-layout="hero">
+                        <input type="radio" name="ImagesLayout" value="hero" class="hidden" />
+                        <div class="images-layout-preview">
                             <div class="glp glp-hero"><div class="glp-hero-big"></div><div class="glp-hero-row"><div></div><div></div><div></div></div></div>
                         </div>
                         <span class="text-xs mt-1">Hero</span>
                     </label>
                 </div>
+                <div id="images-layout-hint" class="images-layout-hint hidden">You can now choose a layout</div>
             </div>
 
             <!-- Image upload area + live preview -->
@@ -79,11 +80,11 @@
                 <div class="text-sm font-medium mb-2">Images</div>
 
                 <!-- Live preview (hidden when empty, switches between grid/carousel) -->
-                <div id="gallery-preview" class="gallery-upload-preview hidden"></div>
+                <div id="images-preview" class="images-upload-preview hidden"></div>
 
                 <!-- Drop zone -->
-                <div id="gallery-drop-zone" class="gallery-drop-zone">
-                    <input type="file" id="gallery-file-input" accept="image/*" multiple class="hidden" />
+                <div id="images-drop-zone" class="gallery-drop-zone">
+                    <input type="file" id="images-file-input" accept="image/*" multiple class="hidden" />
                     <div class="gallery-drop-zone-content">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -94,7 +95,7 @@
                 </div>
 
                 <!-- Hidden inputs container (populated by JS) -->
-                <div id="gallery-hidden-inputs"></div>
+                <div id="images-hidden-inputs"></div>
             </div>
 
             <!-- Description editor -->
@@ -109,13 +110,13 @@
 
             <div class="flex items-center justify-between">
                 <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
-                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Gallery</button>
+                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Images</button>
             </div>
         </div>
     </form>
 
     <div class="mt-8 border-t border-base-content/10 pt-6">
-        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How galleries work</h3>
+        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How images work</h3>
         <div class="text-sm text-base-content/60 space-y-3">
             <p>Upload images and see a live preview in your chosen layout. Switch between grid and carousel at any time.</p>
             <div>

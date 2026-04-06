@@ -1,0 +1,93 @@
+@page "/settings/privacy"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Settings.PrivacyModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Privacy & Security Settings";
+}
+
+@section LeftColumn {
+<aside class="fp-left">
+<div class="fp-left-sticky">
+    <partial name="Shared/_SettingsNav" />
+</div>
+</aside>
+}
+
+<!-- Center Column -->
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="fp-settings-content">
+
+            <!-- Trusted Devices -->
+            <div id="section-devices" class="fp-settings-section">
+                <h3 class="fp-settings-section-title">Trusted Devices</h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    Devices that have been trusted for this account. Revoking a device will require re-authentication on that device.
+                </p>
+                <div id="devices-list">
+                    <div class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div id="section-email" class="fp-settings-section">
+                <h3 class="fp-settings-section-title">Email</h3>
+                <div class="flex flex-col gap-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span style="color: var(--text-tertiary)">Email</span>
+                        <span class="profile-email font-medium"></span>
+                        <span class="profile-email-badge badge badge-sm shrink-0"></span>
+                    </div>
+                    <div class="flex items-center gap-2 profile-oauth-row" style="display: none;">
+                        <span style="color: var(--text-tertiary)">Sign in via</span>
+                        <span class="capitalize profile-oauth font-medium"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div id="section-password" class="fp-settings-section">
+                <h3 class="fp-settings-section-title">Password</h3>
+                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                    Change your password. You will need your current password to set a new one.
+                </p>
+                <form id="change-password-form" class="flex flex-col gap-3">
+                    <input type="password" name="currentPassword" class="input w-full" placeholder="Current password" autocomplete="current-password" />
+                    <input type="password" name="newPassword" class="input w-full" placeholder="New password" autocomplete="new-password" />
+                    <input type="password" name="confirmPassword" class="input w-full" placeholder="Confirm new password" autocomplete="new-password" />
+                    <div>
+                        <button type="submit" class="btn btn-primary btn-sm" id="change-password-btn">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    <div class="fp-right-section">
+        <div class="fp-right-title">On this page</div>
+        <nav class="fp-scrollspy">
+            <a href="#section-devices" class="fp-scrollspy-item active">Trusted Devices</a>
+            <a href="#section-email" class="fp-scrollspy-item">Email</a>
+            <a href="#section-password" class="fp-scrollspy-item">Password</a>
+        </nav>
+    </div>
+    <div class="fp-right-section">
+        <div class="fp-right-title">Help</div>
+        <div class="text-sm" style="color: var(--text-tertiary)">
+            <p><strong>Trusted devices</strong> remember your login so you don't have to re-authenticate each time.</p>
+            <p class="mt-2">Revoking a device will sign you out on that device.</p>
+        </div>
+    </div>
+</div>
+</aside>
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true" defer></script>
+}

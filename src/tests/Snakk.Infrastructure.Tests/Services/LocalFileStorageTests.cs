@@ -17,7 +17,7 @@ public class LocalFileStorageTests : IDisposable
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["FileStorage:BasePath"] = _tempDir,
-                ["FileStorage:PublicUrlBase"] = "/storage"
+                ["FileStorage:PublicUrlBase"] = "/"
             })
             .Build();
 
@@ -197,7 +197,7 @@ public class LocalFileStorageTests : IDisposable
         var result = _storage.GetPublicUrl("avatars/user_123.png");
 
         // Assert
-        await Assert.That(result).IsEqualTo("/storage/avatars/user_123.png");
+        await Assert.That(result).IsEqualTo("/avatars/user_123.png");
     }
 
     [Test]
@@ -207,7 +207,7 @@ public class LocalFileStorageTests : IDisposable
         var result = _storage.GetPublicUrl("avatars\\generated\\user_123.svg");
 
         // Assert
-        await Assert.That(result).IsEqualTo("/storage/avatars/generated/user_123.svg");
+        await Assert.That(result).IsEqualTo("/avatars/generated/user_123.svg");
     }
 
     [Test]

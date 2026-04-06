@@ -110,71 +110,6 @@ interface ActivityDataPoint {
             }
         }
 
-        // Recent discussions
-        async function loadRecentDiscussions(limit: number): Promise<void> {
-            const container = document.getElementById('recent-discussions');
-            if (!container) return;
-
-            try {
-                const response = await fetch(`/bff/search/discussions?authorPublicId=${userId}&pageSize=${limit}`);
-                const data = await response.json();
-
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-8 text-muted">
-                            <p>No discussions yet</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = `<div class="topic-list">${data.items.map((d: any) => `
-                    <div class="topic-item-wrapper">
-                        <div class="topic-item">
-                            <div class="topic-content">
-                                <div class="topic-title">
-                                    <a href="${sanitizeUrl(d.url)}" class="topic-title-link">${escapeHtml(d.title)}</a>
-                                </div>
-                                <div class="topic-meta">
-                                    <span class="topic-meta-link">${escapeHtml(d.hubName)}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                                    <span class="topic-meta-link">${escapeHtml(d.spaceName)}</span>
-                                    <span class="topic-meta-separator">&middot;</span>
-                                    <span>${formatRelativeTime(d.lastActivityAt || d.createdAt)}</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats hidden sm:flex">
-                                <div class="topic-stat">
-                                    <div class="topic-stat-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="topic-stat-value">${d.reactionCount}</div>
-                                </div>
-                                <div class="topic-stat">
-                                    <div class="topic-stat-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="topic-stat-value">${d.postCount}</div>
-                                </div>
-                            </div>
-                            <a href="${sanitizeUrl(d.url)}" class="topic-latest-link" title="Go to discussion">
-                                <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                `).join('')}</div>`;
-            } catch (error) {
-                console.error('Error loading discussions:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load discussions</div>';
-            }
-        }
-
         // Recent posts
         async function loadRecentPosts(limit: number): Promise<void> {
             const container = document.getElementById('recent-posts');
@@ -243,14 +178,18 @@ interface ActivityDataPoint {
                     posts: a.postCount ?? 0,
                     total: (a.discussionCount ?? 0) + (a.postCount ?? 0)
                 }));
-                renderActivityChart(container, data, days);
+                // Measure available height so the chart fills its flex-sized container.
+                // Reserve ~40px for the legend row below the bars.
+                const measured = container.clientHeight;
+                const maxHeight = measured > 120 ? Math.max(measured - 40, 80) : 150;
+                renderActivityChart(container, data, days, maxHeight);
             } catch (error) {
                 console.error('Error loading activity chart:', error);
                 container.innerHTML = '<div class="text-center py-8 text-error">Failed to load activity chart</div>';
             }
         }
 
-        function renderActivityChart(container: HTMLElement, data: ActivityDataPoint[], days: number): void {
+        function renderActivityChart(container: HTMLElement, data: ActivityDataPoint[], days: number, maxHeight: number = 150): void {
             if (!data || data.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-12">
@@ -266,7 +205,6 @@ interface ActivityDataPoint {
 
             // Calculate max value for scaling
             const maxValue = Math.max(...data.map((d: ActivityDataPoint) => d.total), 1);
-            const maxHeight = 150; // pixels
 
             // Group by week for better visualization if > 30 days
             const shouldGroupByWeek = days > 30;
@@ -554,7 +492,6 @@ interface ActivityDataPoint {
         loadProfileActions();
         loadAchievements();
         loadActivityChart(30);
-        loadRecentDiscussions(5);
         loadRecentPosts(5);
 
         // Event delegation for profile actions

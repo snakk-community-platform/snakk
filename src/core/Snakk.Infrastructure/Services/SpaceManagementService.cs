@@ -29,7 +29,7 @@ public class SpaceManagementService(
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
 
-        var followers = await context.Follows
+        var followers = await context.UserFollows
             .Where(f => f.SpaceId == space.Id)
             .CountAsync(cancellationToken);
 

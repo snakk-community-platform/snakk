@@ -55,7 +55,7 @@ public static class MediaEndpoints
                 userId.Value,
                 context.RequestAborted);
 
-            return Results.Ok(new { result.PublicId, result.Url, result.ThumbnailUrl, result.BlurDataUri });
+            return Results.Ok(new { result.PublicId, result.Url, result.ThumbnailUrl, result.MediumThumbnailUrl, result.BlurDataUri });
         }
         catch (InvalidOperationException ex)
         {

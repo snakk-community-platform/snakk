@@ -1,6 +1,6 @@
 namespace Snakk.Application.Services;
 
-public record MediaUploadResult(string PublicId, string Url, string? ThumbnailUrl, string? BlurDataUri);
+public record MediaUploadResult(string PublicId, string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
 
 public interface IMediaService
 {

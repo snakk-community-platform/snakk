@@ -22,7 +22,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
 
     #region Helper Methods
 
-    private async Task<NotificationDatabaseEntity> CreateNotificationAsync(
+    private async Task<UserNotificationDatabaseEntity> CreateNotificationAsync(
         int recipientUserId,
         int? actorUserId = null,
         NotificationTypeEnum type = NotificationTypeEnum.Reply,
@@ -35,7 +35,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
         int? sourceSpaceId = null,
         string? publicId = null)
     {
-        var notification = new NotificationDatabaseEntity
+        var notification = new UserNotificationDatabaseEntity
         {
             PublicId = publicId ?? $"notif-{Guid.NewGuid():N}",
             RecipientUserId = recipientUserId,
@@ -50,7 +50,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
             SourceDiscussionId = sourceDiscussionId,
             SourceSpaceId = sourceSpaceId
         };
-        _db.Context.Notifications.Add(notification);
+        _db.Context.UserNotifications.Add(notification);
         await _db.Context.SaveChangesAsync();
 
         return notification;
@@ -225,7 +225,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
 
         // Use a separate context to verify changes were persisted
         using var verifyContext = _db.CreateSeparateContext();
-        var allNotifications = verifyContext.Notifications
+        var allNotifications = verifyContext.UserNotifications
             .Where(n => n.RecipientUserId == user.Id)
             .ToList();
 
@@ -247,7 +247,7 @@ public class NotificationRepositoryIntegrationTests : IDisposable
 
         // Use a separate context to verify changes
         using var verifyContext = _db.CreateSeparateContext();
-        var user2Count = verifyContext.Notifications
+        var user2Count = verifyContext.UserNotifications
             .Count(n => n.RecipientUserId == user2.Id && !n.IsRead);
 
         await Assert.That(user2Count).IsEqualTo(1);

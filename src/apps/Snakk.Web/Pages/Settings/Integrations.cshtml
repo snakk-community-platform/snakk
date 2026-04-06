@@ -1,0 +1,102 @@
+@page "/settings/integrations"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.Settings.IntegrationsModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Integration Settings";
+}
+
+@section LeftColumn {
+<aside class="fp-left">
+<div class="fp-left-sticky">
+    <partial name="Shared/_SettingsNav" />
+</div>
+</aside>
+}
+
+<!-- Center Column -->
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="fp-settings-content">
+
+            <!-- RSS Feeds -->
+            <div id="section-rss" class="fp-settings-section">
+                <h3 class="fp-settings-section-title">RSS Feeds</h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    Subscribe to feeds in your favourite RSS reader. Public feeds work without a token.
+                </p>
+
+                <div class="flex flex-col gap-3 text-sm mb-4">
+                    <div>
+                        <span class="font-medium">Site-wide feed</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="text" readonly value="/feed.xml" id="rss-site-url"
+                                   class="input input-sm w-full font-mono text-xs" />
+                            <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0"
+                                    data-action="copy" data-copy-target="rss-site-url" title="Copy">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-xs" style="color: var(--text-tertiary)">
+                        Feeds are also available per hub and space — look for the RSS icon or append <code>/feed.xml</code> to any hub or space URL.
+                    </p>
+                </div>
+
+                <div style="border-top: 1px solid var(--border-secondary); padding-top: 1rem;">
+                    <span class="font-medium text-sm">Personal feed token</span>
+                    <p class="text-xs mt-1 mb-3" style="color: var(--text-tertiary)">
+                        Generate a token for authenticated feeds (e.g. your followed discussions). Keep it secret — anyone with the token can read your feeds.
+                    </p>
+
+                    <div id="feed-token-section">
+                        <div id="feed-token-empty" class="hidden">
+                            <button type="button" class="btn btn-primary btn-sm" id="generate-feed-token-btn">Generate Token</button>
+                        </div>
+                        <div id="feed-token-active" class="hidden">
+                            <div class="flex items-center gap-2 mb-3">
+                                <input type="text" readonly id="feed-token-value"
+                                       class="input input-sm w-full font-mono text-xs" />
+                                <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0"
+                                        data-action="copy" data-copy-target="feed-token-value" title="Copy">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" class="btn btn-ghost btn-sm" id="regenerate-feed-token-btn">Regenerate</button>
+                                <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="revoke-feed-token-btn">Revoke</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    <div class="fp-right-section">
+        <div class="fp-right-title">On this page</div>
+        <nav class="fp-scrollspy">
+            <a href="#section-rss" class="fp-scrollspy-item active">RSS Feeds</a>
+        </nav>
+    </div>
+    <div class="fp-right-section">
+        <div class="fp-right-title">Help</div>
+        <div class="text-sm" style="color: var(--text-tertiary)">
+            <p><strong>RSS feeds</strong> let you follow discussions in your preferred reader app.</p>
+            <p class="mt-2">A <strong>personal token</strong> gives your reader access to authenticated feeds like your followed discussions.</p>
+        </div>
+    </div>
+</div>
+</aside>
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true" defer></script>
+}

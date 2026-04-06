@@ -117,11 +117,11 @@ public class DashboardChartRepository(SnakkDbContext context) : IDashboardChartR
 
         var query = scopeType switch
         {
-            "Community" => _context.Reactions
+            "Community" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.Hub.Community.PublicId == scopePublicId),
-            "Hub" => _context.Reactions
+            "Hub" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.Hub.PublicId == scopePublicId),
-            "Space" => _context.Reactions
+            "Space" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.PublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
@@ -177,11 +177,11 @@ public class DashboardChartRepository(SnakkDbContext context) : IDashboardChartR
 
         var query = scopeType switch
         {
-            "Community" => _context.Reactions
+            "Community" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.Hub.Community.PublicId == scopePublicId),
-            "Hub" => _context.Reactions
+            "Hub" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.Hub.PublicId == scopePublicId),
-            "Space" => _context.Reactions
+            "Space" => _context.PostReactions
                 .Where(r => r.Post.Discussion.Space.PublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };

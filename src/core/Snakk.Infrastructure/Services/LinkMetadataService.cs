@@ -17,7 +17,7 @@ public partial class LinkMetadataService(
     ILogger<LinkMetadataService> logger) : ILinkMetadataService
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-    private const int MaxBodyBytes = 512_000; // 500KB — enough for <head>
+    private const int MaxBodyBytes = 5_000_000; // 5MB — YouTube puts huge scripts before <meta> tags
     private const int MaxImageBytes = 5 * 1024 * 1024; // 5MB
     private const int MaxImageDimension = 800;
     private const int BlurSize = 20;
@@ -33,7 +33,7 @@ public partial class LinkMetadataService(
             return new LinkMetadata(
                 Title: null, Description: null, ImageUrl: null,
                 Domain: uri.Host, OEmbedHtml: null,
-                LocalImagePath: null, ImageBlurDataUri: null,
+                ImagePath: null, ImageThumbnailPath: null, ImageBlurDataUri: null,
                 IsInternal: true);
         }
 
@@ -49,13 +49,14 @@ public partial class LinkMetadataService(
 
             // Fetch HTML and parse OG tags
             var html = await FetchHtmlAsync(url, cancellationToken);
+
             var ogResult = html is not null ? ParseOgTags(html) : null;
 
             // Try oEmbed for known providers
             var oembedResult = await TryKnownOEmbedAsync(url, uri, cancellationToken);
 
             if (ogResult is null && oembedResult is null)
-                return new LinkMetadata(null, null, null, domain, null, null, null);
+                return new LinkMetadata(null, null, null, domain, null, null, null, null);
 
             var metadata = new LinkMetadata(
                 Title: oembedResult?.Title ?? ogResult?.Title,
@@ -63,7 +64,8 @@ public partial class LinkMetadataService(
                 ImageUrl: oembedResult?.ThumbnailUrl ?? ogResult?.ImageUrl,
                 Domain: domain,
                 OEmbedHtml: oembedResult?.Html,
-                LocalImagePath: null,
+                ImageThumbnailPath: null,
+                ImagePath: null,
                 ImageBlurDataUri: null);
 
             // Download and process the preview image
@@ -97,7 +99,7 @@ public partial class LinkMetadataService(
             var domain = json.TryGetProperty("domain", out var dm) ? dm.GetString() : null;
             var oembedHtml = json.TryGetProperty("oembedHtml", out var o) ? o.GetString() : null;
 
-            var metadata = new LinkMetadata(title, description, imageUrl, domain, oembedHtml, null, null);
+            var metadata = new LinkMetadata(title, description, imageUrl, domain, oembedHtml, null, null, null);
 
             // Download and process the preview image
             metadata = await ProcessPreviewImageAsync(metadata, cancellationToken);
@@ -143,6 +145,30 @@ public partial class LinkMetadataService(
             webpStream.Position = 0;
             await fileStorage.SaveAsync(storagePath, webpStream, "public, max-age=31536000, immutable", cancellationToken);
 
+            // Generate thumbnail (400px max)
+            string? thumbnailPath = null;
+            try
+            {
+                if (image.Width > 400 || image.Height > 400)
+                {
+                    using var thumbImage = image.Clone(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(400, 400),
+                        Mode = ResizeMode.Max
+                    }));
+
+                    thumbnailPath = $"media/link-previews/{Ulid.NewUlid()}_thumb.webp";
+                    using var thumbStream = new MemoryStream();
+                    await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 }, cancellationToken);
+                    thumbStream.Position = 0;
+                    await fileStorage.SaveAsync(thumbnailPath, thumbStream, "public, max-age=31536000, immutable", cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to generate link preview thumbnail");
+            }
+
             // Generate blur data URI (20px WebP, base64)
             string? blurDataUri = null;
             try
@@ -164,7 +190,8 @@ public partial class LinkMetadataService(
 
             return metadata with
             {
-                LocalImagePath = storagePath,
+                ImagePath = storagePath,
+                ImageThumbnailPath = thumbnailPath ?? storagePath, // fallback to full if image was already small
                 ImageBlurDataUri = blurDataUri
             };
         }
@@ -229,8 +256,11 @@ public partial class LinkMetadataService(
             var client = httpClientFactory.CreateClient("LinkMetadata");
             client.Timeout = Timeout;
 
+            var userAgent = configuration["LinkMetadata:UserAgent"]
+                ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
+
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("User-Agent", "Snakk/1.0 (Link Preview)");
+            request.Headers.Add("User-Agent", userAgent);
             request.Headers.Add("Accept", "text/html");
 
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -262,8 +292,10 @@ public partial class LinkMetadataService(
         var metaMatches = MetaTagRegex().Matches(html);
         foreach (Match match in metaMatches)
         {
-            var property = match.Groups["prop"].Value.ToLowerInvariant();
-            var content = System.Net.WebUtility.HtmlDecode(match.Groups["content"].Value);
+            // Handle both attribute orders (prop/content or content2/prop2)
+            var property = (match.Groups["prop"].Success ? match.Groups["prop"].Value : match.Groups["prop2"].Value).ToLowerInvariant();
+            var rawContent = match.Groups["content"].Success ? match.Groups["content"].Value : match.Groups["content2"].Value;
+            var content = System.Net.WebUtility.HtmlDecode(rawContent);
 
             switch (property)
             {
@@ -289,7 +321,10 @@ public partial class LinkMetadataService(
         {
             var descMatch = DescriptionMetaRegex().Match(html);
             if (descMatch.Success)
-                description = System.Net.WebUtility.HtmlDecode(descMatch.Groups[1].Value);
+                description = System.Net.WebUtility.HtmlDecode(
+                    descMatch.Groups[1].Success && descMatch.Groups[1].Length > 0
+                        ? descMatch.Groups[1].Value
+                        : descMatch.Groups[2].Value);
         }
 
         if (title is null && description is null && imageUrl is null)
@@ -386,13 +421,15 @@ public partial class LinkMetadataService(
     }
 
     // Regex patterns compiled at build time
-    [GeneratedRegex("""<meta\s+(?:property|name)=["'](?<prop>[^"']+)["']\s+content=["'](?<content>[^"']*)["']""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    // Matches both attribute orders: property/name before content, or content before property/name
+    [GeneratedRegex("""<meta\s+(?:(?:property|name)=["'](?<prop>[^"']+)["']\s+content=["'](?<content>[^"']*)["']|content=["'](?<content2>[^"']*)["']\s+(?:property|name)=["'](?<prop2>[^"']+)["'])""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex MetaTagRegex();
 
     [GeneratedRegex("""<title[^>]*>([^<]+)</title>""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex TitleTagRegex();
 
-    [GeneratedRegex("""<meta\s+name=["']description["']\s+content=["']([^"']*)["']""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    // Matches both: name then content, or content then name
+    [GeneratedRegex("""<meta\s+(?:name=["']description["']\s+content=["']([^"']*)["']|content=["']([^"']*)["']\s+name=["']description["'])""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex DescriptionMetaRegex();
 
     private bool IsInternalUrl(string url)

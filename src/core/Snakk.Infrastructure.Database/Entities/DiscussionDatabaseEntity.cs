@@ -25,6 +25,7 @@ public class DiscussionDatabaseEntity
     public DateTime? LastActivityAt { get; set; }
     public bool IsPinned { get; set; }
     public bool IsLocked { get; set; }
+    public bool IsAdultOnly { get; set; }
     public int PostCount { get; set; }
     public int ReactionCount { get; set; } // Total reactions across all posts in discussion
     public int FollowerCount { get; set; }

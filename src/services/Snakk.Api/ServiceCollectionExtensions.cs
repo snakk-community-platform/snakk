@@ -167,6 +167,10 @@ public static class ServiceCollectionExtensions
         // Display Name History Repository
         services.AddScoped<Application.Repositories.IDisplayNameHistoryRepository, Infrastructure.Database.Repositories.DisplayNameHistoryRepository>();
 
+        // Password Reset Repositories
+        services.AddScoped<Application.Repositories.IPasswordResetTokenRepository, Infrastructure.Database.Repositories.PasswordResetTokenRepository>();
+        services.AddScoped<Application.Repositories.IPasswordResetRequestRepository, Infrastructure.Database.Repositories.PasswordResetRequestRepository>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();
@@ -298,6 +302,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Application.Services.ITwoFactorSecretProtector, Infrastructure.Services.TwoFactorSecretProtector>();
         services.AddScoped<Application.Services.ITwoFactorAuthService, Infrastructure.Services.TwoFactorAuthService>();
         services.AddScoped<Application.Services.ITurnstileService, Infrastructure.Services.TurnstileService>();
+        services.AddScoped<Application.Services.IConsentService, Infrastructure.Services.ConsentService>();
 
         // Admin Services
         services.AddScoped<Application.Services.IAdminUserService, Infrastructure.Services.AdminUserService>();

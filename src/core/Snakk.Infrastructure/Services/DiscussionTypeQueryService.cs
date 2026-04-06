@@ -7,7 +7,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration configuration) : IDiscussionTypeQueryService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "/storage";
+    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     // === Question ===
 
     public async Task<QuestionStatus?> GetQuestionStatusAsync(string discussionPublicId)
@@ -67,35 +67,35 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
         return (true, null);
     }
 
-    // === Gallery ===
+    // === Images ===
 
-    public async Task<string?> GetGalleryLayoutAsync(string discussionPublicId)
+    public async Task<string?> GetImagesLayoutAsync(string discussionPublicId)
     {
-        return await context.DiscussionGalleries
+        return await context.DiscussionImages
             .Where(g => g.Discussion.PublicId == discussionPublicId && !g.Discussion.IsDeleted)
             .Select(g => g.Layout)
             .FirstOrDefaultAsync();
     }
 
-    public async Task<List<GalleryImageInfo>> GetGalleryImagesAsync(string discussionPublicId)
+    public async Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId)
     {
         var urlBase = _mediaUrlBase.TrimEnd('/') + "/";
 
-        var images = await context.GalleryImages
-            .Where(gi => gi.Gallery.Discussion.PublicId == discussionPublicId
-                && !gi.Gallery.Discussion.IsDeleted
-                && !gi.Media.IsDeleted)
+        var images = await context.DiscussionImageAttachments
+            .Where(gi => gi.DiscussionTypeImage.Discussion.PublicId == discussionPublicId
+                && !gi.DiscussionTypeImage.Discussion.IsDeleted
+                && !gi.Image.IsDeleted)
             .OrderBy(gi => gi.DisplayOrder)
             .Select(gi => new
             {
-                gi.Media.StoragePath,
-                gi.Media.ThumbnailPath,
-                gi.Media.BlurDataUri
+                gi.Image.StoragePath,
+                gi.Image.ThumbnailPath,
+                gi.Image.BlurDataUri
             })
             .ToListAsync();
 
         return images
-            .Select(m => new GalleryImageInfo(
+            .Select(m => new ImagesImageInfo(
                 urlBase + m.StoragePath.Replace('\\', '/'),
                 m.ThumbnailPath != null ? urlBase + m.ThumbnailPath.Replace('\\', '/') : null,
                 m.BlurDataUri))
@@ -122,14 +122,14 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
         // Count posts per position
         var positionIds = debate.Positions.Select(p => p.Id).ToList();
-        var positionCounts = await context.PostDebatePositions
+        var positionCounts = await context.DiscussionDebatePostPositions
             .Where(pp => positionIds.Contains(pp.PositionId))
             .GroupBy(pp => pp.PositionId)
             .Select(g => new { PositionId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.PositionId, x => x.Count);
 
         // Get post → position mapping
-        var postPositions = await context.PostDebatePositions
+        var postPositions = await context.DiscussionDebatePostPositions
             .Where(pp => positionIds.Contains(pp.PositionId))
             .Select(pp => new { PostPublicId = pp.Post.PublicId, pp.PositionId })
             .ToDictionaryAsync(x => x.PostPublicId, x => x.PositionId);
@@ -173,7 +173,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
         var postId = post.Id;
 
         // Upsert position
-        var existing = await context.PostDebatePositions
+        var existing = await context.DiscussionDebatePostPositions
             .AsTracking()
             .FirstOrDefaultAsync(pp => pp.PostId == postId);
 
@@ -183,7 +183,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
         }
         else
         {
-            context.PostDebatePositions.Add(new Database.Entities.PostDebatePositionDatabaseEntity
+            context.DiscussionDebatePostPositions.Add(new Database.Entities.DiscussionTypeDebatePostPositionDatabaseEntity
             {
                 PostId = postId,
                 PositionId = positionId
@@ -200,12 +200,12 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
     {
         var link = await context.DiscussionLinks
             .Where(l => l.Discussion.PublicId == discussionPublicId && !l.Discussion.IsDeleted)
-            .Select(l => new { l.Url, l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.LocalImagePath, l.ImageBlurDataUri, l.IsInternal })
+            .Select(l => new { l.Url, l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageBlurDataUri, l.IsInternal })
             .FirstOrDefaultAsync();
 
         if (link is null) return null;
 
-        return new LinkInfo(link.Url, link.Title, link.Description, link.ImageUrl, link.Domain, link.OEmbedHtml, link.LocalImagePath, link.ImageBlurDataUri, link.IsInternal);
+        return new LinkInfo(link.Url, link.Title, link.Description, link.ImageUrl, link.Domain, link.OEmbedHtml, link.ImagePath, link.ImageBlurDataUri, link.IsInternal);
     }
 
     // === Journal ===
@@ -219,7 +219,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
         if (journal is null) return null;
 
-        var entryPostIds = await context.JournalEntryPosts
+        var entryPostIds = await context.DiscussionJournalEntryPosts
             .Where(e => e.JournalId == journal.Id && !e.Post.IsDeleted)
             .OrderBy(e => e.Post.CreatedAt)
             .Select(e => e.Post.PublicId)
@@ -259,13 +259,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             return (false, "Post not found");
 
         // Check if already a journal entry
-        var exists = await context.JournalEntryPosts
+        var exists = await context.DiscussionJournalEntryPosts
             .AnyAsync(e => e.PostId == postId);
 
         if (exists)
             return (false, "Post is already a journal entry");
 
-        context.JournalEntryPosts.Add(new Database.Entities.JournalEntryPostDatabaseEntity
+        context.DiscussionJournalEntryPosts.Add(new Database.Entities.DiscussionTypeJournalEntryPostDatabaseEntity
         {
             PostId = postId,
             JournalId = journal.Id
@@ -294,7 +294,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
         if (iama is null) return null;
 
-        var officialAnswers = await context.IamaOfficialAnswers
+        var officialAnswers = await context.DiscussionIamaOfficialAnswers
             .Where(oa => oa.IamaId == iama.Id)
             .Select(oa => new
             {
@@ -303,7 +303,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             })
             .ToDictionaryAsync(x => x.QuestionPublicId, x => x.AnswerPublicId);
 
-        var bestQuestions = await context.IamaBestQuestions
+        var bestQuestions = await context.DiscussionIamaBestQuestions
             .Where(bq => bq.IamaId == iama.Id)
             .OrderBy(bq => bq.DisplayOrder)
             .Select(bq => bq.Post.PublicId)
@@ -362,7 +362,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             return (false, "Answer post not found");
 
         // Upsert: remove existing answer for this question if any
-        var existing = await context.IamaOfficialAnswers
+        var existing = await context.DiscussionIamaOfficialAnswers
             .AsTracking()
             .FirstOrDefaultAsync(oa => oa.IamaId == iama.Id && oa.QuestionPostId == questionPostId);
 
@@ -372,7 +372,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
         }
         else
         {
-            context.IamaOfficialAnswers.Add(new Database.Entities.IamaOfficialAnswerDatabaseEntity
+            context.DiscussionIamaOfficialAnswers.Add(new Database.Entities.DiscussionTypeIamaOfficialAnswerDatabaseEntity
             {
                 IamaId = iama.Id,
                 QuestionPostId = questionPostId,
@@ -410,11 +410,11 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             return (false, "Not an AMA discussion");
 
         // Remove existing best questions
-        var existingBest = await context.IamaBestQuestions
+        var existingBest = await context.DiscussionIamaBestQuestions
             .Where(bq => bq.IamaId == iama.Id)
             .ToListAsync();
 
-        context.IamaBestQuestions.RemoveRange(existingBest);
+        context.DiscussionIamaBestQuestions.RemoveRange(existingBest);
 
         // Add new best questions
         for (var i = 0; i < postPublicIds.Count; i++)
@@ -427,7 +427,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             if (postId == 0)
                 return (false, $"Post '{postPublicIds[i]}' not found");
 
-            context.IamaBestQuestions.Add(new Database.Entities.IamaBestQuestionDatabaseEntity
+            context.DiscussionIamaBestQuestions.Add(new Database.Entities.DiscussionTypeIamaBestQuestionDatabaseEntity
             {
                 IamaId = iama.Id,
                 PostId = postId,

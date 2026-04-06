@@ -432,17 +432,17 @@ public class TestDataBuilder
         return token;
     }
 
-    public async Task<MentionDatabaseEntity> CreateMentionAsync(int postId, int mentionedUserId)
+    public async Task<PostMentionDatabaseEntity> CreateMentionAsync(int postId, int mentionedUserId)
     {
         var id = NextId();
-        var mention = new MentionDatabaseEntity
+        var mention = new PostMentionDatabaseEntity
         {
             PublicId = $"men_{id}",
             PostId = postId,
             MentionedUserId = mentionedUserId,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Mentions.Add(mention);
+        _context.PostMentions.Add(mention);
         await _context.SaveChangesAsync();
 
         return mention;

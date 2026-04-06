@@ -87,6 +87,14 @@ public class LoginModel(
 
             var response = await authClient.LoginAsync(loginRequest);
 
+            // Check if 2FA is required
+            if (response.TwoFactorRequired)
+            {
+                var encodedEmail = Uri.EscapeDataString(Input.Email);
+                var encodedReturn = Uri.EscapeDataString(Input.ReturnUrl ?? ReturnUrl ?? "/");
+                return Redirect($"/auth/twofactorverify?email={encodedEmail}&returnUrl={encodedReturn}");
+            }
+
             if (string.IsNullOrEmpty(response.AccessToken))
             {
                 ErrorMessage = "Login failed. Please try again.";
@@ -120,6 +128,26 @@ public class LoginModel(
             var returnUrl = Input.ReturnUrl ?? ReturnUrl ?? "/";
             if (!Url.IsLocalUrl(returnUrl))
                 returnUrl = "/";
+
+            // Check if user needs to accept new consents
+            try
+            {
+                var consentHeaders = new Grpc.Core.Metadata { { "authorization", $"Bearer {response.AccessToken}" } };
+                var consentClient = HttpContext.RequestServices.GetRequiredService<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>();
+                var pending = await consentClient.GetPendingConsentsAsync(
+                    new Snakk.Protos.Consent.GetPendingConsentsRequest(), headers: consentHeaders);
+
+                if (pending.Consents.Count > 0)
+                {
+                    var encodedReturn = Uri.EscapeDataString(returnUrl);
+                    return Redirect($"/auth/consent?returnUrl={encodedReturn}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to check consent status after login");
+                // Don't block login if consent check fails
+            }
 
             return Redirect(returnUrl);
         }

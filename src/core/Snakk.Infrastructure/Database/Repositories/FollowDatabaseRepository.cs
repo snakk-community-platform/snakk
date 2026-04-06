@@ -6,13 +6,13 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
 public class FollowDatabaseRepository(SnakkDbContext context)
-    : GenericDatabaseRepository<FollowDatabaseEntity>(context), IFollowDatabaseRepository
+    : GenericDatabaseRepository<UserFollowDatabaseEntity>(context), IFollowDatabaseRepository
 {
     // Compiled queries for high-frequency follow checks
     private static readonly Func<SnakkDbContext, int, int, Task<bool>> _isFollowingDiscussion
         = EF.CompileAsyncQuery(
             (SnakkDbContext ctx, int userId, int discussionId) =>
-                ctx.Follows.Any(f =>
+                ctx.UserFollows.Any(f =>
                     f.UserId == userId
                     && f.DiscussionId == discussionId
                     && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion));
@@ -20,7 +20,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     private static readonly Func<SnakkDbContext, int, int, Task<bool>> _isFollowingSpace
         = EF.CompileAsyncQuery(
             (SnakkDbContext ctx, int userId, int spaceId) =>
-                ctx.Follows.Any(f =>
+                ctx.UserFollows.Any(f =>
                     f.UserId == userId
                     && f.SpaceId == spaceId
                     && f.TargetTypeId == (int)FollowTargetTypeEnum.Space));
@@ -28,12 +28,12 @@ public class FollowDatabaseRepository(SnakkDbContext context)
     private static readonly Func<SnakkDbContext, int, int, Task<bool>> _isFollowingUser
         = EF.CompileAsyncQuery(
             (SnakkDbContext ctx, int userId, int followedUserId) =>
-                ctx.Follows.Any(f =>
+                ctx.UserFollows.Any(f =>
                     f.UserId == userId
                     && f.FollowedUserId == followedUserId
                     && f.TargetTypeId == (int)FollowTargetTypeEnum.User));
 
-    public async Task<FollowDatabaseEntity?> GetByUserAndDiscussionAsync(
+    public async Task<UserFollowDatabaseEntity?> GetByUserAndDiscussionAsync(
         int userId,
         int discussionId) => await _dbSet
         .FirstOrDefaultAsync(f =>
@@ -41,7 +41,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             && f.DiscussionId == discussionId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion);
 
-    public async Task<FollowDatabaseEntity?> GetByUserAndSpaceAsync(
+    public async Task<UserFollowDatabaseEntity?> GetByUserAndSpaceAsync(
         int userId,
         int spaceId) => await _dbSet
         .FirstOrDefaultAsync(f =>
@@ -49,7 +49,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             && f.SpaceId == spaceId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Space);
 
-    public async Task<FollowDatabaseEntity?> GetByUserAndFollowedUserAsync(
+    public async Task<UserFollowDatabaseEntity?> GetByUserAndFollowedUserAsync(
         int userId,
         int followedUserId) => await _dbSet
         .FirstOrDefaultAsync(f =>

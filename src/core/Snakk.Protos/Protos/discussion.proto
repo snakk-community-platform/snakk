@@ -34,8 +34,8 @@ service DiscussionService {
   // Link
   rpc GetDiscussionLink (GetDiscussionLinkRequest) returns (DiscussionLinkResponse);
 
-  // Gallery
-  rpc GetGalleryLayout (GetGalleryLayoutRequest) returns (GalleryLayoutResponse);
+  // Images
+  rpc GetImagesLayout (GetImagesLayoutRequest) returns (ImagesLayoutResponse);
 
   // Journal
   rpc GetJournalEntries (GetJournalEntriesRequest) returns (JournalEntriesResponse);
@@ -73,9 +73,9 @@ message CreateDiscussionRequest {
   repeated string debate_positions = 11;
   bool debate_allow_neutral = 12;
 
-  // Gallery extension fields
-  optional string gallery_layout = 13; // grid, masonry, justified, carousel, hero
-  repeated string gallery_image_urls = 14;
+  // Images extension fields
+  optional string images_layout = 13; // grid, masonry, justified, carousel, hero
+  repeated string images_image_urls = 14;
 
   // IAMA extension fields
   bool iama_is_scheduled = 15;
@@ -90,6 +90,7 @@ message GetRecentDiscussionsRequest {
   optional string community_id = 3;
   optional string hub_id = 4;
   optional string cursor = 5;
+  optional string author_id = 6;
 }
 
 message GetDiscussionsBySpaceRequest {
@@ -147,6 +148,68 @@ message RecentDiscussionInfo {
   int32 reaction_count = 13;
   repeated string tags = 14;
   string type = 15;
+  optional DiscussionPreview preview = 16;
+}
+
+message DiscussionPreview {
+  optional PollPreview poll = 1;
+  optional DebatePreview debate = 2;
+  optional LinkPreview link = 3;
+  optional ImagesPreview images = 4;
+  optional IamaPreview iama = 5;
+}
+
+message PollPreview {
+  repeated PollPreviewOption options = 1;
+  int32 total_votes = 2;
+}
+
+message PollPreviewOption {
+  string text = 1;
+  int32 vote_count = 2;
+}
+
+message DebatePreview {
+  repeated DebatePreviewPosition positions = 1;
+}
+
+message DebatePreviewPosition {
+  string label = 1;
+  int32 index = 2;
+  int32 post_count = 3;
+}
+
+message LinkPreview {
+  string url = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string domain = 4;
+  optional string image_url = 5;
+  optional string image_path_url = 6;
+  optional string oembed_html = 7;
+  bool is_internal = 8;
+  optional string image_thumbnail_url = 9;
+}
+
+message ImagesPreview {
+  int32 image_count = 1;
+  repeated ImagesPreviewItem items = 2;
+}
+
+message ImagesPreviewItem {
+  string url = 1;
+  optional string thumbnail_url = 2;
+  optional string blur_data_uri = 3;
+  optional string medium_thumbnail_url = 4;
+}
+
+message IamaPreview {
+  int32 phase = 1;
+  optional google.protobuf.Timestamp scheduled_start_utc = 2;
+  optional google.protobuf.Timestamp scheduled_end_utc = 3;
+  int32 official_answer_count = 4;
+  int32 best_question_count = 5;
+  bool is_verified = 6;
 }
 
 message PagedRecentDiscussionList {
@@ -285,10 +348,11 @@ message DiscussionLinkResponse {
   optional string image_url = 4;
   optional string domain = 5;
   optional string oembed_html = 6;
-  optional string local_image_url = 7;
+  optional string image_path_url = 7;
   optional string blur_data_uri = 8;
   bool is_internal = 9;
 }
+
 
 // --- Journal ---
 
@@ -325,18 +389,18 @@ message AddJournalEntryResponse {
   optional string error = 2;
 }
 
-// --- Gallery ---
+// --- Images ---
 
-message GetGalleryLayoutRequest {
+message GetImagesLayoutRequest {
   string discussion_id = 1;
 }
 
-message GalleryLayoutResponse {
+message ImagesLayoutResponse {
   string layout = 1;
-  repeated GalleryImageProto images = 2;
+  repeated ImagesImageProto images = 2;
 }
 
-message GalleryImageProto {
+message ImagesImageProto {
   string url = 1;
   optional string thumbnail_url = 2;
   optional string blur_data_uri = 3;

@@ -13,7 +13,7 @@ public class ReactionAddedActivityHandler(
 {
     public async Task HandleAsync(ReactionAddedEvent @event)
     {
-        var data = await context.Reactions
+        var data = await context.PostReactions
             .Where(r => r.PublicId == @event.ReactionId.Value)
             .Select(r => new {
                 Username = r.User.DisplayName,

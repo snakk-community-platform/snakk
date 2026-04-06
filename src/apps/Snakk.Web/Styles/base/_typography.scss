@@ -32,7 +32,7 @@ h1, h2, h3, h4, h5, h6 {
 .prose-content,
 .prose {
     font-size: 0.9375rem;
-    line-height: 1.7;
+    line-height: 1.45rem;
     color: var(--text-primary);
     padding-right: 0.5rem;
 
@@ -81,6 +81,40 @@ h1, h2, h3, h4, h5, h6 {
             background: var(--breadcrumb-bg);
             padding: 0.5rem;
         }
+
+        .code-copy-btn {
+            position: absolute;
+            top: 0.25rem;
+            right: 4.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            padding: 0;
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            background: var(--breadcrumb-bg);
+            color: var(--nav-text-hover);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+            z-index: 2;
+
+            &:hover {
+                color: var(--text-primary);
+                border-color: var(--text-tertiary);
+            }
+
+            &.code-copy-btn-copied {
+                color: var(--link-primary);
+                opacity: 1;
+            }
+        }
+
+        &:hover .code-copy-btn {
+            opacity: 1;
+        }
     }
 
     pre {
@@ -100,6 +134,15 @@ h1, h2, h3, h4, h5, h6 {
             border-radius: 0;
             font-size: inherit;
             line-height: inherit;
+
+            // Soft fade between plain and highlighted states
+            span {
+                transition: color 0.2s ease;
+            }
+
+            &:not(.prism-highlighted) span {
+                color: inherit !important;
+            }
         }
 
         .line-numbers-rows {

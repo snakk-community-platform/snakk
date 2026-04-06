@@ -41,7 +41,7 @@ public class TrustedDeviceServiceTests : IDisposable
         return user;
     }
 
-    private async Task<TrustedDeviceDatabaseEntity> CreateTrustedDeviceAsync(
+    private async Task<TwoFactorTrustedDeviceDatabaseEntity> CreateTrustedDeviceAsync(
         int userId,
         string publicId = "device-001",
         string fingerprint = "fingerprint123",
@@ -49,7 +49,7 @@ public class TrustedDeviceServiceTests : IDisposable
         DateTime? revokedAt = null,
         DateTime? expiresAt = null)
     {
-        var device = new TrustedDeviceDatabaseEntity
+        var device = new TwoFactorTrustedDeviceDatabaseEntity
         {
             PublicId = publicId,
             UserId = userId,
@@ -61,7 +61,7 @@ public class TrustedDeviceServiceTests : IDisposable
             RevokedAt = revokedAt,
             ExpiresAt = expiresAt
         };
-        _context.TrustedDevices.Add(device);
+        _context.TwoFactorTrustedDevices.Add(device);
         await _context.SaveChangesAsync();
 
         return device;
@@ -170,7 +170,7 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.TrustDeviceAsync(userId, "new-fingerprint", "Chrome on Windows", "10.0.0.1", expirationDays: 30);
 
-        var device = await _context.TrustedDevices.FirstOrDefaultAsync(d => d.UserId == user.Id);
+        var device = await _context.TwoFactorTrustedDevices.FirstOrDefaultAsync(d => d.UserId == user.Id);
         await Assert.That(device).IsNotNull();
         await Assert.That(device!.DeviceFingerprint).IsEqualTo("new-fingerprint");
         await Assert.That(device.DeviceName).IsEqualTo("Chrome on Windows");
@@ -193,7 +193,7 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.TrustDeviceAsync(UserId.From(user.PublicId), fingerprint, "Chrome on Windows", "10.0.0.2", expirationDays: 60);
 
-        var devices = await _context.TrustedDevices
+        var devices = await _context.TwoFactorTrustedDevices
             .Where(d => d.UserId == user.Id && d.DeviceFingerprint == fingerprint)
             .ToListAsync();
         await Assert.That(devices.Count).IsEqualTo(1);
@@ -251,7 +251,7 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.RevokeDeviceAsync("device-to-revoke", "User requested revocation");
 
-        var revokedDevice = await _context.TrustedDevices.FirstAsync(d => d.PublicId == "device-to-revoke");
+        var revokedDevice = await _context.TwoFactorTrustedDevices.FirstAsync(d => d.PublicId == "device-to-revoke");
         await Assert.That(revokedDevice.RevokedAt).IsNotNull();
         await Assert.That(revokedDevice.RevocationReason).IsEqualTo("User requested revocation");
     }
@@ -270,7 +270,7 @@ public class TrustedDeviceServiceTests : IDisposable
 
         await _service.RevokeAllDevicesAsync(UserId.From(user.PublicId), "Password changed");
 
-        var devices = await _context.TrustedDevices
+        var devices = await _context.TwoFactorTrustedDevices
             .Where(d => d.UserId == user.Id)
             .ToListAsync();
         await Assert.That(devices.Count).IsEqualTo(3);

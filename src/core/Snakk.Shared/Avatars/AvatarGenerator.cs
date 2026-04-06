@@ -190,16 +190,8 @@ public static class AvatarGenerator
     private static string GenerateMarble(byte[] hash, string[] colors, int size)
     {
         var svg = new StringBuilder();
-        var maskId = $"mask_{hash[0]:X2}{hash[1]:X2}";
 
         svg.Append($@"<svg viewBox=""0 0 {size} {size}"" fill=""none"" xmlns=""http://www.w3.org/2000/svg"" width=""{size}"" height=""{size}"">");
-
-        // Define mask for circular clipping
-        svg.Append($@"<mask id=""{maskId}"" maskUnits=""userSpaceOnUse"" x=""0"" y=""0"" width=""{size}"" height=""{size}"">");
-        svg.Append($@"<circle cx=""{size / 2}"" cy=""{size / 2}"" r=""{size / 2}"" fill=""white""/>");
-        svg.Append("</mask>");
-
-        svg.Append($@"<g mask=""url(#{maskId})"">");
 
         // Background
         svg.Append($@"<rect width=""{size}"" height=""{size}"" fill=""{colors[0]}""/>");
@@ -229,7 +221,6 @@ public static class AvatarGenerator
             svg.Append($@"<circle cx=""{cx:F1}"" cy=""{cy:F1}"" r=""{r:F1}"" fill=""{colors[colorIdx]}"" opacity=""0.7""/>");
         }
 
-        svg.Append("</g>");
         svg.Append("</svg>");
 
         return svg.ToString();

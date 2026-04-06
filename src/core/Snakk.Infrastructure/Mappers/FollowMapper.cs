@@ -8,7 +8,7 @@ using Snakk.Shared.Enums;
 
 public static class FollowMapper
 {
-    public static Follow FromPersistence(this FollowDatabaseEntity entity) =>
+    public static Follow FromPersistence(this UserFollowDatabaseEntity entity) =>
         Follow.Rehydrate(
             FollowId.From(entity.PublicId),
             UserId.From(entity.User.PublicId),
@@ -19,7 +19,7 @@ public static class FollowMapper
             ((FollowLevelEnum)entity.LevelId).ToDomain(),
             entity.CreatedAt);
 
-    public static FollowDatabaseEntity ToPersistence(this Follow follow) =>
+    public static UserFollowDatabaseEntity ToPersistence(this Follow follow) =>
         new()
         {
             PublicId = follow.PublicId,

@@ -50,6 +50,7 @@ public class SnakkApiClient(
     MarkupService.MarkupServiceClient markupClient,
     AuthService.AuthServiceClient authClient,
     Snakk.Protos.Banner.BannerService.BannerServiceClient bannerClient,
+    Snakk.Protos.Consent.ConsentService.ConsentServiceClient consentClient,
     ILogger<SnakkApiClient> logger)
 {
     private void LogGrpcError(Exception ex, [CallerMemberName] string? caller = null)
@@ -255,9 +256,9 @@ public class SnakkApiClient(
         // Debate extension
         IEnumerable<string>? debatePositions = null,
         bool debateAllowNeutral = false,
-        // Gallery extension
-        string? galleryLayout = null,
-        IEnumerable<string>? galleryImageUrls = null,
+        // Images extension
+        string? imagesLayout = null,
+        IEnumerable<string>? imagesImageUrls = null,
         // IAMA extension
         bool iamaIsScheduled = false,
         DateTime? iamaScheduledStart = null,
@@ -275,8 +276,8 @@ public class SnakkApiClient(
             if (linkUrl is not null) request.LinkUrl = linkUrl;
             if (debatePositions is not null) request.DebatePositions.AddRange(debatePositions);
             request.DebateAllowNeutral = debateAllowNeutral;
-            if (galleryLayout is not null) request.GalleryLayout = galleryLayout;
-            if (galleryImageUrls is not null) request.GalleryImageUrls.AddRange(galleryImageUrls);
+            if (imagesLayout is not null) request.ImagesLayout = imagesLayout;
+            if (imagesImageUrls is not null) request.ImagesImageUrls.AddRange(imagesImageUrls);
             request.IamaIsScheduled = iamaIsScheduled;
             if (iamaScheduledStart.HasValue) request.IamaScheduledStart = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledStart.Value, DateTimeKind.Utc));
             if (iamaScheduledEnd.HasValue) request.IamaScheduledEnd = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledEnd.Value, DateTimeKind.Utc));
@@ -287,7 +288,7 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? cursor = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? cursor = null, string? authorId = null)
     {
         try
         {
@@ -295,6 +296,7 @@ public class SnakkApiClient(
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
             if (cursor is not null) request.Cursor = cursor;
+            if (authorId is not null) request.AuthorId = authorId;
 
             return await discussionClient.GetRecentDiscussionsAsync(request);
         }
@@ -529,13 +531,13 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    // ==================== Gallery ====================
+    // ==================== Images ====================
 
-    public virtual async Task<GalleryLayoutResponse?> GetGalleryDataAsync(string discussionId)
+    public virtual async Task<ImagesLayoutResponse?> GetImagesDataAsync(string discussionId)
     {
         try
         {
-            return await discussionClient.GetGalleryLayoutAsync(new GetGalleryLayoutRequest { DiscussionId = discussionId });
+            return await discussionClient.GetImagesLayoutAsync(new GetImagesLayoutRequest { DiscussionId = discussionId });
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
@@ -653,7 +655,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null, bool? allowAdultContent = null)
     {
         try
         {
@@ -661,6 +663,7 @@ public class SnakkApiClient(
             if (autoFollowOnReply.HasValue) request.AutoFollowOnReply = autoFollowOnReply.Value;
             if (timezone is not null) request.Timezone = timezone;
             if (bio is not null) request.Bio = bio;
+            if (allowAdultContent.HasValue) request.AllowAdultContent = allowAdultContent.Value;
             await authClient.UpdatePreferencesAsync(request);
 
             return true;
@@ -1398,6 +1401,18 @@ public class SnakkApiClient(
             LogGrpcError(ex);
             return null;
         }
+    }
+
+    // ==================== Consent ====================
+
+    public virtual async Task<Snakk.Protos.Consent.GetConsentTextResponse?> GetConsentTextAsync(string slug)
+    {
+        try
+        {
+            return await consentClient.GetConsentTextAsync(
+                new Snakk.Protos.Consent.GetConsentTextRequest { Slug = slug });
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 }
 

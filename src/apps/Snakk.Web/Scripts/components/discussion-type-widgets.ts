@@ -1,27 +1,39 @@
 /**
  * Discussion Type Widgets — client-side interactivity for type-specific features.
  * Data display (badges, bars, previews) is server-rendered in Razor.
- * This script handles: interactive buttons, Guide TOC, Gallery layout toggle.
+ * This script handles: interactive buttons, Guide TOC, Images layout toggle.
  */
 
 (function() {
     'use strict';
 
     function init(): void {
-        // Gallery inits from server-rendered DOM, no dataset dependency
-        initGallery();
+        initImages();
 
-        const discussionType = document.body.dataset.discussionType || '';
-        const discussionId = document.body.dataset.discussionId || '';
-        const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
+        // Detect discussion type from DOM elements instead of body dataset
+        // (body dataset is set by discussion-detail.ts which may load after this script)
+        const discussionId = document.body.dataset.discussionId
+            || document.querySelector<HTMLElement>('[data-discussion-id]')?.dataset.discussionId
+            || '';
+        const isAuthenticated = document.body.dataset.isAuthenticated === 'true'
+            || document.querySelector('meta[name="current-user-id"]') !== null;
 
-        if (!discussionId || discussionType === 'Standard') return;
-
-        if (discussionType === 'Question') initQuestionActions(discussionId, isAuthenticated);
-        if (discussionType === 'Debate') initDebateActions(discussionId, isAuthenticated);
-        if (discussionType === 'Journal') initJournalActions(discussionId, isAuthenticated);
-        if (discussionType === 'Guide') initGuideToc();
-        if (discussionType === 'Link') initLinkEmbed();
+        // These init from body dataset set by discussion-detail.ts — defer until it's available
+        const tryInitTypeActions = (): void => {
+            const type = document.body.dataset.discussionType || '';
+            if (!type || type === 'Standard' || !discussionId) return;
+            if (type === 'Question') initQuestionActions(discussionId, isAuthenticated);
+            if (type === 'Debate') initDebateActions(discussionId, isAuthenticated);
+            if (type === 'Journal') initJournalActions(discussionId, isAuthenticated);
+            if (type === 'Guide') initGuideToc();
+        };
+        if (document.body.dataset.discussionType) {
+            tryInitTypeActions();
+        } else {
+            // Defer — discussion-detail.ts will set body dataset shortly
+            requestAnimationFrame(tryInitTypeActions);
+        }
+        if (document.getElementById('link-preview-container')) initLinkEmbed();
     }
 
     if (document.readyState === 'loading') {
@@ -166,26 +178,26 @@
         });
     }
 
-    // ─── Gallery: Carousel interactivity (layout is server-rendered) ───
+    // ─── Images: Carousel interactivity (layout is server-rendered) ───
 
-    function initGallery(): void {
-        const galleryDisplay = document.querySelector('.gallery-display');
-        if (!galleryDisplay) return; // No server-rendered gallery
+    function initImages(): void {
+        const imagesDisplay = document.querySelector('.images-display');
+        if (!imagesDisplay) return; // No server-rendered images
 
         // Mark cached images as loaded (backup for onload already fired)
-        galleryDisplay.querySelectorAll('img.gallery-blur-up').forEach(img => {
+        imagesDisplay.querySelectorAll('img.images-blur-up').forEach(img => {
             if ((img as HTMLImageElement).complete) {
-                img.classList.add('gallery-loaded');
-                img.closest('.gallery-upload-item')?.classList.add('gallery-item-loaded');
+                img.classList.add('images-loaded');
+                img.closest('.images-upload-item')?.classList.add('images-item-loaded');
             }
         });
 
-        // Lightbox — event delegation on the gallery container
-        galleryDisplay.addEventListener('click', (e) => {
-            const item = (e.target as HTMLElement).closest('.gallery-upload-item');
+        // Lightbox — event delegation on the images container
+        imagesDisplay.addEventListener('click', (e) => {
+            const item = (e.target as HTMLElement).closest('.images-upload-item');
             if (!item) return;
 
-            const allItems = galleryDisplay.querySelectorAll('.gallery-upload-item');
+            const allItems = imagesDisplay.querySelectorAll('.images-upload-item');
             const idx = Array.from(allItems).indexOf(item);
             if (idx < 0) return;
 
@@ -200,8 +212,8 @@
         });
 
         // Preload full image on hover
-        galleryDisplay.addEventListener('mouseenter', (e) => {
-            const item = (e.target as HTMLElement).closest('.gallery-upload-item');
+        imagesDisplay.addEventListener('mouseenter', (e) => {
+            const item = (e.target as HTMLElement).closest('.images-upload-item');
             if (!item) return;
             const img = item.querySelector('img') as HTMLImageElement | null;
             const fullUrl = img?.dataset.full;
@@ -211,11 +223,11 @@
         }, true);
 
         // Carousel interactivity (only if carousel layout)
-        const track = document.getElementById('gallery-carousel-track') as HTMLElement | null;
-        const dots = document.getElementById('gallery-carousel-dots');
+        const track = document.getElementById('images-carousel-track') as HTMLElement | null;
+        const counter = document.getElementById('images-carousel-counter');
         if (!track) return;
 
-        const items = track.querySelectorAll('.gallery-upload-item');
+        const items = track.querySelectorAll('.images-upload-item');
         if (items.length <= 1) return;
 
         let carouselIdx = 0;
@@ -224,9 +236,7 @@
             carouselIdx = newIdx;
             track!.style.transform = `translateX(-${carouselIdx * 100}%)`;
 
-            dots?.querySelectorAll('.gup-carousel-dot').forEach((dot, i) => {
-                dot.classList.toggle('gup-carousel-dot-active', i === carouselIdx);
-            });
+            if (counter) counter.textContent = `${carouselIdx + 1} / ${items.length}`;
 
             // Lazy-load current + adjacent slides with full-res images
             [carouselIdx - 1, carouselIdx, carouselIdx + 1].forEach(idx => {
@@ -256,13 +266,6 @@
             const target = carouselIdx + 1;
             const img = items[target]?.querySelector('img') as HTMLImageElement | null;
             if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
-        });
-
-        // Dot navigation
-        dots?.querySelectorAll('.gup-carousel-dot').forEach(dot => {
-            dot.addEventListener('click', () => {
-                slide(parseInt((dot as HTMLElement).dataset.idx || '0'));
-            });
         });
     }
 
@@ -334,6 +337,86 @@
         return null;
     }
 
+    // Maps link domains to the provider keys stored in localStorage('snakk:embed-providers')
+    const DOMAIN_TO_PROVIDER: Record<string, string> = {
+        'youtube.com': 'youtube', 'www.youtube.com': 'youtube', 'youtu.be': 'youtube',
+        'vimeo.com': 'vimeo', 'player.vimeo.com': 'vimeo',
+        'tiktok.com': 'tiktok', 'www.tiktok.com': 'tiktok',
+        'twitter.com': 'twitter', 'platform.twitter.com': 'twitter', 'x.com': 'twitter',
+        'bsky.app': 'bluesky', 'embed.bsky.app': 'bluesky',
+        'reddit.com': 'reddit', 'www.reddit.com': 'reddit', 'embed.reddit.com': 'reddit', 'old.reddit.com': 'reddit',
+        'open.spotify.com': 'spotify',
+        'soundcloud.com': 'soundcloud', 'w.soundcloud.com': 'soundcloud',
+        'bandcamp.com': 'bandcamp',
+        'twitch.tv': 'twitch', 'player.twitch.tv': 'twitch', 'clips.twitch.tv': 'twitch',
+        'imgur.com': 'imgur', 'i.imgur.com': 'imgur',
+        'codepen.io': 'codepen',
+        'canva.com': 'canva', 'www.canva.com': 'canva'
+    };
+
+    function getEmbedProviderKey(domain: string): string | null {
+        const d = domain.toLowerCase();
+        if (DOMAIN_TO_PROVIDER[d]) return DOMAIN_TO_PROVIDER[d]!;
+        // Handle bandcamp subdomains (artist.bandcamp.com)
+        if (d.endsWith('.bandcamp.com')) return 'bandcamp';
+        return null;
+    }
+
+    function isProviderAutoEmbed(domain: string): boolean {
+        const key = getEmbedProviderKey(domain);
+        if (!key) return false;
+        try {
+            const prefs: Record<string, boolean> = JSON.parse(localStorage.getItem('snakk:embed-providers') || '{}');
+            return !!prefs[key];
+        } catch {
+            return false;
+        }
+    }
+
+    function loadEmbed(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null, auto: boolean): void {
+        const iframeSrc = extractIframeSrc(oembedHtml);
+        if (!iframeSrc) return;
+
+        const card = container.querySelector('.link-preview-card') as HTMLElement | null;
+
+        if (auto) {
+            // Auto-embed: remove card and button entirely
+            card?.remove();
+            embedBtn?.remove();
+        } else {
+            // Manual: hide so they can be restored
+            if (card) card.style.display = 'none';
+            if (embedBtn) embedBtn.style.display = 'none';
+        }
+
+        // Build embed container
+        const embedContainer = document.createElement('div');
+        embedContainer.className = 'link-embed-container';
+
+        const iframe = document.createElement('iframe');
+        iframe.src = iframeSrc;
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('allow', 'autoplay; encrypted-media');
+        iframe.style.aspectRatio = '16 / 9';
+        embedContainer.appendChild(iframe);
+
+        if (!auto) {
+            // Back button only for manual embeds
+            const backBtn = document.createElement('button');
+            backBtn.className = 'link-embed-btn';
+            backBtn.textContent = 'Show link card';
+            backBtn.addEventListener('click', () => {
+                embedContainer.remove();
+                backBtn.remove();
+                if (card) card.style.display = '';
+                if (embedBtn) embedBtn.style.display = '';
+            });
+            container.appendChild(backBtn);
+        }
+
+        container.appendChild(embedContainer);
+    }
+
     function initLinkEmbed(): void {
         const container = document.getElementById('link-preview-container');
         if (!container) return;
@@ -342,41 +425,17 @@
         if (!embedBtn) return;
 
         const oembedHtml = embedBtn.dataset.oembedHtml || '';
+        const domain = embedBtn.dataset.domain || '';
 
+        // Auto-load if user has enabled this provider
+        if (domain && isProviderAutoEmbed(domain)) {
+            loadEmbed(container, oembedHtml, embedBtn, true);
+            return;
+        }
+
+        // Manual click
         embedBtn.addEventListener('click', () => {
-            const iframeSrc = extractIframeSrc(oembedHtml);
-            if (!iframeSrc) return;
-
-            const card = container.querySelector('.link-preview-card') as HTMLElement | null;
-
-            // Hide card and embed button
-            if (card) card.style.display = 'none';
-            embedBtn.style.display = 'none';
-
-            // Build embed container
-            const embedContainer = document.createElement('div');
-            embedContainer.className = 'link-embed-container';
-
-            const iframe = document.createElement('iframe');
-            iframe.src = iframeSrc;
-            iframe.setAttribute('allowfullscreen', '');
-            iframe.setAttribute('allow', 'autoplay; encrypted-media');
-            iframe.style.aspectRatio = '16 / 9';
-            embedContainer.appendChild(iframe);
-
-            // Back button
-            const backBtn = document.createElement('button');
-            backBtn.className = 'link-embed-btn';
-            backBtn.textContent = 'Show link card';
-            backBtn.addEventListener('click', () => {
-                embedContainer.remove();
-                backBtn.remove();
-                if (card) card.style.display = '';
-                embedBtn.style.display = '';
-            });
-
-            container.appendChild(embedContainer);
-            container.appendChild(backBtn);
+            loadEmbed(container, oembedHtml, embedBtn, false);
         });
     }
 

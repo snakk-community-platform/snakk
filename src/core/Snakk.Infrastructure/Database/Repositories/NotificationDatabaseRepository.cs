@@ -6,13 +6,13 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Models;
 
 public class NotificationDatabaseRepository(SnakkDbContext context)
-    : GenericDatabaseRepository<NotificationDatabaseEntity>(context), INotificationDatabaseRepository
+    : GenericDatabaseRepository<UserNotificationDatabaseEntity>(context), INotificationDatabaseRepository
 {
 
-    public async Task<NotificationDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
+    public async Task<UserNotificationDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet.FirstOrDefaultAsync(n => n.PublicId == publicId);
 
-    public async Task<PagedResult<NotificationDatabaseEntity>> GetByUserIdAsync(
+    public async Task<PagedResult<UserNotificationDatabaseEntity>> GetByUserIdAsync(
         int userId,
         int offset,
         int pageSize)
@@ -28,7 +28,7 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize) : items;
 
-        return new PagedResult<NotificationDatabaseEntity>
+        return new PagedResult<UserNotificationDatabaseEntity>
         {
             Items = resultItems,
             Offset = offset,

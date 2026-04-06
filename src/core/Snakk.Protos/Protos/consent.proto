@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Consent";
+
+package snakk.consent;
+
+service ConsentService {
+  rpc GetRequiredConsents (GetRequiredConsentsRequest) returns (GetRequiredConsentsResponse);
+  rpc GetPendingConsents (GetPendingConsentsRequest) returns (GetPendingConsentsResponse);
+  rpc AcceptConsents (AcceptConsentsRequest) returns (AcceptConsentsResponse);
+  rpc GetConsentText (GetConsentTextRequest) returns (GetConsentTextResponse);
+}
+
+// --- Requests ---
+
+message GetRequiredConsentsRequest {}
+
+message GetPendingConsentsRequest {}
+
+message AcceptConsentsRequest {
+  repeated int32 version_ids = 1;
+  string ip_address = 2;
+}
+
+message GetConsentTextRequest {
+  string slug = 1;
+}
+
+// --- Responses ---
+
+message ConsentTypeInfo {
+  string slug = 1;
+  string name = 2;
+  string short_label = 3;
+  string link_url = 4;
+  bool is_required = 5;
+  int32 latest_version_id = 6;
+}
+
+message GetRequiredConsentsResponse {
+  repeated ConsentTypeInfo consents = 1;
+}
+
+message PendingConsentInfo {
+  string slug = 1;
+  string name = 2;
+  string short_label = 3;
+  string link_url = 4;
+  int32 version_id = 5;
+}
+
+message GetPendingConsentsResponse {
+  repeated PendingConsentInfo consents = 1;
+}
+
+message AcceptConsentsResponse {
+  bool success = 1;
+}
+
+message GetConsentTextResponse {
+  string text = 1;
+  int32 version_number = 2;
+}

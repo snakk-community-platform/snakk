@@ -42,6 +42,7 @@
                     <li><a href="#section-display-name" class="settings-nav-item" data-scrollspy-link>Display Name</a></li>
                     <li><a href="#section-behavior" class="settings-nav-item" data-scrollspy-link>Behavior</a></li>
                     <li><a href="#section-display" class="settings-nav-item" data-scrollspy-link>Display</a></li>
+                    <li><a href="#section-embeds" class="settings-nav-item" data-scrollspy-link>Embeds</a></li>
                     <li><a href="#section-rss" class="settings-nav-item" data-scrollspy-link>RSS Feeds</a></li>
                     <li><a href="#section-devices" class="settings-nav-item" data-scrollspy-link>Devices</a></li>
                 </ul>
@@ -210,6 +211,83 @@
                     </div>
                 </div>
 
+                <!-- Two-Factor Authentication -->
+                <div id="section-2fa">
+                    <div class="section-header">
+                        <span class="section-title">Two-Factor Authentication</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="p-4" id="two-factor-section">
+                            <div id="2fa-loading" class="text-sm text-base-content/50">Loading 2FA status...</div>
+
+                            <!-- Status: Disabled -->
+                            <div id="2fa-disabled" class="hidden space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="badge badge-ghost badge-sm">Disabled</div>
+                                    <span class="text-sm text-base-content/60">Add an extra layer of security to your account.</span>
+                                </div>
+                                <button class="btn btn-primary btn-sm" id="2fa-setup-btn">Enable 2FA</button>
+                            </div>
+
+                            <!-- Setup: QR Code -->
+                            <div id="2fa-setup" class="hidden space-y-4">
+                                <p class="text-sm text-base-content/60">
+                                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to verify.
+                                </p>
+                                <div class="flex flex-col items-center gap-3 py-2">
+                                    <div id="2fa-qr-container" class="p-3 bg-white rounded-lg inline-block">
+                                        <img id="2fa-qr-img" alt="QR Code" width="200" height="200" />
+                                    </div>
+                                    <details class="text-xs text-base-content/50">
+                                        <summary class="cursor-pointer">Can't scan? Enter manually</summary>
+                                        <code id="2fa-manual-key" class="block mt-2 p-2 bg-base-200 rounded text-xs select-all break-all"></code>
+                                    </details>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="text" id="2fa-verify-code" class="input w-40"
+                                           placeholder="6-digit code" maxlength="8" autocomplete="one-time-code" inputmode="numeric" />
+                                    <button class="btn btn-primary btn-sm" id="2fa-verify-btn">Verify &amp; Enable</button>
+                                    <button class="btn btn-ghost btn-sm" id="2fa-cancel-btn">Cancel</button>
+                                </div>
+                            </div>
+
+                            <!-- Setup: Backup Codes -->
+                            <div id="2fa-backup-codes" class="hidden space-y-4">
+                                <div class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                    <span class="font-medium text-sm">Save your backup codes</span>
+                                </div>
+                                <p class="text-sm text-base-content/60">
+                                    These codes can be used to sign in if you lose your authenticator. Each code can only be used once. Store them somewhere safe.
+                                </p>
+                                <div id="2fa-codes-grid" class="grid grid-cols-2 gap-1 p-3 bg-base-200 rounded font-mono text-sm"></div>
+                                <button class="btn btn-sm btn-ghost" id="2fa-copy-codes-btn">Copy codes</button>
+                                <button class="btn btn-sm btn-primary" id="2fa-codes-done-btn">I've saved my codes</button>
+                            </div>
+
+                            <!-- Status: Enabled -->
+                            <div id="2fa-enabled" class="hidden space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="badge badge-success badge-sm">Enabled</div>
+                                    <span class="text-sm text-base-content/60">Your account is protected with two-factor authentication.</span>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                    <div id="2fa-backup-status" class="text-sm text-base-content/60"></div>
+                                    <div class="flex gap-2">
+                                        <button class="btn btn-ghost btn-sm" id="2fa-regen-btn">Regenerate Backup Codes</button>
+                                        <button class="btn btn-error btn-sm btn-outline" id="2fa-disable-btn">Disable 2FA</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="2fa-status-message" class="mt-3 text-sm hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Behavior -->
                 <div id="section-behavior">
                     <div class="section-header">
@@ -225,6 +303,18 @@
                                     <span class="font-medium">Auto-follow on reply</span>
                                     <span class="block text-sm text-base-content/50">
                                         Automatically follow discussions when you post a reply.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="flex items-center gap-4 cursor-pointer">
+                                <input type="checkbox"
+                                       name="allowAdultContent"
+                                       class="toggle toggle-primary" />
+                                <span>
+                                    <span class="font-medium">Show adult content</span>
+                                    <span class="block text-sm text-base-content/50">
+                                        Skip age verification prompts on adult-only content.
                                     </span>
                                 </span>
                             </label>
@@ -492,6 +582,116 @@
                                 <label class="label">
                                     <span class="label-text-alt text-base-content/50">Applies to hand and face emojis in the editor</span>
                                 </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- External Embeds Section -->
+                <div id="section-embeds">
+                    <div class="section-header">
+                        <span class="section-title">External Embedded Content</span>
+                    </div>
+                    <div class="clean-card mb-6">
+                        <div class="p-4">
+                            <p class="text-sm text-base-content/60 mb-2">
+                                When a link discussion points to a supported source, enabling it here will automatically load the embedded content instead of showing a link card.
+                            </p>
+                            <div class="flex items-start gap-2 text-xs text-warning mb-4 p-2.5 rounded-lg bg-warning/10">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Enabling embeds allows the selected services to set cookies and track your activity through their embedded content. Only enable sources you trust.</span>
+                            </div>
+
+                            <div class="space-y-4" id="embed-providers">
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Video</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="youtube" />
+                                            <span class="text-sm">YouTube</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="vimeo" />
+                                            <span class="text-sm">Vimeo</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="tiktok" />
+                                            <span class="text-sm">TikTok</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Social</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitter" />
+                                            <span class="text-sm">Twitter / X</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="bluesky" />
+                                            <span class="text-sm">Bluesky</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="reddit" />
+                                            <span class="text-sm">Reddit</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Audio & Music</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="spotify" />
+                                            <span class="text-sm">Spotify</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="soundcloud" />
+                                            <span class="text-sm">SoundCloud</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="bandcamp" />
+                                            <span class="text-sm">Bandcamp</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Streaming</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitch" />
+                                            <span class="text-sm">Twitch</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Images</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="imgur" />
+                                            <span class="text-sm">Imgur</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Code & Design</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="codepen" />
+                                            <span class="text-sm">CodePen</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="canva" />
+                                            <span class="text-sm">Canva</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

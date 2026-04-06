@@ -231,7 +231,7 @@
         color: oklch(0.4 0.15 220);
     }
 
-    &.type-gallery {
+    &.type-images {
         background-color: oklch(0.9 0.05 330);
         color: oklch(0.4 0.15 330);
     }
@@ -274,7 +274,7 @@
         color: oklch(0.8 0.1 220);
     }
 
-    &.type-gallery {
+    &.type-images {
         background-color: oklch(0.3 0.05 330);
         color: oklch(0.8 0.1 330);
     }
@@ -435,10 +435,8 @@
 // ============================================
 
 .thread-nav {
-    position: fixed;
+    position: sticky;
     bottom: 0;
-    left: 0;
-    right: 0;
     z-index: 40;
     background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
     border-top: 1px solid var(--border-primary);

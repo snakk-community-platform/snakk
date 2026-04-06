@@ -17,7 +17,7 @@ public class ReactionRepositoryAdapter(
     public async Task<Reaction?> GetByUserPostAndTypeAsync(UserId userId, PostId postId, ReactionType type)
     {
         var typeId = (int)type.ToShared();
-        var projection = await context.Reactions
+        var projection = await context.PostReactions
             .Where(r =>
                 r.User.PublicId == userId.Value
                 && r.Post.PublicId == postId.Value
@@ -31,7 +31,7 @@ public class ReactionRepositoryAdapter(
 
     public async Task<Reaction?> GetByUserAndPostAsync(UserId userId, PostId postId)
     {
-        var projection = await context.Reactions
+        var projection = await context.PostReactions
             .Where(r =>
                 r.User.PublicId == userId.Value
                 && r.Post.PublicId == postId.Value)
@@ -44,7 +44,7 @@ public class ReactionRepositoryAdapter(
 
     public async Task<IEnumerable<Reaction>> GetByPostIdAsync(PostId postId)
     {
-        var projections = await context.Reactions
+        var projections = await context.PostReactions
             .Where(r => r.Post.PublicId == postId.Value)
             .Select(r => new ReactionProjection(
                 r.PublicId, r.Post.PublicId, r.User.PublicId,
@@ -135,7 +135,7 @@ public class ReactionRepositoryAdapter(
             .Select(p => p.Id)
             .ToList();
 
-        var reactions = await context.Reactions
+        var reactions = await context.PostReactions
             .Where(r => internalIds.Contains(r.PostId))
             .GroupBy(r => new {
                 r.PostId,
@@ -190,7 +190,7 @@ public class ReactionRepositoryAdapter(
             .Select(p => p.Id)
             .ToList();
 
-        var userReactions = await context.Reactions
+        var userReactions = await context.PostReactions
             .Where(r =>
                 r.UserId == user.Id
                 && internalIds.Contains(r.PostId))

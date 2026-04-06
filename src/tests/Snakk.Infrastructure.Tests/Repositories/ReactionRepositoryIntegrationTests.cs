@@ -21,9 +21,9 @@ public class ReactionRepositoryIntegrationTests : IDisposable
 
     #region Helper Methods
 
-    private async Task<ReactionDatabaseEntity> CreateReactionAsync(int userId, int postId, int typeId = 1)
+    private async Task<PostReactionDatabaseEntity> CreateReactionAsync(int userId, int postId, int typeId = 1)
     {
-        var reaction = new ReactionDatabaseEntity
+        var reaction = new PostReactionDatabaseEntity
         {
             PublicId = $"reaction_{Guid.NewGuid():N}",
             UserId = userId,
@@ -31,7 +31,7 @@ public class ReactionRepositoryIntegrationTests : IDisposable
             TypeId = typeId,
             CreatedAt = DateTime.UtcNow
         };
-        _db.Context.Reactions.Add(reaction);
+        _db.Context.PostReactions.Add(reaction);
         await _db.Context.SaveChangesAsync();
 
         return reaction;

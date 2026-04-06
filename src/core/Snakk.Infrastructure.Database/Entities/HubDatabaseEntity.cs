@@ -22,6 +22,7 @@ public class HubDatabaseEntity
     public bool AllowAnonymousReading { get; set; }
     public bool RequireEmailConfirmation { get; set; }
     public bool IsRestricted { get; set; }
+    public bool IsAdultOnly { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }

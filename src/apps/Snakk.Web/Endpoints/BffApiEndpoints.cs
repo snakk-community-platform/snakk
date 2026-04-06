@@ -150,6 +150,25 @@ public static class BffApiEndpoints
         group.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
             .WithName("BffRevokeMyDevice");
 
+        // 2FA management
+        group.MapGet("/auth/2fa/status", Get2FAStatusBffAsync)
+            .WithName("BffGet2FAStatus");
+
+        group.MapPost("/auth/2fa/setup", Setup2FABffAsync)
+            .WithName("BffSetup2FA");
+
+        group.MapPost("/auth/2fa/enable", Enable2FABffAsync)
+            .WithName("BffEnable2FA");
+
+        group.MapPost("/auth/2fa/disable", Disable2FABffAsync)
+            .WithName("BffDisable2FA");
+
+        group.MapGet("/auth/2fa/backup-codes", GetBackupCodesBffAsync)
+            .WithName("BffGetBackupCodes");
+
+        group.MapPost("/auth/2fa/backup-codes/regenerate", RegenerateBackupCodesBffAsync)
+            .WithName("BffRegenerateBackupCodes");
+
         // User operations
         group.MapGet("/users/{userId}/stats", GetUserStatsAsync)
             .WithName("BffGetUserStats");
@@ -673,7 +692,7 @@ public static class BffApiEndpoints
 
             // Set updated cookies (no tokens in response body)
             AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
-            return Results.Ok();
+            return Results.Ok(new { needsConsent = response.NeedsConsent });
         }
         catch
         {
@@ -729,7 +748,8 @@ public static class BffApiEndpoints
             hasPassword = apiResult.HasPassword,
             avatarUrl = apiResult.HasAvatarUrl ? apiResult.AvatarUrl : null,
             bio = apiResult.HasBio ? apiResult.Bio : null,
-            feedToken = apiResult.HasFeedToken ? apiResult.FeedToken : null
+            feedToken = apiResult.HasFeedToken ? apiResult.FeedToken : null,
+            allowAdultContent = apiResult.AllowAdultContent
         });
     }
 
@@ -781,7 +801,7 @@ public static class BffApiEndpoints
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio);
+        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
 
         // Update timezone cookie
@@ -1672,7 +1692,7 @@ public static class BffApiEndpoints
             description = link.HasDescription ? link.Description : null,
             imageUrl = link.HasImageUrl ? link.ImageUrl : null,
             domain = link.HasDomain ? link.Domain : null,
-            localImageUrl = link.HasLocalImageUrl ? link.LocalImageUrl : null,
+            imagePathUrl = link.HasImagePathUrl ? link.ImagePathUrl : null,
             blurDataUri = link.HasBlurDataUri ? link.BlurDataUri : null,
             oembedHtml = link.HasOembedHtml ? link.OembedHtml : null,
             isInternal = link.IsInternal
@@ -1734,6 +1754,112 @@ public static class BffApiEndpoints
         return result.Success
             ? Results.Ok(new { success = true })
             : Results.BadRequest(new { error = result.HasError ? result.Error : "Remove vote failed" });
+    }
+
+    // --- 2FA Management ---
+
+    private static async Task<IResult> Get2FAStatusBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
+            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/status");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> Setup2FABffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/setup");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> Enable2FABffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/enable");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> Disable2FABffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/disable");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> GetBackupCodesBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
+            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/backup-codes");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> RegenerateBackupCodesBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/backup-codes/regenerate");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }
 
     // --- Device Management ---
@@ -1813,4 +1939,4 @@ public record BffCreateReportRequest(string EntityType, string EntityId, string 
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
-public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null);
+public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null);

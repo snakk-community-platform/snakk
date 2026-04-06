@@ -6,7 +6,8 @@ public record LinkMetadata(
     string? ImageUrl,
     string? Domain,
     string? OEmbedHtml,
-    string? LocalImagePath,
+    string? ImagePath,
+    string? ImageThumbnailPath,
     string? ImageBlurDataUri,
     bool IsInternal = false);
 

@@ -20,7 +20,7 @@ public class NotificationMapperTests
         var spacePublicId = Guid.NewGuid().ToString();
         var readAt = DateTime.UtcNow.AddMinutes(-5);
 
-        var entity = new NotificationDatabaseEntity
+        var entity = new UserNotificationDatabaseEntity
         {
             PublicId = "notif_abc",
             TypeId = (int)NotificationTypeEnum.Reply,
@@ -95,7 +95,7 @@ public class NotificationMapperTests
     [Test]
     public async Task FromPersistence_WithNullSources_MapsNulls()
     {
-        var entity = new NotificationDatabaseEntity
+        var entity = new UserNotificationDatabaseEntity
         {
             PublicId = "notif_nosrc",
             TypeId = (int)NotificationTypeEnum.Mention,
@@ -128,7 +128,7 @@ public class NotificationMapperTests
     [Test]
     public async Task FromPersistence_MapsNotificationType()
     {
-        var entity = new NotificationDatabaseEntity
+        var entity = new UserNotificationDatabaseEntity
         {
             PublicId = "notif_type",
             TypeId = (int)NotificationTypeEnum.NewPostInFollowedDiscussion,

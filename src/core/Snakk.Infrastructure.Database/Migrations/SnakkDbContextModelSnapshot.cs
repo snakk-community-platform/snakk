@@ -178,47 +178,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("AuditLog");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BackupCodeDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UsedIp")
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("BackupCode");
-                });
-
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BannerDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -334,6 +293,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("HubCount")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsAdultOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -428,6 +390,81 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("CommunityDomain");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ConsentTypeDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ShortLabel")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("ConsentType");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ConsentTypeVersionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConsentTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConsentTypeId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("ConsentTypeVersion");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -447,6 +484,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsAdultOnly")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -537,7 +577,26 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebateDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionReadStateDatabaseEntity", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscussionId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LastReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastReadPostId")
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "DiscussionId");
+
+                    b.ToTable("DiscussionReadState");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebateDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -556,10 +615,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionDebate");
+                    b.ToTable("DiscussionTypeDebate");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebatePositionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebatePositionDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -584,34 +643,25 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_DebatePosition_DebateId_Index");
 
-                    b.ToTable("DiscussionDebatePosition");
+                    b.ToTable("DiscussionTypeDebatePosition");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebatePostPositionDatabaseEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("PostId")
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DiscussionId")
+                    b.Property<int>("PositionId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Layout")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                    b.HasKey("PostId");
 
-                    b.HasKey("Id");
+                    b.HasIndex("PositionId");
 
-                    b.HasIndex("DiscussionId")
-                        .IsUnique();
-
-                    b.ToTable("DiscussionMedia");
+                    b.ToTable("DiscussionTypeDebatePostPosition");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGuideDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeGuideDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -627,10 +677,38 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionGuide");
+                    b.ToTable("DiscussionTypeGuide");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionIamaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaBestQuestionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IamaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("IamaId", "DisplayOrder")
+                        .IsUnique()
+                        .HasDatabaseName("IX_IamaBestQuestion_IamaId_DisplayOrder");
+
+                    b.ToTable("DiscussionTypeIamaBestQuestion");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -662,10 +740,90 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionIama");
+                    b.ToTable("DiscussionTypeIama");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionJournalDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaOfficialAnswerDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnswerPostId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IamaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionPostId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnswerPostId");
+
+                    b.HasIndex("QuestionPostId");
+
+                    b.HasIndex("IamaId", "QuestionPostId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_IamaOfficialAnswer_IamaId_QuestionPostId");
+
+                    b.ToTable("DiscussionTypeIamaOfficialAnswer");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageAttachmentDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DiscussionTypeImageId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscussionTypeImageId");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("DiscussionTypeImageAttachment");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DiscussionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Layout")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscussionId")
+                        .IsUnique();
+
+                    b.ToTable("DiscussionTypeImage");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -681,10 +839,25 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionJournal");
+                    b.ToTable("DiscussionTypeJournal");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionLinkDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalEntryPostDatabaseEntity", b =>
+                {
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("JournalId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PostId");
+
+                    b.HasIndex("JournalId");
+
+                    b.ToTable("DiscussionTypeJournalEntryPost");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeLinkDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -704,14 +877,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("ImageBlurDataUri")
                         .HasColumnType("text");
 
+                    b.Property<string>("ImagePath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageThumbnailPath")
+                        .HasColumnType("text");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsInternal")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("LocalImagePath")
-                        .HasColumnType("text");
 
                     b.Property<string>("OEmbedHtml")
                         .HasColumnType("text");
@@ -729,10 +905,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionLink");
+                    b.ToTable("DiscussionTypeLink");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionPollDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -760,10 +936,68 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionPoll");
+                    b.ToTable("DiscussionTypePoll");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionQuestionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollOptionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PollId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("VoteCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PollId", "DisplayOrder")
+                        .HasDatabaseName("IX_DiscussionTypePollOption_PollId_DisplayOrder");
+
+                    b.ToTable("DiscussionTypePollOption");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollVoteDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("OptionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("VotedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("OptionId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DiscussionTypePollVote_OptionId_UserId");
+
+                    b.ToTable("DiscussionTypePollVote");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeQuestionDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -787,140 +1021,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DiscussionId")
                         .IsUnique();
 
-                    b.ToTable("DiscussionQuestion");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionReadStateDatabaseEntity", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DiscussionId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("LastReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastReadPostId")
-                        .HasColumnType("text");
-
-                    b.HasKey("UserId", "DiscussionId");
-
-                    b.ToTable("DiscussionReadState");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DisplayNameHistoryDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ChangedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("NewName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PreviousName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChangedByUserId");
-
-                    b.HasIndex("NewName")
-                        .HasDatabaseName("IX_DisplayNameHistory_NewName");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_DisplayNameHistory_UserId");
-
-                    b.ToTable("DisplayNameHistory");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.FollowDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("DiscussionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("FollowedUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LevelId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("SpaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TargetTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiscussionId");
-
-                    b.HasIndex("FollowedUserId");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique();
-
-                    b.HasIndex("SpaceId");
-
-                    b.HasIndex("UserId", "TargetTypeId", "DiscussionId", "SpaceId", "FollowedUserId")
-                        .IsUnique();
-
-                    b.ToTable("Follow");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GalleryImageDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GalleryId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MediaId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GalleryId");
-
-                    b.HasIndex("MediaId");
-
-                    b.ToTable("GalleryImages");
+                    b.ToTable("DiscussionTypeQuestion");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
@@ -1109,6 +1210,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("HasRules")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsAdultOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -1162,80 +1266,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Hub");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.IamaBestQuestionDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IamaId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.HasIndex("IamaId", "DisplayOrder")
-                        .IsUnique()
-                        .HasDatabaseName("IX_IamaBestQuestion_IamaId_DisplayOrder");
-
-                    b.ToTable("IamaBestQuestion");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.IamaOfficialAnswerDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AnswerPostId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IamaId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("QuestionPostId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnswerPostId");
-
-                    b.HasIndex("QuestionPostId");
-
-                    b.HasIndex("IamaId", "QuestionPostId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_IamaOfficialAnswer_IamaId_QuestionPostId");
-
-                    b.ToTable("IamaOfficialAnswer");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.JournalEntryPostDatabaseEntity", b =>
-                {
-                    b.Property<int>("PostId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("JournalId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("PostId");
-
-                    b.HasIndex("JournalId");
-
-                    b.ToTable("JournalEntryPost");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ImageDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1262,6 +1293,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("IsReadyForDeletion")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("MediumThumbnailPath")
+                        .HasColumnType("text");
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
@@ -1298,55 +1332,21 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted")
-                        .HasDatabaseName("IX_Media_IsDeleted");
+                        .HasDatabaseName("IX_Image_IsDeleted");
 
                     b.HasIndex("IsReadyForDeletion")
-                        .HasDatabaseName("IX_Media_IsReadyForDeletion");
+                        .HasDatabaseName("IX_Image_IsReadyForDeletion");
 
                     b.HasIndex("PublicId")
                         .IsUnique()
-                        .HasDatabaseName("IX_Media_PublicId");
+                        .HasDatabaseName("IX_Image_PublicId");
 
                     b.HasIndex("Sha256Hash")
-                        .HasDatabaseName("IX_Media_Sha256Hash");
+                        .HasDatabaseName("IX_Image_Sha256Hash");
 
                     b.HasIndex("UploadedByUserId");
 
-                    b.ToTable("Media");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MentionDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("MentionedUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MentionedUserId");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique();
-
-                    b.HasIndex("PostId", "MentionedUserId")
-                        .IsUnique();
-
-                    b.ToTable("Mention");
+                    b.ToTable("Image");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ModerationLogDatabaseEntity", b =>
@@ -1435,7 +1435,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("ModerationLog");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.NotificationDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasswordResetRequestDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1443,60 +1443,90 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ActorUserId")
+                    b.Property<string>("EmailHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Outcome")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Body")
-                        .HasColumnType("text");
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedAt")
+                        .HasDatabaseName("IX_PasswordResetRequest_RequestedAt");
+
+                    b.HasIndex("IpAddress", "RequestedAt")
+                        .HasDatabaseName("IX_PasswordResetRequest_IpAddress_RequestedAt");
+
+                    b.ToTable("PasswordResetRequest");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasswordResetTokenDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
+                    b.Property<string>("CreatedFromIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CreatedUserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("ReadAt")
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("UsedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("RecipientUserId")
-                        .HasColumnType("integer");
+                    b.Property<string>("UsedFromIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
-                    b.Property<int?>("SourceDiscussionId")
-                        .HasColumnType("integer");
+                    b.Property<string>("UsedUserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
-                    b.Property<int?>("SourcePostId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SourceSpaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TypeId")
+                    b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ActorUserId");
-
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.HasIndex("SourceDiscussionId");
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
 
-                    b.HasIndex("SourcePostId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_PasswordResetToken_UserId");
 
-                    b.HasIndex("SourceSpaceId");
-
-                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
-
-                    b.ToTable("Notification");
+                    b.ToTable("PasswordResetToken");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PermissionDatabaseEntity", b =>
@@ -1543,64 +1573,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Permissions");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PollOptionDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PollId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("VoteCount")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PollId", "DisplayOrder")
-                        .HasDatabaseName("IX_PollOption_PollId_DisplayOrder");
-
-                    b.ToTable("PollOption");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PollVoteDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OptionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("VotedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("OptionId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_PollVote_OptionId_UserId");
-
-                    b.ToTable("PollVote");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", b =>
@@ -1710,34 +1682,90 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Post");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostDebatePositionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostImageDatabaseEntity", b =>
                 {
                     b.Property<int>("PostId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PositionId")
+                    b.Property<int>("ImageId")
                         .HasColumnType("integer");
 
-                    b.HasKey("PostId");
+                    b.HasKey("PostId", "ImageId");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("ImageId");
 
-                    b.ToTable("PostDebatePosition");
+                    b.ToTable("PostImage");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostMediaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostMentionDatabaseEntity", b =>
                 {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MentionedUserId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("PostId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MediaId")
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentionedUserId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("PostId", "MentionedUserId")
+                        .IsUnique();
+
+                    b.ToTable("Mention");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostReactionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    b.HasKey("PostId", "MediaId");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.HasIndex("MediaId");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.ToTable("PostMedia");
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "UserId", "TypeId")
+                        .IsUnique();
+
+                    b.ToTable("Reaction");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostRevisionDatabaseEntity", b =>
@@ -1779,43 +1807,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("PostRevision");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ReactionDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("PostId", "UserId", "TypeId")
-                        .IsUnique();
-
-                    b.ToTable("Reaction");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RefreshTokenDatabaseEntity", b =>
@@ -2205,6 +2196,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("HubId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsAdultOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -2390,7 +2384,48 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("TemporaryRoleElevations");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TrustedDeviceDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TwoFactorBackupCodeDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsedIp")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BackupCode");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TwoFactorTrustedDeviceDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -2593,6 +2628,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("UserBan");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserConsentDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ConsentTypeVersionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConsentTypeVersionId");
+
+                    b.HasIndex("UserId", "ConsentTypeVersionId")
+                        .IsUnique();
+
+                    b.ToTable("UserConsent");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -2600,6 +2666,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowAdultContent")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("AutoFollowOnReply")
                         .HasColumnType("boolean");
@@ -2720,6 +2789,94 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDisplayNameHistoryDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreviousName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("NewName")
+                        .HasDatabaseName("IX_DisplayNameHistory_NewName");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_DisplayNameHistory_UserId");
+
+                    b.ToTable("DisplayNameHistory");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserFollowDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DiscussionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FollowedUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LevelId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SpaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscussionId");
+
+                    b.HasIndex("FollowedUserId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("SpaceId");
+
+                    b.HasIndex("UserId", "TargetTypeId", "DiscussionId", "SpaceId", "FollowedUserId")
+                        .IsUnique();
+
+                    b.ToTable("Follow");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserMetricDatabaseEntity", b =>
                 {
                     b.Property<int>("UserId")
@@ -2749,6 +2906,70 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_UserMetric_UserId_Scope_ScopeId");
 
                     b.ToTable("UserMetric");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserNotificationDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SourceDiscussionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SourcePostId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SourceSpaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("SourceDiscussionId");
+
+                    b.HasIndex("SourcePostId");
+
+                    b.HasIndex("SourceSpaceId");
+
+                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notification");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
@@ -2959,17 +3180,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("ActorUser");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BackupCodeDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany("BackupCodes")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.BannerDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
@@ -3003,6 +3213,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Community");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ConsentTypeVersionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.ConsentTypeDatabaseEntity", "ConsentType")
+                        .WithMany("Versions")
+                        .HasForeignKey("ConsentTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsentType");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
@@ -3022,7 +3243,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Space");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebateDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebateDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3033,9 +3254,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebatePositionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebatePositionDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDebateDatabaseEntity", "Debate")
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebateDatabaseEntity", "Debate")
                         .WithMany("Positions")
                         .HasForeignKey("DebateId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3044,7 +3265,26 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Debate");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebatePostPositionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebatePositionDatabaseEntity", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Position");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeGuideDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3055,7 +3295,26 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGuideDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaBestQuestionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaDatabaseEntity", "Iama")
+                        .WithMany("BestQuestions")
+                        .HasForeignKey("IamaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Iama");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3066,7 +3325,53 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionIamaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaOfficialAnswerDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "AnswerPost")
+                        .WithMany()
+                        .HasForeignKey("AnswerPostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaDatabaseEntity", "Iama")
+                        .WithMany("OfficialAnswers")
+                        .HasForeignKey("IamaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "QuestionPost")
+                        .WithMany()
+                        .HasForeignKey("QuestionPostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("AnswerPost");
+
+                    b.Navigation("Iama");
+
+                    b.Navigation("QuestionPost");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageAttachmentDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageDatabaseEntity", "DiscussionTypeImage")
+                        .WithMany("Images")
+                        .HasForeignKey("DiscussionTypeImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.ImageDatabaseEntity", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DiscussionTypeImage");
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3077,7 +3382,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionJournalDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3088,7 +3393,26 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionLinkDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalEntryPostDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalDatabaseEntity", "Journal")
+                        .WithMany("Entries")
+                        .HasForeignKey("JournalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Journal");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeLinkDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3099,7 +3423,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionPollDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
                         .WithMany()
@@ -3110,7 +3434,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionQuestionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollOptionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypePollDatabaseEntity", "Poll")
+                        .WithMany("Options")
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Poll");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollVoteDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionTypePollOptionDatabaseEntity", "Option")
+                        .WithMany("Votes")
+                        .HasForeignKey("OptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Option");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeQuestionDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "AcceptedPost")
                         .WithMany()
@@ -3126,75 +3480,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("AcceptedPost");
 
                     b.Navigation("Discussion");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DisplayNameHistoryDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ChangedByUser")
-                        .WithMany()
-                        .HasForeignKey("ChangedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChangedByUser");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.FollowDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
-                        .WithMany()
-                        .HasForeignKey("DiscussionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "FollowedUser")
-                        .WithMany()
-                        .HasForeignKey("FollowedUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
-                        .WithMany()
-                        .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Discussion");
-
-                    b.Navigation("FollowedUser");
-
-                    b.Navigation("Space");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GalleryImageDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", "Gallery")
-                        .WithMany("Images")
-                        .HasForeignKey("GalleryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", "Media")
-                        .WithMany()
-                        .HasForeignKey("MediaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Gallery");
-
-                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupAccessDatabaseEntity", b =>
@@ -3289,72 +3574,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Community");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.IamaBestQuestionDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionIamaDatabaseEntity", "Iama")
-                        .WithMany("BestQuestions")
-                        .HasForeignKey("IamaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Iama");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.IamaOfficialAnswerDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "AnswerPost")
-                        .WithMany()
-                        .HasForeignKey("AnswerPostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionIamaDatabaseEntity", "Iama")
-                        .WithMany("OfficialAnswers")
-                        .HasForeignKey("IamaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "QuestionPost")
-                        .WithMany()
-                        .HasForeignKey("QuestionPostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("AnswerPost");
-
-                    b.Navigation("Iama");
-
-                    b.Navigation("QuestionPost");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.JournalEntryPostDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionJournalDatabaseEntity", "Journal")
-                        .WithMany("Entries")
-                        .HasForeignKey("JournalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Journal");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ImageDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "UploadedByUser")
                         .WithMany()
@@ -3363,25 +3583,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("UploadedByUser");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.MentionDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "MentionedUser")
-                        .WithMany()
-                        .HasForeignKey("MentionedUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MentionedUser");
-
-                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ModerationLogDatabaseEntity", b =>
@@ -3458,71 +3659,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("TargetUserRole");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.NotificationDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasswordResetTokenDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ActorUser")
-                        .WithMany()
-                        .HasForeignKey("ActorUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "RecipientUser")
-                        .WithMany()
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "SourceDiscussion")
-                        .WithMany()
-                        .HasForeignKey("SourceDiscussionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "SourcePost")
-                        .WithMany()
-                        .HasForeignKey("SourcePostId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "SourceSpace")
-                        .WithMany()
-                        .HasForeignKey("SourceSpaceId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("ActorUser");
-
-                    b.Navigation("RecipientUser");
-
-                    b.Navigation("SourceDiscussion");
-
-                    b.Navigation("SourcePost");
-
-                    b.Navigation("SourceSpace");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PollOptionDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionPollDatabaseEntity", "Poll")
-                        .WithMany("Options")
-                        .HasForeignKey("PollId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Poll");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PollVoteDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PollOptionDatabaseEntity", "Option")
-                        .WithMany("Votes")
-                        .HasForeignKey("OptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Option");
 
                     b.Navigation("User");
                 });
@@ -3552,11 +3695,11 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("ReplyToPost");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostDebatePositionDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostImageDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDebatePositionDatabaseEntity", "Position")
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.ImageDatabaseEntity", "Image")
                         .WithMany()
-                        .HasForeignKey("PositionId")
+                        .HasForeignKey("ImageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3566,17 +3709,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Position");
+                    b.Navigation("Image");
 
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostMediaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostMentionDatabaseEntity", b =>
                 {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.MediaDatabaseEntity", "Media")
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "MentionedUser")
                         .WithMany()
-                        .HasForeignKey("MediaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("MentionedUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
@@ -3585,9 +3728,28 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Media");
+                    b.Navigation("MentionedUser");
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostReactionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PostRevisionDatabaseEntity", b =>
@@ -3607,25 +3769,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("EditedByUser");
 
                     b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ReactionDatabaseEntity", b =>
-                {
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.RefreshTokenDatabaseEntity", b =>
@@ -3871,10 +4014,21 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TrustedDeviceDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TwoFactorBackupCodeDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
-                        .WithMany("TrustedDevices")
+                        .WithMany("TwoFactorBackupCodes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.TwoFactorTrustedDeviceDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("TwoFactorTrustedDevices")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -3967,6 +4121,75 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserConsentDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.ConsentTypeVersionDatabaseEntity", "ConsentTypeVersion")
+                        .WithMany()
+                        .HasForeignKey("ConsentTypeVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsentTypeVersion");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDisplayNameHistoryDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserFollowDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
+                        .WithMany()
+                        .HasForeignKey("DiscussionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "FollowedUser")
+                        .WithMany()
+                        .HasForeignKey("FollowedUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "Space")
+                        .WithMany()
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Discussion");
+
+                    b.Navigation("FollowedUser");
+
+                    b.Navigation("Space");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserMetricDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
@@ -3976,6 +4199,45 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserNotificationDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "SourceDiscussion")
+                        .WithMany()
+                        .HasForeignKey("SourceDiscussionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "SourcePost")
+                        .WithMany()
+                        .HasForeignKey("SourcePostId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.SpaceDatabaseEntity", "SourceSpace")
+                        .WithMany()
+                        .HasForeignKey("SourceSpaceId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("RecipientUser");
+
+                    b.Navigation("SourceDiscussion");
+
+                    b.Navigation("SourcePost");
+
+                    b.Navigation("SourceSpace");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
@@ -4070,36 +4332,46 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("Rules");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ConsentTypeDatabaseEntity", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", b =>
                 {
                     b.Navigation("Posts");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionDebateDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeDebateDatabaseEntity", b =>
                 {
                     b.Navigation("Positions");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionGalleryDatabaseEntity", b =>
-                {
-                    b.Navigation("Images");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionIamaDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeIamaDatabaseEntity", b =>
                 {
                     b.Navigation("BestQuestions");
 
                     b.Navigation("OfficialAnswers");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionJournalDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeImageDatabaseEntity", b =>
+                {
+                    b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypeJournalDatabaseEntity", b =>
                 {
                     b.Navigation("Entries");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionPollDatabaseEntity", b =>
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollDatabaseEntity", b =>
                 {
                     b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.DiscussionTypePollOptionDatabaseEntity", b =>
+                {
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.GroupDatabaseEntity", b =>
@@ -4123,11 +4395,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("RolePermissions");
                 });
 
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PollOptionDatabaseEntity", b =>
-                {
-                    b.Navigation("Votes");
-                });
-
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ReportDatabaseEntity", b =>
                 {
                     b.Navigation("Comments");
@@ -4146,13 +4413,13 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
                 {
-                    b.Navigation("BackupCodes");
-
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Roles");
 
-                    b.Navigation("TrustedDevices");
+                    b.Navigation("TwoFactorBackupCodes");
+
+                    b.Navigation("TwoFactorTrustedDevices");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>

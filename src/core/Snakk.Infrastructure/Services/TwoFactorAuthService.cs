@@ -74,7 +74,7 @@ public class TwoFactorAuthService(
         var backupCodes = totpService.GenerateBackupCodes(10);
 
         var backupCodeEntities = backupCodes
-            .Select(code => new BackupCodeDatabaseEntity
+            .Select(code => new TwoFactorBackupCodeDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 UserId = user.Id,
@@ -83,7 +83,7 @@ public class TwoFactorAuthService(
             })
             .ToList();
 
-        context.BackupCodes.AddRange(backupCodeEntities);
+        context.TwoFactorBackupCodes.AddRange(backupCodeEntities);
         await context.SaveChangesAsync();
 
         logger.LogInformation("2FA enabled for user {UserId}", userId);
@@ -95,8 +95,8 @@ public class TwoFactorAuthService(
     {
         var user = await context.Users
             .AsTracking()
-            .Include(u => u.BackupCodes)
-            .Include(u => u.TrustedDevices)
+            .Include(u => u.TwoFactorBackupCodes)
+            .Include(u => u.TwoFactorTrustedDevices)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 
         if (user is null)
@@ -125,10 +125,10 @@ public class TwoFactorAuthService(
         user.TwoFactorEnabledAt = null;
 
         // Remove all backup codes
-        context.BackupCodes.RemoveRange(user.BackupCodes);
+        context.TwoFactorBackupCodes.RemoveRange(user.TwoFactorBackupCodes);
 
         // Revoke all trusted devices
-        foreach (var device in user.TrustedDevices.Where(d => d.RevokedAt is null))
+        foreach (var device in user.TwoFactorTrustedDevices.Where(d => d.RevokedAt is null))
         {
             device.RevokedAt = DateTime.UtcNow;
             device.RevocationReason = "2FA disabled";
@@ -147,9 +147,9 @@ public class TwoFactorAuthService(
             .Where(u => u.PublicId == userId)
             .Select(u => new {
                 u.TwoFactorEnabled,
-                HasBackupCodes = u.BackupCodes.Any(),
-                UsedBackupCodesCount = u.BackupCodes.Count(bc => bc.IsUsed),
-                TotalBackupCodes = u.BackupCodes.Count() })
+                HasBackupCodes = u.TwoFactorBackupCodes.Any(),
+                UsedBackupCodesCount = u.TwoFactorBackupCodes.Count(bc => bc.IsUsed),
+                TotalBackupCodes = u.TwoFactorBackupCodes.Count() })
             .FirstOrDefaultAsync();
 
         if (status is null)
@@ -171,7 +171,7 @@ public class TwoFactorAuthService(
     {
         var user = await context.Users
             .AsTracking()
-            .Include(u => u.BackupCodes)
+            .Include(u => u.TwoFactorBackupCodes)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 
         if (user is null || !user.TwoFactorEnabled)
@@ -190,7 +190,7 @@ public class TwoFactorAuthService(
         // If TOTP fails, try backup codes
         if (!isValid)
         {
-            var unusedBackupCodes = user.BackupCodes
+            var unusedBackupCodes = user.TwoFactorBackupCodes
                 .Where(bc => !bc.IsUsed)
                 .ToList();
 
@@ -221,11 +221,11 @@ public class TwoFactorAuthService(
             .Where(u => u.PublicId == userId)
             .Select(u => new {
                 u.TwoFactorEnabled,
-                Codes = u.BackupCodes
+                Codes = u.TwoFactorBackupCodes
                     .OrderBy(bc => bc.CreatedAt)
                     .Select(bc => bc.PublicId)
                     .ToList(),
-                UsedCount = u.BackupCodes.Count(bc => bc.IsUsed) })
+                UsedCount = u.TwoFactorBackupCodes.Count(bc => bc.IsUsed) })
             .FirstOrDefaultAsync();
 
         if (status is null || !status.TwoFactorEnabled)
@@ -243,7 +243,7 @@ public class TwoFactorAuthService(
     {
         var user = await context.Users
             .AsTracking()
-            .Include(u => u.BackupCodes)
+            .Include(u => u.TwoFactorBackupCodes)
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 
         if (user is null)
@@ -258,13 +258,13 @@ public class TwoFactorAuthService(
             throw new InvalidOperationException("Invalid password");
 
         // Remove old backup codes
-        context.BackupCodes.RemoveRange(user.BackupCodes);
+        context.TwoFactorBackupCodes.RemoveRange(user.TwoFactorBackupCodes);
 
         // Generate new backup codes
         var backupCodes = totpService.GenerateBackupCodes(10);
 
         var backupCodeEntities = backupCodes
-            .Select(code => new BackupCodeDatabaseEntity
+            .Select(code => new TwoFactorBackupCodeDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 UserId = user.Id,
@@ -273,7 +273,7 @@ public class TwoFactorAuthService(
             })
             .ToList();
 
-        context.BackupCodes.AddRange(backupCodeEntities);
+        context.TwoFactorBackupCodes.AddRange(backupCodeEntities);
         await context.SaveChangesAsync();
 
         logger.LogInformation("Backup codes regenerated for user {UserId}", userId);
