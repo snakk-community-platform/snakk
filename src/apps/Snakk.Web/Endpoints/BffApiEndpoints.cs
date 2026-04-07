@@ -1032,7 +1032,7 @@ public static class BffApiEndpoints
                 hub2?.IsSuccess == true ? hub2.Value?.PublicId : null,
                 space.PublicId);
 
-            if (access is not null && !access.CanRead)
+            if (access is not null && access.AccessLevel < 1)
                 return Results.NotFound(); // Don't reveal existence
         }
 

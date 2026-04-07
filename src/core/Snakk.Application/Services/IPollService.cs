@@ -6,6 +6,7 @@ public record PollData(
     bool AllowChangeVote,
     DateTime? ClosesAt,
     bool IsClosed,
+    bool IsSecret,
     int TotalVotes,
     List<int> UserVotedOptionIds);
 

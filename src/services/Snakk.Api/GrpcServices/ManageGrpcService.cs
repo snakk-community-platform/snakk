@@ -8,6 +8,7 @@ using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Manage;
 using Snakk.Shared.Enums;
+using Snakk.Shared.Helpers;
 using System.Security.Claims;
 using AppUpdateRequest = Snakk.Application.DTOs.Management.UpdateSpaceSettingsRequest;
 using AppRuleDto = Snakk.Application.DTOs.Management.RuleDto;
@@ -1529,7 +1530,7 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Only moderators can create announcements"));
 
-        var slug = request.Title.ToLower().Replace(" ", "-");
+        var slug = SlugHelper.ToSlug(request.Title);
         var result = await discussionUseCase.CreateDiscussionAsync(
             Snakk.Domain.ValueObjects.SpaceId.From(request.SpacePublicId),
             Snakk.Domain.ValueObjects.UserId.From(userId),
@@ -1797,8 +1798,7 @@ public class ManageGrpcService(
         {
             GroupPublicId = g.GroupPublicId,
             GroupName = g.GroupName,
-            CanRead = g.CanRead,
-            CanWrite = g.CanWrite
+            AccessLevel = (int)g.AccessLevel
         }));
         return response;
     }
@@ -1855,8 +1855,7 @@ public class ManageGrpcService(
             new Application.DTOs.Management.UpsertGroupGrantRequest
             {
                 GroupPublicId = request.GroupPublicId,
-                CanRead = request.CanRead,
-                CanWrite = request.CanWrite
+                AccessLevel = (Snakk.Shared.Enums.AccessLevelEnum)request.AccessLevel
             },
             request.HasCommunityPublicId ? request.CommunityPublicId : null,
             request.HasHubPublicId ? request.HubPublicId : null,

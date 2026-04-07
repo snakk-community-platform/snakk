@@ -211,16 +211,7 @@
             }
         });
 
-        // Preload full image on hover
-        imagesDisplay.addEventListener('mouseenter', (e) => {
-            const item = (e.target as HTMLElement).closest('.images-upload-item');
-            if (!item) return;
-            const img = item.querySelector('img') as HTMLImageElement | null;
-            const fullUrl = img?.dataset.full;
-            if (fullUrl && (window as any).SnakkLightbox) {
-                (window as any).SnakkLightbox.preloadUrl(fullUrl);
-            }
-        }, true);
+
 
         // Carousel interactivity (only if carousel layout)
         const track = document.getElementById('images-carousel-track') as HTMLElement | null;

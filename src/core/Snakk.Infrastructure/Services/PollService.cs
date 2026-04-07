@@ -16,6 +16,7 @@ public class PollService(SnakkDbContext context) : IPollService
                 p.AllowMultipleChoices,
                 p.AllowChangeVote,
                 p.ClosesAt,
+                p.VotesVisible,
                 Options = p.Options
                     .OrderBy(o => o.DisplayOrder)
                     .Select(o => new { o.Id, o.Text, o.VoteCount, o.DisplayOrder })
@@ -26,6 +27,7 @@ public class PollService(SnakkDbContext context) : IPollService
         if (poll is null) return null;
 
         var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
+        var isSecret = !poll.VotesVisible;
         var totalVotes = poll.Options.Sum(o => o.VoteCount);
 
         // Get user's votes if authenticated
@@ -47,12 +49,21 @@ public class PollService(SnakkDbContext context) : IPollService
             }
         }
 
+        // When poll is secret and not yet closed, hide vote counts
+        var options = isSecret && !isClosed
+            ? poll.Options.Select(o => new PollOptionData(o.Id, o.Text, 0, o.DisplayOrder)).ToList()
+            : poll.Options.Select(o => new PollOptionData(o.Id, o.Text, o.VoteCount, o.DisplayOrder)).ToList();
+
+        if (isSecret && !isClosed)
+            totalVotes = 0;
+
         return new PollData(
-            poll.Options.Select(o => new PollOptionData(o.Id, o.Text, o.VoteCount, o.DisplayOrder)).ToList(),
+            options,
             poll.AllowMultipleChoices,
             poll.AllowChangeVote,
             poll.ClosesAt,
             isClosed,
+            isSecret,
             totalVotes,
             userVotedIds);
     }

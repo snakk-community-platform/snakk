@@ -615,7 +615,7 @@ function setupReactionPickerHover(): void {
     picker.dataset.hoverBound = 'true';
 }
 
-function toggleReactionPicker(postId: string): void {
+function toggleReactionPicker(postId: string, sourceEl?: HTMLElement): void {
     const picker = document.getElementById('reaction-picker');
     const reactionsBar = document.getElementById(`reactions-${postId}`);
 
@@ -635,7 +635,9 @@ function toggleReactionPicker(postId: string): void {
     currentReactionPostId = postId;
     picker.dataset.postId = postId;
 
-    const rect = reactionsBar.getBoundingClientRect();
+    // Position relative to the clicked element (may be breadcrumb copy or original)
+    const positionEl = sourceEl ?? reactionsBar;
+    const rect = positionEl.getBoundingClientRect();
     picker.style.left = `${rect.left}px`;
     // picker is position:fixed, so use viewport-relative coordinates (no scrollY)
     picker.style.top = `${rect.bottom + 5}px`;
@@ -1905,9 +1907,30 @@ function initThreadNav(config: DiscussionConfig): void {
 
     pane.classList.remove('hidden');
 
-    const progressBar = document.getElementById('thread-nav-progress') as HTMLElement | null;
     const input = document.getElementById('thread-nav-input') as HTMLInputElement | null;
     const totalEl = document.getElementById('thread-nav-total');
+    const centerCol = document.querySelector('.fp-center') as HTMLElement | null;
+    let progressFill: HTMLElement | null = null;
+    if (centerCol) {
+        // Remove previous progress bar if any (HTMX navigation)
+        document.querySelector('.thread-progress-bar')?.remove();
+
+        const bar = document.createElement('div');
+        bar.className = 'thread-progress-bar';
+        const fill = document.createElement('div');
+        fill.className = 'thread-progress-fill';
+        bar.appendChild(fill);
+        document.body.appendChild(bar);
+        progressFill = fill;
+
+        function updateProgressPosition(): void {
+            const rect = centerCol!.getBoundingClientRect();
+            bar.style.left = `${rect.left}px`;
+            bar.style.width = `${rect.width}px`;
+        }
+        updateProgressPosition();
+        window.addEventListener('resize', updateProgressPosition, { passive: true });
+    }
 
     if (totalEl) totalEl.textContent = String(totalPostCount);
 
@@ -1940,8 +1963,8 @@ function initThreadNav(config: DiscussionConfig): void {
         if (input && document.activeElement !== input) {
             input.value = String(n);
         }
-        if (progressBar) {
-            progressBar.style.width = `${(n / totalPostCount) * 100}%`;
+        if (progressFill) {
+            progressFill.style.width = `${(n / totalPostCount) * 100}%`;
         }
     }
 
@@ -2097,8 +2120,8 @@ function initDiscussionPage(config: DiscussionConfig): void {
         (window as any).SnakkSyntax.highlightAll();
     }
 
-    // Load follow status
-    if (config.discussionId) {
+    // Load follow/mute status (authenticated users only)
+    if (config.discussionId && config.isAuthenticated) {
         loadFollowStatus(config.discussionId);
         loadMuteStatus(config.discussionId);
     }
@@ -2245,7 +2268,7 @@ document.addEventListener('click', async (e) => {
 
         // Reaction actions
         case 'toggle-reaction-picker':
-            toggleReactionPicker(action.dataset.postId || '');
+            toggleReactionPicker(action.dataset.postId || '', action);
             break;
         case 'toggle-reaction':
             await toggleReaction(action.dataset.postId || '', action.dataset.reactionType || '');

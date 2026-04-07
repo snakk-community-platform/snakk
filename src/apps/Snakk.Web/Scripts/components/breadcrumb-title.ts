@@ -42,7 +42,79 @@
         const titleLine = document.createElement('div');
         titleLine.className = 'breadcrumb-page-title';
         const titleSpan = document.createElement('span');
-        titleSpan.textContent = titleEl.textContent?.trim() ?? '';
+
+        const titleText = document.createElement('span');
+        titleText.className = 'breadcrumb-title-text';
+        titleText.textContent = titleEl.textContent?.trim() ?? '';
+        titleSpan.appendChild(titleText);
+
+        // On discussion pages, add action buttons to the breadcrumb title
+        const firstPostReactions = main?.querySelector('[id^="reactions-"]') as HTMLElement | null;
+        if (firstPostReactions) {
+            const actionsWrapper = document.createElement('div');
+            actionsWrapper.className = 'breadcrumb-actions';
+
+            // --- Reactions (mirrored from first post) ---
+            const breadcrumbReactions = document.createElement('div');
+            breadcrumbReactions.className = 'breadcrumb-reactions';
+
+            for (const attr of Array.from(firstPostReactions.attributes)) {
+                if (attr.name === 'id' || attr.name === 'class') continue;
+                breadcrumbReactions.setAttribute(attr.name, attr.value);
+            }
+
+            function syncReactions(): void {
+                breadcrumbReactions.innerHTML = firstPostReactions!.innerHTML;
+            }
+            syncReactions();
+
+            const reactObserver = new MutationObserver(syncReactions);
+            reactObserver.observe(firstPostReactions, { childList: true, subtree: true, characterData: true });
+            actionsWrapper.appendChild(breadcrumbReactions);
+
+            // --- Follow button (mirrored from original) ---
+            const followBtn = document.getElementById('follow-btn') as HTMLElement | null;
+            if (followBtn) {
+                const bcFollow = document.createElement('button');
+                bcFollow.className = 'breadcrumb-action-btn';
+                bcFollow.type = 'button';
+                bcFollow.title = 'Follow discussion';
+
+                for (const attr of Array.from(followBtn.attributes)) {
+                    if (attr.name === 'id' || attr.name === 'class' || attr.name === 'type') continue;
+                    bcFollow.setAttribute(attr.name, attr.value);
+                }
+
+                function syncFollow(): void {
+                    const isFollowing = followBtn!.classList.contains('btn-primary');
+                    bcFollow.innerHTML = isFollowing
+                        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
+                        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>';
+                    bcFollow.classList.toggle('active', isFollowing);
+                    bcFollow.title = isFollowing ? 'Unfollow discussion' : 'Follow discussion';
+                }
+                syncFollow();
+
+                const followObserver = new MutationObserver(syncFollow);
+                followObserver.observe(followBtn, { attributes: true, childList: true, subtree: true });
+                actionsWrapper.appendChild(bcFollow);
+            }
+
+            // --- Share button (opens the original share dropdown) ---
+            const shareBtn = document.getElementById('share-dropdown-btn') as HTMLElement | null;
+            if (shareBtn) {
+                const bcShare = document.createElement('button');
+                bcShare.className = 'breadcrumb-action-btn';
+                bcShare.type = 'button';
+                bcShare.title = 'Share';
+                bcShare.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>';
+                bcShare.addEventListener('click', () => shareBtn.focus());
+                actionsWrapper.appendChild(bcShare);
+            }
+
+            titleSpan.appendChild(actionsWrapper);
+        }
+
         titleLine.appendChild(titleSpan);
         bar.appendChild(titleLine);
 

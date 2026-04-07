@@ -2640,8 +2640,7 @@ public class DatabaseSeeder(
             {
                 GroupId = premiumGroup.Id,
                 SpaceId = aiMlSpace.Id,
-                CanRead = true,
-                CanWrite = true,
+                AccessLevel = (int)Snakk.Shared.Enums.AccessLevelEnum.Write,
                 CreatedAt = EarliestDate
             });
 
@@ -2650,8 +2649,7 @@ public class DatabaseSeeder(
             {
                 GroupId = betaGroup.Id,
                 SpaceId = aiMlSpace.Id,
-                CanRead = true,
-                CanWrite = false,
+                AccessLevel = (int)Snakk.Shared.Enums.AccessLevelEnum.Read,
                 CreatedAt = EarliestDate
             });
         }
@@ -2671,8 +2669,7 @@ public class DatabaseSeeder(
             {
                 GroupId = staffGroup.Id,
                 SpaceId = devopsSpace.Id,
-                CanRead = true,
-                CanWrite = true,
+                AccessLevel = (int)Snakk.Shared.Enums.AccessLevelEnum.Write,
                 CreatedAt = EarliestDate
             });
         }

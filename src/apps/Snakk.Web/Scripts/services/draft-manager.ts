@@ -233,26 +233,13 @@ class DraftManager {
     }
 
     /**
-     * Show draft restored indicator
+     * Show draft restored indicator in the reply form footer
      */
     showDraftRestoredIndicator(): void {
-        const indicator = document.createElement('div');
-        indicator.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-info/10 border border-info text-info px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
-        indicator.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span class="text-sm font-medium">Draft restored</span>
-        `;
-
-        document.body.appendChild(indicator);
-
-        // Remove after 3 seconds
-        setTimeout(() => {
-            indicator.style.opacity = '0';
-            indicator.style.transition = 'opacity 0.3s';
-            setTimeout(() => indicator.remove(), 300);
-        }, 3000);
+        const msg = document.getElementById('draft-restored-msg');
+        if (msg) {
+            msg.classList.remove('hidden');
+        }
     }
 
     /**

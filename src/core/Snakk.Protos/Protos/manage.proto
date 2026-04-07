@@ -737,8 +737,7 @@ message GetEntityAccessRequest {
 message GroupAccessGrantItem {
   string group_public_id = 1;
   string group_name = 2;
-  bool can_read = 3;
-  bool can_write = 4;
+  int32 access_level = 3;
 }
 
 message EntityAccessResponse {
@@ -759,8 +758,7 @@ message SetEntityRestrictedResponse {
 
 message UpsertGroupGrantRequest {
   string group_public_id = 1;
-  bool can_read = 2;
-  bool can_write = 3;
+  int32 access_level = 2;
   optional string community_public_id = 4;
   optional string hub_public_id = 5;
   optional string space_public_id = 6;

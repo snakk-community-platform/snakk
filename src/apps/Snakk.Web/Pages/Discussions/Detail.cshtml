@@ -274,7 +274,8 @@
                     <img src="@firstPostItem.Author.AvatarUrl"
                          alt="@firstPostItem.Author.DisplayName"
                          width="24" height="24"
-                         class="rounded-full" />
+                         class="rounded-full"
+                         decoding="async" />
                     <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
                        class="font-medium hover:underline"
                        data-popup-type="user"
@@ -312,19 +313,14 @@
                 <span class="discussion-type-badge badge-xs @cssClass">@icon @label</span>
             }
             <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
-        </div>
 
-        <!-- Title -->
-        <div class="flex items-start justify-between">
-            <h1 class="text-xl font-bold" style="color: var(--color-primary)">@Model.Discussion.Title</h1>
-            <div class="flex items-center gap-2">
-                <!-- Share dropdown (visible to all users) -->
+            <!-- Share / Follow / Actions — pushed right -->
+            <div class="flex items-center gap-1 ml-auto">
                 <div class="dropdown dropdown-end">
-                    <button id="share-dropdown-btn" tabindex="0" class="btn btn-sm btn-ghost gap-1" aria-label="Share discussion">
+                    <button id="share-dropdown-btn" tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="Share discussion">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
-                        <span class="hidden sm:inline">Share</span>
                     </button>
                     <ul tabindex="0"
                         class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-20"
@@ -340,18 +336,17 @@
                     <button id="follow-btn"
                             data-action="toggle-follow-discussion"
                             data-discussion-id="@Model.Discussion.PublicId"
-                            class="btn btn-ghost btn-sm follow-btn"
+                            class="btn btn-ghost btn-xs follow-btn"
                             aria-label="Follow this discussion">
                         <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <span id="follow-text">Follow</span>
                     </button>
-                    <!-- Discussion actions dropdown -->
                     <div class="dropdown dropdown-end">
-                        <button tabindex="0" class="btn btn-ghost btn-sm btn-square" aria-label="Discussion options">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="Discussion options">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                             </svg>
                         </button>
                         <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
@@ -364,18 +359,92 @@
                                     <span id="mute-text">Mute discussion</span>
                                 </button>
                             </li>
+                            @if (firstPostItem != null)
+                            {
+                                <li>
+                                    <button hx-get="/api/posts/@firstPostItem.PublicId/history"
+                                            hx-target="#history-modal-content"
+                                            hx-swap="innerHTML"
+                                            data-modal-open="history_modal"
+                                            class="text-sm">
+                                        History
+                                    </button>
+                                </li>
+                                @if (Model.CurrentUserId == firstPostItem.Author.PublicId)
+                                {
+                                    <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
+                                    <li>
+                                        <button hx-delete="/api/posts/@firstPostItem.PublicId?userId=@Model.CurrentUserId"
+                                                hx-target="#post-@firstPostItem.PostNumber"
+                                                hx-swap="outerHTML"
+                                                hx-confirm="Are you sure you want to delete this post?"
+                                                class="text-sm text-error">
+                                            Delete
+                                        </button>
+                                    </li>
+                                }
+                                @if (Model.CurrentUserId != firstPostItem.Author.PublicId)
+                                {
+                                    <li>
+                                        <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="this post" class="text-sm text-error">
+                                            Report post
+                                        </button>
+                                    </li>
+                                }
+                            }
                             <li>
                                 <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
-                                    Report
+                                    Report discussion
                                 </button>
                             </li>
                         </ul>
                     </div>
                 }
             </div>
+        </div>
+
+        <!-- Title + OP reactions -->
+        <div class="flex items-start justify-between gap-4">
+            <h1 class="text-xl font-bold" style="color: var(--color-primary)">@Model.Discussion.Title</h1>
+            @if (firstPostItem != null)
+            {
+                var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
+                var opHasReactions = opReactionCounts.Any(kvp => kvp.Value > 0);
+                var opMyReactions = (firstPostItem.Reactions?.UserReactions?.Reactions ?? Enumerable.Empty<string>()).ToList();
+                var opReactionEmojis = new Dictionary<string, string>
+                {
+                    ["Agree"] = "👍", ["Love"] = "❤️", ["Funny"] = "😂",
+                    ["Thinking"] = "🤔", ["Watching"] = "👀", ["Fire"] = "🔥",
+                    ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
+                };
+                <div class="flex items-center gap-2 text-base text-muted shrink-0 @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
+                     id="reactions-@firstPostItem.PublicId"
+                     data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(opReactionCounts.ToDictionary(k => k.Key, k => k.Value))"
+                     data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(opMyReactions)"
+                     @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                     {
+                         <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
+                     }
+                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                    @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
+                    {
+                        var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
+                        var isActive = opMyReactions.Contains(kvp.Key);
+                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")">@emoji @kvp.Value</span>
+                    }
+                    @if (!opHasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
+                    {
+                        <span class="hidden group-hover:inline" data-reaction-placeholder>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    }
+                </div>
+            }
         </div>
     </header>
 
@@ -418,7 +487,7 @@
                 @if (linkImageSrc is not null)
                 {
                     <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"background-image:url({Model.LinkInfo.BlurDataUri})\"" : "")>
-                        <img src="@linkImageSrc" alt="" class="link-preview-img" />
+                        <img src="@linkImageSrc" alt="" class="link-preview-img" loading="lazy" decoding="async" />
                     </div>
                 }
                 <div class="link-preview-content">
@@ -519,7 +588,7 @@
                                 : "";
                             <div class="images-upload-item" data-index="@i" style="@blurStyle">
                                 <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
-                                     class="images-blur-up" data-blur-up />
+                                     decoding="async" class="images-blur-up" data-blur-up />
                             </div>
                         }
                     </div>
@@ -538,7 +607,7 @@
                     <div class="images-upload-item"
                          style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
                         <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
-                             class="images-blur-up" data-blur-up />
+                             decoding="async" class="images-blur-up" data-blur-up />
                     </div>
                     @if (Model.ImagesItems.Count > 1)
                     {
@@ -549,7 +618,7 @@
                                 <div class="images-upload-item"
                                      style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                                     <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                         class="images-blur-up" data-blur-up />
+                                         decoding="async" class="images-blur-up" data-blur-up />
                                 </div>
                             }
                         </div>
@@ -564,7 +633,7 @@
                     <div class="images-upload-item"
                          style="@(singleImg.HasBlurDataUri ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         <img src="@singleImg.Url" data-full="@singleImg.Url" alt=""
-                             class="images-blur-up" data-blur-up />
+                             decoding="async" class="images-blur-up" data-blur-up />
                     </div>
                 </div>
             }
@@ -578,7 +647,7 @@
                         <div class="images-upload-item"
                              style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                             <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                 class="images-blur-up" data-blur-up />
+                                 decoding="async" class="images-blur-up" data-blur-up />
                         </div>
                     }
                 </div>
@@ -674,6 +743,7 @@
                                      alt="@post.Author.DisplayName"
                                      width="48" height="48"
                                      class="post-avatar"
+                                     decoding="async"
                                      @(i >= 10 ? "loading=\"lazy\"" : "") />
                                 <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                                    class="post-author-name"
@@ -709,7 +779,9 @@
 
                     <!-- Right Pane: Toolbar + Content -->
                     <div class="post-main">
-                        <!-- Post Toolbar -->
+                        <!-- Post Toolbar (hidden for first post — actions moved to header) -->
+                        @if (!isOP)
+                        {
                         <div class="post-toolbar">
                             <div class="post-toolbar-left">
                                 @if (isJournalEntry)
@@ -773,7 +845,7 @@
                                 </span>
                             </div>
                             <div class="post-toolbar-right">
-                                @if (!Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
+                                @if (!isOP && !Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                 {
                                     <div class="hidden group-hover:flex items-center gap-1">
                                     <button data-action="reply-to-post"
@@ -823,7 +895,7 @@
                                         </span>
                                     }
                                 </div>
-                                @if (Model.IsAuthenticated)
+                                @if (!isOP && Model.IsAuthenticated)
                                 {
                                 <div class="dropdown dropdown-end">
                                     <button tabindex="0" class="subtle-btn" aria-label="Post options">
@@ -872,6 +944,7 @@
                                 }
                             </div>
                         </div>
+                        }
 
                         <!-- Reply-to Quote Block -->
                         @if (hasReplyTo)
@@ -1083,9 +1156,12 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
-                        Post Reply
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
+                            Post Reply
+                        </button>
+                        <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">Draft restored</span>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1097,9 +1173,6 @@
     {
         <!-- Thread Navigation Bar (sticky bottom, inside fp-center but outside fp-center-inner) -->
         <div id="thread-nav" class="thread-nav hidden">
-            <div class="thread-nav-progress-track">
-                <div id="thread-nav-progress" class="thread-nav-progress-bar"></div>
-            </div>
             <div class="thread-nav-controls">
                 <button class="thread-nav-btn" data-nav="first" title="First post" aria-label="Jump to first post">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>

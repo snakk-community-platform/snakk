@@ -722,6 +722,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 .Select(p => new
                 {
                     p.DiscussionId,
+                    p.VotesVisible,
+                    p.ClosesAt,
                     Options = p.Options
                         .OrderBy(o => o.DisplayOrder)
                         .Select(o => new { o.Text, o.VoteCount })
@@ -732,10 +734,14 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             foreach (var poll in polls)
             {
                 var publicId = pollIds.First(d => d.Id == poll.DiscussionId).PublicId;
+                var isSecret = !poll.VotesVisible;
+                var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
+                var hideVotes = isSecret && !isClosed;
                 var options = poll.Options
-                    .Select(o => new Application.Repositories.PollOptionPreviewDto(o.Text, o.VoteCount))
+                    .Select(o => new Application.Repositories.PollOptionPreviewDto(o.Text, hideVotes ? 0 : o.VoteCount))
                     .ToList();
-                result[publicId] = new(Poll: new(options, options.Sum(o => o.VoteCount)));
+                var totalVotes = hideVotes ? 0 : options.Sum(o => o.VoteCount);
+                result[publicId] = new(Poll: new(options, totalVotes, IsSecret: isSecret, ClosesAt: poll.ClosesAt));
             }
         }
 

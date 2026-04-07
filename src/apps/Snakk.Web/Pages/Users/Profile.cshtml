@@ -125,7 +125,8 @@
                 <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
                      alt="@Model.Profile.DisplayName"
                      width="80" height="80"
-                     class="fp-profile-avatar" />
+                     class="fp-profile-avatar"
+                     decoding="async" />
                 <div class="fp-profile-info">
                     <div class="fp-profile-name-row">
                         <h1 class="fp-profile-name">@Model.Profile.DisplayName</h1>

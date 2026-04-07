@@ -1,11 +1,12 @@
 namespace Snakk.Application.DTOs.Management;
 
+using Snakk.Shared.Enums;
+
 public class GroupAccessGrantDto
 {
     public required string GroupPublicId { get; init; }
     public required string GroupName { get; init; }
-    public bool CanRead { get; init; }
-    public bool CanWrite { get; init; }
+    public AccessLevelEnum AccessLevel { get; init; }
 }
 
 public class EntityAccessDto
@@ -17,8 +18,7 @@ public class EntityAccessDto
 public class UpsertGroupGrantRequest
 {
     public required string GroupPublicId { get; init; }
-    public bool CanRead { get; init; }
-    public bool CanWrite { get; init; }
+    public AccessLevelEnum AccessLevel { get; init; }
 }
 
 public class SetIsRestrictedRequest
@@ -28,10 +28,13 @@ public class SetIsRestrictedRequest
 
 public class GroupAccessResult
 {
-    public bool CanRead { get; init; }
-    public bool CanWrite { get; init; }
+    public AccessLevelEnum AccessLevel { get; init; }
     public bool IsRestricted { get; init; }
 
-    public static GroupAccessResult Open => new() { CanRead = true, CanWrite = true, IsRestricted = false };
-    public static GroupAccessResult Denied => new() { CanRead = false, CanWrite = false, IsRestricted = true };
+    public bool CanRead => AccessLevel >= AccessLevelEnum.Read;
+    public bool CanAuthor => AccessLevel >= AccessLevelEnum.Author;
+    public bool CanWrite => AccessLevel >= AccessLevelEnum.Write;
+
+    public static GroupAccessResult Open => new() { AccessLevel = AccessLevelEnum.Write, IsRestricted = false };
+    public static GroupAccessResult Denied => new() { AccessLevel = AccessLevelEnum.None, IsRestricted = true };
 }

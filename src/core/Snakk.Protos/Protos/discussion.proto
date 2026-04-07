@@ -82,6 +82,7 @@ message CreateDiscussionRequest {
   optional google.protobuf.Timestamp iama_scheduled_start = 16;
   optional google.protobuf.Timestamp iama_scheduled_end = 17;
   optional string iama_verification_note = 18;
+  bool poll_secret = 19;
 }
 
 message GetRecentDiscussionsRequest {
@@ -162,6 +163,8 @@ message DiscussionPreview {
 message PollPreview {
   repeated PollPreviewOption options = 1;
   int32 total_votes = 2;
+  bool is_secret = 3;
+  optional google.protobuf.Timestamp closes_at = 4;
 }
 
 message PollPreviewOption {
@@ -269,6 +272,7 @@ message PollResponse {
   bool is_closed = 5;
   int32 total_votes = 6;
   repeated int32 user_voted_option_ids = 7;
+  bool is_secret = 8;
 }
 
 message PollOptionInfo {

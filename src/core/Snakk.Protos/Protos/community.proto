@@ -114,7 +114,6 @@ message CheckGroupAccessRequest {
 }
 
 message CheckGroupAccessResponse {
-  bool can_read = 1;
-  bool can_write = 2;
+  int32 access_level = 1;
   bool is_restricted = 3;
 }

@@ -222,8 +222,7 @@ public class CommunityGrpcService(
 
         return new CheckGroupAccessResponse
         {
-            CanRead = result.CanRead,
-            CanWrite = result.CanWrite,
+            AccessLevel = (int)result.AccessLevel,
             IsRestricted = result.IsRestricted
         };
     }

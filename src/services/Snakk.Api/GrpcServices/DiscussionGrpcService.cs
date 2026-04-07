@@ -23,7 +23,8 @@ public class DiscussionGrpcService(
     IDiscussionExtensionService extensionService,
     IPollService pollService,
     IDiscussionTypeQueryService typeQueryService,
-    IFileStorage fileStorage) : DiscussionService.DiscussionServiceBase
+    IFileStorage fileStorage,
+    IGroupAccessService groupAccessService) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -69,6 +70,11 @@ public class DiscussionGrpcService(
         if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
+        // Enforce write permissions: Author or Write required to create discussions
+        var access = await groupAccessService.CheckAccessForSpaceAsync(userId.Value, request.SpaceId, context.CancellationToken);
+        if (!access.CanAuthor)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "You don't have permission to create discussions here"));
+
         var type = (DiscussionTypeEnum)request.Type;
 
         // Validate type is allowed in this space
@@ -79,7 +85,7 @@ public class DiscussionGrpcService(
         // Validate type-specific required fields
         ValidateTypeSpecificFields(request, type);
 
-        var slug = request.Title.ToLower().Replace(" ", "-");
+        var slug = SlugHelper.ToSlug(request.Title);
         var result = await discussionUseCase.CreateDiscussionAsync(
             SpaceId.From(request.SpaceId),
             userId,
@@ -156,7 +162,8 @@ public class DiscussionGrpcService(
                     request.PollOptions.ToList(),
                     request.PollAllowMultiple,
                     request.PollAllowChangeVote,
-                    request.PollClosesAt is not null ? request.PollClosesAt.ToDateTime() : null);
+                    request.PollClosesAt is not null ? request.PollClosesAt.ToDateTime() : null,
+                    !request.PollSecret);
                 break;
 
             case DiscussionTypeEnum.Link:
@@ -267,7 +274,13 @@ public class DiscussionGrpcService(
 
                 if (d.Preview.Poll is not null)
                 {
-                    preview.Poll = new PollPreview { TotalVotes = d.Preview.Poll.TotalVotes };
+                    preview.Poll = new PollPreview
+                    {
+                        TotalVotes = d.Preview.Poll.TotalVotes,
+                        IsSecret = d.Preview.Poll.IsSecret
+                    };
+                    if (d.Preview.Poll.ClosesAt.HasValue)
+                        preview.Poll.ClosesAt = ToTimestamp(d.Preview.Poll.ClosesAt.Value);
                     preview.Poll.Options.AddRange(d.Preview.Poll.Options.Select(o =>
                         new PollPreviewOption { Text = o.Text, VoteCount = o.VoteCount }));
                 }
@@ -458,7 +471,8 @@ public class DiscussionGrpcService(
             AllowMultiple = data.AllowMultipleChoices,
             AllowChangeVote = data.AllowChangeVote,
             IsClosed = data.IsClosed,
-            TotalVotes = data.TotalVotes
+            TotalVotes = data.TotalVotes,
+            IsSecret = data.IsSecret
         };
 
         if (data.ClosesAt.HasValue)

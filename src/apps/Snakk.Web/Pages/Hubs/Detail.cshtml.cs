@@ -80,7 +80,7 @@ public class DetailModel(
                 CommunityDetail.PublicId,
                 Hub.PublicId);
 
-            if (access is not null && !access.CanRead)
+            if (access is not null && access.AccessLevel < 1)
                 return StatusCode(403);
         }
 

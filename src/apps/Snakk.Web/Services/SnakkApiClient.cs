@@ -251,6 +251,7 @@ public class SnakkApiClient(
         bool pollAllowMultiple = false,
         bool pollAllowChangeVote = false,
         DateTime? pollClosesAt = null,
+        bool pollSecret = false,
         // Link extension
         string? linkUrl = null,
         // Debate extension
@@ -272,6 +273,7 @@ public class SnakkApiClient(
             if (pollOptions is not null) request.PollOptions.AddRange(pollOptions);
             request.PollAllowMultiple = pollAllowMultiple;
             request.PollAllowChangeVote = pollAllowChangeVote;
+            request.PollSecret = pollSecret;
             if (pollClosesAt.HasValue) request.PollClosesAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(pollClosesAt.Value, DateTimeKind.Utc));
             if (linkUrl is not null) request.LinkUrl = linkUrl;
             if (debatePositions is not null) request.DebatePositions.AddRange(debatePositions);

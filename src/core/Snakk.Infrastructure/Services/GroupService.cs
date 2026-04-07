@@ -4,6 +4,7 @@ using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Helpers;
 
 namespace Snakk.Infrastructure.Services;
 
@@ -68,7 +69,7 @@ public class GroupService(
             ?? throw new InvalidOperationException($"Community {communityId} not found");
 
         var slug = string.IsNullOrWhiteSpace(request.Slug)
-            ? GenerateSlug(request.Name)
+            ? SlugHelper.ToSlug(request.Name)
             : request.Slug.Trim().ToLowerInvariant();
 
         var entity = new GroupDatabaseEntity
@@ -253,12 +254,4 @@ public class GroupService(
         return true;
     }
 
-    private static string GenerateSlug(string name) =>
-        name.Trim()
-            .ToLowerInvariant()
-            .Replace(" ", "-")
-            .Replace("_", "-")
-            .Where(c => char.IsLetterOrDigit(c) || c == '-')
-            .Aggregate(string.Empty, (acc, c) => acc + c)
-            .Trim('-');
 }

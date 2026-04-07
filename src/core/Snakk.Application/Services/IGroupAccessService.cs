@@ -19,6 +19,23 @@ public interface IGroupAccessService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Convenience method: checks access for a space, resolving the community/hub hierarchy internally.
+    /// </summary>
+    Task<GroupAccessResult> CheckAccessForSpaceAsync(
+        string? userPublicId,
+        string spacePublicId,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Convenience method: checks access for a discussion's space, resolving the hierarchy internally.
+    /// Also returns the discussion's author public ID for Author-level permission checks.
+    /// </summary>
+    Task<(GroupAccessResult Access, string? DiscussionAuthorPublicId)> CheckAccessForDiscussionAsync(
+        string? userPublicId,
+        string discussionPublicId,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Returns the current IsRestricted flag and group grants for the given scoped entity.
     /// Exactly one of communityPublicId/hubPublicId/spacePublicId should be provided.
     /// </summary>

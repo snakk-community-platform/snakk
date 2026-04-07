@@ -44,6 +44,22 @@
                 next.addEventListener('mouseenter', function() { preloadSlide(current + 1); });
             }
             if (prev) prev.addEventListener('mouseenter', function() { preloadSlide(current - 1); });
+
+            // Open lightbox on click (not on buttons)
+            el.addEventListener('click', function(e) {
+                const target = e.target as HTMLElement;
+                if (target.closest('.fp-images-btn')) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const lightbox = (window as any).SnakkLightbox;
+                if (!lightbox) return;
+
+                const fullUrls: string[] = [];
+                slides.forEach(function(s) { fullUrls.push(s.dataset.full || s.dataset.src || s.src); });
+                lightbox.open(fullUrls, current);
+            });
         });
     }
 

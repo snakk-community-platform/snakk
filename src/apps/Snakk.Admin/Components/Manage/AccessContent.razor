@@ -55,8 +55,7 @@ else
             <MudTable Items="@_allGroups" Hover="true" Dense="true">
                 <HeaderContent>
                     <MudTh>Group</MudTh>
-                    <MudTh Style="width: 100px; text-align: center;">Read</MudTh>
-                    <MudTh Style="width: 100px; text-align: center;">Write</MudTh>
+                    <MudTh Style="width: 180px;">Access Level</MudTh>
                     <MudTh Style="width: 120px;"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -69,13 +68,14 @@ else
                             }
                         </MudStack>
                     </MudTd>
-                    <MudTd Style="text-align: center;">
-                        <MudCheckBox @bind-Value="@context.CanRead" Color="Color.Primary"
-                                     Disabled="@_saving" />
-                    </MudTd>
-                    <MudTd Style="text-align: center;">
-                        <MudCheckBox @bind-Value="@context.CanWrite" Color="Color.Primary"
-                                     Disabled="@_saving" />
+                    <MudTd>
+                        <MudSelect T="int" @bind-Value="@context.AccessLevel" Dense="true"
+                                   Disabled="@_saving" Margin="Margin.Dense">
+                            <MudSelectItem T="int" Value="0">None</MudSelectItem>
+                            <MudSelectItem T="int" Value="1">Read</MudSelectItem>
+                            <MudSelectItem T="int" Value="2">Author</MudSelectItem>
+                            <MudSelectItem T="int" Value="3">Write</MudSelectItem>
+                        </MudSelect>
                     </MudTd>
                     <MudTd>
                         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
@@ -114,8 +114,7 @@ else
         public required string PublicId { get; init; }
         public required string Name { get; init; }
         public bool IsPublic { get; init; }
-        public bool CanRead { get; set; }
-        public bool CanWrite { get; set; }
+        public int AccessLevel { get; set; }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -152,8 +151,7 @@ else
                 PublicId = g.PublicId,
                 Name = g.Name,
                 IsPublic = g.IsPublic,
-                CanRead = grantsByGroupId.TryGetValue(g.PublicId, out var grant) && grant.CanRead,
-                CanWrite = grantsByGroupId.TryGetValue(g.PublicId, out var grant2) && grant2.CanWrite
+                AccessLevel = grantsByGroupId.TryGetValue(g.PublicId, out var grant) ? grant.AccessLevel : 0
             }).ToList();
         }
         catch (Exception ex)
@@ -205,9 +203,9 @@ else
         _errorMessage = null;
         try
         {
-            if (!row.CanRead && !row.CanWrite)
+            if (row.AccessLevel == 0)
             {
-                // Both unchecked — remove the grant if it exists
+                // None — remove the grant if it exists
                 var deleteRequest = Scope!.ScopeType switch
                 {
                     "Space" => new DeleteGroupGrantRequest { GroupPublicId = row.PublicId, SpacePublicId = Scope.ScopePublicId },
@@ -220,9 +218,9 @@ else
             {
                 var upsertRequest = Scope!.ScopeType switch
                 {
-                    "Space" => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, CanRead = row.CanRead, CanWrite = row.CanWrite, SpacePublicId = Scope.ScopePublicId },
-                    "Hub" => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, CanRead = row.CanRead, CanWrite = row.CanWrite, HubPublicId = Scope.ScopePublicId },
-                    _ => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, CanRead = row.CanRead, CanWrite = row.CanWrite, CommunityPublicId = Scope!.ScopePublicId }
+                    "Space" => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, AccessLevel = row.AccessLevel, SpacePublicId = Scope.ScopePublicId },
+                    "Hub" => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, AccessLevel = row.AccessLevel, HubPublicId = Scope.ScopePublicId },
+                    _ => new Snakk.Protos.Manage.UpsertGroupGrantRequest { GroupPublicId = row.PublicId, AccessLevel = row.AccessLevel, CommunityPublicId = Scope!.ScopePublicId }
                 };
                 await ManageClient.UpsertGroupGrantAsync(upsertRequest, deadline: DateTime.UtcNow.AddSeconds(10));
             }

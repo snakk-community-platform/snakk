@@ -162,7 +162,7 @@ public class MediaService(
 
                 mediumThumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_med.webp";
                 using var medStream = new MemoryStream();
-                await medImage.SaveAsWebpAsync(medStream, new WebpEncoder { Quality = 80 }, cancellationToken);
+                await medImage.SaveAsWebpAsync(medStream, new WebpEncoder { Quality = 75 }, cancellationToken);
                 medStream.Position = 0;
                 await fileStorage.SaveAsync(mediumThumbnailPath, medStream, "public, max-age=31536000, immutable", cancellationToken);
             }

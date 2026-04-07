@@ -99,7 +99,8 @@ public class DiscussionExtensionService(
         List<string> options,
         bool allowMultipleChoices = false,
         bool allowChangeVote = false,
-        DateTime? closesAt = null)
+        DateTime? closesAt = null,
+        bool votesVisible = true)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
@@ -108,7 +109,8 @@ public class DiscussionExtensionService(
             DiscussionId = discussionId,
             AllowMultipleChoices = allowMultipleChoices,
             AllowChangeVote = allowChangeVote,
-            ClosesAt = closesAt
+            ClosesAt = closesAt,
+            VotesVisible = votesVisible
         };
 
         context.DiscussionPolls.Add(poll);

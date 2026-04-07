@@ -17,7 +17,8 @@ public class PostGrpcService(
     IMarkupParser markupParser,
     ICurrentUserService currentUser,
     IUserGrantsCacheService grantsCache,
-    IEntityHierarchyCacheService hierarchyCache) : PostService.PostServiceBase
+    IEntityHierarchyCacheService hierarchyCache,
+    IGroupAccessService groupAccessService) : PostService.PostServiceBase
 {
     public override async Task<PagedEnrichedPostList> GetPostsByDiscussion(GetPostsByDiscussionRequest request, ServerCallContext context)
     {
@@ -118,6 +119,15 @@ public class PostGrpcService(
 
         if (!await IsDiscussionAccessibleAsync(request.DiscussionId, userId.Value))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+        // Enforce write permissions:
+        // Write = can reply to any discussion
+        // Author = can only reply to own discussions
+        var (access, authorId) = await groupAccessService.CheckAccessForDiscussionAsync(
+            userId.Value, request.DiscussionId, context.CancellationToken);
+
+        if (!access.CanWrite && !(access.CanAuthor && authorId == userId.Value))
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "You don't have permission to reply here"));
 
         PostId? replyToPostId = request.HasReplyToPostId
             ? PostId.From(request.ReplyToPostId)

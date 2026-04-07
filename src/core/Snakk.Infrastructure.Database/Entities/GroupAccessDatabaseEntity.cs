@@ -11,9 +11,8 @@ public class GroupAccessDatabaseEntity
     public int GroupId { get; set; }
     public virtual GroupDatabaseEntity Group { get; set; } = null!;
 
-    // Permissions
-    public bool CanRead { get; set; }
-    public bool CanWrite { get; set; }
+    // Permissions: 0=None, 1=Read, 2=Author, 3=Write (maps to AccessLevelEnum)
+    public int AccessLevel { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

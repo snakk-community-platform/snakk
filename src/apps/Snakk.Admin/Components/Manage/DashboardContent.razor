@@ -89,11 +89,21 @@
             <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
                 @foreach (var grant in _access.Grants)
                 {
-                    <MudTooltip Text="@($"{(grant.CanRead ? "Read" : "")}{(grant.CanRead && grant.CanWrite ? " + " : "")}{(grant.CanWrite ? "Write" : "")}")">
+                    <MudTooltip Text="@(grant.AccessLevel switch { 1 => "Read", 2 => "Author", 3 => "Write", _ => "None" })">
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">
                             @grant.GroupName
-                            @if (grant.CanRead) { <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="MudBlazor.Size.Small" Class="ml-1" /> }
-                            @if (grant.CanWrite) { <MudIcon Icon="@Icons.Material.Filled.Edit" Size="MudBlazor.Size.Small" Class="ml-1" /> }
+                            @switch (grant.AccessLevel)
+                            {
+                                case 1:
+                                    <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="MudBlazor.Size.Small" Class="ml-1" />
+                                    break;
+                                case 2:
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="ml-1" />
+                                    break;
+                                case 3:
+                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="MudBlazor.Size.Small" Class="ml-1" />
+                                    break;
+                            }
                         </MudChip>
                     </MudTooltip>
                 }

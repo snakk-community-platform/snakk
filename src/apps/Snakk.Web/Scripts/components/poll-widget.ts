@@ -16,6 +16,7 @@ interface PollData {
     allowChangeVote: boolean;
     closesAt: string | null;
     isClosed: boolean;
+    isSecret: boolean;
     totalVotes: number;
     userVotedOptionIds: number[];
 }
@@ -57,12 +58,28 @@ interface PollData {
         if (!pollData || !container) return;
 
         const hasVoted = pollData.userVotedOptionIds.length > 0;
-        const showResults = hasVoted || pollData.isClosed || !isAuthenticated;
+        const showResults = (hasVoted || pollData.isClosed || !isAuthenticated) && !(pollData.isSecret && !pollData.isClosed);
         const maxVotes = Math.max(...pollData.options.map(o => o.voteCount), 1);
 
-        let html = '<div class="poll-options">';
+        // Color shades for each option (subtle variation)
+        const barColors = [
+            'oklch(0.55 0.15 155)',  // primary-500
+            'oklch(0.62 0.13 155)',  // primary-400
+            'oklch(0.69 0.11 155)',  // primary-300
+            'oklch(0.55 0.12 200)',  // blue-ish
+            'oklch(0.60 0.10 200)',
+            'oklch(0.55 0.14 130)',  // warm green
+            'oklch(0.62 0.12 130)',
+            'oklch(0.55 0.10 260)',  // purple-ish
+            'oklch(0.60 0.08 260)',
+            'oklch(0.55 0.12 30)',   // amber
+        ];
 
-        for (const option of pollData.options.sort((a, b) => a.displayOrder - b.displayOrder)) {
+        let html = '<div class="poll-options">';
+        const sorted = pollData.options.sort((a, b) => a.displayOrder - b.displayOrder);
+
+        for (let idx = 0; idx < sorted.length; idx++) {
+            const option = sorted[idx]!;
             const percent = pollData.totalVotes > 0
                 ? Math.round((option.voteCount / pollData.totalVotes) * 100)
                 : 0;
@@ -74,33 +91,42 @@ interface PollData {
             const winnerClass = showResults && isWinner ? ' poll-option-winner' : '';
             const closedClass = pollData.isClosed ? ' poll-option-closed' : '';
             const clickable = !pollData.isClosed && isAuthenticated && (!hasVoted || pollData.allowChangeVote || pollData.allowMultiple);
+            const barColor = barColors[idx % barColors.length];
 
             html += `<div class="poll-option${selectedClass}${winnerClass}${closedClass}" data-option-id="${option.id}"
-                          ${clickable ? `data-action="poll-toggle-option" data-option-id="${option.id}"` : ''}>`;
+                          style="--poll-bar-color: ${barColor}"
+                          ${clickable ? `data-action="poll-toggle-option" data-option-id="${option.id}"` : ''}
+                          ${showResults ? `title="${escapeHtml(option.text)}: ${option.voteCount} vote${option.voteCount !== 1 ? 's' : ''} (${percent}%)"` : ''}>`;
 
-            if (showResults) {
-                html += `<div class="poll-option-bar" style="width: ${percent}%"></div>`;
-            }
+            html += '<div class="poll-option-label">';
 
-            html += '<div class="poll-option-content">';
-            html += '<div class="poll-option-left">';
-
-            if (!showResults && clickable) {
+            if (showResults && isSelected) {
+                html += '<svg class="poll-option-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+            } else if (!showResults && clickable) {
                 const inputType = pollData.allowMultiple ? 'checkbox' : 'radio';
                 html += `<input type="${inputType}" ${isLocalSelected || isSelected ? 'checked' : ''} class="poll-option-input" tabindex="-1" />`;
             }
 
             html += `<span class="poll-option-text">${escapeHtml(option.text)}</span>`;
+
+            if (showResults) {
+                html += `<span class="poll-option-stats"><span class="poll-option-pct">${percent}%</span><span class="poll-option-votes">(${option.voteCount})</span></span>`;
+            }
+
             html += '</div>';
 
             if (showResults) {
-                html += `<span class="poll-option-stats">${option.voteCount} (${percent}%)</span>`;
+                html += `<div class="poll-option-bar-row"><div class="poll-option-track"><div class="poll-option-fill" data-target-width="${percent}"></div></div></div>`;
             }
 
-            html += '</div></div>';
+            html += '</div>';
         }
 
         html += '</div>';
+
+        if (pollData.isSecret && !pollData.isClosed && hasVoted) {
+            html += '<div class="text-sm text-base-content/50 mt-2">✓ Your vote has been recorded. Results will be revealed when the poll closes.</div>';
+        }
 
         // Footer
         html += '<div class="poll-footer">';
@@ -113,10 +139,11 @@ interface PollData {
             const now = new Date();
             const diffMs = closesAt.getTime() - now.getTime();
             if (diffMs > 0) {
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const timeLeft = diffDays > 0 ? `${diffDays}d ${diffHours}h` : `${diffHours}h`;
-                html += `<span class="poll-closes-in">Closes in ${timeLeft}</span>`;
+                const d = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diffMs % (1000 * 60)) / 1000);
+                html += `<span class="poll-closes-in" data-countdown-to="${pollData.closesAt}">Closes in <span class="countdown font-mono"><span data-unit="days" style="--value:${d};">${d}</span>d <span data-unit="hours" style="--value:${h};">${h}</span>h <span data-unit="minutes" style="--value:${m};">${m}</span>m <span data-unit="seconds" style="--value:${s};">${s}</span>s</span></span>`;
             }
         }
 
@@ -129,6 +156,13 @@ interface PollData {
         html += '</div>';
 
         container.innerHTML = html;
+
+        // Animate bars from 0 → target width
+        requestAnimationFrame(() => {
+            container.querySelectorAll<HTMLElement>('.poll-option-fill[data-target-width]').forEach(fill => {
+                fill.style.width = fill.dataset.targetWidth + '%';
+            });
+        });
     }
 
     function toggleOption(optionId: number): void {

@@ -22,7 +22,8 @@ else
                 <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-2 py-1 hover:opacity-75 transition-opacity">
                     <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                          alt="" width="24" height="24"
-                         class="w-6 h-6 rounded-full shrink-0" />
+                         class="w-6 h-6 rounded-full shrink-0"
+                         loading="lazy" decoding="async" />
                     <span class="text-sm truncate flex-1">@mod.DisplayName</span>
                     <span class="badge badge-sm badge-ghost text-[10px]">@FormatRole(mod.Role)</span>
                 </a>

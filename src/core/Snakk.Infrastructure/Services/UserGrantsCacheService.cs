@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Shared.Enums;
 
 public class UserGrantsCacheService(
     SnakkDbContext context,
@@ -41,7 +42,7 @@ public class UserGrantsCacheService(
         var raw = await context.GroupMembers
             .Where(gm => gm.User.PublicId == userId)
             .SelectMany(gm => context.GroupAccess.Where(ga =>
-                ga.GroupId == gm.GroupId && ga.CanRead))
+                ga.GroupId == gm.GroupId && ga.AccessLevel >= (int)AccessLevelEnum.Read))
             .Select(ga => new { ga.SpaceId, ga.HubId, ga.CommunityId })
             .ToListAsync();
 

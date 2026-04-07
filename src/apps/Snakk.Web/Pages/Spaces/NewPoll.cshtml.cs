@@ -15,6 +15,7 @@ public class NewPollModel(
     [BindProperty] public bool PollAllowMultiple { get; set; }
     [BindProperty] public bool PollAllowChangeVote { get; set; }
     [BindProperty] public string? PollClosesAt { get; set; }
+    [BindProperty] public bool PollSecret { get; set; }
 
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
@@ -32,6 +33,7 @@ public class NewPollModel(
             pollOptions: options,
             pollAllowMultiple: PollAllowMultiple,
             pollAllowChangeVote: PollAllowChangeVote,
-            pollClosesAt: closeDate);
+            pollClosesAt: closeDate,
+            pollSecret: PollSecret);
     }
 }

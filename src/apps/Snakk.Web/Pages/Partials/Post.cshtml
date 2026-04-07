@@ -46,7 +46,8 @@
             <img src="@post.Author.AvatarUrl"
                  alt="@post.Author.DisplayName"
                  width="48" height="48"
-                 class="post-avatar" />
+                 class="post-avatar"
+                 loading="lazy" decoding="async" />
             <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
                class="post-author-name"
                data-popup-type="user"

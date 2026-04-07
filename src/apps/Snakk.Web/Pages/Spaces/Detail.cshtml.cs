@@ -80,7 +80,7 @@ public class DetailModel(
                 Hub?.PublicId,
                 Space.PublicId);
 
-            if (access is not null && !access.CanRead)
+            if (access is not null && access.AccessLevel < 1)
                 return StatusCode(403);
         }
 

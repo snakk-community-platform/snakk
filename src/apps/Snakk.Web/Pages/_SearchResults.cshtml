@@ -41,7 +41,8 @@
                     <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
                         <img src="@discussion.Author.AvatarUrl"
                              alt="@discussion.Author.DisplayName"
-                             width="32" height="32" />
+                             width="32" height="32"
+                             loading="lazy" decoding="async" />
                     </div>
                     <div class="topic-content">
                         <div class="topic-title">@discussion.Title</div>
@@ -123,7 +124,8 @@ else if (Model.SearchType == "post")
                         <div class="avatar avatar-sm flex-shrink-0">
                             <img src="@post.Author.AvatarUrl"
                                  alt="@post.Author.DisplayName"
-                                 width="32" height="32" />
+                                 width="32" height="32"
+                                 loading="lazy" decoding="async" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 text-sm text-muted mb-2">

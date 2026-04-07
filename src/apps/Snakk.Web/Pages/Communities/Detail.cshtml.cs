@@ -61,7 +61,7 @@ public class DetailModel(
         if (CommunityDetail.IsRestricted)
         {
             var communityAccess = await _apiClient.CheckGroupAccessAsync(CommunityDetail.PublicId);
-            if (communityAccess is not null && !communityAccess.CanRead)
+            if (communityAccess is not null && communityAccess.AccessLevel < 1)
                 return StatusCode(403);
         }
 

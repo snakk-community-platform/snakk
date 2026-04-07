@@ -22,7 +22,7 @@
     --nav-text-hover: #FFFFFF;
     --nav-border: #145A41;
     --breadcrumb-bg: #4CAF7D;
-    --breadcrumb-text: rgba(255, 255, 255, 0.85);
+    --breadcrumb-text: var(--text-secondary);
     --breadcrumb-border: #3D9A6C;
     --sidebar-bg: #DDF3E6;
 }

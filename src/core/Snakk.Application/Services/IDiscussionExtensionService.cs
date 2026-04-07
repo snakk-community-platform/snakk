@@ -11,7 +11,8 @@ public interface IDiscussionExtensionService
         List<string> options,
         bool allowMultipleChoices = false,
         bool allowChangeVote = false,
-        DateTime? closesAt = null);
+        DateTime? closesAt = null,
+        bool votesVisible = true);
 
     Task CreateLinkAsync(
         string discussionPublicId,

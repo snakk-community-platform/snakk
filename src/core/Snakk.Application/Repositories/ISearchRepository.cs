@@ -210,7 +210,7 @@ public record DiscussionPreviewDto(
     ImagesPreviewDto? Images = null,
     IamaPreviewDto? Iama = null);
 
-public record PollPreviewDto(IReadOnlyList<PollOptionPreviewDto> Options, int TotalVotes);
+public record PollPreviewDto(IReadOnlyList<PollOptionPreviewDto> Options, int TotalVotes, bool IsSecret, DateTime? ClosesAt);
 public record PollOptionPreviewDto(string Text, int VoteCount);
 
 public record DebatePreviewDto(IReadOnlyList<DebatePositionPreviewDto> Positions);

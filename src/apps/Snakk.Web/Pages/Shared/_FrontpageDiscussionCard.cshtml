@@ -29,7 +29,7 @@
 
 <article class="fp-card h-entry">
     <div class="fp-card-header">
-        <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" />
+        <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
         <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
            data-popup-type="user"
            data-popup-id="@discussion.Author.PublicId"
@@ -68,13 +68,6 @@
                 <span class="fp-card-type-meta">(@phaseLabel)</span>
             }
         }
-        @if (discussion.ReactionCount > 0)
-        {
-            <span class="fp-card-stat fp-card-reactions">
-                <span class="fp-reaction-emoji">❤️</span>
-                @discussion.ReactionCount
-            </span>
-        }
     </div>
 
     <div class="fp-card-title">
@@ -101,6 +94,13 @@
                data-popup-id="@discussion.Space.PublicId"
                data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
         </span>
+        @if (discussion.ReactionCount > 0)
+        {
+            <span class="fp-card-stat fp-card-reactions">
+                <span class="fp-reaction-emoji">❤️</span>
+                @discussion.ReactionCount
+            </span>
+        }
         <a href="@baseUrl" class="fp-card-stat fp-card-comments">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 00-1.032-.211 50.89 50.89 0 00-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 002.433 3.984L7.28 21.53A.75.75 0 016 21v-4.03a48.527 48.527 0 01-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979z" />
@@ -119,23 +119,55 @@
                 var maxToShow = Math.Min(pollPreview.Options.Count, 4);
                 var sortedOptions = pollPreview.Options.OrderByDescending(o => o.VoteCount).ToList();
 
-                <div class="fp-poll-preview">
-                    @for (var i = 0; i < maxToShow; i++)
-                    {
-                        var option = sortedOptions[i];
-                        var pct = totalVotes > 0 ? (int)Math.Round(100.0 * option.VoteCount / totalVotes) : 0;
+                @if (pollPreview.IsSecret && (pollPreview.ClosesAt == null || pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow))
+                {
+                    <div class="fp-poll-preview">
+                        <div class="text-xs text-base-content/50">🔒 Secret poll — results revealed when voting closes</div>
+                        @if (pollPreview.ClosesAt != null && pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow)
+                        {
+                            <div class="fp-iama-countdown" data-countdown-to="@pollPreview.ClosesAt.ToDateTime().ToString("o")">
+                                <span class="text-xs text-base-content/40">closes in</span>
+                                <span class="countdown font-mono text-sm">
+                                    <span data-unit="days" style="--value:0;">0</span>d
+                                    <span data-unit="hours" style="--value:0;">0</span>h
+                                    <span data-unit="minutes" style="--value:0;">0</span>m
+                                    <span data-unit="seconds" style="--value:0;">0</span>s
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    var fpPollColors = new[] {
+                            "oklch(0.55 0.15 155)", "oklch(0.62 0.13 155)",
+                            "oklch(0.69 0.11 155)", "oklch(0.55 0.12 200)"
+                        };
+                    <div class="fp-poll-preview">
+                        @for (var i = 0; i < maxToShow; i++)
+                        {
+                            var option = sortedOptions[i];
+                            var pct = totalVotes > 0 ? (int)Math.Round(100.0 * option.VoteCount / totalVotes) : 0;
+                            var barColor = fpPollColors[i % fpPollColors.Length];
 
-                        <div class="fp-poll-bar">
-                            <div class="fp-poll-bar-fill" style="width: @(pct)%"></div>
-                            <span class="fp-poll-bar-label">@option.Text</span>
-                            <span class="fp-poll-bar-pct">@(pct)%</span>
-                        </div>
-                    }
-                    @if (pollPreview.Options.Count > 4)
-                    {
-                        <span class="fp-poll-more">+@(pollPreview.Options.Count - 4) more</span>
-                    }
-                </div>
+                            <div class="fp-poll-option" style="--fp-poll-color: @barColor">
+                                <div class="fp-poll-label">
+                                    <span>@option.Text</span>
+                                    <span class="fp-poll-stats">@(pct)% (@option.VoteCount)</span>
+                                </div>
+                                <div class="fp-poll-row">
+                                    <div class="fp-poll-track">
+                                        <div class="fp-poll-fill" style="width: @(pct)%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (pollPreview.Options.Count > 4)
+                        {
+                            <span class="fp-poll-more">+@(pollPreview.Options.Count - 4) more</span>
+                        }
+                    </div>
+                }
             }
             @if (debatePreview != null && debatePreview.Positions.Count > 0)
             {
@@ -210,14 +242,18 @@
                                     <img class="fp-images-slide"
                                          src="@src"
                                          data-src="@src"
+                                         data-full="@img.Url"
                                          data-loaded="1"
-                                         alt="" />
+                                         alt=""
+                                         decoding="async" />
                                 }
                                 else
                                 {
                                     <img class="fp-images-slide"
                                          data-src="@src"
-                                         alt="" />
+                                         data-full="@img.Url"
+                                         alt=""
+                                         decoding="async" />
                                 }
                             </div>
                         }
@@ -300,7 +336,7 @@
                 <a href="@linkPreview.Url" target="_blank" rel="nofollow noopener noreferrer" class="fp-link-card">
                     @if (linkThumbSrc != null)
                     {
-                        <img src="@linkThumbSrc" alt="" class="fp-link-card-img" />
+                        <img src="@linkThumbSrc" alt="" class="fp-link-card-img" loading="lazy" decoding="async" />
                     }
                     <div class="fp-link-card-content">
                         @if (linkPreview.HasTitle)

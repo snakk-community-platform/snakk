@@ -4,6 +4,7 @@ using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Services;
 
@@ -32,6 +33,45 @@ public class GroupAccessService(
             cancellationToken: ct);
     }
 
+    public async Task<GroupAccessResult> CheckAccessForSpaceAsync(
+        string? userPublicId,
+        string spacePublicId,
+        CancellationToken ct = default)
+    {
+        var hierarchy = await context.Spaces
+            .Where(s => s.PublicId == spacePublicId)
+            .Select(s => new { CommunityPublicId = s.Hub.Community.PublicId, HubPublicId = s.Hub.PublicId })
+            .FirstOrDefaultAsync(ct);
+
+        if (hierarchy is null)
+            return GroupAccessResult.Denied;
+
+        return await CheckAccessAsync(userPublicId, hierarchy.CommunityPublicId, hierarchy.HubPublicId, spacePublicId, ct);
+    }
+
+    public async Task<(GroupAccessResult Access, string? DiscussionAuthorPublicId)> CheckAccessForDiscussionAsync(
+        string? userPublicId,
+        string discussionPublicId,
+        CancellationToken ct = default)
+    {
+        var info = await context.Discussions
+            .Where(d => d.PublicId == discussionPublicId)
+            .Select(d => new
+            {
+                SpacePublicId = d.Space.PublicId,
+                HubPublicId = d.Space.Hub.PublicId,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                AuthorPublicId = d.CreatedByUser.PublicId
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (info is null)
+            return (GroupAccessResult.Denied, null);
+
+        var access = await CheckAccessAsync(userPublicId, info.CommunityPublicId, info.HubPublicId, info.SpacePublicId, ct);
+        return (access, info.AuthorPublicId);
+    }
+
     public async Task<EntityAccessDto> GetEntityAccessAsync(
         string? communityPublicId = null,
         string? hubPublicId = null,
@@ -54,8 +94,7 @@ public class GroupAccessService(
                 {
                     GroupPublicId = a.Group.PublicId,
                     GroupName = a.Group.Name,
-                    CanRead = a.CanRead,
-                    CanWrite = a.CanWrite
+                    AccessLevel = (AccessLevelEnum)a.AccessLevel
                 })
                 .ToListAsync(ct);
 
@@ -78,8 +117,7 @@ public class GroupAccessService(
                 {
                     GroupPublicId = a.Group.PublicId,
                     GroupName = a.Group.Name,
-                    CanRead = a.CanRead,
-                    CanWrite = a.CanWrite
+                    AccessLevel = (AccessLevelEnum)a.AccessLevel
                 })
                 .ToListAsync(ct);
 
@@ -102,8 +140,7 @@ public class GroupAccessService(
                 {
                     GroupPublicId = a.Group.PublicId,
                     GroupName = a.Group.Name,
-                    CanRead = a.CanRead,
-                    CanWrite = a.CanWrite
+                    AccessLevel = (AccessLevelEnum)a.AccessLevel
                 })
                 .ToListAsync(ct);
 
@@ -178,8 +215,7 @@ public class GroupAccessService(
                 {
                     GroupId = group.Id,
                     SpaceId = spaceId,
-                    CanRead = request.CanRead,
-                    CanWrite = request.CanWrite,
+                    AccessLevel = (int)request.AccessLevel,
                     CreatedAt = DateTime.UtcNow
                 });
             }
@@ -204,8 +240,7 @@ public class GroupAccessService(
                 {
                     GroupId = group.Id,
                     HubId = hubId,
-                    CanRead = request.CanRead,
-                    CanWrite = request.CanWrite,
+                    AccessLevel = (int)request.AccessLevel,
                     CreatedAt = DateTime.UtcNow
                 });
             }
@@ -230,8 +265,7 @@ public class GroupAccessService(
                 {
                     GroupId = group.Id,
                     CommunityId = communityId,
-                    CanRead = request.CanRead,
-                    CanWrite = request.CanWrite,
+                    AccessLevel = (int)request.AccessLevel,
                     CreatedAt = DateTime.UtcNow
                 });
             }
@@ -241,8 +275,7 @@ public class GroupAccessService(
 
         if (existing is not null)
         {
-            existing.CanRead = request.CanRead;
-            existing.CanWrite = request.CanWrite;
+            existing.AccessLevel = (int)request.AccessLevel;
         }
 
         await context.SaveChangesAsync(ct);
@@ -403,7 +436,7 @@ public class GroupAccessService(
             var isMod = await context.UserRoles
                 .AnyAsync(r => r.User.PublicId == userPublicId && r.RevokedAt == null, ct);
             if (isMod)
-                return new GroupAccessResult { CanRead = true, CanWrite = true, IsRestricted = true };
+                return new GroupAccessResult { AccessLevel = AccessLevelEnum.Write, IsRestricted = true };
         }
 
         // ── Anonymous: no access to restricted entities ──
@@ -426,47 +459,46 @@ public class GroupAccessService(
                 (hubIsRestricted && hubId.HasValue && a.HubId == hubId && a.SpaceId == null) ||
                 (spaceIsRestricted && spaceId.HasValue && a.SpaceId == spaceId)
             ))
-            .Select(a => new { a.CanRead, a.CanWrite, a.CommunityId, a.HubId, a.SpaceId })
+            .Select(a => new { a.AccessLevel, a.CommunityId, a.HubId, a.SpaceId })
             .ToListAsync(ct);
 
         // ── Intersection-gate: each restricted level must be independently satisfied ──
-        bool canRead = true;
-        bool canWrite = true;
+        int effectiveLevel = (int)AccessLevelEnum.Write;
 
         if (communityIsRestricted)
         {
-            var communityGrants = allGrants
+            var grants = allGrants
                 .Where(a => a.CommunityId == communityId && a.HubId == null && a.SpaceId == null)
                 .ToList();
-            if (communityGrants.Count == 0)
+            if (grants.Count == 0)
                 return GroupAccessResult.Denied;
-            canRead = canRead && communityGrants.Any(g => g.CanRead);
-            canWrite = canWrite && communityGrants.Any(g => g.CanWrite);
+            var gateLevel = grants.Max(g => (int)g.AccessLevel);
+            effectiveLevel = Math.Min(effectiveLevel, gateLevel);
         }
 
         if (hubIsRestricted && hubId.HasValue)
         {
-            var hubGrants = allGrants
+            var grants = allGrants
                 .Where(a => a.HubId == hubId && a.SpaceId == null)
                 .ToList();
-            if (hubGrants.Count == 0)
+            if (grants.Count == 0)
                 return GroupAccessResult.Denied;
-            canRead = canRead && hubGrants.Any(g => g.CanRead);
-            canWrite = canWrite && hubGrants.Any(g => g.CanWrite);
+            var gateLevel = grants.Max(g => (int)g.AccessLevel);
+            effectiveLevel = Math.Min(effectiveLevel, gateLevel);
         }
 
         if (spaceIsRestricted && spaceId.HasValue)
         {
-            var spaceGrants = allGrants
+            var grants = allGrants
                 .Where(a => a.SpaceId == spaceId)
                 .ToList();
-            if (spaceGrants.Count == 0)
+            if (grants.Count == 0)
                 return GroupAccessResult.Denied;
-            canRead = canRead && spaceGrants.Any(g => g.CanRead);
-            canWrite = canWrite && spaceGrants.Any(g => g.CanWrite);
+            var gateLevel = grants.Max(g => (int)g.AccessLevel);
+            effectiveLevel = Math.Min(effectiveLevel, gateLevel);
         }
 
-        return new GroupAccessResult { CanRead = canRead, CanWrite = canWrite, IsRestricted = true };
+        return new GroupAccessResult { AccessLevel = (AccessLevelEnum)effectiveLevel, IsRestricted = true };
     }
 
     private static IEnumerable<string> BuildTags(string communityPublicId, string? hubPublicId, string? spacePublicId)
