@@ -27,7 +27,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "@microsoft/signalr": "^8.0.7",
+    "@microsoft/signalr": "^10.0.0",
     "@tailwindcss/cli": "^4.2.2",
     "@types/node": "^22.10.2",
     "daisyui": "^5.0.0",
