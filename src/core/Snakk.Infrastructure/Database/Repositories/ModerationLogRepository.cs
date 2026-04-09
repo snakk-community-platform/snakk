@@ -11,6 +11,7 @@ public class ModerationLogRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ModerationLogDatabaseEntity>(context), IModerationLogRepository
 {
     public async Task<ModerationLogDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+        .AsNoTracking()
         .Include(ml => ml.ActorUser)
         .Include(ml => ml.TargetPost)
         .Include(ml => ml.TargetDiscussion)

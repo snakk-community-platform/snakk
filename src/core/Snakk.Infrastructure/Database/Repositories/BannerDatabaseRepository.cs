@@ -8,6 +8,7 @@ public class BannerDatabaseRepository(SnakkDbContext context)
 {
     public async Task<BannerDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet
+            .AsNoTracking()
             .Include(a => a.CreatedByUser)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
 }

@@ -343,32 +343,26 @@ public class PostRepositoryAdapter(
         var postsQuery = context.Posts
             .Where(p => !p.IsDeleted && p.CreatedAt >= since);
 
-        // Apply filters based on hierarchy
+        // Resolve public IDs to internal IDs once, outside the query
         if (communityId is not null)
         {
-            postsQuery = postsQuery.Where(p =>
-                p.Discussion.Space.Hub.CommunityId == context.Communities
-                    .Where(c => c.PublicId == communityId.Value)
-                    .Select(c => c.Id)
-                    .FirstOrDefault());
+            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
-            postsQuery = postsQuery.Where(p =>
-                p.Discussion.Space.HubId == context.Hubs
-                    .Where(h => h.PublicId == hubId.Value)
-                    .Select(h => h.Id)
-                    .FirstOrDefault());
+            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.HubId == dbId);
         }
 
         if (spaceId is not null)
         {
-            postsQuery = postsQuery.Where(p =>
-                p.Discussion.SpaceId == context.Spaces
-                    .Where(s => s.PublicId == spaceId.Value)
-                    .Select(s => s.Id)
-                    .FirstOrDefault());
+            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.SpaceId == dbId);
         }
 
         var topContributors = await postsQuery

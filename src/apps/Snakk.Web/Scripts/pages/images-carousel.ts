@@ -141,14 +141,15 @@
             const storageKey = discussionId ? `snakk:spoiler-revealed:${discussionId}` : '';
 
             function reveal(): void {
+                const isCompare = !!el.querySelector('.fp-compare-widget');
                 const deferred = el.querySelectorAll<HTMLImageElement>('img[data-deferred-src]');
                 deferred.forEach((img, i) => {
                     const realSrc = img.dataset.deferredSrc!;
                     img.dataset.src = realSrc;
                     img.removeAttribute('data-deferred-src');
 
-                    // Only load the first image immediately; rest are lazy-loaded by carousel nav
-                    if (i === 0) {
+                    // Compare: load both images immediately. Carousel: only first, rest lazy-loaded.
+                    if (i === 0 || isCompare) {
                         img.src = realSrc;
                         img.dataset.loaded = '1';
                     }

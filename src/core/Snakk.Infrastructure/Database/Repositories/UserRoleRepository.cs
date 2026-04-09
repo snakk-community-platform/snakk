@@ -68,50 +68,35 @@ public class UserRoleRepository(SnakkDbContext context)
         int? hubId = null,
         int? spaceId = null)
     {
-        // User can moderate if they have any of these roles at or above the scope:
-        // - GlobalAdmin (can moderate anywhere)
-        // - CommunityAdmin at the community level
-        // - CommunityMod at the community level
-        // - HubMod at the hub level (if checking hub or space)
-        // - SpaceMod at the space level (if checking space)
-
         var activeRoles = await GetActiveRolesForUserAsync(userId);
+
+        // Resolve the space's hub ID once (not per role)
+        int? spaceHubId = null;
+        if (spaceId.HasValue)
+            spaceHubId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.HubId).FirstOrDefaultAsync();
 
         foreach (var role in activeRoles)
         {
-            // GlobalAdmin can moderate anywhere
             if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            // Check community-level roles
-            if (communityId.HasValue && role.CommunityId == communityId)
-            {
-                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                    || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
-                    return true;
-            }
+            if (communityId.HasValue && role.CommunityId == communityId
+                && (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
+                    || role.RoleId == (int)UserRoleTypeEnum.CommunityMod))
+                return true;
 
-            // Check hub-level roles (need to check if hub belongs to community)
             if (hubId.HasValue
                 && role.HubId == hubId
                 && role.RoleId == (int)UserRoleTypeEnum.HubMod)
                 return true;
 
-            // Hub mods can moderate spaces within their hub - need to check this via the hub
+            // Hub mods can moderate spaces within their hub
             if (spaceId.HasValue
-                && role.HubId.HasValue
+                && spaceHubId.HasValue
+                && role.HubId == spaceHubId
                 && role.RoleId == (int)UserRoleTypeEnum.HubMod)
-            {
-                var space = await _context.Spaces
-                    .FirstOrDefaultAsync(s =>
-                        s.Id == spaceId
-                        && s.HubId == role.HubId);
+                return true;
 
-                if (space is not null)
-                    return true;
-            }
-
-            // Check space-level roles
             if (spaceId.HasValue
                 && role.SpaceId == spaceId
                 && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
@@ -127,51 +112,33 @@ public class UserRoleRepository(SnakkDbContext context)
         int? hubId = null,
         int? spaceId = null)
     {
-        // Only admin roles can administer:
-        // - GlobalAdmin (can administer anywhere)
-        // - CommunityAdmin at the community level
-
         var activeRoles = await GetActiveRolesForUserAsync(userId);
+
+        // Resolve parent community IDs once (not per role)
+        int? hubCommunityId = null;
+        if (hubId.HasValue)
+            hubCommunityId = await _context.Hubs.Where(h => h.Id == hubId).Select(h => (int?)h.CommunityId).FirstOrDefaultAsync();
+
+        int? spaceCommunityId = null;
+        if (spaceId.HasValue)
+            spaceCommunityId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.Hub.CommunityId).FirstOrDefaultAsync();
 
         foreach (var role in activeRoles)
         {
-            // GlobalAdmin can administer anywhere
             if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
                 return true;
 
-            // CommunityAdmin can administer their community
-            if (communityId.HasValue
-                && role.CommunityId == communityId
-                && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin)
+            if (role.RoleId != (int)UserRoleTypeEnum.CommunityAdmin || !role.CommunityId.HasValue)
+                continue;
+
+            if (communityId.HasValue && role.CommunityId == communityId)
                 return true;
 
-            // If checking a hub, need to find its community
-            if (hubId.HasValue
-                && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                && role.CommunityId.HasValue)
-            {
-                var hub = await _context.Hubs
-                    .FirstOrDefaultAsync(h =>
-                        h.Id == hubId
-                        && h.CommunityId == role.CommunityId);
+            if (hubId.HasValue && hubCommunityId == role.CommunityId)
+                return true;
 
-                if (hub is not null)
-                    return true;
-            }
-
-            // If checking a space, need to find its community via hub
-            if (spaceId.HasValue
-                && role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                && role.CommunityId.HasValue)
-            {
-                var belongsToCommunity = await _context.Spaces
-                    .AnyAsync(s =>
-                        s.Id == spaceId
-                        && s.Hub.CommunityId == role.CommunityId);
-
-                if (belongsToCommunity)
-                    return true;
-            }
+            if (spaceId.HasValue && spaceCommunityId == role.CommunityId)
+                return true;
         }
 
         return false;

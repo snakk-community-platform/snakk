@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -9,11 +8,10 @@ namespace Snakk.Infrastructure.Services;
 
 public class DiscussionExtensionService(
     SnakkDbContext context,
-    IConfiguration configuration,
+    IFileStorage fileStorage,
     ILinkMetadataService linkMetadataService,
     Microsoft.Extensions.Logging.ILogger<DiscussionExtensionService> logger) : IDiscussionExtensionService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     public async Task CreateQuestionAsync(string discussionPublicId)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
@@ -55,10 +53,11 @@ public class DiscussionExtensionService(
         // Resolve image URLs to Media records and create ordered links
         if (imageUrls is { Count: > 0 })
         {
-            var urlBase = _mediaUrlBase.TrimEnd('/') + "/";
+            var urlPrefix = fileStorage.GetPublicUrl("__probe__");
+            urlPrefix = urlPrefix[..urlPrefix.IndexOf("__probe__", StringComparison.Ordinal)];
             var storagePaths = imageUrls
-                .Where(url => url.StartsWith(urlBase, StringComparison.OrdinalIgnoreCase))
-                .Select(url => url[urlBase.Length..])
+                .Where(url => url.StartsWith(urlPrefix, StringComparison.OrdinalIgnoreCase))
+                .Select(url => url[urlPrefix.Length..])
                 .ToList();
 
             if (storagePaths.Count > 0)

@@ -1,72 +1,84 @@
 @page "/new/link"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewLinkModel
-@{ ViewData["Title"] = $"Share Link — {Model.Space?.Name}"; }
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Share Link — {Model.Space?.Name}";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
 
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">Home</a>
-        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
-        <span class="breadcrumb-separator">/</span>
-        <span>Link</span>
-    </nav>
-</div>
-
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-semibold mb-6">Share a Link</h1>
-
-    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
-
-    <form method="post" id="new-discussion-form" hx-boost="false">
-        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-        <div class="space-y-4">
-            <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                   class="input w-full text-lg" required maxlength="200" placeholder="Title for this link" />
-
-            <input type="url" name="LinkUrl" value="@Model.LinkUrl"
-                   class="input w-full" required placeholder="https://example.com" />
-
-            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-            <div id="editor-container" data-hide-image="true">
-                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
-                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Share Link</button>
-            </div>
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="breadcrumb-bar">
+            <nav class="breadcrumb">
+                <a href="/">Home</a>
+                @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/new?spaceId=@Model.SpaceId">New</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>Link</span>
+            </nav>
         </div>
-    </form>
 
-    <div class="mt-8 border-t border-base-content/10 pt-6">
-        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How link sharing works</h3>
-        <div class="text-sm text-base-content/60 space-y-3">
-            <p>Share an interesting article, tool, or resource with the community. Add your commentary to start a discussion around it.</p>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">After you post</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>The link appears as a preview card at the top</li>
-                    <li>Your commentary is the opening post</li>
-                    <li>Others can discuss the link in replies</li>
-                </ul>
-            </div>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">Tips</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>Write a descriptive title — don't just paste the URL</li>
-                    <li>Share your thoughts on why the link is worth reading</li>
-                    <li>Check if it has been shared before</li>
-                </ul>
+        <div class="max-w-3xl py-8">
+            <h1 class="text-xl font-semibold mb-6">Share a Link</h1>
+
+            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+
+            <form method="post" id="new-discussion-form" hx-boost="false">
+                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
+                <div class="space-y-4">
+                    <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
+                           class="input w-full text-lg" required maxlength="200" placeholder="Title for this link" />
+
+                    <input type="url" name="LinkUrl" value="@Model.LinkUrl"
+                           class="input w-full" required placeholder="https://example.com" />
+
+                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+                    <div id="editor-container" data-hide-image="true">
+                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Share Link</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-8 border-t border-base-content/10 pt-6">
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How link sharing works</h3>
+                <div class="text-sm text-base-content/60 space-y-3">
+                    <p>Share an interesting article, tool, or resource with the community. Add your commentary to start a discussion around it.</p>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>The link appears as a preview card at the top</li>
+                            <li>Your commentary is the opening post</li>
+                            <li>Others can discuss the link in replies</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>Write a descriptive title — don't just paste the URL</li>
+                            <li>Share your thoughts on why the link is worth reading</li>
+                            <li>Check if it has been shared before</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

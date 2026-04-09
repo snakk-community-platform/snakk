@@ -124,11 +124,9 @@ if (!app.Environment.IsDevelopment())
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();
 
-// Use path base when running behind gateway
-if (app.Environment.IsDevelopment())
-{
-    app.UsePathBase("/auth");
-}
+// Use path base — gateway routes /auth/* and strips the prefix,
+// so generated URLs (OAuth redirect URIs, etc.) need to include it
+app.UsePathBase("/auth");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

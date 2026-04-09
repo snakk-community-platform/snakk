@@ -138,8 +138,9 @@ public class PollService(SnakkDbContext context) : IPollService
             return (false, "User not found");
 
         // Check existing votes
+        var optionIds = poll.Options.Select(o => o.Id).ToList();
         var existingVotes = await context.DiscussionPollVotes
-            .Where(v => poll.Options.Select(o => o.Id).Contains(v.OptionId) && v.UserId == userId)
+            .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
             .ToListAsync();
 
         if (existingVotes.Count > 0)
@@ -150,11 +151,14 @@ public class PollService(SnakkDbContext context) : IPollService
             if (!poll.AllowMultipleChoices && poll.AllowChangeVote)
             {
                 // Single choice + change allowed: remove old vote, add new
+                var optionMap = poll.Options.ToDictionary(o => o.Id);
                 foreach (var old in existingVotes)
                 {
-                    var oldOption = poll.Options.First(o => o.Id == old.OptionId);
-                    oldOption.VoteCount = Math.Max(0, oldOption.VoteCount - 1);
-                    context.DiscussionPollVotes.Remove(old);
+                    if (optionMap.TryGetValue(old.OptionId, out var oldOption))
+                    {
+                        oldOption.VoteCount = Math.Max(0, oldOption.VoteCount - 1);
+                        context.DiscussionPollVotes.Remove(old);
+                    }
                 }
             }
             else if (poll.AllowMultipleChoices)

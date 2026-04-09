@@ -1,69 +1,81 @@
 @page "/new/standard"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewStandardModel
-@{ ViewData["Title"] = $"New Discussion — {Model.Space?.Name}"; }
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"New Discussion — {Model.Space?.Name}";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
 
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">Home</a>
-        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
-        <span class="breadcrumb-separator">/</span>
-        <span>Discussion</span>
-    </nav>
-</div>
-
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-semibold mb-6">New Discussion</h1>
-
-    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
-
-    <form method="post" id="new-discussion-form" hx-boost="false">
-        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-        <div class="space-y-4">
-            <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                   class="input w-full text-lg" required maxlength="200" placeholder="Discussion title" />
-
-            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-            <div id="editor-container" data-hide-image="true">
-                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
-                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Discussion</button>
-            </div>
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="breadcrumb-bar">
+            <nav class="breadcrumb">
+                <a href="/">Home</a>
+                @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/new?spaceId=@Model.SpaceId">New</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>Discussion</span>
+            </nav>
         </div>
-    </form>
 
-    <div class="mt-8 border-t border-base-content/10 pt-6">
-        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How discussions work</h3>
-        <div class="text-sm text-base-content/60 space-y-3">
-            <p>Discussions are the standard forum thread. Your opening post starts the conversation, and others can reply.</p>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">What happens next</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>Others reply in chronological order</li>
-                    <li>Reactions show community sentiment</li>
-                    <li>The thread stays active as long as people contribute</li>
-                </ul>
-            </div>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">Tips</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>Use a clear, descriptive title</li>
-                    <li>Format your post with headings, lists, and code blocks</li>
-                    <li>Be respectful and follow the space rules</li>
-                </ul>
+        <div class="max-w-3xl py-8">
+            <h1 class="text-xl font-semibold mb-6">New Discussion</h1>
+
+            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+
+            <form method="post" id="new-discussion-form" hx-boost="false">
+                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
+                <div class="space-y-4">
+                    <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
+                           class="input w-full text-lg" required maxlength="200" placeholder="Discussion title" />
+
+                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+                    <div id="editor-container" data-hide-image="true">
+                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Discussion</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-8 border-t border-base-content/10 pt-6">
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How discussions work</h3>
+                <div class="text-sm text-base-content/60 space-y-3">
+                    <p>Discussions are the standard forum thread. Your opening post starts the conversation, and others can reply.</p>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">What happens next</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>Others reply in chronological order</li>
+                            <li>Reactions show community sentiment</li>
+                            <li>The thread stays active as long as people contribute</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>Use a clear, descriptive title</li>
+                            <li>Format your post with headings, lists, and code blocks</li>
+                            <li>Be respectful and follow the space rules</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

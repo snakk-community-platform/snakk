@@ -44,20 +44,17 @@ public static class AvatarEndpoints
     private static async Task<IResult> UploadAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IConfiguration configuration)
+        IFileStorage fileStorage)
     {
-        // Require authentication
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-
         if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
         var user = await userRepository.GetByPublicIdAsync(userId);
-
         if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
@@ -67,46 +64,30 @@ public static class AvatarEndpoints
         if (file is null || file.Length == 0)
             return Results.BadRequest(new { error = "No file uploaded" });
 
-        // Validate file size (max 2MB)
         if (file.Length > 2 * 1024 * 1024)
             return Results.BadRequest(new { error = "File too large. Maximum size is 2MB." });
 
-        // Validate content type
         var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
-
         if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
             return Results.BadRequest(new { error = "Invalid file type. Allowed: JPEG, PNG, WebP" });
 
-        // Validate file extension
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-
-        if (!allowedExtensions.Contains(extension))
+        if (!new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(extension))
             return Results.BadRequest(new { error = "Invalid file extension" });
 
-        // Validate file magic bytes
         if (!await FileValidationHelper.IsValidImageFileAsync(file, extension))
             return Results.BadRequest(new { error = "Invalid image file format" });
 
-        // Save to shared storage: {FileStorage:BasePath}/avatars/uploaded/
-        var basePath = configuration["FileStorage:BasePath"] ?? "storage";
-        var avatarsDir = Path.Combine(basePath, "avatars", "uploaded");
-        Directory.CreateDirectory(avatarsDir);
-
-        // Delete old avatar if exists
+        // Delete old avatar from storage
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
-            var oldPath = Path.Combine(avatarsDir, user.AvatarFileName);
-
-            if (File.Exists(oldPath))
-                File.Delete(oldPath);
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarFileName}"); }
+            catch { /* best-effort cleanup */ }
         }
 
         // Process: resize to 256x256 max, encode as WebP
-        // Include next revision in filename for CDN cache busting
         var nextRevision = user.AvatarRevision + 1;
         var newFileName = $"{userId.Value}_r{nextRevision}.webp";
-        var newPath = Path.Combine(avatarsDir, newFileName);
 
         using var inputStream = file.OpenReadStream();
         using var image = await Image.LoadAsync(inputStream);
@@ -120,48 +101,46 @@ public static class AvatarEndpoints
             }));
         }
 
-        await image.SaveAsWebpAsync(newPath, new WebpEncoder { Quality = 80 });
+        using var outputStream = new MemoryStream();
+        await image.SaveAsWebpAsync(outputStream, new WebpEncoder { Quality = 80 });
+        outputStream.Position = 0;
 
-        // Update user (SetAvatarFileName increments AvatarRevision)
+        await fileStorage.SaveAsync(
+            $"avatars/uploaded/{newFileName}",
+            outputStream,
+            "public, max-age=31536000, immutable");
+
         user.SetAvatarFileName(newFileName);
         await userRepository.UpdateAsync(user);
 
         return TypedResults.Ok(new AvatarUploadResponse(
             "Avatar uploaded successfully",
-            $"/avatars/uploaded/{newFileName}"));
+            fileStorage.GetPublicUrl($"avatars/uploaded/{newFileName}")));
     }
 
     private static async Task<IResult> DeleteAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IConfiguration configuration)
+        IFileStorage fileStorage)
     {
-        // Require authentication
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
             return Results.Unauthorized();
 
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-
         if (userIdClaim is null)
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
         var user = await userRepository.GetByPublicIdAsync(userId);
-
         if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
-        // Delete file if exists
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
-            var basePath = configuration["FileStorage:BasePath"] ?? "storage";
-            var avatarPath = Path.Combine(basePath, "avatars", "uploaded", user.AvatarFileName);
-
-            if (File.Exists(avatarPath))
-                File.Delete(avatarPath);
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarFileName}"); }
+            catch { /* best-effort cleanup */ }
         }
 
-        // Clear avatar from user
         user.ClearAvatar();
         await userRepository.UpdateAsync(user);
 

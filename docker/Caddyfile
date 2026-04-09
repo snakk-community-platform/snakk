@@ -9,6 +9,15 @@
 #   sudo systemctl reload caddy
 
 snakk.example.com {
+    # Grafana monitoring (password protected)
+    # Generate hash: caddy hash-password --plaintext yourpassword
+    handle /grafana/* {
+        basicauth {
+            admin {$GRAFANA_BASICAUTH_HASH:JDJhJDE0JDlFMEdnNWxhLkNlMC9ZNjVMQmY3NU9KNEhPTUlRVTJJbDdDSE5hOGpFNnVSY0dNUUhL}
+        }
+        reverse_proxy localhost:3000
+    }
+
     reverse_proxy localhost:17000
 
     # Security headers

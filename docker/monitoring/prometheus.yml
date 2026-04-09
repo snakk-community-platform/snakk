@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Snakk.Web (main platform — HTTP metrics, GC, thread pool)
+  - job_name: snakk-web
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["snakk:17110"]
+        labels:
+          service: web
+
+  # Snakk.Api (gRPC API — HTTP metrics, GC, thread pool, DB queries)
+  - job_name: snakk-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["snakk:17100"]
+        labels:
+          service: api
+
+  # PostgreSQL metrics via pg_stat (optional — add postgres-exporter later)

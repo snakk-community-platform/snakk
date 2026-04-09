@@ -86,39 +86,35 @@ public class ReportRepository(SnakkDbContext context)
         if (userRoles.Count == 0)
             return 0;
 
-        // Build query based on roles
+        // Build a single combined query instead of one query per role
         var query = _dbSet.Where(r => r.StatusId == (int)ReportStatusEnum.Pending);
 
-        var reportIds = new HashSet<int>();
+        // Check for global admin first (sees everything)
+        if (userRoles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin))
+            return await query.CountAsync();
+
+        // Collect scope IDs from all roles
+        var communityIds = new HashSet<int>();
+        var hubIds = new HashSet<int>();
+        var spaceIds = new HashSet<int>();
 
         foreach (var role in userRoles)
         {
-            IQueryable<ReportDatabaseEntity> roleQuery;
-
-            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
-            {
-                // Global admins see all pending reports
-                return await query.CountAsync();
-            }
-            else if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
+            if ((role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
                 || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
-                roleQuery = query.Where(r => r.CommunityId == role.CommunityId);
-            else if (role.RoleId == (int)UserRoleTypeEnum.HubMod)
-                roleQuery = query.Where(r =>
-                    r.HubId == role.HubId
-                    || (r.SpaceId != null && r.Space!.HubId == role.HubId));
-            else if (role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
-                roleQuery = query.Where(r => r.SpaceId == role.SpaceId);
-            else
-                continue;
-
-            var ids = await roleQuery.Select(r => r.Id).ToListAsync();
-
-            foreach (var id in ids)
-                reportIds.Add(id);
+                && role.CommunityId.HasValue)
+                communityIds.Add(role.CommunityId.Value);
+            else if (role.RoleId == (int)UserRoleTypeEnum.HubMod && role.HubId.HasValue)
+                hubIds.Add(role.HubId.Value);
+            else if (role.RoleId == (int)UserRoleTypeEnum.SpaceMod && role.SpaceId.HasValue)
+                spaceIds.Add(role.SpaceId.Value);
         }
 
-        return reportIds.Count;
+        // Single query combining all scope filters with OR
+        return await query.CountAsync(r =>
+            (communityIds.Count > 0 && r.CommunityId.HasValue && communityIds.Contains(r.CommunityId.Value))
+            || (hubIds.Count > 0 && (hubIds.Contains(r.HubId ?? 0) || (r.SpaceId != null && hubIds.Contains(r.Space!.HubId))))
+            || (spaceIds.Count > 0 && r.SpaceId.HasValue && spaceIds.Contains(r.SpaceId.Value)));
     }
 
     public async Task<PagedResult<ReportListDto>> GetReportsResolvedByUserAsync(

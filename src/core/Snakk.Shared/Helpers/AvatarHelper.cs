@@ -14,6 +14,12 @@ public enum AvatarEntityType
 public static class AvatarHelper
 {
     /// <summary>
+    /// Base URL prefix for uploaded avatars (e.g. "https://cdn.example.com").
+    /// Empty string = relative URLs (local storage). Set at app startup.
+    /// </summary>
+    public static string UploadedAvatarBaseUrl { get; set; } = "";
+
+    /// <summary>
     /// Gets the relative file path for an avatar with optional revision.
     /// Uses XxHash32 to distribute across 256 shard folders.
     /// </summary>
@@ -57,21 +63,22 @@ public static class AvatarHelper
     {
         if (!string.IsNullOrEmpty(avatarFileName))
         {
+            var baseUrl = UploadedAvatarBaseUrl;
             // User avatars are stored flat; entity avatars use singular type subfolders
             return entityType switch
             {
-                AvatarEntityType.User => $"/avatars/uploaded/{avatarFileName}",
-                AvatarEntityType.Community => $"/avatars/uploaded/community/{avatarFileName}",
-                AvatarEntityType.Hub => $"/avatars/uploaded/hub/{avatarFileName}",
-                AvatarEntityType.Space => $"/avatars/uploaded/space/{avatarFileName}",
-                _ => $"/avatars/uploaded/{avatarFileName}"
+                AvatarEntityType.User => $"{baseUrl}/avatars/uploaded/{avatarFileName}",
+                AvatarEntityType.Community => $"{baseUrl}/avatars/uploaded/community/{avatarFileName}",
+                AvatarEntityType.Hub => $"{baseUrl}/avatars/uploaded/hub/{avatarFileName}",
+                AvatarEntityType.Space => $"{baseUrl}/avatars/uploaded/space/{avatarFileName}",
+                _ => $"{baseUrl}/avatars/uploaded/{avatarFileName}"
             };
         }
 
         var avatarPath = GetAvatarPath(publicId, entityType, revision);
         var entityFolder = GetEntityFolder(entityType);
 
-        return $"/avatars/generated/{entityFolder}/{avatarPath}";
+        return $"{UploadedAvatarBaseUrl}/avatars/generated/{entityFolder}/{avatarPath}";
     }
 
     /// <summary>

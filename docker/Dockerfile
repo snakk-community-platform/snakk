@@ -120,5 +120,8 @@ RUN mkdir -p /app/storage/avatars/generated /app/storage/avatars/uploaded /app/r
 EXPOSE 17000
 VOLUME ["/app/storage"]
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -sf http://localhost:17000/health || exit 1
+
 USER snakk
 ENTRYPOINT ["/app/entrypoint.sh"]

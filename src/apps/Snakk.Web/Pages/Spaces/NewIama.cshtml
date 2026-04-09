@@ -1,99 +1,111 @@
 @page "/new/iama"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewIamaModel
-@{ ViewData["Title"] = $"New AMA — {Model.Space?.Name}"; }
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"New AMA — {Model.Space?.Name}";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
 
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">Home</a>
-        @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
-        <span class="breadcrumb-separator">/</span>
-        <a href="/new?spaceId=@Model.SpaceId" hx-boost="false">New</a>
-        <span class="breadcrumb-separator">/</span>
-        <span>AMA</span>
-    </nav>
-</div>
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <div class="breadcrumb-bar">
+            <nav class="breadcrumb">
+                <a href="/">Home</a>
+                @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/new?spaceId=@Model.SpaceId">New</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>AMA</span>
+            </nav>
+        </div>
 
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-semibold mb-6">Start an AMA</h1>
+        <div class="max-w-3xl py-8">
+            <h1 class="text-xl font-semibold mb-6">Start an AMA</h1>
 
-    @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
-    <form method="post" id="new-discussion-form" hx-boost="false">
-        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-        <div class="space-y-4">
-            <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                   class="input w-full text-lg" required maxlength="200" placeholder="I am a ... — Ask Me Anything!" />
+            <form method="post" id="new-discussion-form" hx-boost="false">
+                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
+                <div class="space-y-4">
+                    <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
+                           class="input w-full text-lg" required maxlength="200" placeholder="I am a ... — Ask Me Anything!" />
 
-            <!-- Verification note -->
-            <div class="space-y-2">
-                <label class="text-sm font-medium" for="iama-verification">Verification / Proof</label>
-                <textarea name="IamaVerificationNote" id="iama-verification" class="textarea w-full" rows="3"
-                          placeholder="Who are you and how can the community verify it? E.g. a link to your profile, a tweet, etc."
-                          maxlength="2000">@Model.IamaVerificationNote</textarea>
-                <p class="text-xs text-base-content/50">Optional. Helps moderators and the community trust the AMA is genuine.</p>
-            </div>
-
-            <!-- Schedule toggle -->
-            <div class="space-y-3">
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" name="IamaIsScheduled" value="true" class="checkbox checkbox-sm"
-                           id="iama-scheduled-toggle" onchange="var f=document.getElementById('iama-schedule-fields');var s=document.getElementById('iama-start');f.classList.toggle('hidden',!this.checked);s.required=this.checked;" />
-                    Schedule this AMA for later
-                </label>
-
-                <div id="iama-schedule-fields" class="hidden space-y-3 pl-6 border-l-2 border-base-content/10">
-                    <div>
-                        <label class="text-sm text-base-content/70" for="iama-start">Start date &amp; time <span class="text-error">*</span></label>
-                        <input type="datetime-local" name="IamaScheduledStart" id="iama-start" class="input input-sm w-full max-w-xs mt-1" />
+                    <!-- Verification note -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium" for="iama-verification">Verification / Proof</label>
+                        <textarea name="IamaVerificationNote" id="iama-verification" class="textarea w-full" rows="3"
+                                  placeholder="Who are you and how can the community verify it? E.g. a link to your profile, a tweet, etc."
+                                  maxlength="2000">@Model.IamaVerificationNote</textarea>
+                        <p class="text-xs text-base-content/50">Optional. Helps moderators and the community trust the AMA is genuine.</p>
                     </div>
-                    <div>
-                        <label class="text-sm text-base-content/70" for="iama-end">End date &amp; time (optional)</label>
-                        <input type="datetime-local" name="IamaScheduledEnd" id="iama-end" class="input input-sm w-full max-w-xs mt-1" />
+
+                    <!-- Schedule toggle -->
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" name="IamaIsScheduled" value="true" class="checkbox checkbox-sm"
+                                   id="iama-scheduled-toggle" onchange="var f=document.getElementById('iama-schedule-fields');var s=document.getElementById('iama-start');f.classList.toggle('hidden',!this.checked);s.required=this.checked;" />
+                            Schedule this AMA for later
+                        </label>
+
+                        <div id="iama-schedule-fields" class="hidden space-y-3 pl-6 border-l-2 border-base-content/10">
+                            <div>
+                                <label class="text-sm text-base-content/70" for="iama-start">Start date &amp; time <span class="text-error">*</span></label>
+                                <input type="datetime-local" name="IamaScheduledStart" id="iama-start" class="input input-sm w-full max-w-xs mt-1" />
+                            </div>
+                            <div>
+                                <label class="text-sm text-base-content/70" for="iama-end">End date &amp; time (optional)</label>
+                                <input type="datetime-local" name="IamaScheduledEnd" id="iama-end" class="input input-sm w-full max-w-xs mt-1" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+                    <div id="editor-container" data-placeholder="Introduce yourself and your topic...">
+                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start AMA</button>
                     </div>
                 </div>
-            </div>
+            </form>
 
-            <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-            <div id="editor-container" data-placeholder="Introduce yourself and your topic...">
-                <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm" hx-boost="false">Back</a>
-                <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start AMA</button>
-            </div>
-        </div>
-    </form>
-
-    <div class="mt-8 border-t border-base-content/10 pt-6">
-        <h3 class="text-sm font-semibold mb-3 text-base-content/70">How AMAs work</h3>
-        <div class="text-sm text-base-content/60 space-y-3">
-            <p>An Ask Me Anything lets the community ask you questions that you answer in real time. You are the host.</p>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">As the host, you can</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>Mark any of your replies as the <strong>official answer</strong> to a question</li>
-                    <li>Highlight up to 5 <strong>best questions</strong> after the AMA ends</li>
-                    <li>Close the AMA when you're done answering</li>
-                </ul>
-            </div>
-            <div>
-                <div class="font-medium text-base-content/70 mb-1">Tips</div>
-                <ul class="space-y-1 list-disc pl-4">
-                    <li>Use the description to introduce yourself and your topic</li>
-                    <li>Add a verification note so mods and the community know it's really you</li>
-                    <li>Schedule it in advance so the community can prepare questions early</li>
-                    <li>Answer the most upvoted questions first</li>
-                </ul>
+            <div class="mt-8 border-t border-base-content/10 pt-6">
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How AMAs work</h3>
+                <div class="text-sm text-base-content/60 space-y-3">
+                    <p>An Ask Me Anything lets the community ask you questions that you answer in real time. You are the host.</p>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">As the host, you can</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>Mark any of your replies as the <strong>official answer</strong> to a question</li>
+                            <li>Highlight up to 5 <strong>best questions</strong> after the AMA ends</li>
+                            <li>Close the AMA when you're done answering</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <ul class="space-y-1 list-disc pl-4">
+                            <li>Use the description to introduce yourself and your topic</li>
+                            <li>Add a verification note so mods and the community know it's really you</li>
+                            <li>Schedule it in advance so the community can prepare questions early</li>
+                            <li>Answer the most upvoted questions first</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

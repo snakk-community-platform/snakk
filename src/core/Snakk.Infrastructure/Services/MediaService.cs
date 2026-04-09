@@ -19,10 +19,8 @@ using Snakk.Infrastructure.Database.Entities;
 public class MediaService(
     SnakkDbContext db,
     IFileStorage fileStorage,
-    IConfiguration configuration,
     ILogger<MediaService> logger) : IMediaService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
     private const int MaxUploadsPerUserPerDay = 50;
     private const int MaxImageDimension = 2048;
@@ -252,7 +250,7 @@ public class MediaService(
 
         // Extract storage paths from markdown image references
         // Matches patterns like: ![...](/media/posts/2026/03/07/abc123.png)
-        var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
+        var urlPrefix = GetMediaUrlPrefix();
         var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromMilliseconds(250))
             .Select(m => m.Groups[1].Value)
             .Where(url => url.StartsWith(urlPrefix, StringComparison.OrdinalIgnoreCase))
@@ -304,7 +302,7 @@ public class MediaService(
     public async Task<bool> DeleteDraftAsync(string mediaUrl, string userPublicId, CancellationToken cancellationToken = default)
     {
         // Extract storage path from URL
-        var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
+        var urlPrefix = GetMediaUrlPrefix();
         if (!mediaUrl.StartsWith(urlPrefix)) return false;
         var storagePath = mediaUrl[urlPrefix.Length..];
 
@@ -334,7 +332,7 @@ public class MediaService(
     {
         if (string.IsNullOrEmpty(content)) return;
 
-        var urlPrefix = _mediaUrlBase.TrimEnd('/') + "/";
+        var urlPrefix = GetMediaUrlPrefix();
         var storagePaths = Regex.Matches(content, @"!\[.*?\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromMilliseconds(250))
             .Select(m => m.Groups[1].Value)
             .Where(url => url.StartsWith(urlPrefix))
@@ -401,5 +399,16 @@ public class MediaService(
     }
 
     private string GetMediaUrl(string storagePath) =>
-        $"{_mediaUrlBase.TrimEnd('/')}/{storagePath.Replace('\\', '/')}";
+        fileStorage.GetPublicUrl(storagePath);
+
+    /// <summary>
+    /// Returns the URL prefix used by GetPublicUrl, for extracting storage paths from full URLs.
+    /// e.g. "https://cdn.example.com/" or "/"
+    /// </summary>
+    private string GetMediaUrlPrefix()
+    {
+        // Use a dummy path to discover the prefix pattern
+        var dummyUrl = fileStorage.GetPublicUrl("__probe__");
+        return dummyUrl[..dummyUrl.IndexOf("__probe__", StringComparison.Ordinal)];
+    }
 }

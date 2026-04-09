@@ -85,85 +85,85 @@ public class IndexModel(
         var tasks = new List<Task>();
 
         if (InlinePlatformStats is null)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    if (!string.IsNullOrEmpty(communityId))
-                    {
-                        var data = await _apiClient.GetCommunityStatsAsync(communityId);
-                        if (data is not null)
-                            InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
-                    }
-                    else
-                    {
-                        var data = await _apiClient.GetPlatformStatsAsync();
-                        if (data is not null)
-                            InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
-                    }
-                }
-                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
-            }));
-        }
+            tasks.Add(FetchPlatformStatsAsync(communityId));
 
         if (ShowTrendingDiscussions && InlineTrendingDiscussions is null)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var data = await _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId);
-                    if (data is not null)
-                        InlineTrendingDiscussions = new(data, CommunityContext, "eager");
-                }
-                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending discussions"); }
-            }));
-        }
+            tasks.Add(FetchTrendingDiscussionsAsync(communityId));
 
         if (ShowTrendingSpaces && InlineTrendingSpaces is null)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var data = await _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId);
-                    if (data is not null)
-                        InlineTrendingSpaces = new(data, CommunityContext, "eager");
-                }
-                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending spaces"); }
-            }));
-        }
+            tasks.Add(FetchTrendingSpacesAsync(communityId));
 
         if (ShowTrendingContributors && InlineTrendingContributors is null)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var data = await _apiClient.GetTopContributorsTodayAsync(communityId: communityId);
-                    if (data is not null)
-                        InlineTrendingContributors = new(data, CommunityContext, "eager");
-                }
-                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending contributors"); }
-            }));
-        }
+            tasks.Add(FetchTrendingContributorsAsync(communityId));
 
         if (InlineSiteRules is null)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var data = await _apiClient.GetSiteRulesAsync();
-                    if (data is not null)
-                        InlineSiteRules = new(data, "eager");
-                }
-                catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch site rules"); }
-            }));
-        }
+            tasks.Add(FetchSiteRulesAsync());
 
         await Task.WhenAll(tasks);
+    }
+
+    private async Task FetchPlatformStatsAsync(string? communityId)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(communityId))
+            {
+                var data = await _apiClient.GetCommunityStatsAsync(communityId);
+                if (data is not null)
+                    InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+            }
+            else
+            {
+                var data = await _apiClient.GetPlatformStatsAsync();
+                if (data is not null)
+                    InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+            }
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
+    }
+
+    private async Task FetchTrendingDiscussionsAsync(string? communityId)
+    {
+        try
+        {
+            var data = await _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId);
+            if (data is not null)
+                InlineTrendingDiscussions = new(data, CommunityContext, "eager");
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending discussions"); }
+    }
+
+    private async Task FetchTrendingSpacesAsync(string? communityId)
+    {
+        try
+        {
+            var data = await _apiClient.GetTopActiveSpacesTodayAsync(communityId: communityId);
+            if (data is not null)
+                InlineTrendingSpaces = new(data, CommunityContext, "eager");
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending spaces"); }
+    }
+
+    private async Task FetchTrendingContributorsAsync(string? communityId)
+    {
+        try
+        {
+            var data = await _apiClient.GetTopContributorsTodayAsync(communityId: communityId);
+            if (data is not null)
+                InlineTrendingContributors = new(data, CommunityContext, "eager");
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending contributors"); }
+    }
+
+    private async Task FetchSiteRulesAsync()
+    {
+        try
+        {
+            var data = await _apiClient.GetSiteRulesAsync();
+            if (data is not null)
+                InlineSiteRules = new(data, "eager");
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch site rules"); }
     }
 
     private void ResolveSidebarData(string? communityId)

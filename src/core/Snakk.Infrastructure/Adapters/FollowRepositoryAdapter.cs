@@ -130,8 +130,9 @@ public class FollowRepositoryAdapter(
 
         var followersWithLevel = (await databaseRepository.GetFollowersOfSpaceWithLevelAsync(space.Id)).ToList();
 
+        var userIds = followersWithLevel.Select(f => f.UserId).ToList();
         var userIdToPublicId = await context.Users
-            .Where(u => followersWithLevel.Select(f => f.UserId).Contains(u.Id))
+            .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.PublicId);
 
         return followersWithLevel
@@ -144,32 +145,41 @@ public class FollowRepositoryAdapter(
 
     public async Task<bool> IsFollowingDiscussionAsync(UserId userId, DiscussionId discussionId)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+        var ids = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Join(context.Discussions.Where(d => d.PublicId == discussionId.Value),
+                u => 1, d => 1, (u, d) => new { UserId = u.Id, DiscussionId = d.Id })
+            .FirstOrDefaultAsync();
 
-        if (user is null || discussion is null) return false;
+        if (ids is null) return false;
 
-        return await databaseRepository.IsFollowingDiscussionAsync(user.Id, discussion.Id);
+        return await databaseRepository.IsFollowingDiscussionAsync(ids.UserId, ids.DiscussionId);
     }
 
     public async Task<bool> IsFollowingSpaceAsync(UserId userId, SpaceId spaceId)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);
+        var ids = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Join(context.Spaces.Where(s => s.PublicId == spaceId.Value),
+                u => 1, d => 1, (u, s) => new { UserId = u.Id, SpaceId = s.Id })
+            .FirstOrDefaultAsync();
 
-        if (user is null || space is null) return false;
+        if (ids is null) return false;
 
-        return await databaseRepository.IsFollowingSpaceAsync(user.Id, space.Id);
+        return await databaseRepository.IsFollowingSpaceAsync(ids.UserId, ids.SpaceId);
     }
 
     public async Task<bool> IsFollowingUserAsync(UserId userId, UserId followedUserId)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        var followedUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == followedUserId.Value);
+        var ids = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Join(context.Users.Where(u => u.PublicId == followedUserId.Value),
+                u => 1, f => 1, (u, f) => new { UserId = u.Id, FollowedUserId = f.Id })
+            .FirstOrDefaultAsync();
 
-        if (user is null || followedUser is null) return false;
+        if (ids is null) return false;
 
-        return await databaseRepository.IsFollowingUserAsync(user.Id, followedUser.Id);
+        return await databaseRepository.IsFollowingUserAsync(ids.UserId, ids.FollowedUserId);
     }
 
     public async Task<IEnumerable<SpaceId>> GetFollowedSpacesByUserAsync(UserId userId)

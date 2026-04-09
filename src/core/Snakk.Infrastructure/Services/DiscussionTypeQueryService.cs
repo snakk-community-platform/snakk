@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
-public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration configuration) : IDiscussionTypeQueryService
+public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fileStorage) : IDiscussionTypeQueryService
 {
-    private readonly string _mediaUrlBase = configuration["FileStorage:MediaUrlBase"] ?? "";
     // === Question ===
 
     public async Task<QuestionStatus?> GetQuestionStatusAsync(string discussionPublicId)
@@ -81,8 +79,6 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
     public async Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId)
     {
-        var urlBase = _mediaUrlBase.TrimEnd('/') + "/";
-
         var images = await context.DiscussionImageAttachments
             .Where(gi => gi.DiscussionTypeImage.Discussion.PublicId == discussionPublicId
                 && !gi.DiscussionTypeImage.Discussion.IsDeleted
@@ -99,9 +95,9 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
         return images
             .Select(m => new ImagesImageInfo(
-                urlBase + m.StoragePath.Replace('\\', '/'),
-                m.ThumbnailPath != null ? urlBase + m.ThumbnailPath.Replace('\\', '/') : null,
-                m.MediumThumbnailPath != null ? urlBase + m.MediumThumbnailPath.Replace('\\', '/') : null,
+                fileStorage.GetPublicUrl(m.StoragePath),
+                m.ThumbnailPath != null ? fileStorage.GetPublicUrl(m.ThumbnailPath) : null,
+                m.MediumThumbnailPath != null ? fileStorage.GetPublicUrl(m.MediumThumbnailPath) : null,
                 m.BlurDataUri))
             .ToList();
     }

@@ -723,6 +723,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (pollIds.Count > 0)
         {
             var ids = pollIds.Select(d => d.Id).ToList();
+            var pollIdMap = pollIds.ToDictionary(d => d.Id, d => d.PublicId);
             var polls = await _context.DiscussionPolls
                 .Where(p => ids.Contains(p.DiscussionId))
                 .Select(p => new
@@ -739,7 +740,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
             foreach (var poll in polls)
             {
-                var publicId = pollIds.First(d => d.Id == poll.DiscussionId).PublicId;
+                var publicId = pollIdMap[poll.DiscussionId];
                 var isSecret = !poll.VotesVisible;
                 var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
                 var hideVotes = isSecret && !isClosed;
@@ -751,10 +752,12 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             }
         }
 
-        // Debates: fetch positions with post counts
+        // Debates: fetch positions with post counts (batched to avoid N+1)
         if (debateIds.Count > 0)
         {
             var ids = debateIds.Select(d => d.Id).ToList();
+            var debateIdMap = debateIds.ToDictionary(d => d.Id, d => d.PublicId);
+
             var debates = await _context.DiscussionDebates
                 .Where(db => ids.Contains(db.DiscussionId))
                 .Select(db => new
@@ -762,21 +765,27 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     db.DiscussionId,
                     Positions = db.Positions
                         .OrderBy(p => p.Index)
-                        .Select(p => new
-                        {
-                            p.Label,
-                            p.Index,
-                            PostCount = _context.DiscussionDebatePostPositions.Count(pdp => pdp.PositionId == p.Id)
-                        })
+                        .Select(p => new { p.Id, p.Label, p.Index })
                         .ToList()
                 })
                 .ToListAsync();
 
+            // Batch load all position post counts in a single query
+            var allPositionIds = debates.SelectMany(d => d.Positions.Select(p => p.Id)).ToList();
+            var positionCounts = allPositionIds.Count > 0
+                ? await _context.DiscussionDebatePostPositions
+                    .Where(pdp => allPositionIds.Contains(pdp.PositionId))
+                    .GroupBy(pdp => pdp.PositionId)
+                    .Select(g => new { PositionId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.PositionId, x => x.Count)
+                : new Dictionary<int, int>();
+
             foreach (var debate in debates)
             {
-                var publicId = debateIds.First(d => d.Id == debate.DiscussionId).PublicId;
+                var publicId = debateIdMap[debate.DiscussionId];
                 var positions = debate.Positions
-                    .Select(p => new Application.Repositories.DebatePositionPreviewDto(p.Label, p.Index, p.PostCount))
+                    .Select(p => new Application.Repositories.DebatePositionPreviewDto(
+                        p.Label, p.Index, positionCounts.GetValueOrDefault(p.Id, 0)))
                     .ToList();
                 result[publicId] = new(Debate: new(positions));
             }
@@ -786,6 +795,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (linkIds.Count > 0)
         {
             var ids = linkIds.Select(d => d.Id).ToList();
+            var linkIdMap = linkIds.ToDictionary(d => d.Id, d => d.PublicId);
             var links = await _context.DiscussionLinks
                 .Where(l => ids.Contains(l.DiscussionId))
                 .Select(l => new
@@ -798,7 +808,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
             foreach (var link in links)
             {
-                var publicId = linkIds.First(d => d.Id == link.DiscussionId).PublicId;
+                var publicId = linkIdMap[link.DiscussionId];
                 result[publicId] = new(Link: new(
                     link.Url, link.Title, link.Description, link.Domain,
                     link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal));
@@ -809,6 +819,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (imagesIds.Count > 0)
         {
             var ids = imagesIds.Select(d => d.Id).ToList();
+            var imagesIdMap = imagesIds.ToDictionary(d => d.Id, d => d.PublicId);
             var images = await _context.DiscussionImages
                 .Where(g => ids.Contains(g.DiscussionId))
                 .Select(g => new
@@ -831,7 +842,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
             foreach (var img in images)
             {
-                var publicId = imagesIds.First(d => d.Id == img.DiscussionId).PublicId;
+                var publicId = imagesIdMap[img.DiscussionId];
                 var items = img.Items
                     .Select(i => new Application.Repositories.ImagePreviewItemDto(
                         "/" + i.Url,
@@ -847,6 +858,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (iamaIds.Count > 0)
         {
             var ids = iamaIds.Select(d => d.Id).ToList();
+            var iamaIdMap = iamaIds.ToDictionary(d => d.Id, d => d.PublicId);
             var iamas = await _context.DiscussionIamas
                 .Where(i => ids.Contains(i.DiscussionId))
                 .Select(i => new
@@ -863,7 +875,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
             foreach (var iama in iamas)
             {
-                var publicId = iamaIds.First(d => d.Id == iama.DiscussionId).PublicId;
+                var publicId = iamaIdMap[iama.DiscussionId];
                 result[publicId] = new(Iama: new(
                     iama.Phase,
                     iama.ScheduledStartUtc,

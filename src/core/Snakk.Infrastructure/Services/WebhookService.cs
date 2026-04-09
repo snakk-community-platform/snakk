@@ -23,6 +23,7 @@ public class WebhookService(
     public async Task<List<WebhookResponse>> GetAllWebhooksAsync(CancellationToken cancellationToken = default)
     {
         var webhooks = await dbContext.Webhooks
+            .AsNoTracking()
             .Include(w => w.CreatedByUser)
             .Include(w => w.DeliveryLogs)
             .OrderByDescending(w => w.CreatedAt)
@@ -38,6 +39,7 @@ public class WebhookService(
         CancellationToken cancellationToken = default)
     {
         var webhook = await dbContext.Webhooks
+            .AsNoTracking()
             .Include(w => w.CreatedByUser)
             .Include(w => w.DeliveryLogs)
             .FirstOrDefaultAsync(w => w.Id == webhookId, cancellationToken);

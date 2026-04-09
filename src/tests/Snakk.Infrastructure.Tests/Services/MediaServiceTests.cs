@@ -30,15 +30,8 @@ public class MediaServiceTests : IAsyncDisposable
         _db = new SnakkDbContext(options);
         _fileStorage = Substitute.For<IFileStorage>();
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["FileStorage:MediaUrlBase"] = ""
-            })
-            .Build();
-
         var logger = Substitute.For<ILogger<MediaService>>();
-        _service = new MediaService(_db, _fileStorage, config, logger);
+        _service = new MediaService(_db, _fileStorage, logger);
 
         // Seed a test user
         _db.Users.Add(new UserDatabaseEntity

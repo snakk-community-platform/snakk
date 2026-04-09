@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using Snakk.Api;
 using Snakk.Api.Endpoints;
 using Snakk.Api.Middleware;
@@ -77,6 +78,14 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Configure avatar URL base from file storage settings
+// S3: uses S3:PublicUrlBase (e.g. "https://cdn.example.com"), Local: empty string (relative URLs)
+var storageProvider = app.Configuration["FileStorage:Provider"];
+Snakk.Shared.Helpers.AvatarHelper.UploadedAvatarBaseUrl =
+    string.Equals(storageProvider, "S3", StringComparison.OrdinalIgnoreCase)
+        ? (app.Configuration["FileStorage:S3:PublicUrlBase"] ?? "").TrimEnd('/')
+        : "";
+
 //app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
@@ -103,6 +112,10 @@ app.UseAuthorization();
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");
+
+// Prometheus metrics (GC, thread pool, HTTP request durations)
+app.UseHttpMetrics();
+app.MapMetrics("/metrics");
 
 // Security.txt endpoint (RFC 9116)
 app.MapGet("/.well-known/security.txt", () =>

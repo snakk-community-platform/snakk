@@ -11,6 +11,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Grpc.Core.Interceptors;
+using Prometheus;
 using Serilog;
 using Snakk.ServiceDefaults;
 using System.Text;
@@ -251,12 +252,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor
         | ForwardedHeaders.XForwardedHost
         | ForwardedHeaders.XForwardedProto
-});
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseStatusCodePagesWithReExecute("/NotFound");
 
@@ -357,6 +361,13 @@ app.UseStaticFiles(new StaticFileOptions
         }
     }
 });
+
+// Configure avatar URL base for CDN support (S3 uses PublicUrlBase, local uses relative URLs)
+var webStorageProvider = builder.Configuration["FileStorage:Provider"];
+Snakk.Shared.Helpers.AvatarHelper.UploadedAvatarBaseUrl =
+    string.Equals(webStorageProvider, "S3", StringComparison.OrdinalIgnoreCase)
+        ? (builder.Configuration["FileStorage:S3:PublicUrlBase"] ?? "").TrimEnd('/')
+        : "";
 
 // Serve avatars from configured storage path (ensure directory exists for first-run)
 var storagePath = Path.Combine(
@@ -506,5 +517,9 @@ app.MapGet("/health", async (Grpc.Net.Client.GrpcChannel channel) =>
         return Results.Ok(new { status = "degraded", grpcChannel = "unknown" });
     }
 });
+
+// Prometheus metrics (GC, thread pool, HTTP request durations)
+app.UseHttpMetrics();
+app.MapMetrics("/metrics");
 
 app.Run();

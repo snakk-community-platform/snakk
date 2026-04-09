@@ -39,13 +39,15 @@ public static class ServiceCollectionExtensions
             ConnectionIdleLifetime = 300
         }.ToString();
 
-        services.AddDbContextPool<SnakkDbContext>(options =>
+        services.AddSingleton<Snakk.Api.Interceptors.SlowQueryInterceptor>();
+        services.AddDbContextPool<SnakkDbContext>((sp, options) =>
             options
                 .UseNpgsql(
                     connectionString,
                     o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                           .CommandTimeout(60))
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
+                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()),
             poolSize: 128);
 
         // Data Protection for encrypting sensitive settings

@@ -32,17 +32,27 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 ### Core
 - **Hierarchical Organization**: Communities > Hubs > Spaces > Discussions > Posts
 - **Multi-Community Support**: Host multiple communities with custom domains on a single instance
-- **Rich Discussions**: Threaded discussions with markdown support and reactions
+- **Discussion Types**: Standard, Question (with accepted answers), Poll, Link (with oEmbed previews), Images/Gallery (6 layout options), Debate (position-based), Guide (auto-generated TOC), Journal (chronological updates), and IAMA (ask-me-anything)
+- **Rich Text Editor**: Milkdown-based markdown editor with toolbar, image uploads, tables, and live preview
+- **Reactions**: Post-level reactions with emoji support
 - **OAuth Authentication**: Google, GitHub, and Discord login via dedicated auth service
 - **Moderation Tools**: Hierarchical role-based permissions with audit logs, reports, and bans
 - **Full-Text Search**: PostgreSQL trigram-based search across discussions and posts
 - **Trending Content**: Algorithmic trending discussions, spaces, and contributors
+
+### Content & Media
+- **Image Galleries**: Upload multiple images with drag-to-reorder and 6 display layouts (masonry, grid, justified, carousel, hero, compare)
+- **oEmbed Previews**: Automatic rich previews for 14 providers (YouTube, Vimeo, TikTok, Twitter/X, Bluesky, Reddit, Spotify, SoundCloud, Bandcamp, Twitch, Imgur, CodePen, Canva) with per-user embed privacy controls
+- **Link Discussions**: Preview cards with Open Graph metadata, local image caching, and blur-up placeholders
+- **Syntax Highlighting**: Lazy-loaded Prism.js with line numbers, language labels, and copy-to-clipboard for code blocks
+- **Avatar Generation**: Deterministic SVG avatars (Marble, Beam, Pixel, Bauhaus styles) with custom upload support
 
 ### Performance
 - **HybridCache**: In-memory + distributed caching with granular invalidation
 - **Output Caching**: Page-level caching for public content
 - **Database Optimization**: PostgreSQL with trigram indexes, projection queries, and denormalized counters
 - **HTMX Navigation**: SPA-like page transitions with adaptive loading indicators
+- **Image Optimization**: Server-side WebP conversion, thumbnail generation, and blur-up data URIs
 
 ### Real-Time
 - **SignalR Hub**: Live activity feed, notifications, and presence via dedicated microservice
@@ -52,6 +62,8 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 - **Dark Mode**: System-preference aware with manual toggle
 - **Infinite Scroll**: HTMX-powered endless scroll with pagination fallback
 - **Smart Navigation**: Resume-reading, unread tracking, and draft persistence
+- **Embed Privacy Controls**: Per-provider settings for external embedded content (stored client-side)
+- **Spoiler Images**: NSFW/spoiler overlays with click-to-reveal and session persistence
 
 ## Technology Stack
 
@@ -63,13 +75,20 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 - **YARP** - Reverse proxy gateway
 - **Serilog** - Structured logging
 - **.NET Aspire** - Service orchestration and observability
+- **BCrypt** - Password hashing
 
 ### Frontend
 - **Razor Pages** - Server-side rendering with HTMX for interactivity
 - **Tailwind CSS v4** + **daisyUI v5** - Utility-first CSS with component library
 - **SCSS** - Custom styles compiled with Dart Sass
-- **TypeScript** - Client-side logic compiled with tsc + esbuild
-- **Vanilla JS** - IIFE modules with event delegation
+- **TypeScript** - Client-side logic compiled with esbuild
+- **Milkdown** - ProseMirror-based markdown editor
+- **Prism.js** - Syntax highlighting (lazy-loaded)
+
+### Admin Panel
+- **Blazor Server** - Interactive server-side UI
+- **MudBlazor** - Material Design component library
+- **BlazorApexCharts** - Dashboard charts and analytics
 
 ### Architecture
 - **Clean Architecture** - Domain / Application / Infrastructure layer separation
@@ -91,7 +110,7 @@ src/
 │   ├── Snakk.Infrastructure/       # Service implementations
 │   ├── Snakk.Infrastructure.Database/  # EF Core DbContext, migrations
 │   ├── Snakk.Protos/               # Protobuf definitions for gRPC
-│   ├── Snakk.Shared/               # Enums, utilities
+│   └── Snakk.Shared/               # Enums, utilities
 │
 ├── services/
 │   ├── Snakk.Api/                  # Internal gRPC + REST API (port 17100)
@@ -102,7 +121,7 @@ src/
 ├── apps/
 │   ├── Snakk.Web/                  # Main platform — Razor Pages + HTMX (port 17110)
 │   ├── Snakk.Auth/                 # Authentication service (port 17111)
-│   ├── Snakk.Admin/             # Admin panel — Blazor Server + Fluent UI (port 17112)
+│   ├── Snakk.Admin/                # Admin panel — Blazor Server + MudBlazor (port 17112)
 │   └── Snakk.Setup/                # First-run setup wizard
 │
 ├── tests/
@@ -121,7 +140,10 @@ src/
 docs/
 ├── ARCHITECTURE.md                 # Architecture documentation
 ├── REALTIME.MD                     # Real-time features
-└── GDRP.MD                        # GDPR compliance
+├── PERFORMANCE-AUDIT.md            # Performance audit notes
+├── PROJECT-STRUCTURE.MD            # Detailed project structure
+├── SECURITY-TODO.md                # Security checklist
+└── GDRP.MD                         # GDPR compliance
 ```
 
 ## Installation
@@ -211,7 +233,7 @@ npm run build          # Build all (TypeScript + CSS)
 # Snakk.Auth
 cd src/apps/Snakk.Auth
 npm install
-npm run build:css      # Build SCSS
+npm run build:css      # Build CSS
 ```
 
 ### OAuth Configuration
@@ -240,9 +262,13 @@ There are 2,500+ tests across 7 test projects covering domain logic, application
 
 ### Database Migrations
 ```bash
-cd src/core/Snakk.Infrastructure.Database
-dotnet ef migrations add MigrationName
-dotnet ef database update
+dotnet ef migrations add MigrationName \
+  --project src/core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj \
+  --startup-project src/services/Snakk.Api/Snakk.Api.csproj
+
+dotnet ef database update \
+  --project src/core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj \
+  --startup-project src/services/Snakk.Api/Snakk.Api.csproj
 ```
 
 ### Code Structure Guidelines
@@ -259,7 +285,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 | Service | Port | Purpose |
 |---------|------|---------|
 | Snakk.Gateway | 17000 | YARP reverse proxy |
-| Snakk.Api | 17100 | Internal gRPC + REST API |
+| Snakk.Api | 17100 | Internal gRPC API |
 | Snakk.Realtime | 17101 | SignalR WebSocket hub |
 | Snakk.Web | 17110 | Main platform |
 | Snakk.Auth | 17111 | Authentication service |
@@ -281,6 +307,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
+- [ ] Password recovery flow
 - [ ] Email notifications
 - [ ] Mobile apps (iOS/Android)
 - [ ] Plugin system
