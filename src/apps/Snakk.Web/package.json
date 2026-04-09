@@ -33,7 +33,7 @@
     "daisyui": "^5.0.0",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.8",
-    "sass": "^1.97.3",
+    "sass": "^1.99.0",
     "typescript": "^6.0.2"
   },
   "dependencies": {
