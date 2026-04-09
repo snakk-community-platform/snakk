@@ -1,6 +1,6 @@
-![alt text](https://github.com/snakk-community-platform/snakk/blob/main/media/github-logo.webp?raw=true)
-
-# Snakk
+<p align="center" width="100%">
+    <img src="https://github.com/snakk-community-platform/snakk/blob/main/media/github-logo.webp?raw=true"> 
+</p>
 
 A modern, performant community platform built with .NET 10 and ASP.NET Core. Snakk enables communities to create organized discussions through a hierarchical structure of communities, hubs, and spaces, with built-in moderation, real-time features, and multi-community support.
 
