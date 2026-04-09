@@ -29,7 +29,7 @@
   "devDependencies": {
     "@microsoft/signalr": "^10.0.0",
     "@tailwindcss/cli": "^4.2.2",
-    "@types/node": "^22.10.2",
+    "@types/node": "^25.5.2",
     "daisyui": "^5.0.0",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.8",
