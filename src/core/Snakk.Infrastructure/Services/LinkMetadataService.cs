@@ -262,6 +262,7 @@ public partial class LinkMetadataService(
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("User-Agent", userAgent);
             request.Headers.Add("Accept", "text/html");
+            request.Headers.Add("Accept-Language", "en");
 
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode) return null;

@@ -29,6 +29,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         _db = new SnakkDbContext(options);
         _fileStorage = Substitute.For<IFileStorage>();
+        _fileStorage.GetPublicUrl(Arg.Any<string>()).Returns(ci => "/" + ci.Arg<string>());
 
         var logger = Substitute.For<ILogger<MediaService>>();
         _service = new MediaService(_db, _fileStorage, logger);
