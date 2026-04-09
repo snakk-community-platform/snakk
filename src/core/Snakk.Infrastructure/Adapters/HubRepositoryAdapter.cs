@@ -19,7 +19,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -32,7 +32,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -45,7 +45,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -57,7 +57,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -155,6 +155,8 @@ public class HubRepositoryAdapter(
         entity.RequireEmailConfirmation = hub.RequireEmailConfirmation;
         entity.LastModifiedAt = hub.LastModifiedAt;
         entity.AvatarFileName = hub.AvatarFileName;
+        entity.AvatarThumbnailFileName = hub.AvatarThumbnailFileName;
+        entity.AvatarMicroFileName = hub.AvatarMicroFileName;
         entity.AvatarRevision = hub.AvatarRevision;
 
         await databaseRepository.UpdateAsync(entity);
@@ -172,6 +174,8 @@ public class HubRepositoryAdapter(
         DateTime CreatedAt,
         DateTime? LastModifiedAt,
         string? AvatarFileName,
+        string? AvatarThumbnailFileName,
+        string? AvatarMicroFileName,
         int AvatarRevision)
     {
         public Hub ToDomain() => Hub.Rehydrate(
@@ -181,6 +185,8 @@ public class HubRepositoryAdapter(
             AllowAnonymousReading, RequireEmailConfirmation,
             CreatedAt, LastModifiedAt, spaces: [],
             avatarFileName: AvatarFileName,
+            avatarThumbnailFileName: AvatarThumbnailFileName,
+            avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision);
     }
 }

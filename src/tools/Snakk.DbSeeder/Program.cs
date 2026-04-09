@@ -48,7 +48,11 @@ builder.Services.AddDbContext<SnakkDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+var storageProvider = builder.Configuration["FileStorage:Provider"];
+if (string.Equals(storageProvider, "S3", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IFileStorage, S3FileStorage>();
+else
+    builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
 // Register repositories (Database layer)
 builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IUserRepository, UserRepository>();

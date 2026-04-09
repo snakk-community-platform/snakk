@@ -201,6 +201,23 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             entity.HasIndex(a => a.SpaceId);
         });
 
+        // Language code max length constraints
+        modelBuilder.Entity<CommunityDatabaseEntity>()
+            .Property(e => e.LanguageCode).HasMaxLength(10);
+
+        modelBuilder.Entity<HubDatabaseEntity>(entity =>
+        {
+            entity.Property(e => e.LanguageCode).HasMaxLength(10);
+            entity.Property(e => e.CommunityLanguageCode).HasMaxLength(10);
+        });
+
+        modelBuilder.Entity<SpaceDatabaseEntity>(entity =>
+        {
+            entity.Property(e => e.LanguageCode).HasMaxLength(10);
+            entity.Property(e => e.HubLanguageCode).HasMaxLength(10);
+            entity.Property(e => e.CommunityLanguageCode).HasMaxLength(10);
+        });
+
         // Community unique indexes
         modelBuilder.Entity<CommunityDatabaseEntity>()
             .HasIndex(c => c.PublicId)

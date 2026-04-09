@@ -26,6 +26,8 @@ public class CommunitySettingsDto
 
     public string? Timezone { get; set; }
 
+    public string? LanguageCode { get; init; }
+
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     // Owner and team
@@ -54,6 +56,8 @@ public class UpdateCommunitySettingsRequest
     public bool AllowMemberInvites { get; set; } = true;
 
     public string? Timezone { get; set; }
+
+    public string? LanguageCode { get; init; }
 
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 }

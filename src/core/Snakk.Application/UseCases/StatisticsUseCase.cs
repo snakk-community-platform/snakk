@@ -41,6 +41,8 @@ public class StatisticsUseCase(
                 UserId: c.UserId.Value,
                 DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName : "Deleted User",
                 AvatarFileName: userDict.TryGetValue(c.UserId.Value, out var u) ? u.AvatarFileName : null,
+                AvatarThumbnailFileName: userDict.TryGetValue(c.UserId.Value, out var ut) ? ut.AvatarThumbnailFileName : null,
+                AvatarMicroFileName: userDict.TryGetValue(c.UserId.Value, out var um) ? um.AvatarMicroFileName : null,
                 PostCountToday: c.PostCount))
             .ToList();
 
@@ -251,6 +253,8 @@ public record TopContributorResult(
     string UserId,
     string DisplayName,
     string? AvatarFileName,
+    string? AvatarThumbnailFileName,
+    string? AvatarMicroFileName,
     int PostCountToday);
 
 public record TopDiscussionResult(
@@ -267,7 +271,8 @@ public record TopDiscussionResult(
     string AuthorPublicId,
     string AuthorDisplayName,
     string CommunitySlug,
-    string? AuthorAvatarFileName = null);
+    string? AuthorAvatarFileName = null,
+    string? AuthorAvatarThumbnailFileName = null);
 
 public record UserActivityHistoryResult(
     int Days,

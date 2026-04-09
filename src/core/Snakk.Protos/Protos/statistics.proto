@@ -95,6 +95,8 @@ message TopContributorInfo {
   string display_name = 2;
   string avatar_url = 3;
   int32 post_count_today = 4;
+  optional string avatar_thumbnail_url = 5;
+  optional string avatar_micro_url = 6;
 }
 
 message TopContributorsList {

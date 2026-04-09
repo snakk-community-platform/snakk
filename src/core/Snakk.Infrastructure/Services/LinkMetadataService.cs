@@ -22,7 +22,7 @@ public partial class LinkMetadataService(
     private const int MaxImageDimension = 800;
     private const int BlurSize = 20;
 
-    public async Task<LinkMetadata?> FetchAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<LinkMetadata?> FetchAsync(string url, string? languageCode = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(url)) return null;
 
@@ -48,7 +48,7 @@ public partial class LinkMetadataService(
             var domain = uri.Host.TrimStart('w', 'w', 'w', '.');
 
             // Fetch HTML and parse OG tags
-            var html = await FetchHtmlAsync(url, cancellationToken);
+            var html = await FetchHtmlAsync(url, languageCode, cancellationToken);
 
             var ogResult = html is not null ? ParseOgTags(html) : null;
 
@@ -249,7 +249,7 @@ public partial class LinkMetadataService(
         }
     }
 
-    private async Task<string?> FetchHtmlAsync(string url, CancellationToken cancellationToken)
+    private async Task<string?> FetchHtmlAsync(string url, string? languageCode, CancellationToken cancellationToken)
     {
         try
         {
@@ -259,10 +259,12 @@ public partial class LinkMetadataService(
             var userAgent = configuration["LinkMetadata:UserAgent"]
                 ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
 
+            var lang = languageCode ?? "en";
+
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("User-Agent", userAgent);
             request.Headers.Add("Accept", "text/html");
-            request.Headers.Add("Accept-Language", "en");
+            request.Headers.Add("Accept-Language", lang == "en" ? "en" : $"{lang}, en;q=0.5");
 
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode) return null;

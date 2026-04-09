@@ -17,5 +17,8 @@ public interface ILinkMetadataService
     /// Fetches metadata from a URL by parsing OG tags and oEmbed.
     /// Returns null if the URL is unreachable or unparseable.
     /// </summary>
-    Task<LinkMetadata?> FetchAsync(string url, CancellationToken cancellationToken = default);
+    /// <param name="url">The URL to fetch metadata from</param>
+    /// <param name="languageCode">ISO 639-1 language code for Accept-Language header (default: "en")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<LinkMetadata?> FetchAsync(string url, string? languageCode = null, CancellationToken cancellationToken = default);
 }

@@ -166,10 +166,16 @@ public class DiscussionExtensionService(
         }
         else
         {
+            // Resolve the space's effective language for Accept-Language header
+            var effectiveLanguage = await context.Discussions
+                .Where(d => d.PublicId == discussionPublicId)
+                .Select(d => d.Space.LanguageCode ?? d.Space.HubLanguageCode ?? d.Space.CommunityLanguageCode)
+                .FirstOrDefaultAsync();
+
             // Fetch fresh metadata
             try
             {
-                metadata = await linkMetadataService.FetchAsync(url);
+                metadata = await linkMetadataService.FetchAsync(url, effectiveLanguage);
             }
             catch (Exception ex)
             {

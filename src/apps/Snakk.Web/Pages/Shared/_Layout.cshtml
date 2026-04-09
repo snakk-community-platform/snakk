@@ -58,7 +58,7 @@
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
 </head>
-<body class="antialiased" hx-boost="true" hx-ext="preload,head-support" preload>
+<body class="antialiased" hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
     <div id="loading-bar" class="loading-bar"></div>
 
     @{
@@ -68,9 +68,9 @@
     }
 
     <!-- Navbar -->
-    <nav class="fp-navbar">
+    <nav id="fp-navbar" class="fp-navbar">
         <div class="fp-navbar-brand">
-            <a href="/"><img src="/img/logo-wide.webp" alt="@siteName" class="fp-navbar-logo" /></a>
+            <a href="/"><img src="/img/logo-wide.webp" alt="@siteName" class="fp-navbar-logo" width="159" height="40" fetchpriority="high" /></a>
         </div>
         <div class="fp-navbar-content">
             <div class="fp-navbar-search">

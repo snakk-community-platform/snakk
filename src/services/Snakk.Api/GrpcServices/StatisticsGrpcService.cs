@@ -71,7 +71,9 @@ public class StatisticsGrpcService(
                 {
                     PublicId = d.AuthorPublicId,
                     DisplayName = d.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
                 }
             });
         }
@@ -132,7 +134,9 @@ public class StatisticsGrpcService(
                 DisplayName = c.DisplayName,
                 PostCountToday = c.PostCountToday,
 
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
             });
         }
 

@@ -31,7 +31,7 @@
     <div class="fp-card-header">
         @if (Model.ShowUser)
         {
-            <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
             <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
                data-popup-type="user"
                data-popup-id="@discussion.Author.PublicId"
@@ -443,3 +443,8 @@
         </a>
     </div>
 </article>
+@if (!ViewContext.HttpContext.Items.ContainsKey("iama-countdown-loaded"))
+{
+    ViewContext.HttpContext.Items["iama-countdown-loaded"] = true;
+    <script src="@SnakkUrlHelper.Js("components/iama-countdown")" asp-append-version="true" defer></script>
+}

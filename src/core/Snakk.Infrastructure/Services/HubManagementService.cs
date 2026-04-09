@@ -139,6 +139,8 @@ public class HubManagementService(
             Slug = hub.Slug,
             Name = hub.Name,
             Description = hub.Description,
+            LanguageCode = hub.LanguageCode,
+            CommunityLanguageCode = hub.CommunityLanguageCode,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -159,6 +161,20 @@ public class HubManagementService(
 
         hub.Name = request.Name;
         hub.Description = request.Description;
+
+        if (request.LanguageCode is not null || hub.LanguageCode is not null)
+        {
+            var newLanguageCode = request.LanguageCode;
+            if (newLanguageCode != hub.LanguageCode)
+            {
+                hub.LanguageCode = newLanguageCode;
+
+                // Cascade to all child spaces
+                await context.Spaces
+                    .Where(s => s.HubId == hub.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubLanguageCode, newLanguageCode), cancellationToken);
+            }
+        }
 
         // Update allowed discussion types (empty list = all types allowed)
         var existingTypes = await context.HubAllowedDiscussionTypes

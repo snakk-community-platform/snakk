@@ -371,7 +371,7 @@ else
 
                             <a href="@trendUrl" class="fp-trending-discussion">
                                 <div class="fp-trending-discussion-header">
-                                    <img src="@d.Author.AvatarUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
+                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
                                     <span>@d.Author.DisplayName</span>
                                 </div>
                                 <div class="fp-trending-discussion-title-row">
@@ -398,7 +398,7 @@ else
                         @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
                         {
                             <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor">
-                                <img src="@c.AvatarUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                                <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
                                 <span class="fp-trending-contributor-name">@c.DisplayName</span>
                                 <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="10" height="10">

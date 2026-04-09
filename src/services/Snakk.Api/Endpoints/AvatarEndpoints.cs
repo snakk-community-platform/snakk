@@ -78,16 +78,27 @@ public static class AvatarEndpoints
         if (!await FileValidationHelper.IsValidImageFileAsync(file, extension))
             return Results.BadRequest(new { error = "Invalid image file format" });
 
-        // Delete old avatar from storage
+        // Delete old avatar + thumbnail from storage
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
             try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(user.AvatarThumbnailFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarThumbnailFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(user.AvatarMicroFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarMicroFileName}"); }
             catch { /* best-effort cleanup */ }
         }
 
         // Process: resize to 256x256 max, encode as WebP
         var nextRevision = user.AvatarRevision + 1;
         var newFileName = $"{userId.Value}_r{nextRevision}.webp";
+        var thumbFileName = $"{userId.Value}_r{nextRevision}_thumb.webp";
 
         using var inputStream = file.OpenReadStream();
         using var image = await Image.LoadAsync(inputStream);
@@ -101,16 +112,45 @@ public static class AvatarEndpoints
             }));
         }
 
+        // Save full-size avatar
         using var outputStream = new MemoryStream();
         await image.SaveAsWebpAsync(outputStream, new WebpEncoder { Quality = 80 });
         outputStream.Position = 0;
-
         await fileStorage.SaveAsync(
             $"avatars/uploaded/{newFileName}",
             outputStream,
             "public, max-age=31536000, immutable");
 
-        user.SetAvatarFileName(newFileName);
+        // Generate and save 80x80 thumbnail
+        using var thumbImage = image.Clone(x => x.Resize(new ResizeOptions
+        {
+            Size = new Size(80, 80),
+            Mode = ResizeMode.Max
+        }));
+        using var thumbStream = new MemoryStream();
+        await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 });
+        thumbStream.Position = 0;
+        await fileStorage.SaveAsync(
+            $"avatars/uploaded/{thumbFileName}",
+            thumbStream,
+            "public, max-age=31536000, immutable");
+
+        // Generate and save 26x26 micro thumbnail
+        var microFileName = $"{userId.Value}_r{nextRevision}_micro.webp";
+        using var microImage = image.Clone(x => x.Resize(new ResizeOptions
+        {
+            Size = new Size(26, 26),
+            Mode = ResizeMode.Max
+        }));
+        using var microStream = new MemoryStream();
+        await microImage.SaveAsWebpAsync(microStream, new WebpEncoder { Quality = 70 });
+        microStream.Position = 0;
+        await fileStorage.SaveAsync(
+            $"avatars/uploaded/{microFileName}",
+            microStream,
+            "public, max-age=31536000, immutable");
+
+        user.SetAvatarFileName(newFileName, thumbFileName, microFileName);
         await userRepository.UpdateAsync(user);
 
         return TypedResults.Ok(new AvatarUploadResponse(
@@ -138,6 +178,16 @@ public static class AvatarEndpoints
         if (!string.IsNullOrEmpty(user.AvatarFileName))
         {
             try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(user.AvatarThumbnailFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarThumbnailFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(user.AvatarMicroFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{user.AvatarMicroFileName}"); }
             catch { /* best-effort cleanup */ }
         }
 
@@ -197,23 +247,18 @@ public static class AvatarEndpoints
             return Results.BadRequest(new { error = "Invalid image file format" });
 
         // Load entity and get current avatar info
-        string? oldAvatarFileName;
-        int currentRevision;
-
         switch (entityType.ToLowerInvariant())
         {
             case "community":
             {
                 var entity = await communityRepository.GetByPublicIdAsync(CommunityId.From(entityId));
                 if (entity is null) return Results.NotFound();
-                oldAvatarFileName = entity.AvatarFileName;
-                currentRevision = entity.AvatarRevision;
 
-                // Process and save
-                var newFileName = await ProcessAndSaveAvatarAsync(
-                    file, fileStorage, entityType, entityId, currentRevision, oldAvatarFileName);
+                var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
+                    file, fileStorage, entityType, entityId, entity.AvatarRevision,
+                    entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
-                entity.SetAvatarFileName(newFileName);
+                entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
                 await communityRepository.UpdateAsync(entity);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
@@ -224,13 +269,12 @@ public static class AvatarEndpoints
             {
                 var entity = await hubRepository.GetByPublicIdAsync(HubId.From(entityId));
                 if (entity is null) return Results.NotFound();
-                oldAvatarFileName = entity.AvatarFileName;
-                currentRevision = entity.AvatarRevision;
 
-                var newFileName = await ProcessAndSaveAvatarAsync(
-                    file, fileStorage, entityType, entityId, currentRevision, oldAvatarFileName);
+                var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
+                    file, fileStorage, entityType, entityId, entity.AvatarRevision,
+                    entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
-                entity.SetAvatarFileName(newFileName);
+                entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
                 await hubRepository.UpdateAsync(entity);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
@@ -241,13 +285,12 @@ public static class AvatarEndpoints
             {
                 var entity = await spaceRepository.GetByPublicIdAsync(SpaceId.From(entityId));
                 if (entity is null) return Results.NotFound();
-                oldAvatarFileName = entity.AvatarFileName;
-                currentRevision = entity.AvatarRevision;
 
-                var newFileName = await ProcessAndSaveAvatarAsync(
-                    file, fileStorage, entityType, entityId, currentRevision, oldAvatarFileName);
+                var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
+                    file, fileStorage, entityType, entityId, entity.AvatarRevision,
+                    entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
-                entity.SetAvatarFileName(newFileName);
+                entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
                 await spaceRepository.UpdateAsync(entity);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
@@ -259,24 +302,37 @@ public static class AvatarEndpoints
         }
     }
 
-    private static async Task<string> ProcessAndSaveAvatarAsync(
+    private static async Task<(string FileName, string ThumbnailFileName, string MicroFileName)> ProcessAndSaveAvatarAsync(
         IFormFile file,
         IFileStorage fileStorage,
         string entityType,
         string entityId,
         int currentRevision,
-        string? oldAvatarFileName)
+        string? oldAvatarFileName,
+        string? oldThumbnailFileName,
+        string? oldMicroFileName = null)
     {
-        // Delete old avatar from storage
+        // Delete old avatar + thumbnail + micro from storage
         if (!string.IsNullOrEmpty(oldAvatarFileName))
         {
             try { await fileStorage.DeleteAsync($"avatars/uploaded/{entityType}/{oldAvatarFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(oldThumbnailFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{entityType}/{oldThumbnailFileName}"); }
+            catch { /* best-effort cleanup */ }
+        }
+        if (!string.IsNullOrEmpty(oldMicroFileName))
+        {
+            try { await fileStorage.DeleteAsync($"avatars/uploaded/{entityType}/{oldMicroFileName}"); }
             catch { /* best-effort cleanup */ }
         }
 
         // Process: resize to 256x256 max, encode as WebP
         var nextRevision = currentRevision + 1;
         var newFileName = $"{entityId}_r{nextRevision}.webp";
+        var thumbFileName = $"{entityId}_r{nextRevision}_thumb.webp";
 
         using var inputStream = file.OpenReadStream();
         using var image = await Image.LoadAsync(inputStream);
@@ -290,16 +346,45 @@ public static class AvatarEndpoints
             }));
         }
 
+        // Save full-size avatar
         using var outputStream = new MemoryStream();
         await image.SaveAsWebpAsync(outputStream, new WebpEncoder { Quality = 80 });
         outputStream.Position = 0;
-
         await fileStorage.SaveAsync(
             $"avatars/uploaded/{entityType}/{newFileName}",
             outputStream,
             "public, max-age=31536000, immutable");
 
-        return newFileName;
+        // Generate and save 80x80 thumbnail
+        using var thumbImage = image.Clone(x => x.Resize(new ResizeOptions
+        {
+            Size = new Size(80, 80),
+            Mode = ResizeMode.Max
+        }));
+        using var thumbStream = new MemoryStream();
+        await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 });
+        thumbStream.Position = 0;
+        await fileStorage.SaveAsync(
+            $"avatars/uploaded/{entityType}/{thumbFileName}",
+            thumbStream,
+            "public, max-age=31536000, immutable");
+
+        // Generate and save 26x26 micro thumbnail
+        var microFileName = $"{entityId}_r{nextRevision}_micro.webp";
+        using var microImage = image.Clone(x => x.Resize(new ResizeOptions
+        {
+            Size = new Size(26, 26),
+            Mode = ResizeMode.Max
+        }));
+        using var microStream = new MemoryStream();
+        await microImage.SaveAsWebpAsync(microStream, new WebpEncoder { Quality = 70 });
+        microStream.Position = 0;
+        await fileStorage.SaveAsync(
+            $"avatars/uploaded/{entityType}/{microFileName}",
+            microStream,
+            "public, max-age=31536000, immutable");
+
+        return (newFileName, thumbFileName, microFileName);
     }
 
     private static async Task<IResult> DeleteEntityAvatarAsync(
@@ -341,6 +426,16 @@ public static class AvatarEndpoints
                     try { await fileStorage.DeleteAsync($"avatars/uploaded/community/{entity.AvatarFileName}"); }
                     catch { /* best-effort */ }
                 }
+                if (!string.IsNullOrEmpty(entity.AvatarThumbnailFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/community/{entity.AvatarThumbnailFileName}"); }
+                    catch { /* best-effort */ }
+                }
+                if (!string.IsNullOrEmpty(entity.AvatarMicroFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/community/{entity.AvatarMicroFileName}"); }
+                    catch { /* best-effort */ }
+                }
 
                 entity.ClearAvatar();
                 await communityRepository.UpdateAsync(entity);
@@ -356,6 +451,16 @@ public static class AvatarEndpoints
                     try { await fileStorage.DeleteAsync($"avatars/uploaded/hub/{entity.AvatarFileName}"); }
                     catch { /* best-effort */ }
                 }
+                if (!string.IsNullOrEmpty(entity.AvatarThumbnailFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/hub/{entity.AvatarThumbnailFileName}"); }
+                    catch { /* best-effort */ }
+                }
+                if (!string.IsNullOrEmpty(entity.AvatarMicroFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/hub/{entity.AvatarMicroFileName}"); }
+                    catch { /* best-effort */ }
+                }
 
                 entity.ClearAvatar();
                 await hubRepository.UpdateAsync(entity);
@@ -369,6 +474,16 @@ public static class AvatarEndpoints
                 if (!string.IsNullOrEmpty(entity.AvatarFileName))
                 {
                     try { await fileStorage.DeleteAsync($"avatars/uploaded/space/{entity.AvatarFileName}"); }
+                    catch { /* best-effort */ }
+                }
+                if (!string.IsNullOrEmpty(entity.AvatarThumbnailFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/space/{entity.AvatarThumbnailFileName}"); }
+                    catch { /* best-effort */ }
+                }
+                if (!string.IsNullOrEmpty(entity.AvatarMicroFileName))
+                {
+                    try { await fileStorage.DeleteAsync($"avatars/uploaded/space/{entity.AvatarMicroFileName}"); }
                     catch { /* best-effort */ }
                 }
 

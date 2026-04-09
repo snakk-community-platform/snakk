@@ -68,6 +68,8 @@ public class UserMapperTests
             null,
             "Admin", // Admin role
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,
@@ -98,6 +100,8 @@ public class UserMapperTests
             null,
             "Mod", // Mod role
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,
@@ -128,6 +132,8 @@ public class UserMapperTests
             null,
             "ADMIN", // Uppercase
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,
@@ -172,6 +178,8 @@ public class UserMapperTests
             null,
             "InvalidRole", // Not a valid role
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,
@@ -455,6 +463,8 @@ public class UserMapperTests
             null,
             "Admin",
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,
@@ -486,6 +496,8 @@ public class UserMapperTests
             null,
             "Admin",
             null,
+            null, // avatarThumbnailFileName
+            null, // avatarMicroFileName
             0, // avatarRevision
             false, // autoFollowOnReply
             DateTime.UtcNow,

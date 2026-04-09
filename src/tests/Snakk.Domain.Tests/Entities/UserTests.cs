@@ -469,6 +469,8 @@ public class UserTests
             "google-id",
             "admin",
             "avatar.jpg",
+            null,
+            null,
             0,
             false,
             createdAt,

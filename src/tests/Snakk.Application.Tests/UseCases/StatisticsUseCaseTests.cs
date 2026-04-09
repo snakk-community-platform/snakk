@@ -30,8 +30,8 @@ public class StatisticsUseCaseTests
         var userId1 = UserId.New();
         var userId2 = UserId.New();
         var topContributors = new List<(UserId UserId, int PostCount)> { (userId1, 10), (userId2, 5) };
-        var user1 = User.Rehydrate(userId1, "TopUser1", "user1@test.com", null, true, null, null, null, null, "avatar1.png", 0, true, DateTime.UtcNow);
-        var user2 = User.Rehydrate(userId2, "TopUser2", "user2@test.com", null, true, null, null, null, null, null, 0, true, DateTime.UtcNow);
+        var user1 = User.Rehydrate(userId1, "TopUser1", "user1@test.com", null, true, null, null, null, null, "avatar1.png", null, null, 0, true, DateTime.UtcNow);
+        var user2 = User.Rehydrate(userId2, "TopUser2", "user2@test.com", null, true, null, null, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _postRepo.GetTopContributorsSinceAsync(Arg.Any<DateTime>(), null, null, null, 5).Returns(topContributors);
         _userRepo.GetByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([user1, user2]);

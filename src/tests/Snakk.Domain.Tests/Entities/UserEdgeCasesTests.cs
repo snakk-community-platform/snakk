@@ -161,6 +161,7 @@ public class UserEdgeCasesTests
         var user = User.Rehydrate(
             UserId.New(), "testuser", "test@example.com", "hash",
             true, null, null, null, null, "avatar.jpg",
+            avatarThumbnailFileName: null, avatarMicroFileName: null,
             avatarRevision: 5,
             autoFollowOnReply: true,
             DateTime.UtcNow);
@@ -485,6 +486,8 @@ public class UserEdgeCasesTests
             oauthProviderId: null,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow,
@@ -524,6 +527,8 @@ public class UserEdgeCasesTests
             oauthProviderId: "github-123",
             role: "admin",
             avatarFileName: "admin-avatar.png",
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 3,
             autoFollowOnReply: false,
             now.AddDays(-30),
@@ -555,7 +560,7 @@ public class UserEdgeCasesTests
         // Arrange & Act
         var user = User.Rehydrate(
             UserId.New(), "testuser", null, null, false, null, null, null, null, null,
-            0, true, DateTime.UtcNow);
+            null, null, 0, true, DateTime.UtcNow);
 
         // Assert
         await Assert.That(user.DomainEvents).IsEmpty();

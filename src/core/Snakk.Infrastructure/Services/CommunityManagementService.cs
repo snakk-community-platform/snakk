@@ -163,6 +163,7 @@ public class CommunityManagementService(
             Name = community.Name,
             Description = community.Description,
             Timezone = community.Timezone,
+            LanguageCode = community.LanguageCode,
             AllowedDiscussionTypes = allowedTypes,
             OwnerId = string.Empty, // TODO: Add owner tracking
             AdminUserIds = adminUserIds,
@@ -186,6 +187,24 @@ public class CommunityManagementService(
         community.Name = request.Name;
         community.Description = request.Description;
         community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
+
+        if (request.LanguageCode is not null || community.LanguageCode is not null)
+        {
+            var newLanguageCode = request.LanguageCode;
+            if (newLanguageCode != community.LanguageCode)
+            {
+                community.LanguageCode = newLanguageCode;
+
+                // Cascade to all child hubs and spaces
+                await context.Hubs
+                    .Where(h => h.CommunityId == community.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(h => h.CommunityLanguageCode, newLanguageCode), cancellationToken);
+
+                await context.Spaces
+                    .Where(s => s.Hub.CommunityId == community.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityLanguageCode, newLanguageCode), cancellationToken);
+            }
+        }
 
         // Update allowed discussion types (empty list = all types allowed)
         var existingTypes = await context.CommunityAllowedDiscussionTypes

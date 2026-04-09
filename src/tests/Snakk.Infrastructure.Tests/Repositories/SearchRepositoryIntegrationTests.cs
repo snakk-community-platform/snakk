@@ -25,7 +25,8 @@ public class SearchRepositoryIntegrationTests : IDisposable
         var mockGrants = Substitute.For<IUserGrantsCacheService>();
         mockGrants.GetGrantsAsync(Arg.Any<string>())
             .Returns(new UserGrants([], [], []));
-        _repository = new SearchRepository(_db.Context, mockGrants);
+        var mockFileStorage = Substitute.For<IFileStorage>();
+        _repository = new SearchRepository(_db.Context, mockGrants, mockFileStorage);
     }
 
     public void Dispose() => _db.Dispose();

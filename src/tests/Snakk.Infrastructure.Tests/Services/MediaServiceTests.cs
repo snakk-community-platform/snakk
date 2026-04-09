@@ -50,6 +50,7 @@ public class MediaServiceTests : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _db.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 
     private static MemoryStream CreateTestImage(int width = 10, int height = 10, string format = "jpeg")

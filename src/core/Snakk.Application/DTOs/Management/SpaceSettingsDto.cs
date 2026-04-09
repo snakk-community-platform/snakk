@@ -20,6 +20,12 @@ public class SpaceSettingsDto
 
     public bool AllowAnonymous { get; set; }
 
+    public string? LanguageCode { get; init; }
+
+    public string? HubLanguageCode { get; init; }
+
+    public string? CommunityLanguageCode { get; init; }
+
     public List<string> ModeratorUserIds { get; set; } = [];
 }
 
@@ -37,4 +43,6 @@ public class UpdateSpaceSettingsRequest
     public bool RequireApproval { get; set; }
 
     public bool AllowAnonymous { get; set; }
+
+    public string? LanguageCode { get; init; }
 }

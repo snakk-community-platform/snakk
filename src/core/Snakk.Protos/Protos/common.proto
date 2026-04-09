@@ -41,6 +41,8 @@ message EntityRef {
   string slug = 2;
   string name = 3;
   optional string avatar_url = 4;
+  optional string avatar_thumbnail_url = 5;
+  optional string avatar_micro_url = 6;
 }
 
 // Lightweight reference to a user (author of a post, discussion, etc.)
@@ -53,6 +55,8 @@ message AuthorRef {
   optional google.protobuf.Timestamp joined_at = 6;
   int32 discussion_count = 7;
   int32 reply_count = 8;
+  optional string avatar_thumbnail_url = 9;
+  optional string avatar_micro_url = 10;
 }
 
 // Reference to a post being replied to

@@ -134,6 +134,8 @@ public class UserRepositoryAdapterTests : IDisposable
             oauthProviderId: null,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow);

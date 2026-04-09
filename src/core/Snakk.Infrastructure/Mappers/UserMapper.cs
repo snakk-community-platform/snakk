@@ -29,6 +29,8 @@ public static class UserMapper
             entity.OAuthProviderId,
             role,
             entity.AvatarFileName,
+            entity.AvatarThumbnailFileName,
+            entity.AvatarMicroFileName,
             entity.AvatarRevision,
             entity.AutoFollowOnReply,
             entity.CreatedAt,

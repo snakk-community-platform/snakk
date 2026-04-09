@@ -21,7 +21,7 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarRevision))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -34,7 +34,7 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarRevision))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -49,7 +49,7 @@ public class CommunityRepositoryAdapter(
                 d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
                 d.Community.CreatedAt, d.Community.LastModifiedAt,
-                d.Community.AvatarFileName, d.Community.AvatarRevision))
+                d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -119,6 +119,8 @@ public class CommunityRepositoryAdapter(
         entity.ExposeToPlatformFeed = community.ExposeToPlatformFeed;
         entity.LastModifiedAt = community.LastModifiedAt;
         entity.AvatarFileName = community.AvatarFileName;
+        entity.AvatarThumbnailFileName = community.AvatarThumbnailFileName;
+        entity.AvatarMicroFileName = community.AvatarMicroFileName;
         entity.AvatarRevision = community.AvatarRevision;
 
         await databaseRepository.UpdateAsync(entity);
@@ -135,6 +137,8 @@ public class CommunityRepositoryAdapter(
         DateTime CreatedAt,
         DateTime? LastModifiedAt,
         string? AvatarFileName,
+        string? AvatarThumbnailFileName,
+        string? AvatarMicroFileName,
         int AvatarRevision)
     {
         public Community ToDomain() => Community.Rehydrate(
@@ -144,6 +148,8 @@ public class CommunityRepositoryAdapter(
             ExposeToPlatformFeed,
             CreatedAt, LastModifiedAt, hubs: [],
             avatarFileName: AvatarFileName,
+            avatarThumbnailFileName: AvatarThumbnailFileName,
+            avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision);
     }
 }

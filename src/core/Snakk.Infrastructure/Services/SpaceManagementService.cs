@@ -146,6 +146,9 @@ public class SpaceManagementService(
             Slug = space.Slug,
             Name = space.Name,
             Description = space.Description,
+            LanguageCode = space.LanguageCode,
+            HubLanguageCode = space.HubLanguageCode,
+            CommunityLanguageCode = space.CommunityLanguageCode,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -166,6 +169,11 @@ public class SpaceManagementService(
 
         space.Name = request.Name;
         space.Description = request.Description;
+
+        if (request.LanguageCode is not null || space.LanguageCode is not null)
+        {
+            space.LanguageCode = request.LanguageCode;
+        }
 
         // Update allowed discussion types
         var existingTypes = await context.SpaceAllowedDiscussionTypes

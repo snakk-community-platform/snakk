@@ -19,7 +19,10 @@ public static class SpaceMapper
             entity.LastModifiedAt,
             discussions: [],
             avatarFileName: entity.AvatarFileName,
-            avatarRevision: entity.AvatarRevision);
+            avatarRevision: entity.AvatarRevision,
+            languageCode: entity.LanguageCode,
+            hubLanguageCode: entity.HubLanguageCode,
+            communityLanguageCode: entity.CommunityLanguageCode);
 
     public static SpaceDatabaseEntity ToPersistence(this Space space) =>
         new()
@@ -33,7 +36,10 @@ public static class SpaceMapper
             CreatedAt = space.CreatedAt,
             LastModifiedAt = space.LastModifiedAt,
             AvatarFileName = space.AvatarFileName,
-            AvatarRevision = space.AvatarRevision
+            AvatarRevision = space.AvatarRevision,
+            LanguageCode = space.LanguageCode,
+            HubLanguageCode = space.HubLanguageCode,
+            CommunityLanguageCode = space.CommunityLanguageCode
             // HubId will be set by repository adapter
         };
 }

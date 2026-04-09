@@ -11,7 +11,12 @@ public class Space
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public string? LanguageCode { get; private set; }
+    public string? HubLanguageCode { get; private set; }
+    public string? CommunityLanguageCode { get; private set; }
     public string? AvatarFileName { get; private set; }
+    public string? AvatarThumbnailFileName { get; private set; }
+    public string? AvatarMicroFileName { get; private set; }
     public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
@@ -38,7 +43,12 @@ public class Space
         DateTime? lastModifiedAt = null,
         List<Discussion>? discussions = null,
         string? avatarFileName = null,
-        int avatarRevision = 0)
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null,
+        string? hubLanguageCode = null,
+        string? communityLanguageCode = null)
     {
         PublicId = publicId;
         HubId = hubId;
@@ -47,7 +57,12 @@ public class Space
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        LanguageCode = languageCode;
+        HubLanguageCode = hubLanguageCode;
+        CommunityLanguageCode = communityLanguageCode;
         AvatarFileName = avatarFileName;
+        AvatarThumbnailFileName = avatarThumbnailFileName;
+        AvatarMicroFileName = avatarMicroFileName;
         AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
@@ -91,7 +106,12 @@ public class Space
         DateTime? lastModifiedAt = null,
         List<Discussion>? discussions = null,
         string? avatarFileName = null,
-        int avatarRevision = 0) =>
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null,
+        string? hubLanguageCode = null,
+        string? communityLanguageCode = null) =>
         new Space(
             publicId,
             hubId,
@@ -104,7 +124,12 @@ public class Space
             lastModifiedAt,
             discussions,
             avatarFileName,
-            avatarRevision);
+            avatarThumbnailFileName,
+            avatarMicroFileName,
+            avatarRevision,
+            languageCode,
+            hubLanguageCode,
+            communityLanguageCode);
 
     public static Space RehydrateForList(
         SpaceId publicId,
@@ -114,7 +139,10 @@ public class Space
         string? description,
         bool allowAnonymousReading,
         bool requireEmailConfirmation,
-        DateTime createdAt) =>
+        DateTime createdAt,
+        string? languageCode = null,
+        string? hubLanguageCode = null,
+        string? communityLanguageCode = null) =>
         new Space(
             publicId,
             hubId,
@@ -125,7 +153,29 @@ public class Space
             requireEmailConfirmation,
             createdAt,
             lastModifiedAt: null,
-            discussions: []);
+            discussions: [],
+            languageCode: languageCode,
+            hubLanguageCode: hubLanguageCode,
+            communityLanguageCode: communityLanguageCode);
+
+    public void UpdateLanguageCode(string? languageCode)
+    {
+        LanguageCode = languageCode;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateHubLanguageCode(string? hubLanguageCode)
+    {
+        HubLanguageCode = hubLanguageCode;
+    }
+
+    public void UpdateCommunityLanguageCode(string? communityLanguageCode)
+    {
+        CommunityLanguageCode = communityLanguageCode;
+    }
+
+    public string EffectiveLanguageCode =>
+        LanguageCode ?? HubLanguageCode ?? CommunityLanguageCode ?? "en";
 
     public void UpdateName(string name)
     {
@@ -151,9 +201,11 @@ public class Space
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public void SetAvatarFileName(string? fileName)
+    public void SetAvatarFileName(string? fileName, string? thumbnailFileName = null, string? microFileName = null)
     {
         AvatarFileName = fileName;
+        AvatarThumbnailFileName = thumbnailFileName;
+        AvatarMicroFileName = microFileName;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
@@ -161,6 +213,8 @@ public class Space
     public void ClearAvatar()
     {
         AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }

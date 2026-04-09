@@ -82,6 +82,62 @@ public static class AvatarHelper
     }
 
     /// <summary>
+    /// Gets the thumbnail URL for an avatar (80x80).
+    /// Falls back to the full avatar URL if no thumbnail exists.
+    /// </summary>
+    public static string GetAvatarThumbnailUrl(
+        string publicId,
+        AvatarEntityType entityType,
+        int revision = 0,
+        string? avatarFileName = null,
+        string? avatarThumbnailFileName = null)
+    {
+        // If a dedicated thumbnail exists, use it
+        if (!string.IsNullOrEmpty(avatarThumbnailFileName))
+        {
+            var baseUrl = UploadedAvatarBaseUrl;
+            return entityType switch
+            {
+                AvatarEntityType.User => $"{baseUrl}/avatars/uploaded/{avatarThumbnailFileName}",
+                AvatarEntityType.Community => $"{baseUrl}/avatars/uploaded/community/{avatarThumbnailFileName}",
+                AvatarEntityType.Hub => $"{baseUrl}/avatars/uploaded/hub/{avatarThumbnailFileName}",
+                AvatarEntityType.Space => $"{baseUrl}/avatars/uploaded/space/{avatarThumbnailFileName}",
+                _ => $"{baseUrl}/avatars/uploaded/{avatarThumbnailFileName}"
+            };
+        }
+
+        // Fall back to full avatar (uploaded or generated)
+        return GetAvatarUrl(publicId, entityType, revision, avatarFileName);
+    }
+
+    /// <summary>
+    /// Gets the micro avatar URL (26x26) if available, otherwise falls back to thumbnail, then full.
+    /// Use for tiny avatar displays (card headers, sidebar items).
+    /// </summary>
+    public static string GetAvatarMicroUrl(
+        string publicId,
+        AvatarEntityType entityType,
+        int revision = 0,
+        string? avatarFileName = null,
+        string? avatarMicroFileName = null)
+    {
+        if (!string.IsNullOrEmpty(avatarMicroFileName))
+        {
+            var baseUrl = UploadedAvatarBaseUrl;
+            return entityType switch
+            {
+                AvatarEntityType.User => $"{baseUrl}/avatars/uploaded/{avatarMicroFileName}",
+                AvatarEntityType.Community => $"{baseUrl}/avatars/uploaded/community/{avatarMicroFileName}",
+                AvatarEntityType.Hub => $"{baseUrl}/avatars/uploaded/hub/{avatarMicroFileName}",
+                AvatarEntityType.Space => $"{baseUrl}/avatars/uploaded/space/{avatarMicroFileName}",
+                _ => $"{baseUrl}/avatars/uploaded/{avatarMicroFileName}"
+            };
+        }
+
+        return GetAvatarUrl(publicId, entityType, revision, avatarFileName);
+    }
+
+    /// <summary>
     /// Gets the shard folder name (e.g., "4a") for a given public ID.
     /// </summary>
     public static string GetShardFolder(string publicId)

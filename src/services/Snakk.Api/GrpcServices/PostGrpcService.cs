@@ -77,6 +77,18 @@ public class PostGrpcService(
                         AvatarEntityType.User,
                         ep.Author.AvatarRevision,
                         ep.Author.AvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(
+                        post.CreatedByUserId.Value,
+                        AvatarEntityType.User,
+                        ep.Author.AvatarRevision,
+                        ep.Author.AvatarFileName,
+                        ep.Author.AvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(
+                        post.CreatedByUserId.Value,
+                        AvatarEntityType.User,
+                        ep.Author.AvatarRevision,
+                        ep.Author.AvatarFileName,
+                        ep.Author.AvatarMicroFileName),
                     Role = ep.Author.Role ?? "",
                     IsDeleted = ep.Author.IsDeleted,
                     JoinedAt = ToTimestamp(ep.Author.JoinedAt),

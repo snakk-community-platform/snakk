@@ -269,8 +269,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
 
+                    b.Property<string>("AvatarMicroFileName")
+                        .HasColumnType("text");
+
                     b.Property<int>("AvatarRevision")
                         .HasColumnType("integer");
+
+                    b.Property<string>("AvatarThumbnailFileName")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -301,6 +307,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("IsRestricted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1204,11 +1214,21 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
 
+                    b.Property<string>("AvatarMicroFileName")
+                        .HasColumnType("text");
+
                     b.Property<int>("AvatarRevision")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AvatarThumbnailFileName")
+                        .HasColumnType("text");
+
                     b.Property<int>("CommunityId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("CommunityLanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1233,6 +1253,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("IsRestricted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2190,8 +2214,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
 
+                    b.Property<string>("AvatarMicroFileName")
+                        .HasColumnType("text");
+
                     b.Property<int>("AvatarRevision")
                         .HasColumnType("integer");
+
+                    b.Property<string>("AvatarThumbnailFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CommunityLanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2211,6 +2245,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("HubId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("HubLanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<bool>("IsAdultOnly")
                         .HasColumnType("boolean");
 
@@ -2219,6 +2257,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<bool>("IsRestricted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2691,8 +2733,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AvatarFileName")
                         .HasColumnType("text");
 
+                    b.Property<string>("AvatarMicroFileName")
+                        .HasColumnType("text");
+
                     b.Property<int>("AvatarRevision")
                         .HasColumnType("integer");
+
+                    b.Property<string>("AvatarThumbnailFileName")
+                        .HasColumnType("text");
 
                     b.Property<string>("Bio")
                         .HasColumnType("text");

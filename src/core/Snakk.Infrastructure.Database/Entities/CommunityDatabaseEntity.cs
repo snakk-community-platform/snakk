@@ -27,10 +27,15 @@ public class CommunityDatabaseEntity
 
     // Avatar
     public string? AvatarFileName { get; set; }
+    public string? AvatarThumbnailFileName { get; set; }
+    public string? AvatarMicroFileName { get; set; }
     public int AvatarRevision { get; set; } = 0;
 
     // Timezone (IANA timezone ID, e.g. "Europe/London"; null = use site-wide setting)
     public string? Timezone { get; set; }
+
+    // Language (BCP 47 language tag, e.g. "en", "nb-NO"; null = use site-wide setting)
+    public string? LanguageCode { get; set; }
 
     // Group access control
     public bool IsRestricted { get; set; }

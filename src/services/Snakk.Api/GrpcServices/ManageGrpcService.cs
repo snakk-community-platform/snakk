@@ -151,6 +151,10 @@ public class ManageGrpcService(
             AllowAnonymous = settings.AllowAnonymous
         };
 
+        if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
+        if (settings.HubLanguageCode is not null) response.HubLanguageCode = settings.HubLanguageCode;
+        if (settings.CommunityLanguageCode is not null) response.CommunityLanguageCode = settings.CommunityLanguageCode;
+
         response.AllowedDiscussionTypes.AddRange(
             settings.AllowedDiscussionTypes.Select(t => (int)t));
         response.ModeratorUserIds.AddRange(settings.ModeratorUserIds);
@@ -179,6 +183,7 @@ public class ManageGrpcService(
         {
             Name = request.Name,
             Description = request.HasDescription ? request.Description : null,
+            LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
                 .Select(t => (DiscussionTypeEnum)t)
                 .ToList(),
@@ -775,6 +780,7 @@ public class ManageGrpcService(
         };
         if (settings.Description is not null) response.Description = settings.Description;
         if (settings.Timezone is not null) response.Timezone = settings.Timezone;
+        if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
         response.AllowedDiscussionTypes.AddRange(settings.AllowedDiscussionTypes.Select(t => (int)t));
         return response;
     }
@@ -796,6 +802,7 @@ public class ManageGrpcService(
             Name = request.Name,
             Description = request.HasDescription ? request.Description : null,
             Timezone = request.HasTimezone ? request.Timezone : null,
+            LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
                 .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
         };
@@ -832,6 +839,8 @@ public class ManageGrpcService(
             Name = settings.Name
         };
         if (settings.Description is not null) response.Description = settings.Description;
+        if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
+        if (settings.CommunityLanguageCode is not null) response.CommunityLanguageCode = settings.CommunityLanguageCode;
         response.AllowedDiscussionTypes.AddRange(settings.AllowedDiscussionTypes.Select(t => (int)t));
         response.ModeratorUserIds.AddRange(settings.ModeratorUserIds);
         response.ParentAllowedTypes.AddRange(parentTypes.Select(t => (int)t));
@@ -854,6 +863,7 @@ public class ManageGrpcService(
         {
             Name = request.Name,
             Description = request.HasDescription ? request.Description : null,
+            LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
                 .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
         };

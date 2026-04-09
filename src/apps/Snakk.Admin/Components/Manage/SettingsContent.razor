@@ -132,6 +132,33 @@
                 </MudSelect>
             }
 
+            @if (Scope?.ScopeType is "Community" or "Hub" or "Space")
+            {
+                var langLabel = Scope.ScopeType == "Community" ? "Primary Language" : "Language Override";
+                var langHelper = Scope.ScopeType == "Community"
+                    ? "Default language for link previews and content. Hubs and spaces inherit this unless overridden."
+                    : _inheritedLanguageCode is not null
+                        ? $"Inherited: {Snakk.Shared.Models.SupportedLanguages.GetByCode(_inheritedLanguageCode)?.Name ?? _inheritedLanguageCode}"
+                        : "Inherits from parent. Set to override.";
+
+                <MudSelect @bind-Value="_languageCode" T="string?" Label="@langLabel"
+                           HelperText="@langHelper" Clearable="@(Scope.ScopeType != "Community")">
+                    @if (Scope.ScopeType != "Community")
+                    {
+                        <MudSelectItem Value="@((string?)null)">Inherit from parent</MudSelectItem>
+                    }
+                    @foreach (var lang in Snakk.Shared.Models.SupportedLanguages.All)
+                    {
+                        <MudSelectItem Value="@((string?)lang.Code)">
+                            <div class="d-flex align-center gap-2">
+                                <img src="/flags/@(lang.FlagCode).svg" style="width:20px;height:15px" alt="" />
+                                @lang.Name (@lang.NativeName)
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
             @if (Scope?.ScopeType == "Space")
             {
                 <MudSelect @bind-Value="_defaultSort" T="string" Label="Default Sort">
@@ -205,6 +232,8 @@
     private string _visibility = "Public";
     private string _defaultSort = "latest";
     private string _timezone = "UTC";
+    private string? _languageCode;
+    private string? _inheritedLanguageCode;
     private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
     private HashSet<DiscussionTypeEnum> _parentAllowedTypes = [];
     private string _parentScopeLabel = "";
@@ -237,6 +266,9 @@
 
                 _name = response.Name;
                 _description = response.HasDescription ? response.Description : "";
+                _languageCode = response.HasLanguageCode ? response.LanguageCode : null;
+                _inheritedLanguageCode = response.HasHubLanguageCode ? response.HubLanguageCode
+                    : response.HasCommunityLanguageCode ? response.CommunityLanguageCode : null;
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
                     : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
@@ -259,6 +291,8 @@
 
                 _name = response.Name;
                 _description = response.HasDescription ? response.Description : "";
+                _languageCode = response.HasLanguageCode ? response.LanguageCode : null;
+                _inheritedLanguageCode = response.HasCommunityLanguageCode ? response.CommunityLanguageCode : null;
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
                     : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
@@ -282,6 +316,8 @@
                 _name = response.Name;
                 _description = response.HasDescription ? response.Description : "";
                 _timezone = response.HasTimezone ? response.Timezone : "UTC";
+                _languageCode = response.HasLanguageCode ? response.LanguageCode : null;
+                _inheritedLanguageCode = null; // Community has no parent
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
                     : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
@@ -517,7 +553,8 @@
                 {
                     SpacePublicId = Scope.ScopePublicId,
                     Name = _name,
-                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description
+                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
+                    LanguageCode = _languageCode ?? ""
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
@@ -542,7 +579,8 @@
                 {
                     HubPublicId = Scope.ScopePublicId,
                     Name = _name,
-                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description
+                    Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
+                    LanguageCode = _languageCode ?? ""
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
@@ -568,7 +606,8 @@
                     CommunityPublicId = Scope.ScopePublicId,
                     Name = _name,
                     Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
-                    Timezone = string.IsNullOrWhiteSpace(_timezone) ? null : _timezone
+                    Timezone = string.IsNullOrWhiteSpace(_timezone) ? null : _timezone,
+                    LanguageCode = _languageCode ?? ""
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));

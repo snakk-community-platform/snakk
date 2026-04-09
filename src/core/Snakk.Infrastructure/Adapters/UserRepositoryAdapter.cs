@@ -132,6 +132,8 @@ public class UserRepositoryAdapter(
         entity.Email = plainEmail is not null ? emailProtector.Protect(plainEmail) : null;
         entity.EmailHash = plainEmail is not null ? emailProtector.ComputeHash(plainEmail) : null;
         entity.AvatarFileName = user.AvatarFileName;
+        entity.AvatarThumbnailFileName = user.AvatarThumbnailFileName;
+        entity.AvatarMicroFileName = user.AvatarMicroFileName;
         entity.AvatarRevision = user.AvatarRevision;
         entity.AutoFollowOnReply = user.AutoFollowOnReply;
         entity.AllowAdultContent = user.AllowAdultContent;
@@ -157,6 +159,8 @@ public class UserRepositoryAdapter(
         public string? OAuthProviderId { get; init; }
         public bool HasGlobalAdminRole { get; init; }
         public string? AvatarFileName { get; init; }
+        public string? AvatarThumbnailFileName { get; init; }
+        public string? AvatarMicroFileName { get; init; }
         public int AvatarRevision { get; init; }
         public bool AutoFollowOnReply { get; init; }
         public bool AllowAdultContent { get; init; }
@@ -185,6 +189,8 @@ public class UserRepositoryAdapter(
                 r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
                 && r.RevokedAt is null);
             AvatarFileName = u.AvatarFileName;
+            AvatarThumbnailFileName = u.AvatarThumbnailFileName;
+            AvatarMicroFileName = u.AvatarMicroFileName;
             AvatarRevision = u.AvatarRevision;
             AutoFollowOnReply = u.AutoFollowOnReply;
             AllowAdultContent = u.AllowAdultContent;
@@ -216,7 +222,7 @@ public class UserRepositoryAdapter(
                 EmailVerified, EmailVerificationToken,
                 OAuthProvider, OAuthProviderId,
                 HasGlobalAdminRole ? "Admin" : null,
-                AvatarFileName, AvatarRevision,
+                AvatarFileName, AvatarThumbnailFileName, AvatarMicroFileName, AvatarRevision,
                 AutoFollowOnReply,
                 CreatedAt, LastModifiedAt, LastSeenAt, LastLoginAt,
                 NeedsProfileSetup, Timezone, bio: Bio,

@@ -288,6 +288,8 @@ public class PostUseCase(
                     user.DisplayName,
                     user.Role,
                     user.AvatarFileName,
+                    user.AvatarThumbnailFileName,
+                    user.AvatarMicroFileName,
                     user.AvatarRevision,
                     false,
                     user.CreatedAt,
@@ -295,7 +297,7 @@ public class PostUseCase(
                     user.ReplyCount);
             }
             else
-                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, 0, true, DateTime.MinValue, 0, 0);
+                authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, null, null, 0, true, DateTime.MinValue, 0, 0);
         }
 
         // 5. Build reply-to dictionary (need reply authors — batch from already-fetched authors where possible)
@@ -378,6 +380,8 @@ public record AuthorInfo(
     string DisplayName,
     string? Role,
     string? AvatarFileName,
+    string? AvatarThumbnailFileName,
+    string? AvatarMicroFileName,
     int AvatarRevision,
     bool IsDeleted,
     DateTime JoinedAt,

@@ -16,6 +16,10 @@ public class HubSettingsDto
 
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
+    public string? LanguageCode { get; init; }
+
+    public string? CommunityLanguageCode { get; init; }
+
     public List<string> ModeratorUserIds { get; set; } = new();
 }
 
@@ -29,4 +33,6 @@ public class UpdateHubSettingsRequest
     public string? Description { get; set; }
 
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
+
+    public string? LanguageCode { get; init; }
 }

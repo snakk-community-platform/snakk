@@ -175,6 +175,8 @@ public class BannerUseCaseTests
             oauthProviderId: null,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             createdAt: DateTime.UtcNow);

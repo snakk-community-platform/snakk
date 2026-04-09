@@ -11,7 +11,11 @@ public class Hub
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public string? LanguageCode { get; private set; }
+    public string? CommunityLanguageCode { get; private set; }
     public string? AvatarFileName { get; private set; }
+    public string? AvatarThumbnailFileName { get; private set; }
+    public string? AvatarMicroFileName { get; private set; }
     public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
@@ -38,7 +42,11 @@ public class Hub
         DateTime? lastModifiedAt = null,
         List<Space>? spaces = null,
         string? avatarFileName = null,
-        int avatarRevision = 0)
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null,
+        string? communityLanguageCode = null)
     {
         PublicId = publicId;
         CommunityId = communityId;
@@ -47,7 +55,11 @@ public class Hub
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        LanguageCode = languageCode;
+        CommunityLanguageCode = communityLanguageCode;
         AvatarFileName = avatarFileName;
+        AvatarThumbnailFileName = avatarThumbnailFileName;
+        AvatarMicroFileName = avatarMicroFileName;
         AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
@@ -91,7 +103,11 @@ public class Hub
         DateTime? lastModifiedAt = null,
         List<Space>? spaces = null,
         string? avatarFileName = null,
-        int avatarRevision = 0) =>
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null,
+        string? communityLanguageCode = null) =>
         new Hub(
             publicId,
             communityId,
@@ -104,7 +120,11 @@ public class Hub
             lastModifiedAt,
             spaces,
             avatarFileName,
-            avatarRevision);
+            avatarThumbnailFileName,
+            avatarMicroFileName,
+            avatarRevision,
+            languageCode,
+            communityLanguageCode);
 
     public static Hub RehydrateForList(
         HubId publicId,
@@ -114,7 +134,9 @@ public class Hub
         string? description,
         bool allowAnonymousReading,
         bool requireEmailConfirmation,
-        DateTime createdAt) =>
+        DateTime createdAt,
+        string? languageCode = null,
+        string? communityLanguageCode = null) =>
         new Hub(
             publicId,
             communityId,
@@ -125,7 +147,20 @@ public class Hub
             requireEmailConfirmation,
             createdAt,
             lastModifiedAt: null,
-            spaces: []);
+            spaces: [],
+            languageCode: languageCode,
+            communityLanguageCode: communityLanguageCode);
+
+    public void UpdateLanguageCode(string? languageCode)
+    {
+        LanguageCode = languageCode;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateCommunityLanguageCode(string? communityLanguageCode)
+    {
+        CommunityLanguageCode = communityLanguageCode;
+    }
 
     public void UpdateName(string name)
     {
@@ -151,9 +186,11 @@ public class Hub
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public void SetAvatarFileName(string? fileName)
+    public void SetAvatarFileName(string? fileName, string? thumbnailFileName = null, string? microFileName = null)
     {
         AvatarFileName = fileName;
+        AvatarThumbnailFileName = thumbnailFileName;
+        AvatarMicroFileName = microFileName;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
@@ -161,6 +198,8 @@ public class Hub
     public void ClearAvatar()
     {
         AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }

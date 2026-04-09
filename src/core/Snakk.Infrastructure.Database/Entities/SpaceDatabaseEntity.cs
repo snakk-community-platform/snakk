@@ -28,7 +28,14 @@ public class SpaceDatabaseEntity
 
     // Avatar
     public string? AvatarFileName { get; set; }
+    public string? AvatarThumbnailFileName { get; set; }
+    public string? AvatarMicroFileName { get; set; }
     public int AvatarRevision { get; set; } = 0;
+
+    // Language (BCP 47 language tag; null = inherit from hub/community)
+    public string? LanguageCode { get; set; }
+    public string? HubLanguageCode { get; set; }
+    public string? CommunityLanguageCode { get; set; }
 
     // Rules denormalization
     public bool HasRules { get; set; }

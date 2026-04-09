@@ -9,9 +9,12 @@ public class Community
     public string Slug { get; private set; }
     public string? Description { get; private set; }
     public string? Timezone { get; private set; }
+    public string? LanguageCode { get; private set; }
     public CommunityVisibility Visibility { get; private set; }
     public bool ExposeToPlatformFeed { get; private set; }
     public string? AvatarFileName { get; private set; }
+    public string? AvatarThumbnailFileName { get; private set; }
+    public string? AvatarMicroFileName { get; private set; }
     public int AvatarRevision { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
@@ -38,16 +41,22 @@ public class Community
         List<Hub>? hubs = null,
         string? timezone = null,
         string? avatarFileName = null,
-        int avatarRevision = 0)
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null)
     {
         PublicId = publicId;
         Name = name;
         Slug = slug;
         Description = description;
         Timezone = timezone;
+        LanguageCode = languageCode;
         Visibility = visibility;
         ExposeToPlatformFeed = exposeToPlatformFeed;
         AvatarFileName = avatarFileName;
+        AvatarThumbnailFileName = avatarThumbnailFileName;
+        AvatarMicroFileName = avatarMicroFileName;
         AvatarRevision = avatarRevision;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
@@ -89,7 +98,10 @@ public class Community
         List<Hub>? hubs = null,
         string? timezone = null,
         string? avatarFileName = null,
-        int avatarRevision = 0) =>
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null,
+        int avatarRevision = 0,
+        string? languageCode = null) =>
         new Community(
             publicId,
             name,
@@ -102,7 +114,10 @@ public class Community
             hubs,
             timezone,
             avatarFileName,
-            avatarRevision);
+            avatarThumbnailFileName,
+            avatarMicroFileName,
+            avatarRevision,
+            languageCode);
 
     public static Community RehydrateForList(
         CommunityId publicId,
@@ -111,7 +126,8 @@ public class Community
         string? description,
         CommunityVisibility visibility,
         bool exposeToPlatformFeed,
-        DateTime createdAt) =>
+        DateTime createdAt,
+        string? languageCode = null) =>
         new Community(
             publicId,
             name,
@@ -121,7 +137,14 @@ public class Community
             exposeToPlatformFeed,
             createdAt,
             lastModifiedAt: null,
-            hubs: []);
+            hubs: [],
+            languageCode: languageCode);
+
+    public void UpdateLanguageCode(string? languageCode)
+    {
+        LanguageCode = languageCode;
+        LastModifiedAt = DateTime.UtcNow;
+    }
 
     public void UpdateName(string name)
     {
@@ -159,9 +182,11 @@ public class Community
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public void SetAvatarFileName(string? fileName)
+    public void SetAvatarFileName(string? fileName, string? thumbnailFileName = null, string? microFileName = null)
     {
         AvatarFileName = fileName;
+        AvatarThumbnailFileName = thumbnailFileName;
+        AvatarMicroFileName = microFileName;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
@@ -169,6 +194,8 @@ public class Community
     public void ClearAvatar()
     {
         AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }

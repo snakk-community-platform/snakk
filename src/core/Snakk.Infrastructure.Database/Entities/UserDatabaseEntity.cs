@@ -29,6 +29,8 @@ public class UserDatabaseEntity
 
     // Avatar: uploaded filename (null = use generated avatar)
     public string? AvatarFileName { get; set; }
+    public string? AvatarThumbnailFileName { get; set; }
+    public string? AvatarMicroFileName { get; set; }
 
     // Avatar revision number (incremented when user changes avatar)
     public int AvatarRevision { get; set; } = 0;

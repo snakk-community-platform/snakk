@@ -6,7 +6,7 @@ using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Shared.Models;
 
-public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache) : ISearchRepository
+public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
 
@@ -666,6 +666,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.PublicId,
                     d.CreatedByUser.DisplayName,
                     d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
                     string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -845,9 +846,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 var publicId = imagesIdMap[img.DiscussionId];
                 var items = img.Items
                     .Select(i => new Application.Repositories.ImagePreviewItemDto(
-                        "/" + i.Url,
-                        i.ThumbnailUrl is not null ? "/" + i.ThumbnailUrl : null,
-                        i.MediumThumbnailUrl is not null ? "/" + i.MediumThumbnailUrl : null,
+                        fileStorage.GetPublicUrl(i.Url),
+                        i.ThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
+                        i.MediumThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
                         i.BlurDataUri))
                     .ToList();
                 result[publicId] = new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));

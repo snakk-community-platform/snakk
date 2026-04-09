@@ -15,6 +15,8 @@ public class User
     public string? OAuthProviderId { get; private set; }
     public string? Role { get; private set; } // "admin", "mod", or null for regular users
     public string? AvatarFileName { get; private set; } // Uploaded avatar filename (null = use generated)
+    public string? AvatarThumbnailFileName { get; private set; } // 80x80 thumbnail of uploaded avatar
+    public string? AvatarMicroFileName { get; private set; } // 26x26 micro thumbnail of uploaded avatar
     public int AvatarRevision { get; private set; } = 0; // Avatar revision number (incremented when avatar changes)
     public bool AutoFollowOnReply { get; private set; } = true; // Automatically follow discussions when replying
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
@@ -54,6 +56,8 @@ public class User
         string? oauthProviderId,
         string? role,
         string? avatarFileName,
+        string? avatarThumbnailFileName,
+        string? avatarMicroFileName,
         int avatarRevision,
         bool autoFollowOnReply,
         DateTime createdAt,
@@ -83,6 +87,8 @@ public class User
         OAuthProviderId = oauthProviderId;
         Role = role;
         AvatarFileName = avatarFileName;
+        AvatarThumbnailFileName = avatarThumbnailFileName;
+        AvatarMicroFileName = avatarMicroFileName;
         AvatarRevision = avatarRevision;
         AutoFollowOnReply = autoFollowOnReply;
         Timezone = timezone;
@@ -127,6 +133,8 @@ public class User
             oauthProviderId: null,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow,
@@ -159,6 +167,8 @@ public class User
             oauthProviderId,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow,
@@ -189,6 +199,8 @@ public class User
             oauthProviderId,
             role: null,
             avatarFileName: null,
+            avatarThumbnailFileName: null,
+            avatarMicroFileName: null,
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow,
@@ -206,6 +218,8 @@ public class User
         string? oauthProviderId,
         string? role,
         string? avatarFileName,
+        string? avatarThumbnailFileName,
+        string? avatarMicroFileName,
         int avatarRevision,
         bool autoFollowOnReply,
         DateTime createdAt,
@@ -235,6 +249,8 @@ public class User
             oauthProviderId,
             role,
             avatarFileName,
+            avatarThumbnailFileName,
+            avatarMicroFileName,
             avatarRevision,
             autoFollowOnReply,
             createdAt,
@@ -342,9 +358,11 @@ public class User
     public bool IsOAuthUser() =>
         !string.IsNullOrEmpty(OAuthProvider);
 
-    public void SetAvatarFileName(string? fileName)
+    public void SetAvatarFileName(string? fileName, string? thumbnailFileName = null, string? microFileName = null)
     {
         AvatarFileName = fileName;
+        AvatarThumbnailFileName = thumbnailFileName;
+        AvatarMicroFileName = microFileName;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }
@@ -352,6 +370,8 @@ public class User
     public void ClearAvatar()
     {
         AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
         AvatarRevision++;
         LastModifiedAt = DateTime.UtcNow;
     }

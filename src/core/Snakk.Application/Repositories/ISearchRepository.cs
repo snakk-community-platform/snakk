@@ -114,7 +114,8 @@ public record LatestDiscussionDto(
     string AuthorPublicId,
     string AuthorDisplayName,
     string? AuthorAvatarFileName,
-    int PostCount);
+    int PostCount,
+    string? AuthorAvatarThumbnailFileName = null);
 
 public record DiscussionListItemDto(
     string PublicId,
@@ -131,7 +132,8 @@ public record DiscussionListItemDto(
     string AuthorPublicId,
     string AuthorDisplayName,
     string? AuthorAvatarFileName,
-    string? Tags);
+    string? Tags,
+    string? AuthorAvatarThumbnailFileName = null);
 
 public record DiscussionSearchResultDto(
     string PublicId,
@@ -150,7 +152,8 @@ public record DiscussionSearchResultDto(
     DateTime? LastActivityAt,
     int PostCount,
     int ReactionCount,
-    int ViewCount);
+    int ViewCount,
+    string? AuthorAvatarThumbnailFileName = null);
 
 public record PostSearchResultDto(
     string PublicId,
@@ -166,7 +169,8 @@ public record PostSearchResultDto(
     string HubSlug,
     string HubName,
     string CommunitySlug,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AuthorAvatarThumbnailFileName = null);
 
 public record SitemapDiscussionDto(
     string PublicId,
@@ -198,6 +202,7 @@ public record RecentDiscussionDto(
     string CreatedByUserPublicId,
     string CreatedByUserDisplayName,
     string? CreatedByUserAvatarFileName,
+    string? CreatedByUserAvatarThumbnailFileName,
     int PostCount,
     int ReactionCount,
     string[] Tags,
