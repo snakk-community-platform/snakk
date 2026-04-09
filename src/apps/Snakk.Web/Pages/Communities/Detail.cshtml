@@ -118,7 +118,7 @@
         @if (Model.CommunityDetail != null)
         {
             <div class="flex items-start gap-4 mb-6">
-                <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId)"
+                <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
                      class="w-14 h-14 rounded-full shrink-0" decoding="async" />
                 <div class="flex-1 min-w-0">

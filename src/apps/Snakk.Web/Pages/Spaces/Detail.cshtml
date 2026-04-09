@@ -139,7 +139,7 @@ else
     <div class="fp-center-inner">
         <!-- Space Header -->
         <div class="flex items-start gap-4 mb-4">
-            <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId)"
+            <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId, avatarFileName: Model.Space.HasAvatarFileName ? Model.Space.AvatarFileName : null)"
                  alt="" width="56" height="56"
                  class="w-14 h-14 rounded-full shrink-0" decoding="async" />
             <div class="flex-1 min-w-0">

@@ -246,6 +246,9 @@ public class CommunityGrpcService(
         if (c.Timezone is not null)
             info.Timezone = c.Timezone;
 
+        if (c.AvatarFileName is not null)
+            info.AvatarFileName = c.AvatarFileName;
+
         return info;
     }
 }

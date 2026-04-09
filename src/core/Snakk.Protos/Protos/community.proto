@@ -58,6 +58,7 @@ message CommunityInfo {
   bool is_restricted = 13;
   int32 discussion_count = 14;
   int32 reply_count = 15;
+  optional string avatar_file_name = 16;
 }
 
 message GetCommunityRulesRequest {

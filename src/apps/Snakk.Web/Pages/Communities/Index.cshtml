@@ -116,7 +116,7 @@
                 @foreach (var community in Model.Communities.Items)
                 {
                     <a href="/c/@community.Slug" class="fp-community-card">
-                        <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId)"
+                        <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId, avatarFileName: community.HasAvatarFileName ? community.AvatarFileName : null)"
                              alt="" width="40" height="40"
                              class="fp-community-avatar"
                              loading="lazy" decoding="async" />

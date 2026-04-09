@@ -229,6 +229,9 @@ public class HubGrpcService(
         if (h.Description is not null)
             info.Description = h.Description;
 
+        if (h.AvatarFileName is not null)
+            info.AvatarFileName = h.AvatarFileName;
+
         return info;
     }
 }

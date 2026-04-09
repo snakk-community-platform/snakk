@@ -62,6 +62,7 @@ message SpaceInfo {
   bool is_restricted = 17;
   string hub_slug = 18;
   string community_slug = 19;
+  optional string avatar_file_name = 20;
 }
 
 message LatestDiscussionRef {

@@ -138,7 +138,7 @@ else
     <div class="fp-center-inner">
         <!-- Hub Header -->
         <div class="flex items-start gap-4 mb-4">
-            <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId)"
+            <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
                  alt="" width="56" height="56"
                  class="w-14 h-14 rounded-full shrink-0" decoding="async" />
             <div class="flex-1 min-w-0">

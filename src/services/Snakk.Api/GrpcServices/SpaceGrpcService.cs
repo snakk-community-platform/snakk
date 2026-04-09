@@ -256,6 +256,9 @@ public class SpaceGrpcService(
         if (s.Description is not null)
             info.Description = s.Description;
 
+        if (s.AvatarFileName is not null)
+            info.AvatarFileName = s.AvatarFileName;
+
         return info;
     }
 }

@@ -56,7 +56,17 @@ public static class AvatarHelper
     public static string GetAvatarUrl(string publicId, AvatarEntityType entityType, int revision = 0, string? avatarFileName = null)
     {
         if (!string.IsNullOrEmpty(avatarFileName))
-            return $"/avatars/uploaded/{avatarFileName}";
+        {
+            // User avatars are stored flat; entity avatars use singular type subfolders
+            return entityType switch
+            {
+                AvatarEntityType.User => $"/avatars/uploaded/{avatarFileName}",
+                AvatarEntityType.Community => $"/avatars/uploaded/community/{avatarFileName}",
+                AvatarEntityType.Hub => $"/avatars/uploaded/hub/{avatarFileName}",
+                AvatarEntityType.Space => $"/avatars/uploaded/space/{avatarFileName}",
+                _ => $"/avatars/uploaded/{avatarFileName}"
+            };
+        }
 
         var avatarPath = GetAvatarPath(publicId, entityType, revision);
         var entityFolder = GetEntityFolder(entityType);

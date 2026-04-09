@@ -60,6 +60,7 @@ message HubInfo {
   string team_revision = 14;
   bool is_restricted = 15;
   string community_slug = 16;
+  optional string avatar_file_name = 17;
 }
 
 message PagedHubList {

@@ -45,7 +45,7 @@ public class ManageGrpcService(
 
         var community = await dbContext.Communities
             .Where(c => c.Slug == request.CommunitySlug)
-            .Select(c => new { c.Id, c.Name, c.Slug, c.PublicId })
+            .Select(c => new { c.Id, c.Name, c.Slug, c.PublicId, c.AvatarFileName })
             .FirstOrDefaultAsync();
 
         if (community is null)
@@ -60,11 +60,13 @@ public class ManageGrpcService(
             if (!permissions.HasAnyPermission)
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
+            var communityAvatarUrl = AvatarHelper.GetAvatarUrl(community.PublicId, AvatarEntityType.Community, 0, community.AvatarFileName);
             return BuildResponse("Community", community.PublicId, community.Name,
                 community.Slug, null, null,
                 community.Name, null, null,
                 permissions,
-                communityPublicId: community.PublicId);
+                communityPublicId: community.PublicId,
+                scopeAvatarUrl: communityAvatarUrl);
         }
 
         // Resolve hub
@@ -72,7 +74,7 @@ public class ManageGrpcService(
             .Where(h =>
                 h.Slug == request.HubSlug
                 && h.CommunityId == community.Id)
-            .Select(h => new { h.Id, h.Name, h.Slug, h.PublicId })
+            .Select(h => new { h.Id, h.Name, h.Slug, h.PublicId, h.AvatarFileName })
             .FirstOrDefaultAsync();
 
         if (hub is null)
@@ -87,11 +89,13 @@ public class ManageGrpcService(
             if (!permissions.HasAnyPermission)
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
+            var hubAvatarUrl = AvatarHelper.GetAvatarUrl(hub.PublicId, AvatarEntityType.Hub, 0, hub.AvatarFileName);
             return BuildResponse("Hub", hub.PublicId, hub.Name,
                 community.Slug, hub.Slug, null,
                 community.Name, hub.Name, null,
                 permissions,
-                communityPublicId: community.PublicId);
+                communityPublicId: community.PublicId,
+                scopeAvatarUrl: hubAvatarUrl);
         }
 
         // Resolve space
@@ -99,7 +103,7 @@ public class ManageGrpcService(
             .Where(s =>
                 s.Slug == request.SpaceSlug
                 && s.HubId == hub.Id)
-            .Select(s => new { s.Id, s.Name, s.Slug, s.PublicId })
+            .Select(s => new { s.Id, s.Name, s.Slug, s.PublicId, s.AvatarFileName })
             .FirstOrDefaultAsync();
 
         if (space is null)
@@ -111,11 +115,13 @@ public class ManageGrpcService(
         if (!spacePermissions.HasAnyPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
+        var spaceAvatarUrl = AvatarHelper.GetAvatarUrl(space.PublicId, AvatarEntityType.Space, 0, space.AvatarFileName);
         return BuildResponse("Space", space.PublicId, space.Name,
             community.Slug, hub.Slug, space.Slug,
             community.Name, hub.Name, space.Name,
             spacePermissions,
-            communityPublicId: community.PublicId);
+            communityPublicId: community.PublicId,
+            scopeAvatarUrl: spaceAvatarUrl);
     }
 
     public override async Task<SpaceSettingsResponse> GetSpaceSettings(
@@ -1566,7 +1572,8 @@ public class ManageGrpcService(
         string communitySlug, string? hubSlug, string? spaceSlug,
         string communityName, string? hubName, string? spaceName,
         ManagePermissionSet permissions,
-        string communityPublicId = "")
+        string communityPublicId = "",
+        string? scopeAvatarUrl = null)
     {
         var response = new ResolveScopeResponse
         {
@@ -1578,6 +1585,7 @@ public class ManageGrpcService(
             CommunityPublicId = communityPublicId
         };
 
+        if (scopeAvatarUrl is not null) response.ScopeAvatarUrl = scopeAvatarUrl;
         if (hubSlug is not null) response.HubSlug = hubSlug;
         if (spaceSlug is not null) response.SpaceSlug = spaceSlug;
         if (hubName is not null) response.HubName = hubName;
