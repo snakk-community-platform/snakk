@@ -17,6 +17,10 @@ public class PollService(SnakkDbContext context) : IPollService
                 p.AllowChangeVote,
                 p.ClosesAt,
                 p.VotesVisible,
+                p.IsSegmented,
+                p.SegmentLabel,
+                p.SegmentOptionA,
+                p.SegmentOptionB,
                 Options = p.Options
                     .OrderBy(o => o.DisplayOrder)
                     .Select(o => new { o.Id, o.Text, o.VoteCount, o.DisplayOrder })
@@ -31,6 +35,7 @@ public class PollService(SnakkDbContext context) : IPollService
         var totalVotes = poll.Options.Sum(o => o.VoteCount);
 
         // Get user's votes if authenticated
+        int? userSegmentIndex = null;
         var userVotedIds = new List<int>();
         if (!string.IsNullOrEmpty(userPublicId))
         {
@@ -46,7 +51,38 @@ public class PollService(SnakkDbContext context) : IPollService
                     .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
                     .Select(v => v.OptionId)
                     .ToListAsync();
+
+                // Get user's segment index if segmented
+                if (poll.IsSegmented)
+                {
+                    userSegmentIndex = await context.DiscussionPollVotes
+                        .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
+                        .Select(v => v.SegmentIndex)
+                        .FirstOrDefaultAsync();
+                }
             }
+        }
+
+        // Get segment vote counts if segmented
+        List<PollOptionSegmentData>? segmentVotes = null;
+        if (poll.IsSegmented)
+        {
+            var allOptionIds = poll.Options.Select(o => o.Id).ToList();
+            var raw = await context.DiscussionPollVotes
+                .Where(v => allOptionIds.Contains(v.OptionId))
+                .GroupBy(v => new { v.OptionId, v.SegmentIndex })
+                .Select(g => new { g.Key.OptionId, g.Key.SegmentIndex, Count = g.Count() })
+                .ToListAsync();
+
+            segmentVotes = allOptionIds.Select(oid => new PollOptionSegmentData(
+                oid,
+                raw.Where(r => r.OptionId == oid && r.SegmentIndex == 0).Sum(r => r.Count),
+                raw.Where(r => r.OptionId == oid && r.SegmentIndex == 1).Sum(r => r.Count)
+            )).ToList();
+
+            // Secret poll masking
+            if (!poll.VotesVisible && !isClosed)
+                segmentVotes = segmentVotes.Select(s => new PollOptionSegmentData(s.OptionId, 0, 0)).ToList();
         }
 
         // When poll is secret and not yet closed, hide vote counts
@@ -65,13 +101,20 @@ public class PollService(SnakkDbContext context) : IPollService
             isClosed,
             isSecret,
             totalVotes,
-            userVotedIds);
+            userVotedIds,
+            IsSegmented: poll.IsSegmented,
+            SegmentLabel: poll.SegmentLabel,
+            SegmentOptionA: poll.SegmentOptionA,
+            SegmentOptionB: poll.SegmentOptionB,
+            SegmentVotes: segmentVotes,
+            UserSegmentIndex: userSegmentIndex);
     }
 
     public async Task<(bool Success, string? Error)> VoteAsync(
-        string discussionPublicId, int optionId, string userPublicId)
+        string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null)
     {
         var poll = await context.DiscussionPolls
+            .AsTracking()
             .Include(p => p.Options)
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
             .FirstOrDefaultAsync();
@@ -126,7 +169,8 @@ public class PollService(SnakkDbContext context) : IPollService
         {
             OptionId = optionId,
             UserId = userId,
-            VotedAt = DateTime.UtcNow
+            VotedAt = DateTime.UtcNow,
+            SegmentIndex = segmentIndex
         });
         option.VoteCount++;
 
@@ -146,6 +190,7 @@ public class PollService(SnakkDbContext context) : IPollService
         string discussionPublicId, int optionId, string userPublicId)
     {
         var poll = await context.DiscussionPolls
+            .AsTracking()
             .Include(p => p.Options)
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
             .FirstOrDefaultAsync();

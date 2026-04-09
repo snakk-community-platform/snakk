@@ -49,29 +49,167 @@
                 if (prev) prev.addEventListener('mouseenter', function() { preloadSlide(current - 1); });
             }
 
-            // Open lightbox on click (works for both single and multi-image)
-            el.addEventListener('click', function(e) {
-                const target = e.target as HTMLElement;
-                if (target.closest('.fp-images-btn')) return;
+            // Expand button opens lightbox at current slide
+            const expandBtn = el.querySelector('.fp-images-expand-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
+                    const lightbox = (window as any).SnakkLightbox;
+                    if (!lightbox) return;
+
+                    const fullUrls: string[] = [];
+                    slides.forEach(function(s) { fullUrls.push(s.dataset.full || s.dataset.src || s.src); });
+                    lightbox.open(fullUrls, current);
+                });
+            }
+        });
+    }
+
+    // ── Compare widget previews ──────────────────
+    function initComparePreview(root?: Element): void {
+        const widgets = (root || document).querySelectorAll('.fp-compare-widget');
+        widgets.forEach(function(widget) {
+            const el = widget as HTMLElement;
+            if (el.dataset.init) return;
+            el.dataset.init = '1';
+
+            const beforeEl = el.querySelector('.gup-compare-before') as HTMLElement | null;
+            const afterEl = el.querySelector('.gup-compare-after') as HTMLElement | null;
+            const slider = el.querySelector('.fp-compare-slider') as HTMLElement | null;
+            if (!beforeEl || !afterEl || !slider) return;
+
+            function setPos(x: number): void {
+                const rect = el.getBoundingClientRect();
+                const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+                const rightPct = (1 - pct) * 100;
+                const leftPct = pct * 100;
+                beforeEl!.style.clipPath = `inset(0 ${rightPct}% 0 0)`;
+                afterEl!.style.clipPath = `inset(0 0 0 ${leftPct}%)`;
+                slider!.style.right = `${rightPct}%`;
+            }
+
+            // Set initial position from "After" label
+            const afterLabel = afterEl.querySelector('.gup-compare-label-after') as HTMLElement | null;
+            requestAnimationFrame(() => {
+                if (afterLabel) {
+                    const labelRect = afterLabel.getBoundingClientRect();
+                    setPos(labelRect.left - 12);
+                } else {
+                    const rect = el.getBoundingClientRect();
+                    setPos(rect.left + rect.width * 0.5);
+                }
+            });
+
+            let dragging = false;
+            slider.addEventListener('pointerdown', (e) => { dragging = true; slider!.setPointerCapture(e.pointerId); e.preventDefault(); });
+            el.addEventListener('pointerdown', (e) => {
+                if ((e.target as HTMLElement).closest('.gup-compare-handle, .fp-images-expand-btn')) return;
+                dragging = true; setPos(e.clientX); e.preventDefault();
+            });
+
+            // Expand button opens lightbox with both images
+            const expandBtn = el.querySelector('.fp-images-expand-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const lightbox = (window as any).SnakkLightbox;
+                    if (!lightbox) return;
+                    const imgs = el.querySelectorAll<HTMLImageElement>('img');
+                    const urls = Array.from(imgs).map(i => i.dataset.full || i.src);
+                    lightbox.open(urls, 0);
+                });
+            }
+            document.addEventListener('pointermove', (e) => { if (dragging) setPos(e.clientX); });
+            document.addEventListener('pointerup', () => { dragging = false; });
+        });
+    }
+
+    // ── Spoiler reveal for previews ────────────
+    function initSpoilerReveal(root?: Element): void {
+        const spoilers = (root || document).querySelectorAll('.fp-images-spoiler');
+        spoilers.forEach(function(container) {
+            const el = container as HTMLElement;
+            if (el.dataset.spoilerInit) return;
+            el.dataset.spoilerInit = '1';
+
+            const overlay = el.querySelector('.fp-images-spoiler-overlay') as HTMLElement | null;
+            if (!overlay) return;
+
+            const discussionId = el.dataset.discussionId || '';
+            const storageKey = discussionId ? `snakk:spoiler-revealed:${discussionId}` : '';
+
+            function reveal(): void {
+                const deferred = el.querySelectorAll<HTMLImageElement>('img[data-deferred-src]');
+                deferred.forEach((img, i) => {
+                    const realSrc = img.dataset.deferredSrc!;
+                    img.dataset.src = realSrc;
+                    img.removeAttribute('data-deferred-src');
+
+                    // Only load the first image immediately; rest are lazy-loaded by carousel nav
+                    if (i === 0) {
+                        img.src = realSrc;
+                        img.dataset.loaded = '1';
+                    }
+                });
+                el.classList.add('revealed');
+                if (storageKey) sessionStorage.setItem(storageKey, '1');
+            }
+
+            // Auto-reveal if already revealed this session
+            if (storageKey && sessionStorage.getItem(storageKey) === '1') {
+                reveal();
+                return;
+            }
+
+            // Preload first image on hover
+            overlay.addEventListener('mouseenter', () => {
+                const first = el.querySelector<HTMLImageElement>('img[data-deferred-src]');
+                if (first?.dataset.deferredSrc) {
+                    const p = new window.Image();
+                    p.src = first.dataset.deferredSrc;
+                }
+            }, { once: true });
+
+            overlay.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
-                const lightbox = (window as any).SnakkLightbox;
-                if (!lightbox) return;
-
-                const fullUrls: string[] = [];
-                slides.forEach(function(s) { fullUrls.push(s.dataset.full || s.dataset.src || s.src); });
-                lightbox.open(fullUrls, current);
+                reveal();
             });
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { initImagesCarousels(); });
-    } else {
-        initImagesCarousels();
+    // ── Preview click-to-navigate ────────────────
+    function initPreviewNavigation(root?: Element): void {
+        const previews = (root || document).querySelectorAll<HTMLElement>('.fp-card-preview[data-discussion-url]');
+        previews.forEach(function(el) {
+            if (el.dataset.navInit) return;
+            el.dataset.navInit = '1';
+
+            el.addEventListener('click', function(e) {
+                const target = e.target as HTMLElement;
+                // Don't navigate if clicking interactive elements
+                if (target.closest('a, button, .gup-compare-slider, .gup-compare-handle')) return;
+
+                const url = el.dataset.discussionUrl;
+                if (url) window.location.href = url;
+            });
+        });
     }
 
-    document.body.addEventListener('htmx:afterSettle', function(e) { initImagesCarousels((e as CustomEvent).detail.elt); });
+    function initAll(root?: Element): void {
+        initImagesCarousels(root);
+        initComparePreview(root);
+        initSpoilerReveal(root);
+        initPreviewNavigation(root);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { initAll(); });
+    } else {
+        initAll();
+    }
+
+    document.body.addEventListener('htmx:afterSettle', function(e) { initAll((e as CustomEvent).detail.elt); });
 })();

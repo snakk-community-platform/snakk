@@ -8,13 +8,21 @@ public record PollData(
     bool IsClosed,
     bool IsSecret,
     int TotalVotes,
-    List<int> UserVotedOptionIds);
+    List<int> UserVotedOptionIds,
+    bool IsSegmented = false,
+    string? SegmentLabel = null,
+    string? SegmentOptionA = null,
+    string? SegmentOptionB = null,
+    List<PollOptionSegmentData>? SegmentVotes = null,
+    int? UserSegmentIndex = null);
+
+public record PollOptionSegmentData(int OptionId, int SegmentACount, int SegmentBCount);
 
 public record PollOptionData(int Id, string Text, int VoteCount, int DisplayOrder);
 
 public interface IPollService
 {
     Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null);
-    Task<(bool Success, string? Error)> VoteAsync(string discussionPublicId, int optionId, string userPublicId);
+    Task<(bool Success, string? Error)> VoteAsync(string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null);
     Task<(bool Success, string? Error)> RemoveVoteAsync(string discussionPublicId, int optionId, string userPublicId);
 }

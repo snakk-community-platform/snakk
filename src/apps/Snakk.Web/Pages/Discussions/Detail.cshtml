@@ -572,7 +572,8 @@
     @if (Model.Discussion.Type == "Images" && Model.ImagesItems.Count > 0)
     {
         var layout = Model.ImagesLayout ?? "grid";
-        <div class="images-display type-widget-container">
+        var isSpoiler = Model.ImagesIsSpoiler;
+        <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")">
             @if (layout == "carousel")
             {
                 <div class="gup-carousel" id="images-carousel">
@@ -587,8 +588,13 @@
                                 ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
                                 : "";
                             <div class="images-upload-item" data-index="@i" style="@blurStyle">
-                                <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
-                                     decoding="async" class="images-blur-up" data-blur-up />
+                                @if (isSpoiler && img.HasBlurDataUri) {
+                                    <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" alt=""
+                                         decoding="async" class="images-blur-up" data-blur-up />
+                                } else {
+                                    <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                         decoding="async" class="images-blur-up" data-blur-up />
+                                }
                             </div>
                         }
                     </div>
@@ -606,8 +612,13 @@
                     @{ var heroFirst = Model.ImagesItems[0]; }
                     <div class="images-upload-item"
                          style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
-                        <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
-                             decoding="async" class="images-blur-up" data-blur-up />
+                        @if (isSpoiler && heroFirst.HasBlurDataUri) {
+                            <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        } else {
+                            <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        }
                     </div>
                     @if (Model.ImagesItems.Count > 1)
                     {
@@ -615,14 +626,75 @@
                             @for (var i = 1; i < Model.ImagesItems.Count; i++)
                             {
                                 var img = Model.ImagesItems[i];
+                                var heroSrc = img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url;
                                 <div class="images-upload-item"
                                      style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
-                                    <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                         decoding="async" class="images-blur-up" data-blur-up />
+                                    @if (isSpoiler && img.HasBlurDataUri) {
+                                        <img src="@img.BlurDataUri" data-deferred-src="@heroSrc" data-full="@img.Url" alt=""
+                                             decoding="async" class="images-blur-up" data-blur-up />
+                                    } else {
+                                        <img src="@heroSrc" data-full="@img.Url" alt="" loading="lazy"
+                                             decoding="async" class="images-blur-up" data-blur-up />
+                                    }
                                 </div>
                             }
                         </div>
                     }
+                </div>
+            }
+            else if (layout == "compare" && Model.ImagesItems.Count >= 2)
+            {
+                var beforeImg = Model.ImagesItems[0];
+                var afterImg = Model.ImagesItems[1];
+                var beforeMedium = beforeImg.HasMediumThumbnailUrl ? beforeImg.MediumThumbnailUrl : beforeImg.Url;
+                var afterMedium = afterImg.HasMediumThumbnailUrl ? afterImg.MediumThumbnailUrl : afterImg.Url;
+                <div class="gup-compare" id="images-compare">
+                    <div class="gup-compare-after images-upload-item"
+                         style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                        @if (isSpoiler && afterImg.HasBlurDataUri) {
+                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" alt="After"
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        } else {
+                            <img src="@afterMedium" data-full="@afterImg.Url" alt="After"
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        }
+                        <span class="gup-compare-label gup-compare-label-after">After</span>
+                    </div>
+                    <div class="gup-compare-before images-upload-item"
+                         style="@(beforeImg.HasBlurDataUri ? $"background-image:url({beforeImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                        @if (isSpoiler && beforeImg.HasBlurDataUri) {
+                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" alt="Before"
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        } else {
+                            <img src="@beforeMedium" data-full="@beforeImg.Url" alt="Before"
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        }
+                        <span class="gup-compare-label gup-compare-label-before">Before</span>
+                    </div>
+                    <div class="gup-compare-slider" id="images-compare-slider">
+                        <div class="gup-compare-line"></div>
+                        <div class="gup-compare-handle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 6 15 12 9 18"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    <button type="button" class="gup-compare-expand" id="images-compare-expand"
+                            data-before-url="@beforeImg.Url"
+                            data-after-url="@afterImg.Url"
+                            data-before-blur="@(beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "")"
+                            data-after-blur="@(afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "")"
+                            aria-label="Expand compare view">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <polyline points="9 21 3 21 3 15"></polyline>
+                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                            <line x1="3" y1="21" x2="10" y2="14"></line>
+                        </svg>
+                    </button>
                 </div>
             }
             else if (Model.ImagesItems.Count == 1)
@@ -632,8 +704,13 @@
                 <div class="gup-single">
                     <div class="images-upload-item"
                          style="@(singleImg.HasBlurDataUri ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center" : "")">
-                        <img src="@singleImg.Url" data-full="@singleImg.Url" alt=""
-                             decoding="async" class="images-blur-up" data-blur-up />
+                        @if (isSpoiler && singleImg.HasBlurDataUri) {
+                            <img src="@singleImg.BlurDataUri" data-deferred-src="@singleImg.Url" data-full="@singleImg.Url" alt=""
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        } else {
+                            <img src="@singleImg.Url" data-full="@singleImg.Url" alt=""
+                                 decoding="async" class="images-blur-up" data-blur-up />
+                        }
                     </div>
                 </div>
             }
@@ -644,12 +721,43 @@
                     @for (var i = 0; i < Model.ImagesItems.Count; i++)
                     {
                         var img = Model.ImagesItems[i];
+                        var gridSrc = img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url;
                         <div class="images-upload-item"
                              style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
-                            <img src="@(img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url)" data-full="@img.Url" alt="" loading="lazy"
-                                 decoding="async" class="images-blur-up" data-blur-up />
+                            @if (isSpoiler && img.HasBlurDataUri) {
+                                <img src="@img.BlurDataUri" data-deferred-src="@gridSrc" data-full="@img.Url" alt=""
+                                     decoding="async" class="images-blur-up" data-blur-up />
+                            } else {
+                                <img src="@gridSrc" data-full="@img.Url" alt="" loading="lazy"
+                                     decoding="async" class="images-blur-up" data-blur-up />
+                            }
                         </div>
                     }
+                </div>
+            }
+
+            @if (layout != "compare")
+            {
+                <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="View fullscreen">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                </button>
+            }
+
+            @if (Model.ImagesIsSpoiler)
+            {
+                <div class="images-spoiler-overlay" id="images-spoiler-overlay">
+                    <button type="button" class="images-spoiler-btn" data-action="reveal-spoiler">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Reveal image@(Model.ImagesItems.Count != 1 ? "s" : "")
+                    </button>
                 </div>
             }
         </div>
@@ -1058,48 +1166,9 @@
     {
         <div class="mt-8">
             <div class="clean-card p-6 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="140" height="90" viewBox="0 0 140 90" class="mx-auto mb-3 opacity-25">
-                    <!-- Empty chair at a desk -->
-                    <!-- Desk surface -->
-                    <line x1="30" y1="52" x2="110" y2="52" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <!-- Desk legs -->
-                    <line x1="35" y1="52" x2="35" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                    <line x1="105" y1="52" x2="105" y2="72" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-
-                    <!-- Monitor on desk -->
-                    <rect x="58" y="30" width="24" height="18" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
-                    <line x1="70" y1="48" x2="70" y2="52" stroke="currentColor" stroke-width="1.5" />
-                    <!-- Chat bubbles on screen -->
-                    <rect x="61" y="34" width="10" height="4" rx="1.5" stroke="currentColor" stroke-width="0.8" fill="none" />
-                    <rect x="67" y="40" width="10" height="4" rx="1.5" stroke="currentColor" stroke-width="0.8" fill="none" />
-
-                    <!-- Coffee mug -->
-                    <rect x="92" y="44" width="7" height="8" rx="1" stroke="currentColor" stroke-width="1" fill="none" />
-                    <path d="M99 46 Q103 47 99 50" stroke="currentColor" stroke-width="0.8" fill="none" />
-                    <!-- Steam -->
-                    <path d="M94 42 Q93 39 95 37" stroke="currentColor" stroke-width="0.7" fill="none" stroke-linecap="round" />
-                    <path d="M97 41 Q96 38 98 36" stroke="currentColor" stroke-width="0.7" fill="none" stroke-linecap="round" />
-
-                    <!-- Empty office chair -->
-                    <ellipse cx="70" cy="68" rx="10" ry="3" stroke="currentColor" stroke-width="1.2" fill="none" />
-                    <!-- Chair back -->
-                    <path d="M62 68 Q60 58 64 55 Q70 52 76 55 Q80 58 78 68" stroke="currentColor" stroke-width="1.2" fill="none" />
-                    <!-- Chair base -->
-                    <line x1="70" y1="71" x2="70" y2="78" stroke="currentColor" stroke-width="1.2" />
-                    <!-- Chair wheels -->
-                    <line x1="70" y1="78" x2="62" y2="82" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
-                    <line x1="70" y1="78" x2="78" y2="82" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
-                    <circle cx="62" cy="83" r="1.2" stroke="currentColor" stroke-width="0.8" fill="none" />
-                    <circle cx="78" cy="83" r="1.2" stroke="currentColor" stroke-width="0.8" fill="none" />
-
-                    <!-- Arrow pointing at chair -->
-                    <line x1="30" y1="78" x2="55" y2="72" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2" stroke-linecap="round" />
-                    <polyline points="52,69 55,72 51,74" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                    <!-- "You?" label -->
-                    <text x="24" y="82" text-anchor="middle" fill="currentColor" font-size="7" font-family="sans-serif" font-style="italic">you?</text>
-                </svg>
-                <h3 class="font-semibold mb-1">This seat is taken (just kidding)</h3>
-                <p class="text-sm text-muted mb-4">The chair's warm, the coffee's hot, and the conversation needs you.</p>
+                <img src="/img/logo-square.webp" alt="" width="64" height="64" class="mx-auto mb-3 opacity-15" />
+                <h3 class="font-semibold mb-1">Polly wants to hear from you</h3>
+                <p class="text-sm text-muted mb-4">Log in or sign up to join the conversation.</p>
                 <a href="/auth/login?returnUrl=@Uri.EscapeDataString($"/h/{Model.HubSlug}/{Model.SpaceSlug}/{Model.SlugWithId}")" class="btn btn-primary btn-sm">
                     Log in
                 </a>
@@ -1394,7 +1463,7 @@ else
 <script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true"></script>
 @if (Model.Discussion?.Type == "Poll")
 {
-    <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true" defer></script>
 }
 @if (Model.Discussion?.Type == "Images")
 {

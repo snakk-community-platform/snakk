@@ -52,6 +52,7 @@ services:
       DB_PORT: "5432"
       # Connection string for DbSeeder on restart (pending migrations)
       ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
+      Gateway__DisableHealthChecks: "true"
 
 volumes:
   pgdata:

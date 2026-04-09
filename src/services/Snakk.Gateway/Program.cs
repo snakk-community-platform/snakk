@@ -51,6 +51,16 @@ if (!setupComplete)
 // Setup cluster is only used during first-run — no need to health-check it
 builder.Configuration["ReverseProxy:Clusters:setup-cluster:HealthCheck:Active:Enabled"] = "false";
 
+// Optional: disable all active health checks (reduces log noise during debugging)
+if (builder.Configuration.GetValue<bool>("Gateway:DisableHealthChecks"))
+{
+    foreach (var cluster in new[] { "auth-cluster", "admin-cluster", "realtime-cluster", "web-cluster" })
+    {
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Active:Enabled"] = "false";
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Passive:Enabled"] = "false";
+    }
+}
+
 //builder.AddSnakkDefaults();
 
 // Real client IP header (set by CDN/reverse proxy like Cloudflare)

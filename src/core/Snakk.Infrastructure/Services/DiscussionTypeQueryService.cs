@@ -69,12 +69,14 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
 
     // === Images ===
 
-    public async Task<string?> GetImagesLayoutAsync(string discussionPublicId)
+    public async Task<(string? Layout, bool IsSpoiler)> GetImagesInfoAsync(string discussionPublicId)
     {
-        return await context.DiscussionImages
+        var info = await context.DiscussionImages
             .Where(g => g.Discussion.PublicId == discussionPublicId && !g.Discussion.IsDeleted)
-            .Select(g => g.Layout)
+            .Select(g => new { g.Layout, g.IsSpoiler })
             .FirstOrDefaultAsync();
+
+        return (info?.Layout, info?.IsSpoiler ?? false);
     }
 
     public async Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId)
@@ -90,6 +92,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             {
                 gi.Image.StoragePath,
                 gi.Image.ThumbnailPath,
+                gi.Image.MediumThumbnailPath,
                 gi.Image.BlurDataUri
             })
             .ToListAsync();
@@ -98,6 +101,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IConfiguration c
             .Select(m => new ImagesImageInfo(
                 urlBase + m.StoragePath.Replace('\\', '/'),
                 m.ThumbnailPath != null ? urlBase + m.ThumbnailPath.Replace('\\', '/') : null,
+                m.MediumThumbnailPath != null ? urlBase + m.MediumThumbnailPath.Replace('\\', '/') : null,
                 m.BlurDataUri))
             .ToList();
     }

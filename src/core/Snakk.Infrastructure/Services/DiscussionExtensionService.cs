@@ -38,14 +38,15 @@ public class DiscussionExtensionService(
         await context.SaveChangesAsync();
     }
 
-    public async Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null)
+    public async Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null, bool isSpoiler = false)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
         var images = new DiscussionTypeImageDatabaseEntity
         {
             DiscussionId = discussionId,
-            Layout = layout
+            Layout = layout,
+            IsSpoiler = isSpoiler
         };
 
         context.DiscussionImages.Add(images);
@@ -100,7 +101,11 @@ public class DiscussionExtensionService(
         bool allowMultipleChoices = false,
         bool allowChangeVote = false,
         DateTime? closesAt = null,
-        bool votesVisible = true)
+        bool votesVisible = true,
+        bool isSegmented = false,
+        string? segmentLabel = null,
+        string? segmentOptionA = null,
+        string? segmentOptionB = null)
     {
         var discussionId = await GetDiscussionIdAsync(discussionPublicId);
 
@@ -110,7 +115,11 @@ public class DiscussionExtensionService(
             AllowMultipleChoices = allowMultipleChoices,
             AllowChangeVote = allowChangeVote,
             ClosesAt = closesAt,
-            VotesVisible = votesVisible
+            VotesVisible = votesVisible,
+            IsSegmented = isSegmented,
+            SegmentLabel = segmentLabel,
+            SegmentOptionA = segmentOptionA,
+            SegmentOptionB = segmentOptionB
         };
 
         context.DiscussionPolls.Add(poll);

@@ -76,6 +76,7 @@ message CreateDiscussionRequest {
   // Images extension fields
   optional string images_layout = 13; // grid, masonry, justified, carousel, hero
   repeated string images_image_urls = 14;
+  bool images_is_spoiler = 24;
 
   // IAMA extension fields
   bool iama_is_scheduled = 15;
@@ -83,6 +84,10 @@ message CreateDiscussionRequest {
   optional google.protobuf.Timestamp iama_scheduled_end = 17;
   optional string iama_verification_note = 18;
   bool poll_secret = 19;
+  bool poll_is_segmented = 20;
+  optional string poll_segment_label = 21;
+  optional string poll_segment_option_a = 22;
+  optional string poll_segment_option_b = 23;
 }
 
 message GetRecentDiscussionsRequest {
@@ -92,6 +97,7 @@ message GetRecentDiscussionsRequest {
   optional string hub_id = 4;
   optional string cursor = 5;
   optional string author_id = 6;
+  optional string space_id = 7;
 }
 
 message GetDiscussionsBySpaceRequest {
@@ -165,6 +171,7 @@ message PollPreview {
   int32 total_votes = 2;
   bool is_secret = 3;
   optional google.protobuf.Timestamp closes_at = 4;
+  bool is_segmented = 5;
 }
 
 message PollPreviewOption {
@@ -197,6 +204,8 @@ message LinkPreview {
 message ImagesPreview {
   int32 image_count = 1;
   repeated ImagesPreviewItem items = 2;
+  bool is_spoiler = 3;
+  string layout = 4;
 }
 
 message ImagesPreviewItem {
@@ -273,6 +282,12 @@ message PollResponse {
   int32 total_votes = 6;
   repeated int32 user_voted_option_ids = 7;
   bool is_secret = 8;
+  bool is_segmented = 9;
+  optional string segment_label = 10;
+  optional string segment_option_a = 11;
+  optional string segment_option_b = 12;
+  repeated PollOptionSegmentVotes segment_votes = 13;
+  optional int32 user_segment_index = 14;
 }
 
 message PollOptionInfo {
@@ -282,9 +297,16 @@ message PollOptionInfo {
   int32 display_order = 4;
 }
 
+message PollOptionSegmentVotes {
+  int32 option_id = 1;
+  int32 segment_a_count = 2;
+  int32 segment_b_count = 3;
+}
+
 message VotePollRequest {
   string discussion_id = 1;
   int32 option_id = 2;
+  optional int32 segment_index = 3;
 }
 
 message VotePollResponse {
@@ -402,12 +424,14 @@ message GetImagesLayoutRequest {
 message ImagesLayoutResponse {
   string layout = 1;
   repeated ImagesImageProto images = 2;
+  bool is_spoiler = 3;
 }
 
 message ImagesImageProto {
   string url = 1;
   optional string thumbnail_url = 2;
   optional string blur_data_uri = 3;
+  optional string medium_thumbnail_url = 4;
 }
 
 // --- IAMA ---

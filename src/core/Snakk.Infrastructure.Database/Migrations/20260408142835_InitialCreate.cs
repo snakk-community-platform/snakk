@@ -945,8 +945,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     GroupId = table.Column<int>(type: "integer", nullable: false),
-                    CanRead = table.Column<bool>(type: "boolean", nullable: false),
-                    CanWrite = table.Column<bool>(type: "boolean", nullable: false),
+                    AccessLevel = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CommunityId = table.Column<int>(type: "integer", nullable: true),
                     HubId = table.Column<int>(type: "integer", nullable: true),
@@ -1258,7 +1257,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     DiscussionId = table.Column<int>(type: "integer", nullable: false),
-                    Layout = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false)
+                    Layout = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    IsSpoiler = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1329,7 +1329,11 @@ namespace Snakk.Infrastructure.Database.Migrations
                     AllowMultipleChoices = table.Column<bool>(type: "boolean", nullable: false),
                     AllowChangeVote = table.Column<bool>(type: "boolean", nullable: false),
                     VotesVisible = table.Column<bool>(type: "boolean", nullable: false),
-                    ClosesAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    ClosesAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsSegmented = table.Column<bool>(type: "boolean", nullable: false),
+                    SegmentLabel = table.Column<string>(type: "text", nullable: true),
+                    SegmentOptionA = table.Column<string>(type: "text", nullable: true),
+                    SegmentOptionB = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1908,7 +1912,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OptionId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    VotedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    VotedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    SegmentIndex = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {

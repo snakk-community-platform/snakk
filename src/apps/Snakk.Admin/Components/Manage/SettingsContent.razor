@@ -365,8 +365,11 @@
             var entityId = Scope.ScopePublicId;
 
             using var content = new MultipartFormDataContent();
-            using var fileStream = _selectedAvatarFile.OpenReadStream(MaxAvatarSize);
-            using var streamContent = new StreamContent(fileStream);
+            using var browserStream = _selectedAvatarFile.OpenReadStream(MaxAvatarSize);
+            var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            var streamContent = new StreamContent(memoryStream);
             streamContent.Headers.ContentType = new MediaTypeHeaderValue(_selectedAvatarFile.ContentType);
             content.Add(streamContent, "avatar", _selectedAvatarFile.Name);
 
@@ -412,11 +415,11 @@
                     if (json.RootElement.TryGetProperty("error", out var errorProp))
                         _avatarError = errorProp.GetString() ?? "Upload failed.";
                     else
-                        _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}).";
+                        _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}): {errorBody}";
                 }
                 catch
                 {
-                    _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}).";
+                    _avatarError = $"Upload failed (HTTP {(int)response.StatusCode}): {errorBody}";
                 }
             }
         }

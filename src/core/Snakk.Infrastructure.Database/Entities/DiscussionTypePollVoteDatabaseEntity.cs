@@ -14,4 +14,6 @@ public class DiscussionTypePollVoteDatabaseEntity
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     public DateTime VotedAt { get; set; }
+
+    public int? SegmentIndex { get; set; }
 }

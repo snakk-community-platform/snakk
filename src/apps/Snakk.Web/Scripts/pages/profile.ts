@@ -522,6 +522,24 @@ interface ActivityDataPoint {
         });
     }
 
+    // Profile tabs
+    function initProfileTabs(): void {
+        const tabs = document.querySelectorAll<HTMLElement>('.fp-profile-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+                tabs.forEach(t => {
+                    t.classList.toggle('active', t === tab);
+                    t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+                });
+                document.querySelectorAll<HTMLElement>('.fp-profile-tab-panel').forEach(p => {
+                    p.hidden = p.id !== 'tab-' + target;
+                });
+            });
+        });
+    }
+
     // Self-initialize
     initializeProfile();
+    initProfileTabs();
 })();

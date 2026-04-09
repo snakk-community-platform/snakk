@@ -29,12 +29,15 @@
 
 <article class="fp-card h-entry">
     <div class="fp-card-header">
-        <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
-        <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
-           data-popup-type="user"
-           data-popup-id="@discussion.Author.PublicId"
-           data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
-        <span class="fp-card-dot">&middot;</span>
+        @if (Model.ShowUser)
+        {
+            <img src="@discussion.Author.AvatarUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
+               data-popup-type="user"
+               data-popup-id="@discussion.Author.PublicId"
+               data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
+            <span class="fp-card-dot">&middot;</span>
+        }
         <time class="fp-card-time dt-published"
               datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</time>
         @{
@@ -58,10 +61,6 @@
                 var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
                 <span class="fp-card-type-meta">(@totalPosts posts)</span>
             }
-            @if (discussion.Type == "Images" && galleryPreview != null)
-            {
-                <span class="fp-card-type-meta">(@galleryPreview.ImageCount @(galleryPreview.ImageCount == 1 ? "image" : "images"))</span>
-            }
             @if (discussion.Type == "Iama" && iamaPreview != null)
             {
                 var phaseLabel = iamaPreview.Phase switch { 0 => "Announced", 1 => "Live", 2 => "Closed", 3 => "Archived", _ => "" };
@@ -76,7 +75,7 @@
 
     @if (pollPreview != null || debatePreview != null || (galleryPreview != null && galleryPreview.Items.Count > 0) || linkPreview != null || iamaPreview != null)
     {
-        <div class="fp-card-preview">
+        <div class="fp-card-preview" data-discussion-url="@baseUrl">
             @if (pollPreview != null && pollPreview.Options.Count > 0)
             {
                 var totalVotes = pollPreview.TotalVotes;
@@ -181,63 +180,148 @@
             @if (galleryPreview != null && galleryPreview.Items.Count > 0)
             {
                 var images = galleryPreview.Items;
+                var gpLayout = galleryPreview.Layout;
+                var gpSpoiler = galleryPreview.IsSpoiler;
                 string bestSrc(Snakk.Protos.Discussion.ImagesPreviewItem img) =>
                     img.HasMediumThumbnailUrl ? img.MediumThumbnailUrl
                     : img.HasThumbnailUrl ? img.ThumbnailUrl
                     : img.Url;
-                var firstSrc = bestSrc(images[0]);
-                var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
 
-                <div class="fp-images-preview" data-image-count="@images.Count">
-                    <div class="fp-images-track">
-                        @for (var i = 0; i < images.Count; i++)
-                        {
-                            var img = images[i];
-                            var src = bestSrc(img);
-                            var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
+                @if (gpLayout == "compare" && images.Count >= 2)
+                {
+                    var beforeImg = images[0];
+                    var afterImg = images[1];
+                    var beforeSrc = bestSrc(beforeImg);
+                    var afterSrc = bestSrc(afterImg);
+                    var beforeBlur = beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "";
+                    var afterBlur = afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "";
+                    var beforeBg = beforeImg.HasBlurDataUri ? $"background-image:url({beforeBlur});background-size:cover;background-position:center" : "";
+                    var afterBg = afterImg.HasBlurDataUri ? $"background-image:url({afterBlur});background-size:cover;background-position:center" : "";
 
-                            <div class="fp-images-slide-wrapper">
-                                @if (blur != null)
-                                {
-                                    <div class="fp-images-blur" style="background-image: url(@blur);"></div>
+                    <div class="fp-compare-preview @(gpSpoiler ? "fp-images-spoiler" : "")" data-discussion-id="@discussion.PublicId">
+                        <div class="gup-compare fp-compare-widget">
+                            <div class="gup-compare-after images-upload-item" style="@afterBg">
+                                @if (gpSpoiler && afterImg.HasBlurDataUri) {
+                                    <img src="@afterBlur" data-deferred-src="@afterSrc" data-full="@afterImg.Url" alt="After" decoding="async" />
+                                } else {
+                                    <img src="@afterSrc" data-full="@afterImg.Url" alt="After" decoding="async" />
                                 }
-                                @if (i == 0)
-                                {
-                                    <img class="fp-images-slide"
-                                         src="@src"
-                                         data-src="@src"
-                                         data-full="@img.Url"
-                                         data-loaded="1"
-                                         alt=""
-                                         decoding="async" />
+                                <span class="gup-compare-label gup-compare-label-after">After</span>
+                            </div>
+                            <div class="gup-compare-before images-upload-item" style="@beforeBg">
+                                @if (gpSpoiler && beforeImg.HasBlurDataUri) {
+                                    <img src="@beforeBlur" data-deferred-src="@beforeSrc" data-full="@beforeImg.Url" alt="Before" decoding="async" />
+                                } else {
+                                    <img src="@beforeSrc" data-full="@beforeImg.Url" alt="Before" decoding="async" />
                                 }
-                                else
-                                {
-                                    <img class="fp-images-slide"
-                                         data-src="@src"
-                                         data-full="@img.Url"
-                                         alt=""
-                                         decoding="async" />
-                                }
+                                <span class="gup-compare-label gup-compare-label-before">Before</span>
+                            </div>
+                            <div class="gup-compare-slider fp-compare-slider">
+                                <div class="gup-compare-line"></div>
+                                <div class="gup-compare-handle">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                                </div>
+                            </div>
+                            <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <polyline points="9 21 3 21 3 15"></polyline>
+                                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        @if (gpSpoiler) {
+                            <div class="fp-images-spoiler-overlay">
+                                <button type="button" class="images-spoiler-btn fp-spoiler-reveal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Reveal images
+                                </button>
                             </div>
                         }
                     </div>
-                    @if (images.Count > 1)
-                    {
-                        <button class="fp-images-btn fp-images-prev" type="button" aria-label="Previous">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="15 18 9 12 15 6"></polyline>
+                }
+                else
+                {
+                    var firstSrc = bestSrc(images[0]);
+                    var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
+
+                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                        <div class="fp-images-track">
+                            @for (var i = 0; i < images.Count; i++)
+                            {
+                                var img = images[i];
+                                var src = bestSrc(img);
+                                var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
+
+                                <div class="fp-images-slide-wrapper" style="@(blur != null ? $"background-image:url({blur})" : "")">
+                                    @if (gpSpoiler && blur != null)
+                                    {
+                                        <img class="fp-images-slide"
+                                             src="@blur"
+                                             data-deferred-src="@src"
+                                             data-full="@img.Url"
+                                             alt="" decoding="async" />
+                                    }
+                                    else if (i == 0)
+                                    {
+                                        <img class="fp-images-slide"
+                                             src="@src"
+                                             data-src="@src"
+                                             data-full="@img.Url"
+                                             data-loaded="1"
+                                             alt="" decoding="async" />
+                                    }
+                                    else
+                                    {
+                                        <img class="fp-images-slide"
+                                             data-src="@src"
+                                             data-full="@img.Url"
+                                             alt="" decoding="async" />
+                                    }
+                                </div>
+                            }
+                        </div>
+                        @if (images.Count > 1)
+                        {
+                            <button class="fp-images-btn fp-images-prev" type="button" aria-label="Previous">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <button class="fp-images-btn fp-images-next" type="button" aria-label="Next"
+                                    @if (secondSrc != null) { <text>data-preload="@secondSrc"</text> }>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 6 15 12 9 18"></polyline>
+                                </svg>
+                            </button>
+                            <span class="fp-images-counter">1 / @images.Count</span>
+                        }
+                        <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <polyline points="9 21 3 21 3 15"></polyline>
+                                <line x1="21" y1="3" x2="14" y2="10"></line>
+                                <line x1="3" y1="21" x2="10" y2="14"></line>
                             </svg>
                         </button>
-                        <button class="fp-images-btn fp-images-next" type="button" aria-label="Next"
-                                @if (secondSrc != null) { <text>data-preload="@secondSrc"</text> }>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="9 6 15 12 9 18"></polyline>
-                            </svg>
-                        </button>
-                        <span class="fp-images-counter">1 / @images.Count</span>
-                    }
-                </div>
+                        @if (gpSpoiler)
+                        {
+                            <div class="fp-images-spoiler-overlay">
+                                <button type="button" class="images-spoiler-btn fp-spoiler-reveal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Reveal images
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (ViewContext.HttpContext.Items["_fp_carousel_js"] == null)
+                {
+                    ViewContext.HttpContext.Items["_fp_carousel_js"] = true;
+                    <script src="@SnakkUrlHelper.Js("pages/images-carousel")" asp-append-version="true" defer></script>
+                }
             }
             @if (iamaPreview != null)
             {

@@ -810,6 +810,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsSpoiler")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Layout")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -928,6 +931,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsSegmented")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SegmentLabel")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SegmentOptionA")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SegmentOptionB")
+                        .HasColumnType("text");
+
                     b.Property<bool>("VotesVisible")
                         .HasColumnType("boolean");
 
@@ -978,6 +993,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("OptionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SegmentIndex")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")

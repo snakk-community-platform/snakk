@@ -13,6 +13,7 @@ public class NewGalleryModel(
 
     [BindProperty] public List<string> ImagesImageUrls { get; set; } = [];
     [BindProperty] public string ImagesLayout { get; set; } = "masonry";
+    [BindProperty] public bool ImagesIsSpoiler { get; set; }
 
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
@@ -27,6 +28,7 @@ public class NewGalleryModel(
             content,
             DiscussionType,
             imagesLayout: ImagesLayout,
-            imagesImageUrls: imageUrls);
+            imagesImageUrls: imageUrls,
+            imagesIsSpoiler: ImagesIsSpoiler);
     }
 }

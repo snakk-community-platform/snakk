@@ -16,6 +16,10 @@ public class NewPollModel(
     [BindProperty] public bool PollAllowChangeVote { get; set; }
     [BindProperty] public string? PollClosesAt { get; set; }
     [BindProperty] public bool PollSecret { get; set; }
+    [BindProperty] public bool PollIsSegmented { get; set; }
+    [BindProperty] public string? PollSegmentLabel { get; set; }
+    [BindProperty] public string? PollSegmentOptionA { get; set; }
+    [BindProperty] public string? PollSegmentOptionB { get; set; }
 
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
@@ -34,6 +38,10 @@ public class NewPollModel(
             pollAllowMultiple: PollAllowMultiple,
             pollAllowChangeVote: PollAllowChangeVote,
             pollClosesAt: closeDate,
-            pollSecret: PollSecret);
+            pollSecret: PollSecret,
+            pollIsSegmented: PollIsSegmented,
+            pollSegmentLabel: PollSegmentLabel,
+            pollSegmentOptionA: PollSegmentOptionA,
+            pollSegmentOptionB: PollSegmentOptionB);
     }
 }

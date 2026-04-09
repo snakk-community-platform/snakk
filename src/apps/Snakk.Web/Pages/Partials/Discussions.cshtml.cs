@@ -22,6 +22,7 @@ public class DiscussionsModel(
     public ICommunityContext Community => communityContext;
     public string? CommunityId { get; set; }
     public string? HubId { get; set; }
+    public string? SpaceId { get; set; }
     public bool HideCommunity { get; set; }
     public bool HideHub { get; set; }
 
@@ -31,6 +32,7 @@ public class DiscussionsModel(
         int pageSize = 20,
         string? communityId = null,
         string? hubId = null,
+        string? spaceId = null,
         bool hideCommunity = false,
         bool hideHub = false,
         string? cursor = null)
@@ -39,6 +41,7 @@ public class DiscussionsModel(
 
         CommunityId = communityId;
         HubId = hubId;
+        SpaceId = spaceId;
         HideCommunity = hideCommunity;
         HideHub = hideHub;
         pageSize = Math.Clamp(pageSize, 1, 50);
@@ -54,7 +57,7 @@ public class DiscussionsModel(
 
         try
         {
-            var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, cursor);
+            var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor);
             Items = result?.Items ?? [];
             HasMoreItems = result?.HasMoreItems ?? false;
             NextOffset = offset + pageSize;

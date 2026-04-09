@@ -13,4 +13,20 @@
         input.placeholder = 'Option ' + (list.children.length + 1);
         list.appendChild(input);
     });
+
+    const segmentCheck = document.getElementById('poll-segmented-check') as HTMLInputElement | null;
+    const segmentFields = document.getElementById('segment-fields');
+    if (segmentCheck && segmentFields) {
+        segmentCheck.addEventListener('change', () => {
+            segmentFields.classList.toggle('hidden', !segmentCheck.checked);
+        });
+    }
+
+    const closeDateCheck = document.getElementById('poll-close-date-check') as HTMLInputElement | null;
+    const closeDateField = document.getElementById('close-date-field');
+    if (closeDateCheck && closeDateField) {
+        closeDateCheck.addEventListener('change', () => {
+            closeDateField.classList.toggle('hidden', !closeDateCheck.checked);
+        });
+    }
 })();

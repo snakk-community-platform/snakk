@@ -71,6 +71,13 @@
                         </div>
                         <span class="text-xs mt-1">Hero</span>
                     </label>
+                    <label class="images-layout-option" data-layout="compare" id="images-layout-compare" style="display:none">
+                        <input type="radio" name="ImagesLayout" value="compare" class="hidden" />
+                        <div class="images-layout-preview">
+                            <div class="glp glp-compare"><div></div><div class="glp-compare-line"></div><div></div></div>
+                        </div>
+                        <span class="text-xs mt-1">Compare</span>
+                    </label>
                 </div>
                 <div id="images-layout-hint" class="images-layout-hint hidden">You can now choose a layout</div>
             </div>
@@ -97,6 +104,15 @@
                 <!-- Hidden inputs container (populated by JS) -->
                 <div id="images-hidden-inputs"></div>
             </div>
+
+            <!-- Spoiler toggle -->
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="ImagesIsSpoiler" value="true" class="toggle toggle-primary toggle-sm" />
+                <span>
+                    <span class="font-medium text-sm">Spoiler</span>
+                    <span class="block text-xs text-base-content/50">Images are blurred until the viewer clicks to reveal them.</span>
+                </span>
+            </label>
 
             <!-- Description editor -->
             <div>

@@ -23,7 +23,7 @@ public class DetailModel(
     public SpaceInfo? Space { get; set; }
     public HubInfo? Hub { get; set; }
     public CommunityInfo? CommunityDetail { get; set; }
-    public PagedDiscussionBySpaceList? Discussions { get; set; }
+    public Snakk.Protos.Discussion.PagedRecentDiscussionList? Discussions { get; set; }
     public SpaceStats? SpaceStats { get; set; }
     public string HubSlug { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
@@ -90,7 +90,7 @@ public class DetailModel(
         ResolveSidebarData();
 
         // Fetch discussions, stats, and announcements in parallel
-        var discussionsTask = _apiClient.GetDiscussionsBySpaceAsync(Space.PublicId, offset, 20);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(spaceId: Space.PublicId, pageSize: 20);
         var statsTask = _apiClient.GetSpaceStatsAsync(Space.PublicId);
         var announcementsTask = _apiClient.GetActiveBannersForSpaceAsync(Space.PublicId);
 

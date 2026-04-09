@@ -260,11 +260,17 @@ public class SnakkApiClient(
         // Images extension
         string? imagesLayout = null,
         IEnumerable<string>? imagesImageUrls = null,
+        bool imagesIsSpoiler = false,
         // IAMA extension
         bool iamaIsScheduled = false,
         DateTime? iamaScheduledStart = null,
         DateTime? iamaScheduledEnd = null,
-        string? iamaVerificationNote = null)
+        string? iamaVerificationNote = null,
+        // Poll segment extension
+        bool pollIsSegmented = false,
+        string? pollSegmentLabel = null,
+        string? pollSegmentOptionA = null,
+        string? pollSegmentOptionB = null)
     {
         try
         {
@@ -280,23 +286,29 @@ public class SnakkApiClient(
             request.DebateAllowNeutral = debateAllowNeutral;
             if (imagesLayout is not null) request.ImagesLayout = imagesLayout;
             if (imagesImageUrls is not null) request.ImagesImageUrls.AddRange(imagesImageUrls);
+            request.ImagesIsSpoiler = imagesIsSpoiler;
             request.IamaIsScheduled = iamaIsScheduled;
             if (iamaScheduledStart.HasValue) request.IamaScheduledStart = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledStart.Value, DateTimeKind.Utc));
             if (iamaScheduledEnd.HasValue) request.IamaScheduledEnd = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.SpecifyKind(iamaScheduledEnd.Value, DateTimeKind.Utc));
             if (iamaVerificationNote is not null) request.IamaVerificationNote = iamaVerificationNote;
+            request.PollIsSegmented = pollIsSegmented;
+            if (pollSegmentLabel is not null) request.PollSegmentLabel = pollSegmentLabel;
+            if (pollSegmentOptionA is not null) request.PollSegmentOptionA = pollSegmentOptionA;
+            if (pollSegmentOptionB is not null) request.PollSegmentOptionB = pollSegmentOptionB;
             return await discussionClient.CreateDiscussionAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? cursor = null, string? authorId = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null)
     {
         try
         {
             var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
             if (cursor is not null) request.Cursor = cursor;
             if (authorId is not null) request.AuthorId = authorId;
 
@@ -485,9 +497,14 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<VotePollResponse?> VotePollAsync(string discussionId, int optionId)
+    public virtual async Task<VotePollResponse?> VotePollAsync(string discussionId, int optionId, int? segmentIndex = null)
     {
-        try { return await discussionClient.VotePollAsync(new VotePollRequest { DiscussionId = discussionId, OptionId = optionId }); }
+        try
+        {
+            var request = new VotePollRequest { DiscussionId = discussionId, OptionId = optionId };
+            if (segmentIndex.HasValue) request.SegmentIndex = segmentIndex.Value;
+            return await discussionClient.VotePollAsync(request);
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 

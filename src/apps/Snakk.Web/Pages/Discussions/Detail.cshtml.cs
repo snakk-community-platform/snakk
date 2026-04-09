@@ -54,6 +54,7 @@ public class DetailModel(
     public Snakk.Protos.Discussion.JournalEntriesResponse? JournalInfo { get; set; }
     public string? ImagesLayout { get; set; }
     public List<Snakk.Protos.Discussion.ImagesImageProto> ImagesItems { get; set; } = [];
+    public bool ImagesIsSpoiler { get; set; }
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -200,6 +201,7 @@ public class DetailModel(
                     var imagesData = await _apiClient.GetImagesDataAsync(PublicId);
                     ImagesLayout = imagesData?.Layout ?? "grid";
                     ImagesItems = imagesData?.Images?.ToList() ?? [];
+                    ImagesIsSpoiler = imagesData?.IsSpoiler ?? false;
                     break;
             }
         }

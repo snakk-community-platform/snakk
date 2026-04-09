@@ -11,7 +11,7 @@ public record DebatePositionData(int Id, string Label, int Index, int PostCount)
 public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? ImagePath, string? BlurDataUri, bool IsInternal);
 
 // Images
-public record ImagesImageInfo(string Url, string? ThumbnailUrl, string? BlurDataUri);
+public record ImagesImageInfo(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
 
 // Journal
 public record JournalInfo(List<string> EntryPostPublicIds);
@@ -33,7 +33,7 @@ public interface IDiscussionTypeQueryService
     Task<(bool Success, string? Error)> MarkQuestionSolvedAsync(string discussionPublicId, string postPublicId, string userPublicId);
 
     // Images
-    Task<string?> GetImagesLayoutAsync(string discussionPublicId);
+    Task<(string? Layout, bool IsSpoiler)> GetImagesInfoAsync(string discussionPublicId);
     Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId);
 
     // Debate

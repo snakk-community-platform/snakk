@@ -14,5 +14,7 @@ public class DiscussionTypeImageDatabaseEntity
     [MaxLength(20)]
     public string Layout { get; set; } = "grid"; // grid, masonry, justified, carousel, hero
 
+    public bool IsSpoiler { get; set; }
+
     public virtual ICollection<DiscussionTypeImageAttachmentDatabaseEntity> Images { get; set; } = [];
 }

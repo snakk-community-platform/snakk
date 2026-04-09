@@ -41,23 +41,72 @@
                 </div>
                 <button type="button" class="btn btn-ghost btn-xs" data-action="add-poll-option">+ Add option</button>
 
-                <div class="flex flex-wrap gap-4 mt-2">
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" name="PollAllowMultiple" value="true" class="checkbox checkbox-sm" />
-                        Allow multiple choices
-                    </label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" name="PollAllowChangeVote" value="true" class="checkbox checkbox-sm" />
-                        Allow changing vote
-                    </label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" name="PollSecret" value="true" class="checkbox checkbox-sm" />
-                        Secret poll (results hidden until close date)
-                    </label>
-                </div>
-                <div>
-                    <label class="text-sm text-base-content/70">Close date (optional)</label>
-                    <input type="datetime-local" name="PollClosesAt" class="input input-sm w-full max-w-xs mt-1" />
+                <div class="text-sm font-medium mt-4 mb-2">Settings</div>
+                <div class="flex flex-col gap-2">
+                    <div class="clean-card p-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="PollAllowMultiple" value="true" class="toggle toggle-primary toggle-sm" />
+                            <span>
+                                <span class="font-medium text-sm">Multiple choices</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary)">Voters can select more than one option.</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="clean-card p-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="PollAllowChangeVote" value="true" class="toggle toggle-primary toggle-sm" />
+                            <span>
+                                <span class="font-medium text-sm">Allow vote change</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary)">Voters can change their vote after submitting.</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="clean-card p-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="PollSecret" value="true" class="toggle toggle-primary toggle-sm" />
+                            <span>
+                                <span class="font-medium text-sm">Secret poll</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary)">Results stay hidden until the close date. Requires a close date.</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="clean-card p-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="PollIsSegmented" value="true" class="toggle toggle-primary toggle-sm" id="poll-segmented-check" />
+                            <span>
+                                <span class="font-medium text-sm">Group poll</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary)">Voters pick a group before voting. Results can be viewed by group breakdown.</span>
+                            </span>
+                        </label>
+                        <div id="segment-fields" class="hidden mt-3 ml-11 space-y-2">
+                            <div>
+                                <label class="text-xs font-medium" style="color: var(--text-secondary)">Group question</label>
+                                <input type="text" name="PollSegmentLabel" class="input input-sm w-full" placeholder="e.g. What is your experience level?" />
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1">
+                                    <label class="text-xs font-medium" style="color: var(--text-secondary)">Group A</label>
+                                    <input type="text" name="PollSegmentOptionA" class="input input-sm w-full" placeholder="e.g. Beginner" />
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-xs font-medium" style="color: var(--text-secondary)">Group B</label>
+                                    <input type="text" name="PollSegmentOptionB" class="input input-sm w-full" placeholder="e.g. Expert" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clean-card p-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" class="toggle toggle-primary toggle-sm" id="poll-close-date-check" />
+                            <span>
+                                <span class="font-medium text-sm">Close date</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary)">Automatically close voting at a specific date and time.</span>
+                            </span>
+                        </label>
+                        <div id="close-date-field" class="hidden mt-3 ml-11">
+                            <input type="datetime-local" name="PollClosesAt" class="input input-sm w-full max-w-xs" />
+                        </div>
+                    </div>
                 </div>
             </div>
 

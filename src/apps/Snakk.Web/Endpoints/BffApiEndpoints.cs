@@ -1723,17 +1723,24 @@ public static class BffApiEndpoints
             allowChangeVote = poll.AllowChangeVote,
             closesAt = poll.ClosesAt?.ToDateTime().ToString("o"),
             isClosed = poll.IsClosed,
+            isSecret = poll.IsSecret,
             totalVotes = poll.TotalVotes,
-            userVotedOptionIds = poll.UserVotedOptionIds.ToList()
+            userVotedOptionIds = poll.UserVotedOptionIds.ToList(),
+            isSegmented = poll.IsSegmented,
+            segmentLabel = poll.HasSegmentLabel ? poll.SegmentLabel : null,
+            segmentOptionA = poll.HasSegmentOptionA ? poll.SegmentOptionA : null,
+            segmentOptionB = poll.HasSegmentOptionB ? poll.SegmentOptionB : null,
+            userSegmentIndex = poll.HasUserSegmentIndex ? (int?)poll.UserSegmentIndex : null,
+            segmentVotes = poll.SegmentVotes.Select(sv => new { optionId = sv.OptionId, segmentACount = sv.SegmentACount, segmentBCount = sv.SegmentBCount }).ToList()
         });
     }
 
     private static async Task<IResult> VotePollAsync(string discussionId, int optionId, SnakkApiClient apiClient,
-        HttpContext httpContext)
+        HttpContext httpContext, int? segmentIndex = null)
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var result = await apiClient.VotePollAsync(discussionId, optionId);
+        var result = await apiClient.VotePollAsync(discussionId, optionId, segmentIndex);
         if (result is null)
             return Results.StatusCode(503);
 

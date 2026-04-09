@@ -589,6 +589,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize,
         string? communityId = null,
         string? hubId = null,
+        string? spaceId = null,
         string? cursor = null,
         string? userId = null,
         string? authorId = null)
@@ -603,8 +604,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             query = query.Where(d => d.CreatedByUser.PublicId == authorId);
         }
 
+        // Filter by space if specified (most specific)
+        if (!string.IsNullOrEmpty(spaceId))
+        {
+            query = query.Where(d => d.Space.PublicId == spaceId);
+        }
         // Filter by hub if specified (more specific than community)
-        if (!string.IsNullOrEmpty(hubId))
+        else if (!string.IsNullOrEmpty(hubId))
         {
             query = query.Where(d => d.Space.Hub.PublicId == hubId);
         }
@@ -808,6 +814,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 .Select(g => new
                 {
                     g.DiscussionId,
+                    g.IsSpoiler,
+                    g.Layout,
                     Items = g.Images
                         .OrderBy(i => i.DisplayOrder)
                         .Select(i => new
@@ -831,7 +839,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         i.MediumThumbnailUrl is not null ? "/" + i.MediumThumbnailUrl : null,
                         i.BlurDataUri))
                     .ToList();
-                result[publicId] = new(Images: new(items.Count, items));
+                result[publicId] = new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
             }
         }
 

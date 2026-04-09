@@ -78,6 +78,7 @@ public interface ISearchRepository
         int pageSize,
         string? communityId = null,
         string? hubId = null,
+        string? spaceId = null,
         string? cursor = null,
         string? userId = null,
         string? authorId = null);
@@ -220,7 +221,7 @@ public record LinkPreviewDto(
     string Url, string? Title, string? Description, string? Domain,
     string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal);
 
-public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items);
+public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items, bool IsSpoiler, string Layout);
 public record ImagePreviewItemDto(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
 
 public record IamaPreviewDto(

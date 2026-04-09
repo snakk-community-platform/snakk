@@ -184,6 +184,43 @@
         const imagesDisplay = document.querySelector('.images-display');
         if (!imagesDisplay) return; // No server-rendered images
 
+        let initCompareSliderPosition = (): void => {};
+
+        // Spoiler reveal (must be before layout-specific code that may early-return)
+        const spoilerContainer = document.querySelector('.images-spoiler');
+        const spoilerOverlay = document.getElementById('images-spoiler-overlay');
+        if (spoilerContainer && spoilerOverlay) {
+            // Check if already revealed this session
+            const discussionId = document.body.dataset.discussionId
+                || document.querySelector<HTMLElement>('[data-discussion-id]')?.dataset.discussionId
+                || '';
+            const storageKey = discussionId ? `snakk:spoiler-revealed:${discussionId}` : '';
+
+            function revealSpoiler(): void {
+                spoilerContainer!.querySelectorAll<HTMLImageElement>('img[data-deferred-src]').forEach(img => {
+                    img.src = img.dataset.deferredSrc!;
+                    img.removeAttribute('data-deferred-src');
+                });
+                spoilerContainer!.classList.add('revealed');
+                if (storageKey) sessionStorage.setItem(storageKey, '1');
+                requestAnimationFrame(() => initCompareSliderPosition());
+            }
+
+            if (storageKey && sessionStorage.getItem(storageKey) === '1') {
+                revealSpoiler();
+            } else {
+                // Preload images on hover so reveal is instant
+                spoilerOverlay.addEventListener('mouseenter', () => {
+                    spoilerContainer!.querySelectorAll<HTMLImageElement>('img[data-deferred-src]').forEach(img => {
+                        const p = new window.Image();
+                        p.src = img.dataset.deferredSrc!;
+                    });
+                }, { once: true });
+
+                spoilerOverlay.addEventListener('click', () => revealSpoiler());
+            }
+        }
+
         // Mark cached images as loaded (backup for onload already fired)
         imagesDisplay.querySelectorAll('img.images-blur-up').forEach(img => {
             if ((img as HTMLImageElement).complete) {
@@ -193,6 +230,16 @@
         });
 
         // Lightbox — event delegation on the images container
+        let currentCarouselIdx = 0;
+
+        function getFullUrls(): string[] {
+            const allItems = imagesDisplay!.querySelectorAll('.images-upload-item');
+            return Array.from(allItems).map(el => {
+                const img = el.querySelector('img') as HTMLImageElement | null;
+                return img?.dataset.full || img?.src || '';
+            });
+        }
+
         imagesDisplay.addEventListener('click', (e) => {
             const item = (e.target as HTMLElement).closest('.images-upload-item');
             if (!item) return;
@@ -201,17 +248,88 @@
             const idx = Array.from(allItems).indexOf(item);
             if (idx < 0) return;
 
-            const fullUrls = Array.from(allItems).map(el => {
-                const img = el.querySelector('img') as HTMLImageElement | null;
-                return img?.dataset.full || img?.src || '';
-            });
+            const fullUrls = getFullUrls();
 
             if (fullUrls[idx] && (window as any).SnakkLightbox) {
                 (window as any).SnakkLightbox.open(fullUrls, idx);
             }
         });
 
+        // Expand button (non-compare layouts) — opens lightbox at current index
+        const expandBtn = document.getElementById('images-expand-btn');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const fullUrls = getFullUrls();
+                if (fullUrls.length > 0 && (window as any).SnakkLightbox) {
+                    (window as any).SnakkLightbox.open(fullUrls, currentCarouselIdx);
+                }
+            });
+        }
 
+        // Compare slider interactivity
+        const compare = document.getElementById('images-compare') as HTMLElement | null;
+        const compareSlider = document.getElementById('images-compare-slider') as HTMLElement | null;
+        if (compare && compareSlider) {
+            const beforeEl = compare.querySelector('.gup-compare-before') as HTMLElement | null;
+            const afterEl = compare.querySelector('.gup-compare-after') as HTMLElement | null;
+            if (beforeEl && afterEl) {
+                function setPosition(x: number): void {
+                    const rect = compare!.getBoundingClientRect();
+                    const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+                    const rightPct = (1 - pct) * 100;
+                    const leftPct = pct * 100;
+                    beforeEl!.style.clipPath = `inset(0 ${rightPct}% 0 0)`;
+                    afterEl!.style.clipPath = `inset(0 0 0 ${leftPct}%)`;
+                    compareSlider!.style.right = `${rightPct}%`;
+                }
+
+                initCompareSliderPosition = (): void => {
+                    const afterLabel = afterEl!.querySelector('.gup-compare-label-after') as HTMLElement | null;
+                    if (afterLabel) {
+                        const labelRect = afterLabel.getBoundingClientRect();
+                        const labelInset = 12; // 0.75rem
+                        setPosition(labelRect.left - labelInset);
+                    } else {
+                        const cRect = compare!.getBoundingClientRect();
+                        setPosition(cRect.left + cRect.width * 0.5);
+                    }
+                };
+
+                initCompareSliderPosition();
+
+                let dragging = false;
+
+                compareSlider.addEventListener('pointerdown', (e) => {
+                    dragging = true;
+                    compareSlider!.setPointerCapture(e.pointerId);
+                    e.preventDefault();
+                });
+
+                compare.addEventListener('pointerdown', (e) => {
+                    if ((e.target as HTMLElement).closest('.gup-compare-handle, .gup-compare-expand')) return;
+                    dragging = true;
+                    setPosition(e.clientX);
+                    e.preventDefault();
+                });
+
+                document.addEventListener('pointermove', (e) => {
+                    if (!dragging) return;
+                    setPosition(e.clientX);
+                });
+
+                document.addEventListener('pointerup', () => { dragging = false; });
+
+                // Fullscreen compare
+                const expandBtn = document.getElementById('images-compare-expand');
+                if (expandBtn) {
+                    expandBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openFullscreenCompare(expandBtn, beforeEl, compareSlider);
+                    });
+                }
+            }
+        }
 
         // Carousel interactivity (only if carousel layout)
         const track = document.getElementById('images-carousel-track') as HTMLElement | null;
@@ -225,6 +343,7 @@
 
         function slide(newIdx: number): void {
             carouselIdx = newIdx;
+            currentCarouselIdx = newIdx;
             track!.style.transform = `translateX(-${carouselIdx * 100}%)`;
 
             if (counter) counter.textContent = `${carouselIdx + 1} / ${items.length}`;
@@ -258,9 +377,123 @@
             const img = items[target]?.querySelector('img') as HTMLImageElement | null;
             if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
         });
+
     }
 
 
+
+    // ─── Fullscreen compare overlay ────────────────────────────
+
+    function openFullscreenCompare(
+        expandBtn: HTMLElement,
+        inlineBefore: HTMLElement,
+        inlineSlider: HTMLElement
+    ): void {
+        const beforeUrl = expandBtn.dataset.beforeUrl || '';
+        const afterUrl = expandBtn.dataset.afterUrl || '';
+        const beforeBlur = expandBtn.dataset.beforeBlur || '';
+        const afterBlur = expandBtn.dataset.afterBlur || '';
+
+        // Get current slider position from inline widget
+        const inlineRight = inlineSlider.style.right || '50%';
+
+        const closeIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        const sliderChevronL = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        const sliderChevronR = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'compare-fullscreen-overlay';
+
+        // Parse the current right% to compute matching clip-paths
+        const rightPctMatch = inlineRight.match(/([\d.]+)%/);
+        const rightPct = rightPctMatch?.[1] ? parseFloat(rightPctMatch[1]) : 50;
+        const leftPct = 100 - rightPct;
+
+        const beforeBlurStyle = beforeBlur ? `background-image:url(${beforeBlur});background-size:cover;background-position:center` : '';
+        const afterBlurStyle = afterBlur ? `background-image:url(${afterBlur});background-size:cover;background-position:center` : '';
+
+        overlay.innerHTML =
+            '<div class="gup-compare" id="compare-fs-widget">' +
+                `<div class="gup-compare-after images-upload-item" style="${afterBlurStyle};clip-path:inset(0 0 0 ${leftPct}%)">` +
+                    `<img src="${afterUrl}" alt="After" />` +
+                    '<span class="gup-compare-label gup-compare-label-after">After</span>' +
+                '</div>' +
+                `<div class="gup-compare-before images-upload-item" style="${beforeBlurStyle};clip-path:inset(0 ${rightPct}% 0 0)">` +
+                    `<img src="${beforeUrl}" alt="Before" />` +
+                    '<span class="gup-compare-label gup-compare-label-before">Before</span>' +
+                '</div>' +
+                `<div class="gup-compare-slider" style="right:${rightPct}%">` +
+                    '<div class="gup-compare-line"></div>' +
+                    `<div class="gup-compare-handle">${sliderChevronL}${sliderChevronR}</div>` +
+                '</div>' +
+            '</div>' +
+            `<button type="button" class="compare-fs-close" aria-label="Close">${closeIcon}</button>`;
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+
+        // Trigger open animation
+        requestAnimationFrame(() => overlay.classList.add('compare-fs-open'));
+
+        const fsWidget = overlay.querySelector('#compare-fs-widget') as HTMLElement;
+        const fsBefore = fsWidget.querySelector('.gup-compare-before') as HTMLElement;
+        const fsAfter = fsWidget.querySelector('.gup-compare-after') as HTMLElement;
+        const fsSlider = fsWidget.querySelector('.gup-compare-slider') as HTMLElement;
+
+        function setFsPosition(x: number): void {
+            const rect = fsWidget.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+            const rPct = (1 - pct) * 100;
+            const lPct = pct * 100;
+            fsBefore.style.clipPath = `inset(0 ${rPct}% 0 0)`;
+            fsAfter.style.clipPath = `inset(0 0 0 ${lPct}%)`;
+            fsSlider.style.right = `${rPct}%`;
+
+            // Sync inline widget
+            inlineBefore.style.clipPath = `inset(0 ${rPct}% 0 0)`;
+            const inlineAfterEl = inlineBefore.parentElement?.querySelector('.gup-compare-after') as HTMLElement | null;
+            if (inlineAfterEl) inlineAfterEl.style.clipPath = `inset(0 0 0 ${lPct}%)`;
+            inlineSlider.style.right = `${rPct}%`;
+        }
+
+        let fsDragging = false;
+        fsSlider.addEventListener('pointerdown', (e) => { fsDragging = true; fsSlider.setPointerCapture(e.pointerId); e.preventDefault(); });
+        fsWidget.addEventListener('pointerdown', (e) => {
+            if ((e.target as HTMLElement).closest('.gup-compare-handle')) return;
+            fsDragging = true; setFsPosition(e.clientX); e.preventDefault();
+        });
+        document.addEventListener('pointermove', (e) => { if (fsDragging) setFsPosition(e.clientX); });
+        document.addEventListener('pointerup', () => { fsDragging = false; });
+
+        function closeFs(): void {
+            overlay.classList.remove('compare-fs-open');
+            document.body.style.overflow = '';
+            setTimeout(() => overlay.remove(), 200);
+        }
+
+        overlay.querySelector('.compare-fs-close')!.addEventListener('click', closeFs);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeFs();
+        });
+        function onKeydown(e: KeyboardEvent): void {
+            if (e.key === 'Escape' && overlay.classList.contains('compare-fs-open')) {
+                closeFs();
+                cleanup();
+            }
+        }
+        function onScroll(): void {
+            if (overlay.classList.contains('compare-fs-open')) {
+                closeFs();
+                cleanup();
+            }
+        }
+        function cleanup(): void {
+            document.removeEventListener('keydown', onKeydown);
+            window.removeEventListener('scroll', onScroll);
+        }
+        document.addEventListener('keydown', onKeydown);
+        window.addEventListener('scroll', onScroll, { passive: true });
+    }
 
     // ─── Guide: TOC from headings ───────────────────────────────
 

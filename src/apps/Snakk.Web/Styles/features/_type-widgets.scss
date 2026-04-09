@@ -545,6 +545,7 @@
 
 // Images display container (detail page — outside .prose)
 .images-display {
+    position: relative;
     margin-bottom: 1rem;
     border-radius: 0.5rem;
     overflow: hidden;
@@ -554,20 +555,96 @@
         cursor: pointer;
     }
 
-    // Hover lift only for grid-like layouts, not carousel
-    :not(.gup-carousel-track) > .images-upload-item {
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
 
-        &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1;
+// Expand/zoom button for non-compare layouts (top-right of .images-display)
+.images-expand-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 1rem; // 0.5rem + padding-right
+    z-index: 15;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0.375rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+
+    .images-display:hover & { opacity: 1; }
+    &:hover { background: rgba(0, 0, 0, 0.7); }
+}
+
+// Spoiler overlay for images
+.images-spoiler {
+    position: relative;
+
+    img {
+        filter: blur(20px);
+        transition: filter 0.3s ease;
+    }
+
+    .gup-carousel-arrow,
+    .gup-carousel-counter,
+    .gup-compare-slider,
+    .gup-compare-label,
+    .gup-compare-expand,
+    .images-expand-btn {
+        display: none;
+    }
+
+    &.revealed {
+        img {
+            filter: none;
         }
 
-        &:active {
-            transform: translateY(0);
-            box-shadow: none;
+        .gup-carousel-arrow,
+        .gup-carousel-counter,
+        .gup-compare-slider,
+        .gup-compare-label,
+        .gup-compare-expand,
+        .images-expand-btn {
+            display: flex;
         }
+
+        .images-spoiler-overlay {
+            display: none;
+        }
+    }
+}
+
+.images-spoiler-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.images-spoiler-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.75);
     }
 }
 
@@ -799,6 +876,218 @@
     gap: 0.5rem;
 }
 
+// ── Compare (Before/After) slider ─────────────
+.gup-compare {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    cursor: ew-resize;
+    user-select: none;
+    -webkit-user-select: none;
+
+    // Override shared .images-upload-item rules — must be scoped here for specificity
+    .gup-compare-after,
+    .gup-compare-before {
+        position: absolute !important;
+        inset: 0;
+        aspect-ratio: auto;
+        border: none;
+        border-radius: 0;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        filter: none !important;
+        transform: none !important;
+
+        // Blur bleed background behind contain-fit images
+        &[style*="background-image"]::before {
+            content: '';
+            position: absolute;
+            inset: -50px;
+            background: inherit;
+            filter: blur(40px) brightness(0.6);
+            z-index: 0;
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain !important;
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    .gup-compare-after {
+        clip-path: inset(0 0 0 50%);
+    }
+
+    .gup-compare-before {
+        z-index: 2;
+        clip-path: inset(0 50% 0 0);
+    }
+}
+
+.gup-compare-label {
+    position: absolute;
+    bottom: 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    z-index: 5;
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.gup-compare-label-before { left: 0.75rem; }
+.gup-compare-label-after { right: 0.75rem; }
+
+.gup-compare-slider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 50%; // overridden by JS on init
+    z-index: 10;
+    width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gup-compare-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: white;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    transform: translateX(-50%);
+}
+
+.gup-compare-handle {
+    position: relative;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    cursor: ew-resize;
+    z-index: 11;
+
+    svg {
+        width: 0.75rem;
+        height: 0.75rem;
+        color: var(--text-secondary);
+    }
+}
+
+// Expand button (top-right corner of compare widget)
+.gup-compare-expand {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 15;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0.375rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+
+    .gup-compare:hover & { opacity: 1; }
+    &:hover { background: rgba(0, 0, 0, 0.7); }
+}
+
+// Fullscreen compare overlay
+.compare-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+
+    &.compare-fs-open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .gup-compare {
+        width: calc(100vw - 6rem);
+        height: calc(100vh - 6rem);
+        max-width: 100%;
+        max-height: 100%;
+        aspect-ratio: auto;
+        border-radius: 0.5rem;
+    }
+}
+
+.compare-fs-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0.375rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: background 0.15s;
+    z-index: 10;
+
+    &:hover { background: rgba(255, 255, 255, 0.2); }
+}
+
+// Layout picker preview for compare
+.glp-compare {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    gap: 0;
+    position: relative;
+
+    > div:first-child,
+    > div:last-child {
+        flex: 1;
+        background: var(--bg-tertiary);
+        border-radius: 0.125rem;
+    }
+
+    > div:first-child { margin-right: 1px; }
+    > div:last-child { margin-left: 1px; }
+
+    .glp-compare-line {
+        width: 2px;
+        background: var(--text-tertiary);
+        flex-shrink: 0;
+    }
+}
+
 // Shared upload item (for all layout variants)
 
 
@@ -835,7 +1124,7 @@
 // Blur-up fade-in effect
 .images-blur-up {
     opacity: 0;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.25s ease;
 
     &.images-loaded { opacity: 1; }
 

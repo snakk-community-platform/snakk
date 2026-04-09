@@ -13,7 +13,7 @@ using Snakk.Infrastructure.Database;
 namespace Snakk.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(SnakkDbContext))]
-    [Migration("20260406061646_InitialCreate")]
+    [Migration("20260408142835_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -813,6 +813,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsSpoiler")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Layout")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -931,6 +934,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsSegmented")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SegmentLabel")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SegmentOptionA")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SegmentOptionB")
+                        .HasColumnType("text");
+
                     b.Property<bool>("VotesVisible")
                         .HasColumnType("boolean");
 
@@ -981,6 +996,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("OptionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SegmentIndex")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")
@@ -1035,11 +1053,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("CanRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanWrite")
-                        .HasColumnType("boolean");
+                    b.Property<int>("AccessLevel")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CommunityId")
                         .HasColumnType("integer");

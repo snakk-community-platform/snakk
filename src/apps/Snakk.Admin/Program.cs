@@ -65,9 +65,12 @@ AddGrpcClient<AuthService.AuthServiceClient>(builder.Services);
 AddGrpcClient<ManageService.ManageServiceClient>(builder.Services);
 
 // Named HttpClient for REST calls to internal API (file uploads, etc.)
+// In Docker, REST uses a separate HTTP/1.1 port from gRPC (HTTP/2).
+// Locally with HTTPS, both protocols work on the same port via ALPN.
+var snakkApiRestUrl = builder.Configuration["SnakkApi:RestBaseUrl"] ?? snakkApiBaseUrl;
 builder.Services.AddHttpClient("SnakkApi", client =>
 {
-    client.BaseAddress = new Uri(snakkApiBaseUrl);
+    client.BaseAddress = new Uri(snakkApiRestUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 

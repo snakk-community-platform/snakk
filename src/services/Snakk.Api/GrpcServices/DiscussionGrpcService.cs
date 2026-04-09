@@ -123,6 +123,15 @@ public class DiscussionGrpcService(
                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Poll requires at least 2 options"));
                 if (request.PollOptions.Count > 20)
                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Poll cannot have more than 20 options"));
+                if (request.PollIsSegmented)
+                {
+                    if (!request.HasPollSegmentLabel || string.IsNullOrWhiteSpace(request.PollSegmentLabel))
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, "Segmented poll requires a group question"));
+                    if (!request.HasPollSegmentOptionA || string.IsNullOrWhiteSpace(request.PollSegmentOptionA))
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, "Segmented poll requires two group names"));
+                    if (!request.HasPollSegmentOptionB || string.IsNullOrWhiteSpace(request.PollSegmentOptionB))
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, "Segmented poll requires two group names"));
+                }
                 break;
 
             case DiscussionTypeEnum.Debate:
@@ -163,7 +172,11 @@ public class DiscussionGrpcService(
                     request.PollAllowMultiple,
                     request.PollAllowChangeVote,
                     request.PollClosesAt is not null ? request.PollClosesAt.ToDateTime() : null,
-                    !request.PollSecret);
+                    !request.PollSecret,
+                    request.PollIsSegmented,
+                    request.HasPollSegmentLabel ? request.PollSegmentLabel : null,
+                    request.HasPollSegmentOptionA ? request.PollSegmentOptionA : null,
+                    request.HasPollSegmentOptionB ? request.PollSegmentOptionB : null);
                 break;
 
             case DiscussionTypeEnum.Link:
@@ -187,7 +200,8 @@ public class DiscussionGrpcService(
                 await extensionService.CreateImagesAsync(
                     discussionPublicId,
                     request.HasImagesLayout ? request.ImagesLayout : "grid",
-                    request.ImagesImageUrls.Count > 0 ? request.ImagesImageUrls.ToList() : null);
+                    request.ImagesImageUrls.Count > 0 ? request.ImagesImageUrls.ToList() : null,
+                    request.ImagesIsSpoiler);
                 break;
 
             case DiscussionTypeEnum.Iama:
@@ -208,6 +222,7 @@ public class DiscussionGrpcService(
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
             request.HasCursor ? request.Cursor : null,
             currentUser.GetCurrentUserId(),
             request.HasAuthorId ? request.AuthorId : null);
@@ -307,7 +322,12 @@ public class DiscussionGrpcService(
 
                 if (d.Preview.Images is not null)
                 {
-                    preview.Images = new ImagesPreview { ImageCount = d.Preview.Images.ImageCount };
+                    preview.Images = new ImagesPreview
+                    {
+                        ImageCount = d.Preview.Images.ImageCount,
+                        IsSpoiler = d.Preview.Images.IsSpoiler,
+                        Layout = d.Preview.Images.Layout
+                    };
                     preview.Images.Items.AddRange(d.Preview.Images.Items.Select(i =>
                     {
                         var pi = new ImagesPreviewItem { Url = i.Url };
@@ -489,13 +509,28 @@ public class DiscussionGrpcService(
 
         response.UserVotedOptionIds.AddRange(data.UserVotedOptionIds);
 
+        response.IsSegmented = data.IsSegmented;
+        if (data.SegmentLabel is not null) response.SegmentLabel = data.SegmentLabel;
+        if (data.SegmentOptionA is not null) response.SegmentOptionA = data.SegmentOptionA;
+        if (data.SegmentOptionB is not null) response.SegmentOptionB = data.SegmentOptionB;
+        if (data.UserSegmentIndex.HasValue) response.UserSegmentIndex = data.UserSegmentIndex.Value;
+        if (data.SegmentVotes is not null)
+        {
+            response.SegmentVotes.AddRange(data.SegmentVotes.Select(sv => new PollOptionSegmentVotes
+            {
+                OptionId = sv.OptionId,
+                SegmentACount = sv.SegmentACount,
+                SegmentBCount = sv.SegmentBCount
+            }));
+        }
+
         return response;
     }
 
     public override async Task<VotePollResponse> VotePoll(VotePollRequest request, ServerCallContext context)
     {
         var userId = RequireAuth();
-        var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value);
+        var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value, request.HasSegmentIndex ? (int?)request.SegmentIndex : null);
 
         return new VotePollResponse { Success = success, Error = error };
     }
@@ -573,14 +608,15 @@ public class DiscussionGrpcService(
 
     public override async Task<ImagesLayoutResponse> GetImagesLayout(GetImagesLayoutRequest request, ServerCallContext context)
     {
-        var layout = await typeQueryService.GetImagesLayoutAsync(request.DiscussionId);
+        var (layout, isSpoiler) = await typeQueryService.GetImagesInfoAsync(request.DiscussionId);
         var images = await typeQueryService.GetImagesListAsync(request.DiscussionId);
 
-        var response = new ImagesLayoutResponse { Layout = layout ?? "grid" };
+        var response = new ImagesLayoutResponse { Layout = layout ?? "grid", IsSpoiler = isSpoiler };
         foreach (var img in images)
         {
             var proto = new ImagesImageProto { Url = img.Url };
             if (img.ThumbnailUrl != null) proto.ThumbnailUrl = img.ThumbnailUrl;
+            if (img.MediumThumbnailUrl != null) proto.MediumThumbnailUrl = img.MediumThumbnailUrl;
             if (img.BlurDataUri != null) proto.BlurDataUri = img.BlurDataUri;
             response.Images.Add(proto);
         }

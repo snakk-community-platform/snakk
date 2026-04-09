@@ -8,7 +8,8 @@ public record DiscussionListItemVM(
     bool ShowCommunity,
     ICommunityContext Community,
     bool ShowHub = true,
-    bool ShowSpace = true);
+    bool ShowSpace = true,
+    bool ShowUser = true);
 
 public record SpaceDiscussionListItemVM(
     DiscussionBySpaceInfo Discussion,

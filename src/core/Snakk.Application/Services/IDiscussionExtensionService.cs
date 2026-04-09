@@ -4,7 +4,7 @@ public interface IDiscussionExtensionService
 {
     Task CreateQuestionAsync(string discussionPublicId);
     Task CreateGuideAsync(string discussionPublicId);
-    Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null);
+    Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null, bool isSpoiler = false);
 
     Task CreatePollAsync(
         string discussionPublicId,
@@ -12,7 +12,11 @@ public interface IDiscussionExtensionService
         bool allowMultipleChoices = false,
         bool allowChangeVote = false,
         DateTime? closesAt = null,
-        bool votesVisible = true);
+        bool votesVisible = true,
+        bool isSegmented = false,
+        string? segmentLabel = null,
+        string? segmentOptionA = null,
+        string? segmentOptionB = null);
 
     Task CreateLinkAsync(
         string discussionPublicId,

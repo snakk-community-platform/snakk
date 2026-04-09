@@ -24,7 +24,7 @@
     }
 
     let images: UploadImage[] = [];
-    type ImagesLayout = 'grid' | 'masonry' | 'justified' | 'carousel' | 'hero';
+    type ImagesLayout = 'grid' | 'masonry' | 'justified' | 'carousel' | 'hero' | 'compare';
     type ImagesMode = 'empty' | 'single' | 'multi';
     let currentLayout: ImagesLayout = 'masonry';
     let lastUserLayout: ImagesLayout | null = null;
@@ -39,19 +39,28 @@
         const totalCount = images.length;
         const newMode: ImagesMode = totalCount === 0 ? 'empty' : totalCount === 1 ? 'single' : 'multi';
 
+        // Show/hide compare option (exactly 2 images only) — always check, even if mode didn't change
+        const compareOption = document.getElementById('images-layout-compare');
+        if (compareOption) {
+            compareOption.style.display = totalCount === 2 ? '' : 'none';
+            if (totalCount !== 2 && currentLayout === 'compare') {
+                currentLayout = 'masonry';
+                lastUserLayout = 'masonry';
+                syncLayoutPicker(currentLayout);
+            }
+        }
+
         if (newMode === currentMode) return;
 
         currentMode = newMode;
 
         if (newMode === 'multi') {
-            // Restore last user layout or default to grid
             if (lastUserLayout) {
                 currentLayout = lastUserLayout;
                 syncLayoutPicker(currentLayout);
             }
             showLayoutSection();
 
-            // Show hint on first transition to multi
             if (!hasShownHint && uploadedCount >= 2) {
                 hasShownHint = true;
                 showLayoutHint();
@@ -296,6 +305,38 @@
 
         // Bind add more button
         document.getElementById('images-add-more')?.addEventListener('click', () => fileInput?.click());
+
+        // Compare slider interaction (preview)
+        const cmpContainer = document.getElementById('images-compare-preview');
+        const cmpSlider = document.getElementById('images-compare-slider-preview');
+        const cmpBefore = cmpContainer?.querySelector('.gup-compare-before') as HTMLElement | null;
+        const cmpAfter = cmpContainer?.querySelector('.gup-compare-after') as HTMLElement | null;
+        if (cmpContainer && cmpSlider && cmpBefore && cmpAfter) {
+            let dragging = false;
+            function setPos(x: number): void {
+                const rect = cmpContainer!.getBoundingClientRect();
+                const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+                const rightPct = (1 - pct) * 100;
+                const leftPct = pct * 100;
+                cmpBefore!.style.clipPath = `inset(0 ${rightPct}% 0 0)`;
+                cmpAfter!.style.clipPath = `inset(0 0 0 ${leftPct}%)`;
+                cmpSlider!.style.right = `${rightPct}%`;
+            }
+
+            // Set initial position from "After" label
+            const afterLabel = cmpAfter.querySelector('.gup-compare-label-after') as HTMLElement | null;
+            if (afterLabel) {
+                requestAnimationFrame(() => {
+                    const labelRect = afterLabel.getBoundingClientRect();
+                    setPos(labelRect.left - 12);
+                });
+            }
+
+            cmpSlider.addEventListener('pointerdown', (e) => { dragging = true; cmpSlider!.setPointerCapture(e.pointerId); e.preventDefault(); });
+            cmpContainer.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest('.gup-compare-handle')) { dragging = true; setPos(e.clientX); e.preventDefault(); } });
+            document.addEventListener('pointermove', (e) => { if (dragging) setPos(e.clientX); });
+            document.addEventListener('pointerup', () => { dragging = false; });
+        }
     }
 
     function renderPreview(): void {
@@ -390,6 +431,20 @@
                     html += '</div>';
                 }
                 html += '</div>';
+                break;
+
+            case 'compare':
+                if (images.length >= 2) {
+                    const beforeImg = images[0]!;
+                    const afterImg = images[1]!;
+                    const beforeBg = beforeImg.blurDataUri ? `background-image:url(${beforeImg.blurDataUri});background-size:cover;background-position:center` : '';
+                    const afterBg = afterImg.blurDataUri ? `background-image:url(${afterImg.blurDataUri});background-size:cover;background-position:center` : '';
+                    html += '<div class="gup-compare" id="images-compare-preview">';
+                    html += `<div class="gup-compare-after images-upload-item" style="${afterBg}"><img src="${afterImg.url}" alt="After" /><span class="gup-compare-label gup-compare-label-after">After</span></div>`;
+                    html += `<div class="gup-compare-before images-upload-item" style="${beforeBg}"><img src="${beforeImg.url}" alt="Before" /><span class="gup-compare-label gup-compare-label-before">Before</span></div>`;
+                    html += '<div class="gup-compare-slider" id="images-compare-slider-preview"><div class="gup-compare-line"></div><div class="gup-compare-handle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></div></div>';
+                    html += '</div>';
+                }
                 break;
         }
 
