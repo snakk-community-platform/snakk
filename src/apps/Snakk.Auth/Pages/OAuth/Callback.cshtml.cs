@@ -55,7 +55,7 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 Provider = Provider.ToLower(),
                 ProviderUserId = nameIdentifier,
                 Email = email,
-                DisplayName = name ?? email.Split('@')[0],
+                DisplayName = "",
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
                 UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
             });

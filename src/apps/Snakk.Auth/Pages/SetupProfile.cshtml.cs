@@ -32,7 +32,8 @@ public class SetupProfileModel(
         if (!ModelState.IsValid)
             return Page();
 
-        var accessToken = Request.Cookies[".Snakk.Auth"];
+        var accessToken = Request.Cookies[".Snakk.Auth"]
+            ?? Request.Cookies[".Snakk.Auth.Session"];
 
         if (string.IsNullOrEmpty(accessToken))
         {

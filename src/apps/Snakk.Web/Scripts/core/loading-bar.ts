@@ -36,6 +36,19 @@
         }, { once: true });
     }
 
+    // For boosted navigation, select only #main-content from the full-page response.
+    // Not set on <body> because it would inherit to sidebar/partial HTMX requests.
+    document.addEventListener('htmx:beforeSwap', (evt: Event) => {
+        const detail = (evt as CustomEvent).detail;
+        if (detail.boosted && detail.target?.id === 'main-content') {
+            detail.serverResponse = (() => {
+                const doc = new DOMParser().parseFromString(detail.serverResponse, 'text/html');
+                const main = doc.getElementById('main-content');
+                return main ? main.outerHTML : detail.serverResponse;
+            })();
+        }
+    });
+
     document.addEventListener('htmx:beforeRequest', (evt: Event) => {
         const detail = (evt as CustomEvent).detail;
         if (detail.target && detail.target.id === 'main-content') {

@@ -18,16 +18,18 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
 
     private const string RevocationPrefix = "jwt:revoked:";
 
-    public string GenerateToken(string userId, string displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, jti),
             new(ClaimTypes.NameIdentifier, userId),
-            new(ClaimTypes.Name, displayName),
             new("EmailVerified", emailVerified.ToString())
         };
+
+        if (!string.IsNullOrEmpty(displayName))
+            claims.Add(new(ClaimTypes.Name, displayName));
 
         if (!string.IsNullOrEmpty(email))
             claims.Add(new(ClaimTypes.Email, email));
@@ -40,6 +42,9 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
 
         if (!string.IsNullOrEmpty(avatarFileName))
             claims.Add(new("AvatarFileName", avatarFileName));
+
+        if (needsProfileSetup)
+            claims.Add(new("NeedsProfileSetup", "true"));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -62,7 +67,8 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             user.EmailVerified,
             user.OAuthProvider,
             user.Role,
-            user.AvatarFileName);
+            user.AvatarFileName,
+            user.NeedsProfileSetup);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {

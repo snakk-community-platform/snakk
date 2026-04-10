@@ -6,7 +6,7 @@ using Snakk.Domain.ValueObjects;
 public class User
 {
     public UserId PublicId { get; private set; }
-    public string DisplayName { get; private set; }
+    public string? DisplayName { get; private set; }
     public string? Email { get; private set; }
     public string? PasswordHash { get; private set; }
     public bool EmailVerified { get; private set; }
@@ -47,7 +47,7 @@ public class User
 
     private User(
         UserId publicId,
-        string displayName,
+        string? displayName,
         string? email,
         string? passwordHash,
         bool emailVerified,
@@ -146,19 +146,16 @@ public class User
     }
 
     public static User CreateWithOAuth(
-        string displayName,
         string email,
         string oauthProvider,
         string oauthProviderId)
     {
-        if (string.IsNullOrWhiteSpace(displayName))
-            throw new ArgumentException("Display name cannot be empty", nameof(displayName));
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email cannot be empty", nameof(email));
 
         var user = new User(
             UserId.New(),
-            displayName,
+            null, // DisplayName set later during profile setup
             email,
             passwordHash: null,
             emailVerified: true, // OAuth email is pre-verified
@@ -209,7 +206,7 @@ public class User
 
     public static User Rehydrate(
         UserId publicId,
-        string displayName,
+        string? displayName,
         string? email,
         string? passwordHash,
         bool emailVerified,

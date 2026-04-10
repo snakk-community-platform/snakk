@@ -455,6 +455,20 @@ app.Use(async (context, next) =>
 // Redirect unauthenticated users to SSO login for protected actions
 app.UseAuthRedirect();
 
+// Force users who haven't set their display name to the setup page
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true
+        && context.User.FindFirst(System.Security.Claims.ClaimTypes.Name) is null
+        && !context.Request.Path.StartsWithSegments("/bff"))
+    {
+        context.Response.Redirect("/auth/setup-profile");
+        return;
+    }
+
+    await next();
+});
+
 // Output cache for anonymous visitors (after auth so we can check cookies)
 app.UseOutputCache();
 

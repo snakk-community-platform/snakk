@@ -7,12 +7,13 @@ public interface IJwtTokenService
 {
     string GenerateToken(
         string userId,
-        string displayName,
+        string? displayName,
         string? email,
         bool emailVerified,
         string? oAuthProvider,
         string? role = null,
-        string? avatarFileName = null);
+        string? avatarFileName = null,
+        bool needsProfileSetup = false);
 
     string GenerateToken(User user);
 

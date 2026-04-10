@@ -10,7 +10,7 @@ public class UserDatabaseEntity
     public required string PublicId { get; set; }
 
     // Required attributes
-    public required string DisplayName { get; set; }
+    public string? DisplayName { get; set; }
     public string? Email { get; set; }
     public string? EmailHash { get; set; } // SHA-256 hash of lowercased email for lookups
     public string? PasswordHash { get; set; }

@@ -148,11 +148,8 @@ public class AuthenticationUseCase(
             return Result<User>.Failure($"An account with {email} already exists. Please login with your password to link your {oauthProvider} account.");
         }
 
-        // Create new user with OAuth
-        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName);
-
+        // Create new user with OAuth (no display name — set during profile setup)
         user = User.CreateWithOAuth(
-            suggestedDisplayName,
             email,
             oauthProvider,
             oauthProviderId);
@@ -164,7 +161,7 @@ public class AuthenticationUseCase(
         user.ClearDomainEvents();
 
         // Send welcome email
-        await emailSender.SendWelcomeEmailAsync(email, suggestedDisplayName);
+        await emailSender.SendWelcomeEmailAsync(email, user.DisplayName ?? "there");
 
         return Result<User>.Success(user);
     }
