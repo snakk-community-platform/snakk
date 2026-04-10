@@ -44,7 +44,7 @@ public class UserMapperTests
 
         // Assert
         await Assert.That(entity.PublicId).IsEqualTo(user.PublicId);
-        await Assert.That(entity.DisplayName).IsEqualTo("OAuthUser");
+        await Assert.That(entity.DisplayName).IsNull();
         await Assert.That(entity.Email).IsEqualTo("oauth@example.com");
         await Assert.That(entity.PasswordHash).IsNull();
         await Assert.That(entity.EmailVerified).IsTrue();
