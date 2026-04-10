@@ -53,12 +53,14 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Generates: 1.2.3, 1.2, 1, latest (when tag is v1.2.3 on default branch)
+          # When tag is v1.2.3: pushes 1.2.3, 1.2, 1, v1.2.3, latest
+          # When tag is non-semver (e.g. release-foo): pushes the literal tag + latest
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=raw,value=latest
           labels: |
             org.opencontainers.image.title=Snakk
             org.opencontainers.image.description=A modern, performant community platform built with .NET 10 and ASP.NET Core
