@@ -34,7 +34,7 @@ public class DiscussionRepository(SnakkDbContext context)
             d.Space.PublicId,
             d.Space.Name,
             d.CreatedByUser.PublicId,
-            d.CreatedByUser.DisplayName))
+            d.CreatedByUser.DisplayName ?? ""))
         .FirstOrDefaultAsync();
 
     public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
@@ -93,7 +93,7 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.IsPinned,
                     d.IsLocked,
                     d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName,
+                    d.CreatedByUser.DisplayName ?? "",
                     d.PostCount,
                     d.ReactionCount,
                     string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -186,7 +186,7 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.Space.Hub.Community.Slug,
                     d.Space.Hub.Community.Name,
                     d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName,
+                    d.CreatedByUser.DisplayName ?? "",
                     d.CreatedByUser.AvatarFileName,
                     d.PostCount,
                     d.ReactionCount,

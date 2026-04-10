@@ -98,7 +98,7 @@
                                 <td class="text-sm">
                                     @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
                                     {
-                                        <a href="@SnakkUrlHelper.UserProfile(log.TargetUserPublicId)" class="link link-hover">@log.TargetUserDisplayName</a>
+                                        <a href="@SnakkUrlHelper.UserProfile(log.TargetUserPublicId ?? "")" class="link link-hover">@log.TargetUserDisplayName</a>
                                     }
                                     else if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
                                     {

@@ -25,7 +25,7 @@ public class AdminUserService(
                 .Select(u => new AdminUserDto
                 {
                     PublicId = u.PublicId,
-                    DisplayName = u.DisplayName,
+                    DisplayName = u.DisplayName ?? "",
                     Email = u.Email!,
                     CreatedAt = u.CreatedAt
                 })
@@ -55,7 +55,7 @@ public class AdminUserService(
             .Select(b => new AdminBanDto
             {
                 UserId = b.User.PublicId,
-                UserDisplayName = b.User.DisplayName,
+                UserDisplayName = b.User.DisplayName ?? "",
                 Reason = b.Reason ?? "",
                 BannedBy = b.BannedByUser!.DisplayName ?? "",
                 BannedAt = b.BannedAt,

@@ -20,7 +20,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             ur.Community != null ? ur.Community.PublicId : null,
             ur.Community != null ? ur.Community.Name : null,
@@ -29,7 +29,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ur.Space != null ? ur.Space.PublicId : null,
             ur.Space != null ? ur.Space.Name : null,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .FirstOrDefaultAsync();
@@ -41,7 +41,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             ur.Community != null ? ur.Community.PublicId : null,
             ur.Community != null ? ur.Community.Name : null,
@@ -50,7 +50,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ur.Space != null ? ur.Space.PublicId : null,
             ur.Space != null ? ur.Space.Name : null,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync();
@@ -63,13 +63,13 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             ur.Community!.PublicId,
             ur.Community.Name,
             null, null, null, null,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync();
@@ -82,14 +82,14 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             null, null,
             ur.Hub!.PublicId,
             ur.Hub.Name,
             null, null,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync();
@@ -102,13 +102,13 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             null, null, null, null,
             ur.Space!.PublicId,
             ur.Space.Name,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync();
@@ -120,11 +120,11 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ur => new UserRoleDto(
             ur.PublicId,
             ur.User.PublicId,
-            ur.User.DisplayName,
+            ur.User.DisplayName ?? "",
             ((UserRoleTypeEnum)ur.RoleId).ToString(),
             null, null, null, null, null, null,
             ur.AssignedByUser.PublicId,
-            ur.AssignedByUser.DisplayName,
+            ur.AssignedByUser.DisplayName ?? "",
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync();
@@ -201,13 +201,13 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return new UserRoleDto(
             role.PublicId,
             targetUserPublicId,
-            targetUser.DisplayName,
+            targetUser.DisplayName ?? "",
             roleType.ToString(),
             communityPublicId, communityName,
             hubPublicId, hubName,
             spacePublicId, spaceName,
             assignedByUserPublicId,
-            assigner.DisplayName,
+            assigner.DisplayName ?? "",
             role.AssignedAt,
             null);
     }
@@ -354,7 +354,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         .Select(ub => new UserBanDto(
             ub.PublicId,
             ub.User.PublicId,
-            ub.User.DisplayName,
+            ub.User.DisplayName ?? "",
             ((BanTypeEnum)ub.BanTypeId).ToString(),
             ub.Community != null ? ub.Community.PublicId : null,
             ub.Community != null ? ub.Community.Name : null,
@@ -366,7 +366,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ub.BannedAt,
             ub.ExpiresAt,
             ub.BannedByUser.PublicId,
-            ub.BannedByUser.DisplayName,
+            ub.BannedByUser.DisplayName ?? "",
             ub.UnbannedAt,
             ub.UnbannedByUser != null ? ub.UnbannedByUser.PublicId : null,
             ub.UnbannedByUser != null ? ub.UnbannedByUser.DisplayName : null))
@@ -384,7 +384,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Select(ub => new UserBanDto(
                 ub.PublicId,
                 ub.User.PublicId,
-                ub.User.DisplayName,
+                ub.User.DisplayName ?? "",
                 ((BanTypeEnum)ub.BanTypeId).ToString(),
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
@@ -396,7 +396,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.BannedAt,
                 ub.ExpiresAt,
                 ub.BannedByUser.PublicId,
-                ub.BannedByUser.DisplayName,
+                ub.BannedByUser.DisplayName ?? "",
                 ub.UnbannedAt,
                 null, null))
             .ToListAsync();
@@ -557,7 +557,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return new UserBanDto(
             ban.PublicId,
             targetUserPublicId,
-            targetUser.DisplayName,
+            targetUser.DisplayName ?? "",
             banType.ToString(),
             communityPublicId, communityName,
             hubPublicId, hubName,
@@ -566,7 +566,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             ban.BannedAt,
             expiresAt,
             bannedByUserPublicId,
-            banner.DisplayName,
+            banner.DisplayName ?? "",
             null, null, null);
     }
 
@@ -626,7 +626,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             r.PublicId,
             ((ReportStatusEnum)r.StatusId).ToString(),
             r.ReporterUser.PublicId,
-            r.ReporterUser.DisplayName,
+            r.ReporterUser.DisplayName ?? "",
             r.ReportedPost != null ? r.ReportedPost.PublicId : null,
             r.ReportedPost != null ? r.ReportedPost.Content : null,
             r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
@@ -652,7 +652,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 .Select(c => new ReportCommentDto(
                     c.PublicId,
                     c.AuthorUser.PublicId,
-                    c.AuthorUser.DisplayName,
+                    c.AuthorUser.DisplayName ?? "",
                     c.Content,
                     c.CreatedAt,
                     c.EditedAt))))
@@ -761,7 +761,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 r.PublicId,
                 ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
-                r.ReporterUser.DisplayName,
+                r.ReporterUser.DisplayName ?? "",
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 r.ReportedPost != null
                     ? r.ReportedPost.Content.Length > 100
@@ -950,7 +950,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         return new ReportCommentDto(
             comment.PublicId,
             authorUserPublicId,
-            author.DisplayName,
+            author.DisplayName ?? "",
             content,
             comment.CreatedAt,
             null);
@@ -1024,7 +1024,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Select(ub => new UserBanDto(
                 ub.PublicId,
                 ub.User.PublicId,
-                ub.User.DisplayName,
+                ub.User.DisplayName ?? "",
                 ((BanTypeEnum)ub.BanTypeId).ToString(),
                 ub.Community != null ? ub.Community.PublicId : null,
                 ub.Community != null ? ub.Community.Name : null,
@@ -1036,7 +1036,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ub.BannedAt,
                 ub.ExpiresAt,
                 ub.BannedByUser.PublicId,
-                ub.BannedByUser.DisplayName,
+                ub.BannedByUser.DisplayName ?? "",
                 ub.UnbannedAt,
                 null, null))
             .ToListAsync();
@@ -1080,7 +1080,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Select(ur => new UserRoleDto(
                 ur.PublicId,
                 ur.User.PublicId,
-                ur.User.DisplayName,
+                ur.User.DisplayName ?? "",
                 ((UserRoleTypeEnum)ur.RoleId).ToString(),
                 ur.Community != null ? ur.Community.PublicId : null,
                 ur.Community != null ? ur.Community.Name : null,
@@ -1089,7 +1089,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
                 ur.Space != null ? ur.Space.PublicId : null,
                 ur.Space != null ? ur.Space.Name : null,
                 ur.AssignedByUser.PublicId,
-                ur.AssignedByUser.DisplayName,
+                ur.AssignedByUser.DisplayName ?? "",
                 ur.AssignedAt,
                 ur.RevokedAt))
             .ToListAsync();
@@ -1306,7 +1306,7 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             .Select(ml => new ModerationLogDto(
                 ml.PublicId,
                 ml.ActorUser.PublicId,
-                ml.ActorUser.DisplayName,
+                ml.ActorUser.DisplayName ?? "",
                 ((ModerationActionEnum)ml.ActionId).ToString(),
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,

@@ -142,7 +142,7 @@ public static class PostEndpoints
         var editors = await userRepository.GetByPublicIdsAsync(editorIds);
         var authorNames = editors.ToDictionary(
             u => u.PublicId.Value,
-            u => u.DisplayName);
+            u => u.DisplayName ?? "");
 
         var html = viewService.RenderPostHistory(revisionList, authorNames);
 

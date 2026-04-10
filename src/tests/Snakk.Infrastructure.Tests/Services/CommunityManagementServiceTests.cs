@@ -20,7 +20,7 @@ public class CommunityManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"CommunityManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new CommunityManagementService(_context, Substitute.For<ILogger<CommunityManagementService>>());
+        _service = new CommunityManagementService(_context);
     }
 
     public void Dispose()

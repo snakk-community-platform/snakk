@@ -18,9 +18,7 @@ public class AuthorizationServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"AuthorizationServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new AuthorizationService(
-            _context,
-            Substitute.For<ILogger<AuthorizationService>>());
+        _service = new AuthorizationService(_context);
     }
 
     public void Dispose()

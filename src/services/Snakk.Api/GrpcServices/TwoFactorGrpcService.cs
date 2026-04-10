@@ -91,7 +91,6 @@ public class TwoFactorGrpcService(
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid request"));
 
         var isValid = false;
-        var usedBackupCode = false;
 
         // Try TOTP code first
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
@@ -117,7 +116,6 @@ public class TwoFactorGrpcService(
                     await context.SaveChangesAsync();
 
                     isValid = true;
-                    usedBackupCode = true;
                     break;
                 }
             }

@@ -211,7 +211,7 @@ public class AdminContentService(
             {
                 Slug = d.Slug,
                 Title = d.Title,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorDisplayName = d.CreatedByUser.DisplayName ?? "",
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
                 IsPinned = d.IsPinned,

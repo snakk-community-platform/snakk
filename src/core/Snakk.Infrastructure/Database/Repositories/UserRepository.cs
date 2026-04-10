@@ -19,7 +19,7 @@ public class UserRepository(SnakkDbContext context)
         .Where(u => u.PublicId == publicId)
         .Select(u => new UserDetailDto(
             u.PublicId,
-            u.DisplayName,
+            u.DisplayName ?? "",
             u.Email,
             u.CreatedAt,
             u.LastSeenAt))
@@ -45,18 +45,18 @@ public class UserRepository(SnakkDbContext context)
 
     public async Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName) =>
         _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
-            ? await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName, displayName))
-            : await _dbSet.FirstOrDefaultAsync(u => EF.Functions.Like(u.DisplayName, displayName));
+            ? await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName!, displayName))
+            : await _dbSet.FirstOrDefaultAsync(u => EF.Functions.Like(u.DisplayName!, displayName));
 
     public async Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(
         string query,
         int limit) => _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
         ? await _dbSet
-            .Where(u => EF.Functions.ILike(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
+            .Where(u => EF.Functions.ILike(u.DisplayName!, $"%{EscapeLikePattern(query)}%", "\\"))
             .Take(limit)
             .ToListAsync()
         : await _dbSet
-            .Where(u => EF.Functions.Like(u.DisplayName, $"%{EscapeLikePattern(query)}%", "\\"))
+            .Where(u => EF.Functions.Like(u.DisplayName!, $"%{EscapeLikePattern(query)}%", "\\"))
             .Take(limit)
             .ToListAsync();
 }

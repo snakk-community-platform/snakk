@@ -1,3 +1,4 @@
+@using Snakk.Admin.Components
 @using Snakk.Admin.Services
 @inject CircuitTokenProvider TokenProvider
 @inject IHttpContextAccessor HttpContextAccessor
@@ -50,15 +51,5 @@
             TokenProvider.Token = token;
         if (!string.IsNullOrEmpty(refreshToken))
             TokenProvider.RefreshToken = refreshToken;
-    }
-
-    private class RedirectToLogin : ComponentBase
-    {
-        [Inject] protected NavigationManager Navigation { get; set; } = default!;
-
-        protected override void OnInitialized()
-        {
-            Navigation.NavigateTo($"Auth/Login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}", true);
-        }
     }
 }

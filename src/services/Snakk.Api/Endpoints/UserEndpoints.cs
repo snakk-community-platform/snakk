@@ -55,7 +55,7 @@ public static class UserEndpoints
 
         var items = users.Select(u => new UserSearchResult(
             PublicId: u.PublicId.Value,
-            DisplayName: u.DisplayName,
+            DisplayName: u.DisplayName ?? "",
             AvatarUrl: AvatarHelper.GetAvatarUrl(u.PublicId.Value, AvatarEntityType.User, u.AvatarRevision)
         )).ToList();
 

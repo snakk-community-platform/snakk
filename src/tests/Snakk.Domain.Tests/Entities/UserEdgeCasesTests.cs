@@ -27,7 +27,7 @@ public class UserEdgeCasesTests
     public async Task Anonymize_OAuthUser_ClearsOAuthProviderId()
     {
         // Arrange
-        var user = User.CreateWithOAuth("Jane Smith", "jane@example.com", "Google", "google-id-12345");
+        var user = User.CreateWithOAuth("jane@example.com", "Google", "google-id-12345");
         await Assert.That(user.OAuthProviderId).IsEqualTo("google-id-12345");
 
         // Act
@@ -225,7 +225,7 @@ public class UserEdgeCasesTests
     public async Task CreateWithOAuth_SetsDefaultPreferences()
     {
         // Arrange & Act
-        var user = User.CreateWithOAuth("user", "test@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("test@example.com", "Google", "google-id");
 
         // Assert
         await Assert.That(user.AutoFollowOnReply).IsTrue();
@@ -364,7 +364,7 @@ public class UserEdgeCasesTests
     public async Task HasPassword_ForOAuthUser_ReturnsFalse()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauthuser", "oauth@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("oauth@example.com", "Google", "google-id");
 
         // Act & Assert
         await Assert.That(user.HasPassword()).IsFalse();
@@ -384,7 +384,7 @@ public class UserEdgeCasesTests
     public async Task IsOAuthUser_WhenOAuthProviderSet_ReturnsTrue()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauthuser", "oauth@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("oauth@example.com", "Google", "google-id");
 
         // Act & Assert
         await Assert.That(user.IsOAuthUser()).IsTrue();
@@ -404,7 +404,7 @@ public class UserEdgeCasesTests
     public async Task OAuthUser_ThenSetPassword_BothAreTrueForHybridUser()
     {
         // Arrange
-        var user = User.CreateWithOAuth("hybriduser", "hybrid@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("hybrid@example.com", "Google", "google-id");
         await Assert.That(user.HasPassword()).IsFalse();
 
         // Act

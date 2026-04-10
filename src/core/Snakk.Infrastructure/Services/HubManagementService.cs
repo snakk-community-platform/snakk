@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -9,8 +8,7 @@ using Snakk.Shared.Enums;
 namespace Snakk.Infrastructure.Services;
 
 public class HubManagementService(
-    SnakkDbContext context,
-    ILogger<HubManagementService> _logger) : IHubManagementService
+    SnakkDbContext context) : IHubManagementService
 {
     public async Task<HubOverviewDto?> GetOverviewAsync(
         string hubId,
@@ -69,7 +67,7 @@ public class HubManagementService(
             .Select(ur => new HubModeratorDto
             {
                 UserId = ur.User.PublicId,
-                DisplayName = ur.User.DisplayName,
+                DisplayName = ur.User.DisplayName ?? "",
                 AssignedAt = ur.AssignedAt
             })
             .ToListAsync(cancellationToken);
@@ -83,7 +81,7 @@ public class HubManagementService(
             {
                 Type = "post",
                 Description = p.Discussion.Title,
-                UserDisplayName = p.CreatedByUser.DisplayName,
+                UserDisplayName = p.CreatedByUser.DisplayName ?? "",
                 Timestamp = p.CreatedAt,
                 LinkUrl = $"/c/{hub.Community.Slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
             })
@@ -227,7 +225,7 @@ public class HubManagementService(
                 PublicId = r.PublicId,
                 Description = r.Details,
                 ReportedByUserId = r.ReporterUser.PublicId,
-                ReportedByDisplayName = r.ReporterUser.DisplayName,
+                ReportedByDisplayName = r.ReporterUser.DisplayName ?? "",
                 CreatedAt = r.CreatedAt,
 
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
@@ -258,7 +256,7 @@ public class HubManagementService(
                 Reason = a.Reason ?? "",
                 Timestamp = a.CreatedAt,
 
-                ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName : "System",
+                ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName ?? "" : "System",
             })
             .ToListAsync(cancellationToken);
 

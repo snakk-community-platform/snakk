@@ -142,7 +142,7 @@ public class ReportRepository(SnakkDbContext context)
                 r.PublicId,
                 ((ReportStatusEnum)r.StatusId).ToString(),
                 r.ReporterUser.PublicId,
-                r.ReporterUser.DisplayName,
+                r.ReporterUser.DisplayName ?? "",
                 r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 r.ReportedPost != null
                     ? r.ReportedPost.Content.Length > 100

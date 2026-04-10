@@ -87,7 +87,7 @@ public class UserRepositoryAdapter(
     public async Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit)
     {
         var projections = await context.Users
-            .Where(u => u.DisplayName.Contains(query))
+            .Where(u => u.DisplayName!.Contains(query))
             .Take(limit)
             .Select(u => new UserProjection(u))
             .ToListAsync();
@@ -150,7 +150,7 @@ public class UserRepositoryAdapter(
     private record UserProjection
     {
         public string PublicId { get; init; }
-        public string DisplayName { get; init; }
+        public string? DisplayName { get; init; }
         public string? Email { get; init; }
         public string? PasswordHash { get; init; }
         public bool EmailVerified { get; init; }

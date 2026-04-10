@@ -10,7 +10,7 @@ public class LegalModel(
     ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     public string Title { get; set; } = "";
-    public string Content { get; set; } = "";
+    public new string Content { get; set; } = "";
     public int VersionNumber { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string slug)

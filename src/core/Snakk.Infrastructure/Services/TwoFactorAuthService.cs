@@ -30,7 +30,7 @@ public class TwoFactorAuthService(
 
         var qrCodeUri = totpService.GenerateQrCodeUri(
             secret,
-            user.Email ?? user.DisplayName,
+            user.Email ?? user.DisplayName ?? "",
             "Snakk");
 
         // Store encrypted secret (will be used when user enables 2FA)

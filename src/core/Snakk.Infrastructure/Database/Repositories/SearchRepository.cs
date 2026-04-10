@@ -79,7 +79,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.Title,
                 d.Slug,
                 d.CreatedByUser.PublicId,
-                d.CreatedByUser.DisplayName,
+                d.CreatedByUser.DisplayName ?? "",
                 d.CreatedByUser.AvatarFileName,
                 d.Space.PublicId,
                 d.Space.Name,
@@ -166,7 +166,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 p.PublicId,
                 p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
                 p.CreatedByUser.PublicId,
-                p.CreatedByUser.DisplayName,
+                p.CreatedByUser.DisplayName ?? "",
                 p.CreatedByUser.AvatarFileName,
                 p.Discussion.PublicId,
                 p.Discussion.Title,
@@ -272,7 +272,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.PostCount,
                     d.ReactionCount,
                     d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName,
+                    d.CreatedByUser.DisplayName ?? "",
                     d.CreatedByUser.AvatarFileName,
                     d.Tags)
             })
@@ -447,7 +447,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         s.LatestDiscussion.Slug,
                         s.LatestDiscussion.LastActivityAt,
                         s.LatestDiscussion.AuthorPublicId,
-                        s.LatestDiscussion.AuthorDisplayName,
+                        s.LatestDiscussion.AuthorDisplayName ?? "",
                         s.LatestDiscussion.AuthorAvatarFileName,
                         s.LatestDiscussion.PostCount)
                     : null))
@@ -664,7 +664,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.Space.Hub.Community.Slug,
                     d.Space.Hub.Community.Name,
                     d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName,
+                    d.CreatedByUser.DisplayName ?? "",
                     d.CreatedByUser.AvatarFileName,
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,

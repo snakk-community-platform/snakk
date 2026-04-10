@@ -474,13 +474,13 @@ public class PermissionService(
         {
             PublicId = elevation.PublicId,
             UserPublicId = user.PublicId,
-            UserDisplayName = user.DisplayName,
+            UserDisplayName = user.DisplayName ?? "",
             RoleType = roleType,
             Scope = scope,
             ScopePublicId = await ResolveScopePublicIdAsync(scope, scopeId),
             ExpiresAt = expiresAt,
             Reason = reason,
-            GrantedByDisplayName = adminUser.DisplayName,
+            GrantedByDisplayName = adminUser.DisplayName ?? "",
             CreatedAt = elevation.CreatedAt
         };
     }
@@ -545,13 +545,13 @@ public class PermissionService(
             {
                 PublicId = e.PublicId,
                 UserPublicId = e.User!.PublicId,
-                UserDisplayName = e.User.DisplayName,
+                UserDisplayName = e.User.DisplayName ?? "",
                 RoleType = e.RoleType,
                 Scope = e.Scope,
                 ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
                 ExpiresAt = e.ExpiresAt,
                 Reason = e.Reason,
-                GrantedByDisplayName = e.GrantedBy!.DisplayName,
+                GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
                 RevokedAt = e.RevokedAt,
                 RevokedByDisplayName = e.RevokedBy?.DisplayName,
                 RevokedReason = e.RevokedReason,
@@ -585,13 +585,13 @@ public class PermissionService(
             {
                 PublicId = e.PublicId,
                 UserPublicId = e.User!.PublicId,
-                UserDisplayName = e.User.DisplayName,
+                UserDisplayName = e.User.DisplayName ?? "",
                 RoleType = e.RoleType,
                 Scope = e.Scope,
                 ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
                 ExpiresAt = e.ExpiresAt,
                 Reason = e.Reason,
-                GrantedByDisplayName = e.GrantedBy!.DisplayName,
+                GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
                 RevokedAt = e.RevokedAt,
                 RevokedByDisplayName = e.RevokedBy?.DisplayName,
                 RevokedReason = e.RevokedReason,

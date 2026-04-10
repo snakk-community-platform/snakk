@@ -15,7 +15,7 @@ public class DiscussionCreatedActivityHandler(
         var data = await context.Discussions
             .Where(d => d.PublicId == @event.DiscussionId.Value)
             .Select(d => new {
-                Username = d.CreatedByUser.DisplayName,
+                Username = d.CreatedByUser.DisplayName ?? "",
                 d.Title,
                 CommunityName = d.Space.Hub.Community.Name,
                 HubName = d.Space.Hub.Name,

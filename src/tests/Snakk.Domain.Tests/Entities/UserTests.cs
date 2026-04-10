@@ -73,18 +73,17 @@ public class UserTests
     public async Task CreateWithOAuth_WithValidParameters_CreatesUser()
     {
         // Arrange
-        const string displayName = "oauthuser";
         const string email = "oauth@example.com";
         const string provider = "Google";
         const string providerId = "google-user-id-123";
 
         // Act
-        var user = User.CreateWithOAuth(displayName, email, provider, providerId);
+        var user = User.CreateWithOAuth(email, provider, providerId);
 
         // Assert
         await Assert.That(user).IsNotNull();
         await Assert.That(user.PublicId).IsNotNull();
-        await Assert.That(user.DisplayName).IsEqualTo(displayName);
+        await Assert.That(user.DisplayName).IsNull(); // Set later during profile setup
         await Assert.That(user.Email).IsEqualTo(email);
         await Assert.That(user.PasswordHash).IsNull();
         await Assert.That(user.EmailVerified).IsTrue(); // OAuth emails are pre-verified
@@ -98,20 +97,10 @@ public class UserTests
     [Arguments(null)]
     [Arguments("")]
     [Arguments("   ")]
-    public async Task CreateWithOAuth_WithInvalidDisplayName_ThrowsArgumentException(string? invalidDisplayName)
-    {
-        // Act & Assert
-        await Assert.That(() => User.CreateWithOAuth(invalidDisplayName!, "oauth@example.com", "Google", "id")).Throws<ArgumentException>();
-    }
-
-    [Test]
-    [Arguments(null)]
-    [Arguments("")]
-    [Arguments("   ")]
     public async Task CreateWithOAuth_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
     {
         // Act & Assert
-        await Assert.That(() => User.CreateWithOAuth("displayname", invalidEmail!, "Google", "id")).Throws<ArgumentException>();
+        await Assert.That(() => User.CreateWithOAuth(invalidEmail!, "Google", "id")).Throws<ArgumentException>();
     }
 
     #endregion
@@ -249,7 +238,7 @@ public class UserTests
     public async Task SetPasswordHash_WithValidHash_UpdatesPasswordHash()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauthuser", "oauth@example.com", "Google", "id");
+        var user = User.CreateWithOAuth("oauth@example.com", "Google", "id");
         await Assert.That(user.PasswordHash).IsNull();
 
         // Act
@@ -331,7 +320,7 @@ public class UserTests
     public async Task HasPassword_WithoutPasswordHash_ReturnsFalse()
     {
         // Arrange
-        var user = User.CreateWithOAuth("testuser", "test@example.com", "Google", "id");
+        var user = User.CreateWithOAuth("test@example.com", "Google", "id");
 
         // Act
         var result = user.HasPassword();
@@ -348,7 +337,7 @@ public class UserTests
     public async Task IsOAuthUser_WithOAuthProvider_ReturnsTrue()
     {
         // Arrange
-        var user = User.CreateWithOAuth("testuser", "test@example.com", "Google", "id");
+        var user = User.CreateWithOAuth("test@example.com", "Google", "id");
 
         // Act
         var result = user.IsOAuthUser();

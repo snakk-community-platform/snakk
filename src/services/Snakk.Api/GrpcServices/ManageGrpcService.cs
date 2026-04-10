@@ -32,8 +32,7 @@ public class ManageGrpcService(
     IGroupAccessService groupAccessService,
     IHubManagementService hubManagementService,
     IAllowedTypesService allowedTypesService,
-    DiscussionUseCase discussionUseCase,
-    IDiscussionExtensionService discussionExtensionService) : ManageService.ManageServiceBase
+    DiscussionUseCase discussionUseCase) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,

@@ -16,7 +16,7 @@ public class PostEditedActivityHandler(
             .Where(p => p.PublicId == @event.PostId.Value)
             .Select(p => new {
                 UserId = p.CreatedByUser.PublicId,
-                Username = p.CreatedByUser.DisplayName,
+                Username = p.CreatedByUser.DisplayName ?? "",
                 DiscussionTitle = p.Discussion.Title })
             .FirstOrDefaultAsync();
 

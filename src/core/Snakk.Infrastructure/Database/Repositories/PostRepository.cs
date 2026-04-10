@@ -32,7 +32,7 @@ public class PostRepository(SnakkDbContext context)
             p.Discussion.PublicId,
             p.Discussion.Title,
             p.CreatedByUser.PublicId,
-            p.CreatedByUser.DisplayName,
+            p.CreatedByUser.DisplayName ?? "",
             p.ReplyToPost != null ? p.ReplyToPost.PublicId : null))
         .FirstOrDefaultAsync();
 
@@ -61,7 +61,7 @@ public class PostRepository(SnakkDbContext context)
                 p.EditedAt,
                 p.IsFirstPost,
                 p.CreatedByUser.PublicId,
-                p.CreatedByUser.DisplayName))
+                p.CreatedByUser.DisplayName ?? ""))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;

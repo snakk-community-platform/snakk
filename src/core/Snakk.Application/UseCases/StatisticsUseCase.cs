@@ -39,7 +39,7 @@ public class StatisticsUseCase(
         var results = topContributors
             .Select(c => new TopContributorResult(
                 UserId: c.UserId.Value,
-                DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName : "Deleted User",
+                DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName ?? "" : "Deleted User",
                 AvatarFileName: userDict.TryGetValue(c.UserId.Value, out var u) ? u.AvatarFileName : null,
                 AvatarThumbnailFileName: userDict.TryGetValue(c.UserId.Value, out var ut) ? ut.AvatarThumbnailFileName : null,
                 AvatarMicroFileName: userDict.TryGetValue(c.UserId.Value, out var um) ? um.AvatarMicroFileName : null,

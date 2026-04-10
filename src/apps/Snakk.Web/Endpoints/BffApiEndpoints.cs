@@ -1028,7 +1028,7 @@ public static class BffApiEndpoints
                 : null;
 
             var access = await apiClient.CheckGroupAccessAsync(
-                community2?.PublicId,
+                community2?.PublicId!,
                 hub2?.IsSuccess == true ? hub2.Value?.PublicId : null,
                 space.PublicId);
 

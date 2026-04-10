@@ -27,7 +27,7 @@ public class UserProfileUseCase(
 
         return new UserProfileDto(
             user.PublicId.Value,
-            user.DisplayName,
+            user.DisplayName ?? "",
             user.AvatarFileName,
             user.CreatedAt,
             user.LastSeenAt,

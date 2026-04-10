@@ -227,7 +227,7 @@ public class AuthenticationUseCaseTests
     public async Task LoginWithEmailAsync_WithOAuthUser_ReturnsFailure()
     {
         const string email = "oauth@example.com";
-        var oauthUser = User.CreateWithOAuth("OAuthUser", email, "google", "google123");
+        var oauthUser = User.CreateWithOAuth(email, "google", "google123");
         _userRepository.GetByEmailAsync(email).Returns(oauthUser);
 
         var result = await _useCase.LoginWithEmailAsync(email, "AnyPassword");
@@ -244,7 +244,7 @@ public class AuthenticationUseCaseTests
     public async Task LoginWithOAuthAsync_WithExistingOAuthUser_ReturnsUser()
     {
         const string oauthProviderId = "google123";
-        var existingUser = User.CreateWithOAuth("ExistingUser", "test@example.com", "google", oauthProviderId);
+        var existingUser = User.CreateWithOAuth("test@example.com", "google", oauthProviderId);
         _userRepository.GetByOAuthProviderIdAsync(oauthProviderId).Returns(existingUser);
 
         var result = await _useCase.LoginWithOAuthAsync("google", oauthProviderId, "test@example.com", "TestUser");

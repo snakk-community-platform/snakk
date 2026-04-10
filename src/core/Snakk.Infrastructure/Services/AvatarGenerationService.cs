@@ -15,8 +15,7 @@ public class AvatarGenerationService(
     ILogger<AvatarGenerationService> logger,
     IUserRepository userRepository,
     IHubRepository hubRepository,
-    ISpaceRepository spaceRepository,
-    ICommunityRepository _communityRepository) : IAvatarGenerationService
+    ISpaceRepository spaceRepository) : IAvatarGenerationService
 {
     private readonly int _defaultSize = configuration.GetValue<int>("AvatarSettings:DefaultSize", 80);
 

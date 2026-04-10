@@ -249,7 +249,7 @@ public class AuthenticationUseCase(
             return Result.Failure($"The display name '{trimmed}' was previously used and cannot be reused.");
 
         // Record history before changing
-        var previousName = user.DisplayName;
+        var previousName = user.DisplayName ?? "";
         user.UpdateDisplayName(trimmed);
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(user.PublicId.Value, previousName, trimmed);
@@ -276,7 +276,7 @@ public class AuthenticationUseCase(
         if (suggestedDisplayName != trimmed)
             return Result.Failure($"Display name '{trimmed}' is taken.");
 
-        var previousName = user.DisplayName;
+        var previousName = user.DisplayName ?? "";
         user.UpdateDisplayName(trimmed);
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(

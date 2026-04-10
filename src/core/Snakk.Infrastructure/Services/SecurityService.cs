@@ -132,7 +132,7 @@ public class SecurityService(SnakkDbContext context) : ISecurityService
             {
                 Id = t.TokenValue,
                 UserId = t.User.PublicId,
-                Username = t.User.DisplayName,
+                Username = t.User.DisplayName ?? "",
                 Email = t.User.Email,
                 CreatedAt = t.CreatedAt,
                 ExpiresAt = t.ExpiresAt

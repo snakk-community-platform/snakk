@@ -101,6 +101,7 @@ public class SnakkApiClient(
     public virtual async Task<CommunityInfo?> GetCommunityByDomainAsync(string domain)
     {
         try { return await communityClient.GetCommunityByDomainAsync(new GetCommunityByDomainRequest { Domain = domain }); }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound) { return null; }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 

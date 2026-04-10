@@ -15,7 +15,7 @@ public class FollowCreatedActivityHandler(
         var data = await context.UserFollows
             .Where(f => f.PublicId == @event.FollowId.Value)
             .Select(f => new {
-                Username = f.User.DisplayName,
+                Username = f.User.DisplayName ?? "",
                 TargetType =
                     f.FollowedUser != null ? "user"
                     : f.Space != null ? "space"

@@ -86,11 +86,14 @@ builder.Services.AddHybridCache();
 // Output cache for anonymous visitors — cached responses bypass the full gRPC pipeline
 builder.Services.AddOutputCache(options =>
 {
+    // Disable lock coalescing: if cache generation hangs, waiters don't pile up.
+    // Combined with the gRPC 5s deadline, worst case is a duplicate generation, not a hang.
     // Pages: 30s cache for anonymous visitors
     // Vary by HX-Request header so HTMX boosted requests get separate cache entries
     options.AddPolicy("AnonymousPage", builder => builder
         .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         .Expire(TimeSpan.FromSeconds(30))
+        .SetLocking(false)
         .SetVaryByHeader("HX-Request")
         .SetVaryByQuery("cursor", "offset", "pageSize", "typeFilter")
         .SetVaryByRouteValue("communitySlug", "hubSlug", "spaceSlug", "discussionSlugId", "publicId"));
@@ -99,6 +102,7 @@ builder.Services.AddOutputCache(options =>
     options.AddPolicy("AnonymousPartial", builder => builder
         .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         .Expire(TimeSpan.FromSeconds(10))
+        .SetLocking(false)
         .SetVaryByHeader("HX-Request")
         .SetVaryByQuery("cursor", "offset", "pageSize", "communityId", "hubId", "spaceId", "typeFilter", "hideCommunity", "hideHub"));
 
@@ -106,6 +110,7 @@ builder.Services.AddOutputCache(options =>
     options.AddPolicy("AnonymousProfile", builder => builder
         .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         .Expire(TimeSpan.FromSeconds(60))
+        .SetLocking(false)
         .SetVaryByHeader("HX-Request")
         .SetVaryByRouteValue("publicId"));
 });
@@ -258,7 +263,7 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
         | ForwardedHeaders.XForwardedHost
         | ForwardedHeaders.XForwardedProto
 };
-forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 

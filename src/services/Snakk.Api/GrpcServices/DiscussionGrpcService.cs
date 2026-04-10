@@ -85,13 +85,13 @@ public class DiscussionGrpcService(
         // Validate type-specific required fields
         ValidateTypeSpecificFields(request, type);
 
-        var slug = SlugHelper.ToSlug(request.Title);
+        var slug = SlugHelper.ToSlug(request.Title!);
         var result = await discussionUseCase.CreateDiscussionAsync(
             SpaceId.From(request.SpaceId),
             userId,
-            request.Title,
+            request.Title!,
             slug,
-            request.Content,
+            request.Content!,
             type);
 
         if (!result.IsSuccess || result.Value is null)

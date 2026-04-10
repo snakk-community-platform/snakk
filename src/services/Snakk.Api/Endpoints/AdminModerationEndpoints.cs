@@ -301,7 +301,7 @@ public static class AdminModerationEndpoints
             .Select(r => new AdminReportDetailResponse(
                 Id: r.PublicId,
                 ReporterId: r.ReporterUser.PublicId,
-                ReporterUsername: r.ReporterUser.DisplayName,
+                ReporterUsername: r.ReporterUser.DisplayName ?? "",
                 ReportedUserId: r.ReportedUser != null ? r.ReportedUser.PublicId : null,
                 ReportedUsername: r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
                 PostId: r.ReportedPost != null ? r.ReportedPost.PublicId : null,

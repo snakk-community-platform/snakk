@@ -16,7 +16,7 @@ public class PostCreatedActivityHandler(
         var data = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
             .Select(p => new {
-                Username = p.CreatedByUser.DisplayName,
+                Username = p.CreatedByUser.DisplayName ?? "",
                 DiscussionId = p.Discussion.PublicId,
                 DiscussionTitle = p.Discussion.Title,
                 CommunityName = p.Discussion.Space.Hub.Community.Name,

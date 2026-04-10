@@ -165,7 +165,7 @@ public class GroupService(
             .Select(m => new GroupMemberDto
             {
                 UserPublicId = m.User.PublicId,
-                DisplayName = m.User.DisplayName,
+                DisplayName = m.User.DisplayName ?? "",
                 AddedAt = m.AddedAt
             })
             .ToListAsync(ct);

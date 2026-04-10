@@ -58,11 +58,11 @@ public class StorageModel : SetupPageBase
         var state = GetState();
         state.AvatarStoragePath = AvatarStoragePath.Trim();
         state.StorageProvider = StorageProvider;
-        state.S3Endpoint = S3Endpoint?.Trim();
-        state.S3AccessKey = S3AccessKey?.Trim();
-        state.S3SecretKey = S3SecretKey?.Trim();
-        state.S3BucketName = S3BucketName?.Trim();
-        state.S3PublicUrlBase = S3PublicUrlBase?.TrimEnd('/');
+        state.S3Endpoint = S3Endpoint?.Trim() ?? "";
+        state.S3AccessKey = S3AccessKey?.Trim() ?? "";
+        state.S3SecretKey = S3SecretKey?.Trim() ?? "";
+        state.S3BucketName = S3BucketName?.Trim() ?? "";
+        state.S3PublicUrlBase = S3PublicUrlBase?.TrimEnd('/') ?? "";
         SaveState(state);
 
         return RedirectToPage("AdminAccount");

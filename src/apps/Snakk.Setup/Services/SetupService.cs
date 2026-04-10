@@ -11,7 +11,7 @@ namespace Snakk.Setup.Services;
 /// <summary>
 /// Handles setup wizard operations: DB testing, config writing, DbSeeder invocation.
 /// </summary>
-public class SetupService(IConfiguration configuration)
+public class SetupService()
 {
     /// <summary>
     /// Test a PostgreSQL connection by opening and closing it.

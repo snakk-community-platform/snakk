@@ -34,11 +34,22 @@ public class GrpcAuthInterceptor : Interceptor
             () => new AuthService.AuthServiceClient(channel));
     }
 
+    // Default deadline for all gRPC calls. Prevents hangs from stalled internal calls.
+    // A call exceeding this returns RpcException with DeadlineExceeded, which callers handle gracefully.
+    private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(3);
+
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
+        // Apply default deadline if caller didn't specify one
+        if (context.Options.Deadline is null || context.Options.Deadline == DateTime.MaxValue)
+        {
+            var withDeadline = context.Options.WithDeadline(DateTime.UtcNow.Add(DefaultDeadline));
+            context = new ClientInterceptorContext<TRequest, TResponse>(context.Method!, context.Host, withDeadline);
+        }
+
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null)
             return continuation(request, context);

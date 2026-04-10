@@ -27,7 +27,7 @@ else
             <MudText Typo="Typo.h6" Class="mb-3">@(_editingGroupId is null ? "Add Group" : "Edit Group")</MudText>
             <MudStack Spacing="3">
                 <MudTextField @bind-Value="_formName" Label="Name" Placeholder="e.g., Premium Members"
-                              Immediate="true" OnInput="@OnNameInput" />
+                              Immediate="true" @bind-Value:after="OnNameInput" />
                 <MudTextField @bind-Value="_formSlug" Label="Slug" Placeholder="auto-generated from name"
                               HelperText="Used internally. Lowercase letters, numbers, and hyphens only." />
                 <MudTextField @bind-Value="_formDescription" Label="Description" Lines="2"
@@ -237,10 +237,10 @@ else
         _formError = null;
     }
 
-    private void OnNameInput(ChangeEventArgs e)
+    private void OnNameInput()
     {
         if (_editingGroupId is null && string.IsNullOrWhiteSpace(_formSlug))
-            _formSlug = GenerateSlug(e.Value?.ToString() ?? "");
+            _formSlug = GenerateSlug(_formName ?? "");
     }
 
     private async Task SaveGroup()

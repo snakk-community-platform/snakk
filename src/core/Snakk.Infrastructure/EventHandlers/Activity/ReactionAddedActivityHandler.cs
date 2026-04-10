@@ -16,7 +16,7 @@ public class ReactionAddedActivityHandler(
         var data = await context.PostReactions
             .Where(r => r.PublicId == @event.ReactionId.Value)
             .Select(r => new {
-                Username = r.User.DisplayName,
+                Username = r.User.DisplayName ?? "",
                 ReactionType = ((ReactionTypeEnum)r.TypeId).ToString(),
                 TargetId = r.Post.PublicId,
                 DiscussionTitle = r.Post.Discussion.Title })

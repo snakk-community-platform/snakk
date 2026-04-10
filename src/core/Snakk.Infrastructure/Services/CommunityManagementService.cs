@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -9,8 +8,7 @@ using Snakk.Shared.Enums;
 namespace Snakk.Infrastructure.Services;
 
 public class CommunityManagementService(
-    SnakkDbContext context,
-    ILogger<CommunityManagementService> _logger) : ICommunityManagementService
+    SnakkDbContext context) : ICommunityManagementService
 {
     public async Task<CommunityOverviewDto?> GetOverviewAsync(
         string communityId,
@@ -73,7 +71,7 @@ public class CommunityManagementService(
             .Select(ur => new CommunityMemberDto
             {
                 UserId = ur.User.PublicId,
-                DisplayName = ur.User.DisplayName,
+                DisplayName = ur.User.DisplayName ?? "",
                 JoinedAt = ur.AssignedAt,
                 Roles = new List<string> { ((UserRoleTypeEnum)ur.RoleId).ToString() }
             })
@@ -88,7 +86,7 @@ public class CommunityManagementService(
             {
                 Type = "post",
                 Description = p.Discussion.Title,
-                UserDisplayName = p.CreatedByUser.DisplayName,
+                UserDisplayName = p.CreatedByUser.DisplayName ?? "",
                 Timestamp = p.CreatedAt,
                 LinkUrl = $"/c/{community.Slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
             })
@@ -257,7 +255,7 @@ public class CommunityManagementService(
                 PublicId = r.PublicId,
                 Description = r.Details,
                 ReportedByUserId = r.ReporterUser.PublicId,
-                ReportedByDisplayName = r.ReporterUser.DisplayName,
+                ReportedByDisplayName = r.ReporterUser.DisplayName ?? "",
                 CreatedAt = r.CreatedAt,
 
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
@@ -288,7 +286,7 @@ public class CommunityManagementService(
                 Reason = a.Reason ?? "",
                 Timestamp = a.CreatedAt,
 
-                ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName : "System",
+                ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName ?? "" : "System",
             })
             .ToListAsync(cancellationToken);
 
@@ -301,7 +299,7 @@ public class CommunityManagementService(
             .Select(ub => new BannedUserDto
             {
                 UserId = ub.User.PublicId,
-                DisplayName = ub.User.DisplayName,
+                DisplayName = ub.User.DisplayName ?? "",
                 BannedAt = ub.BannedAt,
                 IsPermanent = ub.ExpiresAt == null
             })

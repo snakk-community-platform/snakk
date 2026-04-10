@@ -24,7 +24,7 @@ public class UserCreatedActivityHandler(
 
         await activityBroadcaster.BroadcastUserRegistered(
             @event.UserId.Value,
-            user.DisplayName,
+            user.DisplayName ?? "",
             user.Email ?? "");
     }
 }

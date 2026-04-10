@@ -16,7 +16,7 @@ public class PostDeletedActivityHandler(
             .Where(u => u.PublicId == @event.DeletedByUserId.Value)
             .Select(u => new {
                 UserId = u.PublicId,
-                Username = u.DisplayName })
+                Username = u.DisplayName ?? "" })
             .FirstOrDefaultAsync();
 
         if (data is null)

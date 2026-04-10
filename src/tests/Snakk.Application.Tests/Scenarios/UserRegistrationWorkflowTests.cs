@@ -222,7 +222,7 @@ public class UserRegistrationWorkflowTests
         // Arrange
         const string oauthProvider = "github";
         const string oauthProviderId = "github_456";
-        var existingUser = User.CreateWithOAuth("ExistingUser", "existing@example.com", oauthProvider, oauthProviderId);
+        var existingUser = User.CreateWithOAuth("existing@example.com", oauthProvider, oauthProviderId);
 
         _userRepository.GetByOAuthProviderIdAsync(oauthProviderId)
             .Returns(existingUser);

@@ -79,7 +79,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         .Where(u => u.PublicId == publicId)
         .Select(u => new UserStatsDto(
             u.PublicId,
-            u.DisplayName,
+            u.DisplayName ?? "",
             u.DiscussionCount,
             u.ReplyCount,
             u.FollowerCount,

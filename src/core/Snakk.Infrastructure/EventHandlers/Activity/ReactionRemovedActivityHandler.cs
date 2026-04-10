@@ -31,7 +31,7 @@ public class ReactionRemovedActivityHandler(
 
         await activityBroadcaster.BroadcastReactionAdded(
             @event.UserId.Value,
-            user.DisplayName,
+            user.DisplayName ?? "",
             $"{@event.Type} (removed)",
             "post",
             post.PostId,

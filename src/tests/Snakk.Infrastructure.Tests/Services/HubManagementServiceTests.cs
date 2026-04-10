@@ -20,7 +20,7 @@ public class HubManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"HubManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new HubManagementService(_context, Substitute.For<ILogger<HubManagementService>>());
+        _service = new HubManagementService(_context);
     }
 
     public void Dispose()

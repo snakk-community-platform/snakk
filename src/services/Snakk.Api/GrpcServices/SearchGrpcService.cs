@@ -22,7 +22,7 @@ public class SearchGrpcService(
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         var result = await searchUseCase.SearchDiscussionsAsync(
-            request.Query,
+            request.Query!,
             request.HasAuthorId ? request.AuthorId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasHubId ? request.HubId : null,
@@ -89,7 +89,7 @@ public class SearchGrpcService(
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         var result = await searchUseCase.SearchPostsAsync(
-            request.Query,
+            request.Query!,
             request.HasAuthorId ? request.AuthorId : null,
             request.HasDiscussionId ? request.DiscussionId : null,
             request.HasSpaceId ? request.SpaceId : null,

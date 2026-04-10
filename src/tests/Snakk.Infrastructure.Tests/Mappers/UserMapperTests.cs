@@ -37,7 +37,7 @@ public class UserMapperTests
     public async Task ToPersistence_WithOAuthUser_MapsOAuthProperties()
     {
         // Arrange
-        var user = User.CreateWithOAuth("OAuthUser", "oauth@example.com", "google", "google_123");
+        var user = User.CreateWithOAuth("oauth@example.com", "google", "google_123");
 
         // Act
         var entity = user.ToPersistence();
@@ -433,7 +433,7 @@ public class UserMapperTests
     public async Task RoundTrip_WithOAuthUser_PreservesAllData()
     {
         // Arrange
-        var originalUser = User.CreateWithOAuth("OAuthUser", "oauth@example.com", "github", "github_456");
+        var originalUser = User.CreateWithOAuth("oauth@example.com", "github", "github_456");
 
         // Act
         var entity = originalUser.ToPersistence();

@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
 public class AuthorizationService(
-    SnakkDbContext context,
-    ILogger<AuthorizationService> _logger) : IAuthorizationService
+    SnakkDbContext context) : IAuthorizationService
 {
     public async Task<bool> UserHas2FAEnabledAsync(string userId)
     {

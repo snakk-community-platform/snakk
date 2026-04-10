@@ -173,7 +173,7 @@ public class DetailModel(
             if (!discussionResult.IsSuccess)
                 return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
-            Discussion = discussionResult.Value;
+            Discussion = discussionResult.Value!;
             CanonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}";
 
             // Await space stats (started earlier in parallel)

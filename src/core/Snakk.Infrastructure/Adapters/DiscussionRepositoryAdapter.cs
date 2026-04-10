@@ -243,7 +243,7 @@ public class DiscussionRepositoryAdapter(
                 p.Discussion.Title,
                 p.Discussion.Slug,
                 AuthorPublicId = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.PublicId : "",
-                AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName : "",
+                AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName ?? "" : "",
                 AuthorAvatarFileName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.AvatarFileName : (string?)null,
                 p.Discussion.Space.Hub.CommunityId,
 

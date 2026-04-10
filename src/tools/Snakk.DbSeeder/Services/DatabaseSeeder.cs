@@ -371,7 +371,7 @@ public class DatabaseSeeder(
             .UseSeed(Seed)
             .RuleFor(u => u.PublicId, _ => Ulid.NewUlid().ToString())
             .RuleFor(u => u.DisplayName, f => f.Name.FullName())
-            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.DisplayName.Split(' ')[0], u.DisplayName.Split(' ').Last()).ToLower())
+            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.DisplayName!.Split(' ')[0], u.DisplayName!.Split(' ').Last()).ToLower())
             .RuleFor(u => u.EmailHash, (_, u) => _emailProtector.ComputeHash(u.Email!))
             .RuleFor(u => u.CreatedAt, f => f.Date.Between(EarliestDate.AddDays(-30), Now.AddDays(-7)))
             .RuleFor(u => u.LastSeenAt, f => f.Date.Between(Now.AddDays(-14), Now));

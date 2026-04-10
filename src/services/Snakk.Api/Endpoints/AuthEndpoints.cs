@@ -105,7 +105,7 @@ public static class AuthEndpoints
             User: new RegisterUserInfo(
                 Id: user.PublicId.Value,
                 Email: user.Email ?? "",
-                DisplayName: user.DisplayName,
+                DisplayName: user.DisplayName ?? "",
                 EmailVerified: user.EmailVerified)));
     }
 
@@ -165,7 +165,7 @@ public static class AuthEndpoints
             {
                 Id = user.PublicId.Value,
                 Email = user.Email ?? "",
-                DisplayName = user.DisplayName,
+                DisplayName = user.DisplayName ?? "",
                 EmailVerified = user.EmailVerified,
                 Roles = roles
             }

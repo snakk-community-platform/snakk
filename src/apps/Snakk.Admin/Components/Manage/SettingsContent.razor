@@ -141,15 +141,15 @@
                         ? $"Inherited: {Snakk.Shared.Models.SupportedLanguages.GetByCode(_inheritedLanguageCode)?.Name ?? _inheritedLanguageCode}"
                         : "Inherits from parent. Set to override.";
 
-                <MudSelect @bind-Value="_languageCode" T="string?" Label="@langLabel"
+                <MudSelect @bind-Value="_languageCode" T="string" Label="@langLabel"
                            HelperText="@langHelper" Clearable="@(Scope.ScopeType != "Community")">
                     @if (Scope.ScopeType != "Community")
                     {
-                        <MudSelectItem Value="@((string?)null)">Inherit from parent</MudSelectItem>
+                        <MudSelectItem Value="@InheritLanguageValue">Inherit from parent</MudSelectItem>
                     }
                     @foreach (var lang in Snakk.Shared.Models.SupportedLanguages.All)
                     {
-                        <MudSelectItem Value="@((string?)lang.Code)">
+                        <MudSelectItem Value="@lang.Code">
                             <div class="d-flex align-center gap-2">
                                 <img src="/flags/@(lang.FlagCode).svg" style="width:20px;height:15px" alt="" />
                                 @lang.Name (@lang.NativeName)
@@ -221,6 +221,9 @@
 </MudPaper>
 
 @code {
+#nullable enable
+    private static readonly string? InheritLanguageValue = null;
+
     [CascadingParameter]
     public ManageScopeDto? Scope { get; set; }
 

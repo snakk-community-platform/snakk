@@ -285,7 +285,7 @@ public class PostUseCase(
             if (authorsDict.TryGetValue(authorId.Value, out var user))
             {
                 authors[authorId.Value] = new AuthorInfo(
-                    user.DisplayName,
+                    user.DisplayName ?? "",
                     user.Role,
                     user.AvatarFileName,
                     user.AvatarThumbnailFileName,
@@ -326,7 +326,7 @@ public class PostUseCase(
             foreach (var replyPost in replyPostsList)
             {
                 var authorName = authorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
-                    ? replyAuthor.DisplayName
+                    ? replyAuthor.DisplayName ?? ""
                     : "Deleted User";
 
                 var snippet = replyPost.Content.Length > 100

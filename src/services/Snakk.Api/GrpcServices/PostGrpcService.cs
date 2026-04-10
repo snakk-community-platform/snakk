@@ -148,7 +148,7 @@ public class PostGrpcService(
         var result = await postUseCase.CreatePostAsync(
             DiscussionId.From(request.DiscussionId),
             userId,
-            request.Content,
+            request.Content!,
             replyToPostId);
 
         if (!result.IsSuccess || result.Value is null)

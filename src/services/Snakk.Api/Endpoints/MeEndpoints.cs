@@ -48,7 +48,7 @@ public static class MeEndpoints
 
         return TypedResults.Ok(new CurrentUserResponse(
             PublicId: result.Value!.PublicId.Value,
-            DisplayName: result.Value.DisplayName,
+            DisplayName: result.Value.DisplayName ?? "",
             Email: result.Value.Email ?? "",
             EmailVerified: result.Value.EmailVerified,
             OAuthProvider: result.Value.OAuthProvider,

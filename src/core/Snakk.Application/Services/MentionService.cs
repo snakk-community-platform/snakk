@@ -75,7 +75,7 @@ public partial class MentionService(
                 authorUserId,
                 postId,
                 discussionId,
-                author.DisplayName,
+                author.DisplayName ?? "",
                 discussion.Title);
 
             await notificationUseCase.CreateNotificationAsync(notification);

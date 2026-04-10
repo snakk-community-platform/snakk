@@ -20,7 +20,7 @@ public class SpaceManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SpaceManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new SpaceManagementService(_context, Substitute.For<ILogger<SpaceManagementService>>());
+        _service = new SpaceManagementService(_context);
     }
 
     public void Dispose()

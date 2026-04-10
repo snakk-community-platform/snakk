@@ -85,7 +85,7 @@ public class ModerationLogRepository(SnakkDbContext context)
             .Select(ml => new ModerationLogDto(
                 ml.PublicId,
                 ml.ActorUser.PublicId,
-                ml.ActorUser.DisplayName,
+                ml.ActorUser.DisplayName ?? "",
                 ((ModerationActionEnum)ml.ActionId).ToString(),
                 ml.TargetPost != null ? ml.TargetPost.PublicId : null,
                 ml.TargetDiscussion != null ? ml.TargetDiscussion.PublicId : null,

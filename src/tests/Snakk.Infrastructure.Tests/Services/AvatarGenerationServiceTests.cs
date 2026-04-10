@@ -53,8 +53,7 @@ public class AvatarGenerationServiceTests
             _logger,
             _userRepository,
             _hubRepository,
-            _spaceRepository,
-            _communityRepository);
+            _spaceRepository);
     }
 
     #region GenerateUserAvatarAsync Tests
