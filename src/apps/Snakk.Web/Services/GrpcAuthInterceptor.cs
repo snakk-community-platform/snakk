@@ -38,6 +38,10 @@ public class GrpcAuthInterceptor : Interceptor
     // A call exceeding this returns RpcException with DeadlineExceeded, which callers handle gracefully.
     private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(3);
 
+    // Timing thresholds for gRPC call observability
+    private static readonly TimeSpan SlowCallThreshold = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan VerySlowCallThreshold = TimeSpan.FromMilliseconds(2000);
+
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
@@ -52,7 +56,7 @@ public class GrpcAuthInterceptor : Interceptor
 
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null)
-            return continuation(request, context);
+            return WrapWithTiming(continuation(request, context), context.Method!.FullName);
 
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         var refreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
@@ -60,7 +64,7 @@ public class GrpcAuthInterceptor : Interceptor
         // Skip interception for RefreshToken calls to prevent recursion
         var methodName = context.Method?.Name;
         if (methodName == nameof(AuthService.AuthServiceClient.RefreshToken))
-            return continuation(request, context);
+            return WrapWithTiming(continuation(request, context), context.Method!.FullName);
 
         // If access token is expired but we have a refresh token, auto-refresh
         if (!string.IsNullOrEmpty(refreshToken) && IsTokenExpired(accessToken))
@@ -98,10 +102,64 @@ public class GrpcAuthInterceptor : Interceptor
             var newContext = new ClientInterceptorContext<TRequest, TResponse>(
                 context.Method!, context.Host, newOptions);
 
-            return continuation(request, newContext);
+            return WrapWithTiming(continuation(request, newContext), context.Method!.FullName);
         }
 
-        return continuation(request, context);
+        return WrapWithTiming(continuation(request, context), context.Method!.FullName);
+    }
+
+    /// <summary>
+    /// Wraps an AsyncUnaryCall to log timing information when the response completes.
+    /// Logs warnings for slow calls (>500ms) and errors for very slow calls (>2000ms).
+    /// </summary>
+    private AsyncUnaryCall<TResponse> WrapWithTiming<TResponse>(
+        AsyncUnaryCall<TResponse> call, string methodFullName)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var timedResponse = WrapResponseAsync(call.ResponseAsync, sw, methodFullName);
+
+        return new AsyncUnaryCall<TResponse>(
+            timedResponse,
+            call.ResponseHeadersAsync,
+            call.GetStatus,
+            call.GetTrailers,
+            call.Dispose);
+    }
+
+    private async Task<TResponse> WrapResponseAsync<TResponse>(
+        Task<TResponse> inner, System.Diagnostics.Stopwatch sw, string methodFullName)
+    {
+        try
+        {
+            var result = await inner.ConfigureAwait(false);
+            sw.Stop();
+            LogTiming(methodFullName, sw.Elapsed, success: true);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            LogTiming(methodFullName, sw.Elapsed, success: false, error: ex.GetType().Name);
+            throw;
+        }
+    }
+
+    private void LogTiming(string methodFullName, TimeSpan elapsed, bool success, string? error = null)
+    {
+        var ms = (int)elapsed.TotalMilliseconds;
+
+        if (elapsed >= VerySlowCallThreshold)
+        {
+            _logger.LogError(
+                "Very slow gRPC call: {Method} took {DurationMs}ms (success={Success}{Error})",
+                methodFullName, ms, success, error is null ? "" : $", error={error}");
+        }
+        else if (elapsed >= SlowCallThreshold)
+        {
+            _logger.LogWarning(
+                "Slow gRPC call: {Method} took {DurationMs}ms (success={Success}{Error})",
+                methodFullName, ms, success, error is null ? "" : $", error={error}");
+        }
     }
 
     private bool IsTokenExpired(string? token)
