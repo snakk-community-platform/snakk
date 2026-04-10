@@ -139,6 +139,7 @@ src/
 
 docs/
 ├── ARCHITECTURE.md                 # Architecture documentation
+├── ENVIRONMENT.md                  # Environment variables reference
 ├── REALTIME.MD                     # Real-time features
 ├── PERFORMANCE-AUDIT.md            # Performance audit notes
 ├── PROJECT-STRUCTURE.MD            # Detailed project structure
@@ -148,9 +149,31 @@ docs/
 
 ## Installation
 
-### Docker (Recommended)
+### Quick Start (Pre-built Image)
 
-The fastest way to deploy Snakk on a Linux server. The installer handles Docker, PostgreSQL, Caddy (HTTPS), memory tuning, and launches the browser-based setup wizard.
+If you already have Docker and Docker Compose installed, you can run Snakk with two files and one command. No source checkout, no compilation.
+
+```bash
+# 1. Download the production compose file
+wget https://raw.githubusercontent.com/snakk-community-platform/snakk/main/docker/docker-compose.production.yml -O docker-compose.yml
+
+# 2. Generate a database password and write to .env
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')" > .env
+
+# 3. Pull and start
+docker compose up -d
+
+# 4. Open the setup wizard
+echo "http://$(hostname -I | awk '{print $1}'):17000"
+```
+
+The container is published at [`ghcr.io/snakk-community-platform/snakk`](https://github.com/snakk-community-platform/snakk/pkgs/container/snakk). Versioned tags are available alongside `:latest` — pin to e.g. `:1.2.3` for production deployments.
+
+See [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) for the full list of supported environment variables (OAuth, S3 storage, Cloudflare Turnstile, etc.).
+
+### Installer Script (Linux server)
+
+For a fresh Linux server with no Docker installed, the installer handles Docker, PostgreSQL tuning, Caddy (HTTPS), and launches the setup wizard automatically.
 
 ```bash
 curl -fsSL https://get.snakk.community/install-docker.sh | sudo bash

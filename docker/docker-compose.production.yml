@@ -1,0 +1,70 @@
+# =============================================================================
+# Snakk — Production Docker Compose
+# =============================================================================
+# Standalone deployment using the pre-built image from GitHub Container Registry.
+# No source code or git clone required.
+#
+# Quick start:
+#   1. wget https://raw.githubusercontent.com/snakk-community-platform/snakk/main/docker/docker-compose.production.yml
+#   2. mv docker-compose.production.yml docker-compose.yml
+#   3. echo "POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')" > .env
+#   4. docker compose up -d
+#   5. Open http://your-server-ip:17000 to complete setup
+#
+# Pin a specific version by changing :latest to :1.2.3 below.
+#
+# See: https://github.com/snakk-community-platform/snakk/blob/main/docs/ENVIRONMENT.md
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    environment:
+      POSTGRES_DB: snakk
+      POSTGRES_USER: snakk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env file}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snakk -d snakk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    expose:
+      - "5432"
+
+  snakk:
+    image: ghcr.io/snakk-community-platform/snakk:${SNAKK_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${SNAKK_PORT:-17000}:17000"
+    volumes:
+      - snakk-storage:/app/storage
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 512m
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
+      Gateway__DisableHealthChecks: "true"
+
+volumes:
+  pgdata:
+    driver: local
+  snakk-storage:
+    driver: local

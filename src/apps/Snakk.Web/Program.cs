@@ -3,6 +3,7 @@ using Snakk.Web.Filters;
 using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
 using Snakk.Shared.Helpers;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -245,6 +246,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Persist Data Protection keys to shared storage so antiforgery + auth cookies
+// survive container restarts and can be decrypted by Snakk.Auth/Snakk.Admin too.
+var dataProtectionPath = Path.Combine(
+    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
+    "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("Snakk");
 
 var app = builder.Build();
 

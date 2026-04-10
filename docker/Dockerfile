@@ -89,6 +89,15 @@ RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /pu
 # ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
+# OCI labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
+LABEL org.opencontainers.image.title="Snakk" \
+      org.opencontainers.image.description="A modern, performant community platform built with .NET 10 and ASP.NET Core" \
+      org.opencontainers.image.source="https://github.com/snakk-community-platform/snakk" \
+      org.opencontainers.image.url="https://snakk.community" \
+      org.opencontainers.image.documentation="https://github.com/snakk-community-platform/snakk#readme" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="Snakk Community Platform"
+
 # Install supervisord and curl (for health checks)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends supervisor curl && \

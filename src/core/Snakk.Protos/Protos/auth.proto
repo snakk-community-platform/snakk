@@ -155,8 +155,8 @@ message OAuthCallbackResponse {
 
 message UserInfo {
   string id = 1;
-  string email = 2;
-  string display_name = 3;
+  optional string email = 2;
+  optional string display_name = 3;
   bool email_verified = 4;
   repeated string roles = 5;
 }

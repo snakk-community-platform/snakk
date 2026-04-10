@@ -65,14 +65,7 @@ public class AuthGrpcService(
             AccessToken = jwt,
             RefreshToken = refreshTokenResult.Value!.Value,
             Message = "Registration successful. Please check your email to verify your account.",
-            User = new Protos.Auth.UserInfo
-            {
-                Id = user.PublicId.Value,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                EmailVerified = user.EmailVerified,
-                Roles = { roles }
-            }
+            User = BuildUserInfo(user, roles)
         };
     }
 
@@ -105,14 +98,7 @@ public class AuthGrpcService(
             {
                 TwoFactorRequired = true,
                 Message = "Two-factor authentication required",
-                User = new Protos.Auth.UserInfo
-                {
-                    Id = user.PublicId.Value,
-                    Email = user.Email,
-                    DisplayName = user.DisplayName,
-                    EmailVerified = user.EmailVerified,
-                    Roles = { roles }
-                }
+                User = BuildUserInfo(user, roles)
             };
         }
 
@@ -138,14 +124,7 @@ public class AuthGrpcService(
         {
             AccessToken = jwt,
             RefreshToken = refreshTokenResult.Value!.Value,
-            User = new Protos.Auth.UserInfo
-            {
-                Id = user.PublicId.Value,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                EmailVerified = user.EmailVerified,
-                Roles = { roles }
-            }
+            User = BuildUserInfo(user, roles)
         };
     }
 
@@ -364,14 +343,7 @@ public class AuthGrpcService(
             {
                 TwoFactorRequired = true,
                 IsNewUser = isNewUser,
-                User = new Protos.Auth.UserInfo
-                {
-                    Id = user.PublicId.Value,
-                    Email = user.Email,
-                    DisplayName = user.DisplayName,
-                    EmailVerified = user.EmailVerified,
-                    Roles = { roles }
-                }
+                User = BuildUserInfo(user, roles)
             };
         }
 
@@ -401,14 +373,7 @@ public class AuthGrpcService(
             AccessToken = jwt,
             RefreshToken = refreshTokenResult.Value!.Value,
             IsNewUser = isNewUser,
-            User = new Protos.Auth.UserInfo
-            {
-                Id = user.PublicId.Value,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                EmailVerified = user.EmailVerified,
-                Roles = { roles }
-            }
+            User = BuildUserInfo(user, roles)
         };
     }
 
@@ -495,4 +460,21 @@ public class AuthGrpcService(
             .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
             .ToListAsync();
+
+    // Builds a UserInfo proto with conditional assignment for nullable fields.
+    // Email/DisplayName are proto3 `optional` — leave unset when null rather than coercing to "".
+    private static Protos.Auth.UserInfo BuildUserInfo(Snakk.Domain.Entities.User user, List<string> roles)
+    {
+        var info = new Protos.Auth.UserInfo
+        {
+            Id = user.PublicId.Value,
+            EmailVerified = user.EmailVerified,
+            Roles = { roles }
+        };
+
+        if (user.Email is not null) info.Email = user.Email;
+        if (user.DisplayName is not null) info.DisplayName = user.DisplayName;
+
+        return info;
+    }
 }

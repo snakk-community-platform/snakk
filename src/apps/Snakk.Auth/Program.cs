@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -109,6 +110,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
+
+// Persist Data Protection keys to shared storage so antiforgery + auth cookies
+// survive container restarts and can be decrypted by Snakk.Web/Snakk.Admin too.
+var dataProtectionPath = Path.Combine(
+    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
+    "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("Snakk");
 
 var app = builder.Build();
 

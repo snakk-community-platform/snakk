@@ -48,13 +48,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          # Strip leading 'v' for semver-only tag
-          echo "semver=${TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Generates: 1.2.3, 1.2, 1, latest (when tag is v1.2.3 on default branch)
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Snakk
+            org.opencontainers.image.description=A modern, performant community platform built with .NET 10 and ASP.NET Core
+            org.opencontainers.image.url=https://snakk.community
+            org.opencontainers.image.documentation=https://github.com/snakk-community-platform/snakk#readme
+            org.opencontainers.image.vendor=Snakk Community Platform
+            org.opencontainers.image.licenses=MIT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -65,8 +76,7 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
