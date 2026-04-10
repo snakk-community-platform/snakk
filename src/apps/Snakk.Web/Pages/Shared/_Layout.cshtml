@@ -16,14 +16,45 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon/favicon-16x16.png" />
     <link rel="manifest" href="/img/favicon/site.webmanifest" />
 
+    @{
+        var canonicalUrl = ViewData["CanonicalUrl"] as string
+            ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+        var ogTitle = ViewData["OgTitle"] as string ?? ViewData["Title"] as string ?? "Snakk";
+        var ogDescription = ViewData["OgDescription"] as string ?? ViewData["Description"] as string;
+        var ogImage = ViewData["OgImage"] as string
+            ?? $"{Context.Request.Scheme}://{Context.Request.Host}/img/logo-square.webp";
+        var ogType = ViewData["OgType"] as string ?? "website";
+    }
     <meta property="og:site_name" content="Snakk" />
+    <meta property="og:title" content="@ogTitle" />
+    <meta property="og:url" content="@canonicalUrl" />
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:image" content="@ogImage" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    @if (!string.IsNullOrEmpty(ogDescription))
+    {
+        <meta property="og:description" content="@ogDescription" />
+    }
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="@ogTitle" />
+    <meta name="twitter:image" content="@ogImage" />
+    @if (!string.IsNullOrEmpty(ogDescription))
+    {
+        <meta name="twitter:description" content="@ogDescription" />
+    }
+
+    <link rel="alternate" type="application/json+oembed"
+          href="@($"{Context.Request.Scheme}://{Context.Request.Host}/oembed?url={Uri.EscapeDataString(canonicalUrl)}")"
+          title="@ogTitle" />
+
     @await RenderSectionAsync("Meta", required: false)
     @if (ViewData["Description"] != null)
     {
         <meta name="description" content="@ViewData["Description"]" />
     }
 
-    <link rel="canonical" href="@(ViewData["CanonicalUrl"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
+    <link rel="canonical" href="@canonicalUrl" />
     @if (ViewData["RssFeedUrl"] is string rssFeedUrl)
     {
         <link rel="alternate" type="application/rss+xml" title="@(ViewData["RssFeedTitle"] ?? "RSS Feed")" href="@rssFeedUrl" />
