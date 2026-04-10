@@ -16,7 +16,25 @@
             <li>An email for the admin account</li>
         </ul>
     </div>
-    <form method="post">
+    <form method="post" class="space-y-4">
+        @if (Model.RequiresPassword)
+        {
+            <div class="form-control max-w-xs mx-auto">
+                <input type="password"
+                       name="Password"
+                       class="input w-full text-center"
+                       placeholder="Setup password"
+                       required
+                       autofocus />
+                <label class="label">
+                    <span class="label-text-alt text-base-content/50">From the installer output</span>
+                </label>
+            </div>
+            @if (Model.ShowError)
+            {
+                <p class="text-error text-sm">Incorrect password.</p>
+            }
+        }
         <button type="submit" class="btn btn-primary btn-lg">Begin Setup</button>
     </form>
 </div>

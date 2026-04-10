@@ -50,6 +50,31 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/setup"
 });
 app.UseSession();
+
+// Require setup password if SETUP_PASSWORD env var is set (must be after UseSession)
+var setupPassword = Environment.GetEnvironmentVariable("SETUP_PASSWORD");
+if (!string.IsNullOrEmpty(setupPassword))
+{
+    app.Use(async (context, next) =>
+    {
+        var path = context.Request.Path.Value ?? "";
+        if (path.StartsWith("/setup/css", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            await next();
+            return;
+        }
+
+        var isAuthenticated = context.Session.GetString("SetupAuthenticated") == "true";
+        if (!isAuthenticated && !path.Equals("/setup", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Redirect("/setup");
+            return;
+        }
+
+        await next();
+    });
+}
 app.UseRouting();
 app.MapRazorPages();
 app.MapGet("/health", () => Results.Ok("healthy"));

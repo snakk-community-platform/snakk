@@ -1124,7 +1124,7 @@
 // Blur-up fade-in effect
 .images-blur-up {
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity 50ms ease;
 
     &.images-loaded { opacity: 1; }
 

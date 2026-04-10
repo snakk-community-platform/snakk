@@ -48,16 +48,9 @@
     }
 }
 
-// Avatar loading shimmer — visible while <img> src is loading,
+// Avatar placeholder — visible while <img> src is loading,
 // covered naturally once the image renders.
-// Uses composited opacity pulse (transform/opacity are GPU-accelerated).
 img.rounded-full,
 .avatar img {
     background: var(--bg-subtle);
-    animation: avatar-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes avatar-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }
