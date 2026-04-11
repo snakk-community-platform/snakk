@@ -215,6 +215,10 @@ message ImagesPreviewItem {
   optional string medium_thumbnail_url = 4;
   int32 width = 5;
   int32 height = 6;
+  optional int32 thumbnail_width = 7;
+  optional int32 thumbnail_height = 8;
+  optional int32 medium_thumbnail_width = 9;
+  optional int32 medium_thumbnail_height = 10;
 }
 
 message IamaPreview {
@@ -436,6 +440,10 @@ message ImagesImageProto {
   optional string medium_thumbnail_url = 4;
   int32 width = 5;
   int32 height = 6;
+  optional int32 thumbnail_width = 7;
+  optional int32 thumbnail_height = 8;
+  optional int32 medium_thumbnail_width = 9;
+  optional int32 medium_thumbnail_height = 10;
 }
 
 // --- IAMA ---

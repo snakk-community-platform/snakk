@@ -336,6 +336,10 @@ public class DiscussionGrpcService(
                         if (i.ThumbnailUrl is not null) pi.ThumbnailUrl = i.ThumbnailUrl;
                         if (i.MediumThumbnailUrl is not null) pi.MediumThumbnailUrl = i.MediumThumbnailUrl;
                         if (i.BlurDataUri is not null) pi.BlurDataUri = i.BlurDataUri;
+                        if (i.ThumbnailWidth is not null) pi.ThumbnailWidth = i.ThumbnailWidth.Value;
+                        if (i.ThumbnailHeight is not null) pi.ThumbnailHeight = i.ThumbnailHeight.Value;
+                        if (i.MediumThumbnailWidth is not null) pi.MediumThumbnailWidth = i.MediumThumbnailWidth.Value;
+                        if (i.MediumThumbnailHeight is not null) pi.MediumThumbnailHeight = i.MediumThumbnailHeight.Value;
                         return pi;
                     }));
                 }
@@ -622,6 +626,10 @@ public class DiscussionGrpcService(
             if (img.ThumbnailUrl != null) proto.ThumbnailUrl = img.ThumbnailUrl;
             if (img.MediumThumbnailUrl != null) proto.MediumThumbnailUrl = img.MediumThumbnailUrl;
             if (img.BlurDataUri != null) proto.BlurDataUri = img.BlurDataUri;
+            if (img.ThumbnailWidth is not null) proto.ThumbnailWidth = img.ThumbnailWidth.Value;
+            if (img.ThumbnailHeight is not null) proto.ThumbnailHeight = img.ThumbnailHeight.Value;
+            if (img.MediumThumbnailWidth is not null) proto.MediumThumbnailWidth = img.MediumThumbnailWidth.Value;
+            if (img.MediumThumbnailHeight is not null) proto.MediumThumbnailHeight = img.MediumThumbnailHeight.Value;
             response.Images.Add(proto);
         }
 

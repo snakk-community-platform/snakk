@@ -21,7 +21,13 @@ public class ImageDatabaseEntity
     public virtual UserDatabaseEntity UploadedByUser { get; set; } = null!;
 
     public string? ThumbnailPath { get; set; }
+    public int? ThumbnailWidth { get; set; }
+    public int? ThumbnailHeight { get; set; }
+
     public string? MediumThumbnailPath { get; set; }
+    public int? MediumThumbnailWidth { get; set; }
+    public int? MediumThumbnailHeight { get; set; }
+
     public string? BlurDataUri { get; set; }
 
     // Lifecycle tracking

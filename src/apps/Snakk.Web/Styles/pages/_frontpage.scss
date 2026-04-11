@@ -476,7 +476,11 @@
     overflow: hidden;
     aspect-ratio: 16 / 6; // fallback when width/height are missing
     min-height: 200px;
-    max-height: 640px;
+    // Capped to the medium thumbnail's longest side (720px) — going larger
+    // would upscale the medium. Constrains both axes so the cap holds for
+    // any underlying image aspect ratio.
+    max-width: 720px;
+    max-height: 720px;
     background: var(--bg-secondary);
     cursor: pointer;
 }
@@ -586,6 +590,10 @@
     position: relative;
     border-radius: 0.375rem;
     overflow: hidden;
+    // Cap at the medium thumbnail's longest side (720px). Aspect ratio is 16/6
+    // (landscape) so the width is always the longest dimension, and limiting
+    // width alone prevents any upscaling.
+    max-width: 720px;
 
     .fp-compare-widget {
         aspect-ratio: 16 / 6;

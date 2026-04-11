@@ -147,24 +147,32 @@ public class MediaService(
         processedStream.Position = 0;
         await fileStorage.SaveAsync(storagePath, processedStream, "public, max-age=31536000, immutable", cancellationToken);
 
-        // Generate thumbnails (300px small, 600px medium)
+        // Generate thumbnails (300px small, 720px medium)
         string? thumbnailPath = null;
+        int? thumbnailWidth = null;
+        int? thumbnailHeight = null;
         string? mediumThumbnailPath = null;
+        int? mediumThumbnailWidth = null;
+        int? mediumThumbnailHeight = null;
         try
         {
             processedStream.Position = 0;
             using var thumbImage = await Image.LoadAsync(processedStream, cancellationToken);
 
-            // Medium thumbnail (600px) — for carousels and larger previews
-            if (thumbImage.Width > 600 || thumbImage.Height > 600)
+            // Medium thumbnail (720px) — sized to match the max center-column width
+            // in discussion list previews and single-image gallery previews.
+            if (thumbImage.Width > 720 || thumbImage.Height > 720)
             {
                 using var medImage = thumbImage.Clone(x => x.Resize(new ResizeOptions
                 {
-                    Size = new Size(600, 600),
+                    Size = new Size(720, 720),
                     Mode = ResizeMode.Max
                 }));
 
                 mediumThumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_med.webp";
+                mediumThumbnailWidth = medImage.Width;
+                mediumThumbnailHeight = medImage.Height;
+
                 using var medStream = new MemoryStream();
                 await medImage.SaveAsWebpAsync(medStream, new WebpEncoder { Quality = 75 }, cancellationToken);
                 medStream.Position = 0;
@@ -181,6 +189,9 @@ public class MediaService(
                 }));
 
                 thumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_thumb.webp";
+                thumbnailWidth = thumbImage.Width;
+                thumbnailHeight = thumbImage.Height;
+
                 using var thumbStream = new MemoryStream();
                 await thumbImage.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 75 }, cancellationToken);
                 thumbStream.Position = 0;
@@ -225,7 +236,11 @@ public class MediaService(
             Height = finalHeight,
             StoragePath = storagePath,
             ThumbnailPath = thumbnailPath,
+            ThumbnailWidth = thumbnailWidth,
+            ThumbnailHeight = thumbnailHeight,
             MediumThumbnailPath = mediumThumbnailPath,
+            MediumThumbnailWidth = mediumThumbnailWidth,
+            MediumThumbnailHeight = mediumThumbnailHeight,
             BlurDataUri = blurDataUri,
             CreatedAt = now,
             UploadedByUserId = user.Id,

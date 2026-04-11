@@ -227,7 +227,17 @@ public record LinkPreviewDto(
     string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal);
 
 public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items, bool IsSpoiler, string Layout);
-public record ImagePreviewItemDto(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri, int Width, int Height);
+public record ImagePreviewItemDto(
+    string Url,
+    string? ThumbnailUrl,
+    string? MediumThumbnailUrl,
+    string? BlurDataUri,
+    int Width,
+    int Height,
+    int? ThumbnailWidth,
+    int? ThumbnailHeight,
+    int? MediumThumbnailWidth,
+    int? MediumThumbnailHeight);
 
 public record IamaPreviewDto(
     int Phase,

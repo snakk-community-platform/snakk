@@ -182,17 +182,24 @@
                 var images = galleryPreview.Items;
                 var gpLayout = galleryPreview.Layout;
                 var gpSpoiler = galleryPreview.IsSpoiler;
-                string bestSrc(Snakk.Protos.Discussion.ImagesPreviewItem img) =>
-                    img.HasMediumThumbnailUrl ? img.MediumThumbnailUrl
-                    : img.HasThumbnailUrl ? img.ThumbnailUrl
-                    : img.Url;
+                // Pick the best available source and report its actual rendered dimensions so
+                // the browser can reserve the correct box (no CLS) and respect intrinsic sizing.
+                (string Url, int Width, int Height) bestSrcDim(Snakk.Protos.Discussion.ImagesPreviewItem img)
+                {
+                    if (img.HasMediumThumbnailUrl && img.HasMediumThumbnailWidth && img.HasMediumThumbnailHeight)
+                        return (img.MediumThumbnailUrl, img.MediumThumbnailWidth, img.MediumThumbnailHeight);
+                    if (img.HasThumbnailUrl && img.HasThumbnailWidth && img.HasThumbnailHeight)
+                        return (img.ThumbnailUrl, img.ThumbnailWidth, img.ThumbnailHeight);
+                    return (img.Url, img.Width, img.Height);
+                }
+                string bestSrc(Snakk.Protos.Discussion.ImagesPreviewItem img) => bestSrcDim(img).Url;
 
                 @if (gpLayout == "compare" && images.Count >= 2)
                 {
                     var beforeImg = images[0];
                     var afterImg = images[1];
-                    var beforeSrc = bestSrc(beforeImg);
-                    var afterSrc = bestSrc(afterImg);
+                    var (beforeSrc, beforeW, beforeH) = bestSrcDim(beforeImg);
+                    var (afterSrc, afterW, afterH) = bestSrcDim(afterImg);
                     var beforeBlur = beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "";
                     var afterBlur = afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "";
                     var beforeBg = beforeImg.HasBlurDataUri ? $"background-image:url({beforeBlur});background-size:cover;background-position:center" : "";
@@ -202,17 +209,17 @@
                         <div class="gup-compare fp-compare-widget">
                             <div class="gup-compare-after images-upload-item" style="@afterBg">
                                 @if (gpSpoiler && afterImg.HasBlurDataUri) {
-                                    <img src="@afterBlur" data-deferred-src="@afterSrc" data-full="@afterImg.Url" alt="After" decoding="async" />
+                                    <img src="@afterBlur" data-deferred-src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 } else {
-                                    <img src="@afterSrc" data-full="@afterImg.Url" alt="After" decoding="async" />
+                                    <img src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 }
                                 <span class="gup-compare-label gup-compare-label-after">After</span>
                             </div>
                             <div class="gup-compare-before images-upload-item" style="@beforeBg">
                                 @if (gpSpoiler && beforeImg.HasBlurDataUri) {
-                                    <img src="@beforeBlur" data-deferred-src="@beforeSrc" data-full="@beforeImg.Url" alt="Before" decoding="async" />
+                                    <img src="@beforeBlur" data-deferred-src="@beforeSrc" data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
                                 } else {
-                                    <img src="@beforeSrc" data-full="@beforeImg.Url" alt="Before" decoding="async" />
+                                    <img src="@beforeSrc" data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
                                 }
                                 <span class="gup-compare-label gup-compare-label-before">Before</span>
                             </div>
@@ -255,7 +262,7 @@
                             @for (var i = 0; i < images.Count; i++)
                             {
                                 var img = images[i];
-                                var src = bestSrc(img);
+                                var (src, imgW, imgH) = bestSrcDim(img);
                                 var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
 
                                 <div class="fp-images-slide-wrapper" style="@(blur != null ? $"background-image:url({blur})" : "")">
@@ -265,7 +272,8 @@
                                              src="@blur"
                                              data-deferred-src="@src"
                                              data-full="@img.Url"
-                                             alt="" decoding="async" />
+                                             width="@imgW" height="@imgH"
+                                             alt="" decoding="async" loading="lazy" />
                                     }
                                     else if (i == 0)
                                     {
@@ -274,14 +282,16 @@
                                              data-src="@src"
                                              data-full="@img.Url"
                                              data-loaded="1"
-                                             alt="" decoding="async" />
+                                             width="@imgW" height="@imgH"
+                                             alt="" decoding="async" loading="lazy" />
                                     }
                                     else
                                     {
                                         <img class="fp-images-slide"
                                              data-src="@src"
                                              data-full="@img.Url"
-                                             alt="" decoding="async" />
+                                             width="@imgW" height="@imgH"
+                                             alt="" decoding="async" loading="lazy" />
                                     }
                                 </div>
                             }

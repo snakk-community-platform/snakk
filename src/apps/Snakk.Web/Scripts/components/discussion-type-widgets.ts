@@ -206,7 +206,10 @@
                 requestAnimationFrame(() => initCompareSliderPosition());
             }
 
-            if (storageKey && sessionStorage.getItem(storageKey) === '1') {
+            // spoiler-restore.ts may have added .revealed synchronously before
+            // paint. In that case just load the deferred images; no class
+            // toggle, no flash.
+            if (spoilerContainer.classList.contains('revealed')) {
                 revealSpoiler();
             } else {
                 // Preload images on hover so reveal is instant

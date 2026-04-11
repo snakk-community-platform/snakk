@@ -18,6 +18,7 @@
     interface UploadImage {
         url: string;
         thumbnailUrl: string | null;
+        mediumThumbnailUrl: string | null;
         blurDataUri: string | null;
         fileName: string;
         fileKey: string | null;
@@ -202,7 +203,7 @@
         // Add placeholders for all files at once
         const placeholders: number[] = [];
         fileArray.forEach(file => {
-            images.push({ url: '', thumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: fileKeyOf(file) });
+            images.push({ url: '', thumbnailUrl: null, mediumThumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: fileKeyOf(file) });
             placeholders.push(images.length - 1);
         });
         renderPreview();
@@ -222,15 +223,22 @@
                 });
 
                 if (!response.ok) {
-                    images[placeholderIdx] = { url: '__failed__', thumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: key };
+                    images[placeholderIdx] = { url: '__failed__', thumbnailUrl: null, mediumThumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: key };
                     return;
                 }
 
                 const result = JSON.parse(await response.text());
-                images[placeholderIdx] = { url: result.url, thumbnailUrl: result.thumbnailUrl || null, blurDataUri: result.blurDataUri || null, fileName: file.name, fileKey: key };
+                images[placeholderIdx] = {
+                    url: result.url,
+                    thumbnailUrl: result.thumbnailUrl || null,
+                    mediumThumbnailUrl: result.mediumThumbnailUrl || null,
+                    blurDataUri: result.blurDataUri || null,
+                    fileName: file.name,
+                    fileKey: key,
+                };
             } catch (err) {
                 console.error('Images upload error:', err);
-                images[placeholderIdx] = { url: '__failed__', thumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: key };
+                images[placeholderIdx] = { url: '__failed__', thumbnailUrl: null, mediumThumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: key };
             }
         }));
 
@@ -267,10 +275,19 @@
         let html = `<div class="${cls}" data-index="${i}"${canDrag ? ' draggable="true"' : ''}${blurStyle}>`;
         if (isUploading) {
             html += '<div class="images-upload-item-skeleton skeleton"></div>';
+            html += '<div class="images-upload-item-label">Uploading…</div>';
         } else {
-            // Use thumbnail for grid-like layouts, full image for carousel/hero-main
+            // Single-image preview: prefer the 600px medium thumbnail over the full image.
+            // Otherwise use 300px thumbnail for grid-like layouts, full image for carousel/hero-main.
             const useThumbnail = !forceFullImage && thumbnailLayouts.has(currentLayout) && img.thumbnailUrl;
-            const src = useThumbnail ? img.thumbnailUrl : img.url;
+            let src: string | null;
+            if (!forceFullImage && images.length === 1 && img.mediumThumbnailUrl) {
+                src = img.mediumThumbnailUrl;
+            } else if (useThumbnail) {
+                src = img.thumbnailUrl;
+            } else {
+                src = img.url;
+            }
             html += `<img src="${src}" data-full="${img.url}" alt="${img.fileName}" loading="lazy" class="images-blur-up" data-blur-up />`;
             html += `<button type="button" class="images-upload-item-delete" data-index="${i}" title="Remove image">&times;</button>`;
         }

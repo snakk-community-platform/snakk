@@ -136,6 +136,10 @@
     <main id="main-content" class="fp-layout">
         @await RenderSectionAsync("LeftColumn", required: false)
         @RenderBody()
+        @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
+           content is parsed but before first paint so the spoiler overlay
+           doesn't flash on revisit. HTMX re-executes it on swap. *@
+        <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
     </main>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />

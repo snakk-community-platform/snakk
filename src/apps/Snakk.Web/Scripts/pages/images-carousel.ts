@@ -175,8 +175,11 @@
                 if (storageKey) sessionStorage.setItem(storageKey, '1');
             }
 
-            // Auto-reveal if already revealed this session
-            if (storageKey && sessionStorage.getItem(storageKey) === '1') {
+            // If spoiler-restore.ts already marked us .revealed synchronously
+            // (pre-paint), load the deferred images and skip wiring the reveal
+            // overlay. No class toggle here — the class is already set, so
+            // there's no flash.
+            if (el.classList.contains('revealed')) {
                 reveal();
                 return;
             }

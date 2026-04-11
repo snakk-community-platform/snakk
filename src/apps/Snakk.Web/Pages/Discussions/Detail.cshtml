@@ -573,7 +573,23 @@
     {
         var layout = Model.ImagesLayout ?? "grid";
         var isSpoiler = Model.ImagesIsSpoiler;
-        <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")">
+
+        // Helpers to pair the chosen source URL with its actual dimensions so <img width/height>
+        // prevents CLS and respects the real aspect ratio of whichever variant is rendered.
+        (string Url, int W, int H) pickOriginal(Snakk.Protos.Discussion.ImagesImageProto img) =>
+            (img.Url, img.Width, img.Height);
+
+        (string Url, int W, int H) pickThumb(Snakk.Protos.Discussion.ImagesImageProto img) =>
+            img.HasThumbnailUrl && img.HasThumbnailWidth && img.HasThumbnailHeight
+                ? (img.ThumbnailUrl, img.ThumbnailWidth, img.ThumbnailHeight)
+                : pickOriginal(img);
+
+        (string Url, int W, int H) pickMedium(Snakk.Protos.Discussion.ImagesImageProto img) =>
+            img.HasMediumThumbnailUrl && img.HasMediumThumbnailWidth && img.HasMediumThumbnailHeight
+                ? (img.MediumThumbnailUrl, img.MediumThumbnailWidth, img.MediumThumbnailHeight)
+                : pickOriginal(img);
+
+        <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")" data-discussion-id="@Model.Discussion.PublicId">
             @if (layout == "carousel")
             {
                 <div class="gup-carousel" id="images-carousel">
@@ -583,16 +599,16 @@
                             var img = Model.ImagesItems[i];
                             var isFirst = i == 0;
                             var isAdjacent = i == 1;
-                            var src = (isFirst || isAdjacent) ? img.Url : (img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url);
+                            var (src, w, h) = (isFirst || isAdjacent) ? pickOriginal(img) : pickThumb(img);
                             var blurStyle = img.HasBlurDataUri
                                 ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
                                 : "";
                             <div class="images-upload-item" data-index="@i" style="@blurStyle">
                                 @if (isSpoiler && img.HasBlurDataUri) {
-                                    <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" alt=""
+                                    <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" width="@w" height="@h" alt=""
                                          decoding="async" class="images-blur-up" data-blur-up />
                                 } else {
-                                    <img src="@src" data-full="@img.Url" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                    <img src="@src" data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
                                          decoding="async" class="images-blur-up" data-blur-up />
                                 }
                             </div>
@@ -609,14 +625,17 @@
             else if (layout == "hero")
             {
                 <div class="gup-hero">
-                    @{ var heroFirst = Model.ImagesItems[0]; }
+                    @{
+                        var heroFirst = Model.ImagesItems[0];
+                        var (heroSrc0, heroW0, heroH0) = pickOriginal(heroFirst);
+                    }
                     <div class="images-upload-item"
                          style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && heroFirst.HasBlurDataUri) {
-                            <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
+                            <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@heroFirst.Url" data-full="@heroFirst.Url" alt=""
+                            <img src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
                     </div>
@@ -626,14 +645,14 @@
                             @for (var i = 1; i < Model.ImagesItems.Count; i++)
                             {
                                 var img = Model.ImagesItems[i];
-                                var heroSrc = img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url;
+                                var (heroSrc, heroW, heroH) = pickThumb(img);
                                 <div class="images-upload-item"
                                      style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                                     @if (isSpoiler && img.HasBlurDataUri) {
-                                        <img src="@img.BlurDataUri" data-deferred-src="@heroSrc" data-full="@img.Url" alt=""
+                                        <img src="@img.BlurDataUri" data-deferred-src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt=""
                                              decoding="async" class="images-blur-up" data-blur-up />
                                     } else {
-                                        <img src="@heroSrc" data-full="@img.Url" alt="" loading="lazy"
+                                        <img src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt="" loading="lazy"
                                              decoding="async" class="images-blur-up" data-blur-up />
                                     }
                                 </div>
@@ -646,16 +665,16 @@
             {
                 var beforeImg = Model.ImagesItems[0];
                 var afterImg = Model.ImagesItems[1];
-                var beforeMedium = beforeImg.HasMediumThumbnailUrl ? beforeImg.MediumThumbnailUrl : beforeImg.Url;
-                var afterMedium = afterImg.HasMediumThumbnailUrl ? afterImg.MediumThumbnailUrl : afterImg.Url;
+                var (beforeMedium, beforeMW, beforeMH) = pickMedium(beforeImg);
+                var (afterMedium, afterMW, afterMH) = pickMedium(afterImg);
                 <div class="gup-compare" id="images-compare">
                     <div class="gup-compare-after images-upload-item"
                          style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && afterImg.HasBlurDataUri) {
-                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" alt="After"
+                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="After"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@afterMedium" data-full="@afterImg.Url" alt="After"
+                            <img src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="After"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
                         <span class="gup-compare-label gup-compare-label-after">After</span>
@@ -663,10 +682,10 @@
                     <div class="gup-compare-before images-upload-item"
                          style="@(beforeImg.HasBlurDataUri ? $"background-image:url({beforeImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && beforeImg.HasBlurDataUri) {
-                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" alt="Before"
+                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="Before"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@beforeMedium" data-full="@beforeImg.Url" alt="Before"
+                            <img src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="Before"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
                         <span class="gup-compare-label gup-compare-label-before">Before</span>
@@ -701,14 +720,15 @@
             {
                 @* Single image — full-width contain preview *@
                 var singleImg = Model.ImagesItems[0];
+                var (singleSrc, singleW, singleH) = pickMedium(singleImg);
                 <div class="gup-single">
                     <div class="images-upload-item"
                          style="@(singleImg.HasBlurDataUri ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && singleImg.HasBlurDataUri) {
-                            <img src="@singleImg.BlurDataUri" data-deferred-src="@singleImg.Url" data-full="@singleImg.Url" alt=""
+                            <img src="@singleImg.BlurDataUri" data-deferred-src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@singleImg.Url" data-full="@singleImg.Url" alt=""
+                            <img src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
                     </div>
@@ -721,14 +741,14 @@
                     @for (var i = 0; i < Model.ImagesItems.Count; i++)
                     {
                         var img = Model.ImagesItems[i];
-                        var gridSrc = img.HasThumbnailUrl ? img.ThumbnailUrl : img.Url;
+                        var (gridSrc, gridW, gridH) = pickThumb(img);
                         <div class="images-upload-item"
                              style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
                             @if (isSpoiler && img.HasBlurDataUri) {
-                                <img src="@img.BlurDataUri" data-deferred-src="@gridSrc" data-full="@img.Url" alt=""
+                                <img src="@img.BlurDataUri" data-deferred-src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt=""
                                      decoding="async" class="images-blur-up" data-blur-up />
                             } else {
-                                <img src="@gridSrc" data-full="@img.Url" alt="" loading="lazy"
+                                <img src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt="" loading="lazy"
                                      decoding="async" class="images-blur-up" data-blur-up />
                             }
                         </div>
