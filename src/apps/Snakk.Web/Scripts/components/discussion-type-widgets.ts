@@ -7,6 +7,37 @@
 (function() {
     'use strict';
 
+    /**
+     * Reads the inline background-image of the given element (or its nearest
+     * ancestor that has one) and returns the url(...) contents, or null.
+     * Used to feed the blur-data-uri from image wrapper elements into the
+     * lightbox as an ambient backdrop.
+     */
+    // Canonical implementation lives in core/utils.ts as
+    // window.SnakkUtils.extractBlurUrl. Keep a local fallback in case
+    // utils.ts hasn't loaded yet.
+    function extractBlurUrl(el: HTMLElement | null): string | null {
+        const shared = (window as any).SnakkUtils?.extractBlurUrl;
+        if (typeof shared === 'function') return shared(el);
+
+        // Fallback — identical algorithm to SnakkUtils.extractBlurUrl.
+        let cur: HTMLElement | null = el;
+        for (let i = 0; i < 5 && cur; i++) {
+            const bg = cur.style.backgroundImage;
+            if (bg && bg !== 'none') {
+                const m = bg.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            const cv = cur.style.getPropertyValue('--blur-bg').trim();
+            if (cv && cv !== 'none') {
+                const m = cv.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            cur = cur.parentElement;
+        }
+        return null;
+    }
+
     function init(): void {
         initImages();
 
@@ -243,6 +274,11 @@
             });
         }
 
+        function getBlurs(): (string | null)[] {
+            const allItems = imagesDisplay!.querySelectorAll('.images-upload-item');
+            return Array.from(allItems).map(el => extractBlurUrl(el as HTMLElement));
+        }
+
         imagesDisplay.addEventListener('click', (e) => {
             const item = (e.target as HTMLElement).closest('.images-upload-item');
             if (!item) return;
@@ -254,7 +290,7 @@
             const fullUrls = getFullUrls();
 
             if (fullUrls[idx] && (window as any).SnakkLightbox) {
-                (window as any).SnakkLightbox.open(fullUrls, idx);
+                (window as any).SnakkLightbox.open(fullUrls, idx, getBlurs());
             }
         });
 
@@ -265,7 +301,7 @@
                 e.stopPropagation();
                 const fullUrls = getFullUrls();
                 if (fullUrls.length > 0 && (window as any).SnakkLightbox) {
-                    (window as any).SnakkLightbox.open(fullUrls, currentCarouselIdx);
+                    (window as any).SnakkLightbox.open(fullUrls, currentCarouselIdx, getBlurs());
                 }
             });
         }

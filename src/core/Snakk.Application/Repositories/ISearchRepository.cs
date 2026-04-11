@@ -104,7 +104,8 @@ public record SpaceListItemDto(
     DateTime CreatedAt,
     int DiscussionCount,
     int ReplyCount,
-    LatestDiscussionDto? LatestDiscussion);
+    LatestDiscussionDto? LatestDiscussion,
+    string? AvatarFileName = null);
 
 public record LatestDiscussionDto(
     string PublicId,

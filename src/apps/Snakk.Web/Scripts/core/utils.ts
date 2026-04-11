@@ -42,6 +42,7 @@ interface SnakkUtilsAPI {
     clone<T>(obj: T): T;
     dispatchEvent(name: string, detail?: any): void;
     encodeUlid(ulid: string): string;
+    extractBlurUrl(element: HTMLElement | null): string | null;
 }
 
 // ============================================================================
@@ -349,6 +350,40 @@ interface SnakkUtilsAPI {
     }
 
     /**
+     * Extract the blur placeholder URL for an image (or any descendant of one).
+     * Walks up the ancestor chain looking for the blur in two possible sources:
+     *
+     *   1. inline style="background-image: url(...)" — used by per-cell blur
+     *      layouts (carousel slides, grid items, individual compare halves)
+     *   2. CSS custom property --blur-bg: url(...) — used by framed wrappers
+     *      (.images-display-framed, .fp-images-preview, .fp-compare-preview)
+     *      where the blur paints via a ::before pseudo so there's no inline
+     *      background-image to read from
+     *
+     * Returns the URL (including data: URIs) or null if no blur is found
+     * within 5 ancestor levels. Used to pass the blur into the lightbox as
+     * an ambient backdrop so the user sees something while the full image
+     * loads.
+     */
+    function extractBlurUrl(element: HTMLElement | null): string | null {
+        let cur: HTMLElement | null = element;
+        for (let i = 0; i < 5 && cur; i++) {
+            const bg = cur.style.backgroundImage;
+            if (bg && bg !== 'none') {
+                const m = bg.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            const cv = cur.style.getPropertyValue('--blur-bg').trim();
+            if (cv && cv !== 'none') {
+                const m = cv.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            cur = cur.parentElement;
+        }
+        return null;
+    }
+
+    /**
      * Encode a 26-char ULID (Crockford Base32) to a 22-char Base62 string.
      * Mirrors UlidBase62.Encode() in Snakk.Shared.Helpers.
      */
@@ -391,7 +426,8 @@ interface SnakkUtilsAPI {
         generateId,
         clone,
         dispatchEvent,
-        encodeUlid
+        encodeUlid,
+        extractBlurUrl
     };
 
     (window as any).SnakkUtils = SnakkUtils;

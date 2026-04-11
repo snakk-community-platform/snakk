@@ -592,7 +592,14 @@
         <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")" data-discussion-id="@Model.Discussion.PublicId">
             @if (layout == "carousel")
             {
-                <div class="gup-carousel" id="images-carousel">
+                var firstCarouselImg = Model.ImagesItems[0];
+                var (_, firstCarouselW, firstCarouselH) = pickOriginal(firstCarouselImg);
+                var carouselOuterStyle = firstCarouselImg.HasBlurDataUri ? $"--blur-bg: url({firstCarouselImg.BlurDataUri});" : "";
+                var carouselFrameStyle = firstCarouselW > 0 && firstCarouselH > 0
+                    ? $"aspect-ratio: {firstCarouselW} / {firstCarouselH}; max-width: {firstCarouselW}px;"
+                    : "";
+                <div class="images-display-framed" style="@carouselOuterStyle">
+                <div class="gup-carousel" id="images-carousel" style="@carouselFrameStyle">
                     <div class="gup-carousel-track" id="images-carousel-track">
                         @for (var i = 0; i < Model.ImagesItems.Count; i++)
                         {
@@ -621,6 +628,7 @@
                         <span class="gup-carousel-counter" id="images-carousel-counter">1 / @Model.ImagesItems.Count</span>
                     }
                 </div>
+                </div>
             }
             else if (layout == "hero")
             {
@@ -628,16 +636,23 @@
                     @{
                         var heroFirst = Model.ImagesItems[0];
                         var (heroSrc0, heroW0, heroH0) = pickOriginal(heroFirst);
+                        var heroOuterStyle = heroFirst.HasBlurDataUri ? $"--blur-bg: url({heroFirst.BlurDataUri});" : "";
+                        var heroFrameStyle = heroW0 > 0 && heroH0 > 0
+                            ? $"aspect-ratio: {heroW0} / {heroH0}; max-width: {heroW0}px;"
+                            : "";
                     }
-                    <div class="images-upload-item"
-                         style="@(heroFirst.HasBlurDataUri ? $"background-image:url({heroFirst.BlurDataUri});background-size:cover;background-position:center" : "")">
-                        @if (isSpoiler && heroFirst.HasBlurDataUri) {
-                            <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        } else {
-                            <img src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        }
+                    @* Frame only wraps the first (main) image. The secondary grid
+                       below is unaffected so per-cell blur + grid layout remain intact. *@
+                    <div class="images-display-framed gup-hero-main" style="@heroOuterStyle">
+                        <div class="images-upload-item" style="@heroFrameStyle">
+                            @if (isSpoiler && heroFirst.HasBlurDataUri) {
+                                <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
+                                     decoding="async" class="images-blur-up" data-blur-up />
+                            } else {
+                                <img src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
+                                     decoding="async" class="images-blur-up" data-blur-up />
+                            }
+                        </div>
                     </div>
                     @if (Model.ImagesItems.Count > 1)
                     {
@@ -667,7 +682,12 @@
                 var afterImg = Model.ImagesItems[1];
                 var (beforeMedium, beforeMW, beforeMH) = pickMedium(beforeImg);
                 var (afterMedium, afterMW, afterMH) = pickMedium(afterImg);
-                <div class="gup-compare" id="images-compare">
+                var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeImg.BlurDataUri});" : "";
+                var compareFrameStyle = beforeMW > 0 && beforeMH > 0
+                    ? $"aspect-ratio: {beforeMW} / {beforeMH}; max-width: {beforeMW}px;"
+                    : "";
+                <div class="images-display-framed" style="@compareOuterStyle">
+                <div class="gup-compare" id="images-compare" style="@compareFrameStyle">
                     <div class="gup-compare-after images-upload-item"
                          style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && afterImg.HasBlurDataUri) {
@@ -715,21 +735,21 @@
                         </svg>
                     </button>
                 </div>
+                </div>
             }
             else if (Model.ImagesItems.Count == 1)
             {
-                @* Single image — container sized to the rendered image so the blur
-                   bleed never extends past the image itself. *@
+                @* Single image — frame wrapper holds the blur backdrop, inner
+                   item is sized inline to the medium thumbnail's actual
+                   rendered dimensions. Mirrors the frontpage carousel pattern. *@
                 var singleImg = Model.ImagesItems[0];
                 var (singleSrc, singleW, singleH) = pickMedium(singleImg);
-                var singleBlur = singleImg.HasBlurDataUri
-                    ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center;"
+                var singleOuterStyle = singleImg.HasBlurDataUri ? $"--blur-bg: url({singleImg.BlurDataUri});" : "";
+                var singleFrameStyle = singleW > 0 && singleH > 0
+                    ? $"aspect-ratio: {singleW} / {singleH}; max-width: {singleW}px;"
                     : "";
-                var singleStyle = singleW > 0 && singleH > 0
-                    ? $"{singleBlur}aspect-ratio: {singleW} / {singleH}; max-width: {singleW}px;"
-                    : singleBlur;
-                <div class="gup-single">
-                    <div class="images-upload-item gup-single-item" style="@singleStyle">
+                <div class="gup-single images-display-framed" style="@singleOuterStyle">
+                    <div class="images-upload-item gup-single-item" style="@singleFrameStyle">
                         @if (isSpoiler && singleImg.HasBlurDataUri) {
                             <img src="@singleImg.BlurDataUri" data-deferred-src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />

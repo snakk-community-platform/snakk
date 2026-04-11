@@ -470,17 +470,43 @@
 }
 
 // ── Images Preview (carousel) ────────────────
+// Outer: full-column-width container. Holds the first image's blur as a
+// CSS variable (--blur-bg) and renders it via ::before on the sides when
+// the frame is narrower than the column (portrait/small images at max-
+// height: 600px).
 .fp-images-preview {
     position: relative;
     border-radius: 0.375rem;
     overflow: hidden;
-    aspect-ratio: 16 / 6; // fallback when the Razor inline style is absent
-    // The container's max-width is emitted inline, matched to the first
-    // image's intrinsic width, so the blur bleed never extends past the
-    // image itself. Aspect-ratio keeps the height proportional when the
-    // column is narrower than max-width.
     background: var(--bg-secondary);
     cursor: pointer;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(40px) brightness(0.85);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+}
+
+// Inner: sized by Razor inline style (aspect-ratio + max-width from the
+// first image's rendered dimensions). Capped at 600px tall — anything
+// taller shrinks proportionally and shows blur bleed on the sides.
+.fp-images-frame {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 600px;
 }
 
 .fp-images-track {
@@ -495,6 +521,9 @@
     overflow: hidden;
     background-size: cover;
     background-position: center;
+    // No rounding on images sitting inside a blur area — the outer
+    // .fp-images-preview already provides the corner radius.
+    border-radius: 0;
     // Center the letterboxed image over the blur bleed.
     display: flex;
     align-items: center;
@@ -567,7 +596,8 @@
     border-radius: 0.25rem;
 }
 
-// Expand button for preview widgets
+// Expand button for preview widgets — clicking opens the lightbox, so signal
+// that with the zoom-in cursor.
 .fp-images-expand-btn {
     position: absolute;
     top: 0.375rem;
@@ -582,7 +612,7 @@
     border-radius: 0.25rem;
     background: rgba(0, 0, 0, 0.4);
     color: white;
-    cursor: pointer;
+    cursor: zoom-in;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
 
@@ -592,17 +622,46 @@
 }
 
 // ── Compare Preview (inline slider) ─────────
+// Mirrors the .fp-images-preview / .fp-images-frame pattern: outer container
+// is full column width with the first image's blur as a backdrop, inner frame
+// is sized inline by Razor (aspect-ratio + max-width from the first image's
+// rendered dimensions) and capped at max-height: 600px so the blur bleed
+// shows on the sides / top-bottom when the frame is smaller than the column.
 .fp-compare-preview {
     position: relative;
     border-radius: 0.375rem;
     overflow: hidden;
-    // Cap at the medium thumbnail's longest side (900px). Aspect ratio is 16/6
-    // (landscape) so the width is always the longest dimension, and limiting
-    // width alone prevents any upscaling.
-    max-width: 900px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(40px) brightness(0.85);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+}
+
+.fp-compare-frame {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 600px;
 
     .fp-compare-widget {
-        aspect-ratio: 16 / 6;
+        width: 100%;
+        height: 100%;
+        // Frame provides the aspect-ratio inline; override .gup-compare's
+        // hardcoded 16:9 base value so this instance follows the frame.
+        aspect-ratio: auto;
     }
 }
 
@@ -650,8 +709,10 @@
     color: var(--text-tertiary);
 }
 
-// ── Community Card ────────────────────────────
-.fp-community-card {
+// ── Entity Row ────────────────────────────────
+// Compact row used in lists of communities, spaces, hubs — anywhere we need
+// an avatar + name + short description + meta line as a list item.
+.fp-entity-row {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
@@ -666,27 +727,27 @@
     }
 }
 
-.fp-community-avatar {
+.fp-entity-row-avatar {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-.fp-community-info {
+.fp-entity-row-info {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
     min-width: 0;
 }
 
-.fp-community-name {
+.fp-entity-row-name {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.fp-community-desc {
+.fp-entity-row-desc {
     font-size: 0.75rem;
     color: var(--text-secondary);
     overflow: hidden;
@@ -696,9 +757,92 @@
     -webkit-box-orient: vertical;
 }
 
-.fp-community-meta {
+.fp-entity-row-meta {
     font-size: 0.6875rem;
     color: var(--text-tertiary);
+}
+
+// ── Community Card ────────────────────────────
+// Gradient card for the community detail page header and the communities
+// list. Mirrors .fp-space-card / .fp-profile-card: a generated hash-seeded
+// gradient background, darkening ::before overlay for contrast, and forced
+// white text on all children.
+.fp-community-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+    text-decoration: none;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    // When used as a link (communities list), darken the overlay a touch
+    // more on hover so users get feedback without fighting the gradient.
+    &[href]:hover::before {
+        background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.55));
+    }
+}
+
+.fp-community-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.fp-community-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-community-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.fp-community-description {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0.25rem 0 0;
+}
+
+.fp-community-meta {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 0.25rem;
+}
+
+// Single-column stacked list of community cards on /communities.
+// Spacing between cards comes from .fp-community-card's own
+// margin-bottom, so no gap here.
+.fp-community-card-list {
+    display: flex;
+    flex-direction: column;
 }
 
 // ── Link Preview Card ─────────────────────────

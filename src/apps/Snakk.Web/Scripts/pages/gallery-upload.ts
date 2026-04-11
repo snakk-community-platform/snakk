@@ -25,6 +25,10 @@
     }
 
     let images: UploadImage[] = [];
+    // Persisted slider position for the compare layout — survives re-render
+    // (e.g. after the user clicks the swap-before/after button) so the
+    // slider doesn't snap back to its default position on every tweak.
+    let comparePct: number | null = null;
     type ImagesLayout = 'grid' | 'masonry' | 'justified' | 'carousel' | 'hero' | 'compare';
     type ImagesMode = 'empty' | 'single' | 'multi';
     let currentLayout: ImagesLayout = 'masonry';
@@ -323,6 +327,18 @@
         // Bind add more button
         document.getElementById('images-add-more')?.addEventListener('click', () => fileInput?.click());
 
+        // Bind compare swap button — swaps the first two images (before/after)
+        // in the data array and re-renders.
+        document.getElementById('images-compare-swap')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (images.length < 2) return;
+            const a = images[0]!;
+            images[0] = images[1]!;
+            images[1] = a;
+            renderPreview();
+            updateHiddenInputs();
+        });
+
         // Compare slider interaction (preview)
         const cmpContainer = document.getElementById('images-compare-preview');
         const cmpSlider = document.getElementById('images-compare-slider-preview');
@@ -330,27 +346,47 @@
         const cmpAfter = cmpContainer?.querySelector('.gup-compare-after') as HTMLElement | null;
         if (cmpContainer && cmpSlider && cmpBefore && cmpAfter) {
             let dragging = false;
-            function setPos(x: number): void {
-                const rect = cmpContainer!.getBoundingClientRect();
-                const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
-                const rightPct = (1 - pct) * 100;
-                const leftPct = pct * 100;
+            function applyPct(pct: number): void {
+                const clamped = Math.max(0, Math.min(1, pct));
+                const rightPct = (1 - clamped) * 100;
+                const leftPct = clamped * 100;
                 cmpBefore!.style.clipPath = `inset(0 ${rightPct}% 0 0)`;
                 cmpAfter!.style.clipPath = `inset(0 0 0 ${leftPct}%)`;
                 cmpSlider!.style.right = `${rightPct}%`;
+                comparePct = clamped;
+            }
+            function setPos(x: number): void {
+                const rect = cmpContainer!.getBoundingClientRect();
+                applyPct((x - rect.left) / rect.width);
             }
 
-            // Set initial position from "After" label
-            const afterLabel = cmpAfter.querySelector('.gup-compare-label-after') as HTMLElement | null;
-            if (afterLabel) {
-                requestAnimationFrame(() => {
-                    const labelRect = afterLabel.getBoundingClientRect();
-                    setPos(labelRect.left - 12);
-                });
+            // Restore the previous slider position if there is one (e.g. after
+            // a swap-before/after re-render). Otherwise default to the
+            // "After" label position.
+            if (comparePct !== null) {
+                requestAnimationFrame(() => applyPct(comparePct!));
+            } else {
+                const afterLabel = cmpAfter.querySelector('.gup-compare-label-after') as HTMLElement | null;
+                if (afterLabel) {
+                    requestAnimationFrame(() => {
+                        const labelRect = afterLabel.getBoundingClientRect();
+                        setPos(labelRect.left - 12);
+                    });
+                }
             }
 
             cmpSlider.addEventListener('pointerdown', (e) => { dragging = true; cmpSlider!.setPointerCapture(e.pointerId); e.preventDefault(); });
-            cmpContainer.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest('.gup-compare-handle')) { dragging = true; setPos(e.clientX); e.preventDefault(); } });
+            cmpContainer.addEventListener('pointerdown', (e) => {
+                // Ignore clicks on the slider handle (it has its own pointer
+                // capture) and on the swap button — otherwise clicking swap
+                // would treat the click as a slider drag and overwrite the
+                // saved position.
+                const target = e.target as HTMLElement;
+                if (target.closest('.gup-compare-handle, .gup-compare-swap-btn')) return;
+                dragging = true;
+                setPos(e.clientX);
+                e.preventDefault();
+            });
             document.addEventListener('pointermove', (e) => { if (dragging) setPos(e.clientX); });
             document.addEventListener('pointerup', () => { dragging = false; });
         }
@@ -460,6 +496,9 @@
                     html += `<div class="gup-compare-after images-upload-item" style="${afterBg}"><img src="${afterImg.url}" alt="After" /><span class="gup-compare-label gup-compare-label-after">After</span></div>`;
                     html += `<div class="gup-compare-before images-upload-item" style="${beforeBg}"><img src="${beforeImg.url}" alt="Before" /><span class="gup-compare-label gup-compare-label-before">Before</span></div>`;
                     html += '<div class="gup-compare-slider" id="images-compare-slider-preview"><div class="gup-compare-line"></div><div class="gup-compare-handle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></div></div>';
+                    html += '<button type="button" class="gup-compare-swap-btn" id="images-compare-swap" title="Swap before / after" aria-label="Swap before and after">';
+                    html += '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>';
+                    html += '</button>';
                     html += '</div>';
                 }
                 break;

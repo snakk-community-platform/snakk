@@ -205,8 +205,18 @@
                     var afterBlur = afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "";
                     var beforeBg = beforeImg.HasBlurDataUri ? $"background-image:url({beforeBlur});background-size:cover;background-position:center" : "";
                     var afterBg = afterImg.HasBlurDataUri ? $"background-image:url({afterBlur});background-size:cover;background-position:center" : "";
+                    // Same sizing pattern as .fp-images-preview: outer is full column
+                    // width with the first image's blur as a backdrop, inner frame is
+                    // sized to the image's actual dimensions (capped at max-height 600px
+                    // in CSS) so the blur bleed shows on sides/top-bottom when the
+                    // frame is smaller than the column.
+                    var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeBlur});" : "";
+                    var compareFrameStyle = beforeW > 0 && beforeH > 0
+                        ? $"aspect-ratio: {beforeW} / {beforeH}; max-width: {beforeW}px;"
+                        : "";
 
-                    <div class="fp-compare-preview @(gpSpoiler ? "fp-images-spoiler" : "")" data-discussion-id="@discussion.PublicId">
+                    <div class="fp-compare-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@compareOuterStyle" data-discussion-id="@discussion.PublicId">
+                      <div class="fp-compare-frame" style="@compareFrameStyle">
                         <div class="gup-compare fp-compare-widget">
                             <div class="gup-compare-after images-upload-item" style="@afterBg">
                                 @if (gpSpoiler && afterImg.HasBlurDataUri) {
@@ -248,20 +258,26 @@
                                 </button>
                             </div>
                         }
+                      </div>
                     </div>
                 }
                 else
                 {
                     var (firstSrc, firstW, firstH) = bestSrcDim(images[0]);
                     var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
-                    // Size the container to the first image's actual rendered dimensions so
-                    // the blur bleed never extends past the image itself. Aspect-ratio keeps
-                    // the height proportional if the column is narrower than max-width.
-                    var firstStyle = firstW > 0 && firstH > 0
+                    // Outer preview is full-column-width with a blurred backdrop of the
+                    // first image. The inner frame is sized to the first image's actual
+                    // rendered dimensions (capped at max-height: 600px in CSS), so the
+                    // blur bleed only shows on the sides or top/bottom when the frame is
+                    // smaller than the column.
+                    var firstBlur = images[0].HasBlurDataUri ? images[0].BlurDataUri : null;
+                    var outerStyle = firstBlur != null ? $"--blur-bg: url({firstBlur});" : "";
+                    var frameStyle = firstW > 0 && firstH > 0
                         ? $"aspect-ratio: {firstW} / {firstH}; max-width: {firstW}px;"
                         : "";
 
-                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@firstStyle" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@outerStyle" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                      <div class="fp-images-frame" style="@frameStyle">
                         <div class="fp-images-track">
                             @for (var i = 0; i < images.Count; i++)
                             {
@@ -315,14 +331,6 @@
                             </button>
                             <span class="fp-images-counter">1 / @images.Count</span>
                         }
-                        <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <polyline points="9 21 3 21 3 15"></polyline>
-                                <line x1="21" y1="3" x2="14" y2="10"></line>
-                                <line x1="3" y1="21" x2="10" y2="14"></line>
-                            </svg>
-                        </button>
                         @if (gpSpoiler)
                         {
                             <div class="fp-images-spoiler-overlay">
@@ -332,6 +340,17 @@
                                 </button>
                             </div>
                         }
+                      </div>
+                      @* Expand button is a direct child of .fp-images-preview (not .fp-images-frame)
+                         so it anchors to the full-column-width blur container, not the inner image frame. *@
+                      <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <polyline points="9 21 3 21 3 15"></polyline>
+                              <line x1="21" y1="3" x2="14" y2="10"></line>
+                              <line x1="3" y1="21" x2="10" y2="14"></line>
+                          </svg>
+                      </button>
                     </div>
                 }
                 @if (ViewContext.HttpContext.Items["_fp_carousel_js"] == null)

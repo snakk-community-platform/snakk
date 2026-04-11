@@ -86,6 +86,7 @@ message SpaceByHubInfo {
   int32 discussion_count = 7;
   int32 reply_count = 8;
   optional LatestDiscussionRef latest_discussion = 9;
+  optional string avatar_file_name = 10;
 }
 
 message PagedSpaceByHubList {

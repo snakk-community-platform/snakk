@@ -132,7 +132,7 @@ interface Window {
     UserRoleType: any;
 
     // Components
-    SnakkLightbox: { open(urls: string[], startIdx: number): void };
+    SnakkLightbox: { open(urls: string[], startIdx: number, blurs?: (string | null)[]): void };
 
     // Service modules
     CacheManager: any;

@@ -551,13 +551,17 @@
     overflow: hidden;
     padding-right: 0.5rem;
 
+    // Clicking any image opens the lightbox — signal that with zoom-in.
+    // The compare (reveal) layout overrides this to ew-resize via .gup-compare
+    // below, since dragging the slider is the primary interaction there.
     .images-upload-item {
-        cursor: pointer;
+        cursor: zoom-in;
     }
 
 }
 
 // Expand/zoom button for non-compare layouts (top-right of .images-display)
+// Clicking opens the lightbox, so use the zoom-in cursor.
 .images-expand-btn {
     position: absolute;
     top: 0.5rem;
@@ -572,7 +576,7 @@
     border-radius: 0.375rem;
     background: rgba(0, 0, 0, 0.5);
     color: white;
-    cursor: pointer;
+    cursor: zoom-in;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
 
@@ -648,41 +652,70 @@
     }
 }
 
-// Single image — container is sized inline by Razor (aspect-ratio + max-width
-// derived from the rendered image's dimensions) so the blur bleed never
-// extends past the image itself.
-.gup-single {
+// ── Shared framed container ──────────────────
+// Wrapper used by single/carousel/compare/hero-first on the detail page.
+// Outer is full column width with the first image's blur as a backdrop
+// (painted via ::before using the --blur-bg CSS variable). Inner frame
+// is sized inline by Razor (aspect-ratio + max-width from the chosen
+// thumbnail's rendered dimensions). The frame is capped at 80vh so
+// very tall portraits never push the page off-screen, and the blur
+// bleed shows on the sides / top-bottom when the frame is smaller than
+// the column.
+.images-display-framed {
     position: relative;
-    overflow: hidden;
     border-radius: 0.5rem;
+    overflow: hidden;
 
-    .images-upload-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    // Backdrop: blurred cover of the first image's blur-data-uri
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(40px) brightness(0.85);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+
+    // Direct children (the layout container with inline aspect-ratio/max-width)
+    // sit above the backdrop.
+    > * {
         position: relative;
-        // Center the image inside the container (needed if the column is
-        // narrower than the image's intrinsic width — image shrinks and is
-        // centered over the blur bleed).
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        z-index: 1;
+        width: 100%;
+        max-height: 80vh;
+    }
+}
 
-        // Blur bleed background — fills the container
-        &[style*="background-image"]::before {
-            content: '';
-            position: absolute;
-            inset: -50px;
-            background: inherit;
-            filter: blur(20px) brightness(0.75);
-            transform: scale(1.2);
-            z-index: 0;
-        }
+// Single image — the .gup-single wrapper is itself the framed container
+// (it carries .images-display-framed). The inner .images-upload-item
+// holds the inline aspect-ratio/max-width.
+.gup-single {
+    // Deliberately no position: relative on .images-upload-item here.
+    // The expand button inside it should anchor to the outer frame
+    // (.gup-single / .images-display-framed, which is position: relative)
+    // so it sits in the top-right corner of the blur-filled column width,
+    // not in the top-right corner of the image itself.
+    .images-upload-item {
+        // No rounding on images sitting inside a blur area — the outer
+        // frame already provides the corner radius.
+        border-radius: 0;
 
         img {
-            // Fill the container exactly — since the container's aspect-ratio
-            // and max-width match the image's intrinsic size, this never
-            // upscales past the source dimensions.
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            // cover (not contain) hides the sub-pixel rounding gap. The
+            // container's aspect-ratio already matches the image's
+            // intrinsic ratio, so "cover" crops less than a pixel —
+            // imperceptible and much cleaner than the letterbox + gap.
+            object-fit: cover;
             display: block;
             position: relative;
             z-index: 1;
@@ -693,7 +726,7 @@
 // Upload preview layout variants
 .gup-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
 
     .images-upload-item {
@@ -731,7 +764,7 @@
 }
 
 .gup-masonry {
-    column-count: 4;
+    column-count: 3;
     column-gap: 0.5rem;
 
     .images-upload-item { break-inside: avoid; margin-bottom: 0.5rem; aspect-ratio: auto; }
@@ -743,7 +776,9 @@
     gap: 0.5rem;
 
     .images-upload-item {
-        flex: 1 1 calc(25% - 0.375rem);
+        // Base: 3 per row. calc accounts for two 0.5rem gaps distributed
+        // across three items → 2/3 rem each = ~0.333rem.
+        flex: 1 1 calc(33.3333% - 0.334rem);
         aspect-ratio: auto;
         height: 180px;
         position: relative;
@@ -779,18 +814,23 @@
     position: relative;
     overflow: hidden;
     border-radius: 0.5rem;
-    background: #000;
+    // Aspect-ratio is supplied inline by Razor (derived from the first image's
+    // rendered dimensions) so the carousel container sizes to match — no
+    // hardcoded aspect that would letterbox non-16:6 images.
+    height: 100%;
 }
 
 .gup-carousel-track {
     display: flex;
     transition: transform 0.35s ease;
+    height: 100%;
 
     .images-upload-item {
         flex: 0 0 100%;
-        aspect-ratio: 16/6;
-        background: #000;
-        // Amplify the blur placeholder behind contain-fit images
+        height: 100%;
+        position: relative;
+        // Amplify the blur placeholder behind contain-fit images. Each slide
+        // keeps its own per-image blur bg so non-first slides look right too.
         &[style*="background-image"]::before {
             content: '';
             position: absolute;
@@ -802,6 +842,8 @@
         }
 
         img {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             position: relative;
             z-index: 1;
@@ -853,9 +895,27 @@
     flex-direction: column;
     gap: 0.5rem;
 
-    > .images-upload-item:first-child {
-        aspect-ratio: 16/6;
+    // The first (main) image is wrapped in .images-display-framed.gup-hero-main
+    // which handles its own sizing via the inline frame pattern. The secondary
+    // grid below uses the per-cell image-upload-item pattern.
+    .gup-hero-main {
         width: 100%;
+
+        .images-upload-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                display: block;
+                position: relative;
+                z-index: 1;
+            }
+        }
     }
 
     .images-upload-item {
@@ -882,8 +942,12 @@
 }
 
 .gup-hero-grid {
+    // Hero layout shows 4 images on the secondary row — one more than the
+    // base 3-column grid of other layouts. The extra slot makes the hero
+    // layout feel visually distinct from grid/masonry/justified instead of
+    // just being "grid with one big image on top".
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.5rem;
 }
 
@@ -892,11 +956,18 @@
     position: relative;
     overflow: hidden;
     border-radius: 0.5rem;
+    // Aspect-ratio is supplied inline by Razor when this is inside a framed
+    // wrapper on the detail page. Base fallback of 16/9 kept for any legacy
+    // render path that builds .gup-compare without an inline aspect.
     aspect-ratio: 16 / 9;
     background: #000;
     cursor: ew-resize;
     user-select: none;
     -webkit-user-select: none;
+
+    // When rendered inside a framed wrapper, the inline aspect-ratio on the
+    // .gup-compare element itself wins over the base rule above (inline beats
+    // stylesheet). Nothing more needed here — this comment is just breadcrumb.
 
     // Override shared .images-upload-item rules — must be scoped here for specificity
     .gup-compare-after,
@@ -1003,7 +1074,8 @@
     }
 }
 
-// Expand button (top-right corner of compare widget)
+// Expand button (top-right corner of compare widget) — opens fullscreen
+// compare view, which is a lightbox-equivalent interaction.
 .gup-compare-expand {
     position: absolute;
     top: 0.5rem;
@@ -1018,7 +1090,7 @@
     border-radius: 0.375rem;
     background: rgba(0, 0, 0, 0.5);
     color: white;
-    cursor: pointer;
+    cursor: zoom-in;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
 
@@ -1106,7 +1178,6 @@
     position: relative;
     border-radius: 0.5rem;
     overflow: hidden;
-    border: 1px solid var(--border-primary);
     aspect-ratio: 1;
     // Blur placeholder while image loads — instant swap, no transition
     &[style*="background-image"]:not(.images-item-loaded) {
@@ -1188,6 +1259,36 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 0.5rem;
+}
+
+// Compare widget swap button — swaps before/after in the creation form.
+// Anchored to the outer .gup-compare (position: relative), top-left to
+// stay out of the way of the slider handle and any existing expand button.
+.gup-compare-swap-btn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.375rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    z-index: 20;
+
+    .gup-compare:hover & {
+        opacity: 1;
+    }
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.75);
+    }
 }
 
 .images-upload-item-delete {

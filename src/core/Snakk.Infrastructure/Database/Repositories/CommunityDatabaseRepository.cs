@@ -36,7 +36,8 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Description,
                 c.VisibilityId,
                 c.ExposeToPlatformFeed,
-                c.CreatedAt))
+                c.CreatedAt,
+                c.AvatarFileName))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
@@ -71,7 +72,8 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.Description,
                 c.VisibilityId,
                 c.ExposeToPlatformFeed,
-                c.CreatedAt))
+                c.CreatedAt,
+                c.AvatarFileName))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;

@@ -2,6 +2,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.DetailModel
 @{
@@ -114,16 +115,16 @@
 <!-- Center Column -->
 <div class="fp-center">
     <div class="fp-center-inner">
-        <!-- Community Header -->
+        <!-- Community Header — gradient card, seeded to match generated community avatar -->
         @if (Model.CommunityDetail != null)
         {
-            <div class="flex items-start gap-4 mb-6">
+            <div class="fp-community-card" style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{Model.CommunityDetail.PublicId}")">
                 <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
-                     class="w-14 h-14 rounded-full shrink-0" decoding="async" />
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-xl font-bold" style="color: var(--text-primary)">@Model.CommunityDetail.Name</h1>
+                     class="fp-community-avatar" decoding="async" />
+                <div class="fp-community-info">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="fp-community-name">@Model.CommunityDetail.Name</h1>
                         <partial name="Shared/_FeedDropdown" model="@($"/c/{Model.Community.CommunitySlug}/feed")" />
                         @if (User.Identity?.IsAuthenticated == true)
                         {
@@ -139,7 +140,7 @@
                     </div>
                     @if (!string.IsNullOrEmpty(Model.CommunityDetail.Description))
                     {
-                        <p class="text-sm mt-1" style="color: var(--text-secondary)">@Model.CommunityDetail.Description</p>
+                        <p class="fp-community-description">@Model.CommunityDetail.Description</p>
                     }
                 </div>
             </div>
@@ -177,7 +178,7 @@
                                 <div class="flex items-center gap-3 px-4 py-3 border-b border-subtle last:border-b-0">
                                     <!-- Space avatar -->
                                     <a href="@spaceUrl" class="shrink-0">
-                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)" alt="" width="36" height="36"
+                                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)" alt="" width="36" height="36"
                                              class="w-9 h-9 rounded-full" loading="lazy" decoding="async" />
                                     </a>
 

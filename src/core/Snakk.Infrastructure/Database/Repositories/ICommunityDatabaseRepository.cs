@@ -19,7 +19,8 @@ public record CommunityListDto(
     string? Description,
     int VisibilityId,
     bool ExposeToPlatformFeed,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AvatarFileName);
 
 public record CommunityDetailDto(
     string PublicId,

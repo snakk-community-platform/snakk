@@ -186,21 +186,21 @@ else
             <div class="flex flex-col gap-1 mb-6">
                 @foreach (var space in Model.Spaces.Items)
                 {
-                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="fp-community-card">
+                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="fp-entity-row">
                         <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
                              alt="" width="40" height="40"
-                             class="fp-community-avatar"
+                             class="fp-entity-row-avatar"
                              loading="lazy" decoding="async" />
-                        <div class="fp-community-info">
-                            <span class="fp-community-name"
+                        <div class="fp-entity-row-info">
+                            <span class="fp-entity-row-name"
                                   data-popup-type="space"
                                   data-popup-id="@space.PublicId"
                                   data-popup-name="@space.Name">@space.Name</span>
                             @if (!string.IsNullOrEmpty(space.Description))
                             {
-                                <span class="fp-community-desc">@space.Description</span>
+                                <span class="fp-entity-row-desc">@space.Description</span>
                             }
-                            <span class="fp-community-meta">
+                            <span class="fp-entity-row-meta">
                                 @FormatCount(space.DiscussionCount) discussions · @FormatCount(space.ReplyCount) replies
                             </span>
                         </div>

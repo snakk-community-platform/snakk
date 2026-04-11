@@ -87,6 +87,9 @@ public class SpaceGrpcService(
                 CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc))
             };
 
+            if (s.AvatarFileName is not null)
+                spaceInfo.AvatarFileName = s.AvatarFileName;
+
             if (s.LatestDiscussion is not null)
             {
                 var ld = s.LatestDiscussion;

@@ -1,6 +1,7 @@
 @page "/communities"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.IndexModel
 @{
@@ -112,22 +113,24 @@
         }
         else
         {
-            <div class="flex flex-col gap-1">
+            <div class="fp-community-card-list">
                 @foreach (var community in Model.Communities.Items)
                 {
-                    <a href="/c/@community.Slug" class="fp-community-card">
+                    <a href="/c/@community.Slug"
+                       class="fp-community-card"
+                       style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{community.PublicId}")">
                         <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId, avatarFileName: community.HasAvatarFileName ? community.AvatarFileName : null)"
-                             alt="" width="40" height="40"
+                             alt="" width="56" height="56"
                              class="fp-community-avatar"
                              loading="lazy" decoding="async" />
                         <div class="fp-community-info">
-                            <span class="fp-community-name"
-                                  data-popup-type="community"
-                                  data-popup-id="@community.PublicId"
-                                  data-popup-name="@community.Name">@community.Name</span>
+                            <h2 class="fp-community-name"
+                                data-popup-type="community"
+                                data-popup-id="@community.PublicId"
+                                data-popup-name="@community.Name">@community.Name</h2>
                             @if (!string.IsNullOrEmpty(community.Description))
                             {
-                                <span class="fp-community-desc">@community.Description</span>
+                                <p class="fp-community-description">@community.Description</p>
                             }
                             <span class="fp-community-meta">
                                 @FormatCount(community.DiscussionCount) discussions · @FormatCount(community.ReplyCount) replies

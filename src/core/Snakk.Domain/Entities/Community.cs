@@ -127,6 +127,7 @@ public class Community
         CommunityVisibility visibility,
         bool exposeToPlatformFeed,
         DateTime createdAt,
+        string? avatarFileName = null,
         string? languageCode = null) =>
         new Community(
             publicId,
@@ -138,6 +139,7 @@ public class Community
             createdAt,
             lastModifiedAt: null,
             hubs: [],
+            avatarFileName: avatarFileName,
             languageCode: languageCode);
 
     public void UpdateLanguageCode(string? languageCode)

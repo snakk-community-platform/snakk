@@ -68,7 +68,8 @@ public class CommunityRepositoryAdapter(
                     dto.Description,
                     ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
                     dto.ExposeToPlatformFeed,
-                    dto.CreatedAt))
+                    dto.CreatedAt,
+                    avatarFileName: dto.AvatarFileName))
                 .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,
@@ -90,7 +91,8 @@ public class CommunityRepositoryAdapter(
                     dto.Description,
                     ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
                     dto.ExposeToPlatformFeed,
-                    dto.CreatedAt))
+                    dto.CreatedAt,
+                    avatarFileName: dto.AvatarFileName))
                 .ToList(),
             Offset = result.Offset,
             PageSize = result.PageSize,

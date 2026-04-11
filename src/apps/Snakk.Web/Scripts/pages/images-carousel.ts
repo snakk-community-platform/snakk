@@ -1,12 +1,58 @@
 (function() {
     'use strict';
 
+    // Track initialized elements in module-scope WeakSets instead of DOM data
+    // attributes. HTMX serializes the page DOM into its history cache on
+    // navigate-away, which would bake `dataset.init="1"` into the cached HTML
+    // and block re-init on restore. Module-scope WeakSets are cleared on
+    // full page loads but not affected by history cache serialization, so
+    // restored elements are correctly seen as uninitialized and re-run their
+    // wiring (including critical state like spoiler reveal or compare clip
+    // paths) against the freshly restored HTML.
+    const initializedCarousels = new WeakSet<Element>();
+    const initializedCompare = new WeakSet<Element>();
+    const initializedSpoilers = new WeakSet<Element>();
+    const initializedPreviewNav = new WeakSet<Element>();
+
+    // Timestamp of the last time a compare slider drag ended. Used by
+    // initPreviewNavigation to suppress the click-to-navigate that would
+    // otherwise fire when the user releases the mouse after a slider drag.
+    // A small debounce window (300ms) is enough — the synthesized click
+    // that follows pointerup fires in the same tick.
+    let compareDragEndTimestamp = 0;
+
+    // Canonical implementation lives in core/utils.ts as
+    // window.SnakkUtils.extractBlurUrl. Keep a local fallback in case
+    // utils.ts hasn't loaded yet (load-order edge case when this script
+    // runs before core scripts — happens on some HTMX swap paths).
+    function extractBlurUrl(el: HTMLElement | null): string | null {
+        const shared = (window as any).SnakkUtils?.extractBlurUrl;
+        if (typeof shared === 'function') return shared(el);
+
+        // Fallback — identical algorithm to SnakkUtils.extractBlurUrl.
+        let cur: HTMLElement | null = el;
+        for (let i = 0; i < 5 && cur; i++) {
+            const bg = cur.style.backgroundImage;
+            if (bg && bg !== 'none') {
+                const m = bg.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            const cv = cur.style.getPropertyValue('--blur-bg').trim();
+            if (cv && cv !== 'none') {
+                const m = cv.match(/^url\((?:["'])?(.+?)(?:["'])?\)$/);
+                if (m) return m[1] || null;
+            }
+            cur = cur.parentElement;
+        }
+        return null;
+    }
+
     function initImagesCarousels(root?: Element): void {
         const carousels = (root || document).querySelectorAll('.fp-images-preview');
         carousels.forEach(function(preview) {
             const el = preview as HTMLElement;
-            if (el.dataset.init) return;
-            el.dataset.init = '1';
+            if (initializedCarousels.has(el)) return;
+            initializedCarousels.add(el);
 
             const track = el.querySelector('.fp-images-track') as HTMLElement | null;
             const slides = el.querySelectorAll<HTMLImageElement>('.fp-images-slide');
@@ -60,8 +106,12 @@
                     if (!lightbox) return;
 
                     const fullUrls: string[] = [];
-                    slides.forEach(function(s) { fullUrls.push(s.dataset.full || s.dataset.src || s.src); });
-                    lightbox.open(fullUrls, current);
+                    const blurUrls: (string | null)[] = [];
+                    slides.forEach(function(s) {
+                        fullUrls.push(s.dataset.full || s.dataset.src || s.src);
+                        blurUrls.push(extractBlurUrl(s.parentElement));
+                    });
+                    lightbox.open(fullUrls, current, blurUrls);
                 });
             }
         });
@@ -72,13 +122,21 @@
         const widgets = (root || document).querySelectorAll('.fp-compare-widget');
         widgets.forEach(function(widget) {
             const el = widget as HTMLElement;
-            if (el.dataset.init) return;
-            el.dataset.init = '1';
+            if (initializedCompare.has(el)) return;
+            initializedCompare.add(el);
 
             const beforeEl = el.querySelector('.gup-compare-before') as HTMLElement | null;
             const afterEl = el.querySelector('.gup-compare-after') as HTMLElement | null;
             const slider = el.querySelector('.fp-compare-slider') as HTMLElement | null;
             if (!beforeEl || !afterEl || !slider) return;
+
+            // Wipe any stale inline slider state that may have been baked into
+            // the HTMX history cache from a previous drag interaction. Without
+            // this, computeInitialPosition below would read against whatever
+            // clip-path was inlined at navigate-away time.
+            beforeEl.style.clipPath = '';
+            afterEl.style.clipPath = '';
+            slider.style.right = '';
 
             function setPos(x: number): void {
                 const rect = el.getBoundingClientRect();
@@ -135,11 +193,22 @@
                     if (!lightbox) return;
                     const imgs = el.querySelectorAll<HTMLImageElement>('img');
                     const urls = Array.from(imgs).map(i => i.dataset.full || i.src);
-                    lightbox.open(urls, 0);
+                    const blurs = Array.from(imgs).map(i => extractBlurUrl(i.parentElement));
+                    lightbox.open(urls, 0, blurs);
                 });
             }
             document.addEventListener('pointermove', (e) => { if (dragging) setPos(e.clientX); });
-            document.addEventListener('pointerup', () => { dragging = false; });
+            document.addEventListener('pointerup', () => {
+                if (dragging) {
+                    // Mark when the drag ended so initPreviewNavigation can
+                    // suppress the synthesized click that follows. Without
+                    // this, releasing the mouse after dragging the slider
+                    // would fire a click on .fp-card-preview and navigate to
+                    // the discussion — clearly wrong.
+                    compareDragEndTimestamp = Date.now();
+                }
+                dragging = false;
+            });
         });
     }
 
@@ -148,8 +217,8 @@
         const spoilers = (root || document).querySelectorAll('.fp-images-spoiler');
         spoilers.forEach(function(container) {
             const el = container as HTMLElement;
-            if (el.dataset.spoilerInit) return;
-            el.dataset.spoilerInit = '1';
+            if (initializedSpoilers.has(el)) return;
+            initializedSpoilers.add(el);
 
             const overlay = el.querySelector('.fp-images-spoiler-overlay') as HTMLElement | null;
             if (!overlay) return;
@@ -175,11 +244,18 @@
                 if (storageKey) sessionStorage.setItem(storageKey, '1');
             }
 
-            // If spoiler-restore.ts already marked us .revealed synchronously
-            // (pre-paint), load the deferred images and skip wiring the reveal
-            // overlay. No class toggle here — the class is already set, so
-            // there's no flash.
-            if (el.classList.contains('revealed')) {
+            // Auto-reveal if the user previously revealed this spoiler this
+            // session. We check sessionStorage directly rather than relying on
+            // spoiler-restore.ts having marked .revealed, because external
+            // script execution on HTMX swaps is unreliable — on a fresh link
+            // navigation to the frontpage, the server returns the card
+            // unrevealed and spoiler-restore.ts may not have run before this
+            // init pass. Checking storage here makes the behavior independent
+            // of that timing.
+            const alreadyRevealed = el.classList.contains('revealed')
+                || (storageKey !== '' && sessionStorage.getItem(storageKey) === '1');
+            if (alreadyRevealed) {
+                el.classList.add('revealed');
                 reveal();
                 return;
             }
@@ -205,13 +281,18 @@
     function initPreviewNavigation(root?: Element): void {
         const previews = (root || document).querySelectorAll<HTMLElement>('.fp-card-preview[data-discussion-url]');
         previews.forEach(function(el) {
-            if (el.dataset.navInit) return;
-            el.dataset.navInit = '1';
+            if (initializedPreviewNav.has(el)) return;
+            initializedPreviewNav.add(el);
 
             el.addEventListener('click', function(e) {
                 const target = e.target as HTMLElement;
                 // Don't navigate if clicking interactive elements
                 if (target.closest('a, button, .gup-compare-slider, .gup-compare-handle')) return;
+                // Don't navigate if the click was the release of a compare
+                // slider drag — the synthesized click fires immediately
+                // after pointerup, so anything within the last ~300ms is
+                // part of the same drag gesture.
+                if (Date.now() - compareDragEndTimestamp < 300) return;
 
                 const url = el.dataset.discussionUrl;
                 if (url) window.location.href = url;
@@ -233,4 +314,10 @@
     }
 
     document.body.addEventListener('htmx:afterSettle', function(e) { initAll((e as CustomEvent).detail.elt); });
+    // historyRestore fires when HTMX restores a page from its history cache
+    // (clicking a nav link that points back to a previously-visited page).
+    // Without this, cached compare widgets would keep stale inline styles
+    // (clip-paths from a prior drag) and spoiler previews would keep their
+    // blur src instead of the real image.
+    document.body.addEventListener('htmx:historyRestore', function() { initAll(); });
 })();

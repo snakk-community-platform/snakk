@@ -411,6 +411,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 s.CreatedAt,
                 s.DiscussionCount,
                 ReplyCount = s.PostCount - s.DiscussionCount,
+                s.AvatarFileName,
                 LatestDiscussion = s.Discussions
                     .Where(d => !d.IsDeleted)
                     .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
@@ -450,7 +451,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         s.LatestDiscussion.AuthorDisplayName ?? "",
                         s.LatestDiscussion.AuthorAvatarFileName,
                         s.LatestDiscussion.PostCount)
-                    : null))
+                    : null,
+                s.AvatarFileName))
             .ToList();
 
         return new PagedResult<SpaceListItemDto>
