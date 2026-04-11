@@ -718,12 +718,18 @@
             }
             else if (Model.ImagesItems.Count == 1)
             {
-                @* Single image — full-width contain preview *@
+                @* Single image — container sized to the rendered image so the blur
+                   bleed never extends past the image itself. *@
                 var singleImg = Model.ImagesItems[0];
                 var (singleSrc, singleW, singleH) = pickMedium(singleImg);
+                var singleBlur = singleImg.HasBlurDataUri
+                    ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center;"
+                    : "";
+                var singleStyle = singleW > 0 && singleH > 0
+                    ? $"{singleBlur}aspect-ratio: {singleW} / {singleH}; max-width: {singleW}px;"
+                    : singleBlur;
                 <div class="gup-single">
-                    <div class="images-upload-item"
-                         style="@(singleImg.HasBlurDataUri ? $"background-image:url({singleImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                    <div class="images-upload-item gup-single-item" style="@singleStyle">
                         @if (isSpoiler && singleImg.HasBlurDataUri) {
                             <img src="@singleImg.BlurDataUri" data-deferred-src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
                                  decoding="async" class="images-blur-up" data-blur-up />

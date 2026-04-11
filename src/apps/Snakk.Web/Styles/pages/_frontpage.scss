@@ -474,12 +474,11 @@
     position: relative;
     border-radius: 0.375rem;
     overflow: hidden;
-    aspect-ratio: 16 / 6; // fallback when width/height are missing
-    min-height: 200px;
-    // Cap container height only — width stays full so the blur bleed fills
-    // the column. The image inside is capped separately via .fp-images-slide
-    // max dimensions so it never upscales past the medium thumbnail (900px).
-    max-height: 900px;
+    aspect-ratio: 16 / 6; // fallback when the Razor inline style is absent
+    // The container's max-width is emitted inline, matched to the first
+    // image's intrinsic width, so the blur bleed never extends past the
+    // image itself. Aspect-ratio keeps the height proportional when the
+    // column is narrower than max-width.
     background: var(--bg-secondary);
     cursor: pointer;
 }

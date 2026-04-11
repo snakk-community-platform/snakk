@@ -182,14 +182,15 @@
                 var images = galleryPreview.Items;
                 var gpLayout = galleryPreview.Layout;
                 var gpSpoiler = galleryPreview.IsSpoiler;
-                // Pick the best available source and report its actual rendered dimensions so
-                // the browser can reserve the correct box (no CLS) and respect intrinsic sizing.
+                // Pick the best available source for the carousel slot and report its actual
+                // rendered dimensions so the browser can reserve the correct box (no CLS) and
+                // respect intrinsic sizing. Prefer medium; fall back to original (never the
+                // 300px thumbnail, which is far too small for this slot — originals are already
+                // capped at 2048px on upload).
                 (string Url, int Width, int Height) bestSrcDim(Snakk.Protos.Discussion.ImagesPreviewItem img)
                 {
                     if (img.HasMediumThumbnailUrl && img.HasMediumThumbnailWidth && img.HasMediumThumbnailHeight)
                         return (img.MediumThumbnailUrl, img.MediumThumbnailWidth, img.MediumThumbnailHeight);
-                    if (img.HasThumbnailUrl && img.HasThumbnailWidth && img.HasThumbnailHeight)
-                        return (img.ThumbnailUrl, img.ThumbnailWidth, img.ThumbnailHeight);
                     return (img.Url, img.Width, img.Height);
                 }
                 string bestSrc(Snakk.Protos.Discussion.ImagesPreviewItem img) => bestSrcDim(img).Url;
@@ -251,13 +252,16 @@
                 }
                 else
                 {
-                    var firstSrc = bestSrc(images[0]);
+                    var (firstSrc, firstW, firstH) = bestSrcDim(images[0]);
                     var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
-                    var firstAspect = images[0].Width > 0 && images[0].Height > 0
-                        ? $"aspect-ratio: {images[0].Width} / {images[0].Height};"
+                    // Size the container to the first image's actual rendered dimensions so
+                    // the blur bleed never extends past the image itself. Aspect-ratio keeps
+                    // the height proportional if the column is narrower than max-width.
+                    var firstStyle = firstW > 0 && firstH > 0
+                        ? $"aspect-ratio: {firstW} / {firstH}; max-width: {firstW}px;"
                         : "";
 
-                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@firstAspect" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@firstStyle" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
                         <div class="fp-images-track">
                             @for (var i = 0; i < images.Count; i++)
                             {

@@ -648,21 +648,24 @@
     }
 }
 
-// Single image — full-width contain preview with centered image and blur bleed
+// Single image — container is sized inline by Razor (aspect-ratio + max-width
+// derived from the rendered image's dimensions) so the blur bleed never
+// extends past the image itself.
 .gup-single {
     position: relative;
     overflow: hidden;
     border-radius: 0.5rem;
 
     .images-upload-item {
-        aspect-ratio: 16/6;
         position: relative;
-        // Center the letterboxed image inside the full-width container.
+        // Center the image inside the container (needed if the column is
+        // narrower than the image's intrinsic width — image shrinks and is
+        // centered over the blur bleed).
         display: flex;
         align-items: center;
         justify-content: center;
 
-        // Blur bleed background — fills full container width
+        // Blur bleed background — fills the container
         &[style*="background-image"]::before {
             content: '';
             position: absolute;
@@ -674,12 +677,11 @@
         }
 
         img {
-            // Shrink to fit container but never upscale past the intrinsic
-            // size (medium thumbnail dimensions from width/height attrs).
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
+            // Fill the container exactly — since the container's aspect-ratio
+            // and max-width match the image's intrinsic size, this never
+            // upscales past the source dimensions.
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             display: block;
             position: relative;

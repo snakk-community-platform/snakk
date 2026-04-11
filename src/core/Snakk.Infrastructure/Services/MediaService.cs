@@ -159,16 +159,16 @@ public class MediaService(
             processedStream.Position = 0;
             using var thumbImage = await Image.LoadAsync(processedStream, cancellationToken);
 
-            // Medium thumbnail (900px) — matches the max center-column width
-            // (~867px) in discussion list previews and single-image gallery
-            // previews so the image fills the frame on DPR=1 without upscaling.
-            if (thumbImage.Width > 900 || thumbImage.Height > 900)
+            // Medium thumbnail — cap on WIDTH only (not longest side). Portrait
+            // images should still fill the column width, not shrink because
+            // their longest side is vertical. 900px target matches the max
+            // center-column width (~867px) in discussion list previews and
+            // single-image gallery previews, so the image fills the frame on
+            // DPR=1 without upscaling. Height is auto-computed (0 preserves
+            // aspect ratio in ImageSharp).
+            if (thumbImage.Width > 900)
             {
-                using var medImage = thumbImage.Clone(x => x.Resize(new ResizeOptions
-                {
-                    Size = new Size(900, 900),
-                    Mode = ResizeMode.Max
-                }));
+                using var medImage = thumbImage.Clone(x => x.Resize(900, 0));
 
                 mediumThumbnailPath = $"media/posts/{now:yyyy}/{now:MM}/{now:dd}/{publicId}_med.webp";
                 mediumThumbnailWidth = medImage.Width;
