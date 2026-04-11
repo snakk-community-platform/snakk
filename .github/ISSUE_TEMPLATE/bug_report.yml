@@ -1,0 +1,116 @@
+name: Bug Report
+description: Report something that's broken or behaving unexpectedly.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the fields below so we can reproduce and fix the issue quickly.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear, concise description of the bug.
+      placeholder: When I click X on the Y page, Z happens instead of W.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps someone else can follow to see the bug.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What happened instead? Include error messages, stack traces, or log output if relevant.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      description: Which part of Snakk is affected?
+      options:
+        - Snakk.Web (main platform)
+        - Snakk.Admin (admin panel)
+        - Snakk.Auth (login / OAuth)
+        - Snakk.Api (internal gRPC / REST)
+        - Snakk.Realtime (SignalR)
+        - Snakk.Gateway (YARP)
+        - Snakk.Setup (first-run wizard)
+        - Database / migrations
+        - Docker / deployment
+        - Documentation
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Snakk Version / Commit
+      description: Which version or commit are you running? (e.g. `v0.1.361` or a commit hash)
+      placeholder: v0.1.361
+    validations:
+      required: false
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Local development (Aspire AppHost)
+        - Docker (official image)
+        - Self-hosted production
+        - Preview site (preview.snakk.community)
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if UI bug)
+      description: Browser name and version — only fill in if the bug is in the UI.
+      placeholder: Firefox 131, Chrome 130, Safari 18
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Screenshots
+      description: Paste any logs, stack traces, or attach screenshots. Please redact secrets.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I can reproduce this on the latest version.
+          required: false
