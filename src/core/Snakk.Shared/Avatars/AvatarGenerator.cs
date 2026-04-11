@@ -73,6 +73,38 @@ public static class AvatarGenerator
         };
     }
 
+    /// <summary>
+    /// Generates a deterministic two-color gradient for profile theming, derived from
+    /// the same hash seed as the user's avatar so the gradient and avatar visually harmonize.
+    /// Returns (startColor, endColor) as hex strings (e.g. "#A1B2C3").
+    /// </summary>
+    public static (string Start, string End) GenerateGradient(string seed)
+    {
+        var hash = GetHash(seed);
+
+        // Same base hue as the avatar's primary color
+        var baseHue = (hash[1] + hash[2]) % 360;
+
+        // Use slightly desaturated, lighter colors for a softer header background
+        var saturation = 45 + (hash[3] % 20); // 45-65%
+        var lightness = 60 + (hash[4] % 15);  // 60-75% — lighter than avatars to avoid overpowering
+
+        // Start: base hue. End: analogous shift for a smooth gradient
+        var startColor = HslToHex(baseHue, saturation, lightness);
+        var endColor = HslToHex((baseHue + 40) % 360, saturation, lightness - 10);
+
+        return (startColor, endColor);
+    }
+
+    /// <summary>
+    /// Returns a CSS linear-gradient string ready to use as a background value.
+    /// </summary>
+    public static string GenerateGradientCss(string seed, int angleDegrees = 135)
+    {
+        var (start, end) = GenerateGradient(seed);
+        return $"linear-gradient({angleDegrees}deg, {start} 0%, {end} 100%)";
+    }
+
     private static byte[] GetHash(string input) =>
         MD5.HashData(Encoding.UTF8.GetBytes(input));
 

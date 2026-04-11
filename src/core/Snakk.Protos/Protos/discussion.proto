@@ -213,6 +213,8 @@ message ImagesPreviewItem {
   optional string thumbnail_url = 2;
   optional string blur_data_uri = 3;
   optional string medium_thumbnail_url = 4;
+  int32 width = 5;
+  int32 height = 6;
 }
 
 message IamaPreview {
@@ -432,6 +434,8 @@ message ImagesImageProto {
   optional string thumbnail_url = 2;
   optional string blur_data_uri = 3;
   optional string medium_thumbnail_url = 4;
+  int32 width = 5;
+  int32 height = 6;
 }
 
 // --- IAMA ---

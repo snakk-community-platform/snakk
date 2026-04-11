@@ -33,10 +33,15 @@ public class MarkupParser : IMarkupParser
         .UseAdvancedExtensions()
         .Build();
 
-    public string ToHtml(string markup)
+    public string ToHtml(string markup) => ToHtml(markup, autoParagraph: false);
+
+    public string ToHtml(string markup, bool autoParagraph)
     {
         if (string.IsNullOrEmpty(markup))
             return string.Empty;
+
+        if (autoParagraph)
+            markup = ParagraphSplitter.Split(markup);
 
         var document = Markdown.Parse(markup, Pipeline);
 

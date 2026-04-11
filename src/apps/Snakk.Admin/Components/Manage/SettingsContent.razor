@@ -166,6 +166,17 @@
                     <MudSelectItem Value="@("newest")">Newest First</MudSelectItem>
                     <MudSelectItem Value="@("oldest")">Oldest First</MudSelectItem>
                 </MudSelect>
+
+                <MudSwitch @bind-Value="_autoParagraphEnabled"
+                           T="bool"
+                           Color="Color.Primary"
+                           Label="Auto-paragraph walls of text"
+                           LabelPlacement="Placement.End" />
+                <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                    When enabled, very long single-paragraph posts (&gt;500 chars and &gt;5 sentences)
+                    are automatically broken into paragraphs on save. Users can override by typing
+                    their own blank lines — explicit paragraph breaks are always preserved.
+                </MudText>
             }
 
             @* Discussion type checkboxes — shown for Community, Hub, and Space *@
@@ -235,6 +246,7 @@
     private string _visibility = "Public";
     private string _defaultSort = "latest";
     private string _timezone = "UTC";
+    private bool _autoParagraphEnabled = true;
     private string? _languageCode;
     private string? _inheritedLanguageCode;
     private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
@@ -272,6 +284,7 @@
                 _languageCode = response.HasLanguageCode ? response.LanguageCode : null;
                 _inheritedLanguageCode = response.HasHubLanguageCode ? response.HubLanguageCode
                     : response.HasCommunityLanguageCode ? response.CommunityLanguageCode : null;
+                _autoParagraphEnabled = response.AutoParagraphEnabled;
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
                     : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
@@ -557,7 +570,8 @@
                     SpacePublicId = Scope.ScopePublicId,
                     Name = _name,
                     Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
-                    LanguageCode = _languageCode ?? ""
+                    LanguageCode = _languageCode ?? "",
+                    AutoParagraphEnabled = _autoParagraphEnabled
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));

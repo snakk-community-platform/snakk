@@ -11,6 +11,7 @@ public class Space
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public bool AutoParagraphEnabled { get; private set; }
     public string? LanguageCode { get; private set; }
     public string? HubLanguageCode { get; private set; }
     public string? CommunityLanguageCode { get; private set; }
@@ -48,7 +49,8 @@ public class Space
         int avatarRevision = 0,
         string? languageCode = null,
         string? hubLanguageCode = null,
-        string? communityLanguageCode = null)
+        string? communityLanguageCode = null,
+        bool autoParagraphEnabled = true)
     {
         PublicId = publicId;
         HubId = hubId;
@@ -57,6 +59,7 @@ public class Space
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        AutoParagraphEnabled = autoParagraphEnabled;
         LanguageCode = languageCode;
         HubLanguageCode = hubLanguageCode;
         CommunityLanguageCode = communityLanguageCode;
@@ -111,7 +114,8 @@ public class Space
         int avatarRevision = 0,
         string? languageCode = null,
         string? hubLanguageCode = null,
-        string? communityLanguageCode = null) =>
+        string? communityLanguageCode = null,
+        bool autoParagraphEnabled = true) =>
         new Space(
             publicId,
             hubId,
@@ -129,7 +133,8 @@ public class Space
             avatarRevision,
             languageCode,
             hubLanguageCode,
-            communityLanguageCode);
+            communityLanguageCode,
+            autoParagraphEnabled);
 
     public static Space RehydrateForList(
         SpaceId publicId,
@@ -216,6 +221,12 @@ public class Space
         AvatarThumbnailFileName = null;
         AvatarMicroFileName = null;
         AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAutoParagraphEnabled(bool enabled)
+    {
+        AutoParagraphEnabled = enabled;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

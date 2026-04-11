@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using Snakk.Infrastructure.Database;
 namespace Snakk.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(SnakkDbContext))]
-    partial class SnakkDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260411010758_AddImageWidthHeight")]
+    partial class AddImageWidthHeight
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2215,9 +2218,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("AllowAnonymousReading")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("AutoParagraphEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<string>("AvatarFileName")

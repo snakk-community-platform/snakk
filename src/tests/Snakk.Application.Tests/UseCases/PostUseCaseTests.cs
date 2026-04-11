@@ -15,6 +15,7 @@ public class PostUseCaseTests
 {
     private readonly IPostRepository _postRepository = Substitute.For<IPostRepository>();
     private readonly IDiscussionRepository _discussionRepository = Substitute.For<IDiscussionRepository>();
+    private readonly ISpaceRepository _spaceRepository = Substitute.For<ISpaceRepository>();
     private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
     private readonly IDomainEventDispatcher _eventDispatcher = Substitute.For<IDomainEventDispatcher>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
@@ -37,9 +38,11 @@ public class PostUseCaseTests
 
         _markupParser.ToHtml(Arg.Any<string>())
             .Returns(x => $"<p>{x.Arg<string>()}</p>");
+        _markupParser.ToHtml(Arg.Any<string>(), Arg.Any<bool>())
+            .Returns(x => $"<p>{x.Arg<string>()}</p>");
 
         _useCase = new PostUseCase(
-            _postRepository, _discussionRepository, _userRepository, _followRepository,
+            _postRepository, _discussionRepository, _spaceRepository, _userRepository, _followRepository,
             _eventDispatcher, _realtimeNotifier, _counterService, _mediaService,
             _markupParser, _moderationRepository, _reactionUseCase);
     }

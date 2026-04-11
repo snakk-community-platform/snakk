@@ -11,6 +11,7 @@ using Snakk.Application.Services;
 public class PostUseCase(
     IPostRepository postRepository,
     IDiscussionRepository discussionRepository,
+    ISpaceRepository spaceRepository,
     IUserRepository userRepository,
     IFollowRepository followRepository,
     IDomainEventDispatcher eventDispatcher,
@@ -58,8 +59,10 @@ public class PostUseCase(
                 return Result<Post>.Failure($"Reply-to post '{replyToPostId}' not found");
         }
 
-        // Create post with pre-rendered HTML
-        var renderedContent = markupParser.ToHtml(content);
+        // Create post with pre-rendered HTML. Auto-paragraph is per-space.
+        var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
+        var autoParagraph = space?.AutoParagraphEnabled ?? true;
+        var renderedContent = markupParser.ToHtml(content, autoParagraph);
         var post = Post.Create(discussionId, userId, content, renderedContent, replyToPostId: replyToPostId);
 
         // Auto-follow discussion if user has the preference enabled
@@ -124,7 +127,9 @@ public class PostUseCase(
 
         try
         {
-            var renderedContent = markupParser.ToHtml(newContent);
+            var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
+            var autoParagraph = space?.AutoParagraphEnabled ?? true;
+            var renderedContent = markupParser.ToHtml(newContent, autoParagraph);
             post.UpdateContent(newContent, renderedContent, userId);
             await postRepository.UpdateAsync(post);
 

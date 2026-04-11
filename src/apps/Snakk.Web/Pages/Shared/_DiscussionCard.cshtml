@@ -246,8 +246,11 @@
                 {
                     var firstSrc = bestSrc(images[0]);
                     var secondSrc = images.Count > 1 ? bestSrc(images[1]) : null;
+                    var firstAspect = images[0].Width > 0 && images[0].Height > 0
+                        ? $"aspect-ratio: {images[0].Width} / {images[0].Height};"
+                        : "";
 
-                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@firstAspect" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
                         <div class="fp-images-track">
                             @for (var i = 0; i < images.Count; i++)
                             {

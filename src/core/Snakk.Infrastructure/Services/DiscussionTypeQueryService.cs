@@ -89,7 +89,9 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 gi.Image.StoragePath,
                 gi.Image.ThumbnailPath,
                 gi.Image.MediumThumbnailPath,
-                gi.Image.BlurDataUri
+                gi.Image.BlurDataUri,
+                gi.Image.Width,
+                gi.Image.Height
             })
             .ToListAsync();
 
@@ -98,7 +100,9 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 fileStorage.GetPublicUrl(m.StoragePath),
                 m.ThumbnailPath != null ? fileStorage.GetPublicUrl(m.ThumbnailPath) : null,
                 m.MediumThumbnailPath != null ? fileStorage.GetPublicUrl(m.MediumThumbnailPath) : null,
-                m.BlurDataUri))
+                m.BlurDataUri,
+                m.Width,
+                m.Height))
             .ToList();
     }
 

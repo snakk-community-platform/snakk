@@ -827,7 +827,8 @@ public static class BffApiEndpoints
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
-            FollowingCount = apiResult.FollowingCount
+            FollowingCount = apiResult.FollowingCount,
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss(apiResult.PublicId)
         };
 
         return Results.Ok(bffResponse);
@@ -1303,7 +1304,8 @@ public static class BffApiEndpoints
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
-            FollowingCount = apiResult.FollowingCount
+            FollowingCount = apiResult.FollowingCount,
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss(apiResult.PublicId)
         };
 
         return Results.Ok(bffResponse);

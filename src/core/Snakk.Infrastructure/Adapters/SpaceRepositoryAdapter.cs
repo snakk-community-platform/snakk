@@ -21,7 +21,8 @@ public class SpaceRepositoryAdapter(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
-                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision))
+                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
+                s.AutoParagraphEnabled))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -34,7 +35,8 @@ public class SpaceRepositoryAdapter(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
-                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision))
+                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
+                s.AutoParagraphEnabled))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -47,7 +49,8 @@ public class SpaceRepositoryAdapter(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
-                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision))
+                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
+                s.AutoParagraphEnabled))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -85,7 +88,8 @@ public class SpaceRepositoryAdapter(
                 s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
-                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision))
+                s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
+                s.AutoParagraphEnabled))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -129,6 +133,7 @@ public class SpaceRepositoryAdapter(
         entity.Description = space.Description;
         entity.AllowAnonymousReading = space.AllowAnonymousReading;
         entity.RequireEmailConfirmation = space.RequireEmailConfirmation;
+        entity.AutoParagraphEnabled = space.AutoParagraphEnabled;
         entity.LastModifiedAt = space.LastModifiedAt;
         entity.AvatarFileName = space.AvatarFileName;
         entity.AvatarThumbnailFileName = space.AvatarThumbnailFileName;
@@ -152,7 +157,8 @@ public class SpaceRepositoryAdapter(
         string? AvatarFileName,
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
-        int AvatarRevision)
+        int AvatarRevision,
+        bool AutoParagraphEnabled)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
@@ -163,6 +169,7 @@ public class SpaceRepositoryAdapter(
             avatarFileName: AvatarFileName,
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
-            avatarRevision: AvatarRevision);
+            avatarRevision: AvatarRevision,
+            autoParagraphEnabled: AutoParagraphEnabled);
     }
 }

@@ -12,6 +12,8 @@ public class ImageDatabaseEntity
     public required string OriginalFileName { get; set; }
     public required string ContentType { get; set; }
     public required long SizeBytes { get; set; }
+    public required int Width { get; set; }
+    public required int Height { get; set; }
     public required string StoragePath { get; set; }
     public required DateTime CreatedAt { get; set; }
 

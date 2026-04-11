@@ -801,8 +801,8 @@
     turnstileSiteKey = Model.TurnstileSiteKey
 }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>
-<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true" defer></script>
-<script src="/js/dist/components/timezone-map.js" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
+<script src="/js/dist/components/timezone-map.js"></script>
 @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
 {
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

@@ -90,9 +90,14 @@
                 slider!.style.right = `${rightPct}%`;
             }
 
-            // Set initial position from "After" label
+            // Set initial position from "After" label.
+            // Discussion lists often init while the card is still laying out, so we need
+            // to wait until the widget has a real width before measuring — otherwise
+            // the label's client rect falls outside the widget and pct clamps to 0
+            // (slider ends up all the way left instead of beside the "After" label).
             const afterLabel = afterEl.querySelector('.gup-compare-label-after') as HTMLElement | null;
-            requestAnimationFrame(() => {
+
+            function computeInitialPosition(): void {
                 if (afterLabel) {
                     const labelRect = afterLabel.getBoundingClientRect();
                     setPos(labelRect.left - 12);
@@ -100,7 +105,19 @@
                     const rect = el.getBoundingClientRect();
                     setPos(rect.left + rect.width * 0.5);
                 }
-            });
+            }
+
+            if (el.clientWidth > 0) {
+                requestAnimationFrame(computeInitialPosition);
+            } else {
+                const ro = new ResizeObserver(() => {
+                    if (el.clientWidth > 0) {
+                        computeInitialPosition();
+                        ro.disconnect();
+                    }
+                });
+                ro.observe(el);
+            }
 
             let dragging = false;
             slider.addEventListener('pointerdown', (e) => { dragging = true; slider!.setPointerCapture(e.pointerId); e.preventDefault(); });

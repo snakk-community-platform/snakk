@@ -147,6 +147,7 @@ public class SpaceManagementService(
             LanguageCode = space.LanguageCode,
             HubLanguageCode = space.HubLanguageCode,
             CommunityLanguageCode = space.CommunityLanguageCode,
+            AutoParagraphEnabled = space.AutoParagraphEnabled,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -167,6 +168,7 @@ public class SpaceManagementService(
 
         space.Name = request.Name;
         space.Description = request.Description;
+        space.AutoParagraphEnabled = request.AutoParagraphEnabled;
 
         if (request.LanguageCode is not null || space.LanguageCode is not null)
         {

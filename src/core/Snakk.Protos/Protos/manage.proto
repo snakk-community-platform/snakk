@@ -78,6 +78,7 @@ message UpdateSpaceSettingsRequest {
   bool require_approval = 5;
   bool allow_anonymous = 6;
   optional string language_code = 7;
+  bool auto_paragraph_enabled = 8;
 }
 
 // --- Responses ---
@@ -113,6 +114,7 @@ message SpaceSettingsResponse {
   optional string language_code = 9;
   optional string hub_language_code = 10;
   optional string community_language_code = 11;
+  bool auto_paragraph_enabled = 12;
 }
 
 message UpdateSpaceSettingsResponse {

@@ -51,6 +51,14 @@
 
 .snakk-popup-content {
     padding: 1rem;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.snakk-popup-banner {
+    height: 2.5rem;
+    margin: -1rem -1rem 0.75rem -1rem;
+    border-radius: 12px 12px 0 0;
 }
 
 .snakk-popup-header {

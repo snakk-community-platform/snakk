@@ -12,4 +12,5 @@ public record BffUserStatsResponse
     public required int ReplyCount { get; init; }
     public required int FollowerCount { get; init; }
     public required int FollowingCount { get; init; }
+    public string? GradientCss { get; init; }
 }

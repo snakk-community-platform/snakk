@@ -147,7 +147,8 @@ public class ManageGrpcService(
             Name = settings.Name,
             Description = settings.Description ?? "",
             RequireApproval = settings.RequireApproval,
-            AllowAnonymous = settings.AllowAnonymous
+            AllowAnonymous = settings.AllowAnonymous,
+            AutoParagraphEnabled = settings.AutoParagraphEnabled
         };
 
         if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
@@ -187,7 +188,8 @@ public class ManageGrpcService(
                 .Select(t => (DiscussionTypeEnum)t)
                 .ToList(),
             RequireApproval = request.RequireApproval,
-            AllowAnonymous = request.AllowAnonymous
+            AllowAnonymous = request.AllowAnonymous,
+            AutoParagraphEnabled = request.AutoParagraphEnabled
         };
 
         var result = await spaceManagementService.UpdateSettingsAsync(

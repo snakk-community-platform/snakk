@@ -42,6 +42,9 @@ public class MediaService(
         if (!AllowedContentTypes.Contains(contentType))
             throw new InvalidOperationException($"File type '{contentType}' is not allowed. Allowed types: {string.Join(", ", AllowedContentTypes)}");
 
+        int finalWidth = 0;
+        int finalHeight = 0;
+
         // Read the entire stream into memory for size check
         using var rawStream = new MemoryStream();
         await stream.CopyToAsync(rawStream, cancellationToken);
@@ -77,6 +80,9 @@ public class MediaService(
                     Size = new Size(MaxImageDimension, MaxImageDimension)
                 }));
             }
+
+            finalWidth = image.Width;
+            finalHeight = image.Height;
 
             // Always re-encode as WebP for smallest file size (strips all metadata)
             var encoder = new WebpEncoder { Quality = 80 };
@@ -215,6 +221,8 @@ public class MediaService(
             OriginalFileName = Path.GetFileName(fileName),
             ContentType = "image/webp",
             SizeBytes = processedStream.Length,
+            Width = finalWidth,
+            Height = finalHeight,
             StoragePath = storagePath,
             ThumbnailPath = thumbnailPath,
             MediumThumbnailPath = mediumThumbnailPath,

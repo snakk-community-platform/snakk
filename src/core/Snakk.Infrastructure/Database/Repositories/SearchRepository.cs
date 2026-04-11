@@ -835,7 +835,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                             Url = i.Image.StoragePath,
                             ThumbnailUrl = i.Image.ThumbnailPath,
                             MediumThumbnailUrl = i.Image.MediumThumbnailPath,
-                            i.Image.BlurDataUri
+                            i.Image.BlurDataUri,
+                            i.Image.Width,
+                            i.Image.Height
                         })
                         .ToList()
                 })
@@ -849,7 +851,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         fileStorage.GetPublicUrl(i.Url),
                         i.ThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
                         i.MediumThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
-                        i.BlurDataUri))
+                        i.BlurDataUri,
+                        i.Width,
+                        i.Height))
                     .ToList();
                 result[publicId] = new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
             }

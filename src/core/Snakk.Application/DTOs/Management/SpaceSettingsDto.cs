@@ -20,6 +20,8 @@ public class SpaceSettingsDto
 
     public bool AllowAnonymous { get; set; }
 
+    public bool AutoParagraphEnabled { get; set; } = true;
+
     public string? LanguageCode { get; init; }
 
     public string? HubLanguageCode { get; init; }
@@ -43,6 +45,8 @@ public class UpdateSpaceSettingsRequest
     public bool RequireApproval { get; set; }
 
     public bool AllowAnonymous { get; set; }
+
+    public bool AutoParagraphEnabled { get; set; } = true;
 
     public string? LanguageCode { get; init; }
 }

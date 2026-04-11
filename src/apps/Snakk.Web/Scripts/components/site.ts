@@ -30,6 +30,7 @@ interface EntityStats {
     followingCount?: number;
     spaceCount?: number;
     hubCount?: number;
+    gradientCss?: string;
 }
 
 interface EntityResolveResult {
@@ -83,6 +84,7 @@ class SnakkPopup {
         popup.className = 'snakk-popup';
         popup.innerHTML = `
             <div class="snakk-popup-content">
+                <div class="snakk-popup-banner"></div>
                 <div class="snakk-popup-header">
                     <div class="snakk-popup-avatar-skeleton skeleton"></div>
                     <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
@@ -355,6 +357,17 @@ class SnakkPopup {
         if (stats && stats.avatarUrl && avatarImg) {
             avatarImg.src = stats.avatarUrl;
             avatarImg.style.display = 'block';
+        }
+
+        // Apply gradient banner (currently only set for users)
+        const bannerEl = popup.querySelector('.snakk-popup-banner') as HTMLElement;
+        if (bannerEl) {
+            if (stats && stats.gradientCss) {
+                bannerEl.style.background = stats.gradientCss;
+                bannerEl.style.display = 'block';
+            } else {
+                bannerEl.style.display = 'none';
+            }
         }
 
         // Update name from API if available

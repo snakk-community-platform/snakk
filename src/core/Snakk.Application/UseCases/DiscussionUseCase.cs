@@ -51,7 +51,7 @@ public class DiscussionUseCase(
         var discussion = Discussion.Create(spaceId, userId, title, slug, type);
 
         // Create first post
-        var renderedFirstPost = markupParser.ToHtml(firstPostContent);
+        var renderedFirstPost = markupParser.ToHtml(firstPostContent, space.AutoParagraphEnabled);
         var firstPost = Post.Create(discussion.PublicId, userId, firstPostContent, renderedFirstPost, isFirstPost: true);
 
         // Persist

@@ -11,7 +11,7 @@ public record DebatePositionData(int Id, string Label, int Index, int PostCount)
 public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? ImagePath, string? BlurDataUri, bool IsInternal);
 
 // Images
-public record ImagesImageInfo(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
+public record ImagesImageInfo(string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri, int Width, int Height);
 
 // Journal
 public record JournalInfo(List<string> EntryPostPublicIds);

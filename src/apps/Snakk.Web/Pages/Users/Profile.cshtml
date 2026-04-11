@@ -1,6 +1,7 @@
 @page "/u/{publicId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
+@using Snakk.Shared.Avatars
 @using Snakk.Shared.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
 @model ProfileModel
@@ -120,6 +121,9 @@
         }
         else
         {
+            <!-- Profile Banner -->
+            <div class="fp-profile-banner" style="background: @AvatarGenerator.GenerateGradientCss(Model.Profile.PublicId)"></div>
+
             <!-- Profile Card -->
             <div class="fp-profile-card">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
@@ -301,10 +305,10 @@
 </div>
 </aside>
 
-@section Scripts {
-    @if (Model.Profile != null)
-    {
-        <script type="application/json" id="profile-page-config">
+@* Inline in page body (not @section Scripts) so HTMX re-executes on swap — #main-content is the swap target, sections are not swapped. *@
+@if (Model.Profile != null)
+{
+    <script type="application/json" id="profile-page-config">
 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
 {
     userId = Model.Profile!.PublicId,
@@ -313,7 +317,6 @@
     discussionCount = Model.Profile.DiscussionCount,
     postCount = Model.Profile.ReplyCount
 }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
-        </script>
-    }
-    <script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true" defer></script>
+    </script>
 }
+<script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true"></script>

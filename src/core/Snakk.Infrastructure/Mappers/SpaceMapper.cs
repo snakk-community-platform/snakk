@@ -22,7 +22,8 @@ public static class SpaceMapper
             avatarRevision: entity.AvatarRevision,
             languageCode: entity.LanguageCode,
             hubLanguageCode: entity.HubLanguageCode,
-            communityLanguageCode: entity.CommunityLanguageCode);
+            communityLanguageCode: entity.CommunityLanguageCode,
+            autoParagraphEnabled: entity.AutoParagraphEnabled);
 
     public static SpaceDatabaseEntity ToPersistence(this Space space) =>
         new()
@@ -33,6 +34,7 @@ public static class SpaceMapper
             Description = space.Description,
             AllowAnonymousReading = space.AllowAnonymousReading,
             RequireEmailConfirmation = space.RequireEmailConfirmation,
+            AutoParagraphEnabled = space.AutoParagraphEnabled,
             CreatedAt = space.CreatedAt,
             LastModifiedAt = space.LastModifiedAt,
             AvatarFileName = space.AvatarFileName,

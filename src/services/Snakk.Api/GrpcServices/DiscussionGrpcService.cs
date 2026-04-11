@@ -332,7 +332,7 @@ public class DiscussionGrpcService(
                     };
                     preview.Images.Items.AddRange(d.Preview.Images.Items.Select(i =>
                     {
-                        var pi = new ImagesPreviewItem { Url = i.Url };
+                        var pi = new ImagesPreviewItem { Url = i.Url, Width = i.Width, Height = i.Height };
                         if (i.ThumbnailUrl is not null) pi.ThumbnailUrl = i.ThumbnailUrl;
                         if (i.MediumThumbnailUrl is not null) pi.MediumThumbnailUrl = i.MediumThumbnailUrl;
                         if (i.BlurDataUri is not null) pi.BlurDataUri = i.BlurDataUri;
@@ -618,7 +618,7 @@ public class DiscussionGrpcService(
         var response = new ImagesLayoutResponse { Layout = layout ?? "grid", IsSpoiler = isSpoiler };
         foreach (var img in images)
         {
-            var proto = new ImagesImageProto { Url = img.Url };
+            var proto = new ImagesImageProto { Url = img.Url, Width = img.Width, Height = img.Height };
             if (img.ThumbnailUrl != null) proto.ThumbnailUrl = img.ThumbnailUrl;
             if (img.MediumThumbnailUrl != null) proto.MediumThumbnailUrl = img.MediumThumbnailUrl;
             if (img.BlurDataUri != null) proto.BlurDataUri = img.BlurDataUri;

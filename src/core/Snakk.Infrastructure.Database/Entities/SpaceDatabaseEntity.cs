@@ -21,6 +21,9 @@ public class SpaceDatabaseEntity
     public bool IsRestricted { get; set; }
     public bool IsAdultOnly { get; set; }
 
+    // Content rendering: auto-paragraph walls of text at post save time
+    public bool AutoParagraphEnabled { get; set; } = true;
+
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }
     public bool IsDeleted { get; set; }

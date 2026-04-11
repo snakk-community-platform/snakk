@@ -30,6 +30,8 @@ public class DiscussionUseCaseTests
     {
         _markupParser.ToHtml(Arg.Any<string>())
             .Returns(x => $"<p>{x.Arg<string>()}</p>");
+        _markupParser.ToHtml(Arg.Any<string>(), Arg.Any<bool>())
+            .Returns(x => $"<p>{x.Arg<string>()}</p>");
 
         _realtimeNotifier
             .NotifyDiscussionCreatedAsync(Arg.Any<DiscussionId>(), Arg.Any<SpaceId>(), Arg.Any<User>())
