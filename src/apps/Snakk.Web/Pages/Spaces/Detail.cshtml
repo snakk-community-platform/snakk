@@ -2,6 +2,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Spaces.DetailModel
@@ -137,14 +138,14 @@ else
 <!-- Center Column -->
 <div class="fp-center">
     <div class="fp-center-inner">
-        <!-- Space Header -->
-        <div class="flex items-start gap-4 mb-4">
+        <!-- Space Header — gradient-backed card, seeded to match generated space avatar -->
+        <div class="fp-space-card" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space.PublicId}")">
             <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId, avatarFileName: Model.Space.HasAvatarFileName ? Model.Space.AvatarFileName : null)"
                  alt="" width="56" height="56"
-                 class="w-14 h-14 rounded-full shrink-0" decoding="async" />
-            <div class="flex-1 min-w-0">
+                 class="fp-space-avatar" decoding="async" />
+            <div class="fp-space-info">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-xl font-bold" style="color: var(--text-primary)">@Model.Space.Name</h1>
+                    <h1 class="fp-space-name">@Model.Space.Name</h1>
                     <partial name="Shared/_FeedDropdown" model="@($"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed")" />
                     @if (Model.IsAuthenticated)
                     {
@@ -185,9 +186,9 @@ else
                 </div>
                 @if (!string.IsNullOrEmpty(Model.Space.Description))
                 {
-                    <p class="text-sm mt-1" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                    <p class="fp-space-description">@Model.Space.Description</p>
                 }
-                <div class="text-xs mt-1" style="color: var(--text-tertiary)">
+                <div class="fp-space-breadcrumb">
                     <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="hover:underline"
                        data-popup-type="hub" data-popup-id="@Model.Hub?.PublicId" data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
                     @if (Model.ShowCommunityInBreadcrumb)

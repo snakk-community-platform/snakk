@@ -648,7 +648,7 @@
     }
 }
 
-// Single image — full-width contain preview
+// Single image — full-width contain preview with centered image and blur bleed
 .gup-single {
     position: relative;
     overflow: hidden;
@@ -657,6 +657,11 @@
     .images-upload-item {
         aspect-ratio: 16/6;
         position: relative;
+        // Center the letterboxed image inside the full-width container.
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
         // Blur bleed background — fills full container width
         &[style*="background-image"]::before {
             content: '';
@@ -669,9 +674,13 @@
         }
 
         img {
+            // Shrink to fit container but never upscale past the intrinsic
+            // size (medium thumbnail dimensions from width/height attrs).
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
-            width: 100%;
-            height: 100%;
             display: block;
             position: relative;
             z-index: 1;

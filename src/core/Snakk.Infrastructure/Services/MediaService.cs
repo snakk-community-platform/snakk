@@ -147,7 +147,7 @@ public class MediaService(
         processedStream.Position = 0;
         await fileStorage.SaveAsync(storagePath, processedStream, "public, max-age=31536000, immutable", cancellationToken);
 
-        // Generate thumbnails (300px small, 720px medium)
+        // Generate thumbnails (300px small, 900px medium)
         string? thumbnailPath = null;
         int? thumbnailWidth = null;
         int? thumbnailHeight = null;
@@ -159,13 +159,14 @@ public class MediaService(
             processedStream.Position = 0;
             using var thumbImage = await Image.LoadAsync(processedStream, cancellationToken);
 
-            // Medium thumbnail (720px) — sized to match the max center-column width
-            // in discussion list previews and single-image gallery previews.
-            if (thumbImage.Width > 720 || thumbImage.Height > 720)
+            // Medium thumbnail (900px) — matches the max center-column width
+            // (~867px) in discussion list previews and single-image gallery
+            // previews so the image fills the frame on DPR=1 without upscaling.
+            if (thumbImage.Width > 900 || thumbImage.Height > 900)
             {
                 using var medImage = thumbImage.Clone(x => x.Resize(new ResizeOptions
                 {
-                    Size = new Size(720, 720),
+                    Size = new Size(900, 900),
                     Mode = ResizeMode.Max
                 }));
 
