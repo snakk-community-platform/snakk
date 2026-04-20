@@ -103,7 +103,7 @@ public class SearchUseCaseTests
         const string query = "search term";
         var results = new List<PostSearchResultDto>
         {
-            new("post-1", "This contains the search term", "user-1", "TestUser", null,
+            new("post-1", "<p>This contains the search term</p>", "user-1", "TestUser", null,
                 "disc-1", "Discussion Title", "discussion-title", "general", "General", "main-hub", "Main Hub", "snakk", DateTime.UtcNow)
         };
         var pagedResult = new PagedResult<PostSearchResultDto> { Items = results, Offset = 0, PageSize = 20, HasMoreItems = false };

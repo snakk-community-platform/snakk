@@ -82,6 +82,48 @@ public interface ISearchRepository
         string? cursor = null,
         string? userId = null,
         string? authorId = null);
+
+    /// <summary>
+    /// Gets trending discussions ordered by decay-weighted activity score (TrendScore DESC).
+    /// </summary>
+    Task<PagedResult<RecentDiscussionDto>> GetTrendingDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? cursor = null,
+        string? userId = null);
+
+    /// <summary>
+    /// Gets top discussions ordered by combined engagement (ReactionCount + PostCount DESC),
+    /// optionally filtered to discussions created within a time window.
+    /// </summary>
+    Task<PagedResult<RecentDiscussionDto>> GetTopDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? timePeriod = null,
+        string? userId = null);
+
+    /// <summary>
+    /// Gets newest discussions ordered by CreatedAt DESC (ignores reply bumps).
+    /// </summary>
+    Task<PagedResult<RecentDiscussionDto>> GetNewDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? cursor = null,
+        string? userId = null);
+
+    /// <summary>
+    /// Fetches preview data for a set of discussions by their public IDs.
+    /// Used to enrich saved/followed discussion lists with type-specific previews.
+    /// </summary>
+    Task<Dictionary<string, DiscussionPreviewDto>> FetchPreviewsByPublicIdsAsync(IEnumerable<string> publicIds);
+
+    /// <summary>
+    /// Fetches full RecentDiscussionDto (including previews) for a set of public IDs.
+    /// </summary>
+    Task<List<RecentDiscussionDto>> GetRecentDiscussionsByPublicIdsAsync(IEnumerable<string> publicIds);
 }
 
 public record HubListItemDto(
@@ -158,7 +200,7 @@ public record DiscussionSearchResultDto(
 
 public record PostSearchResultDto(
     string PublicId,
-    string Content,
+    string RenderedContent,
     string AuthorPublicId,
     string AuthorDisplayName,
     string? AuthorAvatarFileName,

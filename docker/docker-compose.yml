@@ -48,6 +48,7 @@ services:
           memory: 512m
     environment:
       # Database host for entrypoint migration check
+      ASPNETCORE_ENVIRONMENT: Development
       DB_HOST: postgres
       DB_PORT: "5432"
       # Connection string for DbSeeder on restart (pending migrations)

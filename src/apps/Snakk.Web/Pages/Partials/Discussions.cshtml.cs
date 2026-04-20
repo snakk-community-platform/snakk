@@ -27,6 +27,8 @@ public class DiscussionsModel(
     public bool HideHub { get; set; }
 
 
+    public string Sort { get; set; } = "recent";
+
     public async Task OnGetAsync(
         int offset = 0,
         int pageSize = 20,
@@ -35,10 +37,12 @@ public class DiscussionsModel(
         string? spaceId = null,
         bool hideCommunity = false,
         bool hideHub = false,
-        string? cursor = null)
+        string? cursor = null,
+        string? sort = null)
     {
         Response.Headers.CacheControl = "public, max-age=5";
 
+        Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : "recent";
         CommunityId = communityId;
         HubId = hubId;
         SpaceId = spaceId;
@@ -57,16 +61,34 @@ public class DiscussionsModel(
 
         try
         {
-            var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor);
-            Items = result?.Items ?? [];
-            HasMoreItems = result?.HasMoreItems ?? false;
-            NextOffset = offset + pageSize;
-            NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
+            if (Sort == "trending")
+            {
+                var result = await apiClient.GetTrendingDiscussionsAsync(offset, pageSize, communityId);
+                Items = result?.Items ?? [];
+                HasMoreItems = result?.HasMoreItems ?? false;
+                NextOffset = offset + pageSize;
+                NextCursor = null; // trending uses offset pagination
+            }
+            else if (Sort == "new")
+            {
+                var result = await apiClient.GetNewDiscussionsAsync(offset, pageSize, communityId, cursor);
+                Items = result?.Items ?? [];
+                HasMoreItems = result?.HasMoreItems ?? false;
+                NextOffset = offset + pageSize;
+                NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
+            }
+            else
+            {
+                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor);
+                Items = result?.Items ?? [];
+                HasMoreItems = result?.HasMoreItems ?? false;
+                NextOffset = offset + pageSize;
+                NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
+            }
         }
         catch
         {
             // Return empty on failure
         }
-
     }
 }

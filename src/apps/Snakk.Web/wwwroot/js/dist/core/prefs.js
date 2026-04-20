@@ -1,0 +1,1 @@
+"use strict";(function(){try{localStorage.getItem("snakk:disable-previews")==="true"&&document.documentElement.classList.add("no-discussion-previews"),localStorage.getItem("snakk:disable-animations")==="true"&&document.documentElement.classList.add("no-animations")}catch{}})();

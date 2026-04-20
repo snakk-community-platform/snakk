@@ -1,0 +1,74 @@
+@page "/help/{slug?}"
+@model HelpModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = Model.ArticleTitle + " - Help";
+}
+
+@section LeftColumn {
+    <partial name="Shared/_LeftSidebar" />
+}
+
+<!-- Center Column -->
+<div class="fp-center">
+    <div id="help-main" class="fp-center-inner">
+        @if (!string.IsNullOrEmpty(Model.Slug))
+        {
+            <div class="fp-page-labels">
+                <a href="/help" class="badge badge-ghost badge-sm">Help</a>
+                <span class="fp-page-labels-sep">›</span>
+                <span class="badge badge-ghost badge-sm">@Model.ArticleTitle</span>
+            </div>
+        }
+
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Help
+        </h2>
+        <article class="help-content">
+            <h1>@Model.ArticleTitle</h1>
+            <div class="prose">
+                @Html.Raw(Model.RenderedHtml)
+            </div>
+        </article>
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="fp-right">
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+}
+<div class="fp-right-sticky">
+    <partial name="Shared/_RightActionPane" />
+    <div class="fp-right-body">
+    <div class="fp-right-section">
+        <div class="fp-right-title">Help Center</div>
+        <nav id="help-sidebar-nav" class="help-sidebar">
+            @foreach (var s in Model.Sections)
+            {
+                <div class="help-section">
+                    <div class="help-section-title">@s.Title</div>
+                    @foreach (var article in s.Items)
+                    {
+                        <a href="/help/@article.Slug"
+                           hx-get="/help/@article.Slug"
+                           hx-target="#help-main"
+                           hx-select="#help-main"
+                           hx-select-oob="#help-sidebar-nav"
+                           hx-swap="outerHTML"
+                           hx-push-url="true"
+                           preload="mouseover"
+                           class="help-nav-item @(article.Slug == Model.Slug ? "help-nav-active" : "")">
+                            @article.Title
+                        </a>
+                    }
+                </div>
+            }
+        </nav>
+    </div>
+    </div>
+</div>
+</aside>

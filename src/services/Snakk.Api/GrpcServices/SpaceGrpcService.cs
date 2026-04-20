@@ -205,7 +205,8 @@ public class SpaceGrpcService(
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
-    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug);
+    private sealed record LatestDiscussionMeta(string PublicId, string Title, string Slug, DateTime LastActivityAt, string AuthorPublicId, string AuthorDisplayName, string? AuthorAvatarFileName, int PostCount);
+    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null);
     private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     private async Task PopulateRulesMetadata(SpaceInfo info, string publicId)
@@ -225,9 +226,31 @@ public class SpaceGrpcService(
                         s.IsRestricted,
                         AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
                         HubSlug = s.Hub.Slug,
-                        CommunitySlug = s.Hub.Community.Slug })
+                        CommunitySlug = s.Hub.Community.Slug,
+                        s.DiscussionCount,
+                        ReplyCount = s.PostCount - s.DiscussionCount,
+                        LatestDiscussion = s.Discussions
+                            .Where(d => !d.IsDeleted)
+                            .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+                            .Select(d => new {
+                                d.PublicId,
+                                d.Title,
+                                d.Slug,
+                                LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
+                                AuthorPublicId = d.CreatedByUser.PublicId,
+                                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                                d.PostCount })
+                            .FirstOrDefault()
+                    })
                     .FirstOrDefaultAsync(cancel);
-                return raw is null ? null : new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug);
+                if (raw is null) return null;
+                var ld = raw.LatestDiscussion is null ? null : new LatestDiscussionMeta(
+                    raw.LatestDiscussion.PublicId, raw.LatestDiscussion.Title, raw.LatestDiscussion.Slug,
+                    raw.LatestDiscussion.LastActivityAt, raw.LatestDiscussion.AuthorPublicId,
+                    raw.LatestDiscussion.AuthorDisplayName ?? "", raw.LatestDiscussion.AuthorAvatarFileName,
+                    raw.LatestDiscussion.PostCount);
+                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld);
             },
             MetaCacheOptions);
 
@@ -242,6 +265,24 @@ public class SpaceGrpcService(
             info.AllowedDiscussionTypes.AddRange(data.AllowedTypes);
             info.HubSlug = data.HubSlug ?? "";
             info.CommunitySlug = data.CommunitySlug ?? "";
+            info.DiscussionCount = data.DiscussionCount;
+            info.ReplyCount = data.ReplyCount;
+            if (data.LatestDiscussion is not null)
+            {
+                var ld = data.LatestDiscussion;
+                info.LatestDiscussion = new LatestDiscussionRef
+                {
+                    PublicId = ld.PublicId,
+                    Title = ld.Title,
+                    Slug = ld.Slug,
+                    LastActivityAt = Timestamp.FromDateTime(DateTime.SpecifyKind(ld.LastActivityAt, DateTimeKind.Utc)),
+                    AuthorPublicId = ld.AuthorPublicId,
+                    AuthorDisplayName = ld.AuthorDisplayName,
+                    PostCount = ld.PostCount
+                };
+                if (ld.AuthorAvatarFileName is not null)
+                    info.LatestDiscussion.AuthorAvatarFileName = ld.AuthorAvatarFileName;
+            }
         }
     }
 

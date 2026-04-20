@@ -764,7 +764,7 @@ function loadAllReactions(): void {
 
 // ===== Follow Discussion =====
 async function toggleFollowDiscussion(discussionId: string): Promise<void> {
-    const btn = document.getElementById('follow-btn');
+    const btn = document.getElementById('follow-btn') ?? document.querySelector<HTMLElement>('.rp-subscribe-btn');
 
     if (!btn) return;
 
@@ -821,18 +821,32 @@ function updateFollowButton(isFollowing: boolean): void {
     const text = document.getElementById('follow-text');
     const icon = document.getElementById('follow-icon');
 
-    if (!btn || !text || !icon) return;
+    if (btn && text && icon) {
+        if (isFollowing) {
+            btn.classList.add('btn-primary');
+            btn.classList.remove('btn-ghost');
+            text.textContent = 'Subscribed';
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
+        } else {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-ghost');
+            text.textContent = 'Subscribe';
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
+        }
+    }
 
-    if (isFollowing) {
-        btn.classList.add('btn-primary');
-        btn.classList.remove('btn-ghost');
-        text.textContent = 'Following';
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
-    } else {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-ghost');
-        text.textContent = 'Follow';
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
+    const rpBtn = document.querySelector<HTMLElement>('.rp-subscribe-btn');
+    if (rpBtn) {
+        const rpText = rpBtn.querySelector('span');
+        if (isFollowing) {
+            rpBtn.classList.add('btn-primary');
+            rpBtn.classList.remove('btn-ghost');
+            if (rpText) rpText.textContent = 'Subscribed';
+        } else {
+            rpBtn.classList.remove('btn-primary');
+            rpBtn.classList.add('btn-ghost');
+            if (rpText) rpText.textContent = 'Subscribe';
+        }
     }
 }
 
@@ -2146,6 +2160,9 @@ function initDiscussionPage(config: DiscussionConfig): void {
 }
 
 function setupEventListeners(): void {
+    if ((window as any).__discussionDetailListenersRegistered) return;
+    (window as any).__discussionDetailListenersRegistered = true;
+
     // Check selection on mouseup anywhere in document
     document.addEventListener('mouseup', () => {
         // Small delay to let selection finalize
@@ -2227,7 +2244,11 @@ function setupEventListeners(): void {
 }
 
 // ===== Event Delegation =====
-// Handle all data-action clicks
+// Registered once — hx-boost re-executes this script on every discussion page navigation,
+// which would stack duplicate listeners and fire actions N times per click.
+if (!(window as any).__discussionDetailActionsRegistered) {
+    (window as any).__discussionDetailActionsRegistered = true;
+
 document.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
     const action = target.closest('[data-action]') as HTMLElement | null;
@@ -2343,6 +2364,8 @@ if (window.SnakkActions) {
     window.SnakkActions.on('auto-grow', (el) => autoGrow(el as HTMLTextAreaElement));
     window.SnakkActions.on('submit-report', (_el, e) => submitReport(e));
 }
+
+} // end __discussionDetailActionsRegistered guard
 
 // Export minimal API for programmatic access
 (window as any).SnakkDiscussion = {

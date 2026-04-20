@@ -12,6 +12,7 @@ public record BffHubStatsResponse
     public required int SpaceCount { get; init; }
     public required int DiscussionCount { get; init; }
     public required int ReplyCount { get; init; }
+    public string? GradientCss { get; init; }
 }
 
 public record BffSpaceStatsResponse
@@ -23,6 +24,7 @@ public record BffSpaceStatsResponse
     public required int DiscussionCount { get; init; }
     public required int ReplyCount { get; init; }
     public required int FollowerCount { get; init; }
+    public string? GradientCss { get; init; }
 }
 
 public record BffCommunityStatsResponse
@@ -35,4 +37,5 @@ public record BffCommunityStatsResponse
     public required int SpaceCount { get; init; }
     public required int DiscussionCount { get; init; }
     public required int ReplyCount { get; init; }
+    public string? GradientCss { get; init; }
 }

@@ -135,6 +135,20 @@ public class DiscussionRepositoryAdapter(
         return projections.Select(p => p.ToDomain());
     }
 
+    public async Task<IReadOnlyList<Domain.Repositories.DiscussionSummary>> GetSummariesByPublicIdsAsync(
+        IEnumerable<DiscussionId> publicIds)
+    {
+        var ids = publicIds.Select(p => p.Value).ToList();
+        return await context.Discussions
+            .Where(d => ids.Contains(d.PublicId))
+            .Select(d => new Domain.Repositories.DiscussionSummary(
+                d.PublicId, d.Title, d.Slug,
+                d.Space.PublicId,
+                d.CreatedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked, d.Type, d.PostCount))
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Discussion discussion)
     {
         // Convert to database entity
@@ -316,6 +330,37 @@ public class DiscussionRepositoryAdapter(
             .ToListAsync();
 
         return activity.Select(a => (a.Date, a.Count));
+    }
+
+    public async Task<List<Domain.Repositories.TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit)
+    {
+        var userDbId = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+        if (userDbId == 0)
+            return [];
+
+        return await context.Discussions
+            .Where(d => d.CreatedByUserId == userDbId && !d.IsDeleted)
+            .OrderByDescending(d => d.ReactionCount + d.PostCount)
+            .ThenByDescending(d => d.CreatedAt)
+            .Take(limit)
+            .Select(d => new Domain.Repositories.TopDiscussionByUser(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.PostCount,
+                d.ReactionCount,
+                d.CreatedAt,
+                d.Space.Slug,
+                d.Space.Name,
+                d.Space.Hub.Slug,
+                d.Space.Hub.Name,
+                d.Space.Hub.Community.Slug,
+                d.Space.Hub.Community.Name))
+            .ToListAsync();
     }
 
     private record DiscussionProjection(

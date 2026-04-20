@@ -566,6 +566,10 @@ public class ModerationGrpcService(
             communityId = community.Id;
             communityName = community.Name;
         }
+        else if (request.ScopeType == "Platform")
+        {
+            // No scope IDs set — only the Global Admins group at the bottom applies.
+        }
 
         // Hub moderators (if scope is Space or Hub)
         if (hubId.HasValue)

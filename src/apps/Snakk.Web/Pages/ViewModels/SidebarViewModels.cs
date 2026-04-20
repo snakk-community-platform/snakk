@@ -15,10 +15,22 @@ public record SidebarTrendingDiscussionsVM(
 public record SidebarTrendingSpacesVM(
     TopActiveSpacesList? Spaces,
     ICommunityContext Community,
-    string CacheSource);
+    string CacheSource,
+    string SectionLabel = "posts today");
 
 public record SidebarTrendingContributorsVM(
     TopContributorsList? Contributors,
+    ICommunityContext Community,
+    string CacheSource,
+    string SectionLabel = "posts today");
+
+public record SidebarLatestSpacesVM(
+    LatestSpacesList? Spaces,
+    ICommunityContext Community,
+    string CacheSource);
+
+public record SidebarLatestContributorsVM(
+    LatestContributorsList? Contributors,
     ICommunityContext Community,
     string CacheSource);
 

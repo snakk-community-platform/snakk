@@ -70,11 +70,30 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 
 // Add services to the container
 builder.Services.AddOpenApi();
-builder.Services.AddGrpc();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<Snakk.Api.Interceptors.ProfilerTrailerInterceptor>();
+    builder.Services.AddGrpc(options =>
+        options.Interceptors.Add(typeof(Snakk.Api.Interceptors.ProfilerTrailerInterceptor)));
+}
+else
+{
+    builder.Services.AddGrpc();
+}
 builder.Services.AddSnakkServices(builder.Configuration);
 // Rate limiting is handled at the gateway level — API only receives trusted internal requests
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddMiniProfiler(options =>
+    {
+        options.RouteBasePath = "/profiler";
+        options.PopupShowTimeWithChildren = true;
+        options.TrackConnectionOpenClose = true;
+    }).AddEntityFramework();
+}
 
 var app = builder.Build();
 
@@ -92,6 +111,7 @@ Snakk.Shared.Helpers.AvatarHelper.UploadedAvatarBaseUrl =
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseMiniProfiler();
 }
 
 // Only redirect to HTTPS in production
@@ -152,6 +172,7 @@ app.MapGrpcService<Snakk.Api.GrpcServices.BannerGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ManageGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.TwoFactorGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ConsentGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.SaveGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();

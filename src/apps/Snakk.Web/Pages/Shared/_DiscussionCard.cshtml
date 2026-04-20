@@ -27,7 +27,7 @@
     var replyCount = Math.Max(0, discussion.PostCount - 1);
 }
 
-<article class="fp-card h-entry">
+<article class="fp-card h-entry"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
     <div class="fp-card-header">
         @if (Model.ShowUser)
         {
@@ -120,7 +120,7 @@
                                 </div>
                                 <div class="fp-poll-row">
                                     <div class="fp-poll-track">
-                                        <div class="fp-poll-fill" style="width: @(pct)%"></div>
+                                        <div class="fp-poll-fill" style="width: 0" data-poll-width="@(pct)%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -137,6 +137,7 @@
                 var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
                 var sortedPositions = debatePreview.Positions.OrderBy(p => p.Index).ToList();
                 var debateColors = new[] { "var(--link-primary)", "var(--border-subtle)", "var(--text-tertiary)" };
+                var debateEqualPct = (int)Math.Round(100.0 / Math.Max(1, sortedPositions.Count));
 
                 <div class="fp-debate-preview">
                     <div class="fp-debate-bar">
@@ -153,7 +154,8 @@
                                 : "0";
 
                             <div class="fp-debate-segment"
-                                 style="width: @(pct)%; background: @color; border-radius: @radius;"
+                                 style="width: @(debateEqualPct)%; background: @color; border-radius: @radius;"
+                                 data-debate-width="@(pct)%"
                                  title="@position.Label: @(totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0)%">
                                 @if (pct >= 15)
                                 {
@@ -477,10 +479,23 @@
             </svg>
             @replyCount comments
         </a>
+        @if (Model.UnfollowId != null)
+        {
+            <button type="button" class="btn btn-ghost btn-xs ml-auto shrink-0"
+                    data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
+                    title="Unsubscribe">
+                Subscribed
+            </button>
+        }
     </div>
 </article>
 @if (!ViewContext.HttpContext.Items.ContainsKey("iama-countdown-loaded"))
 {
     ViewContext.HttpContext.Items["iama-countdown-loaded"] = true;
     <script src="@SnakkUrlHelper.Js("components/iama-countdown")" asp-append-version="true" defer></script>
+}
+@if (!ViewContext.HttpContext.Items.ContainsKey("card-animations-loaded"))
+{
+    ViewContext.HttpContext.Items["card-animations-loaded"] = true;
+    <script src="@SnakkUrlHelper.Js("components/card-animations")" asp-append-version="true" defer></script>
 }

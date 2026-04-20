@@ -9,7 +9,8 @@ public record DiscussionListItemVM(
     ICommunityContext Community,
     bool ShowHub = true,
     bool ShowSpace = true,
-    bool ShowUser = true);
+    bool ShowUser = true,
+    string? UnfollowId = null);
 
 public record SpaceDiscussionListItemVM(
     DiscussionBySpaceInfo Discussion,

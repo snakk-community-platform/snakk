@@ -12,7 +12,6 @@ public class AccountModel(IConfiguration configuration) : PageModel
     public IActionResult OnGet()
     {
         UserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (UserId is null) return Redirect("/auth/login?returnUrl=/settings/account");
         return Page();
     }
 }

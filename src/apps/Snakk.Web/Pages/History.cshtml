@@ -1,0 +1,76 @@
+@page "/history"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.HistoryModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "History";
+    ViewData["Description"] = "Discussions you have recently visited.";
+    ViewData["AuthPrompt.Title"] = "Sign in to view your history";
+    ViewData["AuthPrompt.Message"] = "Discussions you visit will appear here.";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="fp-center">
+    <div class="fp-center-inner">
+        @if (!Model.IsAuthenticated)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+            <h2 class="fp-section-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                History
+            </h2>
+
+            <div id="history-loading">
+                @for (int i = 0; i < 5; i++)
+                {
+                    <div class="fp-card" style="opacity: 0.5">
+                        <div class="fp-card-header">
+                            <div class="skeleton h-3 w-16 rounded"></div>
+                            <div class="skeleton h-3 w-4 rounded"></div>
+                            <div class="skeleton h-3 w-20 rounded"></div>
+                        </div>
+                        <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
+                    </div>
+                }
+            </div>
+
+            <div id="history-empty" class="hidden py-12 text-center text-sm" style="color: var(--text-tertiary)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>No history yet.</p>
+                <p class="mt-1 text-xs opacity-70">Discussions you visit will appear here.</p>
+            </div>
+
+            <div id="history-container" class="hidden"></div>
+            <div id="history-sentinel" class="hidden py-4">
+                <div class="fp-card" style="opacity: 0.4">
+                    <div class="fp-card-header">
+                        <div class="skeleton h-3 w-16 rounded"></div>
+                        <div class="skeleton h-3 w-20 rounded"></div>
+                    </div>
+                    <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    if (Model.IsAuthenticated)
+        ViewData["RightPane.Actions"] = new[] { "clear-history" };
+}
+<partial name="Shared/_GlobalRightSidebar" />
+
+<script src="@SnakkUrlHelper.Js("components/card-animations")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("services/read-history")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("pages/history")" asp-append-version="true"></script>

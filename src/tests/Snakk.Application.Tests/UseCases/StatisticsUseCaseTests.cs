@@ -190,7 +190,7 @@ public class StatisticsUseCaseTests
         _discussionRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
         _postRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
 
-        var result = await _useCase.GetUserActivityHistoryAsync(user.PublicId.Value, 100);
+        var result = await _useCase.GetUserActivityHistoryAsync(user.PublicId.Value, 400);
 
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.Days).IsEqualTo(30);

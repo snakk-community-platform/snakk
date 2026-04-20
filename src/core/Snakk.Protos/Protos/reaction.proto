@@ -5,11 +5,13 @@ option csharp_namespace = "Snakk.Protos.Reaction";
 package snakk.reaction;
 
 import "Protos/common.proto";
+import "google/protobuf/timestamp.proto";
 
 service ReactionService {
   rpc ToggleReaction (ToggleReactionRequest) returns (ToggleReactionResponse);
   rpc GetReactionCounts (GetReactionCountsRequest) returns (snakk.ReactionCounts);
   rpc GetMyReactions (GetMyReactionsRequest) returns (snakk.UserReactions);
+  rpc GetMyReactedPosts (GetMyReactedPostsRequest) returns (PagedReactedPostsList);
 }
 
 // --- Requests ---
@@ -31,4 +33,35 @@ message GetMyReactionsRequest {
 
 message ToggleReactionResponse {
   bool added = 1;
+}
+
+// --- Reacted posts ---
+
+message GetMyReactedPostsRequest {
+  int32 offset    = 1;
+  int32 page_size = 2;
+}
+
+message ReactedPostInfo {
+  string public_id                          = 1;
+  string content_excerpt                    = 2;
+  google.protobuf.Timestamp post_created_at = 3;
+  string discussion_public_id               = 4;
+  string discussion_title                   = 5;
+  string discussion_slug                    = 6;
+  string space_slug                         = 7;
+  string hub_slug                           = 8;
+  string community_slug                     = 9;
+  string author_public_id                   = 10;
+  string author_display_name                = 11;
+  optional string author_avatar_file_name   = 12;
+  google.protobuf.Timestamp reacted_at      = 13;
+  string reaction_type                      = 14;
+}
+
+message PagedReactedPostsList {
+  repeated ReactedPostInfo items = 1;
+  int32 offset                   = 2;
+  int32 page_size                = 3;
+  bool  has_more_items           = 4;
 }

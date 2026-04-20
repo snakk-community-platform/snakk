@@ -29,6 +29,7 @@ public class DiscussionDatabaseEntity
     public int PostCount { get; set; }
     public int ReactionCount { get; set; } // Total reactions across all posts in discussion
     public int FollowerCount { get; set; }
+    public double TrendScore { get; set; }
 
     // Tags (comma-separated for simplicity, e.g. "feature,bug,help")
     public string? Tags { get; set; }

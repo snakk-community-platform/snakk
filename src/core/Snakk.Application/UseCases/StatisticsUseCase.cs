@@ -110,8 +110,8 @@ public class StatisticsUseCase(
         string publicId,
         int days = 30)
     {
-        // Validate parameters
-        if (days <= 0 || days > 90)
+        // Validate parameters — 366 covers a full year heatmap.
+        if (days <= 0 || days > 366)
             days = 30;
 
         var userId = UserId.From(publicId);
@@ -246,6 +246,96 @@ public class StatisticsUseCase(
         string? communityId = null,
         int limit = 5) =>
         await statsRepo.GetTopActiveSpacesSinceAsync(since, hubId, communityId, limit);
+
+    /// <summary>
+    /// Gets trending spaces by post count over a 7-day window
+    /// </summary>
+    public async Task<List<TopActiveSpaceDto>> GetTrendingSpacesAsync(
+        DateTime since,
+        string? hubId = null,
+        string? communityId = null,
+        int limit = 5) =>
+        await statsRepo.GetTopActiveSpacesSinceAsync(since, hubId, communityId, limit);
+
+    /// <summary>
+    /// Gets top spaces by post count for a given time period
+    /// </summary>
+    public async Task<List<TopActiveSpaceDto>> GetTopSpacesByPeriodAsync(
+        DateTime since,
+        string? hubId = null,
+        string? communityId = null,
+        int limit = 5) =>
+        await statsRepo.GetTopActiveSpacesSinceAsync(since, hubId, communityId, limit);
+
+    /// <summary>
+    /// Gets spaces ordered by most recent post
+    /// </summary>
+    public async Task<List<LatestActiveSpaceDto>> GetLatestActiveSpacesAsync(
+        string? hubId = null,
+        string? communityId = null,
+        int limit = 5) =>
+        await statsRepo.GetLatestActiveSpacesAsync(hubId, communityId, limit);
+
+    /// <summary>
+    /// Gets trending contributors by post count over a 7-day window
+    /// </summary>
+    public async Task<Result<PagedResult<TopContributorResult>>> GetTrendingContributorsAsync(
+        DateTime since,
+        string? hubId = null,
+        string? spaceId = null,
+        string? communityId = null,
+        int limit = 5) =>
+        await GetTopContributorsTodayAsync(since, hubId, spaceId, communityId, limit);
+
+    /// <summary>
+    /// Gets top contributors by post count for a given time period
+    /// </summary>
+    public async Task<Result<PagedResult<TopContributorResult>>> GetTopContributorsByPeriodAsync(
+        DateTime since,
+        string? hubId = null,
+        string? spaceId = null,
+        string? communityId = null,
+        int limit = 5) =>
+        await GetTopContributorsTodayAsync(since, hubId, spaceId, communityId, limit);
+
+    /// <summary>
+    /// Gets contributors ordered by most recent post
+    /// </summary>
+    public async Task<Result<PagedResult<LatestContributorResult>>> GetLatestContributorsAsync(
+        string? hubId = null,
+        string? spaceId = null,
+        string? communityId = null,
+        int limit = 5)
+    {
+        var latestContributors = await postRepo.GetLatestContributorsAsync(
+            hubId is not null ? HubId.From(hubId) : null,
+            spaceId is not null ? SpaceId.From(spaceId) : null,
+            communityId is not null ? CommunityId.From(communityId) : null,
+            limit);
+
+        var userIds = latestContributors.Select(c => c.UserId).ToList();
+        var users = await userRepo.GetByPublicIdsAsync(userIds);
+        var userDict = users.ToDictionary(u => u.PublicId.Value);
+
+        var results = latestContributors
+            .Select(c => new LatestContributorResult(
+                UserId: c.UserId.Value,
+                DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName ?? "" : "Deleted User",
+                AvatarFileName: userDict.TryGetValue(c.UserId.Value, out var u) ? u.AvatarFileName : null,
+                AvatarThumbnailFileName: userDict.TryGetValue(c.UserId.Value, out var ut) ? ut.AvatarThumbnailFileName : null,
+                AvatarMicroFileName: userDict.TryGetValue(c.UserId.Value, out var um) ? um.AvatarMicroFileName : null,
+                LastPostAt: c.LastPostAt))
+            .ToList();
+
+        return Result<PagedResult<LatestContributorResult>>.Success(
+            new PagedResult<LatestContributorResult>
+            {
+                Items = results,
+                Offset = 0,
+                PageSize = limit,
+                HasMoreItems = false
+            });
+    }
 }
 
 // Result DTOs
@@ -273,6 +363,14 @@ public record TopDiscussionResult(
     string CommunitySlug,
     string? AuthorAvatarFileName = null,
     string? AuthorAvatarThumbnailFileName = null);
+
+public record LatestContributorResult(
+    string UserId,
+    string DisplayName,
+    string? AvatarFileName,
+    string? AvatarThumbnailFileName,
+    string? AvatarMicroFileName,
+    DateTime LastPostAt);
 
 public record UserActivityHistoryResult(
     int Days,

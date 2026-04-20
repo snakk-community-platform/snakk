@@ -11,6 +11,9 @@ service DiscussionService {
   rpc GetDiscussion (GetDiscussionRequest) returns (DiscussionInfo);
   rpc CreateDiscussion (CreateDiscussionRequest) returns (DiscussionCreatedInfo);
   rpc GetRecentDiscussions (GetRecentDiscussionsRequest) returns (PagedRecentDiscussionList);
+  rpc GetTrendingDiscussions (GetTrendingDiscussionsRequest) returns (PagedRecentDiscussionList);
+  rpc GetTopDiscussions (GetTopDiscussionsRequest) returns (PagedRecentDiscussionList);
+  rpc GetNewDiscussions (GetNewDiscussionsRequest) returns (PagedRecentDiscussionList);
   rpc GetDiscussionsBySpace (GetDiscussionsBySpaceRequest) returns (PagedDiscussionBySpaceList);
   rpc GetDiscussionPreview (GetDiscussionPreviewRequest) returns (DiscussionPreviewInfo);
   rpc GetDiscussionStats (GetDiscussionStatsRequest) returns (DiscussionStats);
@@ -34,6 +37,10 @@ service DiscussionService {
   // Link
   rpc GetDiscussionLink (GetDiscussionLinkRequest) returns (DiscussionLinkResponse);
 
+  // Batch
+  rpc GetDiscussionsByIds (GetDiscussionsByIdsRequest) returns (DiscussionsByIdsResponse);
+  rpc GetRecentDiscussionsByIds (GetRecentDiscussionsByIdsRequest) returns (PagedRecentDiscussionList);
+
   // Images
   rpc GetImagesLayout (GetImagesLayoutRequest) returns (ImagesLayoutResponse);
 
@@ -51,6 +58,18 @@ service DiscussionService {
 
 message GetDiscussionRequest {
   string public_id = 1;
+}
+
+message GetDiscussionsByIdsRequest {
+  repeated string public_ids = 1;
+}
+
+message DiscussionsByIdsResponse {
+  repeated DiscussionInfo items = 1;
+}
+
+message GetRecentDiscussionsByIdsRequest {
+  repeated string public_ids = 1;
 }
 
 message CreateDiscussionRequest {
@@ -98,6 +117,26 @@ message GetRecentDiscussionsRequest {
   optional string cursor = 5;
   optional string author_id = 6;
   optional string space_id = 7;
+}
+
+message GetTrendingDiscussionsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+  optional string community_id = 3;
+}
+
+message GetTopDiscussionsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+  optional string community_id = 3;
+  string time_period = 4; // "day", "week", "month", "year", "all_time"
+}
+
+message GetNewDiscussionsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+  optional string community_id = 3;
+  optional string cursor = 4;
 }
 
 message GetDiscussionsBySpaceRequest {

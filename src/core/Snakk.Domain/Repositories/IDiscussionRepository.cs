@@ -28,10 +28,52 @@ public interface IDiscussionRepository
         string? userId = null);
 
     /// <summary>
+    /// Fetches lightweight summaries for multiple discussions in a single query.
+    /// </summary>
+    Task<IReadOnlyList<DiscussionSummary>> GetSummariesByPublicIdsAsync(IEnumerable<DiscussionId> publicIds);
+
+    /// <summary>
     /// Gets discussion activity counts grouped by date for a specific user
     /// </summary>
     Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate);
+
+    /// <summary>
+    /// Gets a user's top discussions ranked by engagement (post count + reaction count).
+    /// </summary>
+    Task<List<TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit);
 }
+
+/// <summary>
+/// Lightweight projection of a top-ranked discussion by a user.
+/// </summary>
+public record TopDiscussionByUser(
+    string PublicId,
+    string Title,
+    string Slug,
+    int PostCount,
+    int ReactionCount,
+    DateTime CreatedAt,
+    string SpaceSlug,
+    string SpaceName,
+    string HubSlug,
+    string HubName,
+    string CommunitySlug,
+    string CommunityName);
+
+/// <summary>
+/// Lightweight projection used for batch fetches (e.g. following list).
+/// </summary>
+public record DiscussionSummary(
+    string PublicId,
+    string Title,
+    string Slug,
+    string SpacePublicId,
+    DateTime CreatedAt,
+    DateTime? LastActivityAt,
+    bool IsPinned,
+    bool IsLocked,
+    int Type,
+    int PostCount);
 
 /// <summary>
 /// DTO for top active discussions statistics

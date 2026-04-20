@@ -1,4 +1,5 @@
 using NSubstitute;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -9,12 +10,37 @@ namespace Snakk.Application.Tests.UseCases;
 public class UserProfileUseCaseTests
 {
     private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
+    private readonly IFollowRepository _followRepository = Substitute.For<IFollowRepository>();
+    private readonly IReactionRepository _reactionRepository = Substitute.For<IReactionRepository>();
+    private readonly IAchievementRepository _achievementRepository = Substitute.For<IAchievementRepository>();
+    private readonly IDiscussionRepository _discussionRepository = Substitute.For<IDiscussionRepository>();
+    private readonly IPostRepository _postRepository = Substitute.For<IPostRepository>();
+    private readonly IUserAchievementRepository _userAchievementRepository = Substitute.For<IUserAchievementRepository>();
+    private readonly IUserAchievementProgressRepository _userAchievementProgressRepository = Substitute.For<IUserAchievementProgressRepository>();
     private UserProfileUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new UserProfileUseCase(_userRepository);
+        _followRepository.GetFollowingCountByUserAsync(Arg.Any<UserId>()).Returns(0);
+        _reactionRepository.GetTotalReactionsReceivedByUserAsync(Arg.Any<UserId>()).Returns(0);
+        _discussionRepository.GetTopDiscussionsByUserAsync(Arg.Any<UserId>(), Arg.Any<int>()).Returns([]);
+        _postRepository.GetTopSpacesForUserAsync(Arg.Any<UserId>(), Arg.Any<int>()).Returns([]);
+        _userAchievementRepository.GetDisplayedByUserIdAsync(Arg.Any<UserId>()).Returns([]);
+
+        var achievementService = new AchievementService(
+            _achievementRepository,
+            _userAchievementRepository,
+            _userAchievementProgressRepository);
+
+        _useCase = new UserProfileUseCase(
+            _userRepository,
+            _followRepository,
+            _reactionRepository,
+            _achievementRepository,
+            _discussionRepository,
+            _postRepository,
+            achievementService);
     }
 
     #region GetUserProfileAsync Tests

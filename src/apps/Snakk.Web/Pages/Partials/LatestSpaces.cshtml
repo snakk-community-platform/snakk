@@ -1,0 +1,9 @@
+@page "/partials/latest-spaces"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.LatestSpacesModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_LatestSpaces"
+         model="new SidebarLatestSpacesVM(Model.Spaces, Model.Community, Model.CacheSource)" />

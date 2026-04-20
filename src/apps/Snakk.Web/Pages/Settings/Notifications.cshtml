@@ -4,19 +4,28 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Notification Settings";
+    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
 }
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <partial name="Shared/_SettingsNav" />
-</div>
-</aside>
+<partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="fp-center">
     <div class="fp-center-inner">
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Notifications
+        </h2>
         <div class="fp-settings-content">
 
             <!-- Auto-follow -->
@@ -35,26 +44,13 @@
                 </label>
             </div>
         </div>
+        } @* end IsAuthenticated *@
     </div>
 </div>
 
 <!-- Right Column -->
 <aside class="fp-right">
-<div class="fp-right-sticky">
-    <div class="fp-right-section">
-        <div class="fp-right-title">On this page</div>
-        <nav class="fp-scrollspy">
-            <a href="#section-auto-follow" class="fp-scrollspy-item active">Auto-follow</a>
-        </nav>
-    </div>
-    <div class="fp-right-section">
-        <div class="fp-right-title">Help</div>
-        <div class="text-sm" style="color: var(--text-tertiary)">
-            <p><strong>Auto-follow</strong> means you'll get notified when others reply to discussions you've participated in.</p>
-            <p class="mt-2">You can always manually unfollow any discussion from the discussion page.</p>
-        </div>
-    </div>
-</div>
+<partial name="Shared/_SettingsRightNav" />
 </aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

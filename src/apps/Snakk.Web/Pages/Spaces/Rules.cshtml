@@ -9,30 +9,7 @@
 }
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <div class="fp-left-inner">
-        <nav class="fp-nav">
-            <a href="/" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> Home</a>
-            <a href="/trending" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> Trending</a>
-            <a href="/communities" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg> Communities</a>
-            <a href="/saved" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg> Saved</a>
-            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space?.Slug ?? ""))/rules" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> Rules</a>
-            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space?.Slug ?? ""))/moderators" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> Moderators</a>
-        </nav>
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <a href="/new" class="fp-nav-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg> New Discussion</a>
-        }
-        <div class="fp-left-footer">
-            <a href="/settings" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Settings</a>
-            <a href="/help" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Help</a>
-            <a href="/privacy" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Privacy Policy</a>
-            <a href="/cookies" class="fp-nav-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Cookies</a>
-        </div>
-    </div>
-</div>
-</aside>
+<partial name="Shared/_LeftSidebar" />
 }
 
 @if (Model.Space == null || Model.Hub == null)
@@ -49,8 +26,23 @@
 else
 {
     <div class="fp-center">
+        <div class="fp-page-labels">
+            @if (Model.ShowCommunityInBreadcrumb && Model.CommunityDetail != null)
+            {
+                <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
+                <span class="fp-page-labels-sep">›</span>
+            }
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)" class="badge badge-ghost badge-sm">@Model.Hub.Name</a>
+            <span class="fp-page-labels-sep">›</span>
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.Hub.Slug, Model.Space.Slug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
+        </div>
         <div class="fp-center-inner">
-            <h1 class="text-xl font-bold mb-1" style="color: var(--text-primary)">@Model.Space.Name Rules</h1>
+            <h2 class="fp-section-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                @Model.Space.Name Rules
+            </h2>
             @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
                 <p class="text-sm mb-6" style="color: var(--text-secondary)">@Model.Space.Description</p>
@@ -66,12 +58,15 @@ else
             }
             else
             {
-                <div class="flex flex-col divide-y" style="border-color: var(--border-secondary)">
+                <div class="flex flex-col gap-6">
                     @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
                     {
-                        <div class="py-3 first:pt-0 last:pb-0">
-                            <p class="text-sm font-medium mb-1">@(index + 1). @rule.Title</p>
-                            <p class="text-sm pl-4" style="color: var(--text-secondary)">@rule.Description</p>
+                        <div class="flex gap-4 items-start">
+                            <span class="text-5xl font-black leading-none select-none shrink-0 w-14 text-right" style="color: var(--text-primary); opacity: 0.08">@(index + 1)</span>
+                            <div class="pt-1 min-w-0">
+                                <p class="text-sm font-semibold mb-1" style="color: var(--text-primary)">@rule.Title</p>
+                                <p class="text-sm" style="color: var(--text-secondary)">@rule.Description</p>
+                            </div>
                         </div>
                     }
                 </div>
@@ -108,10 +103,11 @@ else
     <div class="fp-right-section"
          hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
          hx-trigger="load"
+         hx-target="this"
          hx-swap="innerHTML">
         <div class="fp-right-title">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            Stats
+            Site Stats
         </div>
         <div class="grid grid-cols-2 gap-3">
             <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
@@ -122,6 +118,7 @@ else
     <div class="fp-right-section"
          hx-get="/partials/trending-discussions?scopeType=platform&scopeId=global"
          hx-trigger="load"
+         hx-target="this"
          hx-swap="innerHTML">
         <div class="fp-right-title">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>

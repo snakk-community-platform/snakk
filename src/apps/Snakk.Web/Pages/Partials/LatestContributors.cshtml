@@ -1,0 +1,9 @@
+@page "/partials/latest-contributors"
+@using Snakk.Web.Pages.ViewModels
+@model Snakk.Web.Pages.Partials.LatestContributorsModel
+@{
+    Layout = null;
+}
+
+<partial name="Shared/Sidebar/_LatestContributors"
+         model="new SidebarLatestContributorsVM(Model.Contributors, Model.Community, Model.CacheSource)" />

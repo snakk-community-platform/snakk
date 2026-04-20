@@ -17,6 +17,7 @@ using Snakk.Protos.Statistics;
 using Snakk.Protos.User;
 using Snakk.Protos.Markup;
 using Snakk.Protos.Auth;
+using Snakk.Protos.Save;
 
 // Aliases for colliding types between Notification and ReadState namespaces
 using NotifClient = Snakk.Protos.Notification.NotificationService.NotificationServiceClient;
@@ -51,6 +52,7 @@ public class SnakkApiClient(
     AuthService.AuthServiceClient authClient,
     Snakk.Protos.Banner.BannerService.BannerServiceClient bannerClient,
     Snakk.Protos.Consent.ConsentService.ConsentServiceClient consentClient,
+    SaveService.SaveServiceClient saveClient,
     ILogger<SnakkApiClient> logger)
 {
     private void LogGrpcError(Exception ex, [CallerMemberName] string? caller = null)
@@ -241,6 +243,29 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task<IReadOnlyList<DiscussionInfo>> GetDiscussionsByIdsAsync(IEnumerable<string> publicIds)
+    {
+        try
+        {
+            var req = new GetDiscussionsByIdsRequest();
+            req.PublicIds.AddRange(publicIds);
+            var result = await discussionClient.GetDiscussionsByIdsAsync(req);
+            return result?.Items ?? (IReadOnlyList<DiscussionInfo>)[];
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return []; }
+    }
+
+    public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsByIdsAsync(IEnumerable<string> publicIds)
+    {
+        try
+        {
+            var req = new GetRecentDiscussionsByIdsRequest();
+            req.PublicIds.AddRange(publicIds);
+            return await discussionClient.GetRecentDiscussionsByIdsAsync(req);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     public virtual async Task<DiscussionCreatedInfo?> CreateDiscussionAsync(
         string spaceId,
         string title,
@@ -314,6 +339,46 @@ public class SnakkApiClient(
             if (authorId is not null) request.AuthorId = authorId;
 
             return await discussionClient.GetRecentDiscussionsAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<PagedRecentDiscussionList?> GetTrendingDiscussionsAsync(
+        int offset = 0, int pageSize = 20, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetTrendingDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            if (communityId is not null) request.CommunityId = communityId;
+
+            return await discussionClient.GetTrendingDiscussionsAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<PagedRecentDiscussionList?> GetTopDiscussionsAsync(
+        int offset = 0, int pageSize = 20, string? communityId = null, string timePeriod = "week")
+    {
+        try
+        {
+            var request = new GetTopDiscussionsRequest { Offset = offset, PageSize = pageSize, TimePeriod = timePeriod };
+            if (communityId is not null) request.CommunityId = communityId;
+
+            return await discussionClient.GetTopDiscussionsAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<PagedRecentDiscussionList?> GetNewDiscussionsAsync(
+        int offset = 0, int pageSize = 20, string? communityId = null, string? cursor = null)
+    {
+        try
+        {
+            var request = new GetNewDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            if (communityId is not null) request.CommunityId = communityId;
+            if (cursor is not null) request.Cursor = cursor;
+
+            return await discussionClient.GetNewDiscussionsAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
@@ -444,6 +509,81 @@ public class SnakkApiClient(
             if (communityId is not null) request.CommunityId = communityId;
 
             return await statisticsClient.GetTopContributorsTodayAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<TopActiveSpacesList?> GetTrendingSpacesAsync(string? hubId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetTrendingSpacesRequest { Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetTrendingSpacesAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<TopContributorsList?> GetTrendingContributorsAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetTrendingContributorsRequest { Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetTrendingContributorsAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<TopActiveSpacesList?> GetTopSpacesByPeriodAsync(string period, string? hubId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetTopSpacesByPeriodRequest { TimePeriod = period, Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetTopSpacesByPeriodAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<TopContributorsList?> GetTopContributorsByPeriodAsync(string period, string? hubId = null, string? spaceId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetTopContributorsByPeriodRequest { TimePeriod = period, Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetTopContributorsByPeriodAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<LatestSpacesList?> GetLatestActiveSpacesAsync(string? hubId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetLatestActiveSpacesRequest { Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetLatestActiveSpacesAsync(request);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<LatestContributorsList?> GetLatestContributorsAsync(string? hubId = null, string? spaceId = null, string? communityId = null)
+    {
+        try
+        {
+            var request = new GetLatestContributorsRequest { Limit = 5 };
+            if (hubId is not null) request.HubId = hubId;
+            if (spaceId is not null) request.SpaceId = spaceId;
+            if (communityId is not null) request.CommunityId = communityId;
+            return await statisticsClient.GetLatestContributorsAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
@@ -849,6 +989,12 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); }
     }
 
+    public virtual async Task<PagedReactedPostsList?> GetMyReactedPostsAsync(int offset = 0, int pageSize = 20)
+    {
+        try { return await reactionClient.GetMyReactedPostsAsync(new GetMyReactedPostsRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // ==================== Notifications ====================
 
     public virtual async Task<PagedNotificationList?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
@@ -1027,6 +1173,9 @@ public class SnakkApiClient(
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
+
+    public virtual Task<GetModeratorsResponse?> GetSiteModeratorsAsync()
+        => GetModeratorsAsync("Platform", "");
 
     // Ban management
     public virtual async Task<IEnumerable<UserBanDto>?> GetUserBansAsync(string userId)
@@ -1432,6 +1581,58 @@ public class SnakkApiClient(
             return await consentClient.GetConsentTextAsync(
                 new Snakk.Protos.Consent.GetConsentTextRequest { Slug = slug });
         }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Saves ====================
+
+    public virtual async Task<SaveToggleResponse?> ToggleSaveDiscussionAsync(string discussionId)
+    {
+        try { return await saveClient.ToggleSaveDiscussionAsync(new ToggleSaveDiscussionRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SaveToggleResponse?> ToggleSavePostAsync(string postId)
+    {
+        try { return await saveClient.ToggleSavePostAsync(new ToggleSavePostRequest { PostId = postId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<List<string>> GetSavedDiscussionIdsAsync()
+    {
+        try
+        {
+            var result = await saveClient.GetSavedDiscussionIdsAsync(new GetSavedIdsRequest());
+            return result?.PublicIds?.ToList() ?? [];
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return []; }
+    }
+
+    public virtual async Task<List<string>> GetSavedPostIdsAsync()
+    {
+        try
+        {
+            var result = await saveClient.GetSavedPostIdsAsync(new GetSavedIdsRequest());
+            return result?.PublicIds?.ToList() ?? [];
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return []; }
+    }
+
+    public virtual async Task<PagedRecentDiscussionList?> GetSavedDiscussionsAsync(int offset = 0, int pageSize = 20)
+    {
+        try { return await saveClient.GetSavedDiscussionsAsync(new GetSavedDiscussionsRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<PagedSavedPostsList?> GetSavedPostsAsync(int offset = 0, int pageSize = 20)
+    {
+        try { return await saveClient.GetSavedPostsAsync(new GetSavedPostsRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SaveCountsResponse?> GetSaveCountsAsync()
+    {
+        try { return await saveClient.GetSaveCountsAsync(new GetSaveCountsRequest()); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 }

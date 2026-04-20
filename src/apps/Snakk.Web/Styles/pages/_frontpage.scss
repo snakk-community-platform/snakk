@@ -8,6 +8,10 @@
     min-height: calc(100vh - 3.5rem);
 }
 
+.fp-main-body {
+    display: contents;
+}
+
 // ── Left Column (Navigation) ──────────────────
 .fp-left {
     background: linear-gradient(to bottom,
@@ -30,14 +34,53 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: 1rem 0;
+    padding: 0 0 1rem;
 }
 
 .fp-nav {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
-    padding: 0 0.5rem;
+    padding: 0 1rem;
+}
+
+.fp-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    background: var(--bg-subtle);
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+
+    .fp-nav-item {
+        position: relative;
+        padding-left: 2.125rem;
+
+        // ├─ or └─ connector
+        &::before {
+            content: '';
+            position: absolute;
+            left: 1.15rem;
+            top: 0;
+            bottom: 50%;
+            width: 0.75rem;
+            border-left: 1px solid var(--text-tertiary);
+            border-bottom: 1px solid var(--text-tertiary);
+            border-bottom-left-radius: 2px;
+            opacity: 0.3;
+        }
+
+        // extend trunk downward for non-last items (├ vs └)
+        &:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 1.15rem;
+            top: 50%;
+            bottom: 0;
+            border-left: 1px solid var(--text-tertiary);
+            opacity: 0.3;
+        }
+    }
 }
 
 .fp-nav-item {
@@ -103,12 +146,22 @@
 }
 
 .fp-nav-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-tertiary);
     padding: 0.75rem 0.75rem 0.25rem;
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
 }
 
 // Trending spaces list in left column
@@ -151,7 +204,7 @@
 // Bottom nav links (same style as main nav, pinned to bottom)
 .fp-left-footer {
     margin-top: auto;
-    padding: 0.5rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
@@ -205,7 +258,7 @@
     position: relative;
     cursor: pointer;
     border-radius: 0.5rem;
-    padding: 0.5rem;
+    padding: .75rem 0.5rem;
     margin: -0.5rem;
     transition: background 0.15s;
 
@@ -214,9 +267,12 @@
     }
 }
 
-.fp-card + .fp-card {
+// General sibling (~) instead of adjacent (+) so an inline <script> emitted
+// once per page by _DiscussionCard.cshtml doesn't strip the border from the
+// card immediately following it.
+.fp-card ~ .fp-card {
     border-top: 1px solid var(--border-secondary);
-    padding-top: 1rem;
+    padding-top: 1.25rem;
 }
 
 .fp-card-header {
@@ -316,6 +372,7 @@
 // Interactive elements inside the card sit above the stretched title link
 .fp-card-header a,
 .fp-card-stats a,
+.fp-card-stats button,
 .fp-card-path a,
 .fp-card-preview a {
     position: relative;
@@ -356,7 +413,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    margin: 0 1rem;
 }
 
 .fp-poll-option {
@@ -413,7 +469,7 @@
         transparent 50%,
         rgba(0, 0, 0, 0.05) 100%
     );
-    transition: width 600ms ease;
+    transition: width 380ms ease;
 }
 
 // ── Debate Preview (single stacked bar) ───────
@@ -421,7 +477,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    margin: 0 1rem;
 }
 
 .fp-debate-bar {
@@ -437,6 +492,7 @@
     justify-content: center;
     min-width: 0;
     overflow: hidden;
+    transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1);
 
     span {
         font-size: 0.625rem;
@@ -775,10 +831,16 @@
     border-radius: 0.5rem;
     position: relative;
     overflow: hidden;
+    text-decoration: none;
+}
+
+// Gradient variant — applied when the card is a link tile in the communities
+// list. The hero card on the community detail page has no inline background-image
+// and therefore no gradient; it shows plain text on the page background.
+a.fp-community-card {
     background-size: cover;
     background-position: center;
     color: #fff;
-    text-decoration: none;
 
     &::before {
         content: '';
@@ -794,11 +856,14 @@
         z-index: 1;
     }
 
-    // When used as a link (communities list), darken the overlay a touch
-    // more on hover so users get feedback without fighting the gradient.
-    &[href]:hover::before {
+    &:hover::before {
         background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.55));
     }
+
+    .fp-community-avatar { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
+    .fp-community-name { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+    .fp-community-description { color: rgba(255, 255, 255, 0.92); }
+    .fp-community-meta { color: rgba(255, 255, 255, 0.8); }
 }
 
 .fp-community-avatar {
@@ -806,7 +871,6 @@
     height: 3.5rem;
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
 }
 
 .fp-community-info {
@@ -820,20 +884,19 @@
 .fp-community-name {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .fp-community-description {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-secondary);
     margin: 0.25rem 0 0;
 }
 
 .fp-community-meta {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-tertiary);
     margin-top: 0.25rem;
 }
 
@@ -843,6 +906,260 @@
 .fp-community-card-list {
     display: flex;
     flex-direction: column;
+}
+
+// Detail page hero — banner + body pattern, mirrors fp-space-card.
+// Overrides the base .fp-community-card only for div elements (the list
+// uses <a> tags which keep their existing styles).
+div.fp-community-card {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+.fp-community-card-banner {
+    position: relative;
+    height: 5rem;
+    background-size: cover;
+    background-position: center;
+    overflow: visible;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
+        pointer-events: none;
+    }
+}
+
+.fp-community-card-banner .fp-community-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.fp-community-card-banner .fp-community-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fp-community-card-body {
+    padding: 2.25rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+// ── Community List Card (banner + overlap avatar) ─────────────────────────
+// Name lives in the gradient banner (white, bottom-aligned). Avatar is
+// absolutely positioned straddling the banner/body boundary. Description
+// and meta sit on the plain card background below.
+.fp-community-list-card {
+    display: block;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
+    text-decoration: none;
+    overflow: hidden;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    margin-bottom: 0.75rem;
+    position: relative;
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: var(--border-primary);
+    }
+}
+
+.fp-community-list-banner {
+    height: 4rem;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
+        pointer-events: none;
+    }
+}
+
+.fp-community-list-avatar {
+    position: absolute;
+    bottom: -1.5rem;
+    left: 1rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+    z-index: 2;
+}
+
+.fp-community-list-name {
+    position: absolute;
+    bottom: 0.5rem;
+    left: calc(1rem + 3rem + 0.75rem);
+    right: 1rem;
+    z-index: 1;
+    color: #fff;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fp-community-list-body {
+    padding: 1.75rem 1rem 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.fp-community-stat-row {
+    display: flex;
+    gap: 0.375rem;
+    margin-top: 0.125rem;
+}
+
+.fp-community-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.fp-community-stat-value {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.fp-community-stat-label {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+}
+
+// ── Space List Grid (hub detail page) ────────────────────────────────────
+// Smaller banner+overlap-avatar card, same visual language as community list
+// cards but compact and laid out in a 2-column grid.
+.fp-space-list-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+}
+
+.fp-space-list-card {
+    display: block;
+    border-radius: 0.625rem;
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
+    text-decoration: none;
+    overflow: hidden;
+    position: relative;
+    transition: box-shadow 0.15s, border-color 0.15s;
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: var(--border-primary);
+    }
+}
+
+.fp-space-list-banner {
+    height: 2.75rem;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
+        pointer-events: none;
+    }
+}
+
+.fp-space-list-avatar {
+    position: absolute;
+    bottom: -1rem;
+    left: 0.625rem;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 2px var(--bg-primary);
+    z-index: 2;
+}
+
+.fp-space-list-name {
+    position: absolute;
+    bottom: 0.35rem;
+    left: calc(0.625rem + 2.125rem + 0.5rem);
+    right: 0.625rem;
+    z-index: 1;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fp-space-list-body {
+    padding: 1.375rem 0.625rem 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-space-list-desc {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fp-space-list-stat-row {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.125rem;
+    flex-wrap: wrap;
 }
 
 // ── Link Preview Card ─────────────────────────
@@ -1025,8 +1342,36 @@
     color: var(--text-secondary);
 }
 
+.fp-card-save-btn {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    padding: 0.125rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: color 0.15s ease;
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+
+    &:hover {
+        color: var(--text-secondary);
+    }
+
+    &[data-saved="true"],
+    &.text-primary {
+        color: var(--color-primary);
+    }
+}
+
 // ── Right Column (Sidebar) ────────────────────
 .fp-right {
+    position: relative;
+    z-index: 10;
     background: linear-gradient(to bottom,
         color-mix(in srgb, var(--nav-bg) 5%, #e0e0e0), var(--bg-secondary) 1.5rem) fixed;
 }
@@ -1036,19 +1381,51 @@
     position: sticky;
     top: 3.5rem;
     height: calc(100vh - 3.5rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 1.25rem 1rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
 
-    &::-webkit-scrollbar {
-        width: 4px;
-    }
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
+.fp-right-action-pane {
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.fp-right-action-box {
+    border-radius: 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fp-right-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+// Consistent button gap and no SVG margins across the entire right column
+.fp-right-action-pane .btn,
+.fp-right-body .btn {
+    gap: 0.375rem;
+
+    svg { margin: 0; }
+}
+
+.fp-right-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
         background: transparent;
         border-radius: 2px;
@@ -1060,7 +1437,6 @@
     &:hover {
         &::-webkit-scrollbar-thumb {
             background: var(--border-subtle);
-
             &:hover { background: var(--border-primary); }
         }
         scrollbar-color: var(--border-subtle) transparent;
@@ -1136,6 +1512,37 @@
     .fp-stat-label {
         font-size: 0.6875rem;
         color: var(--text-secondary);
+    }
+}
+
+// Glass stat tiles in the right column
+.fp-right {
+    .stats {
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .stat {
+        padding: 0.6rem 0.875rem;
+
+        &:not(:first-child) {
+            border-left-color: rgba(0, 0, 0, 0.06);
+        }
+    }
+
+    .stat-title {
+        font-size: 0.65rem;
+        color: var(--text-tertiary);
+        white-space: nowrap;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        line-height: 1.5rem;
+        color: var(--text-primary);
     }
 }
 
@@ -1247,29 +1654,90 @@
 
 .fp-space-card {
     display: flex;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
+    flex-direction: column;
     margin-bottom: 1rem;
     border-radius: 0.5rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.fp-space-card-banner {
+    position: relative;
+    height: 5rem;
     background-size: cover;
     background-position: center;
-    color: #fff;
+    overflow: visible;
 
-    &::before {
+    &::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
-        z-index: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
         pointer-events: none;
     }
+}
 
-    > * {
-        position: relative;
-        z-index: 1;
+.fp-space-card-breadcrumbs {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+
+    .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: transparent;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
     }
+
+    .fp-page-labels-sep {
+        color: rgba(255, 255, 255, 0.55);
+    }
+}
+
+.fp-space-card-banner .fp-space-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.fp-space-card-banner .fp-space-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fp-space-card-body {
+    padding: 2.25rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fp-space-card-header {
+    display: flex;
+    gap: 1rem;
 }
 
 .fp-space-avatar {
@@ -1277,7 +1745,6 @@
     height: 3.5rem;
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
 }
 
 .fp-space-info {
@@ -1291,20 +1758,135 @@
 .fp-space-name {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .fp-space-description {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-secondary);
     margin: 0.25rem 0 0;
 }
 
 .fp-space-breadcrumb {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+}
+
+// ============================================
+// Hub Page Header Card — same gradient + overlay pattern as profile/space.
+// ============================================
+
+.fp-hub-card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+.fp-hub-card-banner {
+    position: relative;
+    height: 5rem;
+    background-size: cover;
+    background-position: center;
+    overflow: visible;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
+        pointer-events: none;
+    }
+}
+
+.fp-hub-card-breadcrumbs {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+
+    .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: transparent;
+        &:hover { background: rgba(255, 255, 255, 0.25); }
+    }
+
+    .fp-page-labels-sep { color: rgba(255, 255, 255, 0.55); }
+}
+
+.fp-hub-card-banner .fp-hub-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.fp-hub-card-banner .fp-hub-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fp-hub-card-body {
+    padding: 2.25rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fp-hub-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fp-hub-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fp-hub-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.fp-hub-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+}
+
+.fp-hub-breadcrumb {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
     margin-top: 0.25rem;
 }
 
@@ -1314,7 +1896,8 @@
 
 .fp-profile-card {
     display: flex;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 1.25rem;
     padding: 1.5rem;
     margin-bottom: 1rem;
     border-radius: 0.5rem;
@@ -1341,6 +1924,89 @@
         position: relative;
         z-index: 1;
     }
+
+    // Nested stats+chart row inherits the gradient backdrop, so its children
+    // need white-on-translucent overrides for contrast.
+    .fp-stats-activity-row {
+        margin-bottom: 0;
+    }
+
+    // Each .stats card inside the profile is its own glassy tile on the
+    // gradient backdrop, so the frosted background lives here instead of on
+    // the wrapper.
+    .stats {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(4px);
+        color: #fff;
+    }
+
+    .stat {
+        border: none;
+        // Compact daisyUI's stat internals so the 2x2 grid (and the chart
+        // wrapper that stretches to match it) sit at ~60% of default height.
+        padding: 0.6rem 1rem;
+    }
+
+    .stat-title {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.7rem;
+    }
+
+    .stat-value {
+        color: #fff;
+        font-size: 1.4rem;
+        line-height: 1.6rem;
+    }
+
+    // Override the base .fp-stats-wrapper (a padded flex panel) with a 2x2
+    // grid of the per-stat .stats cards above.
+    .fp-stats-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding: 0;
+        background: transparent;
+    }
+
+    .fp-activity-chart-wrapper {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(4px);
+    }
+
+    .fp-activity-chart-title {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .fp-activity-chart-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .activity-chart-bar-segment-secondary {
+        background-color: rgba(255, 255, 255, 0.65);
+    }
+
+    .activity-chart-bar-zero {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .activity-chart-legend {
+        color: rgba(255, 255, 255, 0.85);
+
+        // daisyUI util class on the "(N total)" span out-specifies the parent
+        // color, so override it here too.
+        .text-base-content\/50 {
+            color: rgba(255, 255, 255, 0.65);
+        }
+    }
+
+    .activity-chart-legend-color-secondary {
+        background-color: rgba(255, 255, 255, 0.65);
+    }
+}
+
+.fp-profile-card-header {
+    display: flex;
+    gap: 1rem;
 }
 
 .fp-profile-avatar {
@@ -1433,15 +2099,132 @@
     margin-bottom: 1rem;
 }
 
-.fp-stats-grid {
+.fp-stats-wrapper {
     flex: 0 0 calc(50% - 0.5rem);
+    min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border-radius: 0.5rem;
 
     > .stats {
         flex: 1;
+        width: 100%;
     }
+}
+
+// 1x3 row of equal-sized stats — used on the space hero card.
+.fp-stats-1x3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-auto-flow: row;
+}
+
+// Hero cards that live directly in .fp-center (outside .fp-center-inner) sit
+// flush against the column edges — no border-radius, no bottom margin. The
+// padding on .fp-center-inner below provides the gap to the next content.
+// Note: .fp-community-card is also used as a link tile in the communities
+// list, where it keeps its rounded corners; the descendant selector limits
+// the override to the hero usage.
+.fp-center > .fp-profile-card,
+.fp-center > .fp-space-card,
+.fp-center > .fp-community-card,
+.fp-center > .fp-hub-card {
+    border-radius: 0;
+    margin-bottom: 0;
+}
+
+.fp-center > .fp-space-card,
+.fp-center > .fp-community-card,
+.fp-center > .fp-hub-card {
+    margin-bottom: 1.5rem;
+}
+
+// Hierarchy label row — badge chips + › separators replacing the old
+// breadcrumb nav.
+//
+// Default (non-hero): sits as a direct child of .fp-center, above
+// .fp-center-inner. Gets its own padding block so the inner doesn't
+// need top breathing room.
+//
+// Hero variant: sits inside .fp-hub-card or .fp-space-card; no padding,
+// white-on-gradient badges.
+.fp-page-labels {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+
+    .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--link-primary);
+        background: color-mix(in srgb, var(--link-primary) 10%, transparent);
+        border-color: transparent;
+
+        &:hover {
+            background: color-mix(in srgb, var(--link-primary) 18%, transparent);
+        }
+    }
+}
+
+.fp-page-labels-sep {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+    user-select: none;
+}
+
+
+// Gradient breadcrumb bar — the entity's generated gradient is set inline
+// via style="background-image:..."; this modifier adds the overlay and
+// forces white text/badges on top of it.
+.fp-page-labels--gradient {
+    position: relative;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .badge {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: transparent;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+    }
+
+    .fp-page-labels-sep {
+        color: rgba(255, 255, 255, 0.55);
+    }
+}
+
+// Post body preview — fixed-height container that fades the bottom edge so
+// long server-rendered HTML can be cropped without ever cutting mid-tag.
+.fp-post-preview {
+    position: relative;
+    max-height: 8rem;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 60%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
 }
 
 .fp-activity-chart-wrapper {
@@ -1549,6 +2332,30 @@
     }
 }
 
+// Page-level nav items in the settings right column
+.fp-scrollspy-page {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+
+    svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        opacity: 0.6;
+    }
+
+    &.active svg { opacity: 1; }
+}
+
+// Scrollspy sub-items nested under active page nav item
+.fp-scrollspy-sub {
+    padding-left: 1.25rem;
+    font-size: 0.6875rem;
+}
+
 .fp-show-more {
     display: flex;
     align-items: center;
@@ -1590,6 +2397,15 @@
         width: 15rem; // 16rem left sticky minus 1rem padding
         display: flex;
         align-items: center;
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        transition: background 0.15s ease;
+
+        &:hover {
+            .fp-navbar-logo {
+                transform: scale(1.04) translateY(-1px);
+            }
+        }
     }
 }
 
@@ -1598,6 +2414,7 @@
     margin-left: 0.5rem;
     width: auto;
     object-fit: contain;
+    transition: transform 0.2s ease;
 }
 
 // Content area — spans center + right columns

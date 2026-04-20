@@ -2,6 +2,7 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Hubs.DetailModel
 @{
@@ -49,129 +50,34 @@ else
     <div id="page-context" data-hub-id="@Model.Hub.PublicId" hidden></div>
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <div class="fp-left-inner">
-        <nav class="fp-nav">
-            <a href="/" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Home
-            </a>
-            <a href="/trending" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Trending
-            </a>
-            <a href="/communities" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Communities
-            </a>
-            <a href="/saved" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                Saved
-            </a>
-            <a href="@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/rules" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Rules
-            </a>
-            <a href="@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Moderators
-            </a>
-        </nav>
-
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <a href="/new?hubId=@Model.Hub.PublicId" class="fp-nav-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                New Discussion
-            </a>
-        }
-
-        <div class="fp-left-footer">
-            <a href="/settings" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-            </a>
-            <a href="/help" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Help
-            </a>
-            <a href="/privacy" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Privacy Policy
-            </a>
-            <a href="/cookies" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Cookies
-            </a>
-        </div>
-    </div>
-</div>
-</aside>
+@{
+    ViewData["LeftNav.NewDiscussionUrl"] = "/new?hubId=" + Model.Hub?.PublicId;
+}
+<partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="fp-center">
-    <div class="fp-center-inner">
-        <!-- Hub Header -->
-        <div class="flex items-start gap-4 mb-4">
+    @* Hero card lives outside .fp-center-inner so it sits flush against the
+       sides of the center column (no padding around it). *@
+    <div class="fp-hub-card">
+        <div class="fp-hub-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"hub:{Model.Hub.PublicId}")">
+            @if (Model.ShowCommunityInBreadcrumb)
+            {
+                <div class="fp-hub-card-breadcrumbs">
+                    <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+                       data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                       data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                </div>
+            }
             <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
                  alt="" width="56" height="56"
-                 class="w-14 h-14 rounded-full shrink-0" decoding="async" />
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                    <h1 class="text-xl font-bold" style="color: var(--text-primary)">@Model.Hub.Name</h1>
-                    <partial name="Shared/_FeedDropdown" model="@($"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed")" />
-                    @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                    {
-                        <a href="@SnakkUrlHelper.ManageHub(Model.Community, Model.Hub.Slug)"
-                           class="btn btn-ghost btn-xs shrink-0 ml-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            Manage
-                        </a>
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(Model.Hub.Description))
-                {
-                    <p class="text-sm mt-1" style="color: var(--text-secondary)">@Model.Hub.Description</p>
-                }
-                @if (Model.ShowCommunityInBreadcrumb)
-                {
-                    <div class="text-xs mt-1" style="color: var(--text-tertiary)">
-                        <a href="/c/@Model.Community.CommunitySlug" class="hover:underline"
-                           data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-                           data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-                    </div>
-                }
-            </div>
+                 class="fp-hub-avatar" decoding="async" />
+            <h1 class="fp-hub-name">@Model.Hub.Name</h1>
         </div>
+    </div>
 
+    <div class="fp-center-inner">
         <partial name="_Banners" model="Model.Banners?.Banners" />
 
         <!-- Spaces -->
@@ -183,38 +89,47 @@ else
                 </svg>
                 Spaces
             </h2>
-            <div class="flex flex-col gap-1 mb-6">
+            <div class="fp-space-list-grid">
                 @foreach (var space in Model.Spaces.Items)
                 {
-                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)" class="fp-entity-row">
-                        <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
-                             alt="" width="40" height="40"
-                             class="fp-entity-row-avatar"
-                             loading="lazy" decoding="async" />
-                        <div class="fp-entity-row-info">
-                            <span class="fp-entity-row-name"
-                                  data-popup-type="space"
-                                  data-popup-id="@space.PublicId"
-                                  data-popup-name="@space.Name">@space.Name</span>
+                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)"
+                       class="fp-space-list-card"
+                       data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
+                        <div class="fp-space-list-banner"
+                             style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{space.PublicId}")">
+                            <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)"
+                                 alt="" width="34" height="34"
+                                 class="fp-space-list-avatar"
+                                 loading="lazy" decoding="async" />
+                            <span class="fp-space-list-name">@space.Name</span>
+                        </div>
+                        <div class="fp-space-list-body">
                             @if (!string.IsNullOrEmpty(space.Description))
                             {
-                                <span class="fp-entity-row-desc">@space.Description</span>
+                                <p class="fp-space-list-desc">@space.Description</p>
                             }
-                            <span class="fp-entity-row-meta">
-                                @FormatCount(space.DiscussionCount) discussions · @FormatCount(space.ReplyCount) replies
-                            </span>
+                            <div class="fp-space-list-stat-row">
+                                <div class="fp-community-stat-pill">
+                                    <span class="fp-community-stat-value">@FormatCount(space.DiscussionCount)</span>
+                                    <span class="fp-community-stat-label">discussions</span>
+                                </div>
+                                <div class="fp-community-stat-pill">
+                                    <span class="fp-community-stat-value">@FormatCount(space.ReplyCount)</span>
+                                    <span class="fp-community-stat-label">replies</span>
+                                </div>
+                            </div>
                         </div>
                     </a>
                 }
             </div>
         }
 
-        <!-- Recent Discussions -->
+        <!-- Active Discussions -->
         <h2 class="fp-section-title">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            Recent Discussions
+            Active Discussions Across Spaces in This Hub
         </h2>
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
@@ -269,31 +184,49 @@ else
 
 <!-- Right Column -->
 <aside class="fp-right">
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new?hubId=" + Model.Hub.PublicId;
+    ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
+    ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed";
+    ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? "Hub";
+    ViewData["RightPane.ShareIsPublic"] = Model.Hub is not { IsRestricted: true };
+    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug) + "/moderators";
+}
 <div class="fp-right-sticky">
+    <partial name="Shared/_RightActionPane" />
+    <div class="fp-right-body">
+    <!-- Stats -->
+    @if (Model.HubStats != null)
+    {
+        <div class="fp-right-section">
+            <div class="flex gap-2">
+                <div class="stats shadow flex-1">
+                    <div class="stat">
+                        <div class="stat-title">Discussions</div>
+                        <div class="stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow flex-1">
+                    <div class="stat">
+                        <div class="stat-title">Replies</div>
+                        <div class="stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- About -->
     <div class="fp-right-section">
         <div class="fp-right-title">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            About
+            About @Model.Hub.Name
         </div>
         @if (!string.IsNullOrEmpty(Model.Hub.Description))
         {
             <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Hub.Description</p>
-        }
-        @if (Model.HubStats != null)
-        {
-            <div class="fp-stats-box">
-                <div class="fp-stat-item">
-                    <div class="fp-stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
-                    <div class="fp-stat-label">Discussions</div>
-                </div>
-                <div class="fp-stat-item">
-                    <div class="fp-stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
-                    <div class="fp-stat-label">Replies</div>
-                </div>
-            </div>
         }
     </div>
 
@@ -305,7 +238,7 @@ else
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Rules
+                Hub Rules
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_HubRules"
                              model="Model.InlineHubRules"
@@ -325,7 +258,7 @@ else
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            Moderators
+            Hub Moderators
             @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
             {
                 <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
@@ -397,7 +330,8 @@ else
                     <div class="fp-trending-list">
                         @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor">
+                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor"
+                               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
                                 <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
                                 <span class="fp-trending-contributor-name">@c.DisplayName</span>
                                 <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
@@ -414,6 +348,7 @@ else
             }
         </div>
     }
+    </div>
 </div>
 </aside>
 

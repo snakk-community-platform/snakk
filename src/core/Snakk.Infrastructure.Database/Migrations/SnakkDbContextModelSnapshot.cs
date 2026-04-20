@@ -543,6 +543,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<double>("TrendScore")
+                        .HasColumnType("double precision");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -3118,6 +3121,50 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("UserRole");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSaveDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DiscussionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PostId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscussionId");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Save_UserId_CreatedAt_Desc");
+
+                    b.HasIndex("UserId", "DiscussionId", "PostId")
+                        .IsUnique()
+                        .HasFilter("\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
+
+                    b.ToTable("Save");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4366,6 +4413,31 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("RevokedByUser");
 
                     b.Navigation("Space");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSaveDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.DiscussionDatabaseEntity", "Discussion")
+                        .WithMany()
+                        .HasForeignKey("DiscussionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.PostDatabaseEntity", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Discussion");
+
+                    b.Navigation("Post");
 
                     b.Navigation("User");
                 });

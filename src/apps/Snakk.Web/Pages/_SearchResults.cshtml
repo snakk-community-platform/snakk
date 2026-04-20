@@ -135,8 +135,8 @@ else if (Model.SearchType == "post")
                                 <span>·</span>
                                 <a href="@discussionUrl" class="hover:underline truncate">@post.DiscussionTitle</a>
                             </div>
-                            <div class="prose prose-sm max-w-none">
-                                @post.ContentHighlight
+                            <div class="prose prose-sm max-w-none fp-post-preview">
+                                @Html.Raw(post.ContentHighlight)
                             </div>
                             <div class="mt-2">
                                 <a href="@discussionUrl" class="text-sm text-primary hover:underline">

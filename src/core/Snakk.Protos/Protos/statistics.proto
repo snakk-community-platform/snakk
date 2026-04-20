@@ -15,6 +15,18 @@ service StatisticsService {
   rpc GetTopActiveSpacesToday (GetTopActiveSpacesTodayRequest) returns (TopActiveSpacesList);
   rpc GetTopContributorsToday (GetTopContributorsTodayRequest) returns (TopContributorsList);
 
+  // Trending (7-day window)
+  rpc GetTrendingSpaces (GetTrendingSpacesRequest) returns (TopActiveSpacesList);
+  rpc GetTrendingContributors (GetTrendingContributorsRequest) returns (TopContributorsList);
+
+  // Top by time period
+  rpc GetTopSpacesByPeriod (GetTopSpacesByPeriodRequest) returns (TopActiveSpacesList);
+  rpc GetTopContributorsByPeriod (GetTopContributorsByPeriodRequest) returns (TopContributorsList);
+
+  // Latest (most recently active)
+  rpc GetLatestActiveSpaces (GetLatestActiveSpacesRequest) returns (LatestSpacesList);
+  rpc GetLatestContributors (GetLatestContributorsRequest) returns (LatestContributorsList);
+
   // User activity
   rpc GetUserActivityHistory (GetUserActivityHistoryRequest) returns (UserActivityHistory);
   rpc GetUserStats (GetUserStatsRequest) returns (UserStats);
@@ -38,6 +50,47 @@ message GetTopActiveSpacesTodayRequest {
 }
 
 message GetTopContributorsTodayRequest {
+  optional string hub_id = 1;
+  optional string space_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message GetTrendingSpacesRequest {
+  optional string hub_id = 1;
+  optional string community_id = 2;
+  int32 limit = 3;
+}
+
+message GetTrendingContributorsRequest {
+  optional string hub_id = 1;
+  optional string space_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message GetTopSpacesByPeriodRequest {
+  string time_period = 1;
+  optional string hub_id = 2;
+  optional string community_id = 3;
+  int32 limit = 4;
+}
+
+message GetTopContributorsByPeriodRequest {
+  string time_period = 1;
+  optional string hub_id = 2;
+  optional string space_id = 3;
+  optional string community_id = 4;
+  int32 limit = 5;
+}
+
+message GetLatestActiveSpacesRequest {
+  optional string hub_id = 1;
+  optional string community_id = 2;
+  int32 limit = 3;
+}
+
+message GetLatestContributorsRequest {
   optional string hub_id = 1;
   optional string space_id = 2;
   optional string community_id = 3;
@@ -123,4 +176,31 @@ message UserStats {
   int32 reply_count = 5;
   int32 follower_count = 6;
   int32 following_count = 7;
+  optional string bio = 8;
+}
+
+message LatestSpaceInfo {
+  string public_id = 1;
+  string name = 2;
+  string slug = 3;
+  string last_post_at = 4;
+  snakk.EntityRef hub = 5;
+  string community_slug = 6;
+}
+
+message LatestSpacesList {
+  repeated LatestSpaceInfo items = 1;
+}
+
+message LatestContributorInfo {
+  string public_id = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+  string last_post_at = 4;
+  optional string avatar_thumbnail_url = 5;
+  optional string avatar_micro_url = 6;
+}
+
+message LatestContributorsList {
+  repeated LatestContributorInfo items = 1;
 }

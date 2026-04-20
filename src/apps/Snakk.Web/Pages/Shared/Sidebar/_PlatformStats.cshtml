@@ -1,15 +1,17 @@
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.ViewModels.SidebarPlatformStatsVM
 
-<div data-cache-source="@Model.CacheSource">
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <div class="text-lg font-semibold">@FormatCount(Model.DiscussionCount)</div>
-            <div class="text-xs text-base-content/50">Discussions</div>
+<div data-cache-source="@Model.CacheSource" class="flex gap-2">
+    <div class="stats shadow flex-1">
+        <div class="stat">
+            <div class="stat-title">Discussions</div>
+            <div class="stat-value">@FormatCount(Model.DiscussionCount)</div>
         </div>
-        <div>
-            <div class="text-lg font-semibold">@FormatCount(Model.ReplyCount)</div>
-            <div class="text-xs text-base-content/50">Replies</div>
+    </div>
+    <div class="stats shadow flex-1">
+        <div class="stat">
+            <div class="stat-title">Replies</div>
+            <div class="stat-value">@FormatCount(Model.ReplyCount)</div>
         </div>
     </div>
 </div>

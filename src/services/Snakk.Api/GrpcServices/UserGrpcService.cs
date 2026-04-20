@@ -25,9 +25,11 @@ public class UserGrpcService(
             DisplayName = profile.DisplayName,
             JoinedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(profile.JoinedAt, DateTimeKind.Utc)),
             DiscussionCount = profile.DiscussionCount,
-            PostCount = profile.PostCount,
+            PostCount = profile.ReplyCount,
             FollowerCount = profile.FollowerCount,
-            ReplyCount = profile.ReplyCount
+            FollowingCount = profile.FollowingCount,
+            ReplyCount = profile.ReplyCount,
+            ReactionsReceived = profile.ReactionsReceived
         };
 
         if (profile.AvatarFileName is not null)
@@ -39,6 +41,62 @@ public class UserGrpcService(
         if (profile.LastSeenAt.HasValue)
             response.LastSeenAt = Timestamp.FromDateTime(
                 DateTime.SpecifyKind(profile.LastSeenAt.Value, DateTimeKind.Utc));
+
+        foreach (var a in profile.Achievements)
+        {
+            var achievement = new UserAchievementInfo
+            {
+                Slug = a.Slug,
+                Name = a.Name,
+                Description = a.Description,
+                Category = a.Category,
+                Tier = a.Tier,
+                Points = a.Points,
+                EarnedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(a.EarnedAt, DateTimeKind.Utc))
+            };
+
+            if (a.IconUrl is not null)
+                achievement.IconUrl = a.IconUrl;
+
+            response.Achievements.Add(achievement);
+        }
+
+        foreach (var d in profile.TopDiscussions)
+        {
+            response.TopDiscussions.Add(new TopDiscussionInfo
+            {
+                PublicId = d.PublicId,
+                Title = d.Title,
+                Slug = d.Slug,
+                PostCount = d.PostCount,
+                ReactionCount = d.ReactionCount,
+                CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(d.CreatedAt, DateTimeKind.Utc)),
+                SpaceSlug = d.SpaceSlug,
+                SpaceName = d.SpaceName,
+                HubSlug = d.HubSlug,
+                HubName = d.HubName,
+                CommunitySlug = d.CommunitySlug,
+                CommunityName = d.CommunityName
+            });
+        }
+
+        foreach (var s in profile.TopSpaces)
+        {
+            var space = new TopSpaceInfo
+            {
+                PublicId = s.SpacePublicId,
+                SpaceSlug = s.SpaceSlug,
+                SpaceName = s.SpaceName,
+                HubSlug = s.HubSlug,
+                CommunitySlug = s.CommunitySlug,
+                PostCount = s.PostCount
+            };
+
+            if (s.SpaceAvatarFileName is not null)
+                space.SpaceAvatarFileName = s.SpaceAvatarFileName;
+
+            response.TopSpaces.Add(space);
+        }
 
         return response;
     }

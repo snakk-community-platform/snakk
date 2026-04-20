@@ -1,0 +1,261 @@
+@page "/following"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.FollowingModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Following";
+    ViewData["Description"] = "Spaces, discussions and people you follow.";
+    ViewData["AuthPrompt.Title"] = "Sign in to view your following";
+    ViewData["AuthPrompt.Message"] = "Subscribe to spaces and discussions, or follow people to find them here.";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="fp-center">
+    <div class="fp-center-inner">
+        @if (!Model.IsAuthenticated)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Following
+        </h2>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-4 border-b border-subtle">
+            <a href="/following?tab=discussions"
+               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "discussions" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+                Discussions
+                @if (Model.DiscussionCount > 0)
+                {
+                    <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span>
+                }
+            </a>
+            <a href="/following?tab=spaces"
+               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "spaces" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+                Spaces
+                @if (Model.SpaceCount > 0)
+                {
+                    <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span>
+                }
+            </a>
+            <a href="/following?tab=users"
+               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "users" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+                People
+                @if (Model.UserCount > 0)
+                {
+                    <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span>
+                }
+            </a>
+        </div>
+
+        @if (Model.ActiveTab == "spaces")
+        {
+            @if (Model.Spaces.Count == 0)
+            {
+                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p>No subscribed spaces yet.</p>
+                    <p class="mt-1 text-xs opacity-70">Subscribe to spaces to find them here.</p>
+                </div>
+            }
+            else
+            {
+                <div class="clean-card overflow-hidden">
+                    @foreach (var space in Model.Spaces)
+                    {
+                        <div class="flex items-center gap-3 px-4 py-3 border-b border-subtle last:border-b-0"
+                             data-following-item="space" data-id="@space.PublicId">
+                            <a href="@space.Href" class="shrink-0"
+                               data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
+                                <img src="@space.AvatarUrl" alt="" width="36" height="36"
+                                     class="w-9 h-9 rounded-full" loading="lazy" decoding="async" />
+                            </a>
+
+                            <div class="flex-1 min-w-0">
+                                <a href="@space.Href" class="font-medium text-sm hover:text-primary transition-colors"
+                                   data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
+                                @if (!string.IsNullOrEmpty(space.Description))
+                                {
+                                    <p class="text-xs text-base-content/50 truncate">@space.Description</p>
+                                }
+                            </div>
+
+                            <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
+                                <span class="text-sm font-semibold">@DisplayHelper.FormatCount(space.DiscussionCount)</span>
+                                <span class="text-[10px] text-base-content/40 uppercase">topics</span>
+                            </div>
+                            <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
+                                <span class="text-sm font-semibold">@DisplayHelper.FormatCount(space.ReplyCount)</span>
+                                <span class="text-[10px] text-base-content/40 uppercase">replies</span>
+                            </div>
+
+                            <div class="hidden md:flex items-center gap-2 shrink-0 w-56 min-w-0">
+                                @if (space.LatestDiscussion != null)
+                                {
+                                    <img src="@space.LatestDiscussion.AuthorAvatarUrl" alt="" width="24" height="24"
+                                         class="w-6 h-6 rounded-full shrink-0" loading="lazy" decoding="async" />
+                                    <div class="min-w-0">
+                                        <a href="@space.LatestDiscussion.Href"
+                                           class="text-xs font-medium truncate block hover:text-primary transition-colors">@space.LatestDiscussion.Title</a>
+                                        <span class="text-[10px] text-base-content/40 block">
+                                            @space.LatestDiscussion.AuthorDisplayName · @DisplayHelper.FormatRelativeTime(space.LatestDiscussion.LastActivityAt)
+                                        </span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-base-content/30">No discussions yet</span>
+                                }
+                            </div>
+
+                            <button class="btn btn-ghost btn-xs shrink-0"
+                                    data-unfollow-type="space" data-unfollow-id="@space.PublicId"
+                                    title="Unsubscribe">
+                                Subscribed
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (Model.ActiveTab == "discussions")
+        {
+            @if (Model.DiscussionCount == 0)
+            {
+                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p>No subscribed discussions yet.</p>
+                    <p class="mt-1 text-xs opacity-70">Subscribe to discussions to get notified of new replies.</p>
+                </div>
+            }
+            else
+            {
+                <div class="fp-card-list">
+                    @foreach (var discussion in Model.FirstDiscussions)
+                    {
+                        @await Html.PartialAsync("Shared/_DiscussionCard",
+                            new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, UnfollowId: discussion.PublicId))
+                    }
+                    @if (Model.DiscussionsHasMore)
+                    {
+                        <div hx-get="/partials/following-discussions?offset=@Model.DiscussionsNextOffset&pageSize=10"
+                             hx-trigger="revealed"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false"
+                             class="py-2">
+                            @for (var i = 0; i < 3; i++)
+                            {
+                                <div class="fp-card" style="opacity: 0.5">
+                                    <div class="fp-card-header">
+                                        <div class="skeleton h-3 w-16 rounded"></div>
+                                        <div class="skeleton h-4 w-4 rounded-full"></div>
+                                        <div class="skeleton h-3 w-20 rounded"></div>
+                                    </div>
+                                    <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
+                                    <div class="fp-card-stats mt-2">
+                                        <div class="skeleton h-3 w-24 rounded"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (Model.FirstDiscussions.Any())
+                    {
+                        <partial name="Shared/_EndOfScroll" />
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            @if (Model.Users.Count == 0)
+            {
+                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p>Not following anyone yet.</p>
+                    <p class="mt-1 text-xs opacity-70">Follow people to find them here.</p>
+                </div>
+            }
+            else
+            {
+                <div class="flex flex-col gap-2">
+                    @foreach (var user in Model.Users)
+                    {
+                        <div class="clean-card p-3 flex items-center gap-3" data-following-item="user" data-id="@user.PublicId">
+                            <a href="@user.Href"
+                               data-popup-type="user" data-popup-id="@user.PublicId" data-popup-name="@user.DisplayName">
+                                <img src="@user.AvatarUrl" alt="" width="40" height="40" class="w-10 h-10 rounded-full shrink-0" loading="lazy" decoding="async" />
+                            </a>
+                            <div class="flex-1 min-w-0">
+                                <a href="@user.Href" class="font-semibold text-sm hover:underline"
+                                   data-popup-type="user" data-popup-id="@user.PublicId" data-popup-name="@user.DisplayName"
+                                   style="color: var(--text-primary)">@user.DisplayName</a>
+                                <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">
+                                    @DisplayHelper.FormatCount(user.FollowerCount) followers
+                                </p>
+                            </div>
+                            <button class="btn btn-ghost btn-xs shrink-0"
+                                    data-unfollow-type="user" data-unfollow-id="@user.PublicId"
+                                    title="Unfollow">
+                                Following
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        } @* end IsAuthenticated *@
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+}
+<partial name="Shared/_GlobalRightSidebar" />
+
+@section Scripts {
+<script>
+(function () {
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('[data-unfollow-type]');
+        if (!btn) return;
+
+        var type = btn.dataset.unfollowType;
+        var id   = btn.dataset.unfollowId;
+        if (!type || !id) return;
+
+        var url = type === 'space'      ? '/bff/spaces/'      + id + '/follow'
+                : type === 'discussion' ? '/bff/discussions/' + id + '/follow'
+                :                        '/bff/users/'        + id + '/follow';
+
+        btn.disabled = true;
+        try {
+            var res = await fetch(url, { method: 'POST', credentials: 'include' });
+            if (res.ok) {
+                var item = btn.closest('[data-following-item]');
+                if (item) item.remove();
+            }
+        } catch (_) {
+            btn.disabled = false;
+        }
+    });
+}());
+</script>
+}

@@ -29,6 +29,21 @@ public class AchievementRepositoryAdapter(
         return projection?.ToDomain();
     }
 
+    public async Task<IEnumerable<Achievement>> GetByIdsAsync(IEnumerable<AchievementId> ids)
+    {
+        var publicIds = ids.Select(id => id.Value).ToList();
+
+        if (publicIds.Count == 0)
+            return [];
+
+        var projections = await context.Achievements
+            .Where(a => publicIds.Contains(a.PublicId))
+            .Select(a => new AchievementProjection(a))
+            .ToListAsync();
+
+        return projections.Select(p => p.ToDomain());
+    }
+
     public async Task<Achievement?> GetBySlugAsync(string slug)
     {
         var projection = await context.Achievements

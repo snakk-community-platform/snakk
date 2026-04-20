@@ -135,12 +135,38 @@
         const replyForm = document.getElementById('reply-form');
         if (!replyForm) return;
 
+        // Skip if already added (e.g. HTMX re-init after swap)
+        if (replyForm.querySelector('.debate-position-picker')) return;
+
         const picker = document.createElement('div');
         picker.className = 'debate-position-picker';
-        picker.innerHTML = '<div class="text-sm font-medium mb-2">Choose your position:</div>';
+        picker.innerHTML =
+            '<div class="text-sm font-medium mb-1">Choose your position</div>' +
+            '<p class="text-xs text-base-content/50 mb-3">' +
+                'This is a debate. Every reply must declare a position so readers ' +
+                'can follow who stands where. Pick the position that best represents ' +
+                'your reply — it will be shown as a label on your post. You can change ' +
+                'it on a later post if your view shifts. ' +
+                'Only people who reply participate in the debate; readers don\u2019t need to pick a side.' +
+            '</p>';
 
         const btnContainer = document.createElement('div');
         btnContainer.className = 'flex flex-wrap gap-2';
+
+        // Disable the reply submit button until a position is chosen. A debate
+        // reply without a position is not allowed, so there's no point letting
+        // the user try to submit and then seeing a server error.
+        const submitBtn = replyForm.querySelector('#reply-submit-btn') as HTMLButtonElement | null;
+        const updateSubmitState = () => {
+            if (!submitBtn) return;
+            const hasPosition = !!replyForm.querySelector('input[name="DebatePositionId"]');
+            submitBtn.disabled = !hasPosition;
+            submitBtn.title = hasPosition ? '' : 'Pick a position before replying';
+        };
+
+        // Store the color per button so we can reapply it on activate without
+        // re-resolving from the positions array each click.
+        const buttonColors = new WeakMap<HTMLButtonElement, string>();
 
         positions.forEach((p: any, i: number) => {
             const btn = document.createElement('button');
@@ -148,11 +174,20 @@
             btn.className = 'debate-position-picker-btn';
             btn.dataset.positionId = p.id.toString();
             const color = (colors[i] || colors[0]) as string;
+            buttonColors.set(btn, color);
             btn.style.borderColor = color;
             btn.textContent = p.label;
             btn.addEventListener('click', () => {
-                btnContainer.querySelectorAll('.debate-position-picker-btn').forEach(b =>
-                    b.classList.remove('debate-position-active'));
+                // Clear state on all other buttons — including their inline
+                // background-color and color. Leaving the inline styles behind
+                // was the bug that made deselected buttons still look active.
+                btnContainer.querySelectorAll<HTMLButtonElement>('.debate-position-picker-btn').forEach(b => {
+                    if (b === btn) return;
+                    b.classList.remove('debate-position-active');
+                    b.style.backgroundColor = '';
+                    b.style.color = '';
+                });
+
                 btn.classList.add('debate-position-active');
                 btn.style.backgroundColor = color;
                 btn.style.color = 'white';
@@ -165,6 +200,7 @@
                     replyForm.appendChild(input);
                 }
                 input.value = p.id.toString();
+                updateSubmitState();
             });
             btnContainer.appendChild(btn);
         });
@@ -177,6 +213,9 @@
         } else {
             replyForm.prepend(picker);
         }
+
+        // Lock submit until a position is picked.
+        updateSubmitState();
     }
 
     // ─── Journal: Mark as update button for OP ──────────────────

@@ -89,6 +89,10 @@ public class DiscussionUseCase(
         return Result<Discussion>.Success(discussion);
     }
 
+    public async Task<IReadOnlyList<Domain.Repositories.DiscussionSummary>> GetDiscussionsByIdsAsync(
+        IEnumerable<DiscussionId> ids) =>
+        await discussionRepository.GetSummariesByPublicIdsAsync(ids);
+
     public async Task<PagedResult<Discussion>> GetDiscussionsBySpaceAsync(SpaceId spaceId, int offset = 0, int pageSize = 20) =>
         await discussionRepository.GetBySpaceIdAsync(spaceId, offset, pageSize);
 

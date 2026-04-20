@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Save";
+
+package snakk.save;
+
+import "Protos/discussion.proto";
+import "google/protobuf/timestamp.proto";
+
+service SaveService {
+  rpc ToggleSaveDiscussion (ToggleSaveDiscussionRequest) returns (SaveToggleResponse);
+  rpc ToggleSavePost (ToggleSavePostRequest) returns (SaveToggleResponse);
+  rpc GetSavedDiscussionIds (GetSavedIdsRequest) returns (SavedIdsResponse);
+  rpc GetSavedPostIds (GetSavedIdsRequest) returns (SavedIdsResponse);
+  rpc GetSavedDiscussions (GetSavedDiscussionsRequest) returns (snakk.discussion.PagedRecentDiscussionList);
+  rpc GetSavedPosts (GetSavedPostsRequest) returns (PagedSavedPostsList);
+  rpc GetSaveCounts (GetSaveCountsRequest) returns (SaveCountsResponse);
+}
+
+// --- Requests ---
+
+message ToggleSaveDiscussionRequest {
+  string discussion_id = 1;
+}
+
+message ToggleSavePostRequest {
+  string post_id = 1;
+}
+
+message GetSavedIdsRequest {}
+
+message GetSavedDiscussionsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+}
+
+message GetSavedPostsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+}
+
+message GetSaveCountsRequest {}
+
+// --- Responses ---
+
+message SaveToggleResponse {
+  bool is_saved = 1;
+}
+
+message SavedIdsResponse {
+  repeated string public_ids = 1;
+}
+
+message SaveCountsResponse {
+  int32 discussion_count = 1;
+  int32 post_count = 2;
+}
+
+message SavedPostInfo {
+  string public_id = 1;
+  string content_excerpt = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string discussion_public_id = 4;
+  string discussion_title = 5;
+  string discussion_slug = 6;
+  string space_slug = 7;
+  string hub_slug = 8;
+  string community_slug = 9;
+  string author_public_id = 10;
+  string author_display_name = 11;
+  optional string author_avatar_file_name = 12;
+  google.protobuf.Timestamp saved_at = 13;
+}
+
+message PagedSavedPostsList {
+  repeated SavedPostInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}

@@ -24,6 +24,8 @@ interface EntityStats {
     displayName?: string;
     title?: string;
     avatarUrl?: string;
+    description?: string;
+    bio?: string;
     discussionCount?: number;
     replyCount?: number;
     followerCount?: number;
@@ -83,23 +85,26 @@ class SnakkPopup {
         const popup = document.createElement('div');
         popup.className = 'snakk-popup';
         popup.innerHTML = `
-            <div class="snakk-popup-content">
-                <div class="snakk-popup-banner"></div>
-                <div class="snakk-popup-header">
-                    <div class="snakk-popup-avatar-skeleton skeleton"></div>
-                    <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
-                    <div class="snakk-popup-info">
+            <div class="snakk-popup-inner">
+                <div class="snakk-popup-banner">
+                    <div class="snakk-popup-banner-info">
                         <div class="snakk-popup-name"></div>
                         <div class="snakk-popup-type"></div>
                     </div>
                 </div>
-                <div class="snakk-popup-stats"></div>
-                <div class="snakk-popup-stats-skeleton">
-                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-                    <div class="snakk-popup-stat-skeleton"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+                <div class="snakk-popup-body">
+                    <div class="snakk-popup-description"></div>
+                    <div class="snakk-popup-stats"></div>
+                    <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">
+                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                    </div>
                 </div>
             </div>
+            <div class="snakk-popup-avatar-skeleton skeleton"></div>
+            <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
         `;
         popup.style.display = 'none';
         document.body.appendChild(popup);
@@ -198,23 +203,26 @@ class SnakkPopup {
         }
     }
 
-    /**
-     * Create a single stat element
-     */
+    formatCount(n: number): string {
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+        return n.toString();
+    }
+
     createStatElement(label: string, value: number): HTMLElement {
         const stat = document.createElement('div');
-        stat.className = 'snakk-popup-stat';
+        stat.className = 'stat';
 
-        const labelSpan = document.createElement('span');
-        labelSpan.className = 'stat-label';
-        labelSpan.textContent = label;
+        const titleEl = document.createElement('div');
+        titleEl.className = 'stat-title';
+        titleEl.textContent = label;
 
-        const valueSpan = document.createElement('span');
-        valueSpan.className = 'stat-value';
-        valueSpan.textContent = value.toString();
+        const valueEl = document.createElement('div');
+        valueEl.className = 'stat-value';
+        valueEl.textContent = this.formatCount(value);
 
-        stat.appendChild(labelSpan);
-        stat.appendChild(valueSpan);
+        stat.appendChild(titleEl);
+        stat.appendChild(valueEl);
 
         return stat;
     }
@@ -234,7 +242,7 @@ class SnakkPopup {
         }
 
         const container = document.createElement('div');
-        container.className = 'snakk-popup-stats-list';
+        container.className = 'snakk-popup-stats-grid';
 
         // Always show discussion count and reply count
         if (stats.discussionCount !== undefined) {
@@ -280,7 +288,6 @@ class SnakkPopup {
         // Default: position below and aligned to the left of the trigger
         let top = rect.bottom + scrollTop + 10;
         let left = rect.left + scrollLeft;
-        let isAbove = false;
 
         // Check if popup would go off the right edge
         if (left + popupRect.width > window.innerWidth) {
@@ -291,7 +298,6 @@ class SnakkPopup {
         if (top + popupRect.height > scrollTop + window.innerHeight) {
             // Position above the trigger instead
             top = rect.top + scrollTop - popupRect.height - 10;
-            isAbove = true;
         }
 
         // Ensure left is not negative
@@ -300,13 +306,6 @@ class SnakkPopup {
         popup.style.top = `${top}px`;
         popup.style.left = `${left}px`;
 
-        // Toggle above/below class for notch direction
-        popup.classList.toggle('snakk-popup--above', isAbove);
-
-        // Position notch to point at the trigger's horizontal center
-        const triggerCenterX = rect.left + scrollLeft + rect.width / 2;
-        const notchLeft = Math.max(16, Math.min(triggerCenterX - left, popupRect.width - 16));
-        popup.style.setProperty('--notch-left', `${notchLeft}px`);
     }
 
     /**
@@ -328,6 +327,7 @@ class SnakkPopup {
         const avatarImg = popup.querySelector('.snakk-popup-avatar') as HTMLImageElement;
         const nameEl = popup.querySelector('.snakk-popup-name') as HTMLElement;
         const typeEl = popup.querySelector('.snakk-popup-type') as HTMLElement;
+        const descriptionEl = popup.querySelector('.snakk-popup-description') as HTMLElement;
         const statsSkeleton = popup.querySelector('.snakk-popup-stats-skeleton') as HTMLElement;
         const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
 
@@ -336,8 +336,11 @@ class SnakkPopup {
         if (avatarImg) avatarImg.style.display = 'none';
         if (nameEl) nameEl.textContent = name;
         if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
+        if (descriptionEl) descriptionEl.textContent = '';
         if (statsContainer) statsContainer.replaceChildren();
         if (statsSkeleton) statsSkeleton.style.display = 'block';
+        const bannerElLoading = popup.querySelector('.snakk-popup-banner') as HTMLElement;
+        if (bannerElLoading) bannerElLoading.style.removeProperty('background');
 
         // Show popup
         popup.style.display = 'block';
@@ -359,21 +362,20 @@ class SnakkPopup {
             avatarImg.style.display = 'block';
         }
 
-        // Apply gradient banner (currently only set for users)
+        // Apply gradient banner
         const bannerEl = popup.querySelector('.snakk-popup-banner') as HTMLElement;
-        if (bannerEl) {
-            if (stats && stats.gradientCss) {
-                bannerEl.style.background = stats.gradientCss;
-                bannerEl.style.display = 'block';
-            } else {
-                bannerEl.style.display = 'none';
-            }
+        if (bannerEl && stats?.gradientCss) {
+            bannerEl.style.background = stats.gradientCss;
         }
 
         // Update name from API if available
         if (stats && (stats.name || stats.displayName || stats.title)) {
             if (nameEl) nameEl.textContent = stats.name || stats.displayName || stats.title || name;
         }
+
+        // Populate description
+        const descText = stats?.description || stats?.bio || '';
+        if (descriptionEl) descriptionEl.textContent = descText;
 
         const statsElements = this.buildStatsElements(type, stats);
         if (statsContainer) statsContainer.replaceChildren(statsElements);

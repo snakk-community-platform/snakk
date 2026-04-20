@@ -15,6 +15,8 @@
      * Uses event delegation on #discussions-container so HTMX-loaded items work automatically.
      */
     function initDiscussionPreviews(): void {
+        if (document.documentElement.classList.contains('no-discussion-previews')) return;
+
         const container = document.getElementById('discussions-container');
         if (!container) return;
 

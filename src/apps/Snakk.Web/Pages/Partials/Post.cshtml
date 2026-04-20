@@ -158,6 +158,20 @@
                         </span>
                     }
                 </div>
+                @if (Model.IsAuthenticated)
+                {
+                    <button type="button"
+                            class="subtle-btn post-save-btn"
+                            data-action="toggle-save-post"
+                            data-post-id="@post.PublicId"
+                            data-saved="false"
+                            aria-pressed="false"
+                            title="Save">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                        </svg>
+                    </button>
+                }
                 <div class="dropdown dropdown-end">
                     <button tabindex="0" class="subtle-btn" aria-label="Post options">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,6 +188,18 @@
                                 History
                             </button>
                         </li>
+                        @if (Model.IsAuthenticated)
+                        {
+                            <li>
+                                <button type="button"
+                                        data-action="toggle-save-post"
+                                        data-post-id="@post.PublicId"
+                                        data-saved="false"
+                                        class="text-sm post-save-btn">
+                                    Save post
+                                </button>
+                            </li>
+                        }
                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                         {
                             <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>

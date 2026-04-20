@@ -62,6 +62,11 @@ public class DetailModel(
     [BindProperty]
     public string? ReplyToPostId { get; set; }
 
+    // Debate-only: position id for this reply. Null on non-debate discussions
+    // and required on debate discussions (enforced in OnPostAsync).
+    [BindProperty]
+    public int? DebatePositionId { get; set; }
+
     private async Task<int?> CalculateFirstUnreadPostNumberAsync(string discussionPublicId)
     {
         if (string.IsNullOrEmpty(CurrentUserId))
@@ -248,12 +253,53 @@ public class DetailModel(
             return Page();
         }
 
+        // Debate discussions require a position on every reply. Load the
+        // discussion first so we know whether this is a debate, then validate.
+        var discussionForType = await _apiClient.GetDiscussionAsync(PublicId);
+        var isDebate = discussionForType?.Type == "Debate";
+
+        if (isDebate)
+        {
+            if (DebatePositionId is null)
+            {
+                ModelState.AddModelError(nameof(DebatePositionId), "Pick a position before replying.");
+                Discussion = discussionForType;
+                Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, 0, 20);
+                DebateInfo = await _apiClient.GetDebateInfoAsync(PublicId);
+                return Page();
+            }
+
+            // Verify the position actually belongs to this debate.
+            var debateInfo = await _apiClient.GetDebateInfoAsync(PublicId);
+            var validIds = debateInfo?.Positions?.Select(p => p.Id).ToHashSet() ?? [];
+            if (!validIds.Contains(DebatePositionId.Value))
+            {
+                ModelState.AddModelError(nameof(DebatePositionId), "Unknown debate position.");
+                Discussion = discussionForType;
+                Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, 0, 20);
+                DebateInfo = debateInfo;
+                return Page();
+            }
+        }
+
         try
         {
-            await _apiClient.CreatePostAsync(
+            var newPostPublicId = await _apiClient.CreatePostAsync(
                 PublicId,
                 PostContent,
                 string.IsNullOrEmpty(ReplyToPostId) ? null : ReplyToPostId);
+
+            // Store the debate position for the new post (debate-only). If this
+            // fails we still proceed — the post itself was created successfully
+            // and the position can be re-submitted, but we log via ModelState
+            // for visibility during testing.
+            if (isDebate && DebatePositionId.HasValue && !string.IsNullOrEmpty(newPostPublicId))
+            {
+                await _apiClient.SetPostDebatePositionAsync(
+                    PublicId,
+                    newPostPublicId,
+                    DebatePositionId.Value);
+            }
 
             // Navigate to the last page so the new post is visible
             var discussion = await _apiClient.GetDiscussionAsync(PublicId);

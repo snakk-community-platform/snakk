@@ -109,7 +109,10 @@ public class SearchGrpcService(
             response.Items.Add(new PostSearchResult
             {
                 PublicId = p.PublicId,
-                ContentHighlight = p.Content,
+                // Despite the legacy `content_highlight` proto name, this carries
+                // the rendered HTML preview (no search-term highlighting). Renaming
+                // would be a breaking proto change, so the misnomer stays.
+                ContentHighlight = p.RenderedContent,
                 CreatedAt = ToTimestamp(p.CreatedAt),
                 DiscussionPublicId = p.DiscussionPublicId,
                 DiscussionTitle = p.DiscussionTitle,

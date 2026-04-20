@@ -630,6 +630,42 @@ interface SettingsPageConfig {
         });
     }
 
+    function initDisplayPreferences(): void {
+        const previewsToggle = document.getElementById('pref-discussion-previews') as HTMLInputElement | null;
+        const animationsToggle = document.getElementById('pref-animations') as HTMLInputElement | null;
+        if (!previewsToggle && !animationsToggle) return;
+
+        try {
+            if (previewsToggle) {
+                previewsToggle.checked = localStorage.getItem('snakk:disable-previews') !== 'true';
+                previewsToggle.addEventListener('change', () => {
+                    const disabled = !previewsToggle.checked;
+                    if (disabled) {
+                        localStorage.setItem('snakk:disable-previews', 'true');
+                        document.documentElement.classList.add('no-discussion-previews');
+                    } else {
+                        localStorage.removeItem('snakk:disable-previews');
+                        document.documentElement.classList.remove('no-discussion-previews');
+                    }
+                });
+            }
+
+            if (animationsToggle) {
+                animationsToggle.checked = localStorage.getItem('snakk:disable-animations') !== 'true';
+                animationsToggle.addEventListener('change', () => {
+                    const disabled = !animationsToggle.checked;
+                    if (disabled) {
+                        localStorage.setItem('snakk:disable-animations', 'true');
+                        document.documentElement.classList.add('no-animations');
+                    } else {
+                        localStorage.removeItem('snakk:disable-animations');
+                        document.documentElement.classList.remove('no-animations');
+                    }
+                });
+            }
+        } catch { /* localStorage unavailable */ }
+    }
+
     function initSkinTonePicker(): void {
         const picker = document.getElementById('skin-tone-picker');
         if (!picker) return;
@@ -652,6 +688,7 @@ interface SettingsPageConfig {
     }
 
     function attachEventListeners(): void {
+        initDisplayPreferences();
         initSkinTonePicker();
         initEmbedPreferences();
 
@@ -746,20 +783,12 @@ interface SettingsPageConfig {
         });
     }
 
-    // --- Scrollspy ---
+    // --- Section nav links ---
 
     function initScrollspy(): void {
         const navLinks = document.querySelectorAll<HTMLAnchorElement>('[data-scrollspy-link]');
         if (navLinks.length === 0) return;
 
-        const sections: { id: string; el: HTMLElement; link: HTMLAnchorElement }[] = [];
-        navLinks.forEach(link => {
-            const id = link.getAttribute('href')?.replace('#', '') ?? '';
-            const el = document.getElementById(id);
-            if (el) sections.push({ id, el, link });
-        });
-
-        // Click → smooth scroll
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -770,18 +799,6 @@ interface SettingsPageConfig {
                 }
             });
         });
-
-        // Scroll → highlight active
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const id = entry.target.id;
-                    navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === `#${id}`));
-                }
-            });
-        }, { rootMargin: '-20% 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s.el));
     }
 
     // ===== Two-Factor Authentication =====

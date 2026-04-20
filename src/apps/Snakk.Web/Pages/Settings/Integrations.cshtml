@@ -4,19 +4,28 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Integration Settings";
+    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
 }
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <partial name="Shared/_SettingsNav" />
-</div>
-</aside>
+<partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="fp-center">
     <div class="fp-center-inner">
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+            </svg>
+            Integrations
+        </h2>
         <div class="fp-settings-content">
 
             <!-- RSS Feeds -->
@@ -75,26 +84,13 @@
                 </div>
             </div>
         </div>
+        } @* end IsAuthenticated *@
     </div>
 </div>
 
 <!-- Right Column -->
 <aside class="fp-right">
-<div class="fp-right-sticky">
-    <div class="fp-right-section">
-        <div class="fp-right-title">On this page</div>
-        <nav class="fp-scrollspy">
-            <a href="#section-rss" class="fp-scrollspy-item active">RSS Feeds</a>
-        </nav>
-    </div>
-    <div class="fp-right-section">
-        <div class="fp-right-title">Help</div>
-        <div class="text-sm" style="color: var(--text-tertiary)">
-            <p><strong>RSS feeds</strong> let you follow discussions in your preferred reader app.</p>
-            <p class="mt-2">A <strong>personal token</strong> gives your reader access to authenticated feeds like your followed discussions.</p>
-        </div>
-    </div>
-</div>
+<partial name="Shared/_SettingsRightNav" />
 </aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

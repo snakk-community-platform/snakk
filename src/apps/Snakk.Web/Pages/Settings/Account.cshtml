@@ -4,6 +4,7 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Account Settings";
+    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
 
     var settingsAvatarFileName = User.FindFirst("AvatarFileName")?.Value;
     var hasUploadedAvatar = !string.IsNullOrEmpty(settingsAvatarFileName);
@@ -12,16 +13,24 @@
 }
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <partial name="Shared/_SettingsNav" />
-</div>
-</aside>
+<partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="fp-center">
     <div class="fp-center-inner">
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Account Settings
+        </h2>
         <div class="fp-settings-content">
 
             <!-- Avatar -->
@@ -130,32 +139,13 @@
                 </div>
             </div>
         </div>
+        } @* end IsAuthenticated *@
     </div>
 </div>
 
 <!-- Right Column -->
 <aside class="fp-right">
-<div class="fp-right-sticky">
-    <!-- Scrollspy -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">On this page</div>
-        <nav class="fp-scrollspy">
-            <a href="#section-avatar" class="fp-scrollspy-item active">Avatar</a>
-            <a href="#section-display-name" class="fp-scrollspy-item">Display Name</a>
-            <a href="#section-bio" class="fp-scrollspy-item">Bio</a>
-        </nav>
-    </div>
-
-    <!-- Help -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">Help</div>
-        <div class="text-sm" style="color: var(--text-tertiary)">
-            <p>Your <strong>avatar</strong> is shown next to your posts and in discussion listings.</p>
-            <p class="mt-2">Your <strong>display name</strong> is how others see you. Changing it requires your password.</p>
-            <p class="mt-2">Your <strong>bio</strong> appears on your profile page.</p>
-        </div>
-    </div>
-</div>
+<partial name="Shared/_SettingsRightNav" />
 </aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

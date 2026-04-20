@@ -1,6 +1,6 @@
 # Snakk Platform - Architecture Documentation
 
-**Last Updated**: 2026-03-04
+**Last Updated**: 2026-04-11
 **Status**: Current
 
 ---
@@ -13,6 +13,9 @@
 5. [Code Conventions](#code-conventions)
 6. [Security](#security)
 7. [Deployment](#deployment)
+8. [Caching Strategy](#caching-strategy)
+9. [Scaling & Multi-Region Architecture](#scaling--multi-region-architecture)
+10. [Content Rendering Pipeline](#content-rendering-pipeline)
 
 ---
 
@@ -563,6 +566,175 @@ Use .NET Aspire for local development:
 cd src/aspire/Snakk.AppHost
 dotnet run
 ```
+
+---
+
+## Caching Strategy
+
+Snakk uses a multi-layer caching architecture designed to minimize database load and serve content as close to the user as possible.
+
+### Layer 1: CDN (Cloudflare)
+
+All static assets and anonymous page responses are cacheable at the CDN edge. A user in Tokyo loads JS, CSS, images, and public pages from a nearby Cloudflare PoP without hitting the origin server.
+
+| Content Type | Cache-Control | CDN Caches? | Notes |
+|---|---|---|---|
+| Static assets (JS/CSS/fonts) | `public, max-age=31536000, immutable` | Yes | File-version hashed URLs; cache forever |
+| Media (images, avatars) | `public, max-age=31536000, immutable` | Yes | Content-addressed storage paths |
+| Anonymous HTML pages | `public, s-maxage=60` | Yes | CDN caches for 60s; browser doesn't cache (`max-age=0`) so logged-in users who just logged out don't see stale pages |
+| Authenticated HTML pages | `private, no-cache` | No | Served by origin; see personalization strategy below |
+| BFF API responses | `private, no-cache` | No | Per-user data; cached at origin only |
+
+**Invalidation**: Short TTLs (30-60s) for HTML at the edge. Content changes propagate naturally within one cache cycle. For urgent invalidation, Cloudflare's purge API can clear specific URLs in ~150ms globally.
+
+### Layer 2: OutputCache (In-Memory, Snakk.Gateway)
+
+Server-side page cache for anonymous users. Responses are keyed by URL path and cached in-memory for fast serving. `SetLocking(false)` on all cache policies prevents request coalescing — if a cache generation stalls (e.g. slow gRPC call), waiting requests generate their own responses instead of piling up behind a lock.
+
+### Layer 3: HybridCache (Application-Level)
+
+Business-object caching with granular invalidation. Used for expensive queries like trending discussions, top contributors, and permission lookups. Entries are keyed by entity type + ID with explicit eviction on write.
+
+### Personalization Strategy for Logged-In Users
+
+Snakk's pages separate **public content** (discussion lists, post bodies, stats) from **personalized elements** (navbar avatar, notification count, follow states, edit/delete buttons on own posts). This separation enables a future optimization where the CDN serves a single cached HTML shell to all users — including logged-in ones — and JavaScript hydrates the personalized bits from small BFF API calls.
+
+Current state:
+- Auth navbar: already JS-hydrated (`components/auth-navbar.ts`)
+- Follow buttons: already JS-hydrated
+- Profile actions: already skeleton + JS-hydrated
+- Notification badge: already JS-hydrated
+
+Remaining work to make logged-in HTML CDN-cacheable:
+- Razor pages render one "public" version regardless of auth state
+- Auth-conditional rendering moves to CSS class toggles (`body.is-authenticated .auth-only { display: block }`)
+- `s-maxage` set on all public pages regardless of login state
+
+This is the same approach Reddit uses: one cached HTML per URL served to everyone globally, personalized client-side. The BFF calls that fill in user-specific data are tiny JSON payloads that round-trip to origin quickly even cross-ocean.
+
+---
+
+## Scaling & Multi-Region Architecture
+
+Snakk is designed as a single-region deployment today but architecturally prepared for multi-region scaling. The service boundaries, caching layers, and data access patterns support a tiered scaling path without requiring a rewrite.
+
+### Tier 1: CDN + Single Origin (Current)
+
+```
+User (anywhere) → Cloudflare Edge → Origin (single region)
+```
+
+Static assets and anonymous pages served from CDN edge. Dynamic requests go to the single origin. OutputCache + HybridCache keep origin response times low. Suitable for up to tens of thousands of DAU.
+
+### Tier 2: Read Replicas + Regional Edge Apps (Planned)
+
+```
+                    ┌──────────────┐
+                    │  Primary DB  │  (Europe)
+                    │  PostgreSQL  │
+                    └──────┬───────┘
+                           │ streaming replication
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ Replica  │ │ Replica  │ │ Replica  │
+        │ (US-East)│ │ (Europe) │ │ (Tokyo)  │
+        └────┬─────┘ └────┬─────┘ └────┬─────┘
+             │             │             │
+        ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐
+        │ Snakk    │ │ Snakk    │ │ Snakk    │
+        │ (read)   │ │ (r+w)    │ │ (read)   │
+        └──────────┘ └──────────┘ └──────────┘
+```
+
+PostgreSQL streaming replication provides sub-second read replicas in each region. Regional Snakk.Web + Snakk.Api instances handle reads from the local replica (~5ms local DB vs ~200ms cross-ocean). All writes route to the primary.
+
+#### Read/Write Split with EF Core
+
+The split happens at the **request level**, not the query level. A scoped connection resolver determines the target database based on the operation type:
+
+- **GET/HEAD requests** (Snakk.Web) and **read RPCs** (Snakk.Api) → connect to the local read replica
+- **POST/PUT/DELETE requests** and **write RPCs** → connect to the primary
+
+This requires no changes to repositories, use cases, or domain entities. The same `SnakkDbContext` is used everywhere; only the connection string changes per-request. In a single-region deployment, both connection strings point to the same database.
+
+```csharp
+// Simplified — the resolver is a scoped service that reads the request context
+services.AddDbContext<SnakkDbContext>((sp, options) =>
+{
+    var resolver = sp.GetRequiredService<DbConnectionResolver>();
+    options.UseNpgsql(resolver.GetConnectionString());
+});
+```
+
+#### Read Your Own Writes
+
+After a write, a short-lived cookie (`X-Read-Primary=1; Max-Age=5`) routes the user's subsequent reads to the primary for 5 seconds. This prevents the scenario where a user posts a reply and doesn't see it immediately because the local replica hasn't caught up yet.
+
+Combined with optimistic UI (the reply appears in the DOM immediately after the POST succeeds, before the server confirms replication), the user never perceives replication lag.
+
+#### SignalR in Multi-Region
+
+The SignalR hub (Snakk.Realtime) uses a Redis backplane shared across regions. Messages published in one region are delivered to connected clients in all regions. Cross-region message latency is bounded by the Redis round-trip (~50-100ms inter-region) — acceptable for activity feeds and notifications.
+
+#### Why Not Multi-Master
+
+Forums are read-heavy (95%+ reads). Write conflicts are rare — two users almost never edit the same post simultaneously. The single-primary write model avoids the complexity of conflict resolution, distributed transactions, and split-brain scenarios that multi-master (CockroachDB, Spanner) introduces. The 200ms write latency to the primary region is invisible to users when combined with optimistic UI.
+
+### Tier 3: Edge Compute (Alternative Path)
+
+Platforms like Fly.io provide built-in read/write routing via the `fly-replay` header. Any write that hits a read-only replica is automatically replayed to the primary region. This achieves Tier 2 behavior with zero application code changes — only deployment configuration. The tradeoff is platform dependency.
+
+---
+
+## Content Rendering Pipeline
+
+Post content follows a write-once-read-many pattern. Raw markdown is stored as `Post.Content` (the source of truth); rendered HTML is stored as `Post.RenderedContent` (the display form). Rendering happens at write time — the read path never parses markdown.
+
+### Pipeline Stages
+
+```
+User types markdown
+  → ParagraphSplitter.Split()          [optional, per-space setting]
+  → MarkupParser.ToHtml()
+    → Markdig pipeline:
+        AdvancedExtensions (GFM tables, task lists, etc.)
+        DisableHtml (escapes raw HTML — XSS prevention)
+        SpoilerExtension (||text|| → <span class="spoiler">)
+        EntityLinkExtension (internal paths → <a class="entity-link">)
+    → SanitizeLinks (enforce http/https/mailto, nofollow external)
+    → CleanEmptyTables
+    → NormalizeCodeBlockLanguages
+    → TrimCodeBlocks
+    → WrapTablesInScrollContainer
+  → Stored in Post.RenderedContent
+```
+
+### Auto-Paragraph Splitter
+
+Walls of text (long single-paragraph posts) are automatically broken into paragraphs at write time. The algorithm is language-agnostic and heuristic — no NLP models or language-specific rules.
+
+**Trigger**: both conditions must be true: character count > 500 AND sentence count > 5.
+
+**How it works**:
+1. Split on existing `\n\n` (user-authored paragraph breaks are sacrosanct — never modified)
+2. Skip structural blocks: fenced/indented code, lists, blockquotes, tables, headings
+3. Walk forward accumulating characters; break at sentence terminators (`.!?` for Latin, `。！？` for CJK, `؟` for Arabic, etc.) when the buffer exceeds ~400 characters
+4. Hard-break at ~800 characters at the nearest whitespace when no terminator is found (handles missing punctuation)
+5. Inline-safety pass prevents breaks inside unbalanced backticks, links, or spoiler spans
+6. No-orphan rule: short tails (<80 chars) merge with the previous paragraph
+
+**Configurable per space** via `Space.AutoParagraphEnabled` (default: `true`). Manageable in the admin panel under Space settings.
+
+**Escape hatch**: any explicit `\n\n` in the raw markdown is preserved. Users who format their own paragraphs are never affected.
+
+**Design decisions**:
+- Runs pre-markdown (inserts `\n\n` into raw text before Markdig parses it) rather than post-HTML, to avoid corrupting rendered HTML structure
+- Latin terminators (`.!?`) require trailing whitespace to be treated as sentence boundaries; CJK/Arabic terminators stand alone (no space between sentences in those scripts)
+- No abbreviation handling (would require language detection)
+- No discourse-marker detection (would require a per-language word list)
+- Idempotent: running the splitter twice produces the same output
+- Raw `Post.Content` is never modified — only the rendered output in `Post.RenderedContent` reflects the paragraph breaks
 
 ---
 

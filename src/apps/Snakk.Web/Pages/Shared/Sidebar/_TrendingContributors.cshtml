@@ -5,29 +5,20 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Contributors?.Items == null || Model.Contributors.Items.Count == 0)
 {
-    <p class="sidebar-empty">No contributors today yet</p>
+    <p class="fp-right-empty">No active contributors yet</p>
 }
 else
 {
-    <ul class="sidebar-list">
-        @foreach (var contributor in Model.Contributors.Items)
+    <div class="fp-trending-list">
+        @foreach (var c in Model.Contributors.Items)
         {
-            <li>
-                <a href="@SnakkUrlHelper.UserProfile(contributor.PublicId)" class="sidebar-link">
-                    <img src="@contributor.AvatarThumbnailUrl"
-                         alt="@contributor.DisplayName"
-                         width="32" height="32"
-                         class="sidebar-avatar"
-                         loading="lazy" decoding="async" />
-                    <span class="sidebar-link-content">
-                        <span class="sidebar-link-title">@contributor.DisplayName</span>
-                        <span class="sidebar-link-meta">
-                            <span class="sidebar-badge">@contributor.PostCountToday posts today</span>
-                        </span>
-                    </span>
-                </a>
-            </li>
+            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor" hx-target="#main-content"
+               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                <img src="@c.AvatarThumbnailUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                <span class="fp-trending-contributor-name">@c.DisplayName</span>
+                <span class="fp-card-tag fp-card-tag-light fp-tag-sm">@c.PostCountToday</span>
+            </a>
         }
-    </ul>
+    </div>
 }
 </div>

@@ -215,6 +215,13 @@ public class ReactionRepositoryAdapter(
         return result;
     }
 
+    public async Task<int> GetTotalReactionsReceivedByUserAsync(UserId userId)
+    {
+        return await context.PostReactions
+            .Where(r => r.Post.CreatedByUser.PublicId == userId.Value)
+            .CountAsync();
+    }
+
     private record ReactionProjection(
         string PublicId,
         string PostPublicId,

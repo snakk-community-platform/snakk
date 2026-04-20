@@ -15,22 +15,21 @@
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
 <div class="fp-center">
+    <div class="breadcrumb-bar">
+        <nav class="breadcrumb">
+            <a href="/">Home</a>
+            @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
+            <span class="breadcrumb-separator">/</span>
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <span class="breadcrumb-separator">/</span>
+            <span>Images</span>
+        </nav>
+    </div>
     <div class="fp-center-inner">
-        <div class="breadcrumb-bar">
-            <nav class="breadcrumb">
-                <a href="/">Home</a>
-                @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
-                <span class="breadcrumb-separator">/</span>
-                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-                <span class="breadcrumb-separator">/</span>
-                <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
-                <span class="breadcrumb-separator">/</span>
-                <a href="/new?spaceId=@Model.SpaceId">New</a>
-                <span class="breadcrumb-separator">/</span>
-                <span>Images</span>
-            </nav>
-        </div>
-
         <div class="max-w-3xl py-8">
             <h1 class="text-xl font-semibold mb-6">New Images</h1>
 

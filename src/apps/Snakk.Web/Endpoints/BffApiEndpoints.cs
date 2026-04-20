@@ -120,6 +120,12 @@ public static class BffApiEndpoints
         group.MapGet("/discussions/recent", GetRecentDiscussionsAsync)
             .WithName("BffGetRecentDiscussions");
 
+        group.MapGet("/discussions/trending", GetTrendingDiscussionsAsync)
+            .WithName("BffGetTrendingDiscussions");
+
+        group.MapGet("/discussions/new", GetNewDiscussionsAsync)
+            .WithName("BffGetNewDiscussions");
+
         group.MapGet("/spaces/{spaceId}/discussions", GetSpaceDiscussionsAsync)
             .WithName("BffGetSpaceDiscussions");
 
@@ -267,6 +273,21 @@ public static class BffApiEndpoints
             .DisableAntiforgery();
         group.MapDelete("/avatars/{entityType}/{entityId}", DeleteEntityAvatarBffAsync)
             .WithName("BffDeleteEntityAvatar");
+
+        // Save / Bookmark
+        group.MapPost("/discussions/{discussionId}/save", ToggleSaveDiscussionAsync)
+            .WithName("BffToggleSaveDiscussion");
+        group.MapPost("/posts/{postId}/save", ToggleSavePostAsync)
+            .WithName("BffToggleSavePost");
+        group.MapGet("/saves/discussion-ids", GetSavedDiscussionIdsAsync)
+            .WithName("BffGetSavedDiscussionIds");
+        group.MapGet("/saves/post-ids", GetSavedPostIdsAsync)
+            .WithName("BffGetSavedPostIds");
+        group.MapGet("/saves/counts", GetSaveCountsAsync)
+            .WithName("BffGetSaveCounts");
+
+        group.MapPost("/history/validate", ValidateHistoryIdsAsync)
+            .WithName("BffValidateHistoryIds");
     }
 
     /// <summary>
@@ -572,6 +593,27 @@ public static class BffApiEndpoints
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> GetTrendingDiscussionsAsync(
+        [FromQuery] int offset,
+        [FromQuery] int pageSize,
+        [FromQuery] string? communityId,
+        SnakkApiClient apiClient)
+    {
+        var result = await apiClient.GetTrendingDiscussionsAsync(offset, pageSize, communityId);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetNewDiscussionsAsync(
+        [FromQuery] int offset,
+        [FromQuery] int pageSize,
+        [FromQuery] string? communityId,
+        [FromQuery] string? cursor,
+        SnakkApiClient apiClient)
+    {
+        var result = await apiClient.GetNewDiscussionsAsync(offset, pageSize, communityId, cursor);
+        return Results.Ok(result);
+    }
+
     private static async Task<IResult> GetSpaceDiscussionsAsync(
         string spaceId,
         [FromQuery] int offset,
@@ -824,6 +866,7 @@ public static class BffApiEndpoints
             PublicId = apiResult.PublicId,
             DisplayName = apiResult.DisplayName,
             AvatarUrl = apiResult.AvatarUrl,
+            Bio = apiResult.HasBio ? apiResult.Bio : null,
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
@@ -1238,7 +1281,8 @@ public static class BffApiEndpoints
             AvatarUrl = apiResult.AvatarUrl,
             SpaceCount = apiResult.SpaceCount,
             DiscussionCount = apiResult.DiscussionCount,
-            ReplyCount = apiResult.ReplyCount
+            ReplyCount = apiResult.ReplyCount,
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"hub:{publicId}")
         };
 
         return Results.Ok(bffResponse);
@@ -1260,7 +1304,8 @@ public static class BffApiEndpoints
             AvatarUrl = apiResult.AvatarUrl,
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
-            FollowerCount = apiResult.FollowerCount
+            FollowerCount = apiResult.FollowerCount,
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"space:{publicId}")
         };
 
         return Results.Ok(bffResponse);
@@ -1283,7 +1328,8 @@ public static class BffApiEndpoints
             HubCount = apiResult.HubCount,
             SpaceCount = apiResult.SpaceCount,
             DiscussionCount = apiResult.DiscussionCount,
-            ReplyCount = apiResult.ReplyCount
+            ReplyCount = apiResult.ReplyCount,
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"community:{publicId}")
         };
 
         return Results.Ok(bffResponse);
@@ -1301,6 +1347,7 @@ public static class BffApiEndpoints
             PublicId = apiResult.PublicId,
             DisplayName = apiResult.DisplayName,
             AvatarUrl = apiResult.AvatarUrl,
+            Bio = apiResult.HasBio ? apiResult.Bio : null,
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
@@ -1940,6 +1987,71 @@ public static class BffApiEndpoints
         var success = await apiClient.RevokeFeedTokenAsync();
         return success ? Results.Ok() : Results.StatusCode(503);
     }
+
+    private static async Task<IResult> ToggleSaveDiscussionAsync(string discussionId,
+        SnakkApiClient apiClient, HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+        var result = await apiClient.ToggleSaveDiscussionAsync(discussionId);
+        if (result is null) return Results.StatusCode(503);
+        return Results.Ok(new { isSaved = result.IsSaved });
+    }
+
+    private static async Task<IResult> ToggleSavePostAsync(string postId,
+        SnakkApiClient apiClient, HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+        var result = await apiClient.ToggleSavePostAsync(postId);
+        if (result is null) return Results.StatusCode(503);
+        return Results.Ok(new { isSaved = result.IsSaved });
+    }
+
+    private static async Task<IResult> GetSavedDiscussionIdsAsync(
+        SnakkApiClient apiClient, HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Ok(new { publicIds = Array.Empty<string>() });
+        var ids = await apiClient.GetSavedDiscussionIdsAsync();
+        return Results.Ok(new { publicIds = ids });
+    }
+
+    private static async Task<IResult> GetSavedPostIdsAsync(
+        SnakkApiClient apiClient, HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Ok(new { publicIds = Array.Empty<string>() });
+        var ids = await apiClient.GetSavedPostIdsAsync();
+        return Results.Ok(new { publicIds = ids });
+    }
+
+    private static async Task<IResult> GetSaveCountsAsync(
+        SnakkApiClient apiClient, HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Ok(new { discussionCount = 0, postCount = 0 });
+        var result = await apiClient.GetSaveCountsAsync();
+        return Results.Ok(new { discussionCount = result?.DiscussionCount ?? 0, postCount = result?.PostCount ?? 0 });
+    }
+
+    private static async Task<IResult> ValidateHistoryIdsAsync(
+        [FromBody] ValidateHistoryIdsRequest request,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Ok(new { accessibleIds = Array.Empty<string>() });
+
+        var ids = (request.Ids ?? [])
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Take(50)
+            .ToList();
+
+        var results = await Task.WhenAll(ids.Select(id => apiClient.GetDiscussionAsync(id)));
+
+        var accessibleIds = ids
+            .Zip(results)
+            .Where(x => x.Second != null)
+            .Select(x => x.First)
+            .ToList();
+
+        return Results.Ok(new { accessibleIds });
+    }
 }
 
 public record ToggleReactionRequest(int Type);
@@ -1948,4 +2060,5 @@ public record BffCreateReportRequest(string EntityType, string EntityId, string 
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
+public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
 public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null);

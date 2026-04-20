@@ -2,6 +2,22 @@
 // Utility Classes
 // ============================================
 
+// User preference: hide discussion preview buttons and inline card previews
+.no-discussion-previews .preview-btn,
+.no-discussion-previews .fp-card-preview {
+    display: none !important;
+}
+
+// User preference: disable all animations and transitions
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+}
+
 .text-muted {
     color: var(--text-tertiary);
 }

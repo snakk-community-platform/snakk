@@ -78,12 +78,6 @@ interface ActivityDataPoint {
 
     const profileConfig: { userId: string } & UserStats = JSON.parse(configEl.textContent || '{}');
     const userId = profileConfig.userId;
-    const stats: UserStats = {
-        totalActivity: profileConfig.totalActivity,
-        daysSinceJoined: profileConfig.daysSinceJoined,
-        discussionCount: profileConfig.discussionCount,
-        postCount: profileConfig.postCount
-    };
 
     function initializeProfile(): void {
         // Load user stats
@@ -142,7 +136,7 @@ interface ActivityDataPoint {
                                     <span class="topic-meta-separator">&middot;</span>
                                     <span>${formatRelativeTime(p.createdAt)}</span>
                                 </div>
-                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 line-clamp-2">
+                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 fp-post-preview">
                                     ${sanitizeHtml(p.contentPreview)}
                                 </div>
                             </div>
@@ -179,9 +173,12 @@ interface ActivityDataPoint {
                     total: (a.discussionCount ?? 0) + (a.postCount ?? 0)
                 }));
                 // Measure available height so the chart fills its flex-sized container.
-                // Reserve ~40px for the legend row below the bars.
+                // Reserve ~40px for the legend row below the bars. Prefer the real
+                // measurement whenever the container has been laid out (any positive
+                // height) so the chart never inflates a deliberately compact wrapper —
+                // 150 only kicks in if the container wasn't measurable at all.
                 const measured = container.clientHeight;
-                const maxHeight = measured > 120 ? Math.max(measured - 40, 80) : 150;
+                const maxHeight = measured > 0 ? Math.max(measured - 40, 60) : 150;
                 renderActivityChart(container, data, days, maxHeight);
             } catch (error) {
                 console.error('Error loading activity chart:', error);
@@ -326,7 +323,7 @@ interface ActivityDataPoint {
                     // Viewing own profile
                     container.innerHTML = `
                         <a href="/settings" class="btn btn-outline btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             Edit Profile
@@ -345,9 +342,9 @@ interface ActivityDataPoint {
                 container.innerHTML = `
                     <button data-action="toggle-follow-user"
                             data-user-id="${userId}"
-                            class="btn ${followData.isFollowing ? 'btn-outline' : 'btn-primary'} btn-sm"
+                            class="btn btn-outline btn-sm"
                             id="follow-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${followData.isFollowing ? 'M5 13l4 4L19 7' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'}" />
                         </svg>
                         <span id="follow-btn-text">${followData.isFollowing ? 'Following' : 'Follow'}</span>
@@ -377,14 +374,6 @@ interface ActivityDataPoint {
                     const result = await response.json();
                     btnText.textContent = result.isFollowing ? 'Following' : 'Follow';
 
-                    if (result.isFollowing) {
-                        btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-outline');
-                    } else {
-                        btn.classList.remove('btn-outline');
-                        btn.classList.add('btn-primary');
-                    }
-
                     // Update follower count
                     loadUserStats();
                 } else {
@@ -398,100 +387,10 @@ interface ActivityDataPoint {
             }
         }
 
-        // Generate achievements based on activity
-        function loadAchievements(): void {
-            const section = document.getElementById('achievements-section');
-            const grid = document.getElementById('achievements-grid');
-            if (!section || !grid) return;
-
-            const achievements: { name: string; icon: string; color: string; description: string }[] = [];
-            const totalActivity = stats.totalActivity;
-            const daysSinceJoined = stats.daysSinceJoined;
-            const discussionCount = stats.discussionCount;
-            const postCount = stats.postCount;
-
-            // Activity level achievements
-            if (totalActivity >= 1000) {
-                achievements.push({
-                    name: 'Power User',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-4.5A3.375 3.375 0 0012.75 10.875h-.75a3.375 3.375 0 00-3.375 3.375v4.5m9-9L12 3l-4.125 6.75" />',
-                    color: 'text-warning',
-                    description: '1000+ contributions'
-                });
-            } else if (totalActivity >= 500) {
-                achievements.push({
-                    name: 'Super Contributor',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />',
-                    color: 'text-info',
-                    description: '500+ contributions'
-                });
-            } else if (totalActivity >= 100) {
-                achievements.push({
-                    name: 'Active Member',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />',
-                    color: 'text-success',
-                    description: '100+ contributions'
-                });
-            }
-
-            // Discussion starter
-            if (discussionCount >= 50) {
-                achievements.push({
-                    name: 'Discussion Starter',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />',
-                    color: 'text-primary',
-                    description: '50+ discussions'
-                });
-            }
-
-            // Conversationalist
-            if (postCount >= 100 && postCount > discussionCount * 3) {
-                achievements.push({
-                    name: 'Conversationalist',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />',
-                    color: 'text-accent',
-                    description: 'Highly engaged in discussions'
-                });
-            }
-
-            // Veteran / Regular
-            if (daysSinceJoined >= 365) {
-                achievements.push({
-                    name: 'Veteran',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />',
-                    color: 'text-secondary',
-                    description: 'Member for over a year'
-                });
-            } else if (daysSinceJoined >= 180) {
-                achievements.push({
-                    name: 'Regular',
-                    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />',
-                    color: 'text-neutral-content',
-                    description: 'Member for 6+ months'
-                });
-            }
-
-            if (achievements.length === 0) return;
-
-            grid.innerHTML = achievements.map(a => `
-                <div class="achievement-item" title="${escapeHtml(a.description)}">
-                    <div class="achievement-icon ${a.color}">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            ${a.icon}
-                        </svg>
-                    </div>
-                    <span class="achievement-name">${escapeHtml(a.name)}</span>
-                </div>
-            `).join('');
-
-            section.classList.remove('hidden');
-        }
-
         // Initialize all sections
         loadUserStats();
         loadProfileActions();
-        loadAchievements();
-        loadActivityChart(30);
+        loadActivityChart(365);
         loadRecentPosts(5);
 
         // Event delegation for profile actions

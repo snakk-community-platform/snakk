@@ -157,6 +157,12 @@ public static class ServiceCollectionExtensions
         // Search Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.ISearchRepository, Infrastructure.Database.Repositories.SearchRepository>();
 
+        // Save Repository (Application layer interface, Infrastructure implementation)
+        services.AddScoped<Application.Repositories.ISaveRepository, Infrastructure.Database.Repositories.SaveRepository>();
+
+        // Reaction Query Repository (Application layer interface, Infrastructure implementation)
+        services.AddScoped<Application.Repositories.IReactionQueryRepository, Infrastructure.Database.Repositories.ReactionQueryRepository>();
+
         // Moderation Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IModerationRepository, Infrastructure.Database.Repositories.ModerationRepository>();
 
@@ -228,6 +234,14 @@ public static class ServiceCollectionExtensions
             Infrastructure.EventHandlers.Achievements.DiscussionCreatedAchievementHandler>();
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.ReactionAddedEvent>,
             Infrastructure.EventHandlers.Achievements.ReactionAddedAchievementHandler>();
+
+        // Trending Score Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.PostCreatedEvent>,
+            Infrastructure.EventHandlers.Trending.PostCreatedTrendingHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.ReactionAddedEvent>,
+            Infrastructure.EventHandlers.Trending.ReactionAddedTrendingHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.ReactionRemovedEvent>,
+            Infrastructure.EventHandlers.Trending.ReactionRemovedTrendingHandler>();
 
         // Avatar Event Handlers
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserCreatedEvent>,

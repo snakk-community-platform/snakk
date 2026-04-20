@@ -3,82 +3,143 @@
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Spaces.ModeratorsModel
 @{
+    Layout = "_Layout";
     ViewData["Title"] = $"{Model.Space?.Name} Moderators";
     ViewData["Description"] = $"Moderators for {Model.Space?.Name}.";
 }
 
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
 @if (Model.Space == null || Model.Hub == null)
 {
-    <div class="max-w-xl mx-auto px-4 py-8">
-        <div class="clean-card">
-            <div class="empty-state-simple">
-                <h3>Space not found</h3>
-                <p>This space may have been removed or the link might be incorrect.</p>
-                <a href="/hubs" class="btn btn-primary btn-sm mt-4">Back to Hubs</a>
+    <div class="fp-center">
+        <div class="fp-center-inner">
+            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
+                <p>Space not found.</p>
+                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
             </div>
         </div>
     </div>
 }
 else
 {
-    <div class="breadcrumb-bar">
-        <nav class="breadcrumb">
-            <a href="/">Home</a>
-            <span class="breadcrumb-separator">/</span>
+    <div class="fp-center">
+        <div class="fp-page-labels">
             @if (Model.ShowCommunityInBreadcrumb && Model.CommunityDetail != null)
             {
-                <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)">@Model.CommunityDetail.Name</a>
-                <span class="breadcrumb-separator">/</span>
+                <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
+                <span class="fp-page-labels-sep">›</span>
             }
-            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)">@Model.Hub.Name</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="@SnakkUrlHelper.Space(Model.Community, Model.Hub.Slug, Model.Space.Slug)">@Model.Space.Name</a>
-            <span class="breadcrumb-separator">/</span>
-            <span>Moderators</span>
-        </nav>
-    </div>
-
-    <div class="max-w-3xl mx-auto px-4 py-8">
-        <div class="page-header">
-            <h1>@Model.Space.Name Moderators</h1>
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)" class="badge badge-ghost badge-sm">@Model.Hub.Name</a>
+            <span class="fp-page-labels-sep">›</span>
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.Hub.Slug, Model.Space.Slug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
         </div>
-
-        @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
-        {
-            <div class="clean-card">
-                <div class="empty-state-simple">
-                    <p>No moderators have been assigned yet.</p>
-                </div>
-            </div>
-        }
-        else
-        {
-            @foreach (var group in Model.Moderators.Groups)
+        <div class="fp-center-inner">
+            <h2 class="fp-section-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                @Model.Space.Name Moderators
+            </h2>
+            @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
-                <div class="clean-card p-6 mb-4">
-                    <h2 class="text-base font-semibold mb-3">
-                        @group.Level
-                        @if (!string.IsNullOrEmpty(group.ScopeName))
-                        {
-                            <span class="text-base-content/50 font-normal">(@group.ScopeName)</span>
-                        }
-                    </h2>
-                    <div class="flex flex-col divide-y divide-base-200">
-                        @foreach (var mod in group.Moderators)
-                        {
-                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
-                                <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
-                                     alt="" width="32" height="32"
-                                     class="w-8 h-8 rounded-full shrink-0" />
-                                <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
-                                <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
-                            </a>
-                        }
-                    </div>
-                </div>
+                <p class="text-sm mb-6" style="color: var(--text-secondary)">@Model.Space.Description</p>
             }
-        }
+            else
+            {
+                <div class="mb-6"></div>
+            }
+
+            @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
+            {
+                <p class="text-sm" style="color: var(--text-tertiary)">No moderators have been assigned yet.</p>
+            }
+            else
+            {
+                @foreach (var group in Model.Moderators.Groups)
+                {
+                    <div class="clean-card p-6 mb-4">
+                        <h2 class="text-base font-semibold mb-3">
+                            @group.Level
+                            @if (!string.IsNullOrEmpty(group.ScopeName))
+                            {
+                                <span class="text-base-content/50 font-normal">(@group.ScopeName)</span>
+                            }
+                        </h2>
+                        <div class="flex flex-col divide-y divide-base-200">
+                            @foreach (var mod in group.Moderators)
+                            {
+                                <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
+                                    <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
+                                         alt="" width="32" height="32"
+                                         class="w-8 h-8 rounded-full shrink-0" />
+                                    <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
+                                    <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+
+            <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
+                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">See also</p>
+                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)/moderators"
+                   class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
+                    <span>@Model.Hub.Name Hub Moderators</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+                @if (Model.CommunityDetail != null)
+                {
+                    <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)/moderators"
+                       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
+                        <span>@Model.CommunityDetail.Name Community Moderators</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </a>
+                }
+                <a href="/moderators" class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
+                    <span>Site Moderators</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+        </div>
     </div>
+
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    <div class="fp-right-section"
+         hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
+         hx-trigger="load"
+         hx-target="this"
+         hx-swap="innerHTML">
+        <div class="fp-right-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            Site Stats
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
+            <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-10"></div></div>
+        </div>
+    </div>
+
+    <div class="fp-right-section"
+         hx-get="/partials/trending-discussions?scopeType=platform&scopeId=global"
+         hx-trigger="load"
+         hx-target="this"
+         hx-swap="innerHTML">
+        <div class="fp-right-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            Trending
+        </div>
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
+            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+        </div>
+    </div>
+</div>
+</aside>
 }
 
 @functions {

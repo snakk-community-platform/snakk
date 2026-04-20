@@ -39,7 +39,33 @@ public interface IPostRepository
         int limit);
 
     /// <summary>
+    /// Gets contributors ordered by most recent post time (no time filter)
+    /// </summary>
+    Task<List<(UserId UserId, DateTime LastPostAt)>> GetLatestContributorsAsync(
+        HubId? hubId,
+        SpaceId? spaceId,
+        CommunityId? communityId,
+        int limit);
+
+    /// <summary>
     /// Gets post activity counts grouped by date for a specific user (excludes first posts)
     /// </summary>
     Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate);
+
+    /// <summary>
+    /// Gets the spaces where a user has the most posts, ranked by post count.
+    /// </summary>
+    Task<List<TopSpaceForUser>> GetTopSpacesForUserAsync(UserId userId, int limit);
 }
+
+/// <summary>
+/// Lightweight projection of a space where a user is most active.
+/// </summary>
+public record TopSpaceForUser(
+    string SpacePublicId,
+    string SpaceSlug,
+    string SpaceName,
+    string? SpaceAvatarFileName,
+    string HubSlug,
+    string CommunitySlug,
+    int PostCount);

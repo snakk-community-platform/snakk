@@ -3,70 +3,88 @@
 @using Snakk.Web.Services
 @model SearchModel
 @{
+    Layout = "_Layout";
     ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? "Search" : $"Search: {Model.Q}";
     var hasQuery = !string.IsNullOrEmpty(Model.Q);
     var hasAuthorFilter = !string.IsNullOrEmpty(Model.AuthorPublicId);
 }
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">Home</a>
-    </nav>
-</div>
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1>Search</h1>
-        <p>Find discussions, posts, spaces, and users</p>
-    </div>
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
 
-    <!-- Search Filters -->
-    <div id="search-filters" class="mb-6">
-        <div class="space-y-4">
-            <!-- Hidden input for query parameter -->
-            <input type="hidden" id="search-query" name="q" value="@Model.Q" />
+<!-- Center Column -->
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Search
+        </h2>
 
-            <!-- Search Type -->
-            <div>
-                <label class="text-sm font-medium mb-2 block">Search Type</label>
-                <div class="join flex-wrap">
-                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="Post"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="Discussion"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="Space"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="User"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+        <!-- Search Filters -->
+        <div id="search-filters" class="mb-6">
+            <div class="space-y-4">
+                <input type="hidden" id="search-query" name="q" value="@Model.Q" />
+
+                <div>
+                    <label class="text-sm font-medium mb-2 block">Search Type</label>
+                    <div class="join flex-wrap">
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="Post"
+                               @(Model.SearchType == "post" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="Discussion"
+                               @(Model.SearchType == "discussion" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="Space"
+                               @(Model.SearchType == "space" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="User"
+                               @(Model.SearchType == "user" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    </div>
                 </div>
-            </div>
 
-            <!-- Date Range -->
-            <div>
-                <label class="text-sm font-medium mb-2 block">Date Range</label>
-                <div class="join flex-wrap">
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="Today"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="Past hour"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="Past week"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="Past month"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="Past year"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                    <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="All time"
-                           hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                <div>
+                    <label class="text-sm font-medium mb-2 block">Date Range</label>
+                    <div class="join flex-wrap">
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="Today"
+                               @(Model.DateRange == "today" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="Past hour"
+                               @(Model.DateRange == "past hour" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="Past week"
+                               @(Model.DateRange == "past week" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="Past month"
+                               @(Model.DateRange == "past month" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="Past year"
+                               @(Model.DateRange == "past year" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="All time"
+                               @(Model.DateRange == "all time" ? "checked" : "")
+                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-
-    <!-- Results -->
-    <div id="search-results">
-        <partial name="_SearchResults" model="Model" />
+        <!-- Results -->
+        <div id="search-results">
+            <partial name="_SearchResults" model="Model" />
+        </div>
     </div>
 </div>
 
-<script src="@SnakkUrlHelper.Js("pages/search-page")" asp-append-version="true"></script>
+<!-- Right Column -->
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+}
+<partial name="Shared/_GlobalRightSidebar" />
+
+@section Scripts {
+    <script src="@SnakkUrlHelper.Js("pages/search-page")" asp-append-version="true" defer></script>
+}

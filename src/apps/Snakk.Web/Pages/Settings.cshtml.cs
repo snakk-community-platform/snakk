@@ -22,6 +22,11 @@ public class SettingsModel(SnakkApiClient apiClient, IConfiguration configuratio
 
     public IActionResult OnGetAsync()
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Page();
+        }
+
         return Redirect("/settings/account");
     }
 

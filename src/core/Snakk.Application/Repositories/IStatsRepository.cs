@@ -40,7 +40,25 @@ public interface IStatsRepository
         string? hubId = null,
         string? communityId = null,
         int limit = 5);
+
+    /// <summary>
+    /// Gets spaces ordered by most recent post (no time filter)
+    /// </summary>
+    Task<List<LatestActiveSpaceDto>> GetLatestActiveSpacesAsync(
+        string? hubId = null,
+        string? communityId = null,
+        int limit = 5);
 }
+
+public record LatestActiveSpaceDto(
+    string PublicId,
+    string Name,
+    string Slug,
+    DateTime LastPostAt,
+    string HubPublicId,
+    string HubSlug,
+    string HubName,
+    string CommunitySlug);
 
 public record TopActiveSpaceDto(
     string PublicId,
@@ -92,7 +110,8 @@ public record UserStatsDto(
     int DiscussionCount,
     int ReplyCount,
     int FollowerCount,
-    string? AvatarFileName = null);
+    string? AvatarFileName = null,
+    string? Bio = null);
 
 public record DiscussionStatsDto(
     string PublicId,

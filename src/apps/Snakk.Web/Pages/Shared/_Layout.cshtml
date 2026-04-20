@@ -86,9 +86,14 @@
     <script src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
 </head>
+@* GOTCHA: hx-target on <body> inherits to ALL descendants. Any element with hx-get
+   inside the body MUST set hx-target="this" (or its own target), otherwise its response
+   will replace #main-content and wipe the whole page. Required by hx-boost — boosted
+   anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
 <body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
     <div id="loading-bar" class="loading-bar"></div>
 
@@ -130,17 +135,24 @@
     }
     <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/breadcrumb-title")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/left-sidebar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("services/cache-manager")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
 
     <!-- 3-column layout -->
-    <main id="main-content" class="fp-layout">
+    <div class="fp-layout">
         @await RenderSectionAsync("LeftColumn", required: false)
-        @RenderBody()
-        @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
-           content is parsed but before first paint so the spoiler overlay
-           doesn't flash on revisit. HTMX re-executes it on swap. *@
-        <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
-    </main>
+        <div id="main-content" class="fp-main-body">
+            @RenderBody()
+            @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
+               content is parsed but before first paint so the spoiler overlay
+               doesn't flash on revisit. HTMX re-executes it on swap. *@
+            <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
+        </div>
+    </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
     <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
@@ -170,6 +182,15 @@
     </dialog>
     <script src="@SnakkUrlHelper.Js("components/external-link-guard")" asp-append-version="true" defer></script>
 
+    @if (HostEnvironment.IsDevelopment())
+    {
+        var _profilerIds = ViewContext.HttpContext.RequestServices.GetService<Snakk.Web.Services.ProfilerIdBag>()?.Joined;
+        if (_profilerIds != null)
+        {
+            <meta name="snakk-profiler-ids" content="@_profilerIds" />
+        }
+        <script src="@SnakkUrlHelper.Js("dev/profiler")" asp-append-version="true" defer></script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

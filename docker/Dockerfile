@@ -89,6 +89,9 @@ RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /pu
 # ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
+# Default environment — overridable at runtime via docker-compose or docker run -e
+ENV ASPNETCORE_ENVIRONMENT=Production
+
 # OCI labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
 LABEL org.opencontainers.image.title="Snakk" \
       org.opencontainers.image.description="A modern, performant community platform built with .NET 10 and ASP.NET Core" \

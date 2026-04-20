@@ -1,0 +1,32 @@
+@model Snakk.Web.Pages.ViewModels.PostListItemVM
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
+@inject ICommunityContext CommunityContext
+@{
+    var discussionUrl = SnakkUrlHelper.Discussion(
+        Model.CommunitySlug, CommunityContext,
+        Model.HubSlug, Model.SpaceSlug,
+        SnakkUrlHelper.DiscussionSlugId(Model.DiscussionSlug, Model.DiscussionPublicId));
+    var postUrl = $"{discussionUrl}#post-{Model.PublicId}";
+}
+<div class="clean-card p-4">
+    <a href="@discussionUrl" class="text-sm font-semibold hover:underline" style="color: var(--text-primary)">
+        @Model.DiscussionTitle
+    </a>
+    @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
+    {
+        <p class="text-sm mt-1 line-clamp-3" style="color: var(--text-secondary)">@Model.ContentExcerpt</p>
+    }
+    <div class="flex items-center gap-2 mt-2">
+        <img src="@Model.AuthorAvatarUrl" alt="" width="20" height="20" class="w-5 h-5 rounded-full" />
+        <a href="/u/@Model.AuthorPublicId" class="text-xs hover:underline" style="color: var(--text-tertiary)">
+            @Model.AuthorDisplayName
+        </a>
+        <span class="text-xs" style="color: var(--text-tertiary)">
+            &middot;
+            <time data-timestamp="@Model.CreatedAt.ToString("O")">@FormatRelativeTime(Model.CreatedAt)</time>
+        </span>
+        <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">View post &rarr;</a>
+    </div>
+</div>

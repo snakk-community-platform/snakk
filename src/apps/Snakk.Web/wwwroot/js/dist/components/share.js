@@ -1,0 +1,1 @@
+"use strict";(function(){"use strict";window.SnakkActions.on("share-page",e=>{const t=e.querySelector("span");t&&navigator.clipboard.writeText(window.location.href).then(()=>{const n=t.textContent??"";t.textContent="Copied!",setTimeout(()=>{t.textContent=n},2e3)}).catch(()=>{})})})();

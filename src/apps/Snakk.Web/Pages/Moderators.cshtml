@@ -1,0 +1,75 @@
+@page "/moderators"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
+@model Snakk.Web.Pages.ModeratorsModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Site Moderators";
+    ViewData["Description"] = "Global administrators and moderators for the platform.";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="fp-center">
+    <div class="fp-center-inner">
+        <h2 class="fp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Site Moderators
+        </h2>
+        <p class="text-sm mb-6" style="color: var(--text-secondary)">Global administrators for the platform.</p>
+
+        @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
+        {
+            <p class="text-sm" style="color: var(--text-tertiary)">No site moderators have been assigned yet.</p>
+        }
+        else
+        {
+            @foreach (var group in Model.Moderators.Groups)
+            {
+                <div class="clean-card p-6 mb-4">
+                    <h2 class="text-base font-semibold mb-3">
+                        @group.Level
+                        @if (!string.IsNullOrEmpty(group.ScopeName))
+                        {
+                            <span class="text-base-content/50 font-normal">(@group.ScopeName)</span>
+                        }
+                    </h2>
+                    <div class="flex flex-col divide-y divide-base-200">
+                        @foreach (var mod in group.Moderators)
+                        {
+                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
+                                <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
+                                     alt="" width="32" height="32"
+                                     class="w-8 h-8 rounded-full shrink-0" />
+                                <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
+                                <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+}
+<partial name="Shared/_GlobalRightSidebar" />
+
+@functions {
+    static string FormatRole(string role) => role switch
+    {
+        "GlobalAdmin" => "Global Admin",
+        "CommunityAdmin" => "Community Admin",
+        "CommunityMod" => "Community Moderator",
+        "HubMod" => "Hub Moderator",
+        "SpaceMod" => "Space Moderator",
+        _ => role
+    };
+}

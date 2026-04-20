@@ -29,6 +29,13 @@
     <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>
 
+  <!-- Help center articles — .md files aren't auto-included by the Web SDK -->
+  <ItemGroup>
+    <None Remove="Content\Help\**\*.md" />
+    <Content Include="Content\Help\**\*.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Content\Help\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Security: Audit npm packages for vulnerabilities before build -->
   <Target Name="AuditNpmPackages" BeforeTargets="BuildFrontend" Condition="'$(SkipFrontendBuild)' != 'true'">
     <Exec Command="npm audit --audit-level=high" WorkingDirectory="$(ProjectDir)" ContinueOnError="true" />

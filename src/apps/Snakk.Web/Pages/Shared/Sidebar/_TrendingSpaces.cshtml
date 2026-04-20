@@ -5,31 +5,17 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Spaces?.Items == null || Model.Spaces.Items.Count == 0)
 {
-    <p class="sidebar-empty">No activity today yet</p>
+    <p class="fp-right-empty">No active spaces yet</p>
 }
 else
 {
-    <ul class="sidebar-list">
+    <div class="fp-spaces-inline">
         @foreach (var space in Model.Spaces.Items)
         {
             var spaceUrl = SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug);
-
-            <li>
-                <a href="@spaceUrl" class="sidebar-link">
-                    <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId)"
-                         alt=""
-                         width="32" height="32"
-                         class="sidebar-avatar" />
-                    <span class="sidebar-link-content">
-                        <span class="sidebar-link-title">@space.Name</span>
-                        <span class="sidebar-link-meta">
-                            <span class="sidebar-badge">@space.PostCountToday posts today</span>
-                            <span>@space.Hub.Name</span>
-                        </span>
-                    </span>
-                </a>
-            </li>
+            <a href="@spaceUrl" class="fp-card-tag" hx-target="#main-content"
+               data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
         }
-    </ul>
+    </div>
 }
 </div>

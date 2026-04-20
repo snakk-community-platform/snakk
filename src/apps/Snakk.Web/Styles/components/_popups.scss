@@ -7,35 +7,9 @@
     z-index: 1000;
     min-width: 240px;
     max-width: 320px;
-    background: var(--bg-primary);
-    border: 1px solid var(--bg-subtle);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,.3);
     animation: popup-fade-in 0.15s ease;
-
-    // Notch arrow pointing up (popup is below trigger)
-    &::before {
-        content: '';
-        position: absolute;
-        top: -6px;
-        left: var(--notch-left, 50%);
-        transform: translateX(-50%);
-        width: 10px;
-        height: 10px;
-        background: var(--bg-primary);
-        border-left: 1px solid var(--bg-subtle);
-        border-top: 1px solid var(--bg-subtle);
-        rotate: 45deg;
-        border-radius: 2px 0 0 0;
-    }
-
-    // When popup is above trigger, notch points down
-    &.snakk-popup--above::before {
-        top: auto;
-        bottom: -6px;
-        rotate: 225deg;
-        border-radius: 0 0 0 2px;
-    }
 }
 
 @keyframes popup-fade-in {
@@ -49,120 +23,155 @@
     }
 }
 
-.snakk-popup-content {
-    padding: 1rem;
-    overflow: hidden;
+// Inner wrapper clips banner gradient to border-radius
+.snakk-popup-inner {
+    background: var(--bg-primary);
+    border: 1px solid var(--bg-subtle);
     border-radius: 12px;
+    overflow: hidden;
 }
 
 .snakk-popup-banner {
-    height: 2.5rem;
-    margin: -1rem -1rem 0.75rem -1rem;
-    border-radius: 12px 12px 0 0;
+    height: 3.5rem;
+    background: var(--bg-subtle); // placeholder until gradient loads
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.5));
+        pointer-events: none;
+    }
 }
 
-.snakk-popup-header {
+// Name + type stacked in the bottom of the banner, to the right of the avatar
+.snakk-popup-banner-info {
+    position: absolute;
+    left: 4.25rem;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    z-index: 1;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.snakk-popup-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    object-fit: cover;
-    background: var(--bg-subtle);
-    flex-shrink: 0;
-}
-
-// Avatar skeleton placeholder (same size as avatar)
-.snakk-popup-avatar-skeleton {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    flex-shrink: 0;
-}
-
-.snakk-popup-info {
-    flex: 1;
-    min-width: 0;
+    flex-direction: column;
+    gap: 0.1rem;
 }
 
 .snakk-popup-name {
-    font-size: 1rem;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    font-size: 0.9375rem;
     font-weight: 600;
-    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 0;
+    line-height: 1.2;
 }
 
 .snakk-popup-type {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.6rem;
     text-transform: uppercase;
-    letter-spacing: 0.025em;
-    margin-top: 0.125rem;
+    letter-spacing: 0.05em;
+    margin: 0;
+    line-height: 1;
+}
+
+// Avatar straddles the banner bottom edge — positioned on .snakk-popup
+// so it escapes the overflow:hidden of .snakk-popup-inner
+.snakk-popup-avatar,
+.snakk-popup-avatar-skeleton {
+    position: absolute;
+    top: calc(3.5rem - 1.5rem + 1px); // 1px for inner border
+    left: 0.75rem;
+    z-index: 2;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+}
+
+.snakk-popup-avatar {
+    object-fit: cover;
+    background: var(--bg-subtle);
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+// Body area below banner — padding-top clears the avatar overlap
+.snakk-popup-body {
+    padding: 0.75rem;
+    padding-top: 2rem; // 1.5rem avatar overlap + 0.5rem gap
+}
+
+.snakk-popup-description {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 0.625rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    &:empty { display: none; }
 }
 
 .snakk-popup-stats {
-    border-top: 1px solid var(--border-secondary);
-    padding-top: 0.5rem;
+    // no extra margin needed — body padding handles spacing
 }
 
-.snakk-popup-stats-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.0625rem;
-    font-size: 0.75rem;
-}
+.snakk-popup-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-secondary);
+    backdrop-filter: blur(4px);
+    overflow: hidden;
+    width: 100%;
 
-.snakk-popup-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    .stat {
+        padding: 0.5rem 0.625rem;
+        border-right: 1px solid var(--border-secondary);
+        border-bottom: 1px solid var(--border-secondary);
 
-    .stat-label {
-        color: var(--text-secondary);
-        font-size: 0.75rem;
+        &:nth-child(even) { border-right: none; }
+        &:nth-last-child(-n+2) { border-bottom: none; }
+
+        // Odd last item (3 stats): span full width
+        &:last-child:nth-child(odd) {
+            grid-column: span 2;
+            border-right: none;
+        }
+    }
+
+    .stat-title {
+        font-size: 0.6rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-tertiary);
+        padding: 0;
+        margin-bottom: 0.125rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .stat-value {
-        font-weight: 500;
+        font-size: 1rem;
+        font-weight: 700;
         color: var(--text-primary);
-        font-size: 0.75rem;
+        line-height: 1.2;
+        padding: 0;
     }
 }
 
-// Stats skeleton (shown while loading)
+// Stats skeleton reuses the same grid layout
 .snakk-popup-stats-skeleton {
-    border-top: 1px solid var(--border-secondary);
-    padding-top: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.snakk-popup-stat-skeleton {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-
-    .skeleton-line {
-        height: 0.625rem;
-        margin-bottom: 0;
-
-        &:first-child {
-            width: 5rem;
-        }
-
-        &.short {
-            width: 2rem;
-        }
-    }
+    margin-top: 0.625rem;
 }
 
 .snakk-popup-error {

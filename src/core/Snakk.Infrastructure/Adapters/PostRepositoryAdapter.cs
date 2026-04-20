@@ -379,6 +379,47 @@ public class PostRepositoryAdapter(
             .ToList();
     }
 
+    public async Task<List<(UserId UserId, DateTime LastPostAt)>> GetLatestContributorsAsync(
+        HubId? hubId,
+        SpaceId? spaceId,
+        CommunityId? communityId,
+        int limit)
+    {
+        var postsQuery = context.Posts.Where(p => !p.IsDeleted);
+
+        if (communityId is not null)
+        {
+            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.CommunityId == dbId);
+        }
+
+        if (hubId is not null)
+        {
+            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.HubId == dbId);
+        }
+
+        if (spaceId is not null)
+        {
+            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
+            if (dbId == 0) return [];
+            postsQuery = postsQuery.Where(p => p.Discussion.SpaceId == dbId);
+        }
+
+        var latestContributors = await postsQuery
+            .GroupBy(p => p.CreatedByUser.PublicId)
+            .Select(g => new { UserId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
+            .OrderByDescending(x => x.LastPostAt)
+            .Take(limit)
+            .ToListAsync();
+
+        return latestContributors
+            .Select(c => (UserId.From(c.UserId), c.LastPostAt))
+            .ToList();
+    }
+
     public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(
         UserId userId,
         DateTime startDate)
@@ -404,6 +445,62 @@ public class PostRepositoryAdapter(
             .ToListAsync();
 
         return activity.Select(a => (a.Date, a.Count));
+    }
+
+    public async Task<List<Domain.Repositories.TopSpaceForUser>> GetTopSpacesForUserAsync(UserId userId, int limit)
+    {
+        var userDbId = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+        if (userDbId == 0)
+            return [];
+
+        var topSpaceData = await context.Posts
+            .Where(p => p.CreatedByUserId == userDbId && !p.IsDeleted)
+            .GroupBy(p => p.Discussion.SpaceId)
+            .Select(g => new { SpaceId = g.Key, PostCount = g.Count() })
+            .OrderByDescending(x => x.PostCount)
+            .Take(limit)
+            .ToListAsync();
+
+        if (topSpaceData.Count == 0)
+            return [];
+
+        var spaceIds = topSpaceData.Select(x => x.SpaceId).ToList();
+
+        var spaces = await context.Spaces
+            .Where(s => spaceIds.Contains(s.Id))
+            .Select(s => new
+            {
+                s.Id,
+                s.PublicId,
+                s.Slug,
+                s.Name,
+                s.AvatarFileName,
+                HubSlug = s.Hub.Slug,
+                CommunitySlug = s.Hub.Community.Slug
+            })
+            .ToListAsync();
+
+        var spacesById = spaces.ToDictionary(s => s.Id);
+
+        return topSpaceData
+            .Where(t => spacesById.ContainsKey(t.SpaceId))
+            .Select(t =>
+            {
+                var s = spacesById[t.SpaceId];
+                return new Domain.Repositories.TopSpaceForUser(
+                    s.PublicId,
+                    s.Slug,
+                    s.Name,
+                    s.AvatarFileName,
+                    s.HubSlug,
+                    s.CommunitySlug,
+                    t.PostCount);
+            })
+            .ToList();
     }
 
     private record PostProjection(

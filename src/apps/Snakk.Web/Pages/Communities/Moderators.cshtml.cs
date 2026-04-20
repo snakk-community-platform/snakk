@@ -17,7 +17,7 @@ public class ModeratorsModel(
     {
         var multiCommunityEnabled = Configuration.GetValue<bool>("Features:MultiCommunityEnabled");
         if (!multiCommunityEnabled)
-            return RedirectToPage("/Index");
+            return RedirectToPage("/Moderators");
 
         var communityResult = await apiClient.GetCommunityBySlugResultAsync(slug);
 

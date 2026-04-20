@@ -271,6 +271,19 @@ public class DatabaseSeeder(
         var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.EmailHash == adminHash || u.PublicId == adminPublicId);
         if (adminUser is not null)
         {
+            // If found by PublicId but email/password drifted (e.g. setup wizard ran first),
+            // sync credentials back to whatever the current config says.
+            if (adminUser.EmailHash != adminHash)
+            {
+                adminUser.Email = _emailProtector.Protect(adminEmail);
+                adminUser.EmailHash = adminHash;
+                adminUser.PasswordHash = _passwordHasher.HashPassword(adminPassword);
+                adminUser.FailedLoginAttempts = 0;
+                adminUser.LockoutEnd = null;
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"Admin credentials synced to config: {adminEmail}");
+            }
+
             // Ensure they have GlobalAdmin role in UserRoles table (for permissions)
             var hasGlobalAdminRole = await _context.UserRoles
                 .AnyAsync(r => r.UserId == adminUser.Id && r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null);

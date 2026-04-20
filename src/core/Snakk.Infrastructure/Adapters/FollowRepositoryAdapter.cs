@@ -122,6 +122,13 @@ public class FollowRepositoryAdapter(
         return await databaseRepository.GetFollowerCountOfUserAsync(user.Id);
     }
 
+    public async Task<int> GetFollowingCountByUserAsync(UserId userId)
+    {
+        return await context.UserFollows
+            .Where(f => f.User.PublicId == userId.Value)
+            .CountAsync();
+    }
+
     public async Task<IEnumerable<(UserId UserId, FollowLevel Level)>> GetFollowersOfSpaceWithLevelAsync(SpaceId spaceId)
     {
         var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spaceId.Value);

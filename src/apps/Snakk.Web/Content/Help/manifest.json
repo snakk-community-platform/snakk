@@ -1,0 +1,55 @@
+[
+  {
+    "title": "Getting Started",
+    "items": [
+      { "slug": "what-is-snakk", "title": "What is Snakk?" },
+      { "slug": "creating-an-account", "title": "Creating an Account" },
+      { "slug": "your-profile", "title": "Your Profile" }
+    ]
+  },
+  {
+    "title": "Discussions",
+    "items": [
+      { "slug": "creating-a-discussion", "title": "Creating a Discussion" },
+      { "slug": "discussion-types", "title": "Discussion Types Overview" },
+      { "slug": "type-standard", "title": "Standard Discussions" },
+      { "slug": "type-question", "title": "Question (Q&A)" },
+      { "slug": "type-poll", "title": "Polls" },
+      { "slug": "type-link", "title": "Link Discussions" },
+      { "slug": "type-images", "title": "Images & Gallery" },
+      { "slug": "type-debate", "title": "Debates" },
+      { "slug": "type-guide", "title": "Guides" },
+      { "slug": "type-journal", "title": "Journals" },
+      { "slug": "type-iama", "title": "IAMA (Ask Me Anything)" },
+      { "slug": "posting-and-replying", "title": "Posting & Replying" },
+      { "slug": "markdown-guide", "title": "Markdown Guide" },
+      { "slug": "following", "title": "Following Discussions" }
+    ]
+  },
+  {
+    "title": "Communities",
+    "items": [
+      { "slug": "how-communities-work", "title": "How Communities Work" },
+      { "slug": "hubs-and-spaces", "title": "Hubs & Spaces" },
+      { "slug": "rules", "title": "Rules" }
+    ]
+  },
+  {
+    "title": "Your Account",
+    "items": [
+      { "slug": "profile-settings", "title": "Profile Settings" },
+      { "slug": "avatars", "title": "Avatars" },
+      { "slug": "privacy-and-data", "title": "Privacy & Data" },
+      { "slug": "notifications", "title": "Notifications" },
+      { "slug": "embed-preferences", "title": "Embed Preferences" }
+    ]
+  },
+  {
+    "title": "Moderation",
+    "items": [
+      { "slug": "reporting-content", "title": "Reporting Content" },
+      { "slug": "how-moderation-works", "title": "How Moderation Works" },
+      { "slug": "bans-and-appeals", "title": "Bans & Appeals" }
+    ]
+  }
+]

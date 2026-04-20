@@ -12,6 +12,7 @@ public interface IFollowRepository
     Task<IEnumerable<UserId>> GetFollowersOfSpaceAsync(SpaceId spaceId);
     Task<IEnumerable<UserId>> GetFollowersOfUserAsync(UserId userId);
     Task<int> GetFollowerCountOfUserAsync(UserId userId);
+    Task<int> GetFollowingCountByUserAsync(UserId userId);
     Task<bool> IsFollowingDiscussionAsync(UserId userId, DiscussionId discussionId);
     Task<bool> IsFollowingSpaceAsync(UserId userId, SpaceId spaceId);
     Task<bool> IsFollowingUserAsync(UserId userId, UserId followedUserId);

@@ -5,6 +5,7 @@ using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Protos;
 using Snakk.Protos.Statistics;
+using Snakk.Application.Repositories;
 using Snakk.Shared.Enums;
 
 namespace Snakk.Api.GrpcServices;
@@ -143,6 +144,145 @@ public class StatisticsGrpcService(
         return response;
     }
 
+    private static DateTime GetPeriodSince(string period) => period switch
+    {
+        "day"      => DateTime.UtcNow.AddDays(-1),
+        "week"     => DateTime.UtcNow.AddDays(-7),
+        "month"    => DateTime.UtcNow.AddMonths(-1),
+        "year"     => DateTime.UtcNow.AddYears(-1),
+        "all_time" => DateTime.MinValue,
+        _          => DateTime.UtcNow.AddDays(-7)
+    };
+
+    private static TopActiveSpacesList MapSpaces(IEnumerable<TopActiveSpaceDto> spaces)
+    {
+        var response = new TopActiveSpacesList();
+        foreach (var s in spaces)
+        {
+            response.Items.Add(new TopActiveSpaceInfo
+            {
+                PublicId = s.PublicId,
+                Name = s.Name,
+                Slug = s.Slug,
+                PostCountToday = s.PostCountToday,
+                CommunitySlug = s.CommunitySlug,
+                Hub = new EntityRef { PublicId = s.HubPublicId, Slug = s.HubSlug, Name = s.HubName }
+            });
+        }
+        return response;
+    }
+
+    private TopContributorsList MapContributors(IEnumerable<TopContributorResult> contributors)
+    {
+        var response = new TopContributorsList();
+        foreach (var c in contributors)
+        {
+            response.Items.Add(new TopContributorInfo
+            {
+                PublicId = c.UserId,
+                DisplayName = c.DisplayName,
+                PostCountToday = c.PostCountToday,
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
+            });
+        }
+        return response;
+    }
+
+    public override async Task<TopActiveSpacesList> GetTrendingSpaces(GetTrendingSpacesRequest request, ServerCallContext context)
+    {
+        var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:SpacesLookbackDays", 7));
+        var spaces = await statisticsUseCase.GetTrendingSpacesAsync(
+            since,
+            request.HasHubId ? request.HubId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        return MapSpaces(spaces);
+    }
+
+    public override async Task<TopContributorsList> GetTrendingContributors(GetTrendingContributorsRequest request, ServerCallContext context)
+    {
+        var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:ContributorsLookbackDays", 7));
+        var result = await statisticsUseCase.GetTrendingContributorsAsync(
+            since,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        return result.IsSuccess && result.Value is not null ? MapContributors(result.Value.Items) : new TopContributorsList();
+    }
+
+    public override async Task<TopActiveSpacesList> GetTopSpacesByPeriod(GetTopSpacesByPeriodRequest request, ServerCallContext context)
+    {
+        var since = GetPeriodSince(request.TimePeriod);
+        var spaces = await statisticsUseCase.GetTopSpacesByPeriodAsync(
+            since,
+            request.HasHubId ? request.HubId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        return MapSpaces(spaces);
+    }
+
+    public override async Task<TopContributorsList> GetTopContributorsByPeriod(GetTopContributorsByPeriodRequest request, ServerCallContext context)
+    {
+        var since = GetPeriodSince(request.TimePeriod);
+        var result = await statisticsUseCase.GetTopContributorsByPeriodAsync(
+            since,
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        return result.IsSuccess && result.Value is not null ? MapContributors(result.Value.Items) : new TopContributorsList();
+    }
+
+    public override async Task<LatestSpacesList> GetLatestActiveSpaces(GetLatestActiveSpacesRequest request, ServerCallContext context)
+    {
+        var spaces = await statisticsUseCase.GetLatestActiveSpacesAsync(
+            request.HasHubId ? request.HubId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        var response = new LatestSpacesList();
+        foreach (var s in spaces)
+        {
+            response.Items.Add(new LatestSpaceInfo
+            {
+                PublicId = s.PublicId,
+                Name = s.Name,
+                Slug = s.Slug,
+                LastPostAt = s.LastPostAt.ToString("o"),
+                CommunitySlug = s.CommunitySlug,
+                Hub = new EntityRef { PublicId = s.HubPublicId, Slug = s.HubSlug, Name = s.HubName }
+            });
+        }
+        return response;
+    }
+
+    public override async Task<LatestContributorsList> GetLatestContributors(GetLatestContributorsRequest request, ServerCallContext context)
+    {
+        var result = await statisticsUseCase.GetLatestContributorsAsync(
+            request.HasHubId ? request.HubId : null,
+            request.HasSpaceId ? request.SpaceId : null,
+            request.HasCommunityId ? request.CommunityId : null,
+            request.Limit);
+        if (!result.IsSuccess || result.Value is null)
+            return new LatestContributorsList();
+        var response = new LatestContributorsList();
+        foreach (var c in result.Value.Items)
+        {
+            response.Items.Add(new LatestContributorInfo
+            {
+                PublicId = c.UserId,
+                DisplayName = c.DisplayName,
+                LastPostAt = c.LastPostAt.ToString("o"),
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
+            });
+        }
+        return response;
+    }
+
     public override async Task<UserActivityHistory> GetUserActivityHistory(GetUserActivityHistoryRequest request, ServerCallContext context)
     {
         var result = await statisticsUseCase.GetUserActivityHistoryAsync(request.PublicId, request.Days);
@@ -179,15 +319,16 @@ public class StatisticsGrpcService(
 
         var stats = result.Value;
 
-        return new UserStats
+        var userStats = new UserStats
         {
             PublicId = stats.PublicId,
             DisplayName = stats.DisplayName,
             DiscussionCount = stats.DiscussionCount,
             ReplyCount = stats.ReplyCount,
             FollowerCount = stats.FollowerCount,
-
             AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName)
         };
+        if (stats.Bio != null) userStats.Bio = stats.Bio;
+        return userStats;
     }
 }

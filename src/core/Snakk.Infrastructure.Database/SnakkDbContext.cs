@@ -26,6 +26,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<PostReactionDatabaseEntity> PostReactions { get; set; } = null!;
     public DbSet<UserNotificationDatabaseEntity> UserNotifications { get; set; } = null!;
     public DbSet<UserFollowDatabaseEntity> UserFollows { get; set; } = null!;
+    public DbSet<UserSaveDatabaseEntity> UserSaves { get; set; } = null!;
     public DbSet<PostMentionDatabaseEntity> PostMentions { get; set; } = null!;
 
     // Moderation
@@ -432,6 +433,39 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasOne(f => f.FollowedUser)
             .WithMany()
             .HasForeignKey(f => f.FollowedUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Save: unique constraint (one save per user per target)
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasIndex(s => new { s.UserId, s.DiscussionId, s.PostId })
+            .IsUnique()
+            .HasFilter("\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasIndex(s => s.PublicId)
+            .IsUnique();
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasIndex(s => new { s.UserId, s.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Save_UserId_CreatedAt_Desc");
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasOne(s => s.Discussion)
+            .WithMany()
+            .HasForeignKey(s => s.DiscussionId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasOne(s => s.Post)
+            .WithMany()
+            .HasForeignKey(s => s.PostId)
             .OnDelete(DeleteBehavior.NoAction);
 
         // Mention: unique constraint (one mention per user per post)

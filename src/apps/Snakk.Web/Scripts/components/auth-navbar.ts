@@ -222,6 +222,16 @@ interface NotificationsResponse {
         }
     });
 
+    // Close daisyUI dropdowns when any item inside them is clicked.
+    // Without this, HTMX-boosted links and data-action anchors never cause
+    // the trigger label to lose focus, so the dropdown stays open.
+    document.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('.dropdown-content')) {
+            (document.activeElement as HTMLElement)?.blur();
+        }
+    });
+
     // ===== Listen for Realtime Events =====
 
     document.addEventListener('snakk:realtime:notification-count', (event) => {

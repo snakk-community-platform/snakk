@@ -51,157 +51,37 @@ else
     <div id="page-context" data-space-id="@Model.Space.PublicId" data-hub-id="@Model.Hub?.PublicId" data-hub-slug="@Model.HubSlug" data-space-slug="@Model.Slug" hidden></div>
 
 @section LeftColumn {
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <div class="fp-left-inner">
-        <nav class="fp-nav">
-            <a href="/" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Home
-            </a>
-            <a href="/trending" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Trending
-            </a>
-            <a href="/communities" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Communities
-            </a>
-            <a href="/saved" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                Saved
-            </a>
-            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug))/rules" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Rules
-            </a>
-            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug))/moderators" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Moderators
-            </a>
-        </nav>
-
-        @if (Model.IsAuthenticated)
-        {
-            <a href="/new?spaceId=@Model.Space.PublicId" class="fp-nav-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                New Discussion
-            </a>
-        }
-
-        <div class="fp-left-footer">
-            <a href="/settings" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-            </a>
-            <a href="/help" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Help
-            </a>
-            <a href="/privacy" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Privacy Policy
-            </a>
-            <a href="/cookies" class="fp-nav-item">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Cookies
-            </a>
-        </div>
-    </div>
-</div>
-</aside>
+@{
+    ViewData["LeftNav.NewDiscussionUrl"] = "/new?spaceId=" + Model.Space?.PublicId;
+}
+<partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="fp-center">
-    <div class="fp-center-inner">
-        <!-- Space Header — gradient-backed card, seeded to match generated space avatar -->
-        <div class="fp-space-card" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space.PublicId}")">
+    @* Hero card lives outside .fp-center-inner so it sits flush against the
+       sides of the center column (no padding around it). *@
+    <div class="fp-space-card">
+        <div class="fp-space-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space.PublicId}")">
+            <div class="fp-space-card-breadcrumbs">
+                @if (Model.ShowCommunityInBreadcrumb)
+                {
+                    <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+                       data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                       data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                    <span class="fp-page-labels-sep">›</span>
+                }
+                <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
+                   data-popup-type="hub" data-popup-id="@Model.Hub?.PublicId" data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+            </div>
             <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId, avatarFileName: Model.Space.HasAvatarFileName ? Model.Space.AvatarFileName : null)"
                  alt="" width="56" height="56"
                  class="fp-space-avatar" decoding="async" />
-            <div class="fp-space-info">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="fp-space-name">@Model.Space.Name</h1>
-                    <partial name="Shared/_FeedDropdown" model="@($"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed")" />
-                    @if (Model.IsAuthenticated)
-                    {
-                        <div id="follow-group" class="flex items-center ml-auto">
-                            <button id="follow-toggle-btn"
-                                    data-action="toggle-follow-space" data-space-id="@Model.Space.PublicId"
-                                    class="btn btn-ghost btn-xs rounded-r-none border-r-0 follow-btn">
-                                <svg id="follow-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span id="follow-text">Follow</span>
-                            </button>
-                            <div id="level-toggle" class="btn-group hidden">
-                                <button id="level-discussions-btn"
-                                        data-action="set-follow-level" data-level="DiscussionsOnly"
-                                        class="btn btn-xs btn-primary rounded-none text-xs px-2">
-                                    Discussions
-                                </button>
-                                <button id="level-posts-btn"
-                                        data-action="set-follow-level" data-level="DiscussionsAndPosts"
-                                        class="btn btn-xs btn-ghost rounded-l-none text-xs px-2">
-                                    +Posts
-                                </button>
-                            </div>
-                        </div>
-                    }
-                    @if (Model.IsAuthenticated && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
-                    {
-                        <a href="@SnakkUrlHelper.ManageSpace(Model.Community, Model.HubSlug, Model.Space.Slug)"
-                           class="btn btn-ghost btn-xs shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            Manage
-                        </a>
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(Model.Space.Description))
-                {
-                    <p class="fp-space-description">@Model.Space.Description</p>
-                }
-                <div class="fp-space-breadcrumb">
-                    <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="hover:underline"
-                       data-popup-type="hub" data-popup-id="@Model.Hub?.PublicId" data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-                    @if (Model.ShowCommunityInBreadcrumb)
-                    {
-                        <span>·</span>
-                        <a href="/c/@Model.Community.CommunitySlug" class="hover:underline"
-                           data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-                           data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-                    }
-                </div>
-            </div>
+            <h1 class="fp-space-name">@Model.Space.Name</h1>
         </div>
+    </div>
 
+    <div class="fp-center-inner">
         <partial name="_Banners" model="Model.Banners?.Banners" />
 
         <!-- Discussions -->
@@ -264,31 +144,54 @@ else
 
 <!-- Right Column -->
 <aside class="fp-right">
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new?spaceId=" + Model.Space.PublicId;
+    ViewData["RightPane.Actions"] = new[] { "feed", "share", "subscribe", "manage" };
+    ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed";
+    ViewData["RightPane.ShareTitle"] = Model.Space?.Name ?? "Space";
+    ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
+    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.Space(Model.Community, Model.Hub?.Slug ?? "", Model.Space.Slug) + "/moderators";
+    ViewData["RightPane.SubscribeAction"] = "toggle-follow-space";
+}
 <div class="fp-right-sticky">
+    <partial name="Shared/_RightActionPane" />
+    <div class="fp-right-body">
+    @if (Model.SpaceStats != null)
+    {
+    <div class="fp-right-section">
+        <div class="flex gap-2">
+            <div class="stats shadow flex-1">
+                <div class="stat">
+                    <div class="stat-title">Discussions</div>
+                    <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+                </div>
+            </div>
+            <div class="stats shadow flex-1">
+                <div class="stat">
+                    <div class="stat-title">Replies</div>
+                    <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                </div>
+            </div>
+            <div class="stats shadow flex-1">
+                <div class="stat">
+                    <div class="stat-title">Followers</div>
+                    <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
     <!-- About -->
     <div class="fp-right-section">
         <div class="fp-right-title">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            About
+            About @Model.Space.Name
         </div>
         @if (!string.IsNullOrEmpty(Model.Space.Description))
         {
             <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
-        }
-        @if (Model.SpaceStats != null)
-        {
-            <div class="fp-stats-box">
-                <div class="fp-stat-item">
-                    <div class="fp-stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
-                    <div class="fp-stat-label">Discussions</div>
-                </div>
-                <div class="fp-stat-item">
-                    <div class="fp-stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
-                    <div class="fp-stat-label">Replies</div>
-                </div>
-            </div>
         }
     </div>
 
@@ -300,7 +203,7 @@ else
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Rules
+                Space Rules
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                              model="Model.InlineSpaceRules"
@@ -320,7 +223,7 @@ else
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            Moderators
+            Space Moderators
             @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
             {
                 <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
@@ -409,6 +312,7 @@ else
             }
         </div>
     }
+    </div>
 </div>
 </aside>
 

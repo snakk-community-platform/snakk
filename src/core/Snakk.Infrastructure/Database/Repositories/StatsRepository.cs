@@ -83,7 +83,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             u.DiscussionCount,
             u.ReplyCount,
             u.FollowerCount,
-            u.AvatarFileName))
+            u.AvatarFileName,
+            u.Bio))
         .FirstOrDefaultAsync();
 
     public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId)
@@ -147,5 +148,37 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             .ToListAsync();
 
         return topSpaces;
+    }
+
+    public async Task<List<LatestActiveSpaceDto>> GetLatestActiveSpacesAsync(
+        string? hubId = null,
+        string? communityId = null,
+        int limit = 5)
+    {
+        var postsQuery = _context.Posts.Where(p => !p.IsDeleted);
+
+        if (!string.IsNullOrEmpty(communityId))
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
+
+        if (!string.IsNullOrEmpty(hubId))
+            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.PublicId == hubId);
+
+        var latestSpaces = await postsQuery
+            .GroupBy(p => p.Discussion.SpaceId)
+            .Select(g => new { SpaceId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
+            .OrderByDescending(x => x.LastPostAt)
+            .Take(limit)
+            .Join(
+                _context.Spaces.Where(s => !s.IsDeleted),
+                x => x.SpaceId,
+                s => s.Id,
+                (x, s) => new LatestActiveSpaceDto(
+                    s.PublicId, s.Name, s.Slug,
+                    x.LastPostAt,
+                    s.Hub.PublicId, s.Hub.Slug, s.Hub.Name,
+                    s.Hub.Community.Slug))
+            .ToListAsync();
+
+        return latestSpaces;
     }
 }

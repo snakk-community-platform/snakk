@@ -164,7 +164,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Take(pageSize + 1)
             .Select(p => new PostSearchResultDto(
                 p.PublicId,
-                p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
+                // Send rendered HTML so the client can fade-mask it as a preview
+                // without truncating mid-tag. Untruncated — most posts are small;
+                // revisit with HTML-aware truncation if payload becomes a concern.
+                p.RenderedContent,
                 p.CreatedByUser.PublicId,
                 p.CreatedByUser.DisplayName ?? "",
                 p.CreatedByUser.AvatarFileName,
@@ -710,6 +713,61 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         };
     }
 
+    public async Task<Dictionary<string, Application.Repositories.DiscussionPreviewDto>> FetchPreviewsByPublicIdsAsync(
+        IEnumerable<string> publicIds)
+    {
+        var ids = publicIds.ToList();
+        if (ids.Count == 0) return new();
+        var discussions = await _context.Discussions
+            .Where(d => ids.Contains(d.PublicId))
+            .Select(d => new { d.Id, d.PublicId, d.Type })
+            .ToListAsync();
+        return await BatchFetchPreviewsAsync(discussions.Select(d => (d.Id, d.PublicId, d.Type)).ToList());
+    }
+
+    public async Task<List<Application.Repositories.RecentDiscussionDto>> GetRecentDiscussionsByPublicIdsAsync(
+        IEnumerable<string> publicIds)
+    {
+        var ids = publicIds.ToList();
+        if (ids.Count == 0) return [];
+        var resultItems = await _context.Discussions
+            .Where(d => ids.Contains(d.PublicId) && !d.IsDeleted)
+            .Select(d => new {
+                d.Id,
+                Dto = new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.Space.PublicId,
+                    d.Space.Slug,
+                    d.Space.Name,
+                    d.Space.Hub.PublicId,
+                    d.Space.Hub.Slug,
+                    d.Space.Hub.Name,
+                    d.Space.Hub.Community.PublicId,
+                    d.Space.Hub.Community.Slug,
+                    d.Space.Hub.Community.Name,
+                    d.CreatedByUser.PublicId,
+                    d.CreatedByUser.DisplayName ?? "",
+                    d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUser.AvatarThumbnailFileName,
+                    d.PostCount,
+                    d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            })
+            .ToListAsync();
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
+        return resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview) ? x.Dto with { Preview = preview } : x.Dto
+        ).ToList();
+    }
+
     private async Task<Dictionary<string, Application.Repositories.DiscussionPreviewDto>> BatchFetchPreviewsAsync(
         List<(int Id, string PublicId, int Type)> discussions)
     {
@@ -902,5 +960,258 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         }
 
         return result;
+    }
+
+    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetTrendingDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? cursor = null,
+        string? userId = null)
+    {
+        var query = _context.Discussions.AsQueryable();
+
+        query = await WithAccessFilterAsync(query, userId);
+
+        if (!string.IsNullOrEmpty(communityId))
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+
+        // Only show discussions with recent activity (TrendScore > 0)
+        query = query.Where(d => d.TrendScore > 0);
+
+        var orderedQuery = query
+            .OrderByDescending(d => d.TrendScore)
+            .ThenByDescending(d => d.Id);
+
+        var items = await orderedQuery
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .Select(d => new {
+                d.Id,
+                Dto = new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.Space.PublicId,
+                    d.Space.Slug,
+                    d.Space.Name,
+                    d.Space.Hub.PublicId,
+                    d.Space.Hub.Slug,
+                    d.Space.Hub.Name,
+                    d.Space.Hub.Community.PublicId,
+                    d.Space.Hub.Community.Slug,
+                    d.Space.Hub.Community.Name,
+                    d.CreatedByUser.PublicId,
+                    d.CreatedByUser.DisplayName ?? "",
+                    d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUser.AvatarThumbnailFileName,
+                    d.PostCount,
+                    d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            })
+            .ToListAsync();
+
+        var hasMoreItems = items.Count > pageSize;
+        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
+
+        var finalItems = resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview)
+                ? x.Dto with { Preview = preview }
+                : x.Dto).ToList();
+
+        return new PagedResult<Application.Repositories.RecentDiscussionDto>
+        {
+            Items = finalItems,
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems,
+            NextCursor = hasMoreItems ? null : null  // offset-based: no cursor
+        };
+    }
+
+    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetTopDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? timePeriod = null,
+        string? userId = null)
+    {
+        var query = _context.Discussions.AsQueryable();
+
+        query = await WithAccessFilterAsync(query, userId);
+
+        if (!string.IsNullOrEmpty(communityId))
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+
+        // Apply time window filter on CreatedAt
+        DateTime? cutoff = timePeriod switch
+        {
+            "day"   => DateTime.UtcNow.AddDays(-1),
+            "week"  => DateTime.UtcNow.AddDays(-7),
+            "month" => DateTime.UtcNow.AddDays(-30),
+            "year"  => DateTime.UtcNow.AddDays(-365),
+            _       => null // "all_time" or unrecognised — no filter
+        };
+
+        if (cutoff.HasValue)
+            query = query.Where(d => d.CreatedAt >= cutoff.Value);
+
+        var orderedQuery = query
+            .OrderByDescending(d => d.ReactionCount + d.PostCount)
+            .ThenByDescending(d => d.Id);
+
+        var items = await orderedQuery
+            .Skip(offset)
+            .Take(pageSize + 1)
+            .Select(d => new {
+                d.Id,
+                Dto = new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.Space.PublicId,
+                    d.Space.Slug,
+                    d.Space.Name,
+                    d.Space.Hub.PublicId,
+                    d.Space.Hub.Slug,
+                    d.Space.Hub.Name,
+                    d.Space.Hub.Community.PublicId,
+                    d.Space.Hub.Community.Slug,
+                    d.Space.Hub.Community.Name,
+                    d.CreatedByUser.PublicId,
+                    d.CreatedByUser.DisplayName ?? "",
+                    d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUser.AvatarThumbnailFileName,
+                    d.PostCount,
+                    d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            })
+            .ToListAsync();
+
+        var hasMoreItems = items.Count > pageSize;
+        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
+
+        var finalItems = resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview)
+                ? x.Dto with { Preview = preview }
+                : x.Dto).ToList();
+
+        return new PagedResult<Application.Repositories.RecentDiscussionDto>
+        {
+            Items = finalItems,
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems,
+            NextCursor = null
+        };
+    }
+
+    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetNewDiscussionsAsync(
+        int offset,
+        int pageSize,
+        string? communityId = null,
+        string? cursor = null,
+        string? userId = null)
+    {
+        var query = _context.Discussions.AsQueryable();
+
+        query = await WithAccessFilterAsync(query, userId);
+
+        if (!string.IsNullOrEmpty(communityId))
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+
+        var cursorData = Cursor.Decode(cursor);
+
+        if (cursorData.HasValue)
+        {
+            var (cursorDate, cursorId) = cursorData.Value;
+            // ORDER BY CreatedAt DESC, Id DESC
+            // Keyset: WHERE (CreatedAt < cursorDate) OR (CreatedAt = cursorDate AND Id < cursorId)
+            query = query.Where(d =>
+                d.CreatedAt < cursorDate
+                || (d.CreatedAt == cursorDate && d.Id < cursorId));
+        }
+
+        var orderedQuery = query
+            .OrderByDescending(d => d.CreatedAt)
+            .ThenByDescending(d => d.Id);
+
+        if (!cursorData.HasValue)
+            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+
+        var items = await orderedQuery
+            .Take(pageSize + 1)
+            .Select(d => new {
+                d.Id,
+                Dto = new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.Space.PublicId,
+                    d.Space.Slug,
+                    d.Space.Name,
+                    d.Space.Hub.PublicId,
+                    d.Space.Hub.Slug,
+                    d.Space.Hub.Name,
+                    d.Space.Hub.Community.PublicId,
+                    d.Space.Hub.Community.Slug,
+                    d.Space.Hub.Community.Name,
+                    d.CreatedByUser.PublicId,
+                    d.CreatedByUser.DisplayName ?? "",
+                    d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUser.AvatarThumbnailFileName,
+                    d.PostCount,
+                    d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            })
+            .ToListAsync();
+
+        var hasMoreItems = items.Count > pageSize;
+        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
+
+        var finalItems = resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview)
+                ? x.Dto with { Preview = preview }
+                : x.Dto).ToList();
+
+        string? nextCursor = null;
+        if (hasMoreItems && resultItems.Count > 0)
+        {
+            var lastItem = resultItems[^1];
+            nextCursor = Cursor.Encode(lastItem.Dto.CreatedAt, lastItem.Id);
+        }
+
+        return new PagedResult<Application.Repositories.RecentDiscussionDto>
+        {
+            Items = finalItems,
+            Offset = offset,
+            PageSize = pageSize,
+            HasMoreItems = hasMoreItems,
+            NextCursor = nextCursor
+        };
     }
 }

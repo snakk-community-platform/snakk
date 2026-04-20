@@ -35,6 +35,47 @@ message UserProfileInfo {
   int32 follower_count = 8;
   int32 reply_count = 9;
   optional string bio = 10;
+  int32 following_count = 11;
+  int32 reactions_received = 12;
+  repeated UserAchievementInfo achievements = 13;
+  repeated TopDiscussionInfo top_discussions = 14;
+  repeated TopSpaceInfo top_spaces = 15;
+}
+
+message UserAchievementInfo {
+  string slug = 1;
+  string name = 2;
+  string description = 3;
+  optional string icon_url = 4;
+  string category = 5;
+  string tier = 6;
+  int32 points = 7;
+  google.protobuf.Timestamp earned_at = 8;
+}
+
+message TopDiscussionInfo {
+  string public_id = 1;
+  string title = 2;
+  string slug = 3;
+  int32 post_count = 4;
+  int32 reaction_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+  string space_slug = 7;
+  string space_name = 8;
+  string hub_slug = 9;
+  string hub_name = 10;
+  string community_slug = 11;
+  string community_name = 12;
+}
+
+message TopSpaceInfo {
+  string public_id = 1;
+  string space_slug = 2;
+  string space_name = 3;
+  optional string space_avatar_file_name = 4;
+  string hub_slug = 5;
+  string community_slug = 6;
+  int32 post_count = 7;
 }
 
 message UserSearchResultItem {
