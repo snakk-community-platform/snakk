@@ -62,6 +62,25 @@
                     <MudSelectItem Value="@("Africa/Lagos")">WAT (Lagos)</MudSelectItem>
                 </MudSelect>
 
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle1">Registration</MudText>
+
+                <MudSelect @bind-Value="_registrationMode" T="string" Label="Registration Mode">
+                    <MudSelectItem Value="@("Open")">Open — anyone can register</MudSelectItem>
+                    <MudSelectItem Value="@("InviteOnly")">Invite Only — require invite code</MudSelectItem>
+                    <MudSelectItem Value="@("Closed")">Closed — no new registrations</MudSelectItem>
+                </MudSelect>
+
+                @if (_registrationMode == "InviteOnly")
+                {
+                    <MudTextField @bind-Value="_inviteCode" Label="Invite Code"
+                                  HelperText="Share this code with users you want to invite. It is never shown publicly."
+                                  InputType="@(_showInviteCode ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showInviteCode ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showInviteCode = !_showInviteCode)" />
+                }
+
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveSettings"
                            Disabled="@_saving">
                     @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
@@ -88,6 +107,9 @@
     private string _siteName = "";
     private string _siteDescription = "";
     private string _timezone = "UTC";
+    private string _registrationMode = "Open";
+    private string _inviteCode = "";
+    private bool _showInviteCode;
     private string? _loadError;
     private string? _saveError;
 
@@ -95,10 +117,14 @@
     {
         try
         {
-            var response = await ManageClient.GetSiteSettingsAsync(new GetSiteSettingsRequest());
-            _siteName = response.SiteName;
-            _siteDescription = response.HasSiteDescription ? response.SiteDescription : "";
-            _timezone = string.IsNullOrEmpty(response.Timezone) ? "UTC" : response.Timezone;
+            var siteResponse = await ManageClient.GetSiteSettingsAsync(new GetSiteSettingsRequest());
+            _siteName = siteResponse.SiteName;
+            _siteDescription = siteResponse.HasSiteDescription ? siteResponse.SiteDescription : "";
+            _timezone = string.IsNullOrEmpty(siteResponse.Timezone) ? "UTC" : siteResponse.Timezone;
+
+            var regResponse = await ManageClient.GetRegistrationSettingsAsync(new GetRegistrationSettingsRequest());
+            _registrationMode = string.IsNullOrEmpty(regResponse.Mode) ? "Open" : regResponse.Mode;
+            _inviteCode = regResponse.InviteCode;
         }
         catch
         {
@@ -118,19 +144,31 @@
 
         try
         {
-            var request = new UpdateSiteSettingsRequest
+            var siteRequest = new UpdateSiteSettingsRequest
             {
                 SiteName = _siteName,
                 SiteDescription = string.IsNullOrWhiteSpace(_siteDescription) ? null : _siteDescription,
                 Timezone = string.IsNullOrWhiteSpace(_timezone) ? "UTC" : _timezone
             };
 
-            var response = await ManageClient.UpdateSiteSettingsAsync(request);
+            var siteResponse = await ManageClient.UpdateSiteSettingsAsync(siteRequest);
+            if (!siteResponse.Success)
+            {
+                _saveError = siteResponse.HasErrorMessage ? siteResponse.ErrorMessage : "Failed to save settings. Please try again.";
+                return;
+            }
 
-            if (response.Success)
+            var regRequest = new UpdateRegistrationSettingsRequest
+            {
+                Mode = _registrationMode,
+                InviteCode = _inviteCode ?? ""
+            };
+
+            var regResponse = await ManageClient.UpdateRegistrationSettingsAsync(regRequest);
+            if (regResponse.Success)
                 _saved = true;
             else
-                _saveError = response.HasErrorMessage ? response.ErrorMessage : "Failed to save settings. Please try again.";
+                _saveError = regResponse.HasErrorMessage ? regResponse.ErrorMessage : "Failed to save registration settings.";
         }
         catch
         {

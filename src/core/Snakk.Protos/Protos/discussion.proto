@@ -195,6 +195,8 @@ message RecentDiscussionInfo {
   repeated string tags = 14;
   string type = 15;
   optional DiscussionPreview preview = 16;
+  optional snakk.AuthorRef last_replier = 17;
+  string last_post_excerpt = 18;
 }
 
 message DiscussionPreview {

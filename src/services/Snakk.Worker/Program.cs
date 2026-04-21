@@ -12,6 +12,14 @@ var builder = Host.CreateApplicationBuilder(args);
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
+// Fail-fast: reject placeholder secrets in production
+if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "Testing")
+{
+    var realtimeApiKey = builder.Configuration["Realtime:ApiKey"];
+    if (string.IsNullOrEmpty(realtimeApiKey) || realtimeApiKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production. Set it in snakk-config.json.");
+}
+
 //builder.AddSnakkDefaults();
 
 // Database (PostgreSQL) with DbContext pooling for better performance
@@ -73,7 +81,7 @@ builder.Services.AddHttpClient("WebhookService", client =>
 // Background workers
 builder.Services.AddHostedService<AchievementCheckerWorker>();
 builder.Services.AddHostedService<TemporaryRoleExpirationWorker>();
-builder.Services.AddHostedService<WebhookRetryWorker>();
+// builder.Services.AddHostedService<WebhookRetryWorker>(); // not yet implemented
 builder.Services.AddHostedService<AvatarGenerationHostedService>();
 builder.Services.AddHostedService<OrphanMediaCleanupWorker>();
 

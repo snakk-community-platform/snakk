@@ -47,8 +47,9 @@ services:
         reservations:
           memory: 512m
     environment:
-      # Database host for entrypoint migration check
-      ASPNETCORE_ENVIRONMENT: Development
+      # Set ASPNETCORE_ENVIRONMENT=Development in .env for local source builds.
+      # Defaults to Production so shared/staging deployments don't expose debug endpoints.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       DB_HOST: postgres
       DB_PORT: "5432"
       # Connection string for DbSeeder on restart (pending migrations)
@@ -91,7 +92,7 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-snakk}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env file}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"

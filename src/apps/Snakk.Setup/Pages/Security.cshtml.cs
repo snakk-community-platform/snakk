@@ -20,6 +20,8 @@ public class SecurityModel : SetupPageBase
             state.JwtSecretKey = SetupService.GenerateSecretKey(64);
         if (string.IsNullOrEmpty(state.RealtimeApiKey))
             state.RealtimeApiKey = SetupService.GenerateSecretKey(32);
+        if (string.IsNullOrEmpty(state.RealtimeJwtKey))
+            state.RealtimeJwtKey = SetupService.GenerateSecretKey(64);
 
         SaveState(state);
         JwtSecretKey = state.JwtSecretKey;
@@ -41,6 +43,8 @@ public class SecurityModel : SetupPageBase
         var state = GetState();
         state.JwtSecretKey = JwtSecretKey;
         state.RealtimeApiKey = RealtimeApiKey;
+        if (string.IsNullOrEmpty(state.RealtimeJwtKey))
+            state.RealtimeJwtKey = SetupService.GenerateSecretKey(64);
         state.TurnstileSiteKey = TurnstileSiteKey?.Trim() ?? "";
         state.TurnstileSecretKey = TurnstileSecretKey?.Trim() ?? "";
         SaveState(state);
@@ -53,6 +57,7 @@ public class SecurityModel : SetupPageBase
         var state = GetState();
         state.JwtSecretKey = SetupService.GenerateSecretKey(64);
         state.RealtimeApiKey = SetupService.GenerateSecretKey(32);
+        state.RealtimeJwtKey = SetupService.GenerateSecretKey(64);
         SaveState(state);
 
         return RedirectToPage("Security");

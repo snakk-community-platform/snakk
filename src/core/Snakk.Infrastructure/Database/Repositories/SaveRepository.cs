@@ -120,7 +120,32 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                     s.Discussion.ReactionCount,
                     string.IsNullOrEmpty(s.Discussion.Tags)
                         ? Array.Empty<string>()
-                        : s.Discussion.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        : s.Discussion.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: s.Discussion!.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: s.Discussion!.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: s.Discussion!.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: s.Discussion!.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: s.Discussion!.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
 

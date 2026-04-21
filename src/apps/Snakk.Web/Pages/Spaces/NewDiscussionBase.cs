@@ -20,6 +20,7 @@ public abstract class NewDiscussionBaseModel(
     protected readonly SnakkApiClient ApiClient = apiClient;
 
     public SpaceInfo? Space { get; set; }
+    public SpaceStats? SpaceStats { get; set; }
     public HubInfo? Hub { get; set; }
     public CommunityInfo? CommunityDetail { get; set; }
     public string HubSlug { get; set; } = string.Empty;
@@ -44,11 +45,8 @@ public abstract class NewDiscussionBaseModel(
         if (string.IsNullOrEmpty(spaceId))
             return Redirect("/new");
 
-        if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
-        {
-            var returnUrl = BuildReturnUrl();
-            return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
-        }
+        if (User.Identity?.IsAuthenticated != true)
+            return Page();
 
         return await LoadPageData();
     }
@@ -80,7 +78,8 @@ public abstract class NewDiscussionBaseModel(
 
         if (result is null)
         {
-            CreateError = "Failed to create discussion. Please try again.";
+            if (string.IsNullOrEmpty(CreateError))
+                CreateError = "Failed to create discussion. Please try again.";
             return Page();
         }
 
@@ -131,11 +130,13 @@ public abstract class NewDiscussionBaseModel(
         var communityTask = !string.IsNullOrEmpty(CommunitySlug)
             ? ApiClient.GetCommunityBySlugAsync(CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
+        var spaceStatsTask = ApiClient.GetSpaceStatsAsync(Space.PublicId);
 
-        await Task.WhenAll(hubTask, communityTask);
+        await Task.WhenAll(hubTask, communityTask, spaceStatsTask);
 
         Hub = hubTask.Result.IsSuccess ? hubTask.Result.Value : null;
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
+        SpaceStats = spaceStatsTask.IsCompletedSuccessfully ? spaceStatsTask.Result : null;
 
         // Group access check
         if (CommunityDetail is not null

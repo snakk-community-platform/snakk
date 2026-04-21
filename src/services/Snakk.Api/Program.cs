@@ -36,7 +36,7 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     var restPort = builder.Configuration["RestPort"];
     if (!string.IsNullOrEmpty(restPort) && int.TryParse(restPort, out var rp))
     {
-        var mainUrl = builder.Configuration["ASPNETCORE_URLS"] ?? "http://127.0.0.1:5242";
+        var mainUrl = builder.Configuration["ASPNETCORE_URLS"] ?? "http://127.0.0.1:17001";
         var mainUri = new Uri(mainUrl);
 
         // gRPC port — HTTP/2 only (h2c for cleartext)
@@ -66,6 +66,7 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 
     if (string.IsNullOrEmpty(realtimeKey) || realtimeKey.Contains("CHANGE_IN_PRODUCTION", StringComparison.OrdinalIgnoreCase))
         throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production. Set it in snakk-config.json.");
+
 }
 
 // Add services to the container
@@ -81,7 +82,16 @@ else
     builder.Services.AddGrpc();
 }
 builder.Services.AddSnakkServices(builder.Configuration);
-// Rate limiting is handled at the gateway level — API only receives trusted internal requests
+builder.Services.AddRateLimiting();
+
+// Warn if ConsoleEmailSender is used outside Development/Testing (self-hosted installs may have no SMTP configured)
+if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "Testing")
+{
+    var emailDescriptor = builder.Services.FirstOrDefault(d =>
+        d.ServiceType == typeof(Snakk.Application.Services.IEmailSender));
+    if (emailDescriptor?.ImplementationType == typeof(Snakk.Infrastructure.Services.ConsoleEmailSender))
+        Console.WriteLine("WARNING: ConsoleEmailSender is active — emails will only be logged. Configure SMTP for a production email sender.");
+}
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
 
@@ -92,6 +102,10 @@ if (builder.Environment.IsDevelopment())
         options.RouteBasePath = "/profiler";
         options.PopupShowTimeWithChildren = true;
         options.TrackConnectionOpenClose = true;
+        options.ResultsAuthorize = request =>
+            request.HttpContext.User.Identity?.IsAuthenticated == true &&
+            (request.HttpContext.User.HasClaim("role", "admin") ||
+             request.HttpContext.User.IsInRole("admin"));
     }).AddEntityFramework();
 }
 
@@ -129,6 +143,7 @@ app.UseCors();
 app.UseAuthentication();
 app.UseMiddleware<Snakk.Api.Middleware.TokenRefreshMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");

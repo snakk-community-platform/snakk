@@ -23,4 +23,8 @@
     <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

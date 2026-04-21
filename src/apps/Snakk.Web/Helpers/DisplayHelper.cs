@@ -48,6 +48,9 @@ public static class DisplayHelper
             : $"{years} years, {remainingMonths} month{(remainingMonths > 1 ? "s" : "")} later";
     }
 
+    public static string FormatFullDateTime(DateTime? dt) =>
+        dt?.ToString("MMMM d, yyyy HH:mm") ?? "";
+
     public static string FormatCount(int count) =>
         count switch
         {

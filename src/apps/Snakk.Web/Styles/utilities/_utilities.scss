@@ -39,3 +39,10 @@ a.hover-link {
         color: var(--link-primary);
     }
 }
+
+// daisyUI tooltip z-index override — default z-index: 2 is too low and causes
+// tooltip bubbles to render beneath sibling positioned elements (e.g. adjacent fp-cards)
+.tooltip::before,
+.tooltip::after {
+    z-index: 50;
+}

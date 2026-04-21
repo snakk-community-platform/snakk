@@ -16,10 +16,9 @@ public class TurnstileService(
     {
         var secretKey = configuration["Turnstile:SecretKey"];
 
-        // If no secret key is configured, skip verification (development mode)
         if (string.IsNullOrEmpty(secretKey))
         {
-            logger.LogWarning("Turnstile secret key not configured — skipping verification");
+            logger.LogWarning("Turnstile:SecretKey not configured — skipping CAPTCHA verification");
             return true;
         }
 

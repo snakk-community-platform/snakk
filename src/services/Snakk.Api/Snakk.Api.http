@@ -1,4 +1,4 @@
-@Snakk.Api_HostAddress = http://localhost:5242
+@Snakk.Api_HostAddress = http://localhost:17101
 
 GET {{Snakk.Api_HostAddress}}/weatherforecast/
 Accept: application/json

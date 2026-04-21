@@ -147,13 +147,13 @@ public static class AdminWebhooksEndpoints
             var deliveryLog = await webhookService.TestWebhookAsync(webhookId, request, cancellationToken);
             return Results.Ok(deliveryLog);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Results.NotFound(new { error = ex.Message });
+            return Results.NotFound(new { error = "Webhook not found." });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 

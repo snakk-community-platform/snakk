@@ -1,5 +1,6 @@
 namespace Snakk.Infrastructure.Adapters;
 
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Snakk.Infrastructure.Database;
@@ -203,6 +204,7 @@ public class PostRepositoryAdapter(
             .Get<int[]>() ?? [100, 500, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000];
 
         entity.IsMilestone = milestoneThresholds.Contains(postCount + 1);
+        entity.PlainTextExcerpt = StripMarkdown(post.Content);
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -217,6 +219,7 @@ public class PostRepositoryAdapter(
 
         entity.Content = post.Content;
         entity.RenderedContent = post.RenderedContent;
+        entity.PlainTextExcerpt = StripMarkdown(post.Content);
         entity.LastModifiedAt = post.LastModifiedAt;
         entity.EditedAt = post.EditedAt;
         entity.IsDeleted = post.IsDeleted;
@@ -501,6 +504,23 @@ public class PostRepositoryAdapter(
                     t.PostCount);
             })
             .ToList();
+    }
+
+    private static string StripMarkdown(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return "";
+        var s = content;
+        s = Regex.Replace(s, @"!\[([^\]]*)\]\([^)]*\)", "$1");           // images
+        s = Regex.Replace(s, @"\[([^\]]*)\]\([^)]*\)", "$1");            // links
+        s = Regex.Replace(s, @"```[\s\S]*?```", "", RegexOptions.Singleline); // code blocks
+        s = Regex.Replace(s, @"`([^`]+)`", "$1");                        // inline code
+        s = Regex.Replace(s, @"\*{1,3}([^*\n]+)\*{1,3}", "$1");         // bold/italic
+        s = Regex.Replace(s, @"_{1,3}([^_\n]+)_{1,3}", "$1");           // underscore bold/italic
+        s = Regex.Replace(s, @"^#{1,6}\s+", "", RegexOptions.Multiline); // headings
+        s = Regex.Replace(s, @"^>\s*", "", RegexOptions.Multiline);      // blockquotes
+        s = Regex.Replace(s, @"^[-*_]{3,}\s*$", "", RegexOptions.Multiline); // hr
+        s = Regex.Replace(s, @"\s+", " ").Trim();
+        return s.Length > 200 ? s[..200] : s;
     }
 
     private record PostProjection(

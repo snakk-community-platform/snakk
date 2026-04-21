@@ -7,7 +7,8 @@ using Snakk.Infrastructure.Database;
 public class MetricsService(SnakkDbContext context)
 {
     /// <summary>
-    /// Increment a metric across all relevant scopes (Global, Space, Hub, Community) in a single query
+    /// Increment a metric across all relevant scopes (Global, Space, Hub, Community).
+    /// Uses separate upserts per scope — ExecuteSqlInterpolatedAsync is always safely parameterized.
     /// </summary>
     public async Task IncrementMetricAsync(
         UserId userId,
@@ -17,47 +18,28 @@ public class MetricsService(SnakkDbContext context)
         int? communityId = null,
         int amount = 1)
     {
-        // Build UPSERT query for all scopes
-        // This single query updates 1-4 rows (Global + Space + Hub + Community)
-        var sql = @"
-            INSERT INTO ""UserMetric"" (""UserId"", ""MetricType"", ""Scope"", ""ScopeId"", ""Value"", ""LastUpdated"")
-            VALUES
-                ({0}, {1}, 'Global', 0, {2}, NOW())";
+        var userIdInt = await GetUserIdAsync(userId);
 
-        var parameters = new List<object> { await GetUserIdAsync(userId), metricType, amount };
-        var paramIndex = 3;
+        await UpsertMetricAsync(userIdInt, metricType, "Global", 0, amount);
 
         if (spaceId.HasValue)
-        {
-            sql += $@",
-                ({{0}}, {{1}}, 'Space', {{{paramIndex}}}, {{2}}, NOW())";
-            parameters.Add(spaceId.Value);
-            paramIndex++;
-        }
+            await UpsertMetricAsync(userIdInt, metricType, "Space", spaceId.Value, amount);
 
         if (hubId.HasValue)
-        {
-            sql += $@",
-                ({{0}}, {{1}}, 'Hub', {{{paramIndex}}}, {{2}}, NOW())";
-            parameters.Add(hubId.Value);
-            paramIndex++;
-        }
+            await UpsertMetricAsync(userIdInt, metricType, "Hub", hubId.Value, amount);
 
         if (communityId.HasValue)
-        {
-            sql += $@",
-                ({{0}}, {{1}}, 'Community', {{{paramIndex}}}, {{2}}, NOW())";
-            parameters.Add(communityId.Value);
-        }
+            await UpsertMetricAsync(userIdInt, metricType, "Community", communityId.Value, amount);
+    }
 
-        sql += @"
+    private Task UpsertMetricAsync(int userId, string metricType, string scope, int scopeId, int amount) =>
+        context.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO ""UserMetric"" (""UserId"", ""MetricType"", ""Scope"", ""ScopeId"", ""Value"", ""LastUpdated"")
+            VALUES ({userId}, {metricType}, {scope}, {scopeId}, {amount}, NOW())
             ON CONFLICT (""UserId"", ""MetricType"", ""Scope"", ""ScopeId"")
             DO UPDATE SET
-                ""Value"" = ""UserMetric"".""Value"" + {2},
-                ""LastUpdated"" = NOW()";
-
-        await context.Database.ExecuteSqlRawAsync(sql, parameters.ToArray());
-    }
+                ""Value"" = ""UserMetric"".""Value"" + {amount},
+                ""LastUpdated"" = NOW()");
 
     /// <summary>
     /// Get the current value of a specific metric

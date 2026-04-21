@@ -289,6 +289,22 @@ public class CounterService(SnakkDbContext dbContext) : ICounterService
                 x => x.FollowerCount,
                 x => x.FollowerCount - 1));
 
+    // --- Space-level counters ---
+
+    public async Task IncrementSpaceFollowerCountAsync(SpaceId spaceId) =>
+        await dbContext.Spaces
+            .Where(s => s.PublicId == spaceId.Value)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                x => x.FollowerCount,
+                x => x.FollowerCount + 1));
+
+    public async Task DecrementSpaceFollowerCountAsync(SpaceId spaceId) =>
+        await dbContext.Spaces
+            .Where(s => s.PublicId == spaceId.Value)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                x => x.FollowerCount,
+                x => x.FollowerCount - 1));
+
     // --- Discussion-level counters ---
 
     public async Task IncrementDiscussionFollowerCountAsync(DiscussionId discussionId) =>

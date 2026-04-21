@@ -192,6 +192,11 @@ public class DiscussionGrpcService(
                 if (request.IamaIsScheduled && request.IamaScheduledStart is null)
                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Scheduled AMAs require a start time"));
                 break;
+
+            case DiscussionTypeEnum.Images:
+                if (request.ImagesImageUrls.Count > 20)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Gallery discussions support a maximum of 20 images."));
+                break;
         }
     }
 
@@ -325,6 +330,19 @@ public class DiscussionGrpcService(
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
             item.Tags.AddRange(d.Tags ?? []);
+
+            if (d.LastReplierPublicId is not null)
+            {
+                item.LastReplier = new AuthorRef
+                {
+                    PublicId = d.LastReplierPublicId,
+                    DisplayName = d.LastReplierDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
+                };
+                item.LastPostExcerpt = d.LastPostExcerpt ?? "";
+            }
 
             // Map preview data
             if (d.Preview is not null)
@@ -503,6 +521,19 @@ public class DiscussionGrpcService(
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
             item.Tags.AddRange(d.Tags ?? []);
+
+            if (d.LastReplierPublicId is not null)
+            {
+                item.LastReplier = new AuthorRef
+                {
+                    PublicId = d.LastReplierPublicId,
+                    DisplayName = d.LastReplierDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
+                };
+                item.LastPostExcerpt = d.LastPostExcerpt ?? "";
+            }
 
             if (d.Preview is not null)
             {

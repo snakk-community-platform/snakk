@@ -10,7 +10,7 @@ public static class AdminPermissionsEndpoints
     {
         var permissionsGroup = app.MapGroup("/admin/permissions")
             .WithTags("Admin Permissions")
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("Admin"));
 
         // Permission endpoints
         permissionsGroup.MapGet("", GetAllPermissionsAsync)
@@ -32,7 +32,7 @@ public static class AdminPermissionsEndpoints
         // Temporary role endpoints
         var tempRolesGroup = app.MapGroup("/admin/temporary-roles")
             .WithTags("Admin Temporary Roles")
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("Admin"));
 
         tempRolesGroup.MapGet("", GetActiveTemporaryRolesAsync)
             .WithName("GetActiveTemporaryRoles")
@@ -95,7 +95,7 @@ public static class AdminPermissionsEndpoints
                 "Error assigning permission {PermissionId} to role {RoleId}",
                 request.PermissionId, roleId);
 
-            return Results.Problem(ex.Message);
+            return Results.Problem("An unexpected error occurred.");
         }
     }
 
@@ -130,7 +130,7 @@ public static class AdminPermissionsEndpoints
                 "Error revoking permission {PermissionId} from role {RoleId}",
                 permissionId, roleId);
 
-            return Results.Problem(ex.Message);
+            return Results.Problem("An unexpected error occurred.");
         }
     }
 
@@ -176,7 +176,7 @@ public static class AdminPermissionsEndpoints
         {
             logger.LogError(ex, "Error granting temporary role to user {UserId}", request.UserId);
 
-            return Results.Problem(ex.Message);
+            return Results.Problem("An unexpected error occurred.");
         }
     }
 
@@ -208,7 +208,7 @@ public static class AdminPermissionsEndpoints
         {
             logger.LogError(ex, "Error revoking temporary role elevation {ElevationId}", elevationId);
 
-            return Results.Problem(ex.Message);
+            return Results.Problem("An unexpected error occurred.");
         }
     }
 }

@@ -76,6 +76,18 @@ public interface ICounterService
     /// </summary>
     Task DecrementUserFollowerCountAsync(UserId userId);
 
+    // --- Space-level counters ---
+
+    /// <summary>
+    /// Increment Space.FollowerCount when someone follows a space.
+    /// </summary>
+    Task IncrementSpaceFollowerCountAsync(SpaceId spaceId);
+
+    /// <summary>
+    /// Decrement Space.FollowerCount when someone unfollows a space.
+    /// </summary>
+    Task DecrementSpaceFollowerCountAsync(SpaceId spaceId);
+
     // --- Discussion-level counters ---
 
     /// <summary>

@@ -19,7 +19,7 @@ public class PostRepository(SnakkDbContext context)
         .FirstOrDefaultAsync(p => p.PublicId == publicId);
 
     public override async Task<IEnumerable<PostDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.ToListAsync();
+        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
 
     public async Task<PostDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(p => p.PublicId == publicId)
@@ -40,6 +40,7 @@ public class PostRepository(SnakkDbContext context)
         await _dbSet.FirstOrDefaultAsync(p => p.PublicId == publicId);
 
     public async Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId) => await _dbSet
+        .AsNoTracking()
         .Where(p => p.DiscussionId == discussionId)
         .OrderBy(p => p.CreatedAt)
         .ToListAsync();

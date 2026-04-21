@@ -107,7 +107,14 @@ public class DetailModel(
             return NotFound();
         }
 
-        PublicId = UlidBase62.Decode(parts[1]);
+        try
+        {
+            PublicId = UlidBase62.Decode(parts[1]);
+        }
+        catch (ArgumentException)
+        {
+            return NotFound();
+        }
 
         try
         {
@@ -230,7 +237,14 @@ public class DetailModel(
             return NotFound();
         }
 
-        PublicId = UlidBase62.Decode(parts[1]);
+        try
+        {
+            PublicId = UlidBase62.Decode(parts[1]);
+        }
+        catch (ArgumentException)
+        {
+            return NotFound();
+        }
 
         // Load auth status
         var authStatus = await _apiClient.GetAuthStatusAsync();

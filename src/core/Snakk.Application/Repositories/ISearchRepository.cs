@@ -249,6 +249,11 @@ public record RecentDiscussionDto(
     int PostCount,
     int ReactionCount,
     string[] Tags,
+    string? LastReplierPublicId = null,
+    string? LastReplierDisplayName = null,
+    string? LastReplierAvatarFileName = null,
+    string? LastReplierAvatarThumbnailFileName = null,
+    string? LastPostExcerpt = null,
     DiscussionPreviewDto? Preview = null);
 
 // ── Discussion preview sub-DTOs ──

@@ -356,31 +356,22 @@ function escapeHtml(text: string): string {
 
 const encodeUlid = (window as any).SnakkUtils?.encodeUlid || function(s: string): string { return s; };
 
-const sanitizeHtml = (window as any).SnakkUtils?.sanitizeHtml || function(html: string): string {
+const _domPurify = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
+function sanitizeHtml(html: string): string {
     if (!html) return '';
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
-    doc.body.querySelectorAll('*').forEach(el => {
-        Array.from(el.attributes).forEach(attr => {
-            if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-        });
-        ['href', 'src', 'action', 'formaction'].forEach(a => {
-            const v = el.getAttribute(a);
-            if (v && v.trim().toLowerCase().startsWith('javascript:')) el.removeAttribute(a);
-        });
-    });
-    return doc.body.innerHTML;
-};
+    return _domPurify ? _domPurify.sanitize(html, { USE_PROFILES: { html: true } }) : '';
+}
 
-function submitEdit(postId: string, userId: string): void {
+function submitEdit(postId: string): void {
     const textarea = document.getElementById('edit-textarea-' + postId) as HTMLTextAreaElement;
     if (!textarea) return;
 
     const content = textarea.value;
 
-    fetch(`/bff/posts/${postId}/edit?userId=${userId}&content=${encodeURIComponent(content)}`, {
-        method: 'POST'
+    fetch(`/bff/posts/${postId}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
     })
     .then(response => response.text())
     .then(html => {
@@ -946,7 +937,7 @@ function hidePostsFromUser(userId: string, userName: string): void {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                 </svg>
                 <div>
-                    <p class="text-sm font-medium">Posts from ${userName} are now hidden</p>
+                    <p class="text-sm font-medium">Posts from ${escapeHtml(userName)} are now hidden</p>
                     <button data-action="unhide-user" data-author-id="${userId}" class="text-xs text-primary underline">Undo</button>
                 </div>
             </div>
@@ -990,17 +981,17 @@ let isTyping = false;
 
 function notifyTyping(): void {
     const realtime = (window as any).SnakkRealtime;
-    if (!realtime || !discussionConfig?.discussionId || !discussionConfig?.displayName) return;
+    if (!realtime || !discussionConfig?.discussionId) return;
 
     if (!isTyping) {
         isTyping = true;
-        realtime.startTyping(discussionConfig.discussionId, discussionConfig.displayName);
+        realtime.startTyping(discussionConfig.discussionId);
     }
 
     if (typingTimeout) clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         isTyping = false;
-        realtime.stopTyping(discussionConfig!.discussionId, discussionConfig!.displayName);
+        realtime.stopTyping(discussionConfig!.discussionId);
     }, 2000);
 }
 
@@ -2278,7 +2269,7 @@ document.addEventListener('click', async (e) => {
             editPost(action.dataset.postId || '', action.dataset.userId || '');
             break;
         case 'submit-edit':
-            submitEdit(action.dataset.postId || '', action.dataset.userId || '');
+            submitEdit(action.dataset.postId || '');
             break;
         case 'cancel-edit':
             cancelEdit(action.dataset.postId || '');

@@ -5,6 +5,7 @@ using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Moderation;
 
+[ValidateAntiForgeryToken]
 public class ReportDetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -59,6 +60,8 @@ public class ReportDetailModel(
 
     public async Task<IActionResult> OnPostAddCommentAsync()
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         if (string.IsNullOrWhiteSpace(CommentContent))
         {
             return RedirectToPage(new { Id });
@@ -70,12 +73,16 @@ public class ReportDetailModel(
 
     public async Task<IActionResult> OnPostResolveAsync()
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         await apiClient.ResolveReportAsync(Id, new ResolveReportRequest(ResolutionNote, false));
         return RedirectToPage(new { Id });
     }
 
     public async Task<IActionResult> OnPostDismissAsync()
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         await apiClient.ResolveReportAsync(Id, new ResolveReportRequest(ResolutionNote, true));
         return RedirectToPage(new { Id });
     }

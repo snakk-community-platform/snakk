@@ -80,20 +80,6 @@ public static class ServiceCollectionExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
-
-            // Also read JWT tokens from cookies for admin panel
-            options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-            {
-                OnMessageReceived = context =>
-                {
-                    // Check if token is in the admin_token cookie
-                    if (context.Request.Cookies.TryGetValue("admin_token", out var token))
-                    {
-                        context.Token = token;
-                    }
-                    return Task.CompletedTask;
-                }
-            };
         });
 
         services.AddAuthorization(options =>
@@ -289,7 +275,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("RealtimeService", client =>
         {
             client.BaseAddress = new Uri(
-                configuration["Realtime:BaseUrl"] ?? "https://localhost:17101");
+                configuration["Realtime:BaseUrl"] ?? "https://localhost:17103");
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];
@@ -345,7 +331,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("ActivityBroadcaster", client =>
         {
             client.BaseAddress = new Uri(
-                configuration["Realtime:BaseUrl"] ?? "https://localhost:17101");
+                configuration["Realtime:BaseUrl"] ?? "https://localhost:17103");
             client.Timeout = TimeSpan.FromSeconds(5);
 
             var apiKey = configuration["Realtime:ApiKey"];

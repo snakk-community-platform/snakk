@@ -50,6 +50,7 @@ public class SetupState
     // Step 7: Security
     public string JwtSecretKey { get; set; } = "";
     public string RealtimeApiKey { get; set; } = "";
+    public string RealtimeJwtKey { get; set; } = "";
 
     // Turnstile (captcha)
     public string TurnstileSiteKey { get; set; } = "";

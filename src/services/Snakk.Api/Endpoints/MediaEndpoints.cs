@@ -2,6 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Api.Extensions;
 using Snakk.Application.Services;
+using Snakk.Domain;
 
 public static class MediaEndpoints
 {
@@ -57,9 +58,13 @@ public static class MediaEndpoints
 
             return Results.Ok(new { result.PublicId, result.Url, result.ThumbnailUrl, result.MediumThumbnailUrl, result.BlurDataUri });
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return Results.Problem("An error occurred. Please try again.");
         }
     }
 }

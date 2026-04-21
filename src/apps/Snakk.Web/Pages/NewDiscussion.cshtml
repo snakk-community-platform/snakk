@@ -12,6 +12,13 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
+@if (User.Identity?.IsAuthenticated != true) {
+    ViewData["Nudge.Title"] = "Sign in to start a discussion";
+    ViewData["Nudge.Body"] = "Create a free account to post discussions in any space.";
+    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
+    return;
+}
+
 <div class="fp-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
@@ -65,5 +72,10 @@
         </div>
     </div>
 </div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+}
+<partial name="Shared/_GlobalRightSidebar" />
 
 <script src="@SnakkUrlHelper.Js("pages/new-discussion-entry")" asp-append-version="true"></script>

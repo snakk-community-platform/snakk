@@ -10,6 +10,6 @@
     <p class="text-xs text-base-content/40 mb-8">Version @Model.VersionNumber</p>
 
     <div class="prose prose-content max-w-none">
-        @Html.Raw(Model.Content)
+        @Html.SanitizedRaw(Model.Content)
     </div>
 </div>

@@ -290,11 +290,8 @@ public static class BffApiEndpoints
             .WithName("BffValidateHistoryIds");
     }
 
-    /// <summary>
-    /// Returns true if the request has a valid access token cookie.
-    /// </summary>
     private static bool IsAuthenticated(HttpContext httpContext)
-        => !string.IsNullOrEmpty(httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]);
+        => httpContext.User.Identity?.IsAuthenticated == true;
 
     private static async Task<IResult> GetHomepageDataAsync(
         [FromQuery] string? communityId,
@@ -303,7 +300,7 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient)
     {
         // Aggregate multiple API calls in parallel
-        var recentTask = apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId);
+        var recentTask = apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
         var topActiveTask = apiClient.GetTopActiveDiscussionsAsync(communityId);
         var topSpacesTask = apiClient.GetTopActiveSpacesAsync(communityId);
         var topContributorsTask = apiClient.GetTopContributorsAsync(communityId);
@@ -327,7 +324,7 @@ public static class BffApiEndpoints
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var apiResult = await apiClient.GetNotificationsAsync(offset, pageSize);
+        var apiResult = await apiClient.GetNotificationsAsync(offset, Math.Min(pageSize, MaxPageSize));
         if (apiResult?.Items is null)
         {
             return Results.Ok(new Models.Bff.BffNotificationsResponse
@@ -589,7 +586,7 @@ public static class BffApiEndpoints
         [FromQuery] string? communityId,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId);
+        var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
         return Results.Ok(result);
     }
 
@@ -599,7 +596,7 @@ public static class BffApiEndpoints
         [FromQuery] string? communityId,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetTrendingDiscussionsAsync(offset, pageSize, communityId);
+        var result = await apiClient.GetTrendingDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
         return Results.Ok(result);
     }
 
@@ -610,7 +607,7 @@ public static class BffApiEndpoints
         [FromQuery] string? cursor,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetNewDiscussionsAsync(offset, pageSize, communityId, cursor);
+        var result = await apiClient.GetNewDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor);
         return Results.Ok(result);
     }
 
@@ -620,7 +617,7 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, pageSize);
+        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize));
         return Results.Ok(result);
     }
 
@@ -954,7 +951,7 @@ public static class BffApiEndpoints
             spacePublicId: null,
             hubPublicId: null,
             offset: offset,
-            pageSize: pageSize);
+            pageSize: Math.Min(pageSize, MaxPageSize));
 
         if (result is null)
             return Results.Ok(new BffSearchResponse<BffDiscussionSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
@@ -999,7 +996,7 @@ public static class BffApiEndpoints
             discussionPublicId: null,
             spacePublicId: null,
             offset: offset,
-            pageSize: pageSize);
+            pageSize: Math.Min(pageSize, MaxPageSize));
 
         if (result is null)
             return Results.Ok(new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
@@ -1137,7 +1134,7 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, pageSize);
+        var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, Math.Min(pageSize, MaxPageSize));
         if (result is null) return Results.NotFound();
 
         return Results.Ok(new
@@ -1191,15 +1188,17 @@ public static class BffApiEndpoints
         });
     }
 
+    private record EditPostRequest(string Content);
+
     private static async Task<IResult> EditPostAsync(
         string postId,
-        [FromQuery] string content,
+        [FromBody] EditPostRequest body,
         SnakkApiClient apiClient,
         HttpContext httpContext)
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var result = await apiClient.EditPostResultAsync(postId, content);
+        var result = await apiClient.EditPostResultAsync(postId, body.Content);
 
         if (!result.IsSuccess)
             return MapGrpcError(result.Status, result.Error);
@@ -1500,6 +1499,12 @@ public static class BffApiEndpoints
 
     // --- Avatar upload proxy ---
 
+    private const int MaxPageSize = 100;
+
+    private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+        { "image/jpeg", "image/png", "image/webp", "image/gif" };
+    private const long MaxUploadBytes = 5 * 1024 * 1024; // 5 MB
+
     private static async Task<IResult> UploadAvatarBffAsync(
         IFormFile avatar,
         IHttpClientFactory httpClientFactory,
@@ -1509,15 +1514,23 @@ public static class BffApiEndpoints
         if (avatar is null || avatar.Length == 0)
             return Results.BadRequest(new { error = "No file provided." });
 
+        if (!AllowedImageTypes.Contains(avatar.ContentType))
+            return Results.BadRequest(new { error = "File type not allowed. Use JPEG, PNG, WebP, or GIF." });
+
+        if (avatar.Length > MaxUploadBytes)
+            return Results.BadRequest(new { error = "File exceeds maximum size of 5 MB." });
+
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken))
             return Results.Unauthorized();
+
+        var safeFileName = Path.GetFileName(avatar.FileName);
 
         using var content = new MultipartFormDataContent();
         using var fileStream = avatar.OpenReadStream();
         using var streamContent = new StreamContent(fileStream);
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
-        content.Add(streamContent, "avatar", avatar.FileName);
+        content.Add(streamContent, "avatar", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/avatars/upload");
@@ -1571,15 +1584,23 @@ public static class BffApiEndpoints
         if (avatar is null || avatar.Length == 0)
             return Results.BadRequest(new { error = "No file provided." });
 
+        if (!AllowedImageTypes.Contains(avatar.ContentType))
+            return Results.BadRequest(new { error = "File type not allowed. Use JPEG, PNG, WebP, or GIF." });
+
+        if (avatar.Length > MaxUploadBytes)
+            return Results.BadRequest(new { error = "File exceeds maximum size of 5 MB." });
+
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken))
             return Results.Unauthorized();
+
+        var safeFileName = Path.GetFileName(avatar.FileName);
 
         using var content = new MultipartFormDataContent();
         using var fileStream = avatar.OpenReadStream();
         using var streamContent = new StreamContent(fileStream);
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
-        content.Add(streamContent, "avatar", avatar.FileName);
+        content.Add(streamContent, "avatar", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/avatars/upload/{entityType}/{entityId}");
@@ -1623,15 +1644,23 @@ public static class BffApiEndpoints
         if (file is null || file.Length == 0)
             return Results.BadRequest(new { error = "No file provided." });
 
+        if (!AllowedImageTypes.Contains(file.ContentType))
+            return Results.BadRequest(new { error = "File type not allowed. Use JPEG, PNG, WebP, or GIF." });
+
+        if (file.Length > MaxUploadBytes)
+            return Results.BadRequest(new { error = "File exceeds maximum size of 5 MB." });
+
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken))
             return Results.Unauthorized();
+
+        var safeFileName = Path.GetFileName(file.FileName);
 
         using var content = new MultipartFormDataContent();
         using var fileStream = file.OpenReadStream();
         using var streamContent = new StreamContent(fileStream);
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-        content.Add(streamContent, "file", file.FileName);
+        content.Add(streamContent, "file", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/media/upload");

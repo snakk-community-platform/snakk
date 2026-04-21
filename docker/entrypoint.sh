@@ -37,7 +37,7 @@ if [ "$SETUP_WAS_COMPLETE" = true ]; then
     # Setup already done — start all app services, stop setup wizard
     echo "Starting application services..."
     supervisorctl -c "$CONF" stop setup 2>/dev/null || true
-    supervisorctl -c "$CONF" start api web auth admin worker
+    supervisorctl -c "$CONF" start realtime api web auth admin worker
     echo "=== All services running ==="
 else
     echo ""
@@ -61,7 +61,7 @@ else
         # Stop setup, start app services, restart gateway to pick up new routing
         # (DbSeeder was already run by the setup wizard — no need to run it again)
         supervisorctl -c "$CONF" stop setup
-        supervisorctl -c "$CONF" start api web auth admin worker
+        supervisorctl -c "$CONF" start realtime api web auth admin worker
         supervisorctl -c "$CONF" restart gateway
 
         echo "=== All services running. Platform is live! ==="

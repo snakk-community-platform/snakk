@@ -14,6 +14,8 @@ service ManageService {
   rpc UpdateHubSettings (UpdateHubSettingsRequest) returns (UpdateHubSettingsResponse);
   rpc GetSiteSettings (GetSiteSettingsRequest) returns (SiteSettingsGrpcResponse);
   rpc UpdateSiteSettings (UpdateSiteSettingsRequest) returns (UpdateSiteSettingsResponse);
+  rpc GetRegistrationSettings (GetRegistrationSettingsRequest) returns (RegistrationSettingsGrpcResponse);
+  rpc UpdateRegistrationSettings (UpdateRegistrationSettingsRequest) returns (UpdateRegistrationSettingsResponse);
   rpc GetRules (GetRulesRequest) returns (GetRulesResponse);
   rpc UpdateRules (UpdateRulesRequest) returns (UpdateRulesResponse);
   rpc GetReportReasons (GetReportReasonsRequest) returns (GetReportReasonsResponse);
@@ -637,6 +639,25 @@ message UpdateSiteSettingsRequest {
 }
 
 message UpdateSiteSettingsResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// --- Registration Settings (global admin only) ---
+
+message GetRegistrationSettingsRequest {}
+
+message RegistrationSettingsGrpcResponse {
+  string mode = 1;       // "Open", "InviteOnly", "Closed"
+  string invite_code = 2;
+}
+
+message UpdateRegistrationSettingsRequest {
+  string mode = 1;
+  string invite_code = 2;
+}
+
+message UpdateRegistrationSettingsResponse {
   bool success = 1;
   optional string error_message = 2;
 }

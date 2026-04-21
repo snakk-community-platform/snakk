@@ -50,23 +50,34 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
             }
 
             // Call API via gRPC to login or create account with OAuth
-            var response = await authClient.OAuthCallbackAsync(new OAuthCallbackRequest
+            var inviteCode = HttpContext.Session.GetString("OAuth_InviteCode");
+            HttpContext.Session.Remove("OAuth_InviteCode");
+
+            var oauthRequest = new OAuthCallbackRequest
             {
                 Provider = Provider.ToLower(),
                 ProviderUserId = nameIdentifier,
                 Email = email,
-                DisplayName = "",
+                DisplayName = name ?? "",
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
                 UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
-            });
+            };
+            if (!string.IsNullOrEmpty(inviteCode))
+                oauthRequest.InviteCode = inviteCode;
+
+            var response = await authClient.OAuthCallbackAsync(oauthRequest);
 
             if (string.IsNullOrEmpty(response.AccessToken))
             {
                 return RedirectToPage("/Login", new { error = "oauth_token_missing" });
             }
 
-            // Set auth cookies using dual-cookie pattern
-            var expiry = DateTimeOffset.UtcNow.AddDays(30);
+            // Set auth cookies using dual-cookie pattern.
+            // Honor "remember me" preference stored during OAuth initiation;
+            // default to a short 1-day session (refresh token handles silent re-auth).
+            var rememberMe = HttpContext.Session.GetString("OAuth_RememberMe") == "true";
+            HttpContext.Session.Remove("OAuth_RememberMe");
+            var expiry = DateTimeOffset.UtcNow.AddDays(rememberMe ? 30 : 1);
             var strictOptions = new CookieOptions
             {
                 HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
@@ -104,6 +115,15 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
         catch (RpcException ex)
         {
             logger.LogError(ex, "OAuth gRPC callback error: {Status}", ex.Status.Detail);
+            var errorCode = ex.Status.Detail switch
+            {
+                "REGISTRATION_CLOSED" => "registration_closed",
+                "INVITE_CODE_REQUIRED" => "invite_required",
+                "INVITE_CODE_INVALID" => "invite_invalid",
+                _ => null
+            };
+            if (errorCode is not null)
+                return RedirectToPage("/Register", new { error = errorCode });
             return RedirectToPage("/Login", new { error = "oauth_server_error" });
         }
         catch (Exception ex)

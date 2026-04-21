@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Snakk.Admin.Services;
 using MudBlazor.Services;
 using Snakk.ServiceDefaults;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using Grpc.Core.Interceptors;
@@ -33,7 +34,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitTokenProvider>();
 
 // gRPC channel (singleton — connection pooling with HTTP/2 multiplexing)
-var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
+var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17101";
 var grpcHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true };
 var grpcOptions = new Grpc.Net.Client.GrpcChannelOptions { HttpHandler = grpcHandler };
 
@@ -131,12 +132,13 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// Configure forwarded headers for proxy scenarios
+// Configure forwarded headers — trust only internal Docker/private networks, not any source
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.All;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 });
 
 // Session for temp data
@@ -146,6 +148,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 // Persist Data Protection keys to shared storage so antiforgery + auth cookies

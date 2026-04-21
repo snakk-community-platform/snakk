@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Snakk.Realtime.Services;
@@ -184,15 +185,17 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     // ==================== Typing Indicators ====================
 
     /// <summary>Notify others that this user is typing in a discussion</summary>
-    public async Task StartTyping(string discussionId, string displayName)
+    public async Task StartTyping(string discussionId)
     {
+        var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
         await Clients.OthersInGroup($"discussion:{discussionId}")
             .SendAsync("ReceiveTyping", new { displayName, isTyping = true, group = $"discussion:{discussionId}" });
     }
 
     /// <summary>Notify others that this user stopped typing</summary>
-    public async Task StopTyping(string discussionId, string displayName)
+    public async Task StopTyping(string discussionId)
     {
+        var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
         await Clients.OthersInGroup($"discussion:{discussionId}")
             .SendAsync("ReceiveTyping", new { displayName, isTyping = false, group = $"discussion:{discussionId}" });
     }

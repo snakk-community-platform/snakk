@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Snakk.ServiceDefaults;
+using System.Net;
 using System.Text;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
@@ -24,7 +25,7 @@ builder.Configuration.AddJsonFile(
 builder.Services.AddRazorPages();
 
 // gRPC client for calling Snakk.Api
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 var grpcHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true };
 var grpcOptions = new Grpc.Net.Client.GrpcChannelOptions { HttpHandler = grpcHandler };
 
@@ -50,6 +51,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(10);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 // OAuth Authentication Providers
@@ -103,14 +106,15 @@ if (!string.IsNullOrEmpty(discordClientId))
     });
 }
 
-// Configure forwarded headers for proxy scenarios
+// Configure forwarded headers — trust only internal Docker/private networks, not any source
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.All;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 });
-
+    
 // Persist Data Protection keys to shared storage so antiforgery + auth cookies
 // survive container restarts and can be decrypted by Snakk.Web/Snakk.Admin too.
 var dataProtectionPath = Path.Combine(

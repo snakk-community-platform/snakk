@@ -30,6 +30,8 @@ public class AuthGrpcService(
         if (!await turnstileService.VerifyAsync(request.HasTurnstileToken ? request.TurnstileToken : ""))
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Captcha verification failed. Please try again."));
 
+        await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
+
         var result = await authUseCase.RegisterWithEmailAsync(
             request.Email,
             request.Password,
@@ -317,6 +319,12 @@ public class AuthGrpcService(
 
     public override async Task<OAuthCallbackResponse> OAuthCallback(OAuthCallbackRequest request, ServerCallContext ctx)
     {
+        // Gate: only check for users who don't already have an account
+        var userAlreadyExists = await context.Users
+            .AnyAsync(u => u.OAuthProviderId == request.ProviderUserId);
+        if (!userAlreadyExists)
+            await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
+
         var result = await authUseCase.LoginWithOAuthAsync(
             request.Provider,
             request.ProviderUserId,
@@ -381,10 +389,12 @@ public class AuthGrpcService(
         GetPublicSettingsRequest request, ServerCallContext context)
     {
         var siteInfo = await settingsService.GetSiteInfoAsync();
+        var regSettings = await settingsService.GetRegistrationSettingsAsync();
         return new PublicSettingsResponse
         {
             Timezone = siteInfo.Timezone,
-            SiteName = siteInfo.SiteName
+            SiteName = siteInfo.SiteName,
+            RegistrationMode = regSettings.Mode
         };
     }
 
@@ -452,6 +462,22 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         return UserId.From(userId);
+    }
+
+    private async Task EnforceRegistrationGateAsync(string? inviteCode)
+    {
+        var settings = await settingsService.GetRegistrationSettingsAsync();
+
+        if (settings.Mode == "Closed")
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "REGISTRATION_CLOSED"));
+
+        if (settings.Mode == "InviteOnly")
+        {
+            if (string.IsNullOrWhiteSpace(inviteCode))
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "INVITE_CODE_REQUIRED"));
+            if (!string.Equals(inviteCode.Trim(), settings.InviteCode.Trim(), StringComparison.Ordinal))
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "INVITE_CODE_INVALID"));
+        }
     }
 
     // Shared helper to fetch roles for a user

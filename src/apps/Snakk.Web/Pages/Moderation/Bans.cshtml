@@ -50,9 +50,7 @@
                     @if (Model.CanModerate)
                     {
                         <button data-modal-open="ban-modal" class="btn btn-error btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
+                            <span class="icon icon-ban h-4 w-4" aria-hidden="true"></span>
                             Ban User
                         </button>
                     }
@@ -66,9 +64,7 @@
                 @if (Model.Bans == null || !Model.Bans.Any())
                 {
                     <div class="text-center py-8 text-muted">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <span class="icon icon-check-circle h-12 w-12 mx-auto mb-2 opacity-50" aria-hidden="true"></span>
                         <p>No bans found for this user</p>
                     </div>
                 }

@@ -79,6 +79,7 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 
+    <script src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true"></script>
     <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
@@ -110,9 +111,7 @@
         </div>
         <div class="fp-navbar-content">
             <div class="fp-navbar-search">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <span class="icon icon-search" aria-hidden="true"></span>
                 <form method="get" action="/search" hx-boost="false">
                     <input type="text" name="q" placeholder="Search..." autocomplete="off" />
                 </form>

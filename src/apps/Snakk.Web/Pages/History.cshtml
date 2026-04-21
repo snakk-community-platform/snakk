@@ -5,8 +5,8 @@
     Layout = "_Layout";
     ViewData["Title"] = "History";
     ViewData["Description"] = "Discussions you have recently visited.";
-    ViewData["AuthPrompt.Title"] = "Sign in to view your history";
-    ViewData["AuthPrompt.Message"] = "Discussions you visit will appear here.";
+    ViewData["Nudge.Title"] = "Sign in to see your history";
+    ViewData["Nudge.Body"] = "Discussions you visit will appear here.";
 }
 
 @section LeftColumn {
@@ -17,14 +17,12 @@
     <div class="fp-center-inner">
         @if (!Model.IsAuthenticated)
         {
-            <partial name="Shared/_AuthPrompt" />
+            <partial name="Shared/_RegistrationNudge" />
         }
         else
         {
             <h2 class="fp-section-title">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span class="icon icon-clock" aria-hidden="true"></span>
                 History
             </h2>
 
@@ -43,9 +41,7 @@
             </div>
 
             <div id="history-empty" class="hidden py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span class="icon icon-clock h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
                 <p>No history yet.</p>
                 <p class="mt-1 text-xs opacity-70">Discussions you visit will appear here.</p>
             </div>

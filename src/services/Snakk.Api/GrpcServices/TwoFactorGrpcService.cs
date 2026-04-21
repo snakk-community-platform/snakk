@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
+using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.TwoFactor;
@@ -36,9 +37,14 @@ public class TwoFactorGrpcService(
                 QrCodeUri = setup.QrCodeUrl
             };
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error in SetupTwoFactor for user {UserId}", userId);
+            throw new RpcException(new Status(StatusCode.Internal, "An error occurred. Please try again."));
         }
     }
 
@@ -184,9 +190,14 @@ public class TwoFactorGrpcService(
                 UnusedCodes = status.TotalCount - status.UsedCount
             };
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error in GetBackupCodesStatus for user {UserId}", userId);
+            throw new RpcException(new Status(StatusCode.Internal, "An error occurred. Please try again."));
         }
     }
 
@@ -204,9 +215,14 @@ public class TwoFactorGrpcService(
 
             return response;
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error in RegenerateBackupCodes for user {UserId}", userId);
+            throw new RpcException(new Status(StatusCode.Internal, "An error occurred. Please try again."));
         }
     }
 

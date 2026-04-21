@@ -28,7 +28,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
         .FirstOrDefaultAsync(h => h.PublicId == publicId);
 
     public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.ToListAsync();
+        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
 
     public async Task<HubDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(h => h.PublicId == publicId)

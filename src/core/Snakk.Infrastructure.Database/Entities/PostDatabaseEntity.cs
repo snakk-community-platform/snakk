@@ -1,5 +1,6 @@
 namespace Snakk.Infrastructure.Database.Entities;
 
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NpgsqlTypes;
 
@@ -38,6 +39,10 @@ public class PostDatabaseEntity
 
     public int CreatedByUserId { get; set; }
     public virtual UserDatabaseEntity CreatedByUser { get; set; } = null!;
+
+    // Pre-stripped plain-text excerpt for display in discussion lists (max 200 chars)
+    [MaxLength(200)]
+    public string? PlainTextExcerpt { get; set; }
 
     // Full-text search vector (stored generated column)
     public NpgsqlTsVector SearchVector { get; set; } = null!;

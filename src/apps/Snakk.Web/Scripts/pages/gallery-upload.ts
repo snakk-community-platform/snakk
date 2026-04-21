@@ -24,6 +24,7 @@
         fileKey: string | null;
     }
 
+    const MAX_IMAGES = 20;
     let images: UploadImage[] = [];
     // Persisted slider position for the compare layout — survives re-render
     // (e.g. after the user clicks the swap-before/after button) so the
@@ -126,7 +127,10 @@
     // ─── Drop zone ──────────────────────────────────────────────
 
     // Click to open file picker
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', () => {
+        if (images.length >= MAX_IMAGES) return;
+        fileInput.click();
+    });
 
     // File selected
     fileInput.addEventListener('change', () => {
@@ -178,6 +182,33 @@
         }, 4000);
     }
 
+    let limitNoticeTimer: number | null = null;
+    function showLimitNotice(skipped: number, total: number): void {
+        const dropZoneEl = dropZone as HTMLElement;
+        let notice = document.getElementById('images-limit-notice');
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'images-limit-notice';
+            notice.className = 'images-duplicate-notice';
+            dropZoneEl.parentElement?.insertBefore(notice, dropZoneEl.nextSibling);
+        }
+        notice.textContent = skipped === total
+            ? `Gallery limit reached — maximum ${MAX_IMAGES} images allowed.`
+            : `Added ${total - skipped} of ${total} — ${skipped} skipped (limit: ${MAX_IMAGES} images).`;
+        notice.classList.remove('hidden');
+        if (limitNoticeTimer !== null) window.clearTimeout(limitNoticeTimer);
+        limitNoticeTimer = window.setTimeout(() => {
+            notice?.classList.add('hidden');
+            limitNoticeTimer = null;
+        }, 5000);
+    }
+
+    function updateImageCount(): void {
+        const countEl = document.getElementById('images-count');
+        if (!countEl) return;
+        countEl.textContent = images.length === 0 ? '' : `${images.length} / ${MAX_IMAGES}`;
+    }
+
     async function handleFiles(files: FileList): Promise<void> {
         // Convert to array immediately — FileList can be invalidated
         const allFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -203,6 +234,17 @@
             showDuplicateNotice(skippedCount);
         }
         if (fileArray.length === 0) return;
+
+        // Enforce max image limit
+        const remaining = MAX_IMAGES - images.length;
+        if (remaining <= 0) {
+            showLimitNotice(fileArray.length, fileArray.length);
+            return;
+        }
+        if (fileArray.length > remaining) {
+            showLimitNotice(fileArray.length - remaining, fileArray.length);
+            fileArray.splice(remaining);
+        }
 
         // Add placeholders for all files at once
         const placeholders: number[] = [];
@@ -396,6 +438,7 @@
         if (!preview) return;
 
         updateMode();
+        updateImageCount();
 
         if (images.length === 0) {
             preview.classList.add('hidden');
@@ -411,7 +454,8 @@
             html += '<div class="gup-single">';
             html += renderItem(images[0]!, 0);
             html += '</div>';
-            html += '<button type="button" class="images-add-more-btn" id="images-add-more">+ Add more images</button>';
+            if (images.length < MAX_IMAGES)
+                html += '<button type="button" class="images-add-more-btn" id="images-add-more">+ Add more images</button>';
             preview.innerHTML = html;
             bindPreviewEvents();
             return;
@@ -504,8 +548,9 @@
                 break;
         }
 
-        // Add image button below the preview
-        html += '<button type="button" class="images-add-more-btn" id="images-add-more">+ Add more images</button>';
+        // Add image button below the preview (hidden at limit)
+        if (images.length < MAX_IMAGES)
+            html += '<button type="button" class="images-add-more-btn" id="images-add-more">+ Add more images</button>';
 
         preview.innerHTML = html;
         bindPreviewEvents();

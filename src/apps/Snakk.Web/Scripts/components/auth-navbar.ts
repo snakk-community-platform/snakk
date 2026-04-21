@@ -72,11 +72,11 @@ interface NotificationsResponse {
             }
 
             list.innerHTML = data.items.map(n => `
-                <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${n.publicId}">
+                <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${escapeHtml(n.publicId)}">
                     <div class="flex items-start gap-2 p-2 rounded hover:bg-subtle cursor-pointer"
                          data-action="click-notification"
-                         data-notification-id="${n.publicId}"
-                         data-discussion-id="${n.sourceDiscussionId || ''}">
+                         data-notification-id="${escapeHtml(n.publicId)}"
+                         data-discussion-id="${escapeHtml(n.sourceDiscussionId || '')}">
                         <div class="notification-icon ${getNotificationIconClass(n.type)}">
                             ${getNotificationIcon(n.type)}
                         </div>

@@ -22,6 +22,9 @@ public class PostGrpcService(
 {
     public override async Task<PagedEnrichedPostList> GetPostsByDiscussion(GetPostsByDiscussionRequest request, ServerCallContext context)
     {
+        if (request.PageSize > 200)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "PageSize must be 200 or less"));
+
         UserId? currentUserId = null;
         string? currentUserIdValue = null;
 
@@ -210,7 +213,7 @@ public class PostGrpcService(
         var response = new PostHistoryResponse();
         var htmlParts = new List<string>();
 
-        foreach (var revision in revisions)
+        foreach (var revision in revisions.Take(50))
         {
             htmlParts.Add(markupParser.ToHtml(revision.Content));
         }

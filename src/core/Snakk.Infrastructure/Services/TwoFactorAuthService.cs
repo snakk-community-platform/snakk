@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Auth;
 using Snakk.Application.Services;
+using Snakk.Domain;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
@@ -20,10 +21,10 @@ public class TwoFactorAuthService(
         var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId);
 
         if (user is null)
-            throw new InvalidOperationException("User not found");
+            throw new DomainException("User not found");
 
         if (user.TwoFactorEnabled)
-            throw new InvalidOperationException("2FA is already enabled");
+            throw new DomainException("2FA is already enabled");
 
         // Generate new secret
         var secret = totpService.GenerateSecret();
@@ -229,7 +230,7 @@ public class TwoFactorAuthService(
             .FirstOrDefaultAsync();
 
         if (status is null || !status.TwoFactorEnabled)
-            throw new InvalidOperationException("2FA is not enabled");
+            throw new DomainException("2FA is not enabled");
 
         return new BackupCodeStatusDto
         {
@@ -247,15 +248,15 @@ public class TwoFactorAuthService(
             .FirstOrDefaultAsync(u => u.PublicId == userId);
 
         if (user is null)
-            throw new InvalidOperationException("User not found");
+            throw new DomainException("User not found");
 
         if (!user.TwoFactorEnabled)
-            throw new InvalidOperationException("2FA is not enabled");
+            throw new DomainException("2FA is not enabled");
 
         // Require password confirmation
         if (string.IsNullOrEmpty(user.PasswordHash)
             || !passwordHasher.VerifyPassword(password, user.PasswordHash))
-            throw new InvalidOperationException("Invalid password");
+            throw new DomainException("Invalid password");
 
         // Remove old backup codes
         context.TwoFactorBackupCodes.RemoveRange(user.TwoFactorBackupCodes);

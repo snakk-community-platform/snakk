@@ -109,39 +109,26 @@ interface SnakkUtilsAPI {
      */
     function sanitizeHtml(html: string): string {
         if (!html) return '';
-
+        const purify = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
+        if (purify) {
+            return purify.sanitize(html, { USE_PROFILES: { html: true } });
+        }
+        // Fallback if DOMPurify not available (should not occur in normal page flow)
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-
-        // Remove dangerous elements entirely
-        const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'base', 'meta', 'link', 'style'];
-        dangerousTags.forEach(tag => {
-            doc.querySelectorAll(tag).forEach(el => el.remove());
-        });
-
-        // Sanitize all remaining elements
+        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
         doc.body.querySelectorAll('*').forEach(el => {
-            // Remove event handler attributes (onclick, onerror, onload, etc.)
             Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) {
-                    el.removeAttribute(attr.name);
-                }
+                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
             });
-
-            // Sanitize href/src/action attributes — block javascript: and data: (except images)
             ['href', 'src', 'action', 'formaction', 'xlink:href'].forEach(attrName => {
                 const value = el.getAttribute(attrName);
                 if (!value) return;
                 const trimmed = value.trim().toLowerCase();
-                if (trimmed.startsWith('javascript:')) {
-                    el.removeAttribute(attrName);
-                }
-                if (attrName === 'src' && trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) {
-                    el.removeAttribute(attrName);
-                }
+                if (trimmed.startsWith('javascript:')) el.removeAttribute(attrName);
+                if (attrName === 'src' && trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) el.removeAttribute(attrName);
             });
         });
-
         return doc.body.innerHTML;
     }
 

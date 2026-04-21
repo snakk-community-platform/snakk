@@ -2,6 +2,7 @@ namespace Snakk.Infrastructure.Services;
 
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using Snakk.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,7 @@ public class MediaService(
         CancellationToken cancellationToken = default)
     {
         if (!AllowedContentTypes.Contains(contentType))
-            throw new InvalidOperationException($"File type '{contentType}' is not allowed. Allowed types: {string.Join(", ", AllowedContentTypes)}");
+            throw new DomainException($"File type '{contentType}' is not allowed. Allowed types: {string.Join(", ", AllowedContentTypes)}");
 
         int finalWidth = 0;
         int finalHeight = 0;
@@ -50,10 +51,10 @@ public class MediaService(
         await stream.CopyToAsync(rawStream, cancellationToken);
 
         if (rawStream.Length > MaxFileSizeBytes)
-            throw new InvalidOperationException($"File exceeds maximum size of {MaxFileSizeBytes / (1024 * 1024)} MB.");
+            throw new DomainException($"File exceeds maximum size of {MaxFileSizeBytes / (1024 * 1024)} MB.");
 
         if (rawStream.Length == 0)
-            throw new InvalidOperationException("File is empty.");
+            throw new DomainException("File is empty.");
 
         // Re-encode image with ImageSharp — sanitizes embedded scripts, strips EXIF, resizes if needed
         rawStream.Position = 0;
@@ -67,9 +68,9 @@ public class MediaService(
             const int MaxPixelDimension = 16384;
             const long MaxTotalPixels = 100_000_000;
             if (image.Width > MaxPixelDimension || image.Height > MaxPixelDimension)
-                throw new InvalidOperationException($"Image dimensions exceed maximum ({MaxPixelDimension}x{MaxPixelDimension})");
+                throw new DomainException($"Image dimensions exceed maximum ({MaxPixelDimension}x{MaxPixelDimension})");
             if ((long)image.Width * image.Height > MaxTotalPixels)
-                throw new InvalidOperationException("Image exceeds maximum pixel count");
+                throw new DomainException("Image exceeds maximum pixel count");
 
             // Resize if either dimension exceeds the max
             if (image.Width > MaxImageDimension || image.Height > MaxImageDimension)
@@ -91,7 +92,7 @@ public class MediaService(
         }
         catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
         {
-            throw new InvalidOperationException("File is not a valid image.");
+            throw new DomainException("File is not a valid image.");
         }
 
         // Compute SHA-256 hash of the processed (clean) image for deduplication
@@ -133,7 +134,7 @@ public class MediaService(
         var user = await db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.PublicId == userPublicId, cancellationToken)
-            ?? throw new InvalidOperationException("User not found.");
+            ?? throw new DomainException("User not found.");
 
         // Per-user daily upload quota
         var dayAgo = DateTime.UtcNow.AddHours(-24);
@@ -141,7 +142,7 @@ public class MediaService(
             .CountAsync(m => m.UploadedByUserId == user.Id && m.CreatedAt >= dayAgo, cancellationToken);
 
         if (recentUploadCount >= MaxUploadsPerUserPerDay)
-            throw new InvalidOperationException($"Daily upload limit reached. Maximum {MaxUploadsPerUserPerDay} images per day.");
+            throw new DomainException($"Daily upload limit reached. Maximum {MaxUploadsPerUserPerDay} images per day.");
 
         // Save processed file to storage
         processedStream.Position = 0;

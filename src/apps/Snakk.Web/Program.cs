@@ -15,6 +15,7 @@ using Grpc.Core.Interceptors;
 using Prometheus;
 using Serilog;
 using Snakk.ServiceDefaults;
+using System.Net;
 using System.Text;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
@@ -116,6 +117,9 @@ builder.Services.AddOutputCache(options =>
         .SetVaryByRouteValue("publicId"));
 });
 
+// OAuth provider availability flags (used by _RegistrationNudge partial)
+builder.Services.Configure<OAuthProvidersOptions>(builder.Configuration.GetSection("OAuthProviders"));
+
 // Community context (scoped per request)
 builder.Services.AddScoped<ICommunityContext, CommunityContext>();
 
@@ -134,7 +138,7 @@ builder.Services.AddWebOptimizer(pipeline =>
 
 // Configure HttpClient for Internal API (for avatar proxy and other BFF endpoints)
 // In Docker, REST uses a separate port (HTTP/1.1) from gRPC (HTTP/2)
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 var apiRestBaseUrl = builder.Configuration["ApiRestBaseUrl"] ?? apiBaseUrl;
 
 builder.Services.AddHttpClient("InternalApi", client =>
@@ -267,6 +271,12 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
     .SetApplicationName("Snakk");
 
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
+
 var app = builder.Build();
 
 //app.UseSerilogRequestLogging();
@@ -278,14 +288,16 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Trust forwarded headers only from internal Docker/private networks, not any source
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor
         | ForwardedHeaders.XForwardedHost
         | ForwardedHeaders.XForwardedProto
 };
-forwardedHeadersOptions.KnownIPNetworks.Clear();
-forwardedHeadersOptions.KnownProxies.Clear();
+forwardedHeadersOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+forwardedHeadersOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+forwardedHeadersOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseStatusCodePagesWithReExecute("/NotFound");
@@ -320,7 +332,7 @@ app.Use(async (context, next) =>
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: https:; " +
         "font-src 'self'; " +
-        "connect-src 'self' wss: ws:; " +
+        "connect-src 'self'; " +
         "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://*.vimeo.com https://vimeo.com; " +
         "frame-ancestors 'self'; " +
         "base-uri 'self'; " +
@@ -379,11 +391,16 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // Cache static files for 1 year in production
         if (!app.Environment.IsDevelopment())
         {
-            const int durationInSeconds = 60 * 60 * 24 * 365; // 1 year
-            ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={durationInSeconds}");
+            const int oneYear = 60 * 60 * 24 * 365;
+            // Icons served with ?v=hash query string are content-versioned — mark immutable
+            var isVersionedIcon = ctx.Context.Request.Path.StartsWithSegments("/icons")
+                                  && ctx.Context.Request.QueryString.HasValue;
+            var cacheControl = isVersionedIcon
+                ? $"public,max-age={oneYear},immutable"
+                : $"public,max-age={oneYear}";
+            ctx.Context.Response.Headers.Append("Cache-Control", cacheControl);
         }
     }
 });
@@ -567,7 +584,7 @@ app.MapPost("/bff/adult-confirm", (HttpContext ctx) =>
     });
 
     var returnUrl = ctx.Request.Form["returnUrl"].FirstOrDefault() ?? "/";
-    if (!returnUrl.StartsWith("/")) returnUrl = "/";
+    if (!returnUrl.StartsWith("/") || returnUrl.StartsWith("//")) returnUrl = "/";
     return Results.Redirect(returnUrl);
 }).DisableAntiforgery();
 

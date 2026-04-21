@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Infrastructure.Database;
-using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Database.Repositories;
 
@@ -45,7 +44,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             .FirstOrDefaultAsync();
 
     public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId) =>
-        // Use denormalized counters for discussion/reply counts
+        // Use denormalized counters for all counts (avoids correlated subquery on UserFollows)
         await _context.Spaces
             .Where(s => s.PublicId == publicId)
             .Select(s => new SpaceStatsDto(
@@ -54,9 +53,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 s.Description,
                 s.DiscussionCount,
                 s.PostCount - s.DiscussionCount,
-                _context.UserFollows.Count(f =>
-                    f.SpaceId == s.Id
-                    && f.TargetTypeId == (int)FollowTargetTypeEnum.Space),
+                s.FollowerCount,
                 s.AvatarFileName))
             .FirstOrDefaultAsync();
 
@@ -87,20 +84,15 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             u.Bio))
         .FirstOrDefaultAsync();
 
-    public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId)
-    {
-        var discussion = await _context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == publicId);
-
-        if (discussion is null)
-            return null;
-
-        return new DiscussionStatsDto(
-            discussion.PublicId,
-            discussion.Title,
-            discussion.PostCount - 1, // PostCount includes first post; replies = total - 1
-            discussion.FollowerCount);
-    }
+    public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId) =>
+        await _context.Discussions
+            .Where(d => d.PublicId == publicId)
+            .Select(d => new DiscussionStatsDto(
+                d.PublicId,
+                d.Title,
+                d.PostCount - 1,
+                d.FollowerCount))
+            .FirstOrDefaultAsync();
 
     public async Task<List<TopActiveSpaceDto>> GetTopActiveSpacesSinceAsync(
         DateTime since,

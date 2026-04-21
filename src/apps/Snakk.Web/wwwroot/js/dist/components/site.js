@@ -1,12 +1,12 @@
 "use strict";(function(){"use strict";if(window.SnakkPopup)return;class h{constructor(e={}){this.currentPopup=null,this.showTimeout=null,this.hideTimeout=null,this.currentTrigger=null,this.statsCache=new Map,this.resolveCache=new Map,this._mouseOverHandler=null,this._mouseOutHandler=null,this.popupDelay=e.popupDelay||300,this.hideDelay=e.hideDelay||200}getTypeDisplayName(e){return{hub:"Hub",space:"Space",community:"Community",user:"User",discussion:"Discussion"}[e]||e}createPopupElement(){const e=document.createElement("div");return e.className="snakk-popup",e.innerHTML=`
-            <div class="snakk-popup-inner">
-                <div class="snakk-popup-banner">
+            <div class="card card-xs snakk-popup-inner">
+                <figure class="snakk-popup-banner">
                     <div class="snakk-popup-banner-info">
                         <div class="snakk-popup-name"></div>
                         <div class="snakk-popup-type"></div>
                     </div>
-                </div>
-                <div class="snakk-popup-body">
+                </figure>
+                <div class="card-body snakk-popup-body">
                     <div class="snakk-popup-description"></div>
                     <div class="snakk-popup-stats"></div>
                     <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">

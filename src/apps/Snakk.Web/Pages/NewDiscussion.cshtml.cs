@@ -34,12 +34,6 @@ public class NewDiscussionModel(
         [FromQuery] string? hubId,
         [FromQuery] string? communityId)
     {
-        if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
-        {
-            var returnUrl = HttpContext.Request.Path + HttpContext.Request.QueryString;
-            return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
-        }
-
         PreselectedSpaceId = spaceId;
         ScopeHubId = hubId;
         ScopeCommunityId = communityId;

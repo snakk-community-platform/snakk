@@ -85,14 +85,14 @@ class SnakkPopup {
         const popup = document.createElement('div');
         popup.className = 'snakk-popup';
         popup.innerHTML = `
-            <div class="snakk-popup-inner">
-                <div class="snakk-popup-banner">
+            <div class="card card-xs snakk-popup-inner">
+                <figure class="snakk-popup-banner">
                     <div class="snakk-popup-banner-info">
                         <div class="snakk-popup-name"></div>
                         <div class="snakk-popup-type"></div>
                     </div>
-                </div>
-                <div class="snakk-popup-body">
+                </figure>
+                <div class="card-body snakk-popup-body">
                     <div class="snakk-popup-description"></div>
                     <div class="snakk-popup-stats"></div>
                     <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">

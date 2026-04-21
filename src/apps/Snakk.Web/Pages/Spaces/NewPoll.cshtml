@@ -12,6 +12,11 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
+@if (User.Identity?.IsAuthenticated != true) {
+    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
+    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    return;
+}
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
 
 <div class="fp-center">
@@ -159,6 +164,8 @@
         </div>
     </div>
 </div>
+
+<partial name="Shared/_NewDiscussionSpaceSidebar" model="Model" />
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>

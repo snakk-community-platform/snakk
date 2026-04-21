@@ -7,7 +7,7 @@ scrape_configs:
   - job_name: snakk-web
     metrics_path: /metrics
     static_configs:
-      - targets: ["snakk:17110"]
+      - targets: ["snakk:17010"]
         labels:
           service: web
 
@@ -15,7 +15,7 @@ scrape_configs:
   - job_name: snakk-api
     metrics_path: /metrics
     static_configs:
-      - targets: ["snakk:17100"]
+      - targets: ["snakk:17002"]
         labels:
           service: api
 

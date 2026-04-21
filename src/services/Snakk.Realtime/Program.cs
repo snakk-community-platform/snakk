@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Http.Resilience;
@@ -26,6 +27,18 @@ builder.Services.AddSignalR(options =>
     options.StreamBufferCapacity = 20;
 });
 
+// Fail-fast: reject placeholder secrets in production
+if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "Testing")
+{
+    var jwtKey = builder.Configuration["Realtime:JwtKey"];
+    if (string.IsNullOrEmpty(jwtKey) || jwtKey.Contains("CHANGE_IN_PRODUCTION", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Realtime:JwtKey must be overridden in production.");
+
+    var apiKey = builder.Configuration["Realtime:ApiKey"];
+    if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("CHANGE_IN_PRODUCTION", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Realtime:ApiKey must be overridden in production.");
+}
+
 // JWT auth for browser WebSocket connections
 var realtimeJwtKey = builder.Configuration["Realtime:JwtKey"]
     ?? throw new InvalidOperationException("Realtime:JwtKey is not configured.");
@@ -37,8 +50,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(realtimeJwtKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = "Snakk",
+            ValidateAudience = true,
+            ValidAudience = "Snakk-Realtime",
             ClockSkew = TimeSpan.FromSeconds(30)
         };
 
@@ -65,7 +80,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddHostedService<ViewerCountCleanupService>();
 
 // HTTP client to Snakk.Api for subscription access verification
-var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17100";
+var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17101";
 var snakkApiKey = builder.Configuration["SnakkApi:ApiKey"] ?? string.Empty;
 
 builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
@@ -76,12 +91,13 @@ builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
 })
 .AddStandardResilienceHandler();
 
-// Configure forwarded headers for proxy scenarios
+// Configure forwarded headers — trust only internal Docker/private networks, not any source
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.All;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 });
 
 // Add CORS for browser connections
@@ -90,7 +106,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(
-                builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? ["https://localhost:17000"])
+                builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? ["https://localhost:17100"])
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

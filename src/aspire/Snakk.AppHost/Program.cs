@@ -3,10 +3,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 // --- Services ----------------------------------------------
 
 var realtime = builder.AddProject<Projects.Snakk_Realtime>("snakk-realtime")
-    .WithEndpoint("https", e => { e.Port = 17101; });
+    .WithEndpoint("https", e => { e.Port = 17103; });
 
 var api = builder.AddProject<Projects.Snakk_Api>("snakk-api")
-    .WithEndpoint("https", e => { e.Port = 17100; })
+    .WithEndpoint("https", e => { e.Port = 17101; })
+    .WithEnvironment("RestPort", "17102")
     .WithEnvironment("Realtime__BaseUrl", realtime.GetEndpoint("https"))
     .WaitFor(realtime);
 
@@ -39,7 +40,7 @@ api.WithEnvironment("WebClientUrl", web.GetEndpoint("https"));
 // --- Gateway (entry point) ---------------------------------
 
 var gateway = builder.AddProject<Projects.Snakk_Gateway>("snakk-gateway")
-    .WithEndpoint("https", e => { e.Port = 17000; })
+    .WithEndpoint("https", e => { e.Port = 17100; })
     .WithExternalHttpEndpoints()
     // Override YARP cluster addresses with actual service endpoints
     .WithEnvironment("ReverseProxy__Clusters__web-cluster__Destinations__web__Address", web.GetEndpoint("https"))

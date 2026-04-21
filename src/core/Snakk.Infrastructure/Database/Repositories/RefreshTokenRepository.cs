@@ -2,15 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Entities;
+using System.Security.Cryptography;
 
 namespace Snakk.Infrastructure.Database.Repositories;
 
 public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepository
 {
+    private static string HashToken(string rawToken) =>
+        Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+
     public async Task<RefreshToken?> GetByValueAsync(string tokenValue)
     {
         var projection = await _context.RefreshTokens
-            .Where(t => t.TokenValue == tokenValue)
+            .Where(t => t.TokenValue == HashToken(tokenValue))
             .Select(t => new RefreshTokenProjection(
                 t.TokenValue,
                 t.User.PublicId,
@@ -46,7 +50,7 @@ public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepos
         var entity = new RefreshTokenDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
-            TokenValue = token.Value,
+            TokenValue = HashToken(token.Value),
             UserId = user.Id,
             ExpiresAt = token.ExpiresAt,
             CreatedAt = token.CreatedAt,

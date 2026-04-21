@@ -392,8 +392,36 @@ public class WebhookService(
 
         try
         {
-            var httpClient = httpClientFactory.CreateClient("WebhookService");
-            httpClient.Timeout = TimeSpan.FromSeconds(webhook.TimeoutSeconds);
+            // Re-resolve DNS at delivery time to prevent DNS rebinding attacks.
+            // An attacker could register a webhook pointing to a public IP, then
+            // flip DNS to 127.0.0.1 after validation. The ConnectCallback fires
+            // at actual TCP connect time, re-checking the resolved address.
+            var handler = new SocketsHttpHandler
+            {
+                ConnectCallback = async (ctx, ct) =>
+                {
+                    var addresses = await Dns.GetHostAddressesAsync(ctx.DnsEndPoint.Host, ct);
+                    var safeAddress = addresses.FirstOrDefault(a => !IsPrivateOrReservedIp(a))
+                        ?? throw new InvalidOperationException(
+                            "Webhook URL resolves to a private or reserved IP address.");
+                    var socket = new Socket(safeAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+                        { NoDelay = true };
+                    try
+                    {
+                        await socket.ConnectAsync(new IPEndPoint(safeAddress, ctx.DnsEndPoint.Port), ct);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        throw;
+                    }
+                }
+            };
+            using var httpClient = new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = TimeSpan.FromSeconds(webhook.TimeoutSeconds)
+            };
 
             var request = new HttpRequestMessage(HttpMethod.Post, webhook.Url);
 

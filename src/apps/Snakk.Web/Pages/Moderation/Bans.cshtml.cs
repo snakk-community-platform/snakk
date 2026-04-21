@@ -6,6 +6,7 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
+[ValidateAntiForgeryToken]
 public class BansModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -47,6 +48,8 @@ public class BansModel(
 
     public async Task<IActionResult> OnPostBanAsync()
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         if (BanRequest is null || string.IsNullOrEmpty(BanRequest.TargetUserId))
         {
             return RedirectToPage(new { UserId });
@@ -58,6 +61,8 @@ public class BansModel(
 
     public async Task<IActionResult> OnPostUnbanAsync(string banId, string userId)
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         await apiClient.UnbanUserAsync(banId);
         return RedirectToPage(new { UserId = userId });
     }

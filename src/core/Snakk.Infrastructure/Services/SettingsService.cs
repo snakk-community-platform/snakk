@@ -306,6 +306,18 @@ public class SettingsService : ISettingsService
             adminUserId);
     }
 
+    public async Task<RegistrationSettingsDto> GetRegistrationSettingsAsync() => new RegistrationSettingsDto
+    {
+        Mode = await GetSettingValueAsync<string>("Registration", "Mode") ?? "Open",
+        InviteCode = await GetSettingValueAsync<string>("Registration", "InviteCode") ?? ""
+    };
+
+    public async Task UpdateRegistrationSettingsAsync(RegistrationSettingsDto settings, string adminUserId)
+    {
+        await UpdateSettingAsync("Registration", "Mode", settings.Mode, adminUserId);
+        await UpdateSettingAsync("Registration", "InviteCode", settings.InviteCode, adminUserId);
+    }
+
     #endregion
 
     #region Helper Methods

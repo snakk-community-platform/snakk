@@ -22,6 +22,9 @@ public class TokenService(
         return Convert.ToBase64String(randomBytes);
     }
 
+    private static string HashToken(string rawToken) =>
+        Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+
     public async Task<RefreshToken> CreateRefreshTokenAsync(
         UserId userId,
         string deviceName,
@@ -40,7 +43,7 @@ public class TokenService(
         var entity = new RefreshTokenDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
-            TokenValue = tokenValue,
+            TokenValue = HashToken(tokenValue),
             UserId = user.Id,
             ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
             CreatedAt = DateTime.UtcNow,
@@ -62,7 +65,7 @@ public class TokenService(
             .AsTracking()
             .Include(t => t.User)
                 .ThenInclude(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(t => t.TokenValue == refreshTokenValue);
+            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(refreshTokenValue));
 
         if (tokenEntity is null || !tokenEntity.IsActive)
             return null;
@@ -100,7 +103,7 @@ public class TokenService(
     {
         var token = await context.RefreshTokens
             .AsTracking()
-            .FirstOrDefaultAsync(t => t.TokenValue == tokenValue);
+            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(tokenValue));
 
         if (token is not null && !token.IsRevoked)
         {

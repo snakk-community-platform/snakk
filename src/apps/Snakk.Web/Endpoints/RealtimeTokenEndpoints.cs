@@ -20,6 +20,8 @@ public static class RealtimeTokenEndpoints
         if (string.IsNullOrEmpty(userId))
             return Results.Unauthorized();
 
+        var displayName = context.User.FindFirstValue(ClaimTypes.Name) ?? "";
+
         var jwtKey = configuration["Realtime:JwtKey"]
             ?? throw new InvalidOperationException("Realtime:JwtKey is not configured.");
 
@@ -29,7 +31,12 @@ public static class RealtimeTokenEndpoints
         const int expiresInSeconds = 3600;
 
         var token = new JwtSecurityToken(
-            claims: [new Claim(JwtRegisteredClaimNames.Sub, userId)],
+            issuer: "Snakk",
+            audience: "Snakk-Realtime",
+            claims: [
+                new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(ClaimTypes.Name, displayName)
+            ],
             expires: DateTime.UtcNow.AddSeconds(expiresInSeconds),
             signingCredentials: credentials);
 

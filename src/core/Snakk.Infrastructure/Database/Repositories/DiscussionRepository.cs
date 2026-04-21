@@ -18,7 +18,7 @@ public class DiscussionRepository(SnakkDbContext context)
         .FirstOrDefaultAsync(d => d.PublicId == publicId);
 
     public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.ToListAsync();
+        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
 
     public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(d => d.PublicId == publicId)
@@ -44,6 +44,7 @@ public class DiscussionRepository(SnakkDbContext context)
         await _dbSet.FirstOrDefaultAsync(d => d.Slug == slug);
 
     public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId) => await _dbSet
+        .AsNoTracking()
         .Where(d => d.SpaceId == spaceId)
         .OrderByDescending(d => d.IsPinned)
         .ThenByDescending(d => d.LastActivityAt)
@@ -127,6 +128,7 @@ public class DiscussionRepository(SnakkDbContext context)
     }
 
     public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count) => await _dbSet
+        .AsNoTracking()
         .OrderByDescending(d => d.LastActivityAt)
         .Take(count)
         .ToListAsync();

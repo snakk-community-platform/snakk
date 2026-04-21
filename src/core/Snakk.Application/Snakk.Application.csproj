@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Data\disposable_email_blocklist.conf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Markdig" Version="1.1.1" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
   </ItemGroup>

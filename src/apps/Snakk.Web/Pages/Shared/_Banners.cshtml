@@ -22,7 +22,7 @@
                         <h3 class="font-bold text-sm">@banner.Title</h3>
                     }
                     <div class="prose prose-sm max-w-none banner-content">
-                        @Html.Raw(banner.RenderedContent)
+                        @Html.SanitizedRaw(banner.RenderedContent)
                     </div>
                 </div>
                 @if (banner.IsDismissible)

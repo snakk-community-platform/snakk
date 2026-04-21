@@ -28,4 +28,7 @@ public interface ISettingsService
 
     Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync();
     Task UpdateRateLimitingSettingsAsync(RateLimitingSettingsDto settings, string adminUserId);
+
+    Task<RegistrationSettingsDto> GetRegistrationSettingsAsync();
+    Task UpdateRegistrationSettingsAsync(RegistrationSettingsDto settings, string adminUserId);
 }

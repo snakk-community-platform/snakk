@@ -9,7 +9,7 @@ namespace Snakk.Realtime.Middleware;
 public class ApiKeyAuthMiddleware(RequestDelegate next, IConfiguration configuration)
 {
     private readonly byte[] _apiKeyBytes = Encoding.UTF8.GetBytes(
-        configuration["ApiKey"] ?? throw new InvalidOperationException("ApiKey not configured"));
+        configuration["Realtime:ApiKey"] ?? throw new InvalidOperationException("Realtime:ApiKey not configured"));
 
     public async Task InvokeAsync(HttpContext context)
     {

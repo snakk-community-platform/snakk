@@ -3,6 +3,7 @@ namespace Snakk.Api.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Services;
+using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.DTOs.Responses;
@@ -93,9 +94,13 @@ public static class TwoFactorAuthEndpoints
                 setup.QrCodeUrl,
                 "Scan the QR code with your authenticator app, then verify with a code to enable 2FA"));
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return Results.Problem("An error occurred. Please try again.");
         }
     }
 
@@ -271,9 +276,13 @@ public static class TwoFactorAuthEndpoints
             return TypedResults.Ok(new BackupCodesStatusResponse(
                 status.TotalCount, status.TotalCount - status.UsedCount, status.Codes));
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return Results.Problem("An error occurred. Please try again.");
         }
     }
 
@@ -296,9 +305,13 @@ public static class TwoFactorAuthEndpoints
                 backupCodes,
                 "Save these backup codes in a secure place. They can only be used once and will not be shown again."));
         }
-        catch (InvalidOperationException ex)
+        catch (DomainException ex)
         {
             return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return Results.Problem("An error occurred. Please try again.");
         }
     }
 

@@ -72,6 +72,19 @@ internal static class PagedDiscussionListMapper
 
             item.Tags.AddRange(d.Tags ?? []);
 
+            if (d.LastReplierPublicId is not null)
+            {
+                item.LastReplier = new AuthorRef
+                {
+                    PublicId = d.LastReplierPublicId,
+                    DisplayName = d.LastReplierDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
+                };
+                item.LastPostExcerpt = d.LastPostExcerpt ?? "";
+            }
+
             if (d.Preview is not null)
             {
                 var preview = new DiscussionPreview();

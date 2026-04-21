@@ -30,6 +30,10 @@ public class AuthenticationUseCase(
         if (string.IsNullOrWhiteSpace(email))
             return Result<User>.Failure("Email is required");
 
+        var (emailIsValid, emailError) = DisposableEmailValidator.Validate(email);
+        if (!emailIsValid)
+            return Result<User>.Failure(emailError!);
+
         if (string.IsNullOrWhiteSpace(password))
             return Result<User>.Failure("Password is required");
 
@@ -52,7 +56,12 @@ public class AuthenticationUseCase(
         var existingUser = await userRepository.GetByEmailAsync(email);
 
         if (existingUser is not null)
+        {
+            // Equalize timing: hash the password even when email is taken
+            // to prevent email enumeration via response time differences
+            passwordHasher.HashPassword(password);
             return Result<User>.Failure("Email is already registered");
+        }
 
         // Check if display name is available
         var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName);
@@ -108,7 +117,7 @@ public class AuthenticationUseCase(
         // Verify password
         if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
         {
-            user.RecordFailedLogin(maxAttempts: 10, lockoutMinutes: 15);
+            user.RecordFailedLogin(maxAttempts: 5, lockoutMinutes: 15);
             await userRepository.UpdateAsync(user);
             return Result<User>.Failure("Invalid email or password");
         }
@@ -149,6 +158,10 @@ public class AuthenticationUseCase(
         }
 
         // Create new user with OAuth (no display name — set during profile setup)
+        var (oauthEmailIsValid, oauthEmailError) = DisposableEmailValidator.Validate(email);
+        if (!oauthEmailIsValid)
+            return Result<User>.Failure(oauthEmailError!);
+
         user = User.CreateWithOAuth(
             email,
             oauthProvider,

@@ -15,25 +15,10 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         string verificationToken,
         string baseUrl)
     {
-        var verificationUrl = $"{baseUrl}/auth/verify-email?token={verificationToken}";
-
-        logger.LogInformation("""
-
-            ================================================
-            EMAIL VERIFICATION
-            ================================================
-            To: {ToEmail}
-            Subject: Verify your Snakk account
-
-            Hi {DisplayName},
-
-            Please verify your email address by clicking the link below:
-            {VerificationUrl}
-
-            If you didn't create an account, you can safely ignore this email.
-
-            ================================================
-            """, toEmail, displayName, verificationUrl);
+        // Token is intentionally omitted from logs — use a real email provider in non-Development.
+        logger.LogInformation(
+            "DEV EMAIL: Verification email would be sent to {ToEmail} (token omitted from logs)",
+            toEmail);
 
         return Task.CompletedTask;
     }
@@ -44,25 +29,10 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         string resetToken,
         string baseUrl)
     {
-        var resetUrl = $"{baseUrl}/auth/reset-password?token={resetToken}";
-
-        logger.LogInformation("""
-
-            ================================================
-            PASSWORD RESET
-            ================================================
-            To: {ToEmail}
-            Subject: Reset your Snakk password
-
-            Hi {DisplayName},
-
-            Click the link below to reset your password:
-            {ResetUrl}
-
-            If you didn't request a password reset, you can safely ignore this email.
-
-            ================================================
-            """, toEmail, displayName, resetUrl);
+        // Token is intentionally omitted from logs — use a real email provider in non-Development.
+        logger.LogInformation(
+            "DEV EMAIL: Password reset email would be sent to {ToEmail} (token omitted from logs)",
+            toEmail);
 
         return Task.CompletedTask;
     }

@@ -25,6 +25,7 @@
 @use 'components/notifications';
 @use 'components/mentions';
 @use 'components/popups';
+@use 'components/icons';
 @use 'components/skeletons';
 @use 'components/search-focus';
 
@@ -41,6 +42,7 @@
 @use 'features/type-widgets';
 @use 'features/lightbox';
 @use 'features/timezone-map';
+@use 'features/nudge';
 
 // ============================================
 // Pages

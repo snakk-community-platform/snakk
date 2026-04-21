@@ -23,8 +23,7 @@
     }
 }
 
-// Inner wrapper clips banner gradient to border-radius
-.snakk-popup-inner {
+.snakk-popup .card {
     background: var(--bg-primary);
     border: 1px solid var(--bg-subtle);
     border-radius: 12px;

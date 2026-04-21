@@ -53,6 +53,7 @@ public class SpaceDatabaseEntity
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }
     public int ReactionCount { get; set; }
+    public int FollowerCount { get; set; }
 
     // Many-to-one relationships
     public int HubId { get; set; }

@@ -43,6 +43,7 @@ message RegisterRequest {
   string display_name = 3;
   string base_url = 4; // For email verification link
   optional string turnstile_token = 5;
+  optional string invite_code = 6;
 }
 
 message LoginRequest {
@@ -93,6 +94,7 @@ message OAuthCallbackRequest {
   string display_name = 4;
   string ip_address = 5;
   string user_agent = 6;
+  optional string invite_code = 7;
 }
 
 // --- Response Messages ---
@@ -170,6 +172,7 @@ message GetPublicSettingsRequest {}
 message PublicSettingsResponse {
   string timezone = 1;
   string site_name = 2;
+  string registration_mode = 3;
 }
 
 message GetDisplayNameHistoryRequest {}

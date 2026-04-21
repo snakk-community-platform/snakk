@@ -111,7 +111,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 
@@ -158,7 +158,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 
@@ -199,7 +199,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 
@@ -218,7 +218,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = $"Failed to send test email: {ex.Message}" });
+            return Results.BadRequest(new { error = "Failed to send test email." });
         }
     }
 
@@ -259,7 +259,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 
@@ -300,7 +300,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 
@@ -341,7 +341,7 @@ public static class AdminSettingsEndpoints
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
     }
 }

@@ -29,21 +29,10 @@ interface ActivityDataPoint {
         return div.innerHTML;
     };
 
-    const sanitizeHtml = window.SnakkUtils?.sanitizeHtml || function(html: string): string {
+    const _dp = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
+    const sanitizeHtml = (html: string): string => {
         if (!html) return '';
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
-        doc.body.querySelectorAll('*').forEach(el => {
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-            });
-            ['href', 'src', 'action', 'formaction'].forEach(a => {
-                const v = el.getAttribute(a);
-                if (v && v.trim().toLowerCase().startsWith('javascript:')) el.removeAttribute(a);
-            });
-        });
-        return doc.body.innerHTML;
+        return _dp ? _dp.sanitize(html, { USE_PROFILES: { html: true } }) : '';
     };
 
     const sanitizeUrl = window.SnakkUtils?.sanitizeUrl || function(url: string): string {

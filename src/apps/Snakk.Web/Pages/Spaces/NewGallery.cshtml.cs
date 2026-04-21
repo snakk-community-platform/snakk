@@ -18,6 +18,12 @@ public class NewGalleryModel(
     protected override async Task<Snakk.Protos.Discussion.DiscussionCreatedInfo?> CreateDiscussionAsync()
     {
         var imageUrls = ImagesImageUrls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? [];
+
+        if (imageUrls.Count > 20)
+        {
+            CreateError = "Gallery discussions support a maximum of 20 images.";
+            return null;
+        }
         var content = NewContent?.Trim();
         if (string.IsNullOrWhiteSpace(content))
             content = " ";

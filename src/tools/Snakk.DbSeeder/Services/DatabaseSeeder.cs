@@ -44,6 +44,8 @@ public class DatabaseSeeder(
     {
         var timezone = _configuration["Snakk:SiteTimezone"] ?? "UTC";
         await UpsertSystemSettingAsync("General", "Timezone", timezone, "String");
+        await UpsertSystemSettingAsync("Registration", "Mode", "Open", "String");
+        await UpsertSystemSettingAsync("Registration", "InviteCode", "", "String");
     }
 
     private async Task UpsertSystemSettingAsync(string category, string key, string value, string valueType)
@@ -271,18 +273,14 @@ public class DatabaseSeeder(
         var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.EmailHash == adminHash || u.PublicId == adminPublicId);
         if (adminUser is not null)
         {
-            // If found by PublicId but email/password drifted (e.g. setup wizard ran first),
-            // sync credentials back to whatever the current config says.
-            if (adminUser.EmailHash != adminHash)
-            {
-                adminUser.Email = _emailProtector.Protect(adminEmail);
-                adminUser.EmailHash = adminHash;
-                adminUser.PasswordHash = _passwordHasher.HashPassword(adminPassword);
-                adminUser.FailedLoginAttempts = 0;
-                adminUser.LockoutEnd = null;
-                await _context.SaveChangesAsync();
-                Console.WriteLine($"Admin credentials synced to config: {adminEmail}");
-            }
+            // Always sync credentials from config so password resets and redeployments work correctly.
+            adminUser.Email = _emailProtector.Protect(adminEmail);
+            adminUser.EmailHash = adminHash;
+            adminUser.PasswordHash = _passwordHasher.HashPassword(adminPassword);
+            adminUser.FailedLoginAttempts = 0;
+            adminUser.LockoutEnd = null;
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"Admin credentials synced from config: {adminEmail}");
 
             // Ensure they have GlobalAdmin role in UserRoles table (for permissions)
             var hasGlobalAdminRole = await _context.UserRoles
@@ -828,12 +826,14 @@ public class DatabaseSeeder(
             var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             usersWhoPostedInDiscussion.Add(author.Id);
             var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
+            var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
             posts.Add(new PostDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
                 Content = firstPostContent,
                 RenderedContent = _markupParser.ToHtml(firstPostContent),
+                PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                 CreatedByUserId = author.Id,
                 CreatedAt = discussion.CreatedAt,
                 IsFirstPost = true,
@@ -877,12 +877,14 @@ public class DatabaseSeeder(
                 var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
 
                 var replyContent = GeneratePostContent(isOpeningPost: false);
+                var replyPlainText = _markupParser.ToPlainText(replyContent);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
                     Content = replyContent,
                     RenderedContent = _markupParser.ToHtml(replyContent),
+                    PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                     CreatedByUserId = replyAuthor.Id,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
@@ -1367,12 +1369,14 @@ public class DatabaseSeeder(
             usersWhoPostedInDiscussion.Add(author.Id);
             var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             var firstPostContent = GeneratePostContent(isOpeningPost: true);
+            var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
             posts.Add(new PostDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
                 Content = firstPostContent,
                 RenderedContent = _markupParser.ToHtml(firstPostContent),
+                PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                 CreatedByUserId = author.Id,
                 CreatedAt = createdAt,
                 IsFirstPost = true,
@@ -1404,12 +1408,14 @@ public class DatabaseSeeder(
                 var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var replyContent = GeneratePostContent(isOpeningPost: false);
+                var replyPlainText = _markupParser.ToPlainText(replyContent);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
                     Content = replyContent,
                     RenderedContent = _markupParser.ToHtml(replyContent),
+                    PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                     CreatedByUserId = replyAuthor.Id,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
@@ -1688,6 +1694,12 @@ public class DatabaseSeeder(
             .Select(g => new { SpaceId = g.Key, ReactionCount = g.Sum(d => d.ReactionCount) })
             .ToListAsync();
 
+        var spaceFollowerCounts = await _context.UserFollows
+            .Where(f => f.TargetTypeId == (int)FollowTargetTypeEnum.Space)
+            .GroupBy(f => f.SpaceId!.Value)
+            .Select(g => new { SpaceId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.SpaceId, x => x.Count);
+
         var spaces = await _context.Spaces.ToListAsync();
         foreach (var space in spaces)
         {
@@ -1696,6 +1708,7 @@ public class DatabaseSeeder(
             space.DiscussionCount = disc?.DiscussionCount ?? 0;
             space.PostCount = disc?.PostCount ?? 0;
             space.ReactionCount = react?.ReactionCount ?? 0;
+            space.FollowerCount = spaceFollowerCounts.GetValueOrDefault(space.Id);
         }
 
         await _context.SaveChangesAsync();

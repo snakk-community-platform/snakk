@@ -31,12 +31,12 @@ public class ConsentModel(
             PendingConsents = response.Consents.ToList();
 
             if (PendingConsents.Count == 0)
-                return Redirect(ReturnUrl ?? "/");
+                return Redirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to load pending consents");
-            return Redirect(ReturnUrl ?? "/");
+            return Redirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
 
         return Page();
@@ -81,7 +81,7 @@ public class ConsentModel(
                     VersionIds = { pending.Consents.Select(c => c.VersionId) }
                 }, headers: headers);
 
-            return Redirect(ReturnUrl ?? "/");
+            return Redirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
         catch (Exception ex)
         {

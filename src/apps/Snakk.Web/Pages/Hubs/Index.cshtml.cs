@@ -19,7 +19,7 @@ public class IndexModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public PlatformStats? PlatformStats { get; set; }
     public CommunityStats? CommunityStats { get; set; }
-    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+    public string ApiBaseUrl => configuration["ApiBaseUrl"] ?? "https://localhost:17101";
     public ICommunityContext Community => communityContext;
 
     // Sidebar scope for HTMX partials

@@ -6,6 +6,7 @@ using Snakk.Protos.User;
 
 namespace Snakk.Web.Pages.Moderation;
 
+[ValidateAntiForgeryToken]
 public class RolesModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -83,6 +84,8 @@ public class RolesModel(
 
     public async Task<IActionResult> OnPostAssignAsync()
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         if (AssignRequest is null || string.IsNullOrEmpty(AssignRequest.TargetUserId))
             return RedirectToPage();
 
@@ -92,6 +95,8 @@ public class RolesModel(
 
     public async Task<IActionResult> OnPostRevokeAsync(string roleId, string userId)
     {
+        if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
+
         await apiClient.RevokeRoleAsync(roleId);
         return RedirectToPage(new { UserId = userId });
     }

@@ -13,12 +13,7 @@ else
         <details class="group">
             <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
                 <span>@(index + 1). @rule.Title</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="flex-shrink-0 transition-transform group-open:rotate-180">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                <span class="icon icon-chevron-down w-4 h-4 flex-shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"></span>
             </summary>
             <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Description</p>
         </details>
@@ -31,21 +26,13 @@ else
         <a href="/c/@Model.CommunitySlug/rules"
            class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
             <span>Community Rules</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
+            <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
         </a>
     }
     <a href="/rules"
        class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
         <span>Site Rules</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-             stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
+        <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
     </a>
 </div>
 </div>

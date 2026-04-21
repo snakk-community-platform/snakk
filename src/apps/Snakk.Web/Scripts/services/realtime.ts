@@ -74,22 +74,11 @@ interface Subscriptions {
 (function(): void {
     'use strict';
 
-    const sanitizeHtml = (window as any).SnakkUtils?.sanitizeHtml || function(html: string): string {
+    const _dp = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
+    function sanitizeHtml(html: string): string {
         if (!html) return '';
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
-        doc.body.querySelectorAll('*').forEach(el => {
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-            });
-            ['href', 'src', 'action', 'formaction'].forEach(a => {
-                const v = el.getAttribute(a);
-                if (v && v.trim().toLowerCase().startsWith('javascript:')) el.removeAttribute(a);
-            });
-        });
-        return doc.body.innerHTML;
-    };
+        return _dp ? _dp.sanitize(html, { USE_PROFILES: { html: true } }) : '';
+    }
 
     const snakkDebug = (window as any).SnakkDebug;
     function debugLog(message: string): void {
@@ -443,7 +432,7 @@ interface Subscriptions {
             worker.port.start();
 
             // Send init with the realtime URL and SignalR script URL
-            const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17101/realtime';
+            const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17103/realtime';
             worker.port.postMessage({ type: 'init', realtimeUrl, signalrSrc: meta.content });
 
             worker.port.onmessage = (e: MessageEvent) => {
@@ -521,7 +510,7 @@ interface Subscriptions {
     }
 
     function startDirectConnection(): void {
-        const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17101/realtime';
+        const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17103/realtime';
 
         loadSignalR()
             .then(async () => {
@@ -610,18 +599,18 @@ interface Subscriptions {
     // ============================================================================
 
     (window as any).SnakkRealtime = {
-        startTyping(discussionId: string, displayName: string): void {
+        startTyping(discussionId: string): void {
             if (worker) {
-                worker.port.postMessage({ type: 'invoke', method: 'StartTyping', args: [discussionId, displayName] });
+                worker.port.postMessage({ type: 'invoke', method: 'StartTyping', args: [discussionId] });
             } else if (connection?.state === signalR.HubConnectionState.Connected) {
-                connection.invoke('StartTyping', discussionId, displayName).catch(() => {});
+                connection.invoke('StartTyping', discussionId).catch(() => {});
             }
         },
-        stopTyping(discussionId: string, displayName: string): void {
+        stopTyping(discussionId: string): void {
             if (worker) {
-                worker.port.postMessage({ type: 'invoke', method: 'StopTyping', args: [discussionId, displayName] });
+                worker.port.postMessage({ type: 'invoke', method: 'StopTyping', args: [discussionId] });
             } else if (connection?.state === signalR.HubConnectionState.Connected) {
-                connection.invoke('StopTyping', discussionId, displayName).catch(() => {});
+                connection.invoke('StopTyping', discussionId).catch(() => {});
             }
         }
     };

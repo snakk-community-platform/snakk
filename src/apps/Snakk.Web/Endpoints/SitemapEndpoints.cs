@@ -85,7 +85,7 @@ public static class SitemapEndpoints
         foreach (var discussion in result.Discussions)
         {
             var slugWithId = $"{discussion.Slug}~{UlidBase62.Encode(discussion.PublicId)}";
-            var url = $"{baseUrl}/h/{discussion.HubSlug}/{discussion.SpaceSlug}/{slugWithId}";
+            var url = $"{baseUrl}/c/{discussion.CommunitySlug}/h/{discussion.HubSlug}/{discussion.SpaceSlug}/{slugWithId}";
             var priority = discussion.IsPinned ? "0.9" : "0.7";
             var changefreq = discussion.IsPinned ? "weekly" : "monthly";
 

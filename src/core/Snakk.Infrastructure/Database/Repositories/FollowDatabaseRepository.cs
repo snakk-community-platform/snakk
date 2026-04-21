@@ -62,6 +62,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.DiscussionId == discussionId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion)
         .Select(f => f.UserId)
+        .Take(5000)
         .ToListAsync();
 
     public async Task<IEnumerable<int>> GetFollowerUserIdsOfSpaceAsync(int spaceId) => await _dbSet
@@ -69,6 +70,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.SpaceId == spaceId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.Space)
         .Select(f => f.UserId)
+        .Take(5000)
         .ToListAsync();
 
     public async Task<IEnumerable<int>> GetFollowerUserIdsOfUserAsync(int userId) => await _dbSet
@@ -76,6 +78,7 @@ public class FollowDatabaseRepository(SnakkDbContext context)
             f.FollowedUserId == userId
             && f.TargetTypeId == (int)FollowTargetTypeEnum.User)
         .Select(f => f.UserId)
+        .Take(5000)
         .ToListAsync();
 
     public async Task<int> GetFollowerCountOfUserAsync(int userId) => await _dbSet

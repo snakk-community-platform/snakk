@@ -1,0 +1,3436 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
+
+#nullable disable
+
+namespace Snakk.Infrastructure.Database.Migrations
+{
+    /// <inheritdoc />
+    public partial class InitialCreate : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "Achievement",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IconUrl = table.Column<string>(type: "text", nullable: true),
+                    TierLevel = table.Column<int>(type: "integer", nullable: false),
+                    Points = table.Column<int>(type: "integer", nullable: false),
+                    IsSecret = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RequirementConfig = table.Column<string>(type: "text", nullable: false),
+                    CategoryId = table.Column<int>(type: "integer", nullable: false),
+                    RequirementTypeId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Achievement", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Community",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    VisibilityId = table.Column<int>(type: "integer", nullable: false),
+                    ExposeToPlatformFeed = table.Column<bool>(type: "boolean", nullable: false),
+                    IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarMicroFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarRevision = table.Column<int>(type: "integer", nullable: false),
+                    Timezone = table.Column<string>(type: "text", nullable: true),
+                    LanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    IsRestricted = table.Column<bool>(type: "boolean", nullable: false),
+                    HasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    RulesRevision = table.Column<string>(type: "text", nullable: true),
+                    TeamRevision = table.Column<string>(type: "text", nullable: true),
+                    HubCount = table.Column<int>(type: "integer", nullable: false),
+                    SpaceCount = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionCount = table.Column<int>(type: "integer", nullable: false),
+                    PostCount = table.Column<int>(type: "integer", nullable: false),
+                    ReactionCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Community", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ConsentType",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Slug = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ShortLabel = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    LinkUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConsentType", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionReadState",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    DiscussionId = table.Column<string>(type: "text", nullable: false),
+                    LastReadPostId = table.Column<string>(type: "text", nullable: true),
+                    LastReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionReadState", x => new { x.UserId, x.DiscussionId });
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasswordResetRequest",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EmailHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Outcome = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetRequest", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Permissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Category = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    IsSystemPermission = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Permissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "User",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: true),
+                    Email = table.Column<string>(type: "text", nullable: true),
+                    EmailHash = table.Column<string>(type: "text", nullable: true),
+                    PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    EmailVerified = table.Column<bool>(type: "boolean", nullable: false),
+                    EmailVerificationToken = table.Column<string>(type: "text", nullable: true),
+                    OAuthProvider = table.Column<string>(type: "text", nullable: true),
+                    OAuthProviderId = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastSeenAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarMicroFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarRevision = table.Column<int>(type: "integer", nullable: false),
+                    AutoFollowOnReply = table.Column<bool>(type: "boolean", nullable: false),
+                    Timezone = table.Column<string>(type: "text", nullable: true),
+                    Bio = table.Column<string>(type: "text", nullable: true),
+                    FeedToken = table.Column<string>(type: "text", nullable: true),
+                    AllowAdultContent = table.Column<bool>(type: "boolean", nullable: false),
+                    DiscussionCount = table.Column<int>(type: "integer", nullable: false),
+                    ReplyCount = table.Column<int>(type: "integer", nullable: false),
+                    FollowerCount = table.Column<int>(type: "integer", nullable: false),
+                    UnreadNotificationCount = table.Column<int>(type: "integer", nullable: false),
+                    DisplayNameChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDisplayNameLocked = table.Column<bool>(type: "boolean", nullable: false),
+                    NeedsProfileSetup = table.Column<bool>(type: "boolean", nullable: false),
+                    FailedLoginAttempts = table.Column<int>(type: "integer", nullable: false),
+                    LockoutEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorSecret = table.Column<string>(type: "text", nullable: true),
+                    TwoFactorEnabledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_User", x => x.Id);
+                    table.UniqueConstraint("AK_User_PublicId", x => x.PublicId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CommunityAllowedDiscussionType",
+                columns: table => new
+                {
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionType = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommunityAllowedDiscussionType", x => new { x.CommunityId, x.DiscussionType });
+                    table.ForeignKey(
+                        name: "FK_CommunityAllowedDiscussionType_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CommunityDomain",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    Domain = table.Column<string>(type: "text", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    IsVerified = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommunityDomain", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CommunityDomain_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Groups",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Groups", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Groups_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Hub",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AllowAnonymousReading = table.Column<bool>(type: "boolean", nullable: false),
+                    RequireEmailConfirmation = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRestricted = table.Column<bool>(type: "boolean", nullable: false),
+                    IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarMicroFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarRevision = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    CommunityLanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    HasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    RulesRevision = table.Column<string>(type: "text", nullable: true),
+                    ParentCommunityHasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    TeamRevision = table.Column<string>(type: "text", nullable: true),
+                    SpaceCount = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionCount = table.Column<int>(type: "integer", nullable: false),
+                    PostCount = table.Column<int>(type: "integer", nullable: false),
+                    ReactionCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Hub", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Hub_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ConsentTypeVersion",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConsentTypeId = table.Column<int>(type: "integer", nullable: false),
+                    VersionNumber = table.Column<int>(type: "integer", nullable: false),
+                    Text = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConsentTypeVersion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ConsentTypeVersion_ConsentType_ConsentTypeId",
+                        column: x => x.ConsentTypeId,
+                        principalTable: "ConsentType",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AuditLog",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    ActorUserId = table.Column<int>(type: "integer", nullable: true),
+                    Action = table.Column<string>(type: "text", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    TargetType = table.Column<string>(type: "text", nullable: true),
+                    TargetId = table.Column<string>(type: "text", nullable: true),
+                    TargetDisplayName = table.Column<string>(type: "text", nullable: true),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    IpAddress = table.Column<string>(type: "text", nullable: true),
+                    UserAgent = table.Column<string>(type: "text", nullable: true),
+                    Success = table.Column<bool>(type: "boolean", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    SeverityId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditLog", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AuditLog_User_ActorUserId",
+                        column: x => x.ActorUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BackupCode",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CodeHash = table.Column<string>(type: "text", nullable: false),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    UsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UsedIp = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BackupCode", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BackupCode_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Banner",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    RenderedContent = table.Column<string>(type: "text", nullable: false),
+                    TypeId = table.Column<int>(type: "integer", nullable: false),
+                    ScopeId = table.Column<int>(type: "integer", nullable: false),
+                    ScopeEntityId = table.Column<string>(type: "text", nullable: false),
+                    VisibleFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    VisibleUntil = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDismissible = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Banner", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Banner_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DisplayNameHistory",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    PreviousName = table.Column<string>(type: "text", nullable: false),
+                    NewName = table.Column<string>(type: "text", nullable: false),
+                    ChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ChangedByUserId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DisplayNameHistory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DisplayNameHistory_User_ChangedByUserId",
+                        column: x => x.ChangedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_DisplayNameHistory_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Image",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
+                    Sha256Hash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    OriginalFileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    SizeBytes = table.Column<long>(type: "bigint", nullable: false),
+                    Width = table.Column<int>(type: "integer", nullable: false),
+                    Height = table.Column<int>(type: "integer", nullable: false),
+                    StoragePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UploadedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    ThumbnailPath = table.Column<string>(type: "text", nullable: true),
+                    ThumbnailWidth = table.Column<int>(type: "integer", nullable: true),
+                    ThumbnailHeight = table.Column<int>(type: "integer", nullable: true),
+                    MediumThumbnailPath = table.Column<string>(type: "text", nullable: true),
+                    MediumThumbnailWidth = table.Column<int>(type: "integer", nullable: true),
+                    MediumThumbnailHeight = table.Column<int>(type: "integer", nullable: true),
+                    BlurDataUri = table.Column<string>(type: "text", nullable: true),
+                    IsDraft = table.Column<bool>(type: "boolean", nullable: false),
+                    PublishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsReadyForDeletion = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Image", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Image_User_UploadedByUserId",
+                        column: x => x.UploadedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasswordResetToken",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedFromIp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    CreatedUserAgent = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    UsedFromIp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    UsedUserAgent = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetToken", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PasswordResetToken_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshToken",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    TokenValue = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RevocationReason = table.Column<string>(type: "text", nullable: true),
+                    ReplacedByTokenId = table.Column<int>(type: "integer", nullable: true),
+                    DeviceFingerprint = table.Column<string>(type: "text", nullable: true),
+                    DeviceName = table.Column<string>(type: "text", nullable: true),
+                    IpAddress = table.Column<string>(type: "text", nullable: true),
+                    UserAgent = table.Column<string>(type: "text", nullable: true),
+                    LastUsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshToken", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RefreshToken_RefreshToken_ReplacedByTokenId",
+                        column: x => x.ReplacedByTokenId,
+                        principalTable: "RefreshToken",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RefreshToken_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SystemSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    Key = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: false),
+                    ValueType = table.Column<string>(type: "text", nullable: false),
+                    IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    UpdatedById = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SystemSettings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SystemSettings_User_UpdatedById",
+                        column: x => x.UpdatedById,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TemporaryRoleElevations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    RoleType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Scope = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ScopeId = table.Column<int>(type: "integer", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    GrantedById = table.Column<int>(type: "integer", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RevokedById = table.Column<int>(type: "integer", nullable: true),
+                    RevokedReason = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TemporaryRoleElevations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TemporaryRoleElevations_User_GrantedById",
+                        column: x => x.GrantedById,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TemporaryRoleElevations_User_RevokedById",
+                        column: x => x.RevokedById,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_TemporaryRoleElevations_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TrustedDevice",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    DeviceFingerprint = table.Column<string>(type: "text", nullable: false),
+                    DeviceName = table.Column<string>(type: "text", nullable: false),
+                    TrustedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastUsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastUsedIp = table.Column<string>(type: "text", nullable: true),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RevocationReason = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TrustedDevice", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TrustedDevice_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserAchievement",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    EarnedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDisplayed = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    NotificationSent = table.Column<bool>(type: "boolean", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    AchievementId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserAchievement", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserAchievement_Achievement_AchievementId",
+                        column: x => x.AchievementId,
+                        principalTable: "Achievement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_UserAchievement_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserAchievementProgress",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CurrentValue = table.Column<int>(type: "integer", nullable: false),
+                    TargetValue = table.Column<int>(type: "integer", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProgressData = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    AchievementId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserAchievementProgress", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserAchievementProgress_Achievement_AchievementId",
+                        column: x => x.AchievementId,
+                        principalTable: "Achievement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserAchievementProgress_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserMetric",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    MetricType = table.Column<string>(type: "text", nullable: false),
+                    Scope = table.Column<string>(type: "text", nullable: false),
+                    ScopeId = table.Column<int>(type: "integer", nullable: false),
+                    Value = table.Column<int>(type: "integer", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserMetric", x => new { x.UserId, x.MetricType, x.Scope, x.ScopeId });
+                    table.ForeignKey(
+                        name: "FK_UserMetric_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Webhooks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Url = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    EventTypes = table.Column<string>(type: "text", nullable: false),
+                    Secret = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CustomHeaders = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    MaxRetries = table.Column<int>(type: "integer", nullable: false),
+                    TimeoutSeconds = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Webhooks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Webhooks_User_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "User",
+                        principalColumn: "PublicId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GroupMembers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GroupId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    AddedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    AddedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GroupMembers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GroupMembers_Groups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "Groups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GroupMembers_User_AddedByUserId",
+                        column: x => x.AddedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_GroupMembers_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HubAllowedDiscussionType",
+                columns: table => new
+                {
+                    HubId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionType = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HubAllowedDiscussionType", x => new { x.HubId, x.DiscussionType });
+                    table.ForeignKey(
+                        name: "FK_HubAllowedDiscussionType_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Space",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AllowAnonymousReading = table.Column<bool>(type: "boolean", nullable: false),
+                    RequireEmailConfirmation = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRestricted = table.Column<bool>(type: "boolean", nullable: false),
+                    IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    AutoParagraphEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarMicroFileName = table.Column<string>(type: "text", nullable: true),
+                    AvatarRevision = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    HubLanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    CommunityLanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    HasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    RulesRevision = table.Column<string>(type: "text", nullable: true),
+                    ParentHubHasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    ParentCommunityHasRules = table.Column<bool>(type: "boolean", nullable: false),
+                    TeamRevision = table.Column<string>(type: "text", nullable: true),
+                    DiscussionCount = table.Column<int>(type: "integer", nullable: false),
+                    PostCount = table.Column<int>(type: "integer", nullable: false),
+                    ReactionCount = table.Column<int>(type: "integer", nullable: false),
+                    FollowerCount = table.Column<int>(type: "integer", nullable: false),
+                    HubId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Space", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Space_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserConsent",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    ConsentTypeVersionId = table.Column<int>(type: "integer", nullable: false),
+                    AcceptedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserConsent", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserConsent_ConsentTypeVersion_ConsentTypeVersionId",
+                        column: x => x.ConsentTypeVersionId,
+                        principalTable: "ConsentTypeVersion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserConsent_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WebhookDeliveryLogs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    WebhookId = table.Column<Guid>(type: "uuid", nullable: false),
+                    EventType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Payload = table.Column<string>(type: "text", nullable: false),
+                    Url = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    HttpStatusCode = table.Column<int>(type: "integer", nullable: false),
+                    ResponseBody = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    IsSuccess = table.Column<bool>(type: "boolean", nullable: false),
+                    AttemptNumber = table.Column<int>(type: "integer", nullable: false),
+                    DurationMs = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NextRetryAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebhookDeliveryLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WebhookDeliveryLogs_Webhooks_WebhookId",
+                        column: x => x.WebhookId,
+                        principalTable: "Webhooks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Discussion",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastActivityAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsPinned = table.Column<bool>(type: "boolean", nullable: false),
+                    IsLocked = table.Column<bool>(type: "boolean", nullable: false),
+                    IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    PostCount = table.Column<int>(type: "integer", nullable: false),
+                    ReactionCount = table.Column<int>(type: "integer", nullable: false),
+                    FollowerCount = table.Column<int>(type: "integer", nullable: false),
+                    TrendScore = table.Column<double>(type: "double precision", nullable: false),
+                    Tags = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false, computedColumnSql: "to_tsvector('english', coalesce(\"Title\", ''))", stored: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Discussion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Discussion_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Discussion_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GroupAccess",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GroupId = table.Column<int>(type: "integer", nullable: false),
+                    AccessLevel = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GroupAccess", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GroupAccess_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GroupAccess_Groups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "Groups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GroupAccess_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GroupAccess_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ReportReason",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReportReason", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReportReason_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ReportReason_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ReportReason_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ReportReason_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Rule",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Rule", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Rule_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Rule_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Rule_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SpaceAllowedDiscussionType",
+                columns: table => new
+                {
+                    SpaceId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionType = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SpaceAllowedDiscussionType", x => new { x.SpaceId, x.DiscussionType });
+                    table.ForeignKey(
+                        name: "FK_SpaceAllowedDiscussionType_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserBan",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    BanTypeId = table.Column<int>(type: "integer", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    BannedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    BannedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    UnbannedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UnbannedByUserId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserBan", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserBan_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBan_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBan_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBan_User_BannedByUserId",
+                        column: x => x.BannedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBan_User_UnbannedByUserId",
+                        column: x => x.UnbannedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBan_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserRole",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    AssignedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RevokedByUserId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserRole", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserRole_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserRole_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserRole_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserRole_User_AssignedByUserId",
+                        column: x => x.AssignedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserRole_User_RevokedByUserId",
+                        column: x => x.RevokedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserRole_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeDebate",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    AllowNeutral = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeDebate", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeDebate_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeGuide",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeGuide", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeGuide_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeIama",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    Phase = table.Column<int>(type: "integer", nullable: false),
+                    IsScheduled = table.Column<bool>(type: "boolean", nullable: false),
+                    ScheduledStartUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ScheduledEndUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    VerificationNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeIama", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIama_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeImage",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    Layout = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    IsSpoiler = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeImage", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeImage_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeJournal",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeJournal", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeJournal_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeLink",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    Url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Domain = table.Column<string>(type: "text", nullable: true),
+                    OEmbedHtml = table.Column<string>(type: "text", nullable: true),
+                    ImagePath = table.Column<string>(type: "text", nullable: true),
+                    ImageThumbnailPath = table.Column<string>(type: "text", nullable: true),
+                    ImageBlurDataUri = table.Column<string>(type: "text", nullable: true),
+                    IsInternal = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeLink", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeLink_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypePoll",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    AllowMultipleChoices = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowChangeVote = table.Column<bool>(type: "boolean", nullable: false),
+                    VotesVisible = table.Column<bool>(type: "boolean", nullable: false),
+                    ClosesAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsSegmented = table.Column<bool>(type: "boolean", nullable: false),
+                    SegmentLabel = table.Column<string>(type: "text", nullable: true),
+                    SegmentOptionA = table.Column<string>(type: "text", nullable: true),
+                    SegmentOptionB = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypePoll", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypePoll_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Follow",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    TargetTypeId = table.Column<int>(type: "integer", nullable: false),
+                    LevelId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    FollowedUserId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Follow", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Follow_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follow_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follow_User_FollowedUserId",
+                        column: x => x.FollowedUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follow_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Post",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    RenderedContent = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EditedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsFirstPost = table.Column<bool>(type: "boolean", nullable: false),
+                    HasCodeBlock = table.Column<bool>(type: "boolean", nullable: false),
+                    RevisionCount = table.Column<int>(type: "integer", nullable: false),
+                    ReactionCount = table.Column<int>(type: "integer", nullable: false),
+                    IsUsersFirstPostInDiscussion = table.Column<bool>(type: "boolean", nullable: false),
+                    IsUsersFirstPostInSpace = table.Column<bool>(type: "boolean", nullable: false),
+                    IsOp = table.Column<bool>(type: "boolean", nullable: false),
+                    IsNecro = table.Column<bool>(type: "boolean", nullable: false),
+                    IsMilestone = table.Column<bool>(type: "boolean", nullable: false),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    PlainTextExcerpt = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false, computedColumnSql: "to_tsvector('english', coalesce(\"Content\", ''))", stored: true),
+                    ReplyToPostId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Post", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Post_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Post_Post_ReplyToPostId",
+                        column: x => x.ReplyToPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Post_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    PermissionId = table.Column<int>(type: "integer", nullable: false),
+                    GrantedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    GrantedById = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_UserRole_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "UserRole",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_User_GrantedById",
+                        column: x => x.GrantedById,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeDebatePosition",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DebateId = table.Column<int>(type: "integer", nullable: false),
+                    Index = table.Column<int>(type: "integer", nullable: false),
+                    Label = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeDebatePosition", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeDebatePosition_DiscussionTypeDebate_DebateId",
+                        column: x => x.DebateId,
+                        principalTable: "DiscussionTypeDebate",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeImageAttachment",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionTypeImageId = table.Column<int>(type: "integer", nullable: false),
+                    ImageId = table.Column<int>(type: "integer", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeImageAttachment", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeImageAttachment_DiscussionTypeImage_Discussio~",
+                        column: x => x.DiscussionTypeImageId,
+                        principalTable: "DiscussionTypeImage",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeImageAttachment_Image_ImageId",
+                        column: x => x.ImageId,
+                        principalTable: "Image",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypePollOption",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PollId = table.Column<int>(type: "integer", nullable: false),
+                    Text = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    VoteCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypePollOption", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypePollOption_DiscussionTypePoll_PollId",
+                        column: x => x.PollId,
+                        principalTable: "DiscussionTypePoll",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeIamaBestQuestion",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IamaId = table.Column<int>(type: "integer", nullable: false),
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeIamaBestQuestion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIamaBestQuestion_DiscussionTypeIama_IamaId",
+                        column: x => x.IamaId,
+                        principalTable: "DiscussionTypeIama",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIamaBestQuestion_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeIamaOfficialAnswer",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IamaId = table.Column<int>(type: "integer", nullable: false),
+                    QuestionPostId = table.Column<int>(type: "integer", nullable: false),
+                    AnswerPostId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeIamaOfficialAnswer", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIamaOfficialAnswer_DiscussionTypeIama_IamaId",
+                        column: x => x.IamaId,
+                        principalTable: "DiscussionTypeIama",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIamaOfficialAnswer_Post_AnswerPostId",
+                        column: x => x.AnswerPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeIamaOfficialAnswer_Post_QuestionPostId",
+                        column: x => x.QuestionPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeJournalEntryPost",
+                columns: table => new
+                {
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    JournalId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeJournalEntryPost", x => x.PostId);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeJournalEntryPost_DiscussionTypeJournal_Journa~",
+                        column: x => x.JournalId,
+                        principalTable: "DiscussionTypeJournal",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeJournalEntryPost_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeQuestion",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    AcceptedPostId = table.Column<int>(type: "integer", nullable: true),
+                    SolvedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeQuestion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeQuestion_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeQuestion_Post_AcceptedPostId",
+                        column: x => x.AcceptedPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Mention",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    MentionedUserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Mention", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Mention_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Mention_User_MentionedUserId",
+                        column: x => x.MentionedUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Notification",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    RecipientUserId = table.Column<int>(type: "integer", nullable: false),
+                    TypeId = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Body = table.Column<string>(type: "text", nullable: true),
+                    SourcePostId = table.Column<int>(type: "integer", nullable: true),
+                    SourceDiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    SourceSpaceId = table.Column<int>(type: "integer", nullable: true),
+                    ActorUserId = table.Column<int>(type: "integer", nullable: true),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notification", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notification_Discussion_SourceDiscussionId",
+                        column: x => x.SourceDiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Notification_Post_SourcePostId",
+                        column: x => x.SourcePostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Notification_Space_SourceSpaceId",
+                        column: x => x.SourceSpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Notification_User_ActorUserId",
+                        column: x => x.ActorUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Notification_User_RecipientUserId",
+                        column: x => x.RecipientUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PostImage",
+                columns: table => new
+                {
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    ImageId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PostImage", x => new { x.PostId, x.ImageId });
+                    table.ForeignKey(
+                        name: "FK_PostImage_Image_ImageId",
+                        column: x => x.ImageId,
+                        principalTable: "Image",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PostImage_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PostRevision",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    PostPublicId = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EditedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    EditedByUserPublicId = table.Column<string>(type: "text", nullable: false),
+                    RevisionNumber = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PostRevision", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PostRevision_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PostRevision_User_EditedByUserId",
+                        column: x => x.EditedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Reaction",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    TypeId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Reaction", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Reaction_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Reaction_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Report",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    ReporterUserId = table.Column<int>(type: "integer", nullable: false),
+                    ReportedPostId = table.Column<int>(type: "integer", nullable: true),
+                    ReportedDiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    ReportedUserId = table.Column<int>(type: "integer", nullable: true),
+                    ReasonId = table.Column<int>(type: "integer", nullable: true),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    StatusId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ResolvedByUserId = table.Column<int>(type: "integer", nullable: true),
+                    ResolutionNote = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Report", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Report_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_Discussion_ReportedDiscussionId",
+                        column: x => x.ReportedDiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_Post_ReportedPostId",
+                        column: x => x.ReportedPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_ReportReason_ReasonId",
+                        column: x => x.ReasonId,
+                        principalTable: "ReportReason",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_User_ReportedUserId",
+                        column: x => x.ReportedUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_User_ReporterUserId",
+                        column: x => x.ReporterUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Report_User_ResolvedByUserId",
+                        column: x => x.ResolvedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Save",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    PostId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Save", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Save_Discussion_DiscussionId",
+                        column: x => x.DiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Save_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Save_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypeDebatePostPosition",
+                columns: table => new
+                {
+                    PostId = table.Column<int>(type: "integer", nullable: false),
+                    PositionId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypeDebatePostPosition", x => x.PostId);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeDebatePostPosition_DiscussionTypeDebatePositi~",
+                        column: x => x.PositionId,
+                        principalTable: "DiscussionTypeDebatePosition",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypeDebatePostPosition_Post_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Post",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscussionTypePollVote",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OptionId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    VotedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    SegmentIndex = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscussionTypePollVote", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypePollVote_DiscussionTypePollOption_OptionId",
+                        column: x => x.OptionId,
+                        principalTable: "DiscussionTypePollOption",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DiscussionTypePollVote_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ModerationLog",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    ActorUserId = table.Column<int>(type: "integer", nullable: false),
+                    ActionId = table.Column<int>(type: "integer", nullable: false),
+                    TargetPostId = table.Column<int>(type: "integer", nullable: true),
+                    TargetDiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    TargetUserId = table.Column<int>(type: "integer", nullable: true),
+                    TargetReportId = table.Column<int>(type: "integer", nullable: true),
+                    TargetUserRoleId = table.Column<int>(type: "integer", nullable: true),
+                    TargetUserBanId = table.Column<int>(type: "integer", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ModerationLog", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Community_CommunityId",
+                        column: x => x.CommunityId,
+                        principalTable: "Community",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Discussion_TargetDiscussionId",
+                        column: x => x.TargetDiscussionId,
+                        principalTable: "Discussion",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Hub_HubId",
+                        column: x => x.HubId,
+                        principalTable: "Hub",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Post_TargetPostId",
+                        column: x => x.TargetPostId,
+                        principalTable: "Post",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Report_TargetReportId",
+                        column: x => x.TargetReportId,
+                        principalTable: "Report",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_Space_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Space",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_UserBan_TargetUserBanId",
+                        column: x => x.TargetUserBanId,
+                        principalTable: "UserBan",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_UserRole_TargetUserRoleId",
+                        column: x => x.TargetUserRoleId,
+                        principalTable: "UserRole",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_User_ActorUserId",
+                        column: x => x.ActorUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ModerationLog_User_TargetUserId",
+                        column: x => x.TargetUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ReportComment",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "text", nullable: false),
+                    ReportId = table.Column<int>(type: "integer", nullable: false),
+                    AuthorUserId = table.Column<int>(type: "integer", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EditedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReportComment", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReportComment_Report_ReportId",
+                        column: x => x.ReportId,
+                        principalTable: "Report",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ReportComment_User_AuthorUserId",
+                        column: x => x.AuthorUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Achievement_IsActive_DisplayOrder",
+                table: "Achievement",
+                columns: new[] { "IsActive", "DisplayOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Achievement_PublicId",
+                table: "Achievement",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Achievement_Slug",
+                table: "Achievement",
+                column: "Slug",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_Action_Success_CreatedAt_Desc",
+                table: "AuditLog",
+                columns: new[] { "Action", "Success", "CreatedAt" },
+                descending: new[] { false, false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_ActorUserId",
+                table: "AuditLog",
+                column: "ActorUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_Category_CreatedAt_Desc",
+                table: "AuditLog",
+                columns: new[] { "Category", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_CreatedAt_Desc_Category_Action",
+                table: "AuditLog",
+                columns: new[] { "CreatedAt", "Category", "Action" },
+                descending: new[] { true, false, false });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_PublicId",
+                table: "AuditLog",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLog_SeverityId_CreatedAt_Desc",
+                table: "AuditLog",
+                columns: new[] { "SeverityId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BackupCode_PublicId",
+                table: "BackupCode",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BackupCode_UserId",
+                table: "BackupCode",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Banner_CreatedByUserId",
+                table: "Banner",
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Banner_PublicId",
+                table: "Banner",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Banner_ScopeId_ScopeEntityId",
+                table: "Banner",
+                columns: new[] { "ScopeId", "ScopeEntityId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Community_PublicId",
+                table: "Community",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Community_Slug",
+                table: "Community",
+                column: "Slug",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommunityDomain_CommunityId",
+                table: "CommunityDomain",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommunityDomain_Domain",
+                table: "CommunityDomain",
+                column: "Domain",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommunityDomain_PublicId",
+                table: "CommunityDomain",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConsentType_Slug",
+                table: "ConsentType",
+                column: "Slug",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConsentTypeVersion_ConsentTypeId_VersionNumber",
+                table: "ConsentTypeVersion",
+                columns: new[] { "ConsentTypeId", "VersionNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_CreatedAt_IsDeleted_Desc",
+                table: "Discussion",
+                columns: new[] { "CreatedAt", "IsDeleted" },
+                descending: new[] { true, false });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_CreatedByUserId_CreatedAt_Id_Desc",
+                table: "Discussion",
+                columns: new[] { "CreatedByUserId", "CreatedAt", "Id" },
+                descending: new[] { false, true, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_IsDeleted",
+                table: "Discussion",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_LastActivityAt_Id_Desc",
+                table: "Discussion",
+                columns: new[] { "LastActivityAt", "Id" },
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_PublicId",
+                table: "Discussion",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_SearchVector_Gin",
+                table: "Discussion",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_Slug",
+                table: "Discussion",
+                column: "Slug");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_SpaceId_CreatedAt_Desc",
+                table: "Discussion",
+                columns: new[] { "SpaceId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_SpaceId_Pinned_LastActivityAt_Id",
+                table: "Discussion",
+                columns: new[] { "SpaceId", "IsPinned", "LastActivityAt", "Id" },
+                descending: new[] { false, true, true, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_SpaceId_Type",
+                table: "Discussion",
+                columns: new[] { "SpaceId", "Type" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeDebate_DiscussionId",
+                table: "DiscussionTypeDebate",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DebatePosition_DebateId_Index",
+                table: "DiscussionTypeDebatePosition",
+                columns: new[] { "DebateId", "Index" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeDebatePostPosition_PositionId",
+                table: "DiscussionTypeDebatePostPosition",
+                column: "PositionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeGuide_DiscussionId",
+                table: "DiscussionTypeGuide",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeIama_DiscussionId",
+                table: "DiscussionTypeIama",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeIamaBestQuestion_PostId",
+                table: "DiscussionTypeIamaBestQuestion",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IamaBestQuestion_IamaId_DisplayOrder",
+                table: "DiscussionTypeIamaBestQuestion",
+                columns: new[] { "IamaId", "DisplayOrder" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeIamaOfficialAnswer_AnswerPostId",
+                table: "DiscussionTypeIamaOfficialAnswer",
+                column: "AnswerPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeIamaOfficialAnswer_QuestionPostId",
+                table: "DiscussionTypeIamaOfficialAnswer",
+                column: "QuestionPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IamaOfficialAnswer_IamaId_QuestionPostId",
+                table: "DiscussionTypeIamaOfficialAnswer",
+                columns: new[] { "IamaId", "QuestionPostId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeImage_DiscussionId",
+                table: "DiscussionTypeImage",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeImageAttachment_DiscussionTypeImageId",
+                table: "DiscussionTypeImageAttachment",
+                column: "DiscussionTypeImageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeImageAttachment_ImageId",
+                table: "DiscussionTypeImageAttachment",
+                column: "ImageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeJournal_DiscussionId",
+                table: "DiscussionTypeJournal",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeJournalEntryPost_JournalId",
+                table: "DiscussionTypeJournalEntryPost",
+                column: "JournalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeLink_DiscussionId",
+                table: "DiscussionTypeLink",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypePoll_DiscussionId",
+                table: "DiscussionTypePoll",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypePollOption_PollId_DisplayOrder",
+                table: "DiscussionTypePollOption",
+                columns: new[] { "PollId", "DisplayOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypePollVote_OptionId_UserId",
+                table: "DiscussionTypePollVote",
+                columns: new[] { "OptionId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypePollVote_UserId",
+                table: "DiscussionTypePollVote",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeQuestion_AcceptedPostId",
+                table: "DiscussionTypeQuestion",
+                column: "AcceptedPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscussionTypeQuestion_DiscussionId",
+                table: "DiscussionTypeQuestion",
+                column: "DiscussionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DisplayNameHistory_ChangedByUserId",
+                table: "DisplayNameHistory",
+                column: "ChangedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DisplayNameHistory_NewName",
+                table: "DisplayNameHistory",
+                column: "NewName");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DisplayNameHistory_UserId",
+                table: "DisplayNameHistory",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follow_DiscussionId",
+                table: "Follow",
+                column: "DiscussionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follow_FollowedUserId",
+                table: "Follow",
+                column: "FollowedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follow_PublicId",
+                table: "Follow",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follow_SpaceId",
+                table: "Follow",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follow_UserId_TargetTypeId_DiscussionId_SpaceId_FollowedUse~",
+                table: "Follow",
+                columns: new[] { "UserId", "TargetTypeId", "DiscussionId", "SpaceId", "FollowedUserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_CommunityId",
+                table: "GroupAccess",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_GroupId_CommunityId",
+                table: "GroupAccess",
+                columns: new[] { "GroupId", "CommunityId" },
+                unique: true,
+                filter: "\"CommunityId\" IS NOT NULL AND \"HubId\" IS NULL AND \"SpaceId\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_GroupId_HubId",
+                table: "GroupAccess",
+                columns: new[] { "GroupId", "HubId" },
+                unique: true,
+                filter: "\"HubId\" IS NOT NULL AND \"SpaceId\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_GroupId_SpaceId",
+                table: "GroupAccess",
+                columns: new[] { "GroupId", "SpaceId" },
+                unique: true,
+                filter: "\"SpaceId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_HubId",
+                table: "GroupAccess",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupAccess_SpaceId",
+                table: "GroupAccess",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupMembers_AddedByUserId",
+                table: "GroupMembers",
+                column: "AddedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupMembers_GroupId_UserId",
+                table: "GroupMembers",
+                columns: new[] { "GroupId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GroupMembers_UserId_GroupId",
+                table: "GroupMembers",
+                columns: new[] { "UserId", "GroupId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Groups_CommunityId_IsPublic",
+                table: "Groups",
+                columns: new[] { "CommunityId", "IsPublic" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Groups_CommunityId_Slug",
+                table: "Groups",
+                columns: new[] { "CommunityId", "Slug" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Groups_PublicId",
+                table: "Groups",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Hub_CommunityId_Slug",
+                table: "Hub",
+                columns: new[] { "CommunityId", "Slug" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Hub_PublicId",
+                table: "Hub",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Image_IsDeleted",
+                table: "Image",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Image_IsReadyForDeletion",
+                table: "Image",
+                column: "IsReadyForDeletion");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Image_PublicId",
+                table: "Image",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Image_Sha256Hash",
+                table: "Image",
+                column: "Sha256Hash");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Image_UploadedByUserId",
+                table: "Image",
+                column: "UploadedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Mention_MentionedUserId",
+                table: "Mention",
+                column: "MentionedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Mention_PostId_MentionedUserId",
+                table: "Mention",
+                columns: new[] { "PostId", "MentionedUserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Mention_PublicId",
+                table: "Mention",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_ActorUserId_CreatedAt_Desc",
+                table: "ModerationLog",
+                columns: new[] { "ActorUserId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_CommunityId_CreatedAt_Desc",
+                table: "ModerationLog",
+                columns: new[] { "CommunityId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_HubId",
+                table: "ModerationLog",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_PublicId",
+                table: "ModerationLog",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_SpaceId",
+                table: "ModerationLog",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetDiscussionId",
+                table: "ModerationLog",
+                column: "TargetDiscussionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetPostId",
+                table: "ModerationLog",
+                column: "TargetPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetReportId",
+                table: "ModerationLog",
+                column: "TargetReportId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetUserBanId",
+                table: "ModerationLog",
+                column: "TargetUserBanId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetUserId",
+                table: "ModerationLog",
+                column: "TargetUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ModerationLog_TargetUserRoleId",
+                table: "ModerationLog",
+                column: "TargetUserRoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_ActorUserId",
+                table: "Notification",
+                column: "ActorUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_PublicId",
+                table: "Notification",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_RecipientUserId_IsRead_CreatedAt",
+                table: "Notification",
+                columns: new[] { "RecipientUserId", "IsRead", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_SourceDiscussionId",
+                table: "Notification",
+                column: "SourceDiscussionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_SourcePostId",
+                table: "Notification",
+                column: "SourcePostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_SourceSpaceId",
+                table: "Notification",
+                column: "SourceSpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetRequest_IpAddress_RequestedAt",
+                table: "PasswordResetRequest",
+                columns: new[] { "IpAddress", "RequestedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetRequest_RequestedAt",
+                table: "PasswordResetRequest",
+                column: "RequestedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetToken_PublicId",
+                table: "PasswordResetToken",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetToken_TokenHash",
+                table: "PasswordResetToken",
+                column: "TokenHash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetToken_UserId",
+                table: "PasswordResetToken",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permission_Category",
+                table: "Permissions",
+                column: "Category");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_Name",
+                table: "Permissions",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_PublicId",
+                table: "Permissions",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_CreatedAt_DiscussionId_IsDeleted",
+                table: "Post",
+                columns: new[] { "CreatedAt", "DiscussionId", "IsDeleted" },
+                descending: new[] { true, false, false });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_CreatedByUserId_CreatedAt_Id_Desc",
+                table: "Post",
+                columns: new[] { "CreatedByUserId", "CreatedAt", "Id" },
+                descending: new[] { false, true, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_DiscussionId_CreatedAt_Id",
+                table: "Post",
+                columns: new[] { "DiscussionId", "CreatedAt", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_IsDeleted",
+                table: "Post",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_PublicId",
+                table: "Post",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_ReplyToPostId",
+                table: "Post",
+                column: "ReplyToPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_SearchVector_Gin",
+                table: "Post",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PostImage_ImageId",
+                table: "PostImage",
+                column: "ImageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PostRevision_EditedByUserId",
+                table: "PostRevision",
+                column: "EditedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PostRevision_PostId",
+                table: "PostRevision",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reaction_PostId_UserId_TypeId",
+                table: "Reaction",
+                columns: new[] { "PostId", "UserId", "TypeId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reaction_PublicId",
+                table: "Reaction",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reaction_UserId",
+                table: "Reaction",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshToken_ReplacedByTokenId",
+                table: "RefreshToken",
+                column: "ReplacedByTokenId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshToken_TokenValue",
+                table: "RefreshToken",
+                column: "TokenValue",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshToken_UserId",
+                table: "RefreshToken",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_CommunityId",
+                table: "Report",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_HubId",
+                table: "Report",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_PublicId",
+                table: "Report",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ReasonId",
+                table: "Report",
+                column: "ReasonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ReportedDiscussionId",
+                table: "Report",
+                column: "ReportedDiscussionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ReportedPostId",
+                table: "Report",
+                column: "ReportedPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ReportedUserId",
+                table: "Report",
+                column: "ReportedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ReporterUserId",
+                table: "Report",
+                column: "ReporterUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_ResolvedByUserId",
+                table: "Report",
+                column: "ResolvedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_SpaceId",
+                table: "Report",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_Status_CommunityId_CreatedAt",
+                table: "Report",
+                columns: new[] { "StatusId", "CommunityId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_Status_HubId_CreatedAt",
+                table: "Report",
+                columns: new[] { "StatusId", "HubId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Report_Status_SpaceId_CreatedAt",
+                table: "Report",
+                columns: new[] { "StatusId", "SpaceId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportComment_AuthorUserId",
+                table: "ReportComment",
+                column: "AuthorUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportComment_PublicId",
+                table: "ReportComment",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportComment_ReportId",
+                table: "ReportComment",
+                column: "ReportId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportReason_CommunityId",
+                table: "ReportReason",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportReason_CreatedByUserId",
+                table: "ReportReason",
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportReason_HubId",
+                table: "ReportReason",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportReason_PublicId",
+                table: "ReportReason",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReportReason_SpaceId",
+                table: "ReportReason",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermission_PermissionId",
+                table: "RolePermissions",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermission_RoleId",
+                table: "RolePermissions",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_GrantedById",
+                table: "RolePermissions",
+                column: "GrantedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_RoleId_PermissionId",
+                table: "RolePermissions",
+                columns: new[] { "RoleId", "PermissionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Rule_CommunityId",
+                table: "Rule",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Rule_HubId",
+                table: "Rule",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Rule_SpaceId",
+                table: "Rule",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Save_DiscussionId",
+                table: "Save",
+                column: "DiscussionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Save_PostId",
+                table: "Save",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Save_PublicId",
+                table: "Save",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Save_UserId_CreatedAt_Desc",
+                table: "Save",
+                columns: new[] { "UserId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Save_UserId_DiscussionId_PostId",
+                table: "Save",
+                columns: new[] { "UserId", "DiscussionId", "PostId" },
+                unique: true,
+                filter: "\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Space_HubId_Slug",
+                table: "Space",
+                columns: new[] { "HubId", "Slug" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Space_PublicId",
+                table: "Space",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SystemSettings_Category",
+                table: "SystemSettings",
+                column: "Category");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SystemSettings_Category_Key",
+                table: "SystemSettings",
+                columns: new[] { "Category", "Key" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SystemSettings_PublicId",
+                table: "SystemSettings",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SystemSettings_UpdatedById",
+                table: "SystemSettings",
+                column: "UpdatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevation_ExpiresAt",
+                table: "TemporaryRoleElevations",
+                column: "ExpiresAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevation_UserId",
+                table: "TemporaryRoleElevations",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevation_UserId_ExpiresAt_Active",
+                table: "TemporaryRoleElevations",
+                columns: new[] { "UserId", "ExpiresAt" },
+                filter: "\"RevokedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevations_GrantedById",
+                table: "TemporaryRoleElevations",
+                column: "GrantedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevations_PublicId",
+                table: "TemporaryRoleElevations",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TemporaryRoleElevations_RevokedById",
+                table: "TemporaryRoleElevations",
+                column: "RevokedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TrustedDevice_PublicId",
+                table: "TrustedDevice",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TrustedDevice_UserId_DeviceFingerprint",
+                table: "TrustedDevice",
+                columns: new[] { "UserId", "DeviceFingerprint" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_DisplayName",
+                table: "User",
+                column: "DisplayName");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_EmailHash",
+                table: "User",
+                column: "EmailHash",
+                unique: true,
+                filter: "\"EmailHash\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_IsDeleted",
+                table: "User",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_PublicId",
+                table: "User",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievement_AchievementId",
+                table: "UserAchievement",
+                column: "AchievementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievement_PublicId",
+                table: "UserAchievement",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievement_UserId_AchievementId",
+                table: "UserAchievement",
+                columns: new[] { "UserId", "AchievementId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievement_UserId_EarnedAt_Desc",
+                table: "UserAchievement",
+                columns: new[] { "UserId", "EarnedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievement_UserId_IsDisplayed_DisplayOrder",
+                table: "UserAchievement",
+                columns: new[] { "UserId", "IsDisplayed", "DisplayOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievementProgress_AchievementId",
+                table: "UserAchievementProgress",
+                column: "AchievementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAchievementProgress_UserId_AchievementId",
+                table: "UserAchievementProgress",
+                columns: new[] { "UserId", "AchievementId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_BannedByUserId",
+                table: "UserBan",
+                column: "BannedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_CommunityId",
+                table: "UserBan",
+                column: "CommunityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_HubId",
+                table: "UserBan",
+                column: "HubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_PublicId",
+                table: "UserBan",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_SpaceId",
+                table: "UserBan",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_UnbannedByUserId",
+                table: "UserBan",
+                column: "UnbannedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBan_UserId_UnbannedAt_ExpiresAt",
+                table: "UserBan",
+                columns: new[] { "UserId", "UnbannedAt", "ExpiresAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserConsent_ConsentTypeVersionId",
+                table: "UserConsent",
+                column: "ConsentTypeVersionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserConsent_UserId_ConsentTypeVersionId",
+                table: "UserConsent",
+                columns: new[] { "UserId", "ConsentTypeVersionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserMetric_LastUpdated",
+                table: "UserMetric",
+                column: "LastUpdated");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserMetric_UserId_Scope_ScopeId",
+                table: "UserMetric",
+                columns: new[] { "UserId", "Scope", "ScopeId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_AssignedByUserId",
+                table: "UserRole",
+                column: "AssignedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_CommunityId_Role_RevokedAt",
+                table: "UserRole",
+                columns: new[] { "CommunityId", "RoleId", "RevokedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_HubId_Role_RevokedAt",
+                table: "UserRole",
+                columns: new[] { "HubId", "RoleId", "RevokedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_PublicId",
+                table: "UserRole",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_RevokedByUserId",
+                table: "UserRole",
+                column: "RevokedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_SpaceId_Role_RevokedAt",
+                table: "UserRole",
+                columns: new[] { "SpaceId", "RoleId", "RevokedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRole_UserId_RoleId_RevokedAt",
+                table: "UserRole",
+                columns: new[] { "UserId", "RoleId", "RevokedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebhookDeliveryLog_EventType",
+                table: "WebhookDeliveryLogs",
+                column: "EventType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebhookDeliveryLog_IsSuccess_NextRetryAt",
+                table: "WebhookDeliveryLogs",
+                columns: new[] { "IsSuccess", "NextRetryAt" },
+                filter: "\"NextRetryAt\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebhookDeliveryLog_WebhookId",
+                table: "WebhookDeliveryLogs",
+                column: "WebhookId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebhookDeliveryLog_WebhookId_CreatedAt_Desc",
+                table: "WebhookDeliveryLogs",
+                columns: new[] { "WebhookId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Webhook_CreatedAt_Desc",
+                table: "Webhooks",
+                column: "CreatedAt",
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Webhook_IsActive",
+                table: "Webhooks",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Webhooks_CreatedBy",
+                table: "Webhooks",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Webhooks_Id",
+                table: "Webhooks",
+                column: "Id",
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "AuditLog");
+
+            migrationBuilder.DropTable(
+                name: "BackupCode");
+
+            migrationBuilder.DropTable(
+                name: "Banner");
+
+            migrationBuilder.DropTable(
+                name: "CommunityAllowedDiscussionType");
+
+            migrationBuilder.DropTable(
+                name: "CommunityDomain");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionReadState");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeDebatePostPosition");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeGuide");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeIamaBestQuestion");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeIamaOfficialAnswer");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeImageAttachment");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeJournalEntryPost");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeLink");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypePollVote");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeQuestion");
+
+            migrationBuilder.DropTable(
+                name: "DisplayNameHistory");
+
+            migrationBuilder.DropTable(
+                name: "Follow");
+
+            migrationBuilder.DropTable(
+                name: "GroupAccess");
+
+            migrationBuilder.DropTable(
+                name: "GroupMembers");
+
+            migrationBuilder.DropTable(
+                name: "HubAllowedDiscussionType");
+
+            migrationBuilder.DropTable(
+                name: "Mention");
+
+            migrationBuilder.DropTable(
+                name: "ModerationLog");
+
+            migrationBuilder.DropTable(
+                name: "Notification");
+
+            migrationBuilder.DropTable(
+                name: "PasswordResetRequest");
+
+            migrationBuilder.DropTable(
+                name: "PasswordResetToken");
+
+            migrationBuilder.DropTable(
+                name: "PostImage");
+
+            migrationBuilder.DropTable(
+                name: "PostRevision");
+
+            migrationBuilder.DropTable(
+                name: "Reaction");
+
+            migrationBuilder.DropTable(
+                name: "RefreshToken");
+
+            migrationBuilder.DropTable(
+                name: "ReportComment");
+
+            migrationBuilder.DropTable(
+                name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "Rule");
+
+            migrationBuilder.DropTable(
+                name: "Save");
+
+            migrationBuilder.DropTable(
+                name: "SpaceAllowedDiscussionType");
+
+            migrationBuilder.DropTable(
+                name: "SystemSettings");
+
+            migrationBuilder.DropTable(
+                name: "TemporaryRoleElevations");
+
+            migrationBuilder.DropTable(
+                name: "TrustedDevice");
+
+            migrationBuilder.DropTable(
+                name: "UserAchievement");
+
+            migrationBuilder.DropTable(
+                name: "UserAchievementProgress");
+
+            migrationBuilder.DropTable(
+                name: "UserConsent");
+
+            migrationBuilder.DropTable(
+                name: "UserMetric");
+
+            migrationBuilder.DropTable(
+                name: "WebhookDeliveryLogs");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeDebatePosition");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeIama");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeImage");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeJournal");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypePollOption");
+
+            migrationBuilder.DropTable(
+                name: "Groups");
+
+            migrationBuilder.DropTable(
+                name: "UserBan");
+
+            migrationBuilder.DropTable(
+                name: "Image");
+
+            migrationBuilder.DropTable(
+                name: "Report");
+
+            migrationBuilder.DropTable(
+                name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "UserRole");
+
+            migrationBuilder.DropTable(
+                name: "Achievement");
+
+            migrationBuilder.DropTable(
+                name: "ConsentTypeVersion");
+
+            migrationBuilder.DropTable(
+                name: "Webhooks");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypeDebate");
+
+            migrationBuilder.DropTable(
+                name: "DiscussionTypePoll");
+
+            migrationBuilder.DropTable(
+                name: "Post");
+
+            migrationBuilder.DropTable(
+                name: "ReportReason");
+
+            migrationBuilder.DropTable(
+                name: "ConsentType");
+
+            migrationBuilder.DropTable(
+                name: "Discussion");
+
+            migrationBuilder.DropTable(
+                name: "Space");
+
+            migrationBuilder.DropTable(
+                name: "User");
+
+            migrationBuilder.DropTable(
+                name: "Hub");
+
+            migrationBuilder.DropTable(
+                name: "Community");
+        }
+    }
+}

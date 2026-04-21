@@ -674,7 +674,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
 
@@ -758,7 +783,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
         var previewMap = await BatchFetchPreviewsAsync(
@@ -1012,7 +1062,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
 
@@ -1097,7 +1172,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
 
@@ -1183,7 +1283,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.CreatedByUser.AvatarThumbnailFileName,
                     d.PostCount,
                     d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.PublicId)
+                        .FirstOrDefault(),
+                    LastReplierDisplayName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.DisplayName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarFileName)
+                        .FirstOrDefault(),
+                    LastReplierAvatarThumbnailFileName: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
+                        .FirstOrDefault(),
+                    LastPostExcerpt: d.Posts
+                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => p.PlainTextExcerpt)
+                        .FirstOrDefault())
             })
             .ToListAsync();
 

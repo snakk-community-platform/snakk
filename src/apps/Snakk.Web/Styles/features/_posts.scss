@@ -177,7 +177,7 @@
         width: 32px;
         height: 32px;
 
-        svg {
+        svg, .icon {
             width: 1rem;
             height: 1rem;
         }
@@ -436,7 +436,7 @@
 }
 
 .toolbar-expand {
-    svg { display: block; }
+    svg, .icon { display: block; }
 }
 
 // Group dropdown (headings, text effects)
@@ -549,7 +549,7 @@
     border: 1px solid var(--border-primary);
     cursor: pointer;
 
-    svg { flex-shrink: 0; }
+    svg, .icon { flex-shrink: 0; }
 
     &:hover { color: var(--text-primary); }
 
@@ -572,7 +572,7 @@
     cursor: pointer;
     font-family: inherit;
 
-    svg { flex-shrink: 0; }
+    svg, .icon { flex-shrink: 0; }
 
     &:hover {
         color: var(--link-primary);
@@ -1091,7 +1091,7 @@
 .table-ctl-align {
     transform: translate(-50%, -50%);
 
-    svg { display: block; }
+    svg, .icon { display: block; }
 
     &:hover {
         background: var(--bg-tertiary);

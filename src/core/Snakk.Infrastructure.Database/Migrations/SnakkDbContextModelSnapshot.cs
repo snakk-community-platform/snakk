@@ -1689,6 +1689,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PlainTextExcerpt")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2261,6 +2265,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("DiscussionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
 
                     b.Property<bool>("HasRules")

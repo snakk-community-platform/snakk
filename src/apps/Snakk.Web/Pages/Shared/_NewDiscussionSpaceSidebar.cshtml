@@ -1,0 +1,81 @@
+@using Snakk.Web.Helpers
+@using static Snakk.Web.Helpers.DisplayHelper
+@model Snakk.Web.Pages.Spaces.NewDiscussionBaseModel
+@inject Snakk.Web.Services.ICommunityContext CommunityCtx
+
+<aside class="fp-right">
+<div class="fp-right-sticky">
+    <div class="fp-right-body">
+
+        @if (Model.SpaceStats != null)
+        {
+        <div class="fp-right-section">
+            <div class="flex gap-2">
+                <div class="stats shadow flex-1">
+                    <div class="stat">
+                        <div class="stat-title">Discussions</div>
+                        <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow flex-1">
+                    <div class="stat">
+                        <div class="stat-title">Replies</div>
+                        <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow flex-1">
+                    <div class="stat">
+                        <div class="stat-title">Followers</div>
+                        <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <div class="fp-right-section">
+            <div class="fp-right-title">
+                <span class="icon icon-info-circle" aria-hidden="true"></span>
+                About @Model.Space!.Name
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Space.Description))
+            {
+                <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+            }
+        </div>
+
+        @if (Model.Space.HasRules)
+        {
+        <div class="fp-right-section">
+            <div class="fp-right-title">
+                <span class="icon icon-document-text" aria-hidden="true"></span>
+                Space Rules
+            </div>
+            <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
+                             htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
+                <div class="flex flex-col gap-2">
+                    <div class="skeleton h-3 w-3/4"></div>
+                    <div class="skeleton h-3 w-2/3"></div>
+                    <div class="skeleton h-3 w-1/2"></div>
+                </div>
+            </inline-or-htmx>
+        </div>
+        }
+
+        <div class="fp-right-section">
+            <div class="fp-right-title">
+                <span class="icon icon-shield-check" aria-hidden="true"></span>
+                Space Moderators
+            </div>
+            <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                             htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(CommunityCtx, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
+                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                </div>
+            </inline-or-htmx>
+        </div>
+
+    </div>
+</div>
+</aside>

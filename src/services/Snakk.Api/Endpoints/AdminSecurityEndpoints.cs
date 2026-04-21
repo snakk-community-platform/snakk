@@ -158,9 +158,9 @@ public static class AdminSecurityEndpoints
 
             return Results.Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Results.NotFound(new { error = ex.Message });
+            return Results.NotFound(new { error = "Resource not found." });
         }
     }
 

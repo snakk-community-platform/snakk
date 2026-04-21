@@ -20,6 +20,7 @@ public class RegisterModel(
 
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
+    public string RegistrationMode { get; set; } = "Open";
 
     public bool HasGoogle => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
     public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
@@ -50,12 +51,34 @@ public class RegisterModel(
         [Compare("Password", ErrorMessage = "Passwords do not match")]
         [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = "";
+
+        public string? InviteCode { get; set; }
     }
 
-    public async Task<IActionResult> OnGet()
+    public async Task<IActionResult> OnGet(string? error = null)
     {
         if (Request.Cookies.ContainsKey(".Snakk.Auth"))
             return Redirect("/");
+
+        try
+        {
+            var publicSettings = await authClient.GetPublicSettingsAsync(new GetPublicSettingsRequest());
+            RegistrationMode = string.IsNullOrEmpty(publicSettings.RegistrationMode)
+                ? "Open"
+                : publicSettings.RegistrationMode;
+        }
+        catch { /* Don't block page load */ }
+
+        ErrorMessage = error switch
+        {
+            "registration_closed" => "Registration is currently closed.",
+            "invite_required" => "An invite code is required to create a new account. Please enter it below before signing up.",
+            "invite_invalid" => "Invalid invite code. Please check and try again.",
+            _ => null
+        };
+
+        if (RegistrationMode == "Closed")
+            return Page();
 
         try
         {
@@ -88,6 +111,9 @@ public class RegisterModel(
             var turnstileToken = Request.Form["cf-turnstile-response"].FirstOrDefault();
             if (!string.IsNullOrEmpty(turnstileToken))
                 registerRequest.TurnstileToken = turnstileToken;
+
+            if (!string.IsNullOrEmpty(Input.InviteCode))
+                registerRequest.InviteCode = Input.InviteCode;
 
             var response = await authClient.RegisterAsync(registerRequest);
 
@@ -148,7 +174,13 @@ public class RegisterModel(
         catch (RpcException ex)
         {
             logger.LogWarning("Registration gRPC error: {Status}", ex.Status.Detail);
-            ErrorMessage = ex.Status.Detail ?? "Registration failed. Please try again.";
+            ErrorMessage = ex.Status.Detail switch
+            {
+                "REGISTRATION_CLOSED" => "Registration is currently closed.",
+                "INVITE_CODE_REQUIRED" => "An invite code is required to register.",
+                "INVITE_CODE_INVALID" => "Invalid invite code. Please check and try again.",
+                _ => ex.Status.Detail ?? "Registration failed. Please try again."
+            };
             return Page();
         }
         catch (Exception ex)
@@ -157,5 +189,14 @@ public class RegisterModel(
             ErrorMessage = "An error occurred during registration. Please try again.";
             return Page();
         }
+    }
+
+    // Called when user clicks an OAuth button — stores invite code in session then redirects to OAuth challenge
+    public IActionResult OnPostOAuth(string provider, string? inviteCode)
+    {
+        if (!string.IsNullOrWhiteSpace(inviteCode))
+            HttpContext.Session.SetString("OAuth_InviteCode", inviteCode.Trim());
+
+        return RedirectToPage("/OAuth/Challenge", new { provider, returnUrl = ReturnUrl });
     }
 }

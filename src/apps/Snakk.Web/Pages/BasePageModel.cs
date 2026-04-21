@@ -106,7 +106,7 @@ public abstract class BasePageModel : PageModel
         System.Net.WebUtility.HtmlEncode(content);
 
     // Common properties
-    public string ApiBaseUrl => Configuration["ApiBaseUrl"] ?? "https://localhost:17100";
+    public string ApiBaseUrl => Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
     public ICommunityContext Community => CommunityContext;
     public bool ShowCommunityInBreadcrumb =>
         CommunityContext.IsMultiCommunityEnabled

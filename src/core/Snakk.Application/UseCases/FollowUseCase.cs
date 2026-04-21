@@ -62,6 +62,7 @@ public class FollowUseCase(
             // Unfollow
             existingFollow.MarkForRemoval();
             await followRepository.DeleteAsync(existingFollow);
+            await counterService.DecrementSpaceFollowerCountAsync(spaceId);
 
             return Result<bool>.Success(false);
         }
@@ -69,6 +70,7 @@ public class FollowUseCase(
         // Follow
         var follow = Follow.CreateForSpace(userId, spaceId, level);
         await followRepository.AddAsync(follow);
+        await counterService.IncrementSpaceFollowerCountAsync(spaceId);
 
         return Result<bool>.Success(true);
     }

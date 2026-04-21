@@ -109,7 +109,7 @@
 .timeline-position-change {
     // Reuse daisyUI .timeline-vertical positioning; scope the styles to the
     // li instead of duplicating structure.
-    .timeline-middle svg {
+    .timeline-middle svg, .timeline-middle .icon {
         color: oklch(0.7 0.16 70); // amber
     }
     .timeline-end {
@@ -1095,7 +1095,7 @@
     cursor: ew-resize;
     z-index: 11;
 
-    svg {
+    svg, .icon {
         width: 0.75rem;
         height: 0.75rem;
         color: var(--text-secondary);

@@ -59,7 +59,8 @@ public class SetupService()
             },
             ["Realtime"] = new Dictionary<string, string>
             {
-                ["ApiKey"] = state.RealtimeApiKey
+                ["ApiKey"] = state.RealtimeApiKey,
+                ["JwtKey"] = state.RealtimeJwtKey
             },
             ["Snakk"] = new Dictionary<string, object>
             {

@@ -931,6 +931,58 @@ public class ManageGrpcService(
         return new UpdateSiteSettingsResponse { Success = true };
     }
 
+    public override async Task<RegistrationSettingsGrpcResponse> GetRegistrationSettings(
+        GetRegistrationSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var user = await dbContext.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new { u.Roles })
+            .FirstOrDefaultAsync();
+        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        if (!isGlobalAdmin)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
+
+        var settings = await settingsService.GetRegistrationSettingsAsync();
+        return new RegistrationSettingsGrpcResponse
+        {
+            Mode = settings.Mode,
+            InviteCode = settings.InviteCode
+        };
+    }
+
+    public override async Task<UpdateRegistrationSettingsResponse> UpdateRegistrationSettings(
+        UpdateRegistrationSettingsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var user = await dbContext.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => new { u.Roles })
+            .FirstOrDefaultAsync();
+        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        if (!isGlobalAdmin)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
+
+        var validModes = new[] { "Open", "InviteOnly", "Closed" };
+        if (!validModes.Contains(request.Mode))
+            return new UpdateRegistrationSettingsResponse { Success = false, ErrorMessage = "Invalid registration mode." };
+
+        await settingsService.UpdateRegistrationSettingsAsync(
+            new Snakk.Application.DTOs.Settings.RegistrationSettingsDto
+            {
+                Mode = request.Mode,
+                InviteCode = request.InviteCode
+            }, userId);
+
+        return new UpdateRegistrationSettingsResponse { Success = true };
+    }
+
     private static IEnumerable<TeamMemberItem> MapTeamItems(IEnumerable<UserRoleDto> roles) =>
         roles.Select(r => new TeamMemberItem
         {
