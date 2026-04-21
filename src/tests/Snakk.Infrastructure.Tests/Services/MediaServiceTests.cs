@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using Snakk.Application.Services;
+using Snakk.Domain;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -135,7 +136,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Act & Assert
         await Assert.That(async () => { await _service.UploadAsync(content, "file.exe", "application/octet-stream", _testUserPublicId); })
-            .Throws<InvalidOperationException>();
+            .Throws<DomainException>();
     }
 
     [Test]
@@ -147,7 +148,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Act & Assert
         await Assert.That(async () => { await _service.UploadAsync(content, "huge.jpg", "image/jpeg", _testUserPublicId); })
-            .Throws<InvalidOperationException>();
+            .Throws<DomainException>();
     }
 
     [Test]
@@ -158,7 +159,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Act & Assert
         await Assert.That(async () => { await _service.UploadAsync(content, "empty.jpg", "image/jpeg", _testUserPublicId); })
-            .Throws<InvalidOperationException>();
+            .Throws<DomainException>();
     }
 
     [Test]
@@ -169,7 +170,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Act & Assert
         await Assert.That(async () => { await _service.UploadAsync(content, "file.jpg", "image/jpeg", "nonexistent-user-id"); })
-            .Throws<InvalidOperationException>();
+            .Throws<DomainException>();
     }
 
     [Test]
@@ -198,7 +199,7 @@ public class MediaServiceTests : IAsyncDisposable
 
         // Act & Assert
         await Assert.That(async () => { await _service.UploadAsync(content, "fake.jpg", "image/jpeg", _testUserPublicId); })
-            .Throws<InvalidOperationException>()
+            .Throws<DomainException>()
             .WithMessage("File is not a valid image.");
     }
 

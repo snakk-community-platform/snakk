@@ -27,7 +27,7 @@ public class AdminPermissionsEndpointTests : IAsyncDisposable
     public async Task GetAllPermissions_WithAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync("/admin/permissions");
@@ -42,7 +42,7 @@ public class AdminPermissionsEndpointTests : IAsyncDisposable
     public async Task GetRolePermissions_WithAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var roleId = 1;
 
         // Act
@@ -73,7 +73,7 @@ public class AdminPermissionsEndpointTests : IAsyncDisposable
     public async Task AssignPermission_WithAuth_ReturnsOkOrError()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
         var roleId = 1;
         var body = new { permissionId = 1 };
 
@@ -121,7 +121,7 @@ public class AdminPermissionsEndpointTests : IAsyncDisposable
     public async Task GetActiveTemporaryRoles_WithAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient();
+        var client = _server.CreateAuthenticatedClient(role: "Admin");
 
         // Act
         var response = await client.GetAsync("/admin/temporary-roles");

@@ -28,7 +28,10 @@ public class SpaceRepository(SnakkDbContext context)
         .FirstOrDefaultAsync(s => s.PublicId == publicId);
 
     public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
+        await _dbSet.AsNoTracking()
+            .Include(s => s.Hub)
+            .Take(1000)
+            .ToListAsync();
 
     public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(s => s.PublicId == publicId)

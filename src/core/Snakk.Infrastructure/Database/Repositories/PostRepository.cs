@@ -19,7 +19,11 @@ public class PostRepository(SnakkDbContext context)
         .FirstOrDefaultAsync(p => p.PublicId == publicId);
 
     public override async Task<IEnumerable<PostDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
+        await _dbSet.AsNoTracking()
+            .Include(p => p.Discussion)
+            .Include(p => p.CreatedByUser)
+            .Take(1000)
+            .ToListAsync();
 
     public async Task<PostDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(p => p.PublicId == publicId)

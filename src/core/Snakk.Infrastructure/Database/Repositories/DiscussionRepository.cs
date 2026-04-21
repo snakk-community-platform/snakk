@@ -18,7 +18,11 @@ public class DiscussionRepository(SnakkDbContext context)
         .FirstOrDefaultAsync(d => d.PublicId == publicId);
 
     public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync() =>
-        await _dbSet.AsNoTracking().Take(1000).ToListAsync();
+        await _dbSet.AsNoTracking()
+            .Include(d => d.Space)
+            .Include(d => d.CreatedByUser)
+            .Take(1000)
+            .ToListAsync();
 
     public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
         .Where(d => d.PublicId == publicId)

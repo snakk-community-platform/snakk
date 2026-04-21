@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -157,7 +158,7 @@ public class TokenServiceTests : IDisposable
         var tokenEntity = new RefreshTokenDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
-            TokenValue = "token_to_revoke",
+            TokenValue = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("token_to_revoke"))),
             UserId = user.Id,
             ExpiresAt = DateTime.UtcNow.AddDays(30),
             CreatedAt = DateTime.UtcNow
@@ -169,7 +170,7 @@ public class TokenServiceTests : IDisposable
         await _tokenService.RevokeRefreshTokenAsync("token_to_revoke", "User logout");
 
         // Assert
-        var revokedToken = await _context.RefreshTokens.FirstAsync(t => t.TokenValue == "token_to_revoke");
+        var revokedToken = await _context.RefreshTokens.FirstAsync(t => t.PublicId == tokenEntity.PublicId);
         await Assert.That(revokedToken.RevokedAt).IsNotNull();
         await Assert.That(revokedToken.RevocationReason).IsEqualTo("User logout");
     }

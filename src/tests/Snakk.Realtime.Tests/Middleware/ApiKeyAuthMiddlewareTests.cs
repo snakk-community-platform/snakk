@@ -15,7 +15,7 @@ public class ApiKeyAuthMiddlewareTests
     {
         var configData = new Dictionary<string, string?>();
         if (apiKey is not null)
-            configData["ApiKey"] = apiKey;
+            configData["Realtime:ApiKey"] = apiKey;
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)

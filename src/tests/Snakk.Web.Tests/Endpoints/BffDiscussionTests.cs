@@ -254,8 +254,8 @@ public class BffDiscussionTests
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.PostAsync(
-            "/bff/posts/post-001/edit?userId=test-user-001&content=Updated+content", null);
+        var response = await client.PostAsJsonAsync(
+            "/bff/posts/post-001/edit", new { Content = "Updated content" });
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -277,8 +277,8 @@ public class BffDiscussionTests
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.PostAsync(
-            "/bff/posts/post-001/edit?userId=test-user-001&content=Bad+content", null);
+        var response = await client.PostAsJsonAsync(
+            "/bff/posts/post-001/edit", new { Content = "Bad content" });
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -298,8 +298,8 @@ public class BffDiscussionTests
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
 
         // Act
-        var response = await client.PostAsync(
-            "/bff/posts/post-001/edit?userId=test-user-001&content=Some+content", null);
+        var response = await client.PostAsJsonAsync(
+            "/bff/posts/post-001/edit", new { Content = "Some content" });
 
         // Assert
         await Assert.That((int)response.StatusCode).IsEqualTo(503);

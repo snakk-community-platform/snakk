@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using Snakk.Web.Tests.Helpers;
 
@@ -221,7 +222,8 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostPostEdit_Returns401()
     {
-        var response = await _client.PostAsync("/bff/posts/test-id/edit?content=test", null);
+        var content = new StringContent("{\"Content\":\"test\"}", Encoding.UTF8, "application/json");
+        var response = await _client.PostAsync("/bff/posts/test-id/edit", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -242,8 +244,10 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostMediaUpload_Returns401()
     {
+        var fileBytes = new ByteArrayContent([0x89, 0x50]);
+        fileBytes.Headers.ContentType = new MediaTypeHeaderValue("image/png");
         var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent([0x89, 0x50]), "file", "test.png");
+        content.Add(fileBytes, "file", "test.png");
         var response = await _client.PostAsync("/bff/media/upload", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
@@ -258,8 +262,10 @@ public class BffAccessControlTests : IAsyncDisposable
     [Test]
     public async Task Unauthenticated_PostAvatarUpload_Returns401()
     {
+        var fileBytes = new ByteArrayContent([0x89, 0x50]);
+        fileBytes.Headers.ContentType = new MediaTypeHeaderValue("image/png");
         var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent([0x89, 0x50]), "avatar", "avatar.png");
+        content.Add(fileBytes, "avatar", "avatar.png");
         var response = await _client.PostAsync("/bff/avatars/upload", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
