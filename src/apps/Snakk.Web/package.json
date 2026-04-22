@@ -35,7 +35,7 @@
     "daisyui": "^5.0.0",
     "dompurify": "^3.4.0",
     "esbuild": "^0.28.0",
-    "htmx.org": "^2.0.8",
+    "htmx.org": "^2.0.10",
     "sass": "^1.99.0",
     "typescript": "^6.0.2"
   },
