@@ -23,6 +23,10 @@ jobs:
         run: dotnet restore Snakk.slnx
         working-directory: src
 
+      - name: Generate locale strings (T.g.cs)
+        run: node Locales/gen-strings.mjs
+        working-directory: src/apps/Snakk.Web
+
       - name: Build
         run: dotnet build Snakk.slnx --no-restore -p:SkipFrontendBuild=true
         working-directory: src

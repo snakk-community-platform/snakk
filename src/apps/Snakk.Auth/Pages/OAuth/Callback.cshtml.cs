@@ -16,24 +16,15 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
     {
         try
         {
-            // Authenticate with OAuth provider
-            var authenticateResult = await HttpContext.AuthenticateAsync(Provider);
+            // The OAuth handler signs the principal into the default (cookie) scheme
+            // during its CallbackPath handling, then redirects here. CSRF is already
+            // covered by the handler's correlation cookie — no need to duplicate it.
+            var authenticateResult = await HttpContext.AuthenticateAsync();
 
             if (!authenticateResult.Succeeded)
             {
-                logger.LogWarning("OAuth authentication failed for provider: {Provider}", Provider);
-                return RedirectToPage("/Login", new { error = "oauth_failed" });
-            }
-
-            // Validate state parameter to prevent CSRF
-            var expectedState = HttpContext.Session.GetString("OAuth_State");
-            HttpContext.Session.Remove("OAuth_State");
-            string? returnedState = null;
-            authenticateResult.Properties?.Items.TryGetValue("state", out returnedState);
-
-            if (string.IsNullOrEmpty(expectedState) || expectedState != returnedState)
-            {
-                logger.LogWarning("OAuth state mismatch for provider: {Provider}", Provider);
+                logger.LogWarning("OAuth authentication failed for {Provider}: {Reason}",
+                    Provider, authenticateResult.Failure?.Message ?? "NoResult");
                 return RedirectToPage("/Login", new { error = "oauth_failed" });
             }
 

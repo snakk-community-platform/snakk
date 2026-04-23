@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -20,21 +19,15 @@ public class ChallengeModel : PageModel
             return RedirectToPage("/Login");
         }
 
-        // Store return URL in session for callback
         if (!string.IsNullOrEmpty(ReturnUrl))
         {
             HttpContext.Session.SetString("OAuth_ReturnUrl", ReturnUrl);
         }
 
-        // Generate cryptographic random state to prevent CSRF on OAuth callback
-        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        HttpContext.Session.SetString("OAuth_State", state);
-
-        // Redirect to OAuth provider
+        // CSRF is handled by the OAuth handler's correlation cookie.
         var properties = new AuthenticationProperties
         {
-            RedirectUri = Url.Page("/OAuth/Callback", new { provider = Provider }),
-            Items = { ["state"] = state }
+            RedirectUri = Url.Page("/OAuth/Callback", new { provider = Provider })
         };
 
         return Challenge(properties, Provider);
