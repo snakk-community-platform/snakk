@@ -188,6 +188,8 @@
     cursor: pointer;
     transition: color 0.15s, border-color 0.15s;
     margin-bottom: -1px;
+    white-space: nowrap;
+    flex-shrink: 0;
 
     &:hover {
         color: var(--text-primary);
@@ -197,5 +199,31 @@
         color: var(--text-primary);
         border-bottom-color: var(--link-primary);
     }
+}
+
+// Narrow viewports: tighten the hero card and let tabs scroll horizontally
+// instead of wrapping.
+@media (max-width: 767.98px) {
+    .sn-profile-card {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .sn-profile-card-header {
+        gap: 0.75rem;
+    }
+
+    .sn-profile-avatar {
+        width: 4rem;
+        height: 4rem;
+    }
+
+    .sn-profile-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .sn-profile-tabs::-webkit-scrollbar { display: none; }
 }
 

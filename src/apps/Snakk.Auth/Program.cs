@@ -73,6 +73,20 @@ builder.Services.AddAuthentication(options =>
 // Only register OAuth providers when their ClientId is configured.
 // Without this guard, OAuthOptions.Validate() throws on every request
 // when ClientId is an empty string (e.g. fresh install without OAuth).
+// Redirect OAuth handler failures (bad state, token exchange errors, denied consent)
+// to /Login with a reason query param instead of letting them bubble up as 500s.
+static Func<Microsoft.AspNetCore.Authentication.RemoteFailureContext, Task> OnRemoteFailure(string provider)
+    => context =>
+    {
+        var reason = context.Failure?.Message ?? "unknown";
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>().CreateLogger("OAuth." + provider);
+        logger.LogWarning(context.Failure, "OAuth {Provider} remote failure: {Reason}", provider, reason);
+        context.Response.Redirect($"/Login?error=oauth_remote_failed&provider={Uri.EscapeDataString(provider)}&reason={Uri.EscapeDataString(reason)}");
+        context.HandleResponse();
+        return Task.CompletedTask;
+    };
+
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
 if (!string.IsNullOrEmpty(googleClientId))
 {
@@ -81,6 +95,7 @@ if (!string.IsNullOrEmpty(googleClientId))
         options.ClientId = googleClientId;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
         options.CallbackPath = "/oauth/google/callback";
+        options.Events.OnRemoteFailure = OnRemoteFailure("Google");
     });
 }
 
@@ -92,6 +107,7 @@ if (!string.IsNullOrEmpty(githubClientId))
         options.ClientId = githubClientId;
         options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "";
         options.CallbackPath = "/oauth/github/callback";
+        options.Events.OnRemoteFailure = OnRemoteFailure("GitHub");
     });
 }
 
@@ -103,6 +119,8 @@ if (!string.IsNullOrEmpty(discordClientId))
         options.ClientId = discordClientId;
         options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"] ?? "";
         options.CallbackPath = "/oauth/discord/callback";
+        options.Scope.Add("email");
+        options.Events.OnRemoteFailure = OnRemoteFailure("Discord");
     });
 }
 
@@ -134,7 +152,12 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler(eb => eb.Run(async ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        ctx.Response.ContentType = "application/json";
+        await ctx.Response.WriteAsync("{\"error\":\"internal_server_error\"}");
+    }));
     app.UseHsts();
 }
 

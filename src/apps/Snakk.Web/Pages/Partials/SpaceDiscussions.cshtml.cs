@@ -30,8 +30,15 @@ public class SpaceDiscussionsModel(
         TypeFilter = typeFilter;
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 20);
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
         MaxOffset = maxPages * pageSize;
+
+        if (offset >= MaxOffset)
+        {
+            Items = [];
+            HasMoreItems = false;
+            return;
+        }
 
         // Look up space to get hub/space slugs for URL generation
         var space = await apiClient.GetSpaceAsync(spaceId);

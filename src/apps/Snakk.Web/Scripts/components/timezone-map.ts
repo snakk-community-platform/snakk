@@ -592,8 +592,13 @@
         svgDoc.addEventListener('pointerup', () => handlePointerUp());
         svgDoc.addEventListener('pointerleave', () => handlePointerUp());
 
+        // Touch devices get selection via the click handler below; skip the
+        // hover highlight + tooltip so first-tap doesn't fire both behaviors.
+        const coarsePointer = window.matchMedia('(hover: none)').matches;
+
         // Hover: highlight only the hovered country
         svgDoc.addEventListener('mouseover', (e: Event) => {
+            if (coarsePointer) return;
             const target = e.target as SVGElement;
             const countryId = getCountryId(target);
             if (!countryId) return;
@@ -626,6 +631,7 @@
         });
 
         svgDoc.addEventListener('mouseout', (e: Event) => {
+            if (coarsePointer) return;
             const target = e.target as SVGElement;
             const countryId = getCountryId(target);
             if (!countryId) return;
@@ -635,6 +641,7 @@
         });
 
         svgDoc.addEventListener('mousemove', (e: Event) => {
+            if (coarsePointer) return;
             if (!tooltipEl || tooltipEl.classList.contains('hidden')) return;
             const me = e as MouseEvent;
             const objRect = obj!.getBoundingClientRect();

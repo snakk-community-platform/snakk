@@ -8,6 +8,42 @@
 (function() {
     'use strict';
 
+    // ─── Submit-button blocker registry ─────────────────────────
+    //
+    // Multiple scripts (this one + gallery-upload.ts) need to block the
+    // shared submit button. Each owns named blockers; button is disabled
+    // iff any blocker is set. Stored in data-blockers as a space-separated
+    // set so state survives DOM re-renders and is debuggable in devtools.
+    function getSubmitBtn(): HTMLButtonElement | null {
+        return document.getElementById('new-discussion-submit') as HTMLButtonElement | null;
+    }
+
+    function currentBlockers(btn: HTMLButtonElement): Set<string> {
+        const raw = (btn.dataset.blockers || '').trim();
+        return new Set(raw ? raw.split(/\s+/) : []);
+    }
+
+    function applyBlockers(btn: HTMLButtonElement, blockers: Set<string>): void {
+        btn.dataset.blockers = Array.from(blockers).join(' ');
+        btn.disabled = blockers.size > 0;
+    }
+
+    function setBlocker(name: string, blocked: boolean): void {
+        const btn = getSubmitBtn();
+        if (!btn) return;
+        const blockers = currentBlockers(btn);
+        if (blocked) blockers.add(name); else blockers.delete(name);
+        applyBlockers(btn, blockers);
+    }
+
+    function hasBlockers(): boolean {
+        const btn = getSubmitBtn();
+        if (!btn) return false;
+        return currentBlockers(btn).size > 0;
+    }
+
+    window.SnakkNewDiscussion = { setBlocker, hasBlockers };
+
     // ─── beforeunload dirty guard ───────────────────────────────
     //
     // Snapshots every form field on load; isDirty() returns true if any field
@@ -128,6 +164,19 @@
 
         let editor: any = null;
 
+        // Seed blockers before the editor boots so the button stays disabled
+        // from the moment it's unhidden (see submitBtn.classList.remove('hidden')
+        // below). Title blocker tracks the input; body blocker is only relevant
+        // when this page actually has an editor.
+        setBlocker('title', !(titleInput?.value.trim()));
+        if (container && textarea) {
+            setBlocker('body', !(textarea.value.trim()));
+        }
+
+        titleInput?.addEventListener('input', () => {
+            setBlocker('title', !titleInput.value.trim());
+        });
+
         if (container && textarea && (window as any).SnakkEditor) {
             const placeholder = container.dataset.placeholder || 'Write your content...';
             const hideImageButton = container.dataset.hideImage === 'true';
@@ -138,6 +187,9 @@
                 placeholder,
                 initialValue: textarea.value || '',
                 hideImageButton,
+                onChange: (markdown: string) => {
+                    setBlocker('body', !markdown.trim());
+                },
             });
 
             if (editor) {

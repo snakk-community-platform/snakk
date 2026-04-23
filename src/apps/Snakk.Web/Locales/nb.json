@@ -34,6 +34,12 @@
         "login":         "Logg inn",
         "signUp":        "Registrer deg"
     },
+    "mobileNav": {
+        "open":  "Åpne meny",
+        "close": "Lukk meny",
+        "post":  "Post",
+        "me":    "Meg"
+    },
     "actions": {
         "newDiscussion":    "Ny diskusjon",
         "share":            "Del",

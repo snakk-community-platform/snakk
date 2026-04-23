@@ -330,6 +330,11 @@ public class StatisticsGrpcService(
             AvatarUrl = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName)
         };
         if (stats.Bio != null) userStats.Bio = stats.Bio;
+        if (!string.IsNullOrEmpty(stats.AvatarThumbnailFileName))
+        {
+            userStats.AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(
+                stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName, stats.AvatarThumbnailFileName);
+        }
         return userStats;
     }
 

@@ -96,11 +96,17 @@ public static class SnakkUrlHelper
     public static string SpaceAvatar(string publicId, int revision = 0, string? avatarFileName = null)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Space, revision, avatarFileName);
 
+    public static string SpaceAvatarThumbnail(string publicId, int revision = 0, string? avatarFileName = null, string? avatarThumbnailFileName = null)
+        => AvatarHelper.GetAvatarThumbnailUrl(publicId, AvatarEntityType.Space, revision, avatarFileName, avatarThumbnailFileName);
+
     public static string CommunityAvatar(string publicId, int revision = 0, string? avatarFileName = null)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.Community, revision, avatarFileName);
 
     public static string UserAvatar(string publicId, int revision = 0, string? avatarFileName = null)
         => AvatarHelper.GetAvatarUrl(publicId, AvatarEntityType.User, revision, avatarFileName);
+
+    public static string UserAvatarThumbnail(string publicId, int revision = 0, string? avatarFileName = null, string? avatarThumbnailFileName = null)
+        => AvatarHelper.GetAvatarThumbnailUrl(publicId, AvatarEntityType.User, revision, avatarFileName, avatarThumbnailFileName);
 
     public static string Css(string filename, bool isVendor = false)
     {

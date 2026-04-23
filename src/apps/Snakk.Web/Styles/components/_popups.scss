@@ -12,6 +12,44 @@
     animation: popup-fade-in 0.15s ease;
 }
 
+// Close button — only shown on touch devices where there's no hover dismiss.
+.snakk-popup-close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    z-index: 3;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    cursor: pointer;
+
+    .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+@media (hover: none) {
+    .snakk-popup-close { display: inline-flex; }
+}
+
+// On narrow viewports, keep the popup inside the viewport and scroll
+// if the content exceeds screen height.
+@media (max-width: 767.98px) {
+    .snakk-popup {
+        max-width: calc(100vw - 1rem);
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+}
+
 @keyframes popup-fade-in {
     from {
         opacity: 0;
@@ -197,7 +235,7 @@
 .snakk-popup-error {
     text-align: center;
     font-size: 0.8125rem;
-    color: #d97706;
+    color: var(--accent-warning);
     padding: 0.5rem 0;
 }
 

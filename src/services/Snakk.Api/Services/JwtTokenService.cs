@@ -18,7 +18,7 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
 
     private const string RevocationPrefix = "jwt:revoked:";
 
-    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
@@ -42,6 +42,12 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
 
         if (!string.IsNullOrEmpty(avatarFileName))
             claims.Add(new("AvatarFileName", avatarFileName));
+
+        if (!string.IsNullOrEmpty(avatarThumbnailFileName))
+            claims.Add(new("AvatarThumbnailFileName", avatarThumbnailFileName));
+
+        if (!string.IsNullOrEmpty(avatarMicroFileName))
+            claims.Add(new("AvatarMicroFileName", avatarMicroFileName));
 
         if (needsProfileSetup)
             claims.Add(new("NeedsProfileSetup", "true"));
@@ -68,7 +74,9 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             user.OAuthProvider,
             user.Role,
             user.AvatarFileName,
-            user.NeedsProfileSetup);
+            user.NeedsProfileSetup,
+            user.AvatarThumbnailFileName,
+            user.AvatarMicroFileName);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {

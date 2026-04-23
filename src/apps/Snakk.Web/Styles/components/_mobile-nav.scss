@@ -1,0 +1,143 @@
+// ============================================
+// Mobile Nav — hamburger, drawer backdrop, bottom tab bar
+// ============================================
+// The drawer itself (slide-in of .sn-left) lives in
+// pages/_left-nav.scss. This file owns the chrome that only appears
+// on mobile: the hamburger button, the backdrop overlay, and the
+// bottom tab bar.
+
+// Hamburger button in navbar — hidden by default (desktop), shown <lg.
+.sn-nav-hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover {
+        background: var(--bg-subtle);
+    }
+
+    .icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+@media (max-width: 1023.98px) {
+    .sn-nav-hamburger {
+        display: inline-flex;
+    }
+}
+
+// Backdrop behind the open drawer. Lives at the end of <body>. Toggles
+// visibility via the .is-visible class set by mobile-nav.ts.
+.sn-mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 90; // below drawer (100), above page content
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.sn-mobile-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+// When the drawer is open we lock body scroll; mobile-nav.ts adds this
+// class to <html>.
+html.sn-nav-open,
+html.sn-nav-open body {
+    overflow: hidden;
+}
+
+// Bottom tab bar — hidden by default, shown <lg.
+.sn-tabbar {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    height: 3.5rem;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-subtle);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (max-width: 1023.98px) {
+    .sn-tabbar {
+        display: flex;
+    }
+
+    // Reserve space at the bottom of the page so content isn't hidden
+    // behind the tab bar. The 0.75rem gives a little breathing room
+    // above the tab bar for the last content block.
+    body {
+        padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0) + 0.75rem);
+    }
+}
+
+.sn-tabbar-item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.625rem;
+    font-weight: 500;
+    line-height: 1;
+    min-height: 3.5rem;
+    padding: 0.25rem 0.25rem 0.375rem;
+    transition: color 0.1s;
+
+    .icon {
+        width: 1.375rem;
+        height: 1.375rem;
+    }
+
+    &:hover {
+        color: var(--text-primary);
+    }
+
+    &.is-active {
+        color: var(--link-primary);
+    }
+}
+
+// Primary/emphasized compose tab — visually lifted, colored background.
+.sn-tabbar-item--primary {
+    .sn-tabbar-item-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 999px;
+        background: var(--link-primary);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+        .icon {
+            width: 1.375rem;
+            height: 1.375rem;
+        }
+    }
+
+    &:hover .sn-tabbar-item-icon {
+        opacity: 0.9;
+    }
+}

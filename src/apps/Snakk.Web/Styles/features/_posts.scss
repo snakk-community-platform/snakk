@@ -161,8 +161,10 @@
     color: var(--text-tertiary);
 }
 
-// Mobile responsive
-@media (max-width: 640px) {
+// Compact author rail: collapsed to avatar-only whenever the 3-col grid is
+// gone (single-column layout <1024px). At desktop widths we keep the 150px
+// rail with stacked username + badges.
+@media (max-width: 1023.98px) {
     .post-author-pane {
         width: 48px;
         padding: 0.5rem 0.5rem 0.5rem 0;
@@ -220,7 +222,7 @@
 
     &.keyboard-selected {
         background: rgba(0, 102, 204, 0.05);
-        border-left: 3px solid #0066cc;
+        border-left: 3px solid var(--accent-info-outline);
         transition: background 0.2s ease, border-color 0.2s ease;
     }
 }
@@ -231,7 +233,7 @@
 }
 
 @keyframes highlight-subtle {
-    0% { background-color: #e8f4fd; }
+    0% { background-color: var(--accent-info-bg-tint); }
     100% { background-color: transparent; }
 }
 
@@ -318,16 +320,30 @@
     color: var(--text-primary);
 
 
-    // Loading overlay (shown while inserting images)
+    // Loading overlay (shown while uploading images)
     .milkdown-loading-overlay {
         position: absolute;
         inset: 0;
         z-index: 20;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 0.5rem;
         background: rgba(0, 0, 0, 0.3);
         border-radius: 0.5rem;
+    }
+
+    .milkdown-upload-progress {
+        width: 240px;
+        max-width: 80%;
+    }
+
+    .milkdown-upload-progress-label {
+        color: white;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     }
 
     .milkdown-loading-spinner {
@@ -1042,9 +1058,9 @@
     right: -0.625rem;
 
     &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger-bg);
+        color: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 
@@ -1052,9 +1068,9 @@
     transform: translate(-50%, -50%);
 
     &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger-bg);
+        color: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 
@@ -1082,9 +1098,9 @@
     transform: translate(-50%, -50%);
 
     &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger-bg);
+        color: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 
@@ -1113,9 +1129,9 @@
     right: -0.625rem;
 
     &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger-bg);
+        color: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 
@@ -1126,9 +1142,9 @@
     transform: translateY(-50%);
 
     &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger-bg);
+        color: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 

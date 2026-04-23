@@ -3,8 +3,6 @@
 
     if ((window as any).SnakkSparkline) return;
 
-    if ((window as any).SnakkSparkline) return;
-
     interface SparklineDay {
         date: string;
         postCount: number;
@@ -22,7 +20,7 @@
         const W = 120;
         const H = 28;
         const metric = opts.metric ?? 'postCount';
-        const strokeColor = opts.strokeColor ?? 'var(--color-primary, #6366f1)';
+        const strokeColor = opts.strokeColor ?? 'currentColor';
         const strokeWidth = opts.strokeWidth ?? 1.5;
         const useFill = opts.fill ?? true;
 

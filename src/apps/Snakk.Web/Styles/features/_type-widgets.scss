@@ -108,7 +108,11 @@
 // narrative event ("this author switched sides") rather than decay.
 .timeline-position-change {
     // Reuse daisyUI .timeline-vertical positioning; scope the styles to the
-    // li instead of duplicating structure.
+    // li instead of duplicating structure. The first column is pinned to 150px
+    // so the icon and vertical line align with .post-author-pane's right border.
+    > li {
+        grid-template-columns: 150px auto 1fr;
+    }
     .timeline-middle svg, .timeline-middle .icon {
         color: oklch(0.7 0.16 70); // amber
     }
@@ -117,6 +121,7 @@
         font-weight: 600;
     }
     hr {
+        width: 1px;
         background: oklch(0.7 0.16 70 / 0.4);
     }
 }
@@ -396,7 +401,9 @@
 // Layout section reveal animation
 .images-layout-section {
     overflow: hidden;
-    max-height: 200px;
+    // 400px fits up to ~4 rows of wrapped options on narrow viewports;
+    // used by the reveal animation below.
+    max-height: 400px;
     opacity: 1;
     transform: translateY(0);
     transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, margin 0.2s ease;
@@ -1246,6 +1253,17 @@
     z-index: 2;
 }
 
+.images-upload-item-progress {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 12%;
+    width: 80%;
+    height: 0.5rem;
+    pointer-events: none;
+    z-index: 2;
+}
+
 // Blur-up fade-in effect
 .images-blur-up {
     opacity: 0;
@@ -1344,8 +1362,8 @@
     }
 
     &:hover {
-        background: #dc2626;
-        border-color: #fca5a5;
+        background: var(--accent-danger);
+        border-color: var(--accent-danger-border);
     }
 }
 

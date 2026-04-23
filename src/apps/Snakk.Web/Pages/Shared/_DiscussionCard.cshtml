@@ -222,11 +222,17 @@
                     <div class="sn-compare-preview @(gpSpoiler ? "sn-images-spoiler" : "")" style="@compareOuterStyle" data-discussion-id="@discussion.PublicId">
                       <div class="sn-compare-frame" style="@compareFrameStyle">
                         <div class="gup-compare sn-compare-widget">
+                            @{
+                                var afterSrcset = SnakkImageHelper.Srcset(afterImg);
+                                var beforeSrcset = SnakkImageHelper.Srcset(beforeImg);
+                            }
                             <div class="gup-compare-after images-upload-item" style="@afterBg">
                                 @if (gpSpoiler && afterImg.HasBlurDataUri) {
                                     <img src="@afterBlur" data-deferred-src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 } else {
-                                    <img src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
+                                    <img src="@afterSrc"
+                                         @if (afterSrcset != null) { <text>srcset="@afterSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
+                                         data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 }
                                 <span class="gup-compare-label gup-compare-label-after">@T.Card.After</span>
                             </div>
@@ -234,7 +240,9 @@
                                 @if (gpSpoiler && beforeImg.HasBlurDataUri) {
                                     <img src="@beforeBlur" data-deferred-src="@beforeSrc" data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
                                 } else {
-                                    <img src="@beforeSrc" data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
+                                    <img src="@beforeSrc"
+                                         @if (beforeSrcset != null) { <text>srcset="@beforeSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
+                                         data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
                                 }
                                 <span class="gup-compare-label gup-compare-label-before">@T.Card.Before</span>
                             </div>
@@ -296,8 +304,10 @@
                                     }
                                     else if (i == 0)
                                     {
+                                        var imgSrcset = SnakkImageHelper.Srcset(img);
                                         <img class="sn-images-slide"
                                              src="@src"
+                                             @if (imgSrcset != null) { <text>srcset="@imgSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
                                              data-src="@src"
                                              data-full="@img.Url"
                                              data-loaded="1"

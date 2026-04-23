@@ -12,7 +12,8 @@
     var isModerator = !string.IsNullOrEmpty(role);
     var isGlobalAdmin = role == "GlobalAdmin";
     var avatarFileName = User.FindFirst("AvatarFileName")?.Value;
-    var avatarUrl = SnakkUrlHelper.UserAvatar(publicId, avatarFileName: avatarFileName);
+    var avatarThumbnailFileName = User.FindFirst("AvatarThumbnailFileName")?.Value;
+    var avatarUrl = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumbnailFileName);
 
     <!-- Notification Bell -->
     <div class="dropdown dropdown-end mr-2">

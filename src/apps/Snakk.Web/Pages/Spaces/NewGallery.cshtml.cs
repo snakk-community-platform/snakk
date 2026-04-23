@@ -19,19 +19,21 @@ public class NewGalleryModel(
     {
         var imageUrls = ImagesImageUrls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? [];
 
+        if (imageUrls.Count == 0)
+        {
+            CreateError = "At least one image is required.";
+            return null;
+        }
         if (imageUrls.Count > 20)
         {
             CreateError = "Gallery discussions support a maximum of 20 images.";
             return null;
         }
-        var content = NewContent?.Trim();
-        if (string.IsNullOrWhiteSpace(content))
-            content = " ";
 
         return await ApiClient.CreateDiscussionAsync(
             Space!.PublicId,
             NewTitle!.Trim(),
-            content,
+            NewContent!.Trim(),
             DiscussionType,
             imagesLayout: ImagesLayout,
             imagesImageUrls: imageUrls,

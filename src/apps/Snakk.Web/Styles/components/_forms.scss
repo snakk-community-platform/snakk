@@ -82,21 +82,21 @@
 }
 
 *:focus-visible {
-    outline: 2px solid #0066cc;
+    outline: 2px solid var(--accent-info-outline);
     outline-offset: 2px;
     border-radius: 4px;
 }
 
 button:focus-visible,
 a:focus-visible {
-    outline: 2px solid #0066cc;
+    outline: 2px solid var(--accent-info-outline);
     outline-offset: 2px;
 }
 
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-    outline: 2px solid #0066cc;
+    outline: 2px solid var(--accent-info-outline);
     outline-offset: 0;
     border-color: var(--link-primary);
 }

@@ -1,0 +1,49 @@
+@using Snakk.Web.Helpers
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var path = ViewContext.HttpContext.Request.Path.Value ?? "";
+
+    string Active(string href, bool prefix = false)
+    {
+        if (prefix) return path.StartsWith(href, StringComparison.OrdinalIgnoreCase) ? " is-active" : "";
+        return path == href ? " is-active" : "";
+    }
+}
+<nav class="sn-tabbar" aria-label="Mobile navigation">
+    <a href="/" class="sn-tabbar-item@(Active("/"))">
+        <span class="icon icon-home" aria-hidden="true"></span>
+        <span>@T.Nav.Active</span>
+    </a>
+    <a href="/communities" class="sn-tabbar-item@(Active("/communities", prefix: true))">
+        <span class="icon icon-users-group" aria-hidden="true"></span>
+        <span>@T.Nav.Communities</span>
+    </a>
+    <a href="/new" class="sn-tabbar-item sn-tabbar-item--primary@(Active("/new", prefix: true))" aria-label="@T.MobileNav.Post">
+        <span class="sn-tabbar-item-icon">
+            <span class="icon icon-plus" aria-hidden="true"></span>
+        </span>
+        <span>@T.MobileNav.Post</span>
+    </a>
+    @if (isAuthenticated)
+    {
+        <a href="/following" class="sn-tabbar-item@(Active("/following", prefix: true))">
+            <span class="icon icon-bell" aria-hidden="true"></span>
+            <span>@T.Nav.Following</span>
+        </a>
+        <a href="/me" class="sn-tabbar-item@(Active("/me", prefix: true))">
+            <span class="icon icon-user" aria-hidden="true"></span>
+            <span>@T.MobileNav.Me</span>
+        </a>
+    }
+    else
+    {
+        <a href="/auth/login" class="sn-tabbar-item@(Active("/auth/login", prefix: true))" hx-boost="false">
+            <span class="icon icon-user" aria-hidden="true"></span>
+            <span>@T.AuthNav.Login</span>
+        </a>
+        <a href="/auth/register" class="sn-tabbar-item@(Active("/auth/register", prefix: true))" hx-boost="false">
+            <span class="icon icon-user-add" aria-hidden="true"></span>
+            <span>@T.AuthNav.SignUp</span>
+        </a>
+    }
+</nav>

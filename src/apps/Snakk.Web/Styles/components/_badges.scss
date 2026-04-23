@@ -9,13 +9,13 @@
 }
 
 .badge-primary-subtle {
-    background: #e8f4fd;
+    background: var(--accent-info-bg-tint);
     color: var(--link-primary);
 }
 
 .badge-warning-subtle {
-    background: #fef3c7;
-    color: #d97706;
+    background: var(--accent-warning-bg);
+    color: var(--accent-warning);
 }
 
 // Tags
@@ -42,6 +42,6 @@
     font-size: 0.6875rem;
     font-weight: 500;
     color: var(--link-primary);
-    background: #e8f4fd;
+    background: var(--accent-info-bg-tint);
     border-radius: 0.25rem;
 }

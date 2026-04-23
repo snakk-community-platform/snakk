@@ -843,24 +843,46 @@ function insertImageFromFile(editor: Editor): void {
         const file = input.files?.[0];
         if (!file || !file.type.startsWith('image/')) return;
 
-        // Show loading overlay while uploading
+        // Show loading overlay with progress bar while uploading
         const editorWrapper = document.querySelector('.milkdown-editor') as HTMLElement;
         let overlay: HTMLElement | null = null;
+        let progressBar: HTMLProgressElement | null = null;
+        let progressLabel: HTMLDivElement | null = null;
         if (editorWrapper) {
             overlay = document.createElement('div');
             overlay.className = 'milkdown-loading-overlay';
-            overlay.innerHTML = '<div class="milkdown-loading-spinner"></div>';
+            progressBar = document.createElement('progress');
+            progressBar.className = 'progress progress-primary milkdown-upload-progress';
+            progressBar.max = 100;
+            progressBar.value = 0;
+            progressLabel = document.createElement('div');
+            progressLabel.className = 'milkdown-upload-progress-label';
+            progressLabel.textContent = '0%';
+            overlay.appendChild(progressBar);
+            overlay.appendChild(progressLabel);
             editorWrapper.appendChild(overlay);
         }
 
         const formData = new FormData();
         formData.append('file', file, file.name);
 
-        fetch('/bff/media/upload', { method: 'POST', body: formData })
-            .then(async (response) => {
-                if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
-                const result = JSON.parse(await response.text());
-                const url: string = result.url;
+        window.SnakkUpload.uploadWithProgress<{ url: string }>({
+            url: '/bff/media/upload',
+            formData,
+            onProgress: (percent: number) => {
+                if (progressBar) progressBar.value = percent;
+                if (progressLabel) progressLabel.textContent = `${percent}%`;
+            },
+            onProcessing: () => {
+                if (progressLabel) progressLabel.textContent = 'Processing…';
+            },
+        })
+            .then((result: { ok: boolean; status: number; data?: { url: string }; error?: string }) => {
+                if (!result.ok || !result.data) {
+                    console.error('[Editor] Image upload failed:', result.status, result.error);
+                    return;
+                }
+                const url = result.data.url;
 
                 editor.action((ctx) => {
                     const view = ctx.get(editorViewCtx);
@@ -876,7 +898,7 @@ function insertImageFromFile(editor: Editor): void {
                     view.focus();
                 });
             })
-            .catch((err) => {
+            .catch((err: unknown) => {
                 console.error('[Editor] Image upload error:', err);
             })
             .finally(() => {
@@ -1029,11 +1051,8 @@ function showTablePicker(editor: Editor): void {
         }
     }
 
-    // Hover: highlight from (0,0) to hovered position, minimum 2 rows
-    grid.addEventListener('mouseover', (e) => {
-        const target = (e.target as HTMLElement).closest('.table-picker-cell') as HTMLElement;
-        if (!target) return;
-
+    // Shared: highlight from (0,0) up to the cell at (row, col)
+    const highlightTo = (target: HTMLElement) => {
         const hoverRow = Math.max(1, parseInt(target.dataset.row!));
         const hoverCol = parseInt(target.dataset.col!);
 
@@ -1044,6 +1063,22 @@ function showTablePicker(editor: Editor): void {
         });
 
         label.textContent = `${hoverCol + 1} × ${hoverRow + 1}`;
+    };
+
+    const insertFromCell = (target: HTMLElement) => {
+        const row = Math.max(2, parseInt(target.dataset.row!) + 1);
+        const col = parseInt(target.dataset.col!) + 1;
+
+        editor.action(callCommand(insertTableCommand.key, { row, col }));
+        closeTablePicker();
+        editor.action((ctx) => ctx.get(editorViewCtx).focus());
+    };
+
+    // Mouse path: hover to preview, click to insert.
+    grid.addEventListener('mouseover', (e) => {
+        const target = (e.target as HTMLElement).closest('.table-picker-cell') as HTMLElement;
+        if (!target) return;
+        highlightTo(target);
     });
 
     grid.addEventListener('mouseleave', () => {
@@ -1051,18 +1086,52 @@ function showTablePicker(editor: Editor): void {
         label.textContent = 'Select size';
     });
 
-    // Click: insert table (minimum 2 rows)
     grid.addEventListener('click', (e) => {
         const target = (e.target as HTMLElement).closest('.table-picker-cell') as HTMLElement;
         if (!target) return;
-
-        const row = Math.max(2, parseInt(target.dataset.row!) + 1);
-        const col = parseInt(target.dataset.col!) + 1;
-
-        editor.action(callCommand(insertTableCommand.key, { row, col }));
-        closeTablePicker();
-        editor.action((ctx) => ctx.get(editorViewCtx).focus());
+        insertFromCell(target);
     });
+
+    // Touch path: press + drag across cells to preview size, release to insert.
+    // elementFromPoint is used because pointermove events on the initial cell
+    // don't re-target as the finger moves to siblings.
+    let touchActive = false;
+    let lastTouchCell: HTMLElement | null = null;
+
+    grid.addEventListener('pointerdown', (e: PointerEvent) => {
+        if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+        const target = (e.target as HTMLElement).closest('.table-picker-cell') as HTMLElement;
+        if (!target) return;
+        e.preventDefault();
+        touchActive = true;
+        lastTouchCell = target;
+        highlightTo(target);
+    });
+
+    grid.addEventListener('pointermove', (e: PointerEvent) => {
+        if (!touchActive) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+        const target = el?.closest('.table-picker-cell') as HTMLElement | null;
+        if (!target || target === lastTouchCell) return;
+        lastTouchCell = target;
+        highlightTo(target);
+    });
+
+    const endTouch = (e: PointerEvent) => {
+        if (!touchActive) return;
+        touchActive = false;
+        if (e.type === 'pointercancel') {
+            cells.forEach(cell => cell.classList.remove('highlighted'));
+            label.textContent = 'Select size';
+            lastTouchCell = null;
+            return;
+        }
+        const target = lastTouchCell;
+        lastTouchCell = null;
+        if (target) insertFromCell(target);
+    };
+    grid.addEventListener('pointerup', endTouch);
+    grid.addEventListener('pointercancel', endTouch);
 
     picker.appendChild(label);
     picker.appendChild(grid);
@@ -2128,11 +2197,18 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                             onChange?.(cleaned);
                         });
 
-                    // Upload plugin: immediately upload pasted/dropped images to server
+                    // Upload plugin: immediately upload pasted/dropped images to server.
+                    // Live progress updates target any visible .milkdown-upload-placeholder
+                    // spans — the widget factory below creates them at the insertion point.
                     ctx.update(uploadConfig.key, (prev) => ({
                         ...prev,
                         uploader: async (files, schema, _ctx, _insertPos) => {
                             const nodes: Node[] = [];
+                            const updatePlaceholders = (text: string): void => {
+                                editorRoot.querySelectorAll<HTMLSpanElement>('.milkdown-upload-placeholder')
+                                    .forEach((el) => { el.textContent = text; });
+                            };
+
                             for (let i = 0; i < files.length; i++) {
                                 const file = files.item(i);
                                 if (!file || !file.type.startsWith('image/')) continue;
@@ -2141,19 +2217,20 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                                     const formData = new FormData();
                                     formData.append('file', file, file.name);
 
-                                    const response = await fetch('/bff/media/upload', {
-                                        method: 'POST',
-                                        body: formData,
+                                    const result = await window.SnakkUpload.uploadWithProgress<{ url: string }>({
+                                        url: '/bff/media/upload',
+                                        formData,
+                                        onProgress: (percent: number) => updatePlaceholders(`Uploading ${percent}%`),
+                                        onProcessing: () => updatePlaceholders('Processing…'),
                                     });
 
-                                    if (!response.ok) {
-                                        console.error('[Editor] Image upload failed:', response.status);
+                                    if (!result.ok || !result.data) {
+                                        console.error('[Editor] Image upload failed:', result.status, result.error);
                                         continue;
                                     }
 
-                                    const result = JSON.parse(await response.text());
                                     const node = schema.nodes.image?.createAndFill({
-                                        src: result.url,
+                                        src: result.data.url,
                                         alt: 'user uploaded image',
                                     });
                                     if (node) nodes.push(node);
@@ -2166,7 +2243,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                         uploadWidgetFactory: (pos: number, spec: Parameters<typeof Decoration.widget>[2]) => {
                             const span = document.createElement('span');
                             span.className = 'milkdown-upload-placeholder';
-                            span.textContent = 'Uploading...';
+                            span.textContent = 'Uploading…';
                             return Decoration.widget(pos, span, spec);
                         },
                     }));

@@ -75,6 +75,26 @@
     }
     <meta name="dark-theme-css" content="@darkThemeCssUrl" />
 
+    @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC) and
+       to ensure data-theme matches the saved preference after a hard reload. Reads localStorage,
+       resolves auto→system, sets data-theme on <html>, and injects the dark CSS link if needed. *@
+    <script>
+        (function () {
+            try {
+                var p = localStorage.getItem('snakk_theme_preference');
+                var isDark = p === 'dark' || ((!p || p === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'lofi');
+                if (isDark) {
+                    var l = document.createElement('link');
+                    l.id = 'dark-theme-css';
+                    l.rel = 'stylesheet';
+                    l.href = '@Html.Raw(darkThemeCssUrl)';
+                    document.head.appendChild(l);
+                }
+            } catch (e) { }
+        })();
+    </script>
+
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -86,6 +106,7 @@
     <script src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
 
@@ -106,8 +127,21 @@
 
     <!-- Navbar -->
     <nav id="sn-navbar" class="sn-navbar">
+        <button type="button"
+                class="sn-nav-hamburger"
+                data-mobile-nav-toggle
+                aria-label="@T.MobileNav.Open"
+                aria-controls="sn-left-drawer"
+                aria-expanded="false">
+            <span class="icon icon-menu" aria-hidden="true"></span>
+        </button>
         <div class="sn-navbar-brand">
-            <a href="/"><img src="/img/logo-wide.webp" alt="@siteName" class="sn-navbar-logo" width="159" height="40" fetchpriority="high" /></a>
+            <a href="/">
+                <picture>
+                    <source media="(max-width: 1023.98px)" srcset="/img/logo-square-sm.webp" width="40" height="40" />
+                    <img src="/img/logo-wide.webp" alt="@siteName" class="sn-navbar-logo" width="159" height="40" fetchpriority="high" />
+                </picture>
+            </a>
         </div>
         <div class="sn-navbar-content">
             <div class="sn-navbar-search">
@@ -135,6 +169,7 @@
     <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/breadcrumb-title")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/left-sidebar")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/mobile-nav")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("services/cache-manager")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
@@ -159,6 +194,8 @@
 
     <meta name="lazy-site-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"))" />
     <script src="@SnakkUrlHelper.Js("core/script-loader")" asp-append-version="true" defer></script>
+
+    <partial name="Shared/_MobileTabBar" />
 
     <!-- External Link Warning Modal -->
     <dialog id="external-link-modal" class="modal">

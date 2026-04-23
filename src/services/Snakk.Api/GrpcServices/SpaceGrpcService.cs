@@ -303,6 +303,9 @@ public class SpaceGrpcService(
         if (s.AvatarFileName is not null)
             info.AvatarFileName = s.AvatarFileName;
 
+        if (s.AvatarThumbnailFileName is not null)
+            info.AvatarThumbnailFileName = s.AvatarThumbnailFileName;
+
         return info;
     }
 }

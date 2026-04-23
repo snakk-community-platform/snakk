@@ -199,12 +199,11 @@ interface SnakkTheme {
         },
 
         init(): void {
-            // Theme already applied by inline script in <head> — just sync CSS state and UI
-            const theme = this.getEffectiveTheme();
-            if (theme === DARK_THEME) {
-                loadDarkThemeCSS();
-            }
-            this.updateToggleButton();
+            // The inline pre-paint script in _Layout.cshtml already set data-theme and
+            // injected the dark CSS link if needed. Re-running applyTheme() here is a
+            // safe idempotent sync that also covers the case where the inline script
+            // didn't run (e.g. CSP block) or localStorage changed across tabs.
+            this.applyTheme();
 
             // Setup listener for system theme changes
             this.setupSystemThemeListener();

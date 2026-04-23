@@ -35,6 +35,9 @@ public class UserGrpcService(
         if (profile.AvatarFileName is not null)
             response.AvatarFileName = profile.AvatarFileName;
 
+        if (profile.AvatarThumbnailFileName is not null)
+            response.AvatarThumbnailFileName = profile.AvatarThumbnailFileName;
+
         if (profile.Bio is not null)
             response.Bio = profile.Bio;
 

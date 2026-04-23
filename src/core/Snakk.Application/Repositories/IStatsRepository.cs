@@ -111,7 +111,8 @@ public record UserStatsDto(
     int ReplyCount,
     int FollowerCount,
     string? AvatarFileName = null,
-    string? Bio = null);
+    string? Bio = null,
+    string? AvatarThumbnailFileName = null);
 
 public record DiscussionStatsDto(
     string PublicId,

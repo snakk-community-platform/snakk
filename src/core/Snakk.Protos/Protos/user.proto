@@ -40,6 +40,7 @@ message UserProfileInfo {
   repeated UserAchievementInfo achievements = 13;
   repeated TopDiscussionInfo top_discussions = 14;
   repeated TopSpaceInfo top_spaces = 15;
+  optional string avatar_thumbnail_file_name = 16;
 }
 
 message UserAchievementInfo {

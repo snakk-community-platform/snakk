@@ -1,7 +1,7 @@
 // ── Left Column (Navigation) ──────────────────
 .sn-left {
     background: linear-gradient(to bottom,
-        color-mix(in srgb, var(--nav-bg) 5%, #e0e0e0), var(--bg-secondary) 1.5rem) fixed;
+        color-mix(in srgb, var(--nav-bg) 5%, var(--sidebar-gradient-mix)), var(--bg-secondary) 1.5rem) fixed;
     display: flex;
     justify-content: flex-end;
 }
@@ -20,6 +20,41 @@ html.sticky-none .sn-left-sticky {
     position: static;
     height: auto;
     overflow-y: visible;
+}
+
+// Below lg: left sidebar becomes an off-canvas drawer that slides in
+// from the left over the main content. Open state is toggled by adding
+// `is-open` to .sn-left (via mobile-nav.ts). When closed it is removed
+// from flow (display: none) so it doesn't take up grid space.
+@media (max-width: 1023.98px) {
+    .sn-left {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(18rem, 85vw);
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 0 0 0 transparent;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        background: var(--bg-secondary);
+    }
+
+    .sn-left.is-open {
+        transform: translateX(0);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .sn-left-sticky {
+        position: static;
+        width: 100%;
+        height: auto;
+        top: auto;
+        overflow-y: visible;
+        padding-top: 0.5rem;
+    }
 }
 
 .sn-left-inner {

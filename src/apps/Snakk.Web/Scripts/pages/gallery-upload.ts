@@ -38,6 +38,32 @@
     let hasShownHint = false;
     let carouselIndex = 0;
 
+    // ─── Submit-button blockers ─────────────────────────────────
+    // Coordinates with new-discussion.ts on the shared #new-discussion-submit:
+    //   images    — set until at least one upload has completed
+    //   uploading — set while any upload is in flight
+    function recomputeImageBlockers(): void {
+        const api = window.SnakkNewDiscussion;
+        if (!api) return;
+        const uploading = images.some(i => i.url === '');
+        const hasUploaded = images.some(i => i.url !== '' && i.url !== '__failed__');
+        api.setBlocker('images', !hasUploaded);
+        api.setBlocker('uploading', uploading);
+    }
+
+    // Seed the images blocker at page load (no uploads yet).
+    recomputeImageBlockers();
+
+    // Belt-and-braces: even if a blocker slips, intercept submit.
+    const form = dropZone.closest('form') as HTMLFormElement | null;
+    form?.addEventListener('submit', (e) => {
+        const hasUploaded = images.some(i => i.url !== '' && i.url !== '__failed__');
+        const uploading = images.some(i => i.url === '');
+        if (!hasUploaded || uploading) {
+            e.preventDefault();
+        }
+    });
+
     // ─── State machine ──────────────────────────────────────────
 
     function updateMode(): void {
@@ -253,6 +279,25 @@
             placeholders.push(images.length - 1);
         });
         renderPreview();
+        recomputeImageBlockers();
+
+        // Per-slot progress: direct DOM mutation keyed by data-index.
+        // Safe because renderPreview() isn't called between start and completion
+        // (await Promise.all awaits all slots; the next render is after they finish).
+        const updateSlotProgress = (idx: number, percent: number | 'processing'): void => {
+            if (!preview) return;
+            const slot = preview.querySelector(`[data-index="${idx}"]`);
+            if (!slot) return;
+            const bar = slot.querySelector<HTMLProgressElement>('progress.images-upload-item-progress');
+            const label = slot.querySelector<HTMLDivElement>('.images-upload-item-label');
+            if (percent === 'processing') {
+                if (label) label.textContent = 'Processing…';
+                if (bar) bar.value = 100;
+            } else {
+                if (bar) bar.value = percent;
+                if (label) label.textContent = `${percent}%`;
+            }
+        };
 
         // Upload all in parallel
         await Promise.all(fileArray.map(async (file, i) => {
@@ -263,22 +308,28 @@
                 const formData = new FormData();
                 formData.append('file', file, file.name);
 
-                const response = await fetch('/bff/media/upload', {
-                    method: 'POST',
-                    body: formData,
+                const result = await window.SnakkUpload.uploadWithProgress<{
+                    url: string;
+                    thumbnailUrl?: string;
+                    mediumThumbnailUrl?: string;
+                    blurDataUri?: string;
+                }>({
+                    url: '/bff/media/upload',
+                    formData,
+                    onProgress: (percent: number) => updateSlotProgress(placeholderIdx, percent),
+                    onProcessing: () => updateSlotProgress(placeholderIdx, 'processing'),
                 });
 
-                if (!response.ok) {
+                if (!result.ok || !result.data) {
                     images[placeholderIdx] = { url: '__failed__', thumbnailUrl: null, mediumThumbnailUrl: null, blurDataUri: null, fileName: file.name, fileKey: key };
                     return;
                 }
 
-                const result = JSON.parse(await response.text());
                 images[placeholderIdx] = {
-                    url: result.url,
-                    thumbnailUrl: result.thumbnailUrl || null,
-                    mediumThumbnailUrl: result.mediumThumbnailUrl || null,
-                    blurDataUri: result.blurDataUri || null,
+                    url: result.data.url,
+                    thumbnailUrl: result.data.thumbnailUrl || null,
+                    mediumThumbnailUrl: result.data.mediumThumbnailUrl || null,
+                    blurDataUri: result.data.blurDataUri || null,
                     fileName: file.name,
                     fileKey: key,
                 };
@@ -292,6 +343,7 @@
         images = images.filter(img => img.url !== '__failed__');
         renderPreview();
         updateHiddenInputs();
+        recomputeImageBlockers();
 
         // Auto-advance carousel
         if (currentLayout === 'carousel') {
@@ -321,7 +373,8 @@
         let html = `<div class="${cls}" data-index="${i}"${canDrag ? ' draggable="true"' : ''}${blurStyle}>`;
         if (isUploading) {
             html += '<div class="images-upload-item-skeleton skeleton"></div>';
-            html += '<div class="images-upload-item-label">Uploading…</div>';
+            html += '<progress class="progress progress-primary images-upload-item-progress" max="100" value="0"></progress>';
+            html += '<div class="images-upload-item-label">0%</div>';
         } else {
             // Single-image preview: prefer the 600px medium thumbnail over the full image.
             // Otherwise use 300px thumbnail for grid-like layouts, full image for carousel/hero-main.
@@ -683,6 +736,7 @@
         images.splice(index, 1);
         renderPreview();
         updateHiddenInputs();
+        recomputeImageBlockers();
 
         // Delete draft from server
         if (img && img.url) {

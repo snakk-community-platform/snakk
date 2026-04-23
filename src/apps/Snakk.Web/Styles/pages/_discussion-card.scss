@@ -102,7 +102,7 @@
 }
 
 .sn-card-tag-light {
-    background: color-mix(in srgb, var(--sidebar-bg) 50%, white);
+    background: color-mix(in srgb, var(--sidebar-bg) 50%, var(--bg-tertiary));
 }
 
 .sn-card-title {

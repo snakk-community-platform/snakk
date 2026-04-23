@@ -18,7 +18,8 @@ public record UserProfileDto(
     string? Bio,
     IReadOnlyList<UserAchievementSummary> Achievements,
     IReadOnlyList<TopDiscussionByUser> TopDiscussions,
-    IReadOnlyList<TopSpaceForUser> TopSpaces);
+    IReadOnlyList<TopSpaceForUser> TopSpaces,
+    string? AvatarThumbnailFileName = null);
 
 public record UserAchievementSummary(
     string Slug,
@@ -90,6 +91,7 @@ public class UserProfileUseCase(
             user.Bio,
             achievements,
             topDiscussions,
-            topSpaces);
+            topSpaces,
+            user.AvatarThumbnailFileName);
     }
 }

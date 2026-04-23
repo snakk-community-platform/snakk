@@ -54,8 +54,15 @@ public class DiscussionsModel(
         pageSize = Math.Clamp(pageSize, 1, 50);
         Offset = offset;
 
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 20);
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
         MaxOffset = maxPages * pageSize;
+
+        if (offset >= MaxOffset)
+        {
+            Items = [];
+            HasMoreItems = false;
+            return;
+        }
 
         ShowCommunity = !hideCommunity
             && communityContext.IsMultiCommunityEnabled

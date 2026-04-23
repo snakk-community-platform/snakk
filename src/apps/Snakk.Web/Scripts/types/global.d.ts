@@ -116,12 +116,38 @@ interface SnakkActionsAPI {
     onAll(handlers: Record<string, (el: HTMLElement, event: Event) => void>): void;
 }
 
+interface SnakkUploadOptions {
+    url: string;
+    formData: FormData;
+    onProgress?: (percent: number, loaded: number, total: number) => void;
+    onProcessing?: () => void;
+    signal?: AbortSignal;
+}
+
+interface SnakkUploadResult<T = unknown> {
+    ok: boolean;
+    status: number;
+    data?: T;
+    error?: string;
+}
+
+interface SnakkUploadAPI {
+    uploadWithProgress<T = unknown>(opts: SnakkUploadOptions): Promise<SnakkUploadResult<T>>;
+}
+
+interface SnakkNewDiscussionAPI {
+    setBlocker(name: string, blocked: boolean): void;
+    hasBlockers(): boolean;
+}
+
 interface Window {
     // Action delegation
     SnakkActions: SnakkActionsAPI;
 
     // Snakk modules
     SnakkAuth: any;
+    SnakkUpload: SnakkUploadAPI;
+    SnakkNewDiscussion?: SnakkNewDiscussionAPI;
     SnakkUtils: any;
     snakkTheme: any;
     SnakkRealtime: any;

@@ -9,6 +9,18 @@
     // Guard: skip re-execution during HTMX SPA navigation
     if ((window as any).SnakkPopup) return;
 
+    // Coarse pointer = touch primary input. Cached + refreshed on change.
+    const coarseQuery = window.matchMedia('(hover: none)');
+    let isCoarse = coarseQuery.matches;
+    const onCoarseChange = (e: MediaQueryListEvent | MediaQueryList) => {
+        isCoarse = e.matches;
+    };
+    if (coarseQuery.addEventListener) {
+        coarseQuery.addEventListener('change', onCoarseChange);
+    } else if ((coarseQuery as any).addListener) {
+        (coarseQuery as any).addListener(onCoarseChange);
+    }
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -24,6 +36,7 @@ interface EntityStats {
     displayName?: string;
     title?: string;
     avatarUrl?: string;
+    avatarThumbnailUrl?: string;
     description?: string;
     bio?: string;
     discussionCount?: number;
@@ -106,18 +119,30 @@ class SnakkPopup {
             </div>
             <div class="snakk-popup-avatar-skeleton skeleton"></div>
             <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
+            <button type="button" class="snakk-popup-close" aria-label="Close">
+                <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
         `;
         popup.style.display = 'none';
         document.body.appendChild(popup);
 
-        // Keep popup visible when hovering over it
+        // Keep popup visible when hovering over it (mouse only — no effect on touch)
         popup.addEventListener('mouseenter', () => {
+            if (isCoarse) return;
             if (this.hideTimeout) {
                 clearTimeout(this.hideTimeout);
             }
         });
         popup.addEventListener('mouseleave', () => {
+            if (isCoarse) return;
             this.scheduleHide();
+        });
+
+        // Touch close button
+        popup.querySelector('.snakk-popup-close')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dismissPopup();
         });
 
         return popup;
@@ -360,8 +385,9 @@ class SnakkPopup {
 
         // Update avatar from API response (includes correct sharded URL)
         if (avatarSkeleton) avatarSkeleton.style.display = 'none';
-        if (stats && stats.avatarUrl && avatarImg) {
-            avatarImg.src = stats.avatarUrl;
+        const popupAvatarUrl = stats?.avatarThumbnailUrl || stats?.avatarUrl;
+        if (stats && popupAvatarUrl && avatarImg) {
+            avatarImg.src = popupAvatarUrl;
             avatarImg.style.display = 'block';
         }
 
@@ -470,6 +496,9 @@ class SnakkPopup {
      * Handle mouse over on trigger elements (mouseover bubbles, mouseenter doesn't)
      */
     handleMouseOver(e: Event): void {
+        // Touch devices get tap-to-open via handleTriggerClick; ignore hover paths.
+        if (isCoarse) return;
+
         // Check for standard popup triggers or entity-link elements
         let triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;
         const isEntityLink = !triggerEl
@@ -509,6 +538,8 @@ class SnakkPopup {
      * Handle mouse out on trigger elements
      */
     handleMouseOut(e: Event): void {
+        if (isCoarse) return;
+
         const triggerEl = (e.target as HTMLElement).closest('[data-popup-type], a.entity-link') as HTMLElement | null;
         if (!triggerEl) return;
 
@@ -556,6 +587,41 @@ class SnakkPopup {
 
         document.addEventListener('mouseover', this._mouseOverHandler, false);
         document.addEventListener('mouseout', this._mouseOutHandler, false);
+
+        // Tap-to-open on coarse pointers. First tap on a trigger opens the popup
+        // and suppresses the link navigation; tapping the "Go to" link navigates.
+        document.addEventListener('click', (e: Event) => {
+            if (!isCoarse) return;
+            const target = e.target as HTMLElement;
+
+            // Tap inside an already-open popup is for its own controls — do nothing here.
+            if (this.currentPopup && this.currentPopup.contains(target)) return;
+
+            let triggerEl = target.closest('[data-popup-type]') as HTMLElement | null;
+            const isEntityLink = !triggerEl
+                && !!(triggerEl = target.closest('a.entity-link') as HTMLElement | null);
+            if (!triggerEl || triggerEl.classList.contains('breadcrumb-current')) return;
+
+            e.preventDefault();
+            if (this.showTimeout) clearTimeout(this.showTimeout);
+            if (this.hideTimeout) clearTimeout(this.hideTimeout);
+            this.currentTrigger = triggerEl;
+            if (isEntityLink && !triggerEl.dataset.popupType) {
+                this.showEntityLinkPopup(triggerEl);
+            } else {
+                this.showPopup(triggerEl);
+            }
+        }, false);
+
+        // Outside-tap close on coarse pointers.
+        document.addEventListener('pointerdown', (e: Event) => {
+            if (!isCoarse) return;
+            if (!this.currentPopup || this.currentPopup.style.display === 'none') return;
+            const target = e.target as HTMLElement;
+            if (this.currentPopup.contains(target)) return;
+            if (target.closest('[data-popup-type], a.entity-link')) return;
+            this.dismissPopup();
+        }, false);
 
         // Close popup on HTMX navigation so it doesn't linger after page swap
         document.addEventListener('htmx:beforeRequest', () => this.dismissPopup(), false);

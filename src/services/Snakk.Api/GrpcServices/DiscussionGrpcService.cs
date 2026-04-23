@@ -194,6 +194,8 @@ public class DiscussionGrpcService(
                 break;
 
             case DiscussionTypeEnum.Images:
+                if (request.ImagesImageUrls.Count == 0)
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Gallery discussions require at least one image."));
                 if (request.ImagesImageUrls.Count > 20)
                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Gallery discussions support a maximum of 20 images."));
                 break;

@@ -184,7 +184,7 @@
             {
                 @if (!firstPostItem.Author.IsDeleted)
                 {
-                    <img src="@firstPostItem.Author.AvatarUrl"
+                    <img src="@firstPostItem.Author.AvatarThumbnailUrl"
                          alt="@firstPostItem.Author.DisplayName"
                          width="24" height="24"
                          class="rounded-full"
@@ -208,8 +208,8 @@
                     <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
                 }
             }
-            <span class="text-base-content/40">·</span>
-            <time class="text-base-content/50" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
+            <span style="color: var(--text-tertiary)">·</span>
+            <time style="color: var(--text-tertiary)" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
                 @FormatRelativeTime(Model.Discussion.CreatedAt.ToDateTime())
             </time>
             @if (Model.Discussion.IsPinned)
@@ -289,7 +289,7 @@
 
         <!-- Title + OP reactions -->
         <div class="flex items-start justify-between gap-4 group">
-            <h1 class="text-xl font-bold" style="color: var(--color-primary)">@Model.Discussion.Title</h1>
+            <h1 class="text-xl font-bold" style="color: var(--link-primary)">@Model.Discussion.Title</h1>
             @if (firstPostItem != null)
             {
                 var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
@@ -484,6 +484,7 @@
                             var isFirst = i == 0;
                             var isAdjacent = i == 1;
                             var (src, w, h) = (isFirst || isAdjacent) ? pickOriginal(img) : pickThumb(img);
+                            var carouselSrcset = (isFirst || isAdjacent) ? SnakkImageHelper.Srcset(img) : null;
                             var blurStyle = img.HasBlurDataUri
                                 ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
                                 : "";
@@ -492,7 +493,9 @@
                                     <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" width="@w" height="@h" alt=""
                                          decoding="async" class="images-blur-up" data-blur-up />
                                 } else {
-                                    <img src="@src" data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                    <img src="@src"
+                                         @if (carouselSrcset != null) { <text>srcset="@carouselSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
+                                         data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
                                          decoding="async" class="images-blur-up" data-blur-up />
                                 }
                             </div>
@@ -513,6 +516,7 @@
                     @{
                         var heroFirst = Model.ImagesItems[0];
                         var (heroSrc0, heroW0, heroH0) = pickOriginal(heroFirst);
+                        var heroSrcset = SnakkImageHelper.Srcset(heroFirst);
                         var heroOuterStyle = heroFirst.HasBlurDataUri ? $"--blur-bg: url({heroFirst.BlurDataUri});" : "";
                         var heroFrameStyle = heroW0 > 0 && heroH0 > 0
                             ? $"aspect-ratio: {heroW0} / {heroH0}; max-width: {heroW0}px;"
@@ -526,7 +530,9 @@
                                 <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
                                      decoding="async" class="images-blur-up" data-blur-up />
                             } else {
-                                <img src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
+                                <img src="@heroSrc0"
+                                     @if (heroSrcset != null) { <text>srcset="@heroSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
+                                     data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
                                      decoding="async" class="images-blur-up" data-blur-up />
                             }
                         </div>
@@ -794,7 +800,7 @@
                             }
                             else
                             {
-                                <img src="@post.Author.AvatarUrl"
+                                <img src="@post.Author.AvatarThumbnailUrl"
                                      alt="@post.Author.DisplayName"
                                      width="48" height="48"
                                      class="post-avatar"

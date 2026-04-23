@@ -3,6 +3,7 @@
     overflow: hidden;
     line-height: 0;
     opacity: 0;
+    color: var(--link-primary);
     transition: opacity 0.25s ease;
 
     &.sn-sparkline--loaded {

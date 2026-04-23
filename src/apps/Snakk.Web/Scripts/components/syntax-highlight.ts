@@ -126,21 +126,13 @@
 
     (window as any).SnakkSyntax = { highlightAll, loadPrism };
 
-    // Auto-highlight any code blocks present on initial load and after HTMX swaps.
-    // `htmx:load` fires for both — scoped to the newly loaded element when available.
-    function autoHighlight(target?: HTMLElement): void {
-        const root = target || document.body;
-        if (root.querySelector && root.querySelector('pre > code:not(.prism-highlighted)')) {
-            highlightAll(target);
-        }
-    }
-
+    // Run once on load, then after every HTMX swap. Scoped to document so we
+    // catch blocks wherever they land. `:not(.prism-highlighted)` makes repeats free.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => autoHighlight());
+        document.addEventListener('DOMContentLoaded', () => highlightAll());
     } else {
-        autoHighlight();
+        highlightAll();
     }
-    document.body.addEventListener('htmx:load', (e: Event) => {
-        autoHighlight((e as CustomEvent).detail?.elt);
-    });
+    document.body.addEventListener('htmx:afterSwap', () => highlightAll());
+    document.body.addEventListener('htmx:afterSettle', () => highlightAll());
 })();

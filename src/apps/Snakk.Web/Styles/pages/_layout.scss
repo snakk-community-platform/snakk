@@ -2,10 +2,51 @@
 // Frontpage Layout (isolated redesign)
 // ============================================
 
+// Default (mobile, <1024px): single column. Left sidebar becomes an
+// off-canvas drawer via _left-nav.scss; right sidebar is hidden.
+// minmax(0, 1fr) instead of bare 1fr so the column can shrink below its
+// content's intrinsic min-width — otherwise wide preview images with
+// explicit <img width> attrs force horizontal scroll on phones.
 .sn-layout {
     display: grid;
-    grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     min-height: calc(100vh - 3.5rem);
+}
+
+// Tablet / small laptop (1024–1315.98px): 2-col — left + wide center,
+// right sidebar hidden. Center takes all space minus the 16rem left column.
+@media (min-width: 1024px) and (max-width: 1315.98px) {
+    .sn-layout {
+        grid-template-columns: 16rem minmax(0, 1fr);
+    }
+}
+
+// Shrink-center tier (1316–1539.98px): left/right locked at their min
+// widths; center shrinks from its 54rem ideal down to a 40rem floor.
+@media (min-width: 1316px) and (max-width: 1539.98px) {
+    .sn-layout {
+        grid-template-columns: 16rem minmax(40rem, 54rem) 20rem;
+    }
+}
+
+// Desktop (≥1540px): full 3-col design. Left/right grow with 1fr on
+// very wide viewports; center stays locked at 54rem.
+@media (min-width: 1540px) {
+    .sn-layout {
+        grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+    }
+}
+
+// Below lg: center column spans the single column.
+@media (max-width: 1023.98px) {
+    .sn-center,
+    .sn-center-wide {
+        grid-column: 1 / -1;
+    }
+
+    .sn-center-inner {
+        padding: 1rem;
+    }
 }
 
 .sn-main-body {
@@ -16,13 +57,13 @@
 // ── Center Column (Discussions) ───────────────
 .sn-center {
     position: relative;
-    background: linear-gradient(to bottom, #efefef 3.5rem, white calc(3.5rem + 2rem)) fixed;
+    background: linear-gradient(to bottom, var(--surface-gradient-top) 3.5rem, var(--surface-gradient-bottom) calc(3.5rem + 2rem)) fixed;
 }
 
 // No right column: center spans center + right columns
 .sn-center-wide {
     grid-column: 2 / -1;
-    background: linear-gradient(to bottom, #efefef 3.5rem, white calc(3.5rem + 2rem)) fixed;
+    background: linear-gradient(to bottom, var(--surface-gradient-top) 3.5rem, var(--surface-gradient-bottom) calc(3.5rem + 2rem)) fixed;
 }
 
 .sn-center-inner {

@@ -180,6 +180,7 @@ message UserStats {
   int32 follower_count = 6;
   int32 following_count = 7;
   optional string bio = 8;
+  optional string avatar_thumbnail_url = 9;
 }
 
 message LatestSpaceInfo {

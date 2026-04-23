@@ -11,6 +11,7 @@ interface PostAuthor {
     publicId: string;
     displayName: string;
     avatarUrl?: string;
+    avatarThumbnailUrl?: string;
     role?: 'admin' | 'mod' | 'user';
     isDeleted?: boolean;
     joinedAt?: string;
@@ -499,6 +500,11 @@ const reactionTypeValues: Record<string, number> = {
 };
 let reactionPickerHideTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Touch devices: the picker opens on tap and closes via outside-tap
+// (see document click listener below). Skip hover-based auto-hide timers
+// so the picker doesn't vanish from synthesized mouse events on mobile.
+const reactionPickerCoarseQuery = window.matchMedia('(hover: none)');
+
 const smileyPlaceholderSvg = '<span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>';
 
 // Read reaction counts from JSON data-attribute
@@ -579,16 +585,18 @@ function setupReactionPickerHover(): void {
     const picker = document.getElementById('reaction-picker');
     if (!picker || picker.dataset.hoverBound) return;
 
-    picker.addEventListener('mouseenter', () => {
-        if (reactionPickerHideTimer) {
-            clearTimeout(reactionPickerHideTimer);
-            reactionPickerHideTimer = null;
-        }
-    });
+    if (!reactionPickerCoarseQuery.matches) {
+        picker.addEventListener('mouseenter', () => {
+            if (reactionPickerHideTimer) {
+                clearTimeout(reactionPickerHideTimer);
+                reactionPickerHideTimer = null;
+            }
+        });
 
-    picker.addEventListener('mouseleave', () => {
-        reactionPickerHideTimer = setTimeout(hideReactionPicker, 300);
-    });
+        picker.addEventListener('mouseleave', () => {
+            reactionPickerHideTimer = setTimeout(hideReactionPicker, 300);
+        });
+    }
 
     // Handle clicks on reaction buttons inside the picker
     picker.addEventListener('click', (e) => {
@@ -650,10 +658,12 @@ function toggleReactionPicker(postId: string, sourceEl?: HTMLElement): void {
         smileyPlaceholder.dataset.actionsForced = 'true';
     }
 
-    // Start hide timer when mouse leaves the reactions area
-    reactionsBar.onmouseleave = () => {
-        reactionPickerHideTimer = setTimeout(hideReactionPicker, 300);
-    };
+    // Start hide timer when mouse leaves the reactions area (mouse only)
+    if (!reactionPickerCoarseQuery.matches) {
+        reactionsBar.onmouseleave = () => {
+            reactionPickerHideTimer = setTimeout(hideReactionPicker, 300);
+        };
+    }
 
     picker.classList.remove('hidden');
     setupReactionPickerHover();
@@ -1338,7 +1348,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                     <span class="post-author-name deleted">${escapeHtml(post.author.displayName)}</span>`;
             } else {
                 authorPaneHtml += `
-                    <img src="${post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
+                    <img src="${post.author.avatarThumbnailUrl || post.author.avatarUrl || ''}" alt="${escapeHtml(post.author.displayName)}"
                          width="48" height="48" class="post-avatar" loading="lazy" />
                     <a href="/u/${encodeUlid(post.author.publicId)}" class="post-author-name"
                        data-popup-type="user" data-popup-id="${post.author.publicId}"

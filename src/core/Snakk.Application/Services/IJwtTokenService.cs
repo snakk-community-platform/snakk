@@ -13,7 +13,9 @@ public interface IJwtTokenService
         string? oAuthProvider,
         string? role = null,
         string? avatarFileName = null,
-        bool needsProfileSetup = false);
+        bool needsProfileSetup = false,
+        string? avatarThumbnailFileName = null,
+        string? avatarMicroFileName = null);
 
     string GenerateToken(User user);
 

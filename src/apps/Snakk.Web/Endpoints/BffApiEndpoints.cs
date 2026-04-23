@@ -602,6 +602,8 @@ public static class BffApiEndpoints
         [FromQuery] string? communityId,
         SnakkApiClient apiClient)
     {
+        if (offset >= MaxDiscussionListOffset)
+            return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
         return Results.Ok(result);
     }
@@ -612,6 +614,8 @@ public static class BffApiEndpoints
         [FromQuery] string? communityId,
         SnakkApiClient apiClient)
     {
+        if (offset >= MaxDiscussionListOffset)
+            return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var result = await apiClient.GetTrendingDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
         return Results.Ok(result);
     }
@@ -623,6 +627,8 @@ public static class BffApiEndpoints
         [FromQuery] string? cursor,
         SnakkApiClient apiClient)
     {
+        if (offset >= MaxDiscussionListOffset)
+            return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var result = await apiClient.GetNewDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor);
         return Results.Ok(result);
     }
@@ -633,6 +639,8 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize,
         SnakkApiClient apiClient)
     {
+        if (offset >= MaxDiscussionListOffset)
+            return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize));
         return Results.Ok(result);
     }
@@ -879,6 +887,7 @@ public static class BffApiEndpoints
             PublicId = apiResult.PublicId,
             DisplayName = apiResult.DisplayName,
             AvatarUrl = apiResult.AvatarUrl,
+            AvatarThumbnailUrl = apiResult.HasAvatarThumbnailUrl ? apiResult.AvatarThumbnailUrl : null,
             Bio = apiResult.HasBio ? apiResult.Bio : null,
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
@@ -1177,6 +1186,7 @@ public static class BffApiEndpoints
                     publicId = p.Author.PublicId,
                     displayName = p.Author.DisplayName,
                     avatarUrl = p.Author.AvatarUrl,
+                    avatarThumbnailUrl = p.Author.HasAvatarThumbnailUrl ? p.Author.AvatarThumbnailUrl : null,
                     role = p.Author.Role,
                     isDeleted = p.Author.IsDeleted,
                     joinedAt = p.Author.JoinedAt?.ToDateTime().ToString("O"),
@@ -1362,6 +1372,7 @@ public static class BffApiEndpoints
             PublicId = apiResult.PublicId,
             DisplayName = apiResult.DisplayName,
             AvatarUrl = apiResult.AvatarUrl,
+            AvatarThumbnailUrl = apiResult.HasAvatarThumbnailUrl ? apiResult.AvatarThumbnailUrl : null,
             Bio = apiResult.HasBio ? apiResult.Bio : null,
             DiscussionCount = apiResult.DiscussionCount,
             ReplyCount = apiResult.ReplyCount,
@@ -1516,6 +1527,11 @@ public static class BffApiEndpoints
     // --- Avatar upload proxy ---
 
     private const int MaxPageSize = 100;
+
+    // Hard cap on discussion-list pagination depth, aligned with the
+    // EndlessScroll UI cap (MaxPages × default pageSize = 10 × 20). Blocks
+    // trivial scraping of deep history via the public BFF surface.
+    private const int MaxDiscussionListOffset = 200;
 
     private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
         { "image/jpeg", "image/png", "image/webp", "image/gif" };

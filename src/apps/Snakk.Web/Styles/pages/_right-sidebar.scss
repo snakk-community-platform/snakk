@@ -3,7 +3,87 @@
     position: relative;
     z-index: 10;
     background: linear-gradient(to bottom,
-        color-mix(in srgb, var(--nav-bg) 5%, #e0e0e0), var(--bg-secondary) 1.5rem) fixed;
+        color-mix(in srgb, var(--nav-bg) 5%, var(--sidebar-gradient-mix)), var(--bg-secondary) 1.5rem) fixed;
+}
+
+// Below the shrink-center tier (<1316px): ambient context (site stats,
+// active contributors, active spaces) is hidden so the center column can
+// take the full remaining space. HTMX partials still fetch — suppressing
+// them will be handled server-side in a later phase.
+//
+// Exception: the settings page scrollspy (.sn-scrollspy inside .sn-right)
+// stays visible as a fixed horizontal pill-bar below the navbar, so users
+// can still jump between settings sections on mobile/tablet.
+@media (max-width: 1315.98px) {
+    .sn-right {
+        display: none;
+    }
+
+    .sn-right:has(.sn-scrollspy) {
+        display: block;
+        position: fixed;
+        top: 3.5rem;
+        left: 0;
+        right: 0;
+        z-index: 15;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .sn-right:has(.sn-scrollspy) .sn-right-sticky {
+        position: static;
+        width: 100%;
+        height: auto;
+        padding: 0;
+        flex-direction: row;
+        gap: 0;
+    }
+
+    // Hide the "New discussion" action pane on the mobile pill bar — only
+    // the navigation jumps are useful in this cramped form factor.
+    .sn-right:has(.sn-scrollspy) .sn-right-action-pane { display: none; }
+
+    .sn-right:has(.sn-scrollspy) .sn-right-body {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 0;
+        gap: 0;
+    }
+
+    .sn-right:has(.sn-scrollspy) .sn-right-section {
+        flex-direction: row;
+        align-items: center;
+        gap: 0;
+    }
+
+    .sn-right:has(.sn-scrollspy) .sn-right-title { display: none; }
+
+    .sn-right:has(.sn-scrollspy) .sn-scrollspy {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0;
+    }
+
+    .sn-right:has(.sn-scrollspy) .sn-scrollspy-item {
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .sn-right:has(.sn-scrollspy) .sn-scrollspy-page.active {
+        border-bottom-color: var(--link-primary);
+    }
+
+    // Hide sub-section jumps on the compact bar — page-level only.
+    .sn-right:has(.sn-scrollspy) .sn-scrollspy-sub { display: none; }
+
+    // Settings center content needs to clear the fixed pill bar
+    // (2.5rem tall: 0.5rem + ~1.5rem text + 0.5rem + 1px border).
+    .sn-layout:has(.sn-right .sn-scrollspy) .sn-center {
+        padding-top: 2.5rem;
+    }
 }
 
 .sn-right-sticky {
@@ -97,7 +177,7 @@ html.sticky-left-only .sn-right-sticky {
     letter-spacing: 0.05em;
     color: var(--text-tertiary);
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--divider-hairline);
 }
 
 .sn-right-section {
@@ -148,10 +228,10 @@ html.sticky-left-only .sn-right-sticky {
 // Glass stat tiles in the right column
 .sn-right {
     .stats {
-        background: rgba(255, 255, 255, 0.55);
+        background: color-mix(in srgb, var(--bg-tertiary) 65%, transparent);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.65);
+        border: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent);
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     }
 
@@ -159,7 +239,7 @@ html.sticky-left-only .sn-right-sticky {
         padding: 0.6rem 0.875rem;
 
         &:not(:first-child) {
-            border-left-color: rgba(0, 0, 0, 0.06);
+            border-left-color: var(--divider-hairline);
         }
     }
 
@@ -191,7 +271,7 @@ html.sticky-left-only .sn-right-sticky {
     text-decoration: none;
     transition: color 0.1s;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--divider-hairline);
 
     &:last-child { border-bottom: none; }
     &:first-child { padding-top: 0; }
@@ -242,7 +322,7 @@ html.sticky-left-only .sn-right-sticky {
     text-decoration: none;
     transition: color 0.1s;
     padding: 0.4rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--divider-hairline);
 
     &:last-child { border-bottom: none; }
     &:first-child { padding-top: 0; }

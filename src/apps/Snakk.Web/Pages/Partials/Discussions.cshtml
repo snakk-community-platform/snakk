@@ -11,16 +11,19 @@
         new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace))
 }
 
-@if (Model.HasMoreItems && (Model.NextCursor != null || Model.Sort == "trending" || Model.Sort == "new"))
+@if (Model.HasMoreItems
+     && Model.NextOffset < Model.MaxOffset
+     && (Model.NextCursor != null || Model.Sort == "trending" || Model.Sort == "new"))
 {
     var communityParam = Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "";
+    var offsetParam = $"&offset={Model.NextOffset}";
     var nextUrl = Model.Sort == "trending"
         ? $"/partials/discussions?sort=trending&offset={Model.NextOffset}&pageSize=20{communityParam}"
         : Model.Sort == "new"
-            ? $"/partials/discussions?sort=new&cursor={Model.NextCursor}&pageSize=20{communityParam}"
+            ? $"/partials/discussions?sort=new&cursor={Model.NextCursor}&pageSize=20{communityParam}{offsetParam}"
             : Model.Sort == "my-feed"
-                ? $"/partials/discussions?sort=my-feed&cursor={Model.NextCursor}&pageSize=20"
-                : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}";
+                ? $"/partials/discussions?sort=my-feed&cursor={Model.NextCursor}&pageSize=20{offsetParam}"
+                : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{offsetParam}";
     <div hx-get="@nextUrl"
          hx-trigger="revealed"
          hx-swap="outerHTML"

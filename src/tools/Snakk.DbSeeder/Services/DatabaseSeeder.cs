@@ -1038,17 +1038,30 @@ public class DatabaseSeeder(
                     }
                     await _context.SaveChangesAsync();
 
-                    // Assign positions to ~70% of reply posts
-                    foreach (var reply in replyPosts)
+                    // Every poster picks a side on first post; occasionally flips on a later post
+                    var userPositions = new Dictionary<int, DiscussionTypeDebatePositionDatabaseEntity>();
+                    foreach (var reply in replyPosts.OrderBy(r => r.CreatedAt))
                     {
-                        if (_faker.Random.Bool(0.7f))
+                        if (!userPositions.TryGetValue(reply.CreatedByUserId, out var position))
                         {
-                            _context.DiscussionDebatePostPositions.Add(new DiscussionTypeDebatePostPositionDatabaseEntity
-                            {
-                                PostId = reply.Id,
-                                PositionId = _faker.PickRandom(positions).Id
-                            });
+                            position = _faker.PickRandom(positions);
+                            userPositions[reply.CreatedByUserId] = position;
                         }
+                        else if (_faker.Random.Bool(0.1f))
+                        {
+                            var alternatives = positions.Where(p => p.Id != position.Id).ToList();
+                            if (alternatives.Count > 0)
+                            {
+                                position = _faker.PickRandom(alternatives);
+                                userPositions[reply.CreatedByUserId] = position;
+                            }
+                        }
+
+                        _context.DiscussionDebatePostPositions.Add(new DiscussionTypeDebatePostPositionDatabaseEntity
+                        {
+                            PostId = reply.Id,
+                            PositionId = position.Id
+                        });
                     }
                     break;
                 }

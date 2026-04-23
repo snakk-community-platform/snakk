@@ -26,12 +26,12 @@
     }
 
     &.active {
-        border-color: #3b82f6;
-        background: #eff6ff;
-        color: #1d4ed8;
+        border-color: var(--accent-info);
+        background: var(--accent-info-bg);
+        color: var(--accent-info-strong);
 
         .count {
-            color: #1d4ed8;
+            color: var(--accent-info-strong);
         }
     }
 

@@ -449,12 +449,12 @@
     letter-spacing: 0.025em;
 
     &--announced {
-        background: color-mix(in srgb, #f59e0b 20%, transparent);
-        color: #b45309;
+        background: color-mix(in srgb, var(--accent-warning-strong) 20%, transparent);
+        color: var(--accent-warning-text);
     }
     &--live {
-        background: color-mix(in srgb, #10b981 20%, transparent);
-        color: #047857;
+        background: color-mix(in srgb, var(--accent-success) 20%, transparent);
+        color: var(--accent-success-text);
     }
     &--closed {
         background: color-mix(in srgb, var(--text-tertiary) 20%, transparent);

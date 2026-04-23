@@ -63,6 +63,7 @@ message SpaceInfo {
   string hub_slug = 18;
   string community_slug = 19;
   optional string avatar_file_name = 20;
+  optional string avatar_thumbnail_file_name = 21;
 }
 
 message LatestDiscussionRef {

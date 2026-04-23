@@ -145,6 +145,36 @@ interface SettingsPageConfig {
         statusDiv.classList.remove('hidden');
     }
 
+    function showProgress(percent: number): void {
+        const statusDiv = document.getElementById('upload-status');
+        if (!statusDiv) return;
+        statusDiv.className = 'mt-3 text-sm text-base-content/70';
+        statusDiv.classList.remove('hidden');
+        // Build once, then just update the value/label on subsequent ticks
+        let progress = statusDiv.querySelector<HTMLProgressElement>('progress.avatar-upload-progress');
+        let label = statusDiv.querySelector<HTMLSpanElement>('span.avatar-upload-progress-label');
+        if (!progress || !label) {
+            statusDiv.textContent = '';
+            progress = document.createElement('progress');
+            progress.className = 'progress progress-primary avatar-upload-progress w-full mt-1';
+            progress.max = 100;
+            label = document.createElement('span');
+            label.className = 'avatar-upload-progress-label';
+            statusDiv.appendChild(label);
+            statusDiv.appendChild(progress);
+        }
+        progress.value = percent;
+        label.textContent = `Uploading… ${percent}%`;
+    }
+
+    function showProcessing(): void {
+        const statusDiv = document.getElementById('upload-status');
+        if (!statusDiv) return;
+        statusDiv.textContent = 'Processing…';
+        statusDiv.className = 'mt-3 text-sm text-base-content/70';
+        statusDiv.classList.remove('hidden');
+    }
+
     function showMessage(message: string, isError: boolean = false): void {
         // Remove existing messages
         const existingAlerts = document.querySelectorAll('.profile-alert-message');
@@ -266,20 +296,20 @@ interface SettingsPageConfig {
 
         uploadBtn.disabled = true;
         uploadBtn.textContent = 'Uploading...';
+        showProgress(0);
 
         try {
             const formData = new FormData();
             formData.append('avatar', file);
 
-            const response = await fetch('/bff/avatars/upload', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
+            const result = await window.SnakkUpload.uploadWithProgress<{ error?: string }>({
+                url: '/bff/avatars/upload',
+                formData,
+                onProgress: (percent: number) => showProgress(percent),
+                onProcessing: () => showProcessing(),
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
+            if (result.ok) {
                 showStatus('Avatar uploaded successfully!');
                 refreshAvatar();
                 fileInput.value = '';
@@ -289,7 +319,7 @@ interface SettingsPageConfig {
                 if (delBtn) delBtn.disabled = false;
                 htmx.ajax('GET', location.pathname, { target: '#auth-nav', select: '#auth-nav > *', swap: 'innerHTML' } as any);
             } else {
-                showStatus(result.error || 'Failed to upload avatar.', true);
+                showStatus(result.data?.error || result.error || 'Failed to upload avatar.', true);
                 refreshAvatar();
             }
         } catch (error) {

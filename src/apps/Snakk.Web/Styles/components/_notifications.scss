@@ -14,7 +14,7 @@
     line-height: 18px;
     text-align: center;
     color: var(--bg-secondary);
-    background-color: #ef4444;
+    background-color: var(--accent-danger-strong);
     border-radius: 9px;
 }
 
@@ -22,7 +22,7 @@
     transition: background-color 0.15s ease;
 
     &.unread {
-        background-color: #f0f7ff;
+        background-color: var(--accent-info-bg-soft);
 
         &::before {
             content: '';
@@ -32,7 +32,7 @@
             transform: translateY(-50%);
             width: 6px;
             height: 6px;
-            background-color: #3b82f6;
+            background-color: var(--accent-info);
             border-radius: 50%;
         }
     }

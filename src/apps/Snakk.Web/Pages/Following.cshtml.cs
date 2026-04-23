@@ -110,7 +110,9 @@ public class FollowingModel(
                     PublicId        = s.PublicId,
                     Name            = s.Name,
                     Href            = SnakkUrlHelper.Space(s.CommunitySlug, Community, s.HubSlug, s.Slug),
-                    AvatarUrl       = SnakkUrlHelper.SpaceAvatar(s.PublicId, avatarFileName: s.HasAvatarFileName ? s.AvatarFileName : null),
+                    AvatarUrl       = SnakkUrlHelper.SpaceAvatarThumbnail(s.PublicId,
+                                           avatarFileName: s.HasAvatarFileName ? s.AvatarFileName : null,
+                                           avatarThumbnailFileName: s.HasAvatarThumbnailFileName ? s.AvatarThumbnailFileName : null),
                     Description     = s.HasDescription ? s.Description : null,
                     DiscussionCount = s.DiscussionCount,
                     ReplyCount      = s.ReplyCount,
@@ -133,7 +135,9 @@ public class FollowingModel(
                     PublicId      = u.PublicId,
                     DisplayName   = u.DisplayName,
                     Href          = SnakkUrlHelper.UserProfile(u.PublicId),
-                    AvatarUrl     = SnakkUrlHelper.UserAvatar(u.PublicId, avatarFileName: u.HasAvatarFileName ? u.AvatarFileName : null),
+                    AvatarUrl     = SnakkUrlHelper.UserAvatarThumbnail(u.PublicId,
+                                        avatarFileName: u.HasAvatarFileName ? u.AvatarFileName : null,
+                                        avatarThumbnailFileName: u.HasAvatarThumbnailFileName ? u.AvatarThumbnailFileName : null),
                     FollowerCount = u.FollowerCount
                 };
             }).ToList();

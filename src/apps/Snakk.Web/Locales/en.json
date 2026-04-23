@@ -34,6 +34,12 @@
         "login":         "Login",
         "signUp":        "Sign Up"
     },
+    "mobileNav": {
+        "open":  "Open menu",
+        "close": "Close menu",
+        "post":  "Post",
+        "me":    "Me"
+    },
     "actions": {
         "newDiscussion":    "New Discussion",
         "share":            "Share",
