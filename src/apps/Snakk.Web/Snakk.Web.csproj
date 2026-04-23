@@ -37,6 +37,17 @@
     <Content Update="Content\Help\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Ship locale JSON to the output so LocaleLoader can read them at startup -->
+  <ItemGroup>
+    <Content Update="Locales\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Generate Helpers/T.g.cs from Locales/en.json before C# compilation.
+       Also validates that every other *.json has the same key set. -->
+  <Target Name="GenerateLocaleStrings" BeforeTargets="BeforeCompile;CoreCompile" Condition="'$(SkipFrontendBuild)' != 'true'">
+    <Exec Command="node Locales/gen-strings.mjs" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
   <!-- Security: Audit npm packages for vulnerabilities before build -->
   <Target Name="AuditNpmPackages" BeforeTargets="BuildFrontend" Condition="'$(SkipFrontendBuild)' != 'true'">
     <Exec Command="npm audit --audit-level=high" WorkingDirectory="$(ProjectDir)" ContinueOnError="true" />

@@ -95,6 +95,41 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Achievement");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ActivityDailySnapshotDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("DiscussionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PostCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date", "EntityType", "EntityId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ActivityDailySnapshot_Date_EntityType_EntityId");
+
+                    b.HasIndex("EntityType", "EntityId", "Date")
+                        .HasDatabaseName("IX_ActivityDailySnapshot_EntityType_EntityId_Date");
+
+                    b.ToTable("ActivityDailySnapshot");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AuditLogDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -3172,6 +3207,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Save");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSocialLinkDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Platform")
+                        .IsUnique();
+
+                    b.ToTable("UserSocialLink");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4449,6 +4515,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSocialLinkDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("SocialLinks")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.WebhookDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "CreatedByUser")
@@ -4578,6 +4655,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Roles");
+
+                    b.Navigation("SocialLinks");
 
                     b.Navigation("TwoFactorBackupCodes");
 

@@ -2,9 +2,9 @@
 @model string
 
 <div class="dropdown dropdown-end">
-    <button tabindex="0" class="btn btn-outline btn-sm feed-dropdown-btn" title="Subscribe to feed" data-feed-base="@Model">
+    <button tabindex="0" class="btn btn-outline btn-sm feed-dropdown-btn" title="@T.FeedDropdown.Tooltip" data-feed-base="@Model">
         <span class="icon icon-rss h-4 w-4 text-orange-500" aria-hidden="true"></span>
-        <span>Feed</span>
+        <span>@T.FeedDropdown.Label</span>
     </button>
     <ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-box z-200 w-44 p-2 shadow-lg"></ul>
 </div>

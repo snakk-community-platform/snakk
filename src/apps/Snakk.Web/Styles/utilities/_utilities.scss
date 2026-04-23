@@ -4,8 +4,12 @@
 
 // User preference: hide discussion preview buttons and inline card previews
 .no-discussion-previews .preview-btn,
-.no-discussion-previews .fp-card-preview {
+.no-discussion-previews .sn-card-preview {
     display: none !important;
+}
+
+.no-discussion-previews #discussions-container {
+    gap: 0.25rem;
 }
 
 // User preference: disable all animations and transitions
@@ -41,7 +45,7 @@ a.hover-link {
 }
 
 // daisyUI tooltip z-index override — default z-index: 2 is too low and causes
-// tooltip bubbles to render beneath sibling positioned elements (e.g. adjacent fp-cards)
+// tooltip bubbles to render beneath sibling positioned elements (e.g. adjacent sn-cards)
 .tooltip::before,
 .tooltip::after {
     z-index: 50;

@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Settings.DisplayModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Display Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.TitleDisplay;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,30 +12,30 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_AuthPrompt" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-display-monitor" aria-hidden="true"></span>
-            Display Settings
+            @T.Settings.HeadingDisplay
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <!-- Timezone -->
-            <div id="section-timezone" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Timezone</h3>
+            <div id="section-timezone" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.TimezoneTitle</h3>
 
                 <div class="tz-map-wrapper">
                     <object id="timezone-map-object"
                             class="tz-map-object"
                             data="/svg/world-map.svg"
                             type="image/svg+xml"
-                            aria-label="World map — click a country to select its timezone">
+                            aria-label="@T.Settings.TimezoneMapAria">
                     </object>
                     <div id="tz-map-tooltip" class="tz-map-tooltip hidden"></div>
                 </div>
@@ -145,7 +145,7 @@
                         <option value="Pacific/Auckland">Auckland (New Zealand)</option>
                     </optgroup>
                 </select>
-                <span class="text-xs" style="color: var(--text-tertiary)">Click a country on the map, or select directly</span>
+                <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.TimezoneHelp</span>
             </div>
 
         </div>
@@ -154,7 +154,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

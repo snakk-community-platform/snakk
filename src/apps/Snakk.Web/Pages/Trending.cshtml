@@ -7,7 +7,7 @@
 @model TrendingModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Trending Discussions";
+    ViewData["Title"] = T.Pages.TrendingTitle;
     ViewData["Description"] = "See what's trending on Snakk right now — discussions with the most activity in the last 48 hours.";
 }
 
@@ -16,17 +16,17 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-trending-up" aria-hidden="true"></span>
-            Trending Discussions
+            @T.Pages.TrendingHeading
         </h2>
 
         @if (Model.TrendingDiscussions?.Items == null || !Model.TrendingDiscussions.Items.Any())
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>No trending discussions yet. Start a conversation to get things going!</p>
+                <p>@T.Pages.TrendingEmpty</p>
             </div>
         }
         else
@@ -51,14 +51,14 @@
                          class="py-2">
                         @for (var i = 0; i < 3; i++)
                         {
-                            <div class="fp-card" style="opacity: 0.5">
-                                <div class="fp-card-header">
+                            <div class="sn-card" style="opacity: 0.5">
+                                <div class="sn-card-header">
                                     <div class="skeleton h-3 w-16 rounded"></div>
                                     <div class="skeleton h-4 w-4 rounded-full"></div>
                                     <div class="skeleton h-3 w-20 rounded"></div>
                                 </div>
                                 <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="fp-card-stats mt-2">
+                                <div class="sn-card-stats mt-2">
                                     <div class="skeleton h-3 w-24 rounded"></div>
                                 </div>
                             </div>
@@ -71,76 +71,90 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
-<div class="fp-right-sticky">
+@{
+    ViewData["RightPane.AboutTitle"] = T.Pages.TrendingAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.TrendingAboutDesc;
+}
+<aside class="sn-right">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-body">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Sections.SiteStats
         </div>
         @if (Model.InlinePlatformStats != null)
         {
-            <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+            <div class="sn-sidebar-stats">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-title">@T.Sidebar.StatsActivity</div>
+                        <div class="sn-sparkline-container sn-right-sparkline"
+                             data-sparkline-type="platform"
+                             data-sparkline-days="7"></div>
                     </div>
                 </div>
             </div>
         }
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <partial name="Shared/_RightAboutSection" />
+
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            Trending Spaces
+            @T.Sections.TrendingSpaces
         </div>
         @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
         {
-            <div class="fp-spaces-inline">
+            <div class="sn-spaces-inline">
                 @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="fp-card-tag">@space.Name</a>
+                       class="sn-card-tag">@space.Name</a>
                 }
             </div>
         }
         else
         {
-            <p class="fp-right-empty">No trending spaces yet</p>
+            <p class="sn-right-empty">@T.Sidebar.EmptyTrendingSpaces</p>
         }
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-users-group" aria-hidden="true"></span>
-            Trending Contributors
+            @T.Sections.TrendingContributors
         </div>
         @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
         {
-            <div class="fp-trending-list">
+            <div class="sn-trending-list">
                 @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" />
-                        <span class="fp-trending-contributor-name">@c.DisplayName</span>
-                        <span class="fp-card-tag fp-card-tag-light fp-tag-sm">@c.PostCountToday</span>
+                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
+                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" />
+                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
                     </a>
                 }
             </div>
         }
         else
         {
-            <p class="fp-right-empty">No trending contributors yet</p>
+            <p class="sn-right-empty">@T.Sidebar.EmptyTrendingContributors</p>
         }
     </div>
     </div>

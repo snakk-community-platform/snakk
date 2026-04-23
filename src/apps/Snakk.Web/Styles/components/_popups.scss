@@ -173,6 +173,27 @@
     margin-top: 0.625rem;
 }
 
+.snakk-popup-sparkline-stat {
+    .sn-sparkline-container {
+        margin-top: 0.2rem;
+        line-height: 0;
+    }
+}
+
+.snakk-popup-goto {
+    display: block;
+    text-align: right;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    color: var(--link-primary);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover { text-decoration: underline; }
+}
+
 .snakk-popup-error {
     text-align: center;
     font-size: 0.8125rem;

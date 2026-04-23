@@ -197,6 +197,7 @@ app.MapDiscussionEndpoints();
 app.MapPostEndpoints();
 app.MapAuthEndpoints();
 app.MapMeEndpoints();
+app.MapSocialLinkEndpoints();
 app.MapTwoFactorAuthEndpoints();
 app.MapSessionManagementEndpoints();
 app.MapAdminModerationEndpoints();

@@ -4,7 +4,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
 {
-    <p class="text-sm text-base-content/50">No moderators assigned yet.</p>
+    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyModerators</p>
 }
 else
 {
@@ -38,11 +38,11 @@ else
 @functions {
     static string FormatRole(string role) => role switch
     {
-        "GlobalAdmin" => "Admin",
-        "CommunityAdmin" => "Admin",
-        "CommunityMod" => "Mod",
-        "HubMod" => "Mod",
-        "SpaceMod" => "Mod",
+        "GlobalAdmin" => T.Sidebar.RoleAdmin,
+        "CommunityAdmin" => T.Sidebar.RoleAdmin,
+        "CommunityMod" => T.Sidebar.RoleMod,
+        "HubMod" => T.Sidebar.RoleMod,
+        "SpaceMod" => T.Sidebar.RoleMod,
         _ => role
     };
 }

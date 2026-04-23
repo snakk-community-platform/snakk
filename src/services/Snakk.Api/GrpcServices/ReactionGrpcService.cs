@@ -94,6 +94,40 @@ public class ReactionGrpcService(
         return response;
     }
 
+    public override async Task<PagedReactedPostsList> GetMyReactedDiscussions(
+        GetMyReactedPostsRequest request, ServerCallContext context)
+    {
+        var userId = RequireAuth();
+        var pageSize = Math.Clamp(request.PageSize, 1, 50);
+        var result = await reactionQueryRepository.GetReactedDiscussionsByUserAsync(
+            userId.Value, request.Offset, pageSize);
+
+        var response = new PagedReactedPostsList
+        {
+            Offset       = request.Offset,
+            PageSize     = pageSize,
+            HasMoreItems = result.HasMoreItems
+        };
+        response.Items.AddRange(result.Items.Select(p => new ReactedPostInfo
+        {
+            PublicId             = p.PublicId,
+            ContentExcerpt       = p.ContentExcerpt,
+            PostCreatedAt        = Timestamp.FromDateTime(DateTime.SpecifyKind(p.PostCreatedAt, DateTimeKind.Utc)),
+            DiscussionPublicId   = p.DiscussionPublicId,
+            DiscussionTitle      = p.DiscussionTitle,
+            DiscussionSlug       = p.DiscussionSlug,
+            SpaceSlug            = p.SpaceSlug,
+            HubSlug              = p.HubSlug,
+            CommunitySlug        = p.CommunitySlug,
+            AuthorPublicId       = p.AuthorPublicId,
+            AuthorDisplayName    = p.AuthorDisplayName,
+            AuthorAvatarFileName = p.AuthorAvatarFileName,
+            ReactedAt            = Timestamp.FromDateTime(DateTime.SpecifyKind(p.ReactedAt, DateTimeKind.Utc)),
+            ReactionType         = p.ReactionType
+        }));
+        return response;
+    }
+
     private UserId? TryGetAuthUserId()
     {
         if (!currentUser.IsAuthenticated()) return null;

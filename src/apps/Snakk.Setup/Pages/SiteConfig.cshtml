@@ -76,6 +76,15 @@
         <label class="label"><span class="label-text-alt text-base-content/50">Default timezone for date display across the site</span></label>
     </div>
 
+    <div class="form-control">
+        <label class="label"><span class="label-text">Interface Language</span></label>
+        <select asp-for="Language" class="select w-full">
+            <option value="en">English</option>
+            <option value="nb">Norsk bokmål</option>
+        </select>
+        <label class="label"><span class="label-text-alt text-base-content/50">Language used for UI chrome (nav, buttons, labels). User-generated content is not translated.</span></label>
+    </div>
+
     <div class="divider"></div>
 
     <div class="flex justify-between">

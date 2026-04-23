@@ -125,7 +125,7 @@ interface ActivityDataPoint {
                                     <span class="topic-meta-separator">&middot;</span>
                                     <span>${formatRelativeTime(p.createdAt)}</span>
                                 </div>
-                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 fp-post-preview">
+                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 sn-post-preview">
                                     ${sanitizeHtml(p.contentPreview)}
                                 </div>
                             </div>
@@ -412,7 +412,7 @@ interface ActivityDataPoint {
 
     // Profile tabs
     function initProfileTabs(): void {
-        const tabs = document.querySelectorAll<HTMLElement>('.fp-profile-tab');
+        const tabs = document.querySelectorAll<HTMLElement>('.sn-profile-tab');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const target = tab.dataset.tab;
@@ -420,7 +420,7 @@ interface ActivityDataPoint {
                     t.classList.toggle('active', t === tab);
                     t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
                 });
-                document.querySelectorAll<HTMLElement>('.fp-profile-tab-panel').forEach(p => {
+                document.querySelectorAll<HTMLElement>('.sn-profile-tab-panel').forEach(p => {
                     p.hidden = p.id !== 'tab-' + target;
                 });
             });

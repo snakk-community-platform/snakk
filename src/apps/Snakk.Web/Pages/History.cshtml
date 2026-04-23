@@ -3,34 +3,34 @@
 @model Snakk.Web.Pages.HistoryModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "History";
+    ViewData["Title"] = T.Pages.HistoryTitle;
     ViewData["Description"] = "Discussions you have recently visited.";
-    ViewData["Nudge.Title"] = "Sign in to see your history";
-    ViewData["Nudge.Body"] = "Discussions you visit will appear here.";
+    ViewData["Nudge.Title"] = T.Pages.HistoryNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.HistoryNudgeBody;
 }
 
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
 
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (!Model.IsAuthenticated)
         {
             <partial name="Shared/_RegistrationNudge" />
         }
         else
         {
-            <h2 class="fp-section-title">
+            <h2 class="sn-section-title">
                 <span class="icon icon-clock" aria-hidden="true"></span>
-                History
+                @T.Pages.HistoryHeading
             </h2>
 
             <div id="history-loading">
                 @for (int i = 0; i < 5; i++)
                 {
-                    <div class="fp-card" style="opacity: 0.5">
-                        <div class="fp-card-header">
+                    <div class="sn-card" style="opacity: 0.5">
+                        <div class="sn-card-header">
                             <div class="skeleton h-3 w-16 rounded"></div>
                             <div class="skeleton h-3 w-4 rounded"></div>
                             <div class="skeleton h-3 w-20 rounded"></div>
@@ -42,20 +42,11 @@
 
             <div id="history-empty" class="hidden py-12 text-center text-sm" style="color: var(--text-tertiary)">
                 <span class="icon icon-clock h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-                <p>No history yet.</p>
-                <p class="mt-1 text-xs opacity-70">Discussions you visit will appear here.</p>
+                <p>@T.Pages.HistoryEmpty</p>
+                <p class="mt-1 text-xs opacity-70">@T.Pages.HistoryEmptyHint</p>
             </div>
 
             <div id="history-container" class="hidden"></div>
-            <div id="history-sentinel" class="hidden py-4">
-                <div class="fp-card" style="opacity: 0.4">
-                    <div class="fp-card-header">
-                        <div class="skeleton h-3 w-16 rounded"></div>
-                        <div class="skeleton h-3 w-20 rounded"></div>
-                    </div>
-                    <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                </div>
-            </div>
         }
     </div>
 </div>
@@ -64,6 +55,8 @@
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
     if (Model.IsAuthenticated)
         ViewData["RightPane.Actions"] = new[] { "clear-history" };
+    ViewData["RightPane.AboutTitle"] = T.Pages.HistoryHeading;
+    ViewData["RightPane.AboutDescription"] = T.Pages.HistoryAboutDesc;
 }
 <partial name="Shared/_GlobalRightSidebar" />
 

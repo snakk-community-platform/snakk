@@ -138,6 +138,9 @@ public class DatabaseSeeder(
         // Recompute denormalized counts on Space, Hub, and Community entities
         await UpdateDenormalizedCountsAsync();
 
+        // Seed 30 days of activity snapshot data for sparklines
+        await SeedActivitySnapshotsAsync();
+
         Console.WriteLine("Database seeding completed successfully.");
 
         // Separate avatar generation phase
@@ -177,6 +180,7 @@ public class DatabaseSeeder(
         _context.DiscussionGuides.RemoveRange(_context.DiscussionGuides);
         _context.DiscussionLinks.RemoveRange(_context.DiscussionLinks);
         _context.DiscussionImages.RemoveRange(_context.DiscussionImages);
+        _context.ActivityDailySnapshots.RemoveRange(_context.ActivityDailySnapshots);
         _context.Posts.RemoveRange(_context.Posts);
         _context.Discussions.RemoveRange(_context.Discussions);
         _context.Spaces.RemoveRange(_context.Spaces);
@@ -2703,5 +2707,143 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
 
         Console.WriteLine($"Created 3 groups (Premium Members, Beta Testers, Staff), assigned {premiumUsers.Count + betaUsers.Count + staffUsers.Count} memberships, restricted 2 spaces.");
+    }
+
+    private async Task SeedActivitySnapshotsAsync()
+    {
+        Console.WriteLine("Seeding activity snapshots (30 days)...");
+
+        var rng = new Random(Seed);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        const int days = 30;
+
+        // Load hierarchy
+        var spaces = await _context.Spaces
+            .Where(s => !s.IsDeleted)
+            .Select(s => new { s.Id, s.HubId })
+            .ToListAsync();
+
+        var hubs = await _context.Hubs
+            .Where(h => !h.IsDeleted)
+            .Select(h => new { h.Id, h.CommunityId })
+            .ToListAsync();
+
+        var discussions = await _context.Discussions
+            .Where(d => !d.IsDeleted)
+            .Select(d => new { d.Id, d.SpaceId })
+            .ToListAsync();
+
+        var hubToCommunity = hubs.ToDictionary(h => h.Id, h => h.CommunityId);
+        var spaceToHub = spaces.ToDictionary(s => s.Id, s => s.HubId);
+
+        // Assign a stable activity profile per space (seeded by space Id)
+        var spaceProfile = spaces.ToDictionary(
+            s => s.Id,
+            s => { var r = new Random(s.Id * 31 + Seed); return (maxPosts: r.Next(1, 18), maxDiscussions: r.Next(0, 5)); });
+
+        var snapshots = new List<ActivityDailySnapshotDatabaseEntity>();
+
+        for (var i = 0; i < days; i++)
+        {
+            var date = today.AddDays(-i);
+
+            var hubPosts        = new Dictionary<int, int>();
+            var hubDiscussions  = new Dictionary<int, int>();
+            var communityPosts  = new Dictionary<int, int>();
+            var communityDiscs  = new Dictionary<int, int>();
+
+            foreach (var space in spaces)
+            {
+                var (maxPosts, maxDiscs) = spaceProfile[space.Id];
+                var p = rng.Next(0, maxPosts + 1);
+                var d = rng.Next(0, maxDiscs + 1);
+
+                if (p == 0 && d == 0) continue;
+
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = date, EntityType = ActivityEntityTypeEnum.Space,
+                    EntityId = space.Id, PostCount = p, DiscussionCount = d
+                });
+
+                var hubId = spaceToHub[space.Id];
+                hubPosts[hubId]       = hubPosts.GetValueOrDefault(hubId) + p;
+                hubDiscussions[hubId] = hubDiscussions.GetValueOrDefault(hubId) + d;
+
+                if (!hubToCommunity.TryGetValue(hubId, out var communityId)) continue;
+                communityPosts[communityId] = communityPosts.GetValueOrDefault(communityId) + p;
+                communityDiscs[communityId] = communityDiscs.GetValueOrDefault(communityId) + d;
+            }
+
+            foreach (var (hubId, p) in hubPosts)
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = date, EntityType = ActivityEntityTypeEnum.Hub,
+                    EntityId = hubId, PostCount = p, DiscussionCount = hubDiscussions.GetValueOrDefault(hubId)
+                });
+
+            foreach (var (communityId, p) in communityPosts)
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = date, EntityType = ActivityEntityTypeEnum.Community,
+                    EntityId = communityId, PostCount = p, DiscussionCount = communityDiscs.GetValueOrDefault(communityId)
+                });
+
+            var totalPosts = communityPosts.Values.Sum();
+            var totalDiscs = communityDiscs.Values.Sum();
+            if (totalPosts > 0 || totalDiscs > 0)
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = date, EntityType = ActivityEntityTypeEnum.Platform,
+                    EntityId = 0, PostCount = totalPosts, DiscussionCount = totalDiscs
+                });
+        }
+
+        // Discussion-level sparklines: generate daily post counts for each discussion
+        foreach (var disc in discussions)
+        {
+            var maxPostsPerDay = new Random(disc.Id * 17 + Seed).Next(1, 10);
+            for (var i = 0; i < days; i++)
+            {
+                var p = rng.Next(0, maxPostsPerDay + 1);
+                if (p == 0) continue;
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = today.AddDays(-i), EntityType = ActivityEntityTypeEnum.Discussion,
+                    EntityId = disc.Id, PostCount = p, DiscussionCount = 0
+                });
+            }
+        }
+
+        // User-level sparklines: generate daily post/discussion counts per user
+        var users = await _context.Users
+            .Where(u => !u.IsDeleted)
+            .Select(u => new { u.Id })
+            .ToListAsync();
+
+        foreach (var user in users)
+        {
+            var r = new Random(user.Id * 53 + Seed);
+            var maxPosts = r.Next(0, 9);
+            var maxDiscs = r.Next(0, 3);
+            if (maxPosts == 0 && maxDiscs == 0) continue;
+
+            for (var i = 0; i < days; i++)
+            {
+                var p = rng.Next(0, maxPosts + 1);
+                var d = rng.Next(0, maxDiscs + 1);
+                if (p == 0 && d == 0) continue;
+                snapshots.Add(new ActivityDailySnapshotDatabaseEntity
+                {
+                    Date = today.AddDays(-i), EntityType = ActivityEntityTypeEnum.User,
+                    EntityId = user.Id, PostCount = p, DiscussionCount = d
+                });
+            }
+        }
+
+        _context.ActivityDailySnapshots.AddRange(snapshots);
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"Seeded {snapshots.Count} activity snapshot rows.");
     }
 }

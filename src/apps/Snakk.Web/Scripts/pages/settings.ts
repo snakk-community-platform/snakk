@@ -666,6 +666,33 @@ interface SettingsPageConfig {
         } catch { /* localStorage unavailable */ }
     }
 
+    function initSidebarStickiness(): void {
+        const select = document.getElementById('pref-sidebar-sticky') as HTMLSelectElement | null;
+        if (!select) return;
+
+        try {
+            const stored = localStorage.getItem('snakk:sidebar-sticky');
+            const current = (stored === 'none' || stored === 'both') ? stored : 'left-only';
+            select.value = current;
+
+            select.addEventListener('change', () => {
+                const value = select.value;
+                const root = document.documentElement;
+                root.classList.remove('sticky-none', 'sticky-left-only');
+                if (value === 'none') {
+                    localStorage.setItem('snakk:sidebar-sticky', 'none');
+                    root.classList.add('sticky-none');
+                } else if (value === 'both') {
+                    localStorage.setItem('snakk:sidebar-sticky', 'both');
+                } else {
+                    localStorage.setItem('snakk:sidebar-sticky', 'left-only');
+                    root.classList.add('sticky-left-only');
+                }
+                window.dispatchEvent(new Event('snakk:sticky-changed'));
+            });
+        } catch { /* localStorage unavailable */ }
+    }
+
     function initSkinTonePicker(): void {
         const picker = document.getElementById('skin-tone-picker');
         if (!picker) return;
@@ -689,6 +716,7 @@ interface SettingsPageConfig {
 
     function attachEventListeners(): void {
         initDisplayPreferences();
+        initSidebarStickiness();
         initSkinTonePicker();
         initEmbedPreferences();
 

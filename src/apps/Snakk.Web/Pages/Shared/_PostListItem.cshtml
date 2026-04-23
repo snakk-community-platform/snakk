@@ -27,6 +27,6 @@
             &middot;
             <time data-timestamp="@Model.CreatedAt.ToString("O")">@FormatRelativeTime(Model.CreatedAt)</time>
         </span>
-        <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">View post &rarr;</a>
+        <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">@T.Card.ViewPost</a>
     </div>
 </div>

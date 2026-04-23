@@ -95,8 +95,6 @@ interface SnakkEditorAPI {
     init(options: SnakkEditorOptions): Promise<EditorInstance | null>;
     getInstance(container: HTMLElement): EditorInstance | null;
     destroy(container: HTMLElement): void;
-    getPendingUploads(container: HTMLElement): Map<string, File>;
-    clearPendingUploads(container: HTMLElement): void;
 }
 
 interface ToolbarItem {
@@ -845,11 +843,8 @@ function insertImageFromFile(editor: Editor): void {
         const file = input.files?.[0];
         if (!file || !file.type.startsWith('image/')) return;
 
-        // Show loading overlay on the editor
+        // Show loading overlay while uploading
         const editorWrapper = document.querySelector('.milkdown-editor') as HTMLElement;
-        const container = editorWrapper?.closest('#editor-container') as HTMLElement
-            || editorWrapper?.parentElement as HTMLElement;
-
         let overlay: HTMLElement | null = null;
         if (editorWrapper) {
             overlay = document.createElement('div');
@@ -858,33 +853,36 @@ function insertImageFromFile(editor: Editor): void {
             editorWrapper.appendChild(overlay);
         }
 
-        // Defer image insertion to next frame so the overlay renders first
-        requestAnimationFrame(() => {
-            const blobUrl = URL.createObjectURL(file);
+        const formData = new FormData();
+        formData.append('file', file, file.name);
 
-            if (container) {
-                (window as any).SnakkEditor.addPendingUpload(container, blobUrl, file);
-            }
+        fetch('/bff/media/upload', { method: 'POST', body: formData })
+            .then(async (response) => {
+                if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+                const result = JSON.parse(await response.text());
+                const url: string = result.url;
 
-            // Insert image node at current cursor position
-            editor.action((ctx) => {
-                const view = ctx.get(editorViewCtx);
-                const { from } = view.state.selection;
-                const imageNode = view.state.schema.nodes.image?.create({
-                    src: blobUrl,
-                    alt: 'user uploaded image',
+                editor.action((ctx) => {
+                    const view = ctx.get(editorViewCtx);
+                    const { from } = view.state.selection;
+                    const imageNode = view.state.schema.nodes.image?.create({
+                        src: url,
+                        alt: 'user uploaded image',
+                    });
+                    if (imageNode) {
+                        const tr = view.state.tr.insert(from, imageNode);
+                        view.dispatch(tr);
+                    }
+                    view.focus();
                 });
-                if (imageNode) {
-                    const tr = view.state.tr.insert(from, imageNode);
-                    view.dispatch(tr);
-                }
-                view.focus();
+            })
+            .catch((err) => {
+                console.error('[Editor] Image upload error:', err);
+            })
+            .finally(() => {
+                overlay?.remove();
+                input.remove();
             });
-
-            // Remove overlay after image is inserted
-            overlay?.remove();
-            input.remove();
-        });
     });
 
     document.body.appendChild(input);

@@ -2,7 +2,7 @@
 // Help Center
 // ============================================
 
-// Navigation lives in the right column (.fp-right).
+// Navigation lives in the right column (.sn-right).
 .help-sidebar {
     display: flex;
     flex-direction: column;
@@ -42,7 +42,7 @@
     font-weight: 600;
 }
 
-// Article body lives in the center column (.fp-center).
+// Article body lives in the center column (.sn-center).
 .help-content {
     background: var(--sidebar-bg);
     border-radius: 0.5rem;

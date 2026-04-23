@@ -12,6 +12,7 @@ namespace Snakk.Api.GrpcServices;
 
 public class StatisticsGrpcService(
     StatisticsUseCase statisticsUseCase,
+    IActivitySnapshotRepository activitySnapshotRepository,
     IConfiguration configuration,
     ICurrentUserService currentUser) : StatisticsService.StatisticsServiceBase
 {
@@ -330,5 +331,35 @@ public class StatisticsGrpcService(
         };
         if (stats.Bio != null) userStats.Bio = stats.Bio;
         return userStats;
+    }
+
+    public override async Task<SparklineResponse> GetActivitySparkline(SparklineRequest request, ServerCallContext context)
+    {
+        var entityType = request.EntityType switch
+        {
+            "community"  => ActivityEntityTypeEnum.Community,
+            "hub"        => ActivityEntityTypeEnum.Hub,
+            "space"      => ActivityEntityTypeEnum.Space,
+            "discussion" => ActivityEntityTypeEnum.Discussion,
+            "user"       => ActivityEntityTypeEnum.User,
+            _            => ActivityEntityTypeEnum.Platform
+        };
+
+        var days = Math.Clamp(request.Days, 1, 90);
+        var publicId = string.IsNullOrEmpty(request.PublicId) ? null : request.PublicId;
+
+        var data = await activitySnapshotRepository.GetSparklineAsync(entityType, publicId, days, context.CancellationToken);
+
+        var response = new SparklineResponse();
+        foreach (var d in data)
+        {
+            response.Days.Add(new SparklineDay
+            {
+                Date            = d.Date.ToString("yyyy-MM-dd"),
+                PostCount       = d.PostCount,
+                DiscussionCount = d.DiscussionCount
+            });
+        }
+        return response;
     }
 }

@@ -19,6 +19,7 @@ public class UserRegistrationWorkflowTests
     private readonly IDomainEventDispatcher _eventDispatcher = Substitute.For<IDomainEventDispatcher>();
     private readonly IDisplayNameHistoryRepository _displayNameHistoryRepository = Substitute.For<IDisplayNameHistoryRepository>();
     private readonly ITurnstileService _turnstileService = Substitute.For<ITurnstileService>();
+    private readonly IUserSocialLinkRepository _socialLinkRepository = Substitute.For<IUserSocialLinkRepository>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -33,7 +34,8 @@ public class UserRegistrationWorkflowTests
             _refreshTokenRepository,
             _eventDispatcher,
             _displayNameHistoryRepository,
-            _turnstileService);
+            _turnstileService,
+            _socialLinkRepository);
     }
 
     [Test]

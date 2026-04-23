@@ -2,20 +2,20 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Moderation.LogsModel
 @{
-    ViewData["Title"] = "Moderation Log";
+    ViewData["Title"] = T.Pages.ModLogsTitle;
 }
 
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/moderation">Moderation</a>
+        <a href="/moderation">@T.Pages.ModCrumb</a>
     </nav>
 </div>
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="page-header">
-        <h1>Audit Log</h1>
-        <p>View all moderation actions</p>
+        <h1>@T.Pages.ModLogsHeading</h1>
+        <p>@T.Pages.ModLogsSubtitle</p>
     </div>
 
     <!-- Filters -->
@@ -25,25 +25,25 @@
                 <input type="text"
                        name="communityId"
                        value="@Model.CommunityId"
-                       placeholder="Community ID"
+                       placeholder="@T.Pages.ModLogsCommunityIdPh"
                        class="input input-sm w-full" />
             </div>
             <div class="flex-1 min-w-[200px]">
                 <input type="text"
                        name="hubId"
                        value="@Model.HubId"
-                       placeholder="Hub ID"
+                       placeholder="@T.Pages.ModLogsHubIdPh"
                        class="input input-sm w-full" />
             </div>
             <div class="flex-1 min-w-[200px]">
                 <input type="text"
                        name="spaceId"
                        value="@Model.SpaceId"
-                       placeholder="Space ID"
+                       placeholder="@T.Pages.ModLogsSpaceIdPh"
                        class="input input-sm w-full" />
             </div>
-            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-            <a href="/moderation/logs" class="btn btn-sm btn-ghost">Clear</a>
+            <button type="submit" class="btn btn-sm btn-primary">@T.Pages.ModLogsFilterBtn</button>
+            <a href="/moderation/logs" class="btn btn-sm btn-ghost">@T.Pages.ModLogsClearBtn</a>
         </form>
     </div>
 
@@ -52,8 +52,8 @@
     {
         <div class="clean-card">
             <div class="empty-state-simple">
-                <h3>No activity found</h3>
-                <p>There are no moderation actions to display.</p>
+                <h3>@T.Pages.ModLogsNoneTitle</h3>
+                <p>@T.Pages.ModLogsNoneBody</p>
             </div>
         </div>
     }
@@ -64,12 +64,12 @@
                 <table class="table table-zebra">
                     <thead>
                         <tr>
-                            <th>Time</th>
-                            <th>Actor</th>
-                            <th>Action</th>
-                            <th>Target</th>
-                            <th>Location</th>
-                            <th>Details</th>
+                            <th>@T.Pages.ModLogsThTime</th>
+                            <th>@T.Pages.ModLogsThActor</th>
+                            <th>@T.Pages.ModLogsThAction</th>
+                            <th>@T.Pages.ModLogsThTarget</th>
+                            <th>@T.Pages.ModLogsThLocation</th>
+                            <th>@T.Pages.ModLogsThDetails</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,7 +108,7 @@
                                     }
                                     else if (!string.IsNullOrEmpty(log.TargetPostPublicId))
                                     {
-                                        <span class="text-muted">Post</span>
+                                        <span class="text-muted">@T.Pages.ModLogsPost</span>
                                     }
                                     else
                                     {
@@ -130,7 +130,7 @@
                                     }
                                     else
                                     {
-                                        <span>Global</span>
+                                        <span>@T.Pages.ModLogsGlobal</span>
                                     }
                                 </td>
                                 <td class="text-xs text-muted max-w-[200px]">
@@ -157,13 +157,13 @@
                 @if (Model.Offset > 0)
                 {
                     <a href="@Model.BuildUrl(Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
-                        Previous
+                        @T.Pages.ModLogsPrevious
                     </a>
                 }
                 @if (Model.Logs.HasMoreItems)
                 {
                     <a href="@Model.BuildUrl(Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
-                        Next
+                        @T.Pages.ModLogsNext
                     </a>
                 }
             </div>

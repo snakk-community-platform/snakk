@@ -18,6 +18,8 @@ public record PostListItemVM
     public required string SpaceSlug { get; init; }
     public required string HubSlug { get; init; }
     public required string CommunitySlug { get; init; }
+    public string HubName { get; init; } = "";
+    public string SpaceName { get; init; } = "";
 
     public static PostListItemVM FromSavedPost(SavedPostInfo p) => new()
     {
@@ -34,6 +36,8 @@ public record PostListItemVM
         SpaceSlug = p.SpaceSlug,
         HubSlug = p.HubSlug,
         CommunitySlug = p.CommunitySlug,
+        HubName = p.HubName,
+        SpaceName = p.SpaceName,
     };
 
     public static PostListItemVM FromSearchResult(PostSearchResult p) => new()
@@ -52,5 +56,7 @@ public record PostListItemVM
         SpaceSlug = p.Space?.Slug ?? "",
         HubSlug = p.Hub?.Slug ?? "",
         CommunitySlug = p.CommunitySlug,
+        HubName = p.Hub?.Name ?? "",
+        SpaceName = p.Space?.Name ?? "",
     };
 }

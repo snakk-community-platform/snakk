@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.NewDiscussionModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "New Discussion";
+    ViewData["Title"] = T.Pages.NewDiscussionTitle;
 }
 
 @section LeftColumn {
@@ -13,27 +13,27 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    ViewData["Nudge.Title"] = "Sign in to start a discussion";
-    ViewData["Nudge.Body"] = "Create a free account to post discussions in any space.";
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
+    ViewData["Nudge.Title"] = T.Pages.NewDiscussionNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.NewDiscussionNudgeBody;
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
     return;
 }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.NewDiscussionHome</a>
             <span class="breadcrumb-separator">/</span>
-            <span>New Discussion</span>
+            <span>@T.Pages.NewDiscussionHeading</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">New Discussion</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.NewDiscussionHeading</h1>
 
             <!-- Space Selector -->
             <div class="mb-6">
-                <label class="text-sm font-medium text-base-content/70 mb-2 block">Space <span class="text-error">*</span></label>
+                <label class="text-sm font-medium text-base-content/70 mb-2 block">@T.Pages.NewDiscussionSpaceLabel <span class="text-error">*</span></label>
                 <div id="space-selector"
                      class="relative"
                      data-scope-hub-id="@(Model.ScopeHubId ?? "")"
@@ -45,7 +45,7 @@
                         <input type="text"
                                id="space-search-input"
                                class="input w-full"
-                               placeholder="Search for a space..."
+                               placeholder="@T.Pages.NewDiscussionSearchPh"
                                autocomplete="off" />
                         <input type="hidden" id="selected-space-id" />
                         <input type="hidden" id="selected-space-slug" />
@@ -61,13 +61,13 @@
 
             <!-- Type Picker (shown after space is selected) -->
             <div id="type-picker-section" class="hidden">
-                <p class="text-sm text-base-content/60 mb-4">What would you like to create?</p>
+                <p class="text-sm text-base-content/60 mb-4">@T.Pages.NewDiscussionTypePrompt</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="type-cards">
                 </div>
             </div>
 
             <div class="mt-6">
-                <button type="button" class="btn btn-ghost btn-sm" data-action="go-back">Cancel</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-action="go-back">@T.Pages.NewDiscussionCancel</button>
             </div>
         </div>
     </div>

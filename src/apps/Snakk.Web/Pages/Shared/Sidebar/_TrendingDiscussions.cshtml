@@ -5,7 +5,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Discussions?.Items == null || Model.Discussions.Items.Count == 0)
 {
-    <p class="sidebar-empty">No activity today yet</p>
+    <p class="sidebar-empty">@T.Sidebar.EmptyTrendingDiscussions</p>
 }
 else
 {
@@ -29,7 +29,7 @@ else
                     <span class="sidebar-link-content">
                         <span class="sidebar-link-title" title="@discussion.Title">@discussion.Title</span>
                         <span class="sidebar-link-meta">
-                            <span class="sidebar-badge">@discussion.PostCountToday posts today</span>
+                            <span class="sidebar-badge">@string.Format(T.Card.PostsToday, discussion.PostCountToday)</span>
                             <span data-popup-type="space"
                                   data-popup-id="@discussion.Space.PublicId"
                                   data-popup-name="@discussion.Space.Name">@discussion.Space.Name</span>

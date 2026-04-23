@@ -1,0 +1,147 @@
+// ============================================
+// Frontpage Layout (isolated redesign)
+// ============================================
+
+.sn-layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+    min-height: calc(100vh - 3.5rem);
+}
+
+.sn-main-body {
+    display: contents;
+}
+
+
+// ── Center Column (Discussions) ───────────────
+.sn-center {
+    position: relative;
+    background: linear-gradient(to bottom, #efefef 3.5rem, white calc(3.5rem + 2rem)) fixed;
+}
+
+// No right column: center spans center + right columns
+.sn-center-wide {
+    grid-column: 2 / -1;
+    background: linear-gradient(to bottom, #efefef 3.5rem, white calc(3.5rem + 2rem)) fixed;
+}
+
+.sn-center-inner {
+    padding: 1.5rem 1.5rem;
+}
+
+.sn-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+
+    svg, .icon {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+    }
+}
+
+
+// Hero cards that live directly in .sn-center (outside .sn-center-inner) sit
+// flush against the column edges — no border-radius, no bottom margin. The
+// padding on .sn-center-inner below provides the gap to the next content.
+// Note: .sn-community-card is also used as a link tile in the communities
+// list, where it keeps its rounded corners; the descendant selector limits
+// the override to the hero usage.
+.sn-center > .sn-profile-card,
+.sn-center > .sn-space-card,
+.sn-center > .sn-community-card,
+.sn-center > .sn-hub-card {
+    border-radius: 0;
+    margin-bottom: 0;
+}
+
+.sn-center > .sn-space-card,
+.sn-center > .sn-community-card,
+.sn-center > .sn-hub-card {
+    margin-bottom: 1.5rem;
+}
+
+// Hierarchy label row — badge chips + › separators replacing the old
+// breadcrumb nav.
+//
+// Default (non-hero): sits as a direct child of .sn-center, above
+// .sn-center-inner. Gets its own padding block so the inner doesn't
+// need top breathing room.
+//
+// Hero variant: sits inside .sn-hub-card or .sn-space-card; no padding,
+// white-on-gradient badges.
+.sn-page-labels {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+
+    .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--link-primary);
+        background: color-mix(in srgb, var(--link-primary) 10%, transparent);
+        border-color: transparent;
+
+        &:hover {
+            background: color-mix(in srgb, var(--link-primary) 18%, transparent);
+        }
+    }
+}
+
+.sn-page-labels-sep {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+    user-select: none;
+}
+
+
+// Gradient breadcrumb bar — the entity's generated gradient is set inline
+// via style="background-image:..."; this modifier adds the overlay and
+// forces white text/badges on top of it.
+.sn-page-labels--gradient {
+    position: relative;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .badge {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: transparent;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+    }
+
+    .sn-page-labels-sep {
+        color: rgba(255, 255, 255, 0.55);
+    }
+}
+

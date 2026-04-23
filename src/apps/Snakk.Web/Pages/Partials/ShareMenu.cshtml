@@ -10,7 +10,7 @@
 <li>
     <button class="text-sm" data-action="copy-discussion-link" data-discussion-url="@Model.ShareUrl">
         <span class="icon icon-copy-link h-4 w-4" aria-hidden="true"></span>
-        Copy link
+        @T.Pages.ShareCopyLink
     </button>
 </li>
 @if (Model.IsPublic)
@@ -18,49 +18,49 @@
 <li>
     <a href="https://x.com/intent/tweet?url=@eu&text=@et" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-x h-4 w-4" aria-hidden="true"></span>
-        Share on X
+        @T.Pages.ShareX
     </a>
 </li>
 <li>
     <a href="https://www.reddit.com/submit?url=@eu&title=@et" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-reddit h-4 w-4" aria-hidden="true"></span>
-        Share on Reddit
+        @T.Pages.ShareReddit
     </a>
 </li>
 <li>
     <a href="https://www.facebook.com/sharer/sharer.php?u=@eu" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-facebook h-4 w-4" aria-hidden="true"></span>
-        Share on Facebook
+        @T.Pages.ShareFacebook
     </a>
 </li>
 <li>
     <a href="https://www.linkedin.com/sharing/share-offsite/?url=@eu" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-linkedin h-4 w-4" aria-hidden="true"></span>
-        Share on LinkedIn
+        @T.Pages.ShareLinkedIn
     </a>
 </li>
 <li>
     <a href="https://wa.me/?text=@ewt" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-whatsapp h-4 w-4" aria-hidden="true"></span>
-        Share on WhatsApp
+        @T.Pages.ShareWhatsApp
     </a>
 </li>
 <li>
     <a href="https://t.me/share/url?url=@eu&text=@et" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-telegram h-4 w-4" aria-hidden="true"></span>
-        Share on Telegram
+        @T.Pages.ShareTelegram
     </a>
 </li>
 <li>
     <a href="https://news.ycombinator.com/submitlink?u=@eu&t=@et" target="_blank" rel="noopener noreferrer" class="text-sm">
         <span class="icon icon-brand-hackernews h-4 w-4" aria-hidden="true"></span>
-        Hacker News
+        @T.Pages.ShareHackerNews
     </a>
 </li>
 <li>
     <a href="mailto:?subject=@et&body=@eu" class="text-sm">
         <span class="icon icon-email h-4 w-4" aria-hidden="true"></span>
-        Send via Email
+        @T.Pages.ShareEmail
     </a>
 </li>
 }

@@ -8,85 +8,92 @@
     string A(string href) => path == href ? " active" : "";
     string AEnd(string suffix) => path.EndsWith(suffix) ? " active" : "";
 }
-<aside class="fp-left">
-<div class="fp-left-sticky">
-    <div class="fp-left-inner">
-        <nav class="fp-nav">
-            <div class="fp-nav-group">
-            <div class="fp-nav-heading">
+<aside class="sn-left">
+<div class="sn-left-sticky">
+    <div class="sn-left-inner">
+        <nav class="sn-nav">
+            <div class="sn-nav-group">
+            <div class="sn-nav-heading">
                 <span class="icon icon-grid-apps" aria-hidden="true"></span>
-                Explore
+                @T.Nav.Explore
             </div>
-            <a href="/" class="fp-nav-item@(A("/"))">
+            <a href="/" class="sn-nav-item@(A("/"))">
                 <span class="icon icon-home" aria-hidden="true"></span>
-                Active
+                @T.Nav.Active
             </a>
-            <a href="/trending" class="fp-nav-item@(A("/trending"))">
+            <a href="/trending" class="sn-nav-item@(A("/trending"))">
                 <span class="icon icon-trending-up" aria-hidden="true"></span>
-                Trending
+                @T.Nav.Trending
             </a>
-            <a href="/top" class="fp-nav-item@(A("/top"))">
+            <a href="/top" class="sn-nav-item@(A("/top"))">
                 <span class="icon icon-star" aria-hidden="true"></span>
-                Top
+                @T.Nav.Top
             </a>
-            <a href="/latest" class="fp-nav-item@(A("/latest"))">
+            <a href="/latest" class="sn-nav-item@(A("/latest"))">
                 <span class="icon icon-clock" aria-hidden="true"></span>
-                Latest
+                @T.Nav.Latest
+            </a>
+            <a href="/my-feed" class="sn-nav-item@(A("/my-feed"))">
+                <span class="icon icon-rss" aria-hidden="true"></span>
+                @T.Nav.MyFeed
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
             </div>
-            <a href="/communities" class="fp-nav-item@(A("/communities"))">
+            <a href="/communities" class="sn-nav-item@(A("/communities"))">
                 <span class="icon icon-users-group" aria-hidden="true"></span>
-                Communities
+                @T.Nav.Communities
             </a>
-            <div class="fp-nav-group">
-            <div class="fp-nav-heading">
+            <div class="sn-nav-group">
+            <div class="sn-nav-heading">
                 <span class="icon icon-library-building" aria-hidden="true"></span>
-                Your Library
+                @T.Nav.YourLibrary
             </div>
-            <a href="/saved" class="fp-nav-item@(A("/saved"))">
+            <a href="/saved" class="sn-nav-item@(A("/saved"))">
                 <span class="icon icon-bookmark" aria-hidden="true"></span>
-                Saved
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.Saved
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
-            <a href="/me" class="fp-nav-item@(A("/me"))">
+            <a href="/me" class="sn-nav-item@(A("/me"))">
                 <span class="icon icon-user" aria-hidden="true"></span>
-                My Contributions
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.MyContributions
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
-            <a href="/following" class="fp-nav-item@(A("/following"))">
+            <a href="/following" class="sn-nav-item@(A("/following"))">
                 <span class="icon icon-bell" aria-hidden="true"></span>
-                Following
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.Following
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
-            <a href="/history" class="fp-nav-item@(A("/history"))">
+            <a href="/history" class="sn-nav-item@(A("/history"))">
                 <span class="icon icon-clock" aria-hidden="true"></span>
-                History
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.History
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
-            <a href="/reactions" class="fp-nav-item@(A("/reactions"))">
+            <a href="/reactions" class="sn-nav-item@(A("/reactions"))">
                 <span class="icon icon-emoji-happy" aria-hidden="true"></span>
-                Reactions
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.Reactions
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
             </div>
-            <a href="@rulesUrl" class="fp-nav-item@(AEnd("/rules"))">
+            <a href="@rulesUrl" class="sn-nav-item@(AEnd("/rules"))">
                 <span class="icon icon-document-text" aria-hidden="true"></span>
-                Rules
+                @T.Nav.Rules
             </a>
-            <a href="@moderatorsUrl" class="fp-nav-item@(AEnd("/moderators"))">
+            <a href="@moderatorsUrl" class="sn-nav-item@(AEnd("/moderators"))">
                 <span class="icon icon-shield-check" aria-hidden="true"></span>
-                Moderators
+                @T.Nav.Moderators
             </a>
         </nav>
-        <div class="fp-left-footer">
-            <a href="/settings" class="fp-nav-item">
+        <div class="sn-left-footer">
+            <a href="/settings" class="sn-nav-item">
                 <span class="icon icon-cog" aria-hidden="true"></span>
-                Settings
-                @if (isGuest) { <span class="icon icon-lock-closed fp-nav-lock" aria-hidden="true"></span> }
+                @T.Nav.Settings
+                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
-            <a href="/help" class="fp-nav-item"><span class="icon icon-question-circle" aria-hidden="true"></span> Help</a>
-            <a href="/privacy" class="fp-nav-item"><span class="icon icon-lock-closed" aria-hidden="true"></span> Privacy Policy</a>
-            <a href="/cookies" class="fp-nav-item"><span class="icon icon-info-circle" aria-hidden="true"></span> Cookies</a>
+            <a href="/help" class="sn-nav-item"><span class="icon icon-question-circle" aria-hidden="true"></span> @T.Nav.Help</a>
+            <a href="/privacy" class="sn-nav-item"><span class="icon icon-lock-closed" aria-hidden="true"></span> @T.Nav.PrivacyPolicy</a>
+            <a href="/cookies" class="sn-nav-item"><span class="icon icon-info-circle" aria-hidden="true"></span> @T.Nav.Cookies</a>
+            <a href="https://github.com/snakk-community-platform/snakk" target="_blank" rel="noopener noreferrer"
+               class="block px-3 pt-2 pb-0 text-xs" style="color: var(--text-tertiary)">@T.Footer.PoweredBy</a>
         </div>
     </div>
 </div>

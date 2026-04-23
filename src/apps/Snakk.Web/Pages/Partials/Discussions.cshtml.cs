@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Protos.Discussion;
@@ -9,10 +10,12 @@ namespace Snakk.Web.Pages.Partials;
 public class DiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext) : PageModel
+    ICommunityContext communityContext,
+    IFollowedSpacesCacheService followedSpacesCache) : PageModel
 {
     public IEnumerable<RecentDiscussionInfo> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
+    public int Offset { get; set; }
     public int NextOffset { get; set; }
     public int MaxOffset { get; set; }
     public string? NextCursor { get; set; }
@@ -42,13 +45,14 @@ public class DiscussionsModel(
     {
         Response.Headers.CacheControl = "public, max-age=5";
 
-        Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : "recent";
+        Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : sort == "my-feed" ? "my-feed" : "recent";
         CommunityId = communityId;
         HubId = hubId;
         SpaceId = spaceId;
         HideCommunity = hideCommunity;
         HideHub = hideHub;
         pageSize = Math.Clamp(pageSize, 1, 50);
+        Offset = offset;
 
         var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 20);
         MaxOffset = maxPages * pageSize;
@@ -76,6 +80,23 @@ public class DiscussionsModel(
                 HasMoreItems = result?.HasMoreItems ?? false;
                 NextOffset = offset + pageSize;
                 NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
+            }
+            else if (Sort == "my-feed")
+            {
+                Response.Headers.CacheControl = "private, no-store";
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId is not null)
+                {
+                    var spaceIds = await followedSpacesCache.GetAsync(userId, apiClient.GetFollowedSpacesAsync);
+                    if (spaceIds.Count > 0)
+                    {
+                        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, cursor: cursor, spaceIds: spaceIds);
+                        Items = result?.Items ?? [];
+                        HasMoreItems = result?.HasMoreItems ?? false;
+                        NextOffset = offset + pageSize;
+                        NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
+                    }
+                }
             }
             else
             {

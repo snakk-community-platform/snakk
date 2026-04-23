@@ -3,8 +3,8 @@
 @inject IOptions<OAuthProvidersOptions> OAuthOptions
 @{
     var oauth = OAuthOptions.Value;
-    var title      = ViewData["Nudge.Title"]     as string ?? "Join the conversation";
-    var body       = ViewData["Nudge.Body"]      as string ?? "Create a free account to participate.";
+    var title      = ViewData["Nudge.Title"]     as string ?? T.Nudge.Title;
+    var body       = ViewData["Nudge.Body"]      as string ?? T.Nudge.Body;
     var returnPath = ViewData["Nudge.ReturnUrl"] as string
                      ?? ViewContext.HttpContext.Request.Path.Value ?? "/";
     var returnUrl   = Uri.EscapeDataString(returnPath);
@@ -14,43 +14,43 @@
     var githubUrl   = $"/auth/oauth/GitHub/challenge?returnUrl={returnUrl}";
     var discordUrl  = $"/auth/oauth/Discord/challenge?returnUrl={returnUrl}";
 }
-<div class="fp-registration-nudge clean-card">
-    <div class="fp-nudge-icon">
+<div class="sn-registration-nudge clean-card">
+    <div class="sn-nudge-icon">
         <span class="icon icon-lock-closed w-6 h-6" aria-hidden="true"></span>
     </div>
-    <h3 class="fp-nudge-title">@title</h3>
-    <p class="fp-nudge-body">@body</p>
+    <h3 class="sn-nudge-title">@title</h3>
+    <p class="sn-nudge-body">@body</p>
 
     @if (oauth.HasAny)
     {
-        <div class="fp-nudge-oauth">
+        <div class="sn-nudge-oauth">
             @if (oauth.Google)
             {
-                <a href="@googleUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                     <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
-                    Continue with Google
+                    @T.Nudge.ContinueGoogle
                 </a>
             }
             @if (oauth.GitHub)
             {
-                <a href="@githubUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                     <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
-                    Continue with GitHub
+                    @T.Nudge.ContinueGitHub
                 </a>
             }
             @if (oauth.Discord)
             {
-                <a href="@discordUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                     <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
-                    Continue with Discord
+                    @T.Nudge.ContinueDiscord
                 </a>
             }
         </div>
-        <div class="fp-nudge-divider"><span>or</span></div>
+        <div class="sn-nudge-divider"><span>@T.Nudge.Or</span></div>
     }
 
-    <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">Sign up with email</a>
-    <p class="fp-nudge-login-link">
-        Already have an account? <a href="@loginUrl" hx-boost="false">Log in</a>
+    <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
+    <p class="sn-nudge-login-link">
+        @T.Nudge.AlreadyAccount <a href="@loginUrl" hx-boost="false">@T.Nudge.LogIn</a>
     </p>
 </div>

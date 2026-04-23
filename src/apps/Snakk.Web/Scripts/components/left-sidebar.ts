@@ -3,7 +3,7 @@
 
     function updateActiveLink(): void {
         const path = location.pathname;
-        document.querySelectorAll<HTMLAnchorElement>('.fp-nav .fp-nav-item').forEach(a => {
+        document.querySelectorAll<HTMLAnchorElement>('.sn-nav .sn-nav-item').forEach(a => {
             const href = a.getAttribute('href') ?? '';
             let active: boolean;
             if (href.endsWith('/rules')) active = path.endsWith('/rules');

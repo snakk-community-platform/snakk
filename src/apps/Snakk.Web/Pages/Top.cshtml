@@ -6,7 +6,7 @@
 @model Snakk.Web.Pages.TopModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"Top Discussions — {Model.PeriodLabel}";
+    ViewData["Title"] = $"{T.Pages.TopHeading} — {Model.PeriodLabel}";
     ViewData["Description"] = "The most popular discussions on Snakk, ranked by reactions and replies.";
 }
 
@@ -15,11 +15,11 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-star" aria-hidden="true"></span>
-            Top Discussions
+            @T.Pages.TopHeading
         </h2>
 
         <!-- Period tabs -->
@@ -27,11 +27,11 @@
             @{
                 var tabs = new[]
                 {
-                    ("day",      "Today"),
-                    ("week",     "Last Week"),
-                    ("month",    "Last Month"),
-                    ("year",     "Last Year"),
-                    ("all_time", "All Time"),
+                    ("day",      T.Pages.TopTabToday),
+                    ("week",     T.Pages.TopTabWeek),
+                    ("month",    T.Pages.TopTabMonth),
+                    ("year",     T.Pages.TopTabYear),
+                    ("all_time", T.Pages.TopTabAllTime),
                 };
             }
             @foreach (var (period, label) in tabs)
@@ -47,7 +47,7 @@
         @if (Model.TopDiscussions?.Items == null || !Model.TopDiscussions.Items.Any())
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>No discussions found for this time period yet.</p>
+                <p>@T.Pages.TopEmpty</p>
             </div>
         }
         else
@@ -63,7 +63,7 @@
                 {
                     var nextOffset = Model.TopDiscussions.Items.Count;
                     <div class="flex justify-center mt-6">
-                        <a href="/top?period=@Model.Period&offset=@nextOffset" class="btn btn-ghost btn-sm">Load more</a>
+                        <a href="/top?period=@Model.Period&offset=@nextOffset" class="btn btn-ghost btn-sm">@T.Pages.TopLoadMore</a>
                     </div>
                 }
             </div>
@@ -72,76 +72,90 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
-<div class="fp-right-sticky">
+@{
+    ViewData["RightPane.AboutTitle"] = T.Pages.TopAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.TopAboutDesc;
+}
+<aside class="sn-right">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-body">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Sections.SiteStats
         </div>
         @if (Model.InlinePlatformStats != null)
         {
-            <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+            <div class="sn-sidebar-stats">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-title">@T.Sidebar.StatsActivity</div>
+                        <div class="sn-sparkline-container sn-right-sparkline"
+                             data-sparkline-type="platform"
+                             data-sparkline-days="7"></div>
                     </div>
                 </div>
             </div>
         }
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <partial name="Shared/_RightAboutSection" />
+
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            Top Spaces
+            @T.Sections.TopSpaces
         </div>
         @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
         {
-            <div class="fp-spaces-inline">
+            <div class="sn-spaces-inline">
                 @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="fp-card-tag">@space.Name</a>
+                       class="sn-card-tag">@space.Name</a>
                 }
             </div>
         }
         else
         {
-            <p class="fp-right-empty">No top spaces yet</p>
+            <p class="sn-right-empty">@T.Sections.EmptyTopSpaces</p>
         }
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-users-group" aria-hidden="true"></span>
-            Top Contributors
+            @T.Sections.TopContributors
         </div>
         @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
         {
-            <div class="fp-trending-list">
+            <div class="sn-trending-list">
                 @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" />
-                        <span class="fp-trending-contributor-name">@c.DisplayName</span>
-                        <span class="fp-card-tag fp-card-tag-light fp-tag-sm">@c.PostCountToday</span>
+                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
+                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" />
+                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
                     </a>
                 }
             </div>
         }
         else
         {
-            <p class="fp-right-empty">No top contributors yet</p>
+            <p class="sn-right-empty">@T.Sections.EmptyTopContributors</p>
         }
     </div>
     </div>

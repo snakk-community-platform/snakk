@@ -5,18 +5,18 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Contributors?.Items == null || Model.Contributors.Items.Count == 0)
 {
-    <p class="fp-right-empty">No active contributors yet</p>
+    <p class="sn-right-empty">@T.Sidebar.EmptyTrendingContributors</p>
 }
 else
 {
-    <div class="fp-trending-list">
+    <div class="sn-trending-list">
         @foreach (var c in Model.Contributors.Items)
         {
-            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor" hx-target="#main-content"
+            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor" hx-target="#main-content"
                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                <img src="@c.AvatarThumbnailUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                <span class="fp-trending-contributor-name">@c.DisplayName</span>
-                <span class="fp-card-tag fp-card-tag-light fp-tag-sm">@c.PostCountToday</span>
+                <img src="@c.AvatarThumbnailUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
             </a>
         }
     </div>

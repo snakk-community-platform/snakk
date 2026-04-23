@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.Spaces.NewJournalModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"New Journal — {Model.Space?.Name}";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewJournalTitlePattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -13,30 +13,30 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
     return;
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.SpacesNewHome</a>
             @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
             <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
             <span class="breadcrumb-separator">/</span>
-            <span>Journal</span>
+            <span>@T.Pages.SpacesNewJournalCrumb</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">Start a Journal</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewJournalHeading</h1>
 
             @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -44,7 +44,7 @@
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
                 <div class="space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Journal title (e.g. My project progress)" />
+                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewJournalTitlePh" />
 
                     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
@@ -53,33 +53,33 @@
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Journal</button>
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewJournalSubmit</button>
                     </div>
                 </div>
             </form>
 
             <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How journals work</h3>
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewJournalHowHeading</h3>
                 <div class="text-sm text-base-content/60 space-y-3">
-                    <p>Journals are living documents. You post the first entry now, then add timestamped updates over time. Others can discuss in regular replies.</p>
+                    <p>@T.Pages.SpacesNewJournalIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Your first post becomes the opening entry</li>
-                            <li>Use "+ Add update" to append new entries</li>
-                            <li>Updates appear as a timeline above the replies</li>
-                            <li>Others can reply and discuss below your updates</li>
+                            <li>@T.Pages.SpacesNewJournalAfter1</li>
+                            <li>@T.Pages.SpacesNewJournalAfter2</li>
+                            <li>@T.Pages.SpacesNewJournalAfter3</li>
+                            <li>@T.Pages.SpacesNewJournalAfter4</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">Great for</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewJournalGreatLabel</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Project progress logs</li>
-                            <li>Learning journals and study notes</li>
-                            <li>Changelogs and release notes</li>
-                            <li>Curated resource collections</li>
-                            <li>Ongoing summaries of a topic</li>
+                            <li>@T.Pages.SpacesNewJournalGreat1</li>
+                            <li>@T.Pages.SpacesNewJournalGreat2</li>
+                            <li>@T.Pages.SpacesNewJournalGreat3</li>
+                            <li>@T.Pages.SpacesNewJournalGreat4</li>
+                            <li>@T.Pages.SpacesNewJournalGreat5</li>
                         </ul>
                     </div>
                 </div>

@@ -30,6 +30,9 @@ service StatisticsService {
   // User activity
   rpc GetUserActivityHistory (GetUserActivityHistoryRequest) returns (UserActivityHistory);
   rpc GetUserStats (GetUserStatsRequest) returns (UserStats);
+
+  // Activity sparklines (pre-aggregated daily snapshots)
+  rpc GetActivitySparkline (SparklineRequest) returns (SparklineResponse);
 }
 
 // --- Requests ---
@@ -203,4 +206,22 @@ message LatestContributorInfo {
 
 message LatestContributorsList {
   repeated LatestContributorInfo items = 1;
+}
+
+// --- Activity sparklines ---
+
+message SparklineRequest {
+  string entity_type = 1; // "platform" | "community" | "hub" | "space" | "discussion"
+  string public_id   = 2; // empty for platform
+  int32  days        = 3;
+}
+
+message SparklineDay {
+  string date             = 1; // ISO date "2026-04-15"
+  int32  post_count       = 2;
+  int32  discussion_count = 3;
+}
+
+message SparklineResponse {
+  repeated SparklineDay days = 1;
 }

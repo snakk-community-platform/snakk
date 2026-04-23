@@ -1,0 +1,23 @@
+.sn-sparkline-container {
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+
+    &.sn-sparkline--loaded {
+        opacity: 1;
+    }
+
+    .sn-sparkline-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+}
+
+.sn-right-sparkline {
+    .sn-sparkline-svg {
+        height: 28px;
+    }
+}

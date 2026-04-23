@@ -20,7 +20,7 @@
 
     const KEY_PREFIX = 'snakk:spoiler-revealed:';
     const selectors = [
-        '.fp-images-spoiler[data-discussion-id]',       // list preview
+        '.sn-images-spoiler[data-discussion-id]',       // list preview
         '.images-display.images-spoiler[data-discussion-id]', // detail page
     ].join(',');
 

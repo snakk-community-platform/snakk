@@ -28,6 +28,7 @@
 @use 'components/icons';
 @use 'components/skeletons';
 @use 'components/search-focus';
+@use 'components/sparkline';
 
 // ============================================
 // Features
@@ -47,7 +48,19 @@
 // ============================================
 // Pages
 // ============================================
-@use 'pages/frontpage';
+@use 'pages/layout' as page-layout;
+@use 'pages/left-nav';
+@use 'pages/discussion-card';
+@use 'pages/card-previews';
+@use 'pages/entity-row';
+@use 'pages/community';
+@use 'pages/space';
+@use 'pages/right-sidebar';
+@use 'pages/hub';
+@use 'pages/profile' as page-profile;
+@use 'pages/stats-chart';
+@use 'pages/settings';
+@use 'pages/navbar' as page-navbar;
 @use 'pages/help';
 
 // ============================================

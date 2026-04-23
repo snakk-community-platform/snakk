@@ -14,6 +14,7 @@ public class MyDiscussionsModel(
     public ICommunityContext Community => communityContext;
     public IList<RecentDiscussionInfo> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
+    public int Offset { get; set; }
     public int NextOffset { get; set; }
     public bool ShowCommunity { get; set; }
 
@@ -27,6 +28,7 @@ public class MyDiscussionsModel(
             return Content("", "text/html");
 
         pageSize = Math.Clamp(pageSize, 1, 50);
+        Offset = offset;
 
         ShowCommunity = communityContext.IsMultiCommunityEnabled
             && string.IsNullOrEmpty(communityContext.CommunitySlug)

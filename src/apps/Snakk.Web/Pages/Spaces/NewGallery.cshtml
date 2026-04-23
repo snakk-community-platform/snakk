@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.Spaces.NewGalleryModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"New Images — {Model.Space?.Name}";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewGalleryTitlePattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -13,30 +13,30 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
     return;
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.SpacesNewHome</a>
             @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
             <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
             <span class="breadcrumb-separator">/</span>
-            <span>Images</span>
+            <span>@T.Pages.SpacesNewGalleryCrumb</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">New Images</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewGalleryHeading</h1>
 
             @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -44,61 +44,61 @@
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
                 <div class="space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Images title" autofocus />
+                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewGalleryTitlePh" autofocus />
 
                     <!-- Layout picker (hidden until 2+ images) -->
                     <div id="images-layout-section" class="images-layout-section images-layout-section-hidden">
-                        <div class="text-sm font-medium mb-2">Layout</div>
+                        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryLayoutLabel</div>
                         <div class="flex gap-3" id="images-layout-picker">
                             <label class="images-layout-option images-layout-active" data-layout="masonry">
                                 <input type="radio" name="ImagesLayout" value="masonry" checked class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-masonry"><div></div><div></div><div></div></div>
                                 </div>
-                                <span class="text-xs mt-1">Masonry</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryMasonry</span>
                             </label>
                             <label class="images-layout-option" data-layout="grid">
                                 <input type="radio" name="ImagesLayout" value="grid" class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-grid"><div></div><div></div><div></div><div></div></div>
                                 </div>
-                                <span class="text-xs mt-1">Grid</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryGrid</span>
                             </label>
                             <label class="images-layout-option" data-layout="justified">
                                 <input type="radio" name="ImagesLayout" value="justified" class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-justified"><div></div><div></div><div></div></div>
                                 </div>
-                                <span class="text-xs mt-1">Justified</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryJustified</span>
                             </label>
                             <label class="images-layout-option" data-layout="carousel">
                                 <input type="radio" name="ImagesLayout" value="carousel" class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-carousel"><span>&#8249;</span><div></div><span>&#8250;</span></div>
                                 </div>
-                                <span class="text-xs mt-1">Carousel</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryCarousel</span>
                             </label>
                             <label class="images-layout-option" data-layout="hero">
                                 <input type="radio" name="ImagesLayout" value="hero" class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-hero"><div class="glp-hero-big"></div><div class="glp-hero-row"><div></div><div></div><div></div></div></div>
                                 </div>
-                                <span class="text-xs mt-1">Hero</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryHero</span>
                             </label>
                             <label class="images-layout-option" data-layout="compare" id="images-layout-compare" style="display:none">
                                 <input type="radio" name="ImagesLayout" value="compare" class="hidden" />
                                 <div class="images-layout-preview">
                                     <div class="glp glp-compare"><div></div><div class="glp-compare-line"></div><div></div></div>
                                 </div>
-                                <span class="text-xs mt-1">Compare</span>
+                                <span class="text-xs mt-1">@T.Pages.SpacesNewGalleryCompare</span>
                             </label>
                         </div>
-                        <div id="images-layout-hint" class="images-layout-hint hidden">You can now choose a layout</div>
+                        <div id="images-layout-hint" class="images-layout-hint hidden">@T.Pages.SpacesNewGalleryLayoutHint</div>
                     </div>
 
                     <!-- Image upload area + live preview -->
                     <div>
-                        <div class="text-sm font-medium mb-2">Images</div>
+                        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryImagesLabel</div>
 
                         <!-- Live preview (hidden when empty, switches between grid/carousel) -->
                         <div id="images-preview" class="images-upload-preview hidden"></div>
@@ -108,8 +108,8 @@
                             <input type="file" id="images-file-input" accept="image/*" multiple class="hidden" />
                             <div class="gallery-drop-zone-content">
                                 <span class="icon icon-photograph h-8 w-8 text-base-content/30 mb-2" aria-hidden="true"></span>
-                                <span class="text-sm text-base-content/50">Click or drag images here</span>
-                                <span class="text-xs text-base-content/30 mt-1">JPEG, PNG, GIF, WebP · max 5MB each · up to 20 images</span>
+                                <span class="text-sm text-base-content/50">@T.Pages.SpacesNewGalleryDropText</span>
+                                <span class="text-xs text-base-content/30 mt-1">@T.Pages.SpacesNewGalleryDropHint</span>
                             </div>
                         </div>
 
@@ -123,44 +123,44 @@
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" name="ImagesIsSpoiler" value="true" class="toggle toggle-primary toggle-sm" />
                         <span>
-                            <span class="font-medium text-sm">Spoiler</span>
-                            <span class="block text-xs text-base-content/50">Images are blurred until the viewer clicks to reveal them.</span>
+                            <span class="font-medium text-sm">@T.Pages.SpacesNewGallerySpoiler</span>
+                            <span class="block text-xs text-base-content/50">@T.Pages.SpacesNewGallerySpoilerDesc</span>
                         </span>
                     </label>
 
                     <!-- Description editor -->
                     <div>
-                        <div class="text-sm font-medium mb-2">Description (optional)</div>
+                        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryDescLabel</div>
                         <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                        <div id="editor-container" data-hide-image="true" data-placeholder="Add captions or context for your images...">
+                        <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewGalleryEditorPh">
                             <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                         </div>
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Images</button>
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewGallerySubmit</button>
                     </div>
                 </div>
             </form>
 
             <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How images work</h3>
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewGalleryHowHeading</h3>
                 <div class="text-sm text-base-content/60 space-y-3">
-                    <p>Upload images and see a live preview in your chosen layout. Switch between grid and carousel at any time.</p>
+                    <p>@T.Pages.SpacesNewGalleryIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Images display in your chosen layout</li>
-                            <li>Others can reply and discuss your images</li>
+                            <li>@T.Pages.SpacesNewGalleryAfter1</li>
+                            <li>@T.Pages.SpacesNewGalleryAfter2</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Drag and drop multiple images at once</li>
-                            <li>Supported: JPEG, PNG, GIF, WebP — max 5MB each</li>
+                            <li>@T.Pages.SpacesNewGalleryTip1</li>
+                            <li>@T.Pages.SpacesNewGalleryTip2</li>
                         </ul>
                     </div>
                 </div>

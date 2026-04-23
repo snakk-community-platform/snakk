@@ -1,0 +1,263 @@
+// ── Community Card ────────────────────────────
+// Gradient card for the community detail page header and the communities
+// list. Mirrors .sn-space-card / .sn-profile-card: a generated hash-seeded
+// gradient background, darkening ::before overlay for contrast, and forced
+// white text on all children.
+.sn-community-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+}
+
+// Gradient variant — applied when the card is a link tile in the communities
+// list. The hero card on the community detail page has no inline background-image
+// and therefore no gradient; it shows plain text on the page background.
+a.sn-community-card {
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    &:hover::before {
+        background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.55));
+    }
+
+    .sn-community-avatar { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
+    .sn-community-name { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+    .sn-community-description { color: rgba(255, 255, 255, 0.92); }
+    .sn-community-meta { color: rgba(255, 255, 255, 0.8); }
+}
+
+.sn-community-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sn-community-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sn-community-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.sn-community-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+}
+
+.sn-community-meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+}
+
+// Single-column stacked list of community cards on /communities.
+// Spacing between cards comes from .sn-community-card's own
+// margin-bottom, so no gap here.
+.sn-community-card-list {
+    display: flex;
+    flex-direction: column;
+}
+
+// Detail page hero — banner + body pattern, mirrors sn-space-card.
+// Overrides the base .sn-community-card only for div elements (the list
+// uses <a> tags which keep their existing styles).
+div.sn-community-card {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+.sn-community-card-banner {
+    position: relative;
+    height: 5rem;
+    background-size: cover;
+    background-position: center;
+    overflow: visible;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
+        pointer-events: none;
+    }
+}
+
+.sn-community-card-banner .sn-community-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.sn-community-card-banner .sn-community-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sn-community-card-body {
+    padding: 2.25rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+// ── Community List Card (banner + overlap avatar) ─────────────────────────
+// Name lives in the gradient banner (white, bottom-aligned). Avatar is
+// absolutely positioned straddling the banner/body boundary. Description
+// and meta sit on the plain card background below.
+.sn-community-list-card {
+    display: block;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-primary);
+    text-decoration: none;
+    overflow: hidden;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    margin-bottom: 0.75rem;
+    position: relative;
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: var(--border-primary);
+    }
+}
+
+.sn-community-list-banner {
+    height: 4rem;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
+        pointer-events: none;
+    }
+}
+
+.sn-community-list-avatar {
+    position: absolute;
+    bottom: -1.5rem;
+    left: 1rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+    z-index: 2;
+}
+
+.sn-community-list-name {
+    position: absolute;
+    bottom: 0.5rem;
+    left: calc(1rem + 3rem + 0.75rem);
+    right: 1rem;
+    z-index: 1;
+    color: #fff;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sn-community-list-body {
+    padding: 1.75rem 1rem 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.sn-community-stat-row {
+    display: flex;
+    gap: 0.375rem;
+    margin-top: 0.125rem;
+    align-items: center;
+}
+
+.sn-community-card-sparkline {
+    margin-left: auto;
+    width: 4.5rem;
+    flex-shrink: 0;
+}
+
+.sn-community-space-sparkline {
+    width: 4.5rem;
+    flex-shrink: 0;
+}
+
+.sn-community-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sn-community-stat-value {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.sn-community-stat-label {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+}
+

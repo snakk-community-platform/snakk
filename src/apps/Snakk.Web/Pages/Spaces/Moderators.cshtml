@@ -1,11 +1,12 @@
 @page "/c/{communitySlug}/h/{hubSlug}/{slug}/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @model Snakk.Web.Pages.Spaces.ModeratorsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"{Model.Space?.Name} Moderators";
-    ViewData["Description"] = $"Moderators for {Model.Space?.Name}.";
+    ViewData["Title"] = string.Format(T.Pages.SpaceModsTitlePattern, Model.Space?.Name);
+    ViewData["Description"] = string.Format(T.Pages.SpaceModsDescPattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -14,32 +15,32 @@
 
 @if (Model.Space == null || Model.Hub == null)
 {
-    <div class="fp-center">
-        <div class="fp-center-inner">
+    <div class="sn-center">
+        <div class="sn-center-inner">
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>Space not found.</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+                <p>@T.Pages.SpaceModsNotFound</p>
+                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.SpaceModsBackToHome</a>
             </div>
         </div>
     </div>
 }
 else
 {
-    <div class="fp-center">
-        <div class="fp-page-labels">
+    <div class="sn-center">
+        <div class="sn-page-labels">
             @if (Model.ShowCommunityInBreadcrumb && Model.CommunityDetail != null)
             {
                 <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
-                <span class="fp-page-labels-sep">›</span>
+                <span class="sn-page-labels-sep">›</span>
             }
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)" class="badge badge-ghost badge-sm">@Model.Hub.Name</a>
-            <span class="fp-page-labels-sep">›</span>
+            <span class="sn-page-labels-sep">›</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.Hub.Slug, Model.Space.Slug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
         </div>
-        <div class="fp-center-inner">
-            <h2 class="fp-section-title">
+        <div class="sn-center-inner">
+            <h2 class="sn-section-title">
                 <span class="icon icon-user-add" aria-hidden="true"></span>
-                @Model.Space.Name Moderators
+                @Model.Space.Name@T.Pages.SpaceModsHeadingSuffix
             </h2>
             @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
@@ -52,69 +53,74 @@ else
 
             @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
             {
-                <p class="text-sm" style="color: var(--text-tertiary)">No moderators have been assigned yet.</p>
+                <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.SpaceModsEmpty</p>
             }
             else
             {
                 @foreach (var group in Model.Moderators.Groups)
                 {
-                    <div class="clean-card p-6 mb-4">
-                        <h2 class="text-base font-semibold mb-3">
-                            @group.Level
-                            @if (!string.IsNullOrEmpty(group.ScopeName))
-                            {
-                                <span class="text-base-content/50 font-normal">(@group.ScopeName)</span>
-                            }
-                        </h2>
-                        <div class="flex flex-col divide-y divide-base-200">
-                            @foreach (var mod in group.Moderators)
-                            {
-                                <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
+                    <p class="text-xs font-semibold uppercase tracking-wide mt-6 mb-3" style="color: var(--text-tertiary)">
+                        @group.Level
+                        @if (!string.IsNullOrEmpty(group.ScopeName))
+                        {
+                            <span class="font-normal normal-case">(@group.ScopeName)</span>
+                        }
+                    </p>
+                    <div class="sn-mod-list-grid">
+                        @foreach (var mod in group.Moderators)
+                        {
+                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
+                               data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
+                                <div class="sn-mod-list-banner"
+                                     style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{mod.UserPublicId}")">
                                     <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
-                                         alt="" width="32" height="32"
-                                         class="w-8 h-8 rounded-full shrink-0" />
-                                    <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
+                                         alt="" width="34" height="34"
+                                         class="sn-mod-list-avatar"
+                                         loading="lazy" decoding="async" />
+                                    <span class="sn-mod-list-name">@mod.DisplayName</span>
+                                </div>
+                                <div class="sn-mod-list-body">
                                     <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
-                                </a>
-                            }
-                        </div>
+                                </div>
+                            </a>
+                        }
                     </div>
                 }
             }
 
             <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
-                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">See also</p>
+                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">@T.Pages.SpaceModsSeeAlso</p>
                 <a href="@SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug)/moderators"
                    class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
-                    <span>@Model.Hub.Name Hub Moderators</span>
+                    <span>@Model.Hub.Name@T.Pages.SpaceModsHubSuffix</span>
                     <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
                 </a>
                 @if (Model.CommunityDetail != null)
                 {
                     <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)/moderators"
                        class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
-                        <span>@Model.CommunityDetail.Name Community Moderators</span>
+                        <span>@Model.CommunityDetail.Name@T.Pages.SpaceModsCommunitySuffix</span>
                         <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
                     </a>
                 }
                 <a href="/moderators" class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
-                    <span>Site Moderators</span>
+                    <span>@T.Pages.SpaceModsSite</span>
                     <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
                 </a>
             </div>
         </div>
     </div>
 
-<aside class="fp-right">
-<div class="fp-right-sticky">
-    <div class="fp-right-section"
+<aside class="sn-right">
+<div class="sn-right-sticky">
+    <div class="sn-right-section"
          hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
          hx-trigger="load"
          hx-target="this"
          hx-swap="innerHTML">
-        <div class="fp-right-title">
+        <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Pages.SpaceModsSiteStats
         </div>
         <div class="grid grid-cols-2 gap-3">
             <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
@@ -122,14 +128,14 @@ else
         </div>
     </div>
 
-    <div class="fp-right-section"
+    <div class="sn-right-section"
          hx-get="/partials/trending-discussions?scopeType=platform&scopeId=global"
          hx-trigger="load"
          hx-target="this"
          hx-swap="innerHTML">
-        <div class="fp-right-title">
+        <div class="sn-right-title">
             <span class="icon icon-trending-up" aria-hidden="true"></span>
-            Trending
+            @T.Pages.SpaceModsTrending
         </div>
         <div class="flex flex-col gap-3">
             <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
@@ -143,11 +149,11 @@ else
 @functions {
     static string FormatRole(string role) => role switch
     {
-        "GlobalAdmin" => "Global Admin",
-        "CommunityAdmin" => "Community Admin",
-        "CommunityMod" => "Community Moderator",
-        "HubMod" => "Hub Moderator",
-        "SpaceMod" => "Space Moderator",
+        "GlobalAdmin" => T.Pages.RoleGlobalAdmin,
+        "CommunityAdmin" => T.Pages.RoleCommunityAdmin,
+        "CommunityMod" => T.Pages.RoleCommunityMod,
+        "HubMod" => T.Pages.RoleHubMod,
+        "SpaceMod" => T.Pages.RoleSpaceMod,
         _ => role
     };
 }

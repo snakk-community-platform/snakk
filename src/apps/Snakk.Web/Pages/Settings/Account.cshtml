@@ -3,9 +3,9 @@
 @model Snakk.Web.Pages.Settings.AccountModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Account Settings";
-    ViewData["Nudge.Title"] = "Sign in to access settings";
-    ViewData["Nudge.Body"] = "Manage your account, profile, and preferences.";
+    ViewData["Title"] = T.Settings.TitleAccount;
+    ViewData["Nudge.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Nudge.Body"] = T.Settings.NudgeBodyAccount;
 
     var settingsAvatarFileName = User.FindFirst("AvatarFileName")?.Value;
     var hasUploadedAvatar = !string.IsNullOrEmpty(settingsAvatarFileName);
@@ -18,35 +18,35 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_RegistrationNudge" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-user" aria-hidden="true"></span>
-            Account Settings
+            @T.Settings.HeadingAccount
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <!-- Avatar -->
-            <div id="section-avatar" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Avatar</h3>
+            <div id="section-avatar" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.AvatarTitle</h3>
                 <form id="avatar-upload-form" class="flex flex-col gap-4">
                     <div class="flex items-center gap-4">
                         <div class="avatar avatar-xl shrink-0">
                             <img src="@settingsAvatarUrl"
-                                 alt="Your avatar"
+                                 alt="@T.Settings.AvatarAlt"
                                  width="80" height="80"
                                  id="avatar-preview"
                                  data-generated-url="@settingsGeneratedUrl" />
                         </div>
                         <div class="text-sm" style="color: var(--text-tertiary)">
-                            Upload a custom avatar or use the auto-generated one.
-                            <br />Supported: JPEG, PNG, WebP. Max 2MB.
+                            @T.Settings.AvatarHelp
+                            <br />@T.Settings.AvatarSupport
                         </div>
                     </div>
 
@@ -56,19 +56,19 @@
                     <div id="avatar-drop-zone" class="gallery-drop-zone">
                         <div class="gallery-drop-zone-content">
                             <span class="icon icon-photograph h-8 w-8 text-base-content/30 mb-2" aria-hidden="true"></span>
-                            <span class="text-sm text-base-content/50" id="avatar-drop-label">Click or drag an image here</span>
+                            <span class="text-sm text-base-content/50" id="avatar-drop-label">@T.Settings.AvatarDropLabel</span>
                         </div>
                     </div>
 
                     <div class="flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm" id="upload-btn" disabled>
-                            Upload Avatar
+                            @T.Settings.AvatarUpload
                         </button>
                         <button type="button"
                                 class="btn btn-ghost btn-sm"
                                 id="delete-avatar-btn"
                                 @(hasUploadedAvatar ? "" : "disabled")>
-                            Use Generated
+                            @T.Settings.AvatarUseGenerated
                         </button>
                     </div>
                 </form>
@@ -77,8 +77,8 @@
             </div>
 
             <!-- Display Name -->
-            <div id="section-display-name" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Display Name</h3>
+            <div id="section-display-name" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.DisplayNameTitle</h3>
                 <div id="display-name-status" class="text-sm mb-3 hidden"></div>
 
                 <form id="display-name-form" asp-page-handler="UpdateDisplayName" class="flex flex-col gap-3">
@@ -90,17 +90,17 @@
                                required
                                minlength="3"
                                maxlength="20"
-                               placeholder="Your display name" />
-                        <span class="text-xs" style="color: var(--text-tertiary)">3-20 characters. Letters, numbers, spaces, hyphens, underscores.</span>
+                               placeholder="@T.Settings.DisplayNamePlaceholder" />
+                        <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
                     </div>
 
                     <div id="password-field">
                         <input type="password"
                                name="password"
                                class="input w-full"
-                               placeholder="Current password"
+                               placeholder="@T.Settings.DisplayNamePwdPlaceholder"
                                autocomplete="current-password" />
-                        <span class="text-xs" style="color: var(--text-tertiary)">Required to change your display name</span>
+                        <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.DisplayNamePwdHelp</span>
                     </div>
 
                     @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
@@ -113,26 +113,26 @@
 
                     <div>
                         <button type="submit" class="btn btn-primary btn-sm" id="update-name-btn">
-                            Update Display Name
+                            @T.Settings.DisplayNameSubmit
                         </button>
                     </div>
                 </form>
             </div>
 
             <!-- Bio -->
-            <div id="section-bio" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Bio</h3>
+            <div id="section-bio" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.BioTitle</h3>
                 <p class="text-sm mb-3" style="color: var(--text-tertiary)">
-                    A short description that appears on your profile.
+                    @T.Settings.BioHelp
                 </p>
                 <textarea id="bio-input"
                           class="textarea w-full"
                           rows="3"
                           maxlength="300"
-                          placeholder="Tell others a bit about yourself..."></textarea>
+                          placeholder="@T.Settings.BioPlaceholder"></textarea>
                 <div class="flex items-center justify-between mt-2">
                     <span class="text-xs" style="color: var(--text-tertiary)"><span id="bio-char-count">0</span>/300</span>
-                    <button type="button" class="btn btn-primary btn-sm" id="save-bio-btn">Save Bio</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="save-bio-btn">@T.Settings.BioSave</button>
                 </div>
             </div>
         </div>
@@ -141,7 +141,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

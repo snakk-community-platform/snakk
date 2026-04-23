@@ -1,31 +1,31 @@
 @page
 @model ErrorModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = T.Pages.ErrorTitle;
 }
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/">Home</a>
+        <a href="/">@T.Pages.ErrorHome</a>
     </nav>
 </div>
 
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="page-header">
-        <h1>Something went wrong</h1>
-        <p>An unexpected error occurred while processing your request.</p>
+        <h1>@T.Pages.ErrorHeading</h1>
+        <p>@T.Pages.ErrorBody</p>
     </div>
 
     <div class="clean-card p-6">
         @if (Model.ShowRequestId)
         {
             <p class="text-sm text-base-content/70 mb-4">
-                Request ID: <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">@Model.RequestId</code>
+                @T.Pages.ErrorRequestIdLabel <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">@Model.RequestId</code>
             </p>
         }
         <p class="text-sm text-base-content/70 mb-6">
-            This error has been logged. If the issue persists, please try again later.
+            @T.Pages.ErrorLoggedNote
         </p>
-        <a href="/" class="btn btn-primary btn-sm">Go to Home</a>
+        <a href="/" class="btn btn-primary btn-sm">@T.Pages.ErrorHomeBtn</a>
     </div>
 </div>

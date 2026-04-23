@@ -1,0 +1,204 @@
+// ── Left Column (Navigation) ──────────────────
+.sn-left {
+    background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--nav-bg) 5%, #e0e0e0), var(--bg-secondary) 1.5rem) fixed;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.sn-left-sticky {
+    width: 16rem;
+    position: sticky;
+    top: 3.5rem;
+    height: calc(100vh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+html.sticky-none .sn-left-sticky {
+    position: static;
+    height: auto;
+    overflow-y: visible;
+}
+
+.sn-left-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 0 0 1rem;
+}
+
+.sn-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0 1rem;
+}
+
+.sn-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    background: var(--bg-subtle);
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+
+    .sn-nav-item {
+        position: relative;
+        padding-left: 2.125rem;
+
+        // ├─ or └─ connector
+        &::before {
+            content: '';
+            position: absolute;
+            left: 1.15rem;
+            top: 0;
+            bottom: 50%;
+            width: 0.75rem;
+            border-left: 1px solid var(--text-tertiary);
+            border-bottom: 1px solid var(--text-tertiary);
+            border-bottom-left-radius: 2px;
+            opacity: 0.3;
+        }
+
+        // extend trunk downward for non-last items (├ vs └)
+        &:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 1.15rem;
+            top: 50%;
+            bottom: 0;
+            border-left: 1px solid var(--text-tertiary);
+            opacity: 0.3;
+        }
+    }
+}
+
+.sn-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+
+    &:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    &.active {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    svg, .icon {
+        width: 1.125rem;
+        height: 1.125rem;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+}
+
+.sn-nav-btn {
+    margin: 0.75rem 0.75rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: var(--link-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.9; }
+
+    svg, .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.sn-nav-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0.5rem 0.75rem;
+}
+
+.sn-nav-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    padding: 0.75rem 0.75rem 0.25rem;
+
+    svg, .icon {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+}
+
+// Trending spaces list in left column
+.sn-spaces-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0 0.5rem;
+}
+
+.sn-space-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.1s;
+
+    &:hover {
+        background: var(--bg-tertiary);
+    }
+
+    img {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .sn-space-count {
+        margin-left: auto;
+        font-size: 0.6875rem;
+        color: var(--text-tertiary);
+    }
+}
+
+// Bottom nav links (same style as main nav, pinned to bottom)
+.sn-left-footer {
+    margin-top: auto;
+    padding: 1rem 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+

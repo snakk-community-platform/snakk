@@ -95,6 +95,7 @@ class SnakkPopup {
                 <div class="card-body snakk-popup-body">
                     <div class="snakk-popup-description"></div>
                     <div class="snakk-popup-stats"></div>
+                    <a class="snakk-popup-goto" href="#" style="display:none"></a>
                     <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">
                         <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
                         <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
@@ -330,6 +331,7 @@ class SnakkPopup {
         const descriptionEl = popup.querySelector('.snakk-popup-description') as HTMLElement;
         const statsSkeleton = popup.querySelector('.snakk-popup-stats-skeleton') as HTMLElement;
         const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
+        const gotoLink = popup.querySelector('.snakk-popup-goto') as HTMLAnchorElement;
 
         // Set loading state — show skeletons, hide real content
         if (avatarSkeleton) avatarSkeleton.style.display = 'block';
@@ -338,6 +340,7 @@ class SnakkPopup {
         if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
         if (descriptionEl) descriptionEl.textContent = '';
         if (statsContainer) statsContainer.replaceChildren();
+        if (gotoLink) gotoLink.style.display = 'none';
         if (statsSkeleton) statsSkeleton.style.display = 'block';
         const bannerElLoading = popup.querySelector('.snakk-popup-banner') as HTMLElement;
         if (bannerElLoading) bannerElLoading.style.removeProperty('background');
@@ -379,6 +382,45 @@ class SnakkPopup {
 
         const statsElements = this.buildStatsElements(type, stats);
         if (statsContainer) statsContainer.replaceChildren(statsElements);
+
+        // Append sparkline as a stat box inside the grid
+        const sparklineTypes = new Set(['space', 'hub', 'community', 'discussion', 'user']);
+        if (sparklineTypes.has(type)) {
+            const grid = statsContainer?.querySelector('.snakk-popup-stats-grid');
+            if (grid) {
+                const sparklineStat = document.createElement('div');
+                sparklineStat.className = 'stat snakk-popup-sparkline-stat';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'stat-title';
+                titleEl.textContent = 'Activity';
+
+                const sparklineContainer = document.createElement('div');
+                sparklineContainer.className = 'sn-sparkline-container';
+                sparklineContainer.dataset.sparklineType = type;
+                sparklineContainer.dataset.sparklineId = publicId;
+                sparklineContainer.dataset.sparklineDays = '14';
+                sparklineContainer.dataset.sparklineMetric = 'postCount';
+
+                sparklineStat.appendChild(titleEl);
+                sparklineStat.appendChild(sparklineContainer);
+                grid.appendChild(sparklineStat);
+
+                const snakkSparkline = (window as any).SnakkSparkline;
+                if (snakkSparkline) snakkSparkline.init();
+            }
+        }
+
+        // Populate "Go to" link
+        if (gotoLink) {
+            const href = triggerEl.getAttribute('href');
+            const displayName = (stats?.name || stats?.displayName || stats?.title || name).trim();
+            if (href) {
+                gotoLink.href = href;
+                gotoLink.textContent = `Go to ${this.getTypeDisplayName(type)}: ${displayName}`;
+                gotoLink.style.display = '';
+            }
+        }
 
         // Reposition after content loads (size may have changed)
         this.positionPopup(popup, triggerEl);

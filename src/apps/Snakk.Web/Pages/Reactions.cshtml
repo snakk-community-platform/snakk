@@ -4,74 +4,98 @@
 @model Snakk.Web.Pages.ReactionsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Reactions";
-    ViewData["Description"] = "Posts you have reacted to.";
-    ViewData["Nudge.Title"] = "Sign in to see your reactions";
-    ViewData["Nudge.Body"] = "Posts you react to will appear here.";
+    ViewData["Title"] = T.Pages.ReactionsTitle;
+    ViewData["Description"] = "Discussions and posts you have reacted to.";
+    ViewData["Nudge.Title"] = T.Pages.ReactionsNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.ReactionsNudgeBody;
+
+    var isDiscussionsTab = Model.Tab != "posts";
+    var partialUrl = isDiscussionsTab
+        ? $"/partials/reacted-discussions?offset={Model.NextOffset}&pageSize=10"
+        : $"/partials/reacted-posts?offset={Model.NextOffset}&pageSize=10";
 }
 
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
 
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (!Model.IsAuthenticated)
         {
             <partial name="Shared/_RegistrationNudge" />
         }
         else
         {
-            <h2 class="fp-section-title">
+            <h2 class="sn-section-title">
                 <span class="icon icon-emoji-happy" aria-hidden="true"></span>
-                Reactions
+                @T.Pages.ReactionsHeading
             </h2>
+
+            <div class="flex border-b mb-4" style="border-color: var(--border-subtle)">
+                <a href="/reactions"
+                   class="px-4 py-2 text-sm font-medium border-b-2 -mb-px @(isDiscussionsTab ? "" : "border-transparent hover:underline")"
+                   style="@(isDiscussionsTab ? "border-color: var(--color-primary); color: var(--color-primary)" : "color: var(--text-muted)")">
+                    @T.Pages.ReactionsTabDiscussions
+                </a>
+                <a href="/reactions?tab=posts"
+                   class="px-4 py-2 text-sm font-medium border-b-2 -mb-px @(!isDiscussionsTab ? "" : "border-transparent hover:underline")"
+                   style="@(!isDiscussionsTab ? "border-color: var(--color-primary); color: var(--color-primary)" : "color: var(--text-muted)")">
+                    @T.Pages.ReactionsTabPosts
+                </a>
+            </div>
 
             @if (!Model.Items.Any())
             {
                 <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
                     <span class="icon icon-emoji-happy h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-                    <p>No reactions yet.</p>
-                    <p class="mt-1 text-xs opacity-70">Posts you react to will appear here.</p>
+                    <p>@T.Pages.ReactionsEmpty</p>
+                    <p class="mt-1 text-xs opacity-70">
+                        @(isDiscussionsTab ? T.Pages.ReactionsEmptyHintD : T.Pages.ReactionsEmptyHintP)
+                    </p>
                 </div>
             }
             else
             {
                 <div style="display:flex;flex-direction:column;gap:1.5rem">
-                    @foreach (var post in Model.Items)
+                    @foreach (var item in Model.Items)
                     {
                         var discussionUrl = SnakkUrlHelper.Discussion(
-                            post.CommunitySlug, Model.Community,
-                            post.HubSlug, post.SpaceSlug,
-                            SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
-                        var postUrl = $"{discussionUrl}#post-{post.PublicId}";
-                        var avatarUrl = SnakkUrlHelper.UserAvatar(post.AuthorPublicId, avatarFileName: post.AuthorAvatarFileName);
+                            item.CommunitySlug, Model.Community,
+                            item.HubSlug, item.SpaceSlug,
+                            SnakkUrlHelper.DiscussionSlugId(item.DiscussionSlug, item.DiscussionPublicId));
+                        var itemUrl = isDiscussionsTab
+                            ? discussionUrl
+                            : $"{discussionUrl}#post-{item.PublicId}";
+                        var avatarUrl = SnakkUrlHelper.UserAvatar(item.AuthorPublicId, avatarFileName: item.AuthorAvatarFileName);
 
                         <div class="clean-card p-4">
                             <div class="flex items-center gap-2 mb-2">
-                                <span class="text-base">@post.ReactionEmoji</span>
+                                <span class="text-base">@item.ReactionEmoji</span>
                                 <span class="text-xs" style="color: var(--text-tertiary)">
-                                    <time data-timestamp="@post.ReactedAt.ToString("O")">@DisplayHelper.FormatRelativeTime(post.ReactedAt)</time>
+                                    <time data-timestamp="@item.ReactedAt.ToString("O")">@DisplayHelper.FormatRelativeTime(item.ReactedAt)</time>
                                 </span>
                             </div>
                             <a href="@discussionUrl" class="text-sm font-semibold hover:underline" style="color: var(--text-primary)">
-                                @post.DiscussionTitle
+                                @item.DiscussionTitle
                             </a>
-                            @if (!string.IsNullOrEmpty(post.ContentExcerpt))
+                            @if (!string.IsNullOrEmpty(item.ContentExcerpt))
                             {
-                                <p class="text-sm mt-1 line-clamp-3" style="color: var(--text-secondary)">@post.ContentExcerpt</p>
+                                <p class="text-sm mt-1 line-clamp-3" style="color: var(--text-secondary)">@item.ContentExcerpt</p>
                             }
                             <div class="flex items-center gap-2 mt-2">
                                 <img src="@avatarUrl" alt="" width="20" height="20" class="w-5 h-5 rounded-full" loading="lazy" decoding="async" />
-                                <a href="/u/@post.AuthorPublicId" class="text-xs hover:underline" style="color: var(--text-tertiary)">@post.AuthorDisplayName</a>
-                                <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">View post &rarr;</a>
+                                <a href="/u/@item.AuthorPublicId" class="text-xs hover:underline" style="color: var(--text-tertiary)">@item.AuthorDisplayName</a>
+                                <a href="@itemUrl" class="ml-auto text-xs" style="color: var(--link-primary)">
+                                    @(isDiscussionsTab ? T.Pages.ReactionsViewDiscussion : T.Pages.ReactionsViewPost) &rarr;
+                                </a>
                             </div>
                         </div>
                     }
 
                     @if (Model.HasMoreItems)
                     {
-                        <div hx-get="/partials/reacted-posts?offset=@Model.NextOffset&pageSize=10"
+                        <div hx-get="@partialUrl"
                              hx-trigger="revealed"
                              hx-swap="outerHTML"
                              hx-target="this"
@@ -101,17 +125,19 @@
     </div>
 </div>
 
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.AboutTitle"] = T.Pages.ReactionsAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.ReactionsAboutDesc;
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-body">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Sections.SiteStats
         </div>
         <div hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
              hx-trigger="load"
@@ -124,10 +150,12 @@
         </div>
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <partial name="Shared/_RightAboutSection" />
+
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            Active Spaces
+            @T.Sections.ActiveSpaces
         </div>
         <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
              hx-trigger="load"
@@ -140,10 +168,10 @@
         </div>
     </div>
 
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-users-group" aria-hidden="true"></span>
-            Active Contributors
+            @T.Sections.ActiveContributors
         </div>
         <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
              hx-trigger="load"

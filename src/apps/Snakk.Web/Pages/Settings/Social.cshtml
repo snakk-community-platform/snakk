@@ -1,0 +1,84 @@
+@page "/settings/social"
+@model Snakk.Web.Pages.Settings.SocialModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = T.Settings.TitleSocial;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleSocial;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<!-- Center Column -->
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <partial name="Shared/_AuthPrompt" />
+        }
+        else
+        {
+        <h2 class="sn-section-title">
+            <span class="icon icon-share" aria-hidden="true"></span>
+            @T.Settings.HeadingSocial
+        </h2>
+        <div class="sn-settings-content">
+
+            <div class="sn-settings-section">
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.SocialIntro
+                </p>
+
+                <!-- Current links list -->
+                <div id="social-links-list" class="flex flex-col gap-2 mb-4">
+                    <div id="social-links-loading" class="text-sm" style="color: var(--text-tertiary)">@T.Settings.SocialLoading</div>
+                </div>
+
+                <!-- Add link form -->
+                <div id="add-link-form" class="hidden">
+                    <div class="flex flex-col gap-3 p-4 rounded-lg" style="background: var(--surface-secondary); border: 1px solid var(--border-secondary)">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium" for="platform-select">@T.Settings.SocialPlatform</label>
+                            <select id="platform-select" class="select select-sm w-full max-w-xs">
+                                <option value="">@T.Settings.SocialSelectPlatform</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium" for="platform-value-input">@T.Settings.SocialUserOrUrl</label>
+                            <input type="text" id="platform-value-input" class="input input-sm w-full max-w-md"
+                                   placeholder="@T.Settings.SocialUserOrUrlPh" />
+                            <p id="platform-hint" class="text-xs hidden" style="color: var(--text-tertiary)"></p>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <button type="button" id="add-link-btn" class="btn btn-primary btn-sm">@T.Settings.SocialAdd</button>
+                            <button type="button" id="cancel-link-btn" class="btn btn-ghost btn-sm">@T.Settings.SocialCancel</button>
+                            <span id="add-link-error" class="text-xs hidden" style="color: var(--color-error)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions row -->
+                <div id="social-actions-row" class="flex gap-2 mt-2">
+                    <button type="button" id="show-add-form-btn" class="btn btn-outline btn-sm">
+                        <span class="icon icon-plus w-4 h-4" aria-hidden="true"></span>
+                        @T.Settings.SocialAddLinkBtn
+                    </button>
+                    <button type="button" id="save-links-btn" class="btn btn-primary btn-sm hidden">@T.Settings.SocialSaveChanges</button>
+                    <span id="save-error" class="text-xs self-center hidden" style="color: var(--color-error)"></span>
+                    <span id="save-success" class="text-xs self-center hidden" style="color: var(--color-success)">@T.Settings.SocialSaved</span>
+                </div>
+            </div>
+
+        </div>
+        } @* end IsAuthenticated *@
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="sn-right">
+<partial name="Shared/_SettingsRightNav" />
+</aside>
+
+<script id="platforms-data" type="application/json">@Html.Raw(Model.PlatformsJson)</script>
+<script src="@Snakk.Web.Helpers.SnakkUrlHelper.Js("pages/settings-social")" asp-append-version="true"></script>

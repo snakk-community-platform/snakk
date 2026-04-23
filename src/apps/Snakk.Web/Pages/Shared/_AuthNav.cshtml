@@ -22,11 +22,11 @@
         </label>
         <div tabindex="0" class="dropdown-content z-[1] mt-3 w-80 max-h-96 overflow-y-auto shadow-lg bg-base-100 border border-subtle rounded-lg">
             <div class="flex items-center justify-between p-3 border-b border-subtle">
-                <span class="font-semibold">Notifications</span>
-                <button data-action="mark-all-notifications-read" class="text-xs text-primary hover:underline">Mark all read</button>
+                <span class="font-semibold">@T.AuthNav.Notifications</span>
+                <button data-action="mark-all-notifications-read" class="text-xs text-primary hover:underline">@T.AuthNav.MarkAllRead</button>
             </div>
             <div id="notification-list" class="p-2">
-                <p class="text-sm text-muted text-center py-4">Loading...</p>
+                <p class="text-sm text-muted text-center py-4">@T.Common.Loading</p>
             </div>
         </div>
     </div>
@@ -46,20 +46,20 @@
                     @displayName
                     @if (emailVerified != "True")
                     {
-                        <span class="badge badge-warning badge-xs ml-2">Unverified</span>
+                        <span class="badge badge-warning badge-xs ml-2">@T.AuthNav.Unverified</span>
                     }
                 </a>
             </li>
             <li>
                 <a href="/settings">
                     <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
-                    Settings
+                    @T.Nav.Settings
                 </a>
             </li>
             <li>
                 <a href="#" id="theme-toggle" data-action="toggle-theme">
                     <span class="icon icon-moon h-4 w-4" aria-hidden="true"></span>
-                    Toggle Theme
+                    @T.AuthNav.ToggleTheme
                 </a>
             </li>
             @if (isModerator)
@@ -68,7 +68,7 @@
                 <li>
                     <a href="/moderation">
                         <span class="icon icon-shield-check h-4 w-4" aria-hidden="true"></span>
-                        Moderation
+                        @T.AuthNav.Moderation
                     </a>
                 </li>
                 <li><hr class="my-1 border-subtle"/></li>
@@ -78,7 +78,7 @@
                 <li>
                     <a href="/admin" hx-boost="false">
                         <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
-                        Admin Panel
+                        @T.AuthNav.AdminPanel
                     </a>
                 </li>
                 <li><hr class="my-1 border-subtle"/></li>
@@ -86,7 +86,7 @@
             <li>
                 <a href="#" data-action="logout">
                     <span class="icon icon-logout h-4 w-4" aria-hidden="true"></span>
-                    Logout
+                    @T.AuthNav.Logout
                 </a>
             </li>
         </ul>
@@ -94,6 +94,6 @@
 }
 else
 {
-    <a href="/auth/login" class="btn btn-ghost btn-sm" hx-boost="false">Login</a>
-    <a href="/auth/register" class="btn btn-primary btn-sm" hx-boost="false">Sign Up</a>
+    <a href="/auth/login" class="btn btn-ghost btn-sm" hx-boost="false">@T.AuthNav.Login</a>
+    <a href="/auth/register" class="btn btn-primary btn-sm" hx-boost="false">@T.AuthNav.SignUp</a>
 }

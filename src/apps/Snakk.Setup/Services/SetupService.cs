@@ -70,6 +70,10 @@ public class SetupService()
                 ["PrimaryDomains"] = new[] { state.Domain },
                 ["SiteTimezone"] = state.Timezone
             },
+            ["Ui"] = new Dictionary<string, object>
+            {
+                ["Language"] = state.Language
+            },
             ["Features"] = new Dictionary<string, object>
             {
                 ["MultiCommunityEnabled"] = state.MultiCommunityEnabled

@@ -14,6 +14,7 @@ public class IndexModel(
     private readonly SnakkApiClient _apiClient = apiClient;
 
     public PagedCommunityList? Communities { get; set; }
+    public Dictionary<string, string> CommunitySparklineJson { get; set; } = new();
 
     public string SidebarScopeType { get; set; } = "platform";
     public string SidebarScopeId { get; set; } = "global";
@@ -38,6 +39,21 @@ public class IndexModel(
         ResolveSidebarData();
 
         Communities = await _apiClient.GetCommunitiesAsync(offset, 20);
+
+        if (Communities?.Items is { Count: > 0 } communityItems)
+        {
+            var communityIds = communityItems.Select(c => c.PublicId).ToList();
+            var sparklineTasks = communityIds.Select(id => _apiClient.GetActivitySparklineAsync("community", id, 7)).ToList();
+            var sparklineResults = await Task.WhenAll(sparklineTasks);
+            for (var i = 0; i < communityIds.Count; i++)
+            {
+                var result = sparklineResults[i];
+                if (result?.Days.Count > 0)
+                    CommunitySparklineJson[communityIds[i]] = System.Text.Json.JsonSerializer.Serialize(
+                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+            }
+        }
+
         return Page();
     }
 

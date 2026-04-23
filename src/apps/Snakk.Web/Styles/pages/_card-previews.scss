@@ -1,0 +1,496 @@
+// ── Poll Preview ──────────────────────────────
+.sn-poll-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.sn-poll-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.sn-poll-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+
+    > span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.sn-poll-stats {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sn-poll-row {
+    display: flex;
+    align-items: center;
+}
+
+.sn-poll-track {
+    flex: 1;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--bg-secondary);
+    overflow: hidden;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.sn-poll-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--sn-poll-color, var(--link-primary));
+    background-image: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.15) 0%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.05) 100%
+    );
+    transition: width 380ms ease;
+}
+
+// ── Debate Preview (single stacked bar) ───────
+.sn-debate-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sn-debate-bar {
+    display: flex;
+    height: 1.375rem;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.sn-debate-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    span {
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 0 0.25rem;
+    }
+}
+
+.sn-debate-labels {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.sn-debate-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+.sn-debate-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+// ── Images Preview (carousel) ────────────────
+// Outer: full-column-width container. Holds the first image's blur as a
+// CSS variable (--blur-bg) and renders it via ::before on the sides when
+// the frame is narrower than the column (portrait/small images at max-
+// height: 600px).
+.sn-images-preview {
+    position: relative;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background: var(--bg-secondary);
+    cursor: pointer;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(40px) brightness(0.85);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+}
+
+// Inner: sized by Razor inline style (aspect-ratio + max-width from the
+// first image's rendered dimensions). Capped at 600px tall — anything
+// taller shrinks proportionally and shows blur bleed on the sides.
+.sn-images-frame {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 600px;
+}
+
+.sn-images-track {
+    display: flex;
+    transition: transform 0.35s ease;
+    height: 100%;
+}
+
+.sn-images-slide-wrapper {
+    flex: 0 0 100%;
+    position: relative;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    // No rounding on images sitting inside a blur area — the outer
+    // .sn-images-preview already provides the corner radius.
+    border-radius: 0;
+    // Center the letterboxed image over the blur bleed.
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &[style*="background-image"]::before {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        background: inherit;
+        filter: blur(20px) brightness(0.75);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+}
+
+.sn-images-slide {
+    // Shrink to fit container but never upscale past the intrinsic
+    // (width/height attrs) — that's the medium thumbnail's real size.
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+.sn-images-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    .sn-images-preview:hover & { opacity: 1; }
+
+    &:hover { background: rgba(0, 0, 0, 0.6); }
+
+    svg, .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.sn-images-prev { left: 0.375rem; }
+.sn-images-next { right: 0.375rem; }
+
+.sn-images-counter {
+    position: absolute;
+    bottom: 0.375rem;
+    right: 0.375rem;
+    z-index: 2;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: white;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+}
+
+// Expand button for preview widgets — clicking opens the lightbox, so signal
+// that with the zoom-in cursor.
+.sn-images-expand-btn {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    z-index: 3;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0.25rem;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    cursor: zoom-in;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+
+    .sn-images-preview:hover &,
+    .sn-compare-preview:hover & { opacity: 1; }
+    &:hover { background: rgba(0, 0, 0, 0.6); }
+}
+
+// ── Compare Preview (inline slider) ─────────
+// Mirrors the .sn-images-preview / .sn-images-frame pattern: outer container
+// is full column width with the first image's blur as a backdrop, inner frame
+// is sized inline by Razor (aspect-ratio + max-width from the first image's
+// rendered dimensions) and capped at max-height: 600px so the blur bleed
+// shows on the sides / top-bottom when the frame is smaller than the column.
+.sn-compare-preview {
+    position: relative;
+    border-radius: 0.375rem;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(40px) brightness(0.85);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+}
+
+.sn-compare-frame {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 600px;
+
+    .sn-compare-widget {
+        width: 100%;
+        height: 100%;
+        // Frame provides the aspect-ratio inline; override .gup-compare's
+        // hardcoded 16:9 base value so this instance follows the frame.
+        aspect-ratio: auto;
+    }
+}
+
+// ── Spoiler overlay for previews ────────────
+.sn-images-spoiler,
+.sn-compare-preview.sn-images-spoiler {
+    position: relative;
+
+    img { filter: blur(20px); transition: filter 0.3s ease; }
+
+    .sn-images-btn,
+    .sn-images-counter,
+    .sn-images-expand-btn,
+    .gup-compare-slider,
+    .gup-compare-label { display: none; }
+
+    &.revealed {
+        img { filter: none; }
+        .sn-images-btn,
+        .sn-images-counter,
+        .sn-images-expand-btn,
+        .gup-compare-slider,
+        .gup-compare-label { display: flex; }
+        .sn-images-spoiler-overlay { display: none; }
+    }
+}
+
+.sn-images-spoiler-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.sn-poll-more {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+.sn-poll-votes {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+}
+
+
+// ── Link Preview Card ─────────────────────────
+.sn-link-card {
+    display: flex;
+    gap: 0.625rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.375rem;
+    text-decoration: none;
+    transition: border-color 0.15s;
+
+    &:hover {
+        border-color: var(--border-subtle);
+        .sn-link-card-title { color: var(--link-primary); }
+    }
+}
+
+.sn-link-card-img {
+    min-width: 4rem;
+    max-width: 6rem;
+    height: 4rem;
+    flex-shrink: 0;
+    border-radius: 0.25rem;
+    object-fit: cover;
+}
+
+.sn-link-card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.sn-link-card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sn-link-card-desc {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+}
+
+.sn-link-card-domain {
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: auto;
+}
+
+// ── IAMA Preview ─────────────────────────
+.sn-iama-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
+}
+
+.sn-iama-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.sn-iama-phase {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+
+    &--announced {
+        background: color-mix(in srgb, #f59e0b 20%, transparent);
+        color: #b45309;
+    }
+    &--live {
+        background: color-mix(in srgb, #10b981 20%, transparent);
+        color: #047857;
+    }
+    &--closed {
+        background: color-mix(in srgb, var(--text-tertiary) 20%, transparent);
+        color: var(--text-secondary);
+    }
+    &--archived {
+        background: color-mix(in srgb, var(--text-tertiary) 15%, transparent);
+        color: var(--text-tertiary);
+    }
+}
+
+.sn-iama-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--link-primary);
+}
+
+.sn-iama-stat {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+}
+
+.sn-iama-countdown {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.sn-iama-countdown-label {
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: lowercase;
+}
+

@@ -21,21 +21,21 @@
          class="py-2">
         @for (var i = 0; i < 3; i++)
         {
-            <div class="fp-card" style="opacity: 0.5">
-                <div class="fp-card-header">
+            <div class="sn-card" style="opacity: 0.5">
+                <div class="sn-card-header">
                     <div class="skeleton h-3 w-16 rounded"></div>
                     <div class="skeleton h-4 w-4 rounded-full"></div>
                     <div class="skeleton h-3 w-20 rounded"></div>
                 </div>
                 <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                <div class="fp-card-stats mt-2">
+                <div class="sn-card-stats mt-2">
                     <div class="skeleton h-3 w-24 rounded"></div>
                 </div>
             </div>
         }
     </div>
 }
-else if (Model.Items.Any())
+else if (Model.Items.Any() && Model.Offset > 0)
 {
     <partial name="Shared/_EndOfScroll" />
 }

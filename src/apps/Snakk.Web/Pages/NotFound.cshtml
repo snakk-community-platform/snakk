@@ -2,13 +2,13 @@
 @model NotFoundModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Page Not Found";
+    ViewData["Title"] = T.Pages.NotFoundTitle;
 }
 
 <div class="flex flex-col items-center justify-center text-center px-4 py-16" style="grid-column: 1 / -1; min-height: calc(100vh - 3.5rem);">
     <img src="/img/logo-square.webp" alt="" width="120" height="120" class="mb-4" />
     <div class="text-7xl font-extrabold leading-none mb-1 tracking-tight" style="color: var(--text-tertiary); opacity: 0.15;">404</div>
-    <h1 class="text-2xl font-bold mb-2">Polly says no.</h1>
-    <p class="text-base-content/60 mb-8 max-w-sm">This page doesn't exist — or maybe Polly ate it.</p>
-    <a href="/" class="btn btn-primary btn-sm">Back to safety</a>
+    <h1 class="text-2xl font-bold mb-2">@T.Pages.NotFoundHeading</h1>
+    <p class="text-base-content/60 mb-8 max-w-sm">@T.Pages.NotFoundBody</p>
+    <a href="/" class="btn btn-primary btn-sm">@T.Pages.NotFoundBack</a>
 </div>

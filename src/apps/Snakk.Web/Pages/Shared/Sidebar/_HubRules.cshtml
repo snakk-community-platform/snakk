@@ -4,7 +4,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
 {
-    <p class="text-sm text-base-content/50">No rules defined for this hub yet.</p>
+    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyHubRules</p>
 }
 else
 {
@@ -25,13 +25,13 @@ else
     {
         <a href="/c/@Model.CommunitySlug/rules"
            class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-            <span>Community Rules</span>
+            <span>@T.Sidebar.CommunityRulesLink</span>
             <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
         </a>
     }
     <a href="/rules"
        class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-        <span>Site Rules</span>
+        <span>@T.Sidebar.SiteRulesLink</span>
         <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
     </a>
 </div>

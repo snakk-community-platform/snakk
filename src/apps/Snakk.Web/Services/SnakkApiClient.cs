@@ -327,7 +327,7 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null, IReadOnlyList<string>? spaceIds = null)
     {
         try
         {
@@ -337,6 +337,7 @@ public class SnakkApiClient(
             if (spaceId is not null) request.SpaceId = spaceId;
             if (cursor is not null) request.Cursor = cursor;
             if (authorId is not null) request.AuthorId = authorId;
+            if (spaceIds is { Count: > 0 }) request.SpaceIds.AddRange(spaceIds);
 
             return await discussionClient.GetRecentDiscussionsAsync(request);
         }
@@ -995,6 +996,12 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task<PagedReactedPostsList?> GetMyReactedDiscussionsAsync(int offset = 0, int pageSize = 20)
+    {
+        try { return await reactionClient.GetMyReactedDiscussionsAsync(new GetMyReactedPostsRequest { Offset = offset, PageSize = pageSize }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // ==================== Notifications ====================
 
     public virtual async Task<PagedNotificationList?> GetNotificationsAsync(int offset = 0, int pageSize = 10)
@@ -1044,6 +1051,20 @@ public class SnakkApiClient(
     public virtual async Task<UserActivityHistory?> GetUserActivityHistoryAsync(string userId, int days = 30)
     {
         try { return await statisticsClient.GetUserActivityHistoryAsync(new GetUserActivityHistoryRequest { PublicId = userId, Days = days }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SparklineResponse?> GetActivitySparklineAsync(string entityType, string? publicId, int days = 7)
+    {
+        try
+        {
+            return await statisticsClient.GetActivitySparklineAsync(new SparklineRequest
+            {
+                EntityType = entityType,
+                PublicId   = publicId ?? "",
+                Days       = days
+            });
+        }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 

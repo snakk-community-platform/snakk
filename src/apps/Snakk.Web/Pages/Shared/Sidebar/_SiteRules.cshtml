@@ -3,7 +3,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
 {
-    <p class="text-sm text-base-content/50">No site rules defined yet.</p>
+    <p class="text-sm text-base-content/50">@T.Sidebar.EmptySiteRules</p>
 }
 else
 {

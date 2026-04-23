@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism",
+    "build": "npm run build:locales && npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism",
+    "build:locales": "node Locales/gen-strings.mjs && node Locales/gen-ts.mjs",
     "build:ts": "tsc && node esbuild.minify.mjs",
     "build:css": "npm run build:tailwind && npm run build:tailwind-dark && npm run build:custom",
     "build:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --minify",

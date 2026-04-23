@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.Spaces.NewPollModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"New Poll — {Model.Space?.Name}";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewPollTitlePattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -13,30 +13,30 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
     return;
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.SpacesNewHome</a>
             @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
             <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
             <span class="breadcrumb-separator">/</span>
-            <span>Poll</span>
+            <span>@T.Pages.SpacesNewPollCrumb</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">Create a Poll</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewPollHeading</h1>
 
             @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -44,25 +44,25 @@
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
                 <div class="space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Poll question" />
+                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewPollTitlePh" />
 
                     <!-- Poll options -->
                     <div class="space-y-3">
-                        <div class="text-sm font-medium">Poll Options</div>
+                        <div class="text-sm font-medium">@T.Pages.SpacesNewPollOptionsLabel</div>
                         <div id="poll-options-list" class="space-y-2">
-                            <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="Option 1" />
-                            <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="Option 2" />
+                            <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="@T.Pages.SpacesNewPollOption1Ph" />
+                            <input type="text" name="PollOptions" class="input w-full input-sm" placeholder="@T.Pages.SpacesNewPollOption2Ph" />
                         </div>
-                        <button type="button" class="btn btn-ghost btn-xs" data-action="add-poll-option">+ Add option</button>
+                        <button type="button" class="btn btn-ghost btn-xs" data-action="add-poll-option">@T.Pages.SpacesNewPollAddOption</button>
 
-                        <div class="text-sm font-medium mt-4 mb-2">Settings</div>
+                        <div class="text-sm font-medium mt-4 mb-2">@T.Pages.SpacesNewPollSettingsLabel</div>
                         <div class="flex flex-col gap-2">
                             <div class="clean-card p-3">
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" name="PollAllowMultiple" value="true" class="toggle toggle-primary toggle-sm" />
                                     <span>
-                                        <span class="font-medium text-sm">Multiple choices</span>
-                                        <span class="block text-xs" style="color: var(--text-tertiary)">Voters can select more than one option.</span>
+                                        <span class="font-medium text-sm">@T.Pages.SpacesNewPollMultiple</span>
+                                        <span class="block text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollMultipleDesc</span>
                                     </span>
                                 </label>
                             </div>
@@ -70,8 +70,8 @@
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" name="PollAllowChangeVote" value="true" class="toggle toggle-primary toggle-sm" />
                                     <span>
-                                        <span class="font-medium text-sm">Allow vote change</span>
-                                        <span class="block text-xs" style="color: var(--text-tertiary)">Voters can change their vote after submitting.</span>
+                                        <span class="font-medium text-sm">@T.Pages.SpacesNewPollChange</span>
+                                        <span class="block text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollChangeDesc</span>
                                     </span>
                                 </label>
                             </div>
@@ -79,8 +79,8 @@
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" name="PollSecret" value="true" class="toggle toggle-primary toggle-sm" />
                                     <span>
-                                        <span class="font-medium text-sm">Secret poll</span>
-                                        <span class="block text-xs" style="color: var(--text-tertiary)">Results stay hidden until the close date. Requires a close date.</span>
+                                        <span class="font-medium text-sm">@T.Pages.SpacesNewPollSecret</span>
+                                        <span class="block text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollSecretDesc</span>
                                     </span>
                                 </label>
                             </div>
@@ -88,23 +88,23 @@
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" name="PollIsSegmented" value="true" class="toggle toggle-primary toggle-sm" id="poll-segmented-check" />
                                     <span>
-                                        <span class="font-medium text-sm">Group poll</span>
-                                        <span class="block text-xs" style="color: var(--text-tertiary)">Voters pick a group before voting. Results can be viewed by group breakdown.</span>
+                                        <span class="font-medium text-sm">@T.Pages.SpacesNewPollGroup</span>
+                                        <span class="block text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollGroupDesc</span>
                                     </span>
                                 </label>
                                 <div id="segment-fields" class="hidden mt-3 ml-11 space-y-2">
                                     <div>
-                                        <label class="text-xs font-medium" style="color: var(--text-secondary)">Group question</label>
-                                        <input type="text" name="PollSegmentLabel" class="input input-sm w-full" placeholder="e.g. What is your experience level?" />
+                                        <label class="text-xs font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupQ</label>
+                                        <input type="text" name="PollSegmentLabel" class="input input-sm w-full" placeholder="@T.Pages.SpacesNewPollGroupQPh" />
                                     </div>
                                     <div class="flex gap-2">
                                         <div class="flex-1">
-                                            <label class="text-xs font-medium" style="color: var(--text-secondary)">Group A</label>
-                                            <input type="text" name="PollSegmentOptionA" class="input input-sm w-full" placeholder="e.g. Beginner" />
+                                            <label class="text-xs font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupA</label>
+                                            <input type="text" name="PollSegmentOptionA" class="input input-sm w-full" placeholder="@T.Pages.SpacesNewPollGroupAPh" />
                                         </div>
                                         <div class="flex-1">
-                                            <label class="text-xs font-medium" style="color: var(--text-secondary)">Group B</label>
-                                            <input type="text" name="PollSegmentOptionB" class="input input-sm w-full" placeholder="e.g. Expert" />
+                                            <label class="text-xs font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupB</label>
+                                            <input type="text" name="PollSegmentOptionB" class="input input-sm w-full" placeholder="@T.Pages.SpacesNewPollGroupBPh" />
                                         </div>
                                     </div>
                                 </div>
@@ -113,8 +113,8 @@
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" class="toggle toggle-primary toggle-sm" id="poll-close-date-check" />
                                     <span>
-                                        <span class="font-medium text-sm">Close date</span>
-                                        <span class="block text-xs" style="color: var(--text-tertiary)">Automatically close voting at a specific date and time.</span>
+                                        <span class="font-medium text-sm">@T.Pages.SpacesNewPollCloseDate</span>
+                                        <span class="block text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollCloseDateDesc</span>
                                     </span>
                                 </label>
                                 <div id="close-date-field" class="hidden mt-3 ml-11">
@@ -126,37 +126,37 @@
 
                     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                    <div id="editor-container" data-hide-image="true" data-placeholder="Add context or details about your poll (optional)...">
+                    <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewPollEditorPh">
                         <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Create Poll</button>
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewPollSubmit</button>
                     </div>
                 </div>
             </form>
 
             <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How polls work</h3>
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewPollHowHeading</h3>
                 <div class="text-sm text-base-content/60 space-y-3">
-                    <p>Polls let the community vote on a question. Results update in real time as votes come in.</p>
+                    <p>@T.Pages.SpacesNewPollIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>A results bar appears at the top of the discussion</li>
-                            <li>Members vote by clicking an option</li>
-                            <li>Votes are anonymous — no public voter list</li>
-                            <li>The poll closes automatically on the end date (if set)</li>
+                            <li>@T.Pages.SpacesNewPollAfter1</li>
+                            <li>@T.Pages.SpacesNewPollAfter2</li>
+                            <li>@T.Pages.SpacesNewPollAfter3</li>
+                            <li>@T.Pages.SpacesNewPollAfter4</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Keep options clear and mutually exclusive</li>
-                            <li>2-6 options works best for engagement</li>
-                            <li>Use the description to provide context</li>
-                            <li>Set an end date for time-sensitive polls</li>
+                            <li>@T.Pages.SpacesNewPollTip1</li>
+                            <li>@T.Pages.SpacesNewPollTip2</li>
+                            <li>@T.Pages.SpacesNewPollTip3</li>
+                            <li>@T.Pages.SpacesNewPollTip4</li>
                         </ul>
                     </div>
                 </div>

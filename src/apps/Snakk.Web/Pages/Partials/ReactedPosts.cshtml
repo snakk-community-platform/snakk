@@ -9,8 +9,8 @@
 {
     <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
         <span class="icon icon-emoji-happy h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-        <p>No reactions yet.</p>
-        <p class="mt-1 text-xs opacity-70">Posts you react to will appear here.</p>
+        <p>@T.Pages.ReactedNone</p>
+        <p class="mt-1 text-xs opacity-70">@T.Pages.ReactedNoneHint</p>
     </div>
 }
 else
@@ -42,7 +42,7 @@ else
             <div class="flex items-center gap-2 mt-2">
                 <img src="@avatarUrl" alt="" width="20" height="20" class="w-5 h-5 rounded-full" loading="lazy" decoding="async" />
                 <a href="/u/@post.AuthorPublicId" class="text-xs hover:underline" style="color: var(--text-tertiary)">@post.AuthorDisplayName</a>
-                <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">View post &rarr;</a>
+                <a href="@postUrl" class="ml-auto text-xs" style="color: var(--link-primary)">@T.Pages.ReactedViewPost</a>
             </div>
         </div>
     }
@@ -69,7 +69,7 @@ else
             }
         </div>
     }
-    else
+    else if (Model.Offset > 0)
     {
         <partial name="Shared/_EndOfScroll" />
     }

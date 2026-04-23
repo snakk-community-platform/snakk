@@ -7,15 +7,15 @@
 @model Snakk.Web.Pages.Hubs.DetailModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = Model.Hub?.Name ?? "Hub";
+    ViewData["Title"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
     ViewData["Description"] = Model.Hub is { IsRestricted: false }
-        ? $"{Model.Hub.Name} — browse spaces and discussions in this hub on Snakk."
+        ? string.Format(T.Pages.HubDetailDescPattern, Model.Hub.Name)
         : null;
 
     if (Model.Hub is not null)
     {
         ViewData["RssFeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed.xml";
-        ViewData["RssFeedTitle"] = $"{Model.Hub.Name} — RSS Feed";
+        ViewData["RssFeedTitle"] = $"{Model.Hub.Name}{T.Pages.HubDetailRssTitleSuffix}";
     }
 }
 
@@ -35,11 +35,11 @@
 
 @if (Model.Hub == null)
 {
-    <div class="fp-center">
-        <div class="fp-center-inner">
+    <div class="sn-center">
+        <div class="sn-center-inner">
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>Hub not found. This hub may have been removed or the link might be incorrect.</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+                <p>@T.Pages.HubDetailNotFound</p>
+                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.HubDetailBackToHome</a>
             </div>
         </div>
     </div>
@@ -57,14 +57,14 @@ else
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    @* Hero card lives outside .fp-center-inner so it sits flush against the
+<div class="sn-center">
+    @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
-    <div class="fp-hub-card">
-        <div class="fp-hub-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"hub:{Model.Hub.PublicId}")">
+    <div class="sn-hub-card">
+        <div class="sn-hub-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"hub:{Model.Hub.PublicId}")">
             @if (Model.ShowCommunityInBreadcrumb)
             {
-                <div class="fp-hub-card-breadcrumbs">
+                <div class="sn-hub-card-breadcrumbs">
                     <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
                        data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
                        data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
@@ -72,49 +72,55 @@ else
             }
             <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
                  alt="" width="56" height="56"
-                 class="fp-hub-avatar" decoding="async" />
-            <h1 class="fp-hub-name">@Model.Hub.Name</h1>
+                 class="sn-hub-avatar" decoding="async" />
+            <h1 class="sn-hub-name">@Model.Hub.Name</h1>
         </div>
     </div>
 
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <partial name="_Banners" model="Model.Banners?.Banners" />
 
         <!-- Spaces -->
         @if (Model.Spaces?.Items != null && Model.Spaces.Items.Any())
         {
-            <h2 class="fp-section-title">
+            <h2 class="sn-section-title">
                 <span class="icon icon-archive-layers" aria-hidden="true"></span>
-                Spaces
+                @T.Pages.HubDetailSpacesHeading
             </h2>
-            <div class="fp-space-list-grid">
+            <div class="sn-space-list-grid">
                 @foreach (var space in Model.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)"
-                       class="fp-space-list-card"
+                       class="sn-space-list-card"
                        data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
-                        <div class="fp-space-list-banner"
+                        <div class="sn-space-list-banner"
                              style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{space.PublicId}")">
                             <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)"
                                  alt="" width="34" height="34"
-                                 class="fp-space-list-avatar"
+                                 class="sn-space-list-avatar"
                                  loading="lazy" decoding="async" />
-                            <span class="fp-space-list-name">@space.Name</span>
+                            <span class="sn-space-list-name">@space.Name</span>
                         </div>
-                        <div class="fp-space-list-body">
+                        <div class="sn-space-list-body">
                             @if (!string.IsNullOrEmpty(space.Description))
                             {
-                                <p class="fp-space-list-desc">@space.Description</p>
+                                <p class="sn-space-list-desc">@space.Description</p>
                             }
-                            <div class="fp-space-list-stat-row">
-                                <div class="fp-community-stat-pill">
-                                    <span class="fp-community-stat-value">@FormatCount(space.DiscussionCount)</span>
-                                    <span class="fp-community-stat-label">discussions</span>
+                            <div class="sn-space-list-stat-row">
+                                <div class="sn-community-stat-pill">
+                                    <span class="sn-community-stat-value">@FormatCount(space.DiscussionCount)</span>
+                                    <span class="sn-community-stat-label">@T.Pages.HubDetailLabelDiscussions</span>
                                 </div>
-                                <div class="fp-community-stat-pill">
-                                    <span class="fp-community-stat-value">@FormatCount(space.ReplyCount)</span>
-                                    <span class="fp-community-stat-label">replies</span>
+                                <div class="sn-community-stat-pill">
+                                    <span class="sn-community-stat-value">@FormatCount(space.ReplyCount)</span>
+                                    <span class="sn-community-stat-label">@T.Pages.HubDetailLabelReplies</span>
                                 </div>
+                                @if (Model.SpaceSparklineJson.TryGetValue(space.PublicId, out var sparkJson))
+                                {
+                                    <div class="sn-sparkline-container sn-space-list-sparkline"
+                                         data-sparkline-data="@sparkJson"
+                                         data-sparkline-metric="postCount"></div>
+                                }
                             </div>
                         </div>
                     </a>
@@ -123,15 +129,15 @@ else
         }
 
         <!-- Active Discussions -->
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
-            Active Discussions Across Spaces in This Hub
+            @T.Pages.HubDetailActiveDiscussionsHeading
         </h2>
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>No discussions yet in this hub.</p>
+                <p>@T.Pages.HubDetailNoDiscussions</p>
             </div>
         }
         else
@@ -155,14 +161,14 @@ else
                          class="py-2">
                         @for (var i = 0; i < 3; i++)
                         {
-                            <div class="fp-card" style="opacity: 0.5">
-                                <div class="fp-card-header">
+                            <div class="sn-card" style="opacity: 0.5">
+                                <div class="sn-card-header">
                                     <div class="skeleton h-3 w-16 rounded"></div>
                                     <div class="skeleton h-4 w-4 rounded-full"></div>
                                     <div class="skeleton h-3 w-20 rounded"></div>
                                 </div>
                                 <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="fp-card-stats mt-2">
+                                <div class="sn-card-stats mt-2">
                                     <div class="skeleton h-3 w-24 rounded"></div>
                                 </div>
                             </div>
@@ -179,33 +185,42 @@ else
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new?hubId=" + Model.Hub.PublicId;
     ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed";
-    ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? "Hub";
+    ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
     ViewData["RightPane.ShareIsPublic"] = Model.Hub is not { IsRestricted: true };
     ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageHub(Model.Community, Model.Hub.Slug);
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
+    <div class="sn-right-body">
     <!-- Stats -->
     @if (Model.HubStats != null)
     {
-        <div class="fp-right-section">
-            <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+        <div class="sn-right-section">
+            <div class="sn-sidebar-stats">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Pages.HubDetailStatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Pages.HubDetailStatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-title">@T.Pages.HubDetailStatsActivity</div>
+                        <div class="sn-sparkline-container sn-right-sparkline"
+                             data-sparkline-type="hub"
+                             data-sparkline-id="@Model.Hub.PublicId"
+                             data-sparkline-days="7"></div>
                     </div>
                 </div>
             </div>
@@ -213,10 +228,10 @@ else
     }
 
     <!-- About -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-info-circle" aria-hidden="true"></span>
-            About @Model.Hub.Name
+            @T.Pages.HubDetailAboutPrefix@Model.Hub.Name
         </div>
         @if (!string.IsNullOrEmpty(Model.Hub.Description))
         {
@@ -227,10 +242,10 @@ else
     <!-- Rules -->
     @if (Model.Hub.HasRules)
     {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-document-text" aria-hidden="true"></span>
-                Hub Rules
+                @T.Pages.HubDetailRules
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_HubRules"
                              model="Model.InlineHubRules"
@@ -245,10 +260,10 @@ else
     }
 
     <!-- Moderators -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-shield-check" aria-hidden="true"></span>
-            Hub Moderators
+            @T.Pages.HubDetailModerators
             @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
             {
                 <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
@@ -271,17 +286,17 @@ else
     }
     @if (hasDiscussions || hasContributors)
     {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-trending-up" aria-hidden="true"></span>
-                Trending
+                @T.Pages.HubDetailTrending
             </div>
 
             @if (hasDiscussions)
             {
-                <div class="fp-right-subsection">
-                    <div class="fp-right-subtitle">Discussions</div>
-                    <div class="fp-trending-list">
+                <div class="sn-right-subsection">
+                    <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingDiscussions</div>
+                    <div class="sn-trending-list">
                         @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
                         {
                             var trendUrl = SnakkUrlHelper.Discussion(
@@ -290,14 +305,14 @@ else
                                 d.Space.Slug,
                                 SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
 
-                            <a href="@trendUrl" class="fp-trending-discussion">
-                                <div class="fp-trending-discussion-header">
+                            <a href="@trendUrl" class="sn-trending-discussion">
+                                <div class="sn-trending-discussion-header">
                                     <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
                                     <span>@d.Author.DisplayName</span>
                                 </div>
-                                <div class="fp-trending-discussion-title-row">
-                                    <span class="fp-trending-discussion-title">@d.Title</span>
-                                    <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
+                                <div class="sn-trending-discussion-title-row">
+                                    <span class="sn-trending-discussion-title">@d.Title</span>
+                                    <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                         <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
                                         @d.PostCountToday
                                     </span>
@@ -310,16 +325,16 @@ else
 
             @if (hasContributors)
             {
-                <div class="fp-right-subsection">
-                    <div class="fp-right-subtitle">Contributors</div>
-                    <div class="fp-trending-list">
+                <div class="sn-right-subsection">
+                    <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingContributors</div>
+                    <div class="sn-trending-list">
                         @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor"
+                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
                                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                                <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                                <span class="fp-trending-contributor-name">@c.DisplayName</span>
-                                <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
+                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                                <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                     <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
                                     @c.PostCountToday
                                 </span>

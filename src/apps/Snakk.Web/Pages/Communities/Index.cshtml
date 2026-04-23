@@ -6,8 +6,8 @@
 @model Snakk.Web.Pages.Communities.IndexModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Communities";
-    ViewData["Description"] = "Browse all communities on Snakk. Find and join communities that match your interests.";
+    ViewData["Title"] = T.Pages.CommunitiesTitle;
+    ViewData["Description"] = T.Pages.CommunitiesDesc;
 }
 
 @section LeftColumn {
@@ -15,47 +15,53 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-users-group" aria-hidden="true"></span>
-            Communities
+            @T.Pages.CommunitiesHeading
         </h2>
 
         @if (Model.Communities?.Items == null || !Model.Communities.Items.Any())
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>No communities yet. Check back later!</p>
+                <p>@T.Pages.CommunitiesEmpty</p>
             </div>
         }
         else
         {
-            <div class="fp-community-card-list">
+            <div class="sn-community-card-list">
                 @foreach (var community in Model.Communities.Items)
                 {
-                    <a href="/c/@community.Slug" class="fp-community-list-card">
-                        <div class="fp-community-list-banner"
+                    <a href="/c/@community.Slug" class="sn-community-list-card">
+                        <div class="sn-community-list-banner"
                              style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{community.PublicId}")">
                             <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId, avatarFileName: community.HasAvatarFileName ? community.AvatarFileName : null)"
                                  alt="" width="48" height="48"
-                                 class="fp-community-list-avatar"
+                                 class="sn-community-list-avatar"
                                  loading="lazy" decoding="async" />
-                            <span class="fp-community-list-name">@community.Name</span>
+                            <span class="sn-community-list-name">@community.Name</span>
                         </div>
-                        <div class="fp-community-list-body">
+                        <div class="sn-community-list-body">
                             @if (!string.IsNullOrEmpty(community.Description))
                             {
-                                <p class="fp-community-description">@community.Description</p>
+                                <p class="sn-community-description">@community.Description</p>
                             }
-                            <div class="fp-community-stat-row">
-                                <div class="fp-community-stat-pill">
-                                    <span class="fp-community-stat-value">@FormatCount(community.DiscussionCount)</span>
-                                    <span class="fp-community-stat-label">discussions</span>
+                            <div class="sn-community-stat-row">
+                                <div class="sn-community-stat-pill">
+                                    <span class="sn-community-stat-value">@FormatCount(community.DiscussionCount)</span>
+                                    <span class="sn-community-stat-label">@T.Pages.CommunitiesLabelDiscussions</span>
                                 </div>
-                                <div class="fp-community-stat-pill">
-                                    <span class="fp-community-stat-value">@FormatCount(community.ReplyCount)</span>
-                                    <span class="fp-community-stat-label">replies</span>
+                                <div class="sn-community-stat-pill">
+                                    <span class="sn-community-stat-value">@FormatCount(community.ReplyCount)</span>
+                                    <span class="sn-community-stat-label">@T.Pages.CommunitiesLabelReplies</span>
                                 </div>
+                                @if (Model.CommunitySparklineJson.TryGetValue(community.PublicId, out var sparkJson))
+                                {
+                                    <div class="sn-sparkline-container sn-community-card-sparkline"
+                                         data-sparkline-data="@sparkJson"
+                                         data-sparkline-metric="postCount"></div>
+                                }
                             </div>
                         </div>
                     </a>
@@ -67,7 +73,7 @@
                 <div class="flex justify-center mt-6">
                     <a href="/communities?offset=@(Model.Communities.Offset + Model.Communities.PageSize)"
                        class="btn btn-ghost btn-sm">
-                        Load more
+                        @T.Pages.CommunitiesLoadMore
                     </a>
                 </div>
             }
@@ -78,5 +84,7 @@
 <!-- Right Column -->
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.AboutTitle"] = T.Pages.CommunitiesAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.CommunitiesAboutDesc;
 }
 <partial name="Shared/_GlobalRightSidebar" />

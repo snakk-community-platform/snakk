@@ -2,7 +2,7 @@
 @model HelpModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = Model.ArticleTitle + " - Help";
+    ViewData["Title"] = Model.ArticleTitle + T.Pages.HelpTitleSuffix;
 }
 
 @section LeftColumn {
@@ -10,20 +10,20 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div id="help-main" class="fp-center-inner">
+<div class="sn-center">
+    <div id="help-main" class="sn-center-inner">
         @if (!string.IsNullOrEmpty(Model.Slug))
         {
-            <div class="fp-page-labels">
-                <a href="/help" class="badge badge-ghost badge-sm">Help</a>
-                <span class="fp-page-labels-sep">›</span>
+            <div class="sn-page-labels">
+                <a href="/help" class="badge badge-ghost badge-sm">@T.Pages.HelpCrumb</a>
+                <span class="sn-page-labels-sep">›</span>
                 <span class="badge badge-ghost badge-sm">@Model.ArticleTitle</span>
             </div>
         }
 
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-question-circle" aria-hidden="true"></span>
-            Help
+            @T.Pages.HelpHeading
         </h2>
         <article class="help-content">
             <h1>@Model.ArticleTitle</h1>
@@ -35,15 +35,15 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
-    <div class="fp-right-section">
-        <div class="fp-right-title">Help Center</div>
+    <div class="sn-right-body">
+    <div class="sn-right-section">
+        <div class="sn-right-title">@T.Pages.HelpCenterTitle</div>
         <nav id="help-sidebar-nav" class="help-sidebar">
             @foreach (var s in Model.Sections)
             {

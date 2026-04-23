@@ -25,6 +25,7 @@ public class DetailModel(
     public PagedSpaceByHubList? Spaces { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public string Slug { get; set; } = string.Empty;
+    public Dictionary<string, string> SpaceSparklineJson { get; set; } = new();
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "hub";
@@ -69,6 +70,20 @@ public class DetailModel(
 
         Spaces = spacesTask.IsCompletedSuccessfully ? spacesTask.Result : null;
         RecentDiscussions = discussionsTask.IsCompletedSuccessfully ? discussionsTask.Result : null;
+
+        if (Spaces?.Items is { Count: > 0 } spaceItems)
+        {
+            var spaceIds = spaceItems.Select(s => s.PublicId).ToList();
+            var sparklineTasks = spaceIds.Select(id => _apiClient.GetActivitySparklineAsync("space", id, 7)).ToList();
+            var sparklineResults = await Task.WhenAll(sparklineTasks);
+            for (var i = 0; i < spaceIds.Count; i++)
+            {
+                var result = sparklineResults[i];
+                if (result?.Days.Count > 0)
+                    SpaceSparklineJson[spaceIds[i]] = System.Text.Json.JsonSerializer.Serialize(
+                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+            }
+        }
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
         Banners = announcementsTask.IsCompletedSuccessfully ? announcementsTask.Result : null;
         HubStats = statsTask.IsCompletedSuccessfully ? statsTask.Result : null;

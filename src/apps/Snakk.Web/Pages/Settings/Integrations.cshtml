@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Settings.IntegrationsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Integration Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.TitleIntegrations;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,66 +12,66 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_AuthPrompt" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-puzzle" aria-hidden="true"></span>
-            Integrations
+            @T.Settings.HeadingIntegrations
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <!-- RSS Feeds -->
-            <div id="section-rss" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">RSS Feeds</h3>
+            <div id="section-rss" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.IntgRssTitle</h3>
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
-                    Subscribe to feeds in your favourite RSS reader. Public feeds work without a token.
+                    @T.Settings.IntgRssIntro
                 </p>
 
                 <div class="flex flex-col gap-3 text-sm mb-4">
                     <div>
-                        <span class="font-medium">Site-wide feed</span>
+                        <span class="font-medium">@T.Settings.IntgSiteFeed</span>
                         <div class="flex items-center gap-2 mt-1">
                             <input type="text" readonly value="/feed.xml" id="rss-site-url"
                                    class="input input-sm w-full font-mono text-xs" />
                             <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0"
-                                    data-action="copy" data-copy-target="rss-site-url" title="Copy">
+                                    data-action="copy" data-copy-target="rss-site-url" title="@T.Settings.IntgCopy">
                                 <span class="icon icon-copy-link h-4 w-4" aria-hidden="true"></span>
                             </button>
                         </div>
                     </div>
                     <p class="text-xs" style="color: var(--text-tertiary)">
-                        Feeds are also available per hub and space — look for the RSS icon or append <code>/feed.xml</code> to any hub or space URL.
+                        @T.Settings.IntgFeedsNoteBefore<code>/feed.xml</code>@T.Settings.IntgFeedsNoteAfter
                     </p>
                 </div>
 
                 <div style="border-top: 1px solid var(--border-secondary); padding-top: 1rem;">
-                    <span class="font-medium text-sm">Personal feed token</span>
+                    <span class="font-medium text-sm">@T.Settings.IntgTokenTitle</span>
                     <p class="text-xs mt-1 mb-3" style="color: var(--text-tertiary)">
-                        Generate a token for authenticated feeds (e.g. your followed discussions). Keep it secret — anyone with the token can read your feeds.
+                        @T.Settings.IntgTokenHelp
                     </p>
 
                     <div id="feed-token-section">
                         <div id="feed-token-empty" class="hidden">
-                            <button type="button" class="btn btn-primary btn-sm" id="generate-feed-token-btn">Generate Token</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="generate-feed-token-btn">@T.Settings.IntgGenerate</button>
                         </div>
                         <div id="feed-token-active" class="hidden">
                             <div class="flex items-center gap-2 mb-3">
                                 <input type="text" readonly id="feed-token-value"
                                        class="input input-sm w-full font-mono text-xs" />
                                 <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0"
-                                        data-action="copy" data-copy-target="feed-token-value" title="Copy">
+                                        data-action="copy" data-copy-target="feed-token-value" title="@T.Settings.IntgCopy">
                                     <span class="icon icon-copy-link h-4 w-4" aria-hidden="true"></span>
                                 </button>
                             </div>
                             <div class="flex gap-2">
-                                <button type="button" class="btn btn-ghost btn-sm" id="regenerate-feed-token-btn">Regenerate</button>
-                                <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="revoke-feed-token-btn">Revoke</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="regenerate-feed-token-btn">@T.Settings.IntgRegenerate</button>
+                                <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="revoke-feed-token-btn">@T.Settings.IntgRevoke</button>
                             </div>
                         </div>
                     </div>
@@ -83,7 +83,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

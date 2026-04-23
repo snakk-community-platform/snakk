@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Communities.RulesModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"{Model.CommunityDetail?.Name} Community Rules";
-    ViewData["Description"] = $"Rules and guidelines for {Model.CommunityDetail?.Name}.";
+    ViewData["Title"] = string.Format(T.Pages.CommRulesTitlePattern, Model.CommunityDetail?.Name);
+    ViewData["Description"] = string.Format(T.Pages.CommRulesDescPattern, Model.CommunityDetail?.Name);
 }
 
 @section LeftColumn {
@@ -13,25 +13,25 @@
 
 @if (Model.CommunityDetail == null)
 {
-    <div class="fp-center">
-        <div class="fp-center-inner">
+    <div class="sn-center">
+        <div class="sn-center-inner">
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>Community not found.</p>
-                <a href="/communities" class="btn btn-primary btn-sm mt-4">Back to Communities</a>
+                <p>@T.Pages.CommModsNotFound</p>
+                <a href="/communities" class="btn btn-primary btn-sm mt-4">@T.Pages.CommModsBackToCommunities</a>
             </div>
         </div>
     </div>
 }
 else
 {
-    <div class="fp-center">
-        <div class="fp-page-labels">
+    <div class="sn-center">
+        <div class="sn-page-labels">
             <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
         </div>
-        <div class="fp-center-inner">
-            <h2 class="fp-section-title">
+        <div class="sn-center-inner">
+            <h2 class="sn-section-title">
                 <span class="icon icon-shield-check" aria-hidden="true"></span>
-                @Model.CommunityDetail.Name Community Rules
+                @Model.CommunityDetail.Name@T.Pages.CommRulesHeadingSuffix
             </h2>
             @if (!string.IsNullOrEmpty(Model.CommunityDetail.Description))
             {
@@ -44,7 +44,7 @@ else
 
             @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
             {
-                <p class="text-sm" style="color: var(--text-tertiary)">No rules have been defined for this community yet.</p>
+                <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.CommRulesEmpty</p>
             }
             else
             {
@@ -63,25 +63,25 @@ else
             }
 
             <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
-                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">See also</p>
+                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">@T.Pages.CommSeeAlso</p>
                 <a href="/rules" class="flex items-center justify-between py-1.5 text-sm transition-colors" style="color: var(--text-secondary)" onmouseover="this.style.color='var(--link-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
-                    <span>Site Rules</span>
+                    <span>@T.Pages.CommSiteRules</span>
                     <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
                 </a>
             </div>
         </div>
     </div>
 
-<aside class="fp-right">
-<div class="fp-right-sticky">
-    <div class="fp-right-section"
+<aside class="sn-right">
+<div class="sn-right-sticky">
+    <div class="sn-right-section"
          hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
          hx-trigger="load"
          hx-target="this"
          hx-swap="innerHTML">
-        <div class="fp-right-title">
+        <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Pages.CommSiteStats
         </div>
         <div class="grid grid-cols-2 gap-3">
             <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
@@ -89,14 +89,14 @@ else
         </div>
     </div>
 
-    <div class="fp-right-section"
+    <div class="sn-right-section"
          hx-get="/partials/trending-discussions?scopeType=platform&scopeId=global"
          hx-trigger="load"
          hx-target="this"
          hx-swap="innerHTML">
-        <div class="fp-right-title">
+        <div class="sn-right-title">
             <span class="icon icon-trending-up" aria-hidden="true"></span>
-            Trending
+            @T.Pages.CommTrending
         </div>
         <div class="flex flex-col gap-3">
             <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>

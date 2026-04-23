@@ -1,0 +1,39 @@
+@model Snakk.Web.Pages.ViewModels.PostListItemVM
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
+@inject ICommunityContext CommunityContext
+@{
+    var discussionUrl = SnakkUrlHelper.Discussion(
+        Model.CommunitySlug, CommunityContext,
+        Model.HubSlug, Model.SpaceSlug,
+        SnakkUrlHelper.DiscussionSlugId(Model.DiscussionSlug, Model.DiscussionPublicId));
+    var postUrl = $"{discussionUrl}#post-{Model.PublicId}";
+    var hubLabel = !string.IsNullOrEmpty(Model.HubName) ? Model.HubName : Model.HubSlug;
+    var spaceLabel = !string.IsNullOrEmpty(Model.SpaceName) ? Model.SpaceName : Model.SpaceSlug;
+}
+<div class="topic-item-wrapper">
+    <div class="topic-item">
+        <div class="topic-content">
+            <div class="topic-title">
+                <a href="@discussionUrl" class="topic-title-link">@Model.DiscussionTitle</a>
+            </div>
+            <div class="topic-meta">
+                <span class="topic-meta-link">@hubLabel</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <span class="topic-meta-link">@spaceLabel</span>
+                <span class="topic-meta-separator">&middot;</span>
+                <time data-timestamp="@Model.CreatedAt.ToString("O")">@FormatRelativeTime(Model.CreatedAt)</time>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
+            {
+                <p class="mt-1 text-sm line-clamp-3 sn-post-preview" style="color: var(--text-secondary)">@Model.ContentExcerpt</p>
+            }
+        </div>
+        <a href="@postUrl" class="topic-latest-link" title="View post">
+            <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </a>
+    </div>
+</div>

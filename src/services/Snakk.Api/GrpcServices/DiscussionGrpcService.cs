@@ -272,7 +272,8 @@ public class DiscussionGrpcService(
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCursor ? request.Cursor : null,
             currentUser.GetCurrentUserId(),
-            request.HasAuthorId ? request.AuthorId : null);
+            request.HasAuthorId ? request.AuthorId : null,
+            request.SpaceIds.Count > 0 ? [.. request.SpaceIds] : null);
 
         var response = new PagedRecentDiscussionList
         {

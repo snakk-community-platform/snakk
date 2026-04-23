@@ -2,6 +2,7 @@ using Snakk.Web.Services;
 using Snakk.Web.Filters;
 using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
+using Snakk.Web.Helpers;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -29,6 +30,19 @@ builder.Configuration.AddJsonFile(
     Path.Combine(sharedConfigDir, "conf", "snakk-config.json"),
     optional: true,
     reloadOnChange: true);
+
+// Load UI locale strings at startup — platform-wide, picked via Ui:Language
+{
+    var requested = builder.Configuration["Ui:Language"] ?? "en";
+    var localesDir = Path.Combine(AppContext.BaseDirectory, "Locales");
+    var path = Path.Combine(localesDir, $"{requested}.json");
+    if (!File.Exists(path))
+    {
+        Console.WriteLine($"[i18n] locale '{requested}' not found, falling back to en.json");
+        path = Path.Combine(localesDir, "en.json");
+    }
+    T._loc = LocaleLoader.LoadFlat(path);
+}
 
 //builder.AddSnakkDefaults();
 
@@ -128,6 +142,9 @@ builder.Services.AddSingleton<ICommunityDomainCacheService, CommunityDomainCache
 
 // Prefetch cache service for sidebar data (singleton - uses IMemoryCache)
 builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
+
+// Per-user cache for followed space IDs (2-min TTL, invalidated on follow toggle)
+builder.Services.AddSingleton<IFollowedSpacesCacheService, FollowedSpacesCacheService>();
 
 // WebOptimizer for CSS minification only (JS minification breaks TypeScript output)
 builder.Services.AddWebOptimizer(pipeline =>

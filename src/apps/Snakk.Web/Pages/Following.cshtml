@@ -5,34 +5,34 @@
 @model Snakk.Web.Pages.FollowingModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Following";
+    ViewData["Title"] = T.Pages.FollowingTitle;
     ViewData["Description"] = "Spaces, discussions and people you follow.";
-    ViewData["Nudge.Title"] = "Sign in to see your following";
-    ViewData["Nudge.Body"] = "Subscribe to spaces and discussions, or follow people to find them here.";
+    ViewData["Nudge.Title"] = T.Pages.FollowingNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.FollowingNudgeBody;
 }
 
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
 
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (!Model.IsAuthenticated)
         {
             <partial name="Shared/_RegistrationNudge" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-heart" aria-hidden="true"></span>
-            Following
+            @T.Pages.FollowingHeading
         </h2>
 
         <!-- Tabs -->
         <div class="flex gap-1 mb-4 border-b border-subtle">
             <a href="/following?tab=discussions"
                class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "discussions" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
-                Discussions
+                @T.Pages.FollowingTabDiscussions
                 @if (Model.DiscussionCount > 0)
                 {
                     <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span>
@@ -40,7 +40,7 @@
             </a>
             <a href="/following?tab=spaces"
                class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "spaces" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
-                Spaces
+                @T.Pages.FollowingTabSpaces
                 @if (Model.SpaceCount > 0)
                 {
                     <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span>
@@ -48,7 +48,7 @@
             </a>
             <a href="/following?tab=users"
                class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "users" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
-                People
+                @T.Pages.FollowingTabPeople
                 @if (Model.UserCount > 0)
                 {
                     <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span>
@@ -62,8 +62,8 @@
             {
                 <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
                     <span class="icon icon-archive-layers h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-                    <p>No subscribed spaces yet.</p>
-                    <p class="mt-1 text-xs opacity-70">Subscribe to spaces to find them here.</p>
+                    <p>@T.Pages.FollowingEmptySpaces</p>
+                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptySpacesHint</p>
                 </div>
             }
             else
@@ -90,11 +90,11 @@
 
                             <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
                                 <span class="text-sm font-semibold">@DisplayHelper.FormatCount(space.DiscussionCount)</span>
-                                <span class="text-[10px] text-base-content/40 uppercase">topics</span>
+                                <span class="text-[10px] text-base-content/40 uppercase">@T.Pages.FollowingTopicsLabel</span>
                             </div>
                             <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
                                 <span class="text-sm font-semibold">@DisplayHelper.FormatCount(space.ReplyCount)</span>
-                                <span class="text-[10px] text-base-content/40 uppercase">replies</span>
+                                <span class="text-[10px] text-base-content/40 uppercase">@T.Pages.FollowingRepliesLabel</span>
                             </div>
 
                             <div class="hidden md:flex items-center gap-2 shrink-0 w-56 min-w-0">
@@ -112,14 +112,14 @@
                                 }
                                 else
                                 {
-                                    <span class="text-xs text-base-content/30">No discussions yet</span>
+                                    <span class="text-xs text-base-content/30">@T.Pages.FollowingNoDiscussionsYet</span>
                                 }
                             </div>
 
                             <button class="btn btn-ghost btn-xs shrink-0"
                                     data-unfollow-type="space" data-unfollow-id="@space.PublicId"
-                                    title="Unsubscribe">
-                                Subscribed
+                                    title="@T.Pages.FollowingUnsubscribe">
+                                @T.Pages.FollowingSubscribed
                             </button>
                         </div>
                     }
@@ -132,13 +132,13 @@
             {
                 <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
                     <span class="icon icon-chat-bubbles h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-                    <p>No subscribed discussions yet.</p>
-                    <p class="mt-1 text-xs opacity-70">Subscribe to discussions to get notified of new replies.</p>
+                    <p>@T.Pages.FollowingEmptyDiscussions</p>
+                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptyDiscussionsHint</p>
                 </div>
             }
             else
             {
-                <div class="fp-card-list">
+                <div class="sn-card-list">
                     @foreach (var discussion in Model.FirstDiscussions)
                     {
                         @await Html.PartialAsync("Shared/_DiscussionCard",
@@ -154,14 +154,14 @@
                              class="py-2">
                             @for (var i = 0; i < 3; i++)
                             {
-                                <div class="fp-card" style="opacity: 0.5">
-                                    <div class="fp-card-header">
+                                <div class="sn-card" style="opacity: 0.5">
+                                    <div class="sn-card-header">
                                         <div class="skeleton h-3 w-16 rounded"></div>
                                         <div class="skeleton h-4 w-4 rounded-full"></div>
                                         <div class="skeleton h-3 w-20 rounded"></div>
                                     </div>
                                     <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                    <div class="fp-card-stats mt-2">
+                                    <div class="sn-card-stats mt-2">
                                         <div class="skeleton h-3 w-24 rounded"></div>
                                     </div>
                                 </div>
@@ -181,8 +181,8 @@
             {
                 <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
                     <span class="icon icon-users-group h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
-                    <p>Not following anyone yet.</p>
-                    <p class="mt-1 text-xs opacity-70">Follow people to find them here.</p>
+                    <p>@T.Pages.FollowingEmptyPeople</p>
+                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptyPeopleHint</p>
                 </div>
             }
             else
@@ -200,13 +200,13 @@
                                    data-popup-type="user" data-popup-id="@user.PublicId" data-popup-name="@user.DisplayName"
                                    style="color: var(--text-primary)">@user.DisplayName</a>
                                 <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">
-                                    @DisplayHelper.FormatCount(user.FollowerCount) followers
+                                    @DisplayHelper.FormatCount(user.FollowerCount) @T.Pages.FollowingFollowersSuffix
                                 </p>
                             </div>
                             <button class="btn btn-ghost btn-xs shrink-0"
                                     data-unfollow-type="user" data-unfollow-id="@user.PublicId"
-                                    title="Unfollow">
-                                Following
+                                    title="@T.Pages.FollowingUnfollow">
+                                @T.Pages.FollowingFollowingBtn
                             </button>
                         </div>
                     }
@@ -219,6 +219,9 @@
 
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.Actions"] = new[] { "follows" };
+    ViewData["RightPane.AboutTitle"] = T.Pages.FollowingAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.FollowingAboutDesc;
 }
 <partial name="Shared/_GlobalRightSidebar" />
 

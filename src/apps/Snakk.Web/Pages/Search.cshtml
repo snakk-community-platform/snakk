@@ -4,7 +4,7 @@
 @model SearchModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? "Search" : $"Search: {Model.Q}";
+    ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? T.Pages.SearchTitle : $"{T.Pages.SearchTitlePrefix}{Model.Q}";
     var hasQuery = !string.IsNullOrEmpty(Model.Q);
     var hasAuthorFilter = !string.IsNullOrEmpty(Model.AuthorPublicId);
 }
@@ -14,11 +14,11 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-search" aria-hidden="true"></span>
-            Search
+            @T.Pages.SearchHeading
         </h2>
 
         <!-- Search Filters -->
@@ -27,42 +27,42 @@
                 <input type="hidden" id="search-query" name="q" value="@Model.Q" />
 
                 <div>
-                    <label class="text-sm font-medium mb-2 block">Search Type</label>
+                    <label class="text-sm font-medium mb-2 block">@T.Pages.SearchTypeLabel</label>
                     <div class="join flex-wrap">
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="Post"
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="@T.Pages.SearchTypePost"
                                @(Model.SearchType == "post" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="Discussion"
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion"
                                @(Model.SearchType == "discussion" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="Space"
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="@T.Pages.SearchTypeSpace"
                                @(Model.SearchType == "space" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="User"
+                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="@T.Pages.SearchTypeUser"
                                @(Model.SearchType == "user" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium mb-2 block">Date Range</label>
+                    <label class="text-sm font-medium mb-2 block">@T.Pages.SearchDateLabel</label>
                     <div class="join flex-wrap">
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="Today"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="@T.Pages.SearchDateToday"
                                @(Model.DateRange == "today" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="Past hour"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="@T.Pages.SearchDatePastHour"
                                @(Model.DateRange == "past hour" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="Past week"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="@T.Pages.SearchDatePastWeek"
                                @(Model.DateRange == "past week" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="Past month"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="@T.Pages.SearchDatePastMonth"
                                @(Model.DateRange == "past month" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="Past year"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="@T.Pages.SearchDatePastYear"
                                @(Model.DateRange == "past year" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="All time"
+                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="@T.Pages.SearchDateAllTime"
                                @(Model.DateRange == "all time" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                     </div>

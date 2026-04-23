@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Settings.NotificationsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Notification Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.TitleNotifications;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,31 +12,31 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_AuthPrompt" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-bell" aria-hidden="true"></span>
-            Notifications
+            @T.Settings.HeadingNotifications
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <!-- Auto-follow -->
-            <div id="section-auto-follow" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Auto-follow on Reply</h3>
+            <div id="section-auto-follow" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.NotifAutoFollowTitle</h3>
                 <label class="flex items-center gap-4 cursor-pointer">
                     <input type="checkbox"
                            name="autoFollowOnReply"
                            class="toggle toggle-primary" />
                     <span>
-                        <span class="font-medium text-sm">Follow discussions automatically</span>
+                        <span class="font-medium text-sm">@T.Settings.NotifAutoFollowLabel</span>
                         <span class="block text-sm" style="color: var(--text-tertiary)">
-                            When you post a reply, you will automatically follow that discussion and receive notifications for new replies.
+                            @T.Settings.NotifAutoFollowHelp
                         </span>
                     </span>
                 </label>
@@ -47,7 +47,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

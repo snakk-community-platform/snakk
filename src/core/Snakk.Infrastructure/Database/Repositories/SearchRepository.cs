@@ -597,7 +597,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? spaceId = null,
         string? cursor = null,
         string? userId = null,
-        string? authorId = null)
+        string? authorId = null,
+        IReadOnlyList<string>? spaceIds = null)
     {
         var query = _context.Discussions.AsQueryable();
 
@@ -609,8 +610,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             query = query.Where(d => d.CreatedByUser.PublicId == authorId);
         }
 
-        // Filter by space if specified (most specific)
-        if (!string.IsNullOrEmpty(spaceId))
+        // Filter by multiple spaces (e.g. My Feed)
+        if (spaceIds is { Count: > 0 })
+        {
+            query = query.Where(d => spaceIds.Contains(d.Space.PublicId));
+        }
+        // Filter by single space (most specific)
+        else if (!string.IsNullOrEmpty(spaceId))
         {
             query = query.Where(d => d.Space.PublicId == spaceId);
         }
@@ -1019,7 +1025,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? cursor = null,
         string? userId = null)
     {
-        var query = _context.Discussions.AsQueryable();
+        var query = _context.Discussions.Where(d => !d.IsDeleted);
 
         query = await WithAccessFilterAsync(query, userId);
 

@@ -64,7 +64,9 @@ message SavedPostInfo {
   string discussion_title = 5;
   string discussion_slug = 6;
   string space_slug = 7;
+  string space_name = 14;
   string hub_slug = 8;
+  string hub_name = 15;
   string community_slug = 9;
   string author_public_id = 10;
   string author_display_name = 11;

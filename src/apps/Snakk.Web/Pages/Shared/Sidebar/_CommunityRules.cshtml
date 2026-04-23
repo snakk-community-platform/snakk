@@ -3,7 +3,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
 {
-    <p class="text-sm text-base-content/50">No rules defined for this community yet.</p>
+    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyCommunityRules</p>
 }
 else
 {
@@ -22,7 +22,7 @@ else
 <div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
     <a href="/rules"
        class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
-        <span>Site Rules</span>
+        <span>@T.Sidebar.SiteRulesLink</span>
         <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
     </a>
 </div>

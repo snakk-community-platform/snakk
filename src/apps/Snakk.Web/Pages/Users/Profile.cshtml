@@ -29,36 +29,61 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    @* Hero card lives outside .fp-center-inner so it sits flush against the
+<div class="sn-center">
+    @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides and top of the center column (no padding around it). *@
     @if (Model.Profile != null)
     {
-        <div class="fp-profile-card" style="background-image: @AvatarGenerator.GenerateGradientCss(Model.Profile.PublicId)">
-            <div class="fp-profile-card-header">
+        <div class="sn-profile-card" style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{Model.Profile.PublicId}")">
+            <div class="sn-profile-card-header">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
                      alt="@Model.Profile.DisplayName"
                      width="80" height="80"
-                     class="fp-profile-avatar"
+                     class="sn-profile-avatar"
                      decoding="async" />
-                <div class="fp-profile-info">
-                    <div class="fp-profile-name-row">
-                        <h1 class="fp-profile-name">@Model.Profile.DisplayName</h1>
+                <div class="sn-profile-info">
+                    <div class="sn-profile-name-row">
+                        <h1 class="sn-profile-name">@Model.Profile.DisplayName</h1>
                     </div>
                     @if (Model.Profile.HasBio && !string.IsNullOrWhiteSpace(Model.Profile.Bio))
                     {
-                        <p class="fp-profile-bio">@Model.Profile.Bio</p>
+                        <p class="sn-profile-bio">@Model.Profile.Bio</p>
                     }
-                    <div class="fp-profile-meta">
+                    <div class="sn-profile-meta">
                         <span class="icon icon-calendar w-3.5 h-3.5" aria-hidden="true"></span>
                         Joined @Model.FormatDate(Model.Profile.JoinedAt?.ToDateTime())
                     </div>
+                    @if (Model.SocialLinks is { Count: > 0 })
+                    {
+                        <div class="sn-profile-social-links flex flex-wrap gap-2 mt-2">
+                            @foreach (var link in Model.SocialLinks)
+                            {
+                                if (link.Url is not null)
+                                {
+                                    <a href="@link.Url" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                                       style="background: var(--surface-secondary); border: 1px solid var(--border-secondary); color: var(--color-primary)"
+                                       title="@link.DisplayName">
+                                        @link.DisplayName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                                          style="background: var(--surface-secondary); border: 1px solid var(--border-secondary); color: var(--text-secondary)"
+                                          title="@link.DisplayName: @link.Username">
+                                        @link.DisplayName: @link.Username
+                                    </span>
+                                }
+                            }
+                        </div>
+                    }
                 </div>
             </div>
 
             <!-- Stats + Activity Chart — nested inside the profile card hero -->
-            <div class="fp-stats-activity-row">
-                <div class="fp-stats-wrapper">
+            <div class="sn-stats-activity-row">
+                <div class="sn-stats-wrapper">
                     <div class="stats shadow">
                         <div class="stat">
                             <div class="stat-title">Discussions</div>
@@ -96,19 +121,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="fp-activity-chart-wrapper">
-                    <div class="fp-activity-chart-title">
+                <div class="sn-activity-chart-wrapper">
+                    <div class="sn-activity-chart-title">
                         Activity History
-                        <span class="fp-activity-chart-subtitle">Last year</span>
+                        <span class="sn-activity-chart-subtitle">Last year</span>
                     </div>
-                    <div id="activity-chart-sidebar" class="fp-activity-chart-body">
+                    <div id="activity-chart-sidebar" class="sn-activity-chart-body">
                         <div class="skeleton h-full w-full rounded"></div>
                     </div>
                 </div>
             </div>
         </div>
     }
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         @if (Model.Profile == null)
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
@@ -120,23 +145,23 @@
         {
 
             <!-- Discussions / Top / Posts Tabs -->
-            <div class="fp-profile-tabs" role="tablist">
-                <button class="fp-profile-tab active" role="tab" aria-selected="true" data-tab="discussions">
+            <div class="sn-profile-tabs" role="tablist">
+                <button class="sn-profile-tab active" role="tab" aria-selected="true" data-tab="discussions">
                     <span class="icon icon-chat-bubbles h-4 w-4" aria-hidden="true"></span>
                     Discussions
                 </button>
-                <button class="fp-profile-tab" role="tab" aria-selected="false" data-tab="top">
+                <button class="sn-profile-tab" role="tab" aria-selected="false" data-tab="top">
                     <span class="icon icon-star h-4 w-4" aria-hidden="true"></span>
                     Top
                 </button>
-                <button class="fp-profile-tab" role="tab" aria-selected="false" data-tab="posts">
+                <button class="sn-profile-tab" role="tab" aria-selected="false" data-tab="posts">
                     <span class="icon icon-posts-tab h-4 w-4" aria-hidden="true"></span>
                     Posts
                 </button>
             </div>
 
             <!-- Discussions Tab -->
-            <div id="tab-discussions" class="fp-profile-tab-panel">
+            <div id="tab-discussions" class="sn-profile-tab-panel">
                 <div id="recent-discussions">
                     @if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
                     {
@@ -149,7 +174,7 @@
                         </div>
                         @if (Model.RecentDiscussions.HasMoreItems)
                         {
-                            <a href="/search?type=discussion&authorId=@Model.Profile!.PublicId" class="fp-show-more">
+                            <a href="/search?type=discussion&authorId=@Model.Profile!.PublicId" class="sn-show-more">
                                 Show more discussions
                                 <span class="icon icon-chevron-right-sm w-3.5 h-3.5" aria-hidden="true"></span>
                             </a>
@@ -163,7 +188,7 @@
             </div>
 
             <!-- Top Discussions Tab -->
-            <div id="tab-top" class="fp-profile-tab-panel" hidden>
+            <div id="tab-top" class="sn-profile-tab-panel" hidden>
                 @if (Model.Profile.TopDiscussions.Count > 0)
                 {
                     <div class="flex flex-col divide-y" style="border-color: var(--border-secondary)">
@@ -195,7 +220,7 @@
             </div>
 
             <!-- Posts Tab -->
-            <div id="tab-posts" class="fp-profile-tab-panel" hidden>
+            <div id="tab-posts" class="sn-profile-tab-panel" hidden>
                 <div id="recent-posts">
                     <div class="flex flex-col gap-3">
                         <div class="skeleton h-20 w-full rounded"></div>
@@ -209,36 +234,27 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
     if (Model.Profile != null)
     {
-        ViewData["RightPane.Actions"] = new[] { "share" };
+        ViewData["RightPane.Actions"] = new[] { "feed", "share", "follow-user" };
+        ViewData["RightPane.FeedUrl"] = $"/u/{UlidBase62.Encode(Model.Profile.PublicId)}/feed";
         ViewData["RightPane.ShareTitle"] = Model.Profile.DisplayName;
         ViewData["RightPane.ShareIsPublic"] = true;
     }
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
+    <div class="sn-right-body">
     @if (Model.Profile != null)
     {
-        <!-- Feed + Follow actions -->
-        <div class="fp-right-section">
-            <div class="flex items-center gap-2 flex-wrap">
-                <partial name="Shared/_FeedDropdown" model="@($"/u/{UlidBase62.Encode(Model.Profile.PublicId)}/feed")" />
-                <div id="profile-actions" class="ml-auto">
-                    <div class="skeleton h-8 w-24"></div>
-                </div>
-            </div>
-        </div>
-
         <!-- Achievements -->
         @if (Model.Profile.Achievements is { Count: > 0 })
         {
-            <div class="fp-right-section" id="achievements-section">
-                <div class="fp-right-title">Achievements</div>
+            <div class="sn-right-section" id="achievements-section">
+                <div class="sn-right-title">Achievements</div>
                 <div id="achievements-grid" class="grid grid-cols-3 gap-3">
                     @foreach (var a in Model.Profile.Achievements)
                     {
@@ -263,17 +279,17 @@
         <!-- Most Active Spaces -->
         @if (Model.Profile.TopSpaces.Count > 0)
         {
-            <div class="fp-right-section">
-                <div class="fp-right-title">Most Active In</div>
+            <div class="sn-right-section">
+                <div class="sn-right-title">Most Active In</div>
                 <div class="flex flex-col gap-1">
                     @foreach (var s in Model.Profile.TopSpaces)
                     {
                         var spaceUrl = $"/c/{s.CommunitySlug}/h/{s.HubSlug}/{s.SpaceSlug}";
-                        <a href="@spaceUrl" class="fp-space-item">
+                        <a href="@spaceUrl" class="sn-space-item">
                             <img src="@SnakkUrlHelper.SpaceAvatar(s.PublicId, avatarFileName: s.HasSpaceAvatarFileName ? s.SpaceAvatarFileName : null)"
                                  alt="" width="20" height="20" decoding="async" />
                             <span class="truncate">@s.SpaceName</span>
-                            <span class="fp-space-count">@s.PostCount</span>
+                            <span class="sn-space-count">@s.PostCount</span>
                         </a>
                     }
                 </div>
@@ -281,8 +297,8 @@
         }
 
         <!-- Recent Activity -->
-        <div class="fp-right-section">
-            <div class="fp-right-title">Recent Activity</div>
+        <div class="sn-right-section">
+            <div class="sn-right-title">Recent Activity</div>
             <div class="text-sm">
                 @if (Model.Profile.LastSeenAt != null)
                 {
@@ -299,8 +315,8 @@
         </div>
 
         <!-- Name History (own profile only) -->
-        <div class="fp-right-section hidden" id="name-history-section">
-            <div class="fp-right-title">Name History</div>
+        <div class="sn-right-section hidden" id="name-history-section">
+            <div class="sn-right-title">Name History</div>
             <div id="name-history-list"></div>
         </div>
     }

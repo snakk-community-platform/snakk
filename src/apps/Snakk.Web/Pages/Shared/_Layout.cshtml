@@ -105,18 +105,18 @@
     }
 
     <!-- Navbar -->
-    <nav id="fp-navbar" class="fp-navbar">
-        <div class="fp-navbar-brand">
-            <a href="/"><img src="/img/logo-wide.webp" alt="@siteName" class="fp-navbar-logo" width="159" height="40" fetchpriority="high" /></a>
+    <nav id="sn-navbar" class="sn-navbar">
+        <div class="sn-navbar-brand">
+            <a href="/"><img src="/img/logo-wide.webp" alt="@siteName" class="sn-navbar-logo" width="159" height="40" fetchpriority="high" /></a>
         </div>
-        <div class="fp-navbar-content">
-            <div class="fp-navbar-search">
+        <div class="sn-navbar-content">
+            <div class="sn-navbar-search">
                 <span class="icon icon-search" aria-hidden="true"></span>
                 <form method="get" action="/search" hx-boost="false">
-                    <input type="text" name="q" placeholder="Search..." autocomplete="off" />
+                    <input type="text" name="q" placeholder="@T.Common.SearchPlaceholder" autocomplete="off" />
                 </form>
             </div>
-            <div class="fp-navbar-right">
+            <div class="sn-navbar-right">
                 <div id="auth-nav" class="flex items-center">
                     <partial name="Shared/_AuthNav" />
                 </div>
@@ -140,11 +140,12 @@
     <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
 
     <!-- 3-column layout -->
-    <div class="fp-layout">
+    <div class="sn-layout">
         @await RenderSectionAsync("LeftColumn", required: false)
-        <div id="main-content" class="fp-main-body">
+        <div id="main-content" class="sn-main-body">
             @RenderBody()
             @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
                content is parsed but before first paint so the spoiler overlay
@@ -162,20 +163,20 @@
     <!-- External Link Warning Modal -->
     <dialog id="external-link-modal" class="modal">
         <div class="modal-box max-w-sm">
-            <h3 class="text-base font-semibold mb-2">Leaving @(CommunityContext.CommunityName ?? "Snakk")</h3>
+            <h3 class="text-base font-semibold mb-2">@string.Format(T.ExternalLink.Leaving, CommunityContext.CommunityName ?? "Snakk")</h3>
             <p class="text-sm text-base-content/70 mb-1">
-                You are being redirected to <strong data-domain></strong>.
+                @T.ExternalLink.Redirecting <strong data-domain></strong>.
             </p>
             <p class="text-sm text-base-content/60 mb-4">
-                We are not responsible for the content, security, cookies, or privacy practices of external sites.
+                @T.ExternalLink.Disclaimer
             </p>
             <label class="flex items-center gap-2 cursor-pointer mb-4 text-sm">
                 <input type="checkbox" class="toggle toggle-sm toggle-primary" />
-                Don't warn me again
+                @T.ExternalLink.DontWarn
             </label>
             <div class="flex justify-end gap-2">
-                <button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>
-                <a href="#" class="btn btn-primary btn-sm" data-url target="_blank" rel="nofollow noopener noreferrer">Continue</a>
+                <button type="button" class="btn btn-ghost btn-sm" data-cancel>@T.Common.Cancel</button>
+                <a href="#" class="btn btn-primary btn-sm" data-url target="_blank" rel="nofollow noopener noreferrer">@T.Common.ContinueAction</a>
             </div>
         </div>
     </dialog>

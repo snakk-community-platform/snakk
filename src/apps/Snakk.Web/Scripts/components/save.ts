@@ -84,18 +84,11 @@
         btn.dataset.saved = isSaved ? 'true' : 'false';
         btn.setAttribute('aria-pressed', isSaved ? 'true' : 'false');
         btn.title = isSaved ? 'Unsave' : 'Save';
+        btn.classList.toggle('is-saved', isSaved);
 
-        // Toggle active visual state
-        const icon = btn.querySelector('svg');
-        if (icon) {
-            if (isSaved) {
-                icon.setAttribute('fill', 'currentColor');
-                btn.classList.add('text-primary');
-            } else {
-                icon.setAttribute('fill', 'none');
-                btn.classList.remove('text-primary');
-            }
-        }
+        // Update visible text label if present (e.g. action pane "Save" button)
+        const labelEl = btn.querySelector<HTMLElement>('span:not([aria-hidden])');
+        if (labelEl) labelEl.textContent = isSaved ? 'Saved' : 'Save';
     }
 
     // Global event delegation for save actions

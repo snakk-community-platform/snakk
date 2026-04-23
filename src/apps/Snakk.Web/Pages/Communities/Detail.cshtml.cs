@@ -22,6 +22,7 @@ public class DetailModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public PagedHubList? Hubs { get; set; }
     public Dictionary<string, PagedSpaceByHubList> SpacesByHub { get; set; } = new();
+    public Dictionary<string, string> SpaceSparklineJson { get; set; } = new();
 
     // Sidebar scope for HTMX partials
     public string SidebarScopeType { get; set; } = "community";
@@ -95,6 +96,21 @@ public class DetailModel(
                 var spaces = await _apiClient.GetSpacesByHubAsync(hub.PublicId, 0, 50);
                 if (spaces != null)
                     SpacesByHub[hub.PublicId] = spaces;
+            }
+        }
+
+        // Fetch sparklines for all spaces in parallel (gRPC, safe to parallelize)
+        var allSpaceIds = SpacesByHub.Values.SelectMany(s => s.Items).Select(s => s.PublicId).ToList();
+        if (allSpaceIds.Count > 0)
+        {
+            var sparklineTasks = allSpaceIds.Select(id => _apiClient.GetActivitySparklineAsync("space", id, 7)).ToList();
+            var sparklineResults = await Task.WhenAll(sparklineTasks);
+            for (var i = 0; i < allSpaceIds.Count; i++)
+            {
+                var result = sparklineResults[i];
+                if (result?.Days.Count > 0)
+                    SpaceSparklineJson[allSpaceIds[i]] = System.Text.Json.JsonSerializer.Serialize(
+                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
             }
         }
 

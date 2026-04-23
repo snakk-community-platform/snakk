@@ -2,35 +2,35 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Moderation.ReportsModel
 @{
-    ViewData["Title"] = "Reports";
+    ViewData["Title"] = T.Pages.ModReportsTitle;
 }
 
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/moderation">Moderation</a>
+        <a href="/moderation">@T.Pages.ModCrumb</a>
     </nav>
 </div>
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="page-header">
-        <h1>Reports</h1>
-        <p>Review and resolve user reports</p>
+        <h1>@T.Pages.ModReportsHeading</h1>
+        <p>@T.Pages.ModReportsSubtitle</p>
     </div>
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-2 mb-6">
         <a href="@Model.BuildUrl(null)" class="btn btn-sm @(string.IsNullOrEmpty(Model.Status) ? "btn-primary" : "btn-ghost")">
-            All
+            @T.Pages.ModReportsFilterAll
         </a>
         <a href="@Model.BuildUrl("Pending")" class="btn btn-sm @(Model.Status == "Pending" ? "btn-warning" : "btn-ghost")">
-            Pending
+            @T.Pages.ModReportsFilterPending
         </a>
         <a href="@Model.BuildUrl("Resolved")" class="btn btn-sm @(Model.Status == "Resolved" ? "btn-success" : "btn-ghost")">
-            Resolved
+            @T.Pages.ModReportsFilterResolved
         </a>
         <a href="@Model.BuildUrl("Dismissed")" class="btn btn-sm @(Model.Status == "Dismissed" ? "btn-ghost btn-active" : "btn-ghost")">
-            Dismissed
+            @T.Pages.ModReportsFilterDismissed
         </a>
     </div>
 
@@ -39,8 +39,8 @@
     {
         <div class="clean-card">
             <div class="empty-state-simple">
-                <h3>No reports found</h3>
-                <p>@(string.IsNullOrEmpty(Model.Status) ? "There are no reports to review." : $"No {Model.Status.ToLower()} reports.")</p>
+                <h3>@T.Pages.ModReportsNoneTitle</h3>
+                <p>@(string.IsNullOrEmpty(Model.Status) ? T.Pages.ModReportsNoneAll : string.Format(T.Pages.ModReportsNoneFiltered, Model.Status.ToLower()))</p>
             </div>
         </div>
     }
@@ -73,19 +73,19 @@
 
                             <div class="text-sm mb-2">
                                 <span class="font-medium">@report.ReporterUserDisplayName</span>
-                                <span class="text-muted">reported</span>
+                                <span class="text-muted">@T.Pages.ModReportsReported</span>
                                 @if (!string.IsNullOrEmpty(report.ReportedUserDisplayName))
                                 {
                                     <span class="font-medium text-error">@report.ReportedUserDisplayName</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.ReportedPostContentSnippet))
                                 {
-                                    <span class="text-muted">a post:</span>
+                                    <span class="text-muted">@T.Pages.ModReportsAPost</span>
                                     <span class="italic">"@report.ReportedPostContentSnippet"</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.ReportedDiscussionTitle))
                                 {
-                                    <span class="text-muted">a discussion:</span>
+                                    <span class="text-muted">@T.Pages.ModReportsADiscussion</span>
                                     <span class="font-medium">"@report.ReportedDiscussionTitle"</span>
                                 }
                             </div>
@@ -96,22 +96,22 @@
                             }
 
                             <div class="flex items-center gap-4 text-xs text-muted">
-                                <span>Reported @Model.GetRelativeTime(report.CreatedAt)</span>
+                                <span>@T.Pages.ModReportsReportedPrefix@Model.GetRelativeTime(report.CreatedAt)</span>
                                 @if (!string.IsNullOrEmpty(report.SpaceName))
                                 {
-                                    <span>in @report.SpaceName</span>
+                                    <span>@T.Pages.ModReportsIn @report.SpaceName</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.HubName))
                                 {
-                                    <span>in @report.HubName</span>
+                                    <span>@T.Pages.ModReportsIn @report.HubName</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.CommunityName))
                                 {
-                                    <span>in @report.CommunityName</span>
+                                    <span>@T.Pages.ModReportsIn @report.CommunityName</span>
                                 }
                                 @if (report.ResolvedAt.HasValue && !string.IsNullOrEmpty(report.ResolvedByUserDisplayName))
                                 {
-                                    <span>· Resolved by @report.ResolvedByUserDisplayName @Model.GetRelativeTime(report.ResolvedAt.Value)</span>
+                                    <span>@T.Pages.ModReportsResolvedByPrefix @report.ResolvedByUserDisplayName @Model.GetRelativeTime(report.ResolvedAt.Value)</span>
                                 }
                             </div>
                         </div>
@@ -128,13 +128,13 @@
                 @if (Model.Offset > 0)
                 {
                     <a href="@Model.BuildUrl(Model.Status, Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
-                        Previous
+                        @T.Pages.ModReportsPrevious
                     </a>
                 }
                 @if (Model.Reports.HasMoreItems)
                 {
                     <a href="@Model.BuildUrl(Model.Status, Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
-                        Next
+                        @T.Pages.ModReportsNext
                     </a>
                 }
             </div>

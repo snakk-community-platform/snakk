@@ -146,6 +146,9 @@ public static class ServiceCollectionExtensions
         // Save Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.ISaveRepository, Infrastructure.Database.Repositories.SaveRepository>();
 
+        // Social Link Repository (Application layer interface, Infrastructure implementation)
+        services.AddScoped<Application.Repositories.IUserSocialLinkRepository, Infrastructure.Database.Repositories.UserSocialLinkRepository>();
+
         // Reaction Query Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IReactionQueryRepository, Infrastructure.Database.Repositories.ReactionQueryRepository>();
 
@@ -154,6 +157,9 @@ public static class ServiceCollectionExtensions
 
         // Stats Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IStatsRepository, Infrastructure.Database.Repositories.StatsRepository>();
+
+        // Activity snapshot repository
+        services.AddScoped<Application.Repositories.IActivitySnapshotRepository, Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
 
         // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();

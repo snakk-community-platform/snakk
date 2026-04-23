@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Settings.BrowserModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Browser Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.TitleBrowser;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,40 +12,56 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_AuthPrompt" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-globe" aria-hidden="true"></span>
-            Browser
+            @T.Settings.HeadingBrowser
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <div class="flex items-start gap-2 text-xs p-2.5 rounded-lg mb-2" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
                 <span class="icon icon-display-monitor h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
-                <span>These settings are saved in this browser only and won't sync across your devices.</span>
+                <span>@T.Settings.BrowserDeviceOnly</span>
+            </div>
+
+            <!-- Layout -->
+            <div id="section-layout" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.BrowserLayoutTitle</h3>
+                <div class="flex items-start justify-between gap-6">
+                    <div>
+                        <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserStickyTitle</p>
+                        <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserStickyHelp</p>
+                    </div>
+                    <select id="pref-sidebar-sticky" class="select select-sm select-bordered shrink-0 mt-0.5">
+                        <option value="both">@T.Settings.BrowserStickyBoth</option>
+                        <option value="left-only">@T.Settings.BrowserStickyLeftOnly</option>
+                        <option value="none">@T.Settings.BrowserStickyNone</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Behavior -->
-            <div id="section-behavior" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Behavior</h3>
+            <div id="section-behavior" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.BrowserBehaviorTitle</h3>
                 <div class="flex flex-col gap-5">
                     <label class="flex items-start justify-between gap-6 cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">Discussion Previews</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">Show a content preview when clicking the preview button on discussion cards.</p>
+                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserPreviewsTitle</p>
+                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserPreviewsHelp</p>
                         </div>
                         <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-discussion-previews" />
                     </label>
                     <label class="flex items-start justify-between gap-6 cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">Animations</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">Enable transitions and animations throughout the interface.</p>
+                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserAnimationsTitle</p>
+                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserAnimationsHelp</p>
                         </div>
                         <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-animations" />
                     </label>
@@ -53,33 +69,33 @@
             </div>
 
             <!-- Emoji Skin Tone -->
-            <div id="section-skin-tone" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Emoji Skin Tone</h3>
+            <div id="section-skin-tone" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.BrowserSkinToneTitle</h3>
                 <div class="flex gap-2" id="skin-tone-picker">
-                    <button type="button" class="skin-tone-swatch active" data-tone="" title="Default">👋</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="Light">👋🏻</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="Medium-Light">👋🏼</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="Medium">👋🏽</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="Medium-Dark">👋🏾</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="Dark">👋🏿</button>
+                    <button type="button" class="skin-tone-swatch active" data-tone="" title="@T.Settings.BrowserSkinDefault">👋</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="@T.Settings.BrowserSkinLight">👋🏻</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="@T.Settings.BrowserSkinMediumLight">👋🏼</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="@T.Settings.BrowserSkinMedium">👋🏽</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="@T.Settings.BrowserSkinMediumDark">👋🏾</button>
+                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="@T.Settings.BrowserSkinDark">👋🏿</button>
                 </div>
-                <span class="text-xs mt-1" style="color: var(--text-tertiary)">Applies to hand and face emojis in the editor</span>
+                <span class="text-xs mt-1" style="color: var(--text-tertiary)">@T.Settings.BrowserSkinApplies</span>
             </div>
 
             <!-- External Embeds -->
-            <div id="section-embeds" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">External Embedded Content</h3>
+            <div id="section-embeds" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.BrowserEmbedsTitle</h3>
                 <p class="text-sm mb-2" style="color: var(--text-tertiary)">
-                    When a link discussion points to a supported source, enabling it here will automatically load the embedded content instead of showing a link card.
+                    @T.Settings.BrowserEmbedsIntro
                 </p>
                 <div class="flex items-start gap-2 text-xs p-2.5 rounded-lg mb-4" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
                     <span class="icon icon-info-circle h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
-                    <span>Enabling embeds allows the selected services to set cookies and track your activity through their embedded content. Only enable sources you trust.</span>
+                    <span>@T.Settings.BrowserEmbedsWarning</span>
                 </div>
 
                 <div class="flex flex-col gap-4" id="embed-providers">
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">Video</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupVideo</div>
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="youtube" />
@@ -96,7 +112,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">Social</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupSocial</div>
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitter" />
@@ -113,7 +129,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">Audio & Music</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupAudio</div>
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="spotify" />
@@ -130,7 +146,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">Streaming</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupStreaming</div>
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitch" />
@@ -139,7 +155,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">Images & Design</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupImages</div>
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="imgur" />
@@ -164,7 +180,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

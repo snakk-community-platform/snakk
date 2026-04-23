@@ -1,0 +1,112 @@
+// ── Navbar overrides for frontpage ─────────────
+// Uses the same grid as .sn-layout so the left brand area
+// aligns perfectly with the left column below.
+.sn-navbar {
+    height: 3.5rem;
+    background: linear-gradient(to bottom, #e8e8e8, white 2rem);
+    border-bottom: none;
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+// Left brand area — fills the 1fr, has the grey bg matching left column
+.sn-navbar-brand {
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-left: 0.5rem;
+    padding-right: 1rem;
+
+    a {
+        text-decoration: none;
+        width: 15rem; // 16rem left sticky minus 1rem padding
+        display: flex;
+        align-items: center;
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        transition: background 0.15s ease;
+
+        &:hover {
+            .sn-navbar-logo {
+                transform: scale(1.04) translateY(-1px);
+            }
+        }
+    }
+}
+
+.sn-navbar-logo {
+    height: 2.5rem;
+    margin-left: 0.5rem;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+// Content area — spans center + right columns
+// Width matches center(54rem) + right sticky(20rem) = 79.5rem
+.sn-navbar-content {
+    grid-column: 2 / 4;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem 0 1rem;
+    max-width: calc(54rem + 20rem);
+}
+
+.sn-navbar-link {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.25rem;
+
+    &:hover {
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+    }
+}
+
+.sn-navbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sn-navbar-search {
+    position: relative;
+
+    input {
+        font-size: 0.8125rem;
+        padding: 0.375rem 0.75rem 0.375rem 2rem;
+        border: 1px solid var(--border-primary);
+        border-radius: 0.375rem;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        width: 22rem;
+        outline: none;
+        transition: border-color 0.15s, width 0.2s;
+
+        &:focus {
+            border-color: var(--link-primary);
+            width: 28rem;
+        }
+
+        &::placeholder { color: var(--text-tertiary); }
+    }
+
+    svg, .icon {
+        position: absolute;
+        left: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-tertiary);
+        pointer-events: none;
+    }
+}

@@ -1,11 +1,12 @@
 @page "/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using Snakk.Shared.Avatars
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.ModeratorsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Site Moderators";
+    ViewData["Title"] = T.Pages.ModeratorsTitle;
     ViewData["Description"] = "Global administrators and moderators for the platform.";
 }
 
@@ -13,42 +14,47 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-user-add" aria-hidden="true"></span>
-            Site Moderators
+            @T.Pages.ModeratorsHeading
         </h2>
-        <p class="text-sm mb-6" style="color: var(--text-secondary)">Global administrators for the platform.</p>
+        <p class="text-sm mb-6" style="color: var(--text-secondary)">@T.Pages.ModeratorsLead</p>
 
         @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
         {
-            <p class="text-sm" style="color: var(--text-tertiary)">No site moderators have been assigned yet.</p>
+            <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.ModeratorsEmpty</p>
         }
         else
         {
             @foreach (var group in Model.Moderators.Groups)
             {
-                <div class="clean-card p-6 mb-4">
-                    <h2 class="text-base font-semibold mb-3">
-                        @group.Level
-                        @if (!string.IsNullOrEmpty(group.ScopeName))
-                        {
-                            <span class="text-base-content/50 font-normal">(@group.ScopeName)</span>
-                        }
-                    </h2>
-                    <div class="flex flex-col divide-y divide-base-200">
-                        @foreach (var mod in group.Moderators)
-                        {
-                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
+                <p class="text-xs font-semibold uppercase tracking-wide mt-6 mb-3" style="color: var(--text-tertiary)">
+                    @group.Level
+                    @if (!string.IsNullOrEmpty(group.ScopeName))
+                    {
+                        <span class="font-normal normal-case">(@group.ScopeName)</span>
+                    }
+                </p>
+                <div class="sn-mod-list-grid">
+                    @foreach (var mod in group.Moderators)
+                    {
+                        <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
+                           data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
+                            <div class="sn-mod-list-banner"
+                                 style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{mod.UserPublicId}")">
                                 <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
-                                     alt="" width="32" height="32"
-                                     class="w-8 h-8 rounded-full shrink-0" />
-                                <span class="text-sm font-medium flex-1">@mod.DisplayName</span>
+                                     alt="" width="34" height="34"
+                                     class="sn-mod-list-avatar"
+                                     loading="lazy" decoding="async" />
+                                <span class="sn-mod-list-name">@mod.DisplayName</span>
+                            </div>
+                            <div class="sn-mod-list-body">
                                 <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
-                            </a>
-                        }
-                    </div>
+                            </div>
+                        </a>
+                    }
                 </div>
             }
         }
@@ -63,11 +69,11 @@
 @functions {
     static string FormatRole(string role) => role switch
     {
-        "GlobalAdmin" => "Global Admin",
-        "CommunityAdmin" => "Community Admin",
-        "CommunityMod" => "Community Moderator",
-        "HubMod" => "Hub Moderator",
-        "SpaceMod" => "Space Moderator",
+        "GlobalAdmin" => T.Pages.RoleGlobalAdmin,
+        "CommunityAdmin" => T.Pages.RoleCommunityAdmin,
+        "CommunityMod" => T.Pages.RoleCommunityMod,
+        "HubMod" => T.Pages.RoleHubMod,
+        "SpaceMod" => T.Pages.RoleSpaceMod,
         _ => role
     };
 }

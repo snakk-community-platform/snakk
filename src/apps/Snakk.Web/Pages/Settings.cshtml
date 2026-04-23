@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.SettingsModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.PageTitle;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,18 +12,18 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         <partial name="Shared/_AuthPrompt" />
     </div>
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
 </div>
 </aside>

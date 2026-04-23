@@ -6,7 +6,9 @@ using Snakk.Domain;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared;
 using Snakk.Shared.Models;
+using System.Text.RegularExpressions;
 
 public class AuthenticationUseCase(
     IUserRepository userRepository,
@@ -15,7 +17,8 @@ public class AuthenticationUseCase(
     IRefreshTokenRepository refreshTokenRepository,
     IDomainEventDispatcher eventDispatcher,
     IDisplayNameHistoryRepository displayNameHistoryRepository,
-    ITurnstileService turnstileService) : UseCaseBase
+    ITurnstileService turnstileService,
+    IUserSocialLinkRepository socialLinkRepository) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -403,6 +406,48 @@ public class AuthenticationUseCase(
     public async Task<Result> RevokeRefreshTokensAsync(UserId userId)
     {
         await refreshTokenRepository.RevokeAllForUserAsync(userId);
+        return Result.Success();
+    }
+
+    // ─── Social Links ────────────────────────────────────────────────────────
+
+    public Task<List<(string Platform, string Username)>> GetMySocialLinksAsync(UserId userId)
+        => socialLinkRepository.GetByUserPublicIdAsync(userId.Value);
+
+    public Task<List<(string Platform, string Username)>> GetSocialLinksByPublicIdAsync(string publicId)
+        => socialLinkRepository.GetByUserPublicIdAsync(publicId);
+
+    public async Task<Result> UpdateSocialLinksAsync(UserId userId, List<(string Platform, string Value)> rawLinks)
+    {
+        if (rawLinks.Count > 10)
+            return Result.Failure("You can add a maximum of 10 social links.");
+
+        var platforms = rawLinks.Select(l => l.Platform).ToList();
+        if (platforms.Count != platforms.Distinct().Count())
+            return Result.Failure("Duplicate platforms are not allowed.");
+
+        var normalised = new List<(string Platform, string Username)>();
+
+        foreach (var (platformKey, rawValue) in rawLinks)
+        {
+            if (!SocialPlatformRegistry.All.TryGetValue(platformKey, out var platform))
+                return Result.Failure($"Unknown platform: {platformKey}");
+
+            var username = platform.ParseInput(rawValue ?? "");
+            if (username is null)
+                return Result.Failure($"Could not parse a valid username for {platform.DisplayName}. Check the format and try again.");
+
+            if (!Regex.IsMatch(username, platform.UsernamePattern))
+                return Result.Failure($"Invalid username format for {platform.DisplayName}.");
+
+            normalised.Add((platformKey, username));
+        }
+
+        var internalId = await socialLinkRepository.GetUserInternalIdByPublicIdAsync(userId.Value);
+        if (internalId is null)
+            return Result.Failure("User not found.");
+
+        await socialLinkRepository.ReplaceAllAsync(internalId.Value, normalised);
         return Result.Success();
     }
 }

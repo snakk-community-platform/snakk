@@ -12,6 +12,7 @@ service ReactionService {
   rpc GetReactionCounts (GetReactionCountsRequest) returns (snakk.ReactionCounts);
   rpc GetMyReactions (GetMyReactionsRequest) returns (snakk.UserReactions);
   rpc GetMyReactedPosts (GetMyReactedPostsRequest) returns (PagedReactedPostsList);
+  rpc GetMyReactedDiscussions (GetMyReactedPostsRequest) returns (PagedReactedPostsList);
 }
 
 // --- Requests ---

@@ -16,6 +16,7 @@ internal static class TrendScoreCalculator
         var cutoff = now.AddHours(-WindowHours);
 
         var discussion = await context.Discussions
+            .AsTracking()
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .FirstOrDefaultAsync();
 

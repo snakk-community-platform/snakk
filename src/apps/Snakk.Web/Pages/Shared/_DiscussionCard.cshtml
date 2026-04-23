@@ -27,19 +27,19 @@
     var replyCount = Math.Max(0, discussion.PostCount - 1);
 }
 
-<article class="fp-card h-entry"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
-    <div class="fp-card-header">
+<article class="sn-card h-entry"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
+    <div class="sn-card-header">
         @if (Model.ShowUser)
         {
-            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="fp-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
-            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="fp-card-author p-author h-card"
+            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="sn-card-author p-author h-card"
                data-popup-type="user"
                data-popup-id="@discussion.Author.PublicId"
                data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
-            <span class="fp-card-dot">&middot;</span>
+            <span class="sn-card-dot">&middot;</span>
         }
-        <div class="tooltip tooltip-bottom" data-tip="Created at @FormatFullDateTime(discussion.CreatedAt?.ToDateTime())">
-            <time class="fp-card-time dt-published"
+        <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(discussion.CreatedAt?.ToDateTime())">
+            <time class="sn-card-time dt-published"
                   datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime(discussion.CreatedAt?.ToDateTime())</time>
         </div>
         @{
@@ -53,31 +53,31 @@
         @if (!string.IsNullOrEmpty(discussion.Type) && discussion.Type != "Standard")
         {
             var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
-            <span class="fp-card-type-badge @cssClass">@icon @label</span>
+            <span class="sn-card-type-badge @cssClass">@icon @label</span>
             @if (discussion.Type == "Poll" && pollPreview != null)
             {
-                <span class="fp-card-type-meta">(@pollPreview.TotalVotes votes)</span>
+                <span class="sn-card-type-meta">(@pollPreview.TotalVotes @T.Card.Votes)</span>
             }
             @if (discussion.Type == "Debate" && debatePreview != null)
             {
                 var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
-                <span class="fp-card-type-meta">(@totalPosts posts)</span>
+                <span class="sn-card-type-meta">(@totalPosts @T.Card.Posts)</span>
             }
             @if (discussion.Type == "Iama" && iamaPreview != null)
             {
-                var phaseLabel = iamaPreview.Phase switch { 0 => "Announced", 1 => "Live", 2 => "Closed", 3 => "Archived", _ => "" };
-                <span class="fp-card-type-meta">(@phaseLabel)</span>
+                var phaseLabel = iamaPreview.Phase switch { 0 => T.IamaPhase.Announced, 1 => T.IamaPhase.Live, 2 => T.IamaPhase.Closed, 3 => T.IamaPhase.Archived, _ => "" };
+                <span class="sn-card-type-meta">(@phaseLabel)</span>
             }
         }
     </div>
 
-    <div class="fp-card-title">
+    <div class="sn-card-title">
         <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
     </div>
 
     @if (pollPreview != null || debatePreview != null || (galleryPreview != null && galleryPreview.Items.Count > 0) || linkPreview != null || iamaPreview != null)
     {
-        <div class="fp-card-preview" data-discussion-url="@baseUrl">
+        <div class="sn-card-preview" data-discussion-url="@baseUrl">
             @if (pollPreview != null && pollPreview.Options.Count > 0)
             {
                 var totalVotes = pollPreview.TotalVotes;
@@ -86,12 +86,12 @@
 
                 @if (pollPreview.IsSecret && (pollPreview.ClosesAt == null || pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow))
                 {
-                    <div class="fp-poll-preview">
-                        <div class="text-xs text-base-content/50">🔒 Secret poll — results revealed when voting closes</div>
+                    <div class="sn-poll-preview">
+                        <div class="text-xs text-base-content/50">@T.Card.SecretPoll</div>
                         @if (pollPreview.ClosesAt != null && pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow)
                         {
-                            <div class="fp-iama-countdown" data-countdown-to="@pollPreview.ClosesAt.ToDateTime().ToString("o")">
-                                <span class="text-xs text-base-content/40">closes in</span>
+                            <div class="sn-iama-countdown" data-countdown-to="@pollPreview.ClosesAt.ToDateTime().ToString("o")">
+                                <span class="text-xs text-base-content/40">@T.Card.ClosesIn</span>
                                 <span class="countdown font-mono text-sm">
                                     <span data-unit="days" style="--value:0;">0</span>d
                                     <span data-unit="hours" style="--value:0;">0</span>h
@@ -108,28 +108,28 @@
                             "oklch(0.55 0.15 155)", "oklch(0.62 0.13 155)",
                             "oklch(0.69 0.11 155)", "oklch(0.55 0.12 200)"
                         };
-                    <div class="fp-poll-preview">
+                    <div class="sn-poll-preview">
                         @for (var i = 0; i < maxToShow; i++)
                         {
                             var option = sortedOptions[i];
                             var pct = totalVotes > 0 ? (int)Math.Round(100.0 * option.VoteCount / totalVotes) : 0;
                             var barColor = fpPollColors[i % fpPollColors.Length];
 
-                            <div class="fp-poll-option" style="--fp-poll-color: @barColor">
-                                <div class="fp-poll-label">
+                            <div class="sn-poll-option" style="--sn-poll-color: @barColor">
+                                <div class="sn-poll-label">
                                     <span>@option.Text</span>
-                                    <span class="fp-poll-stats">@(pct)% (@option.VoteCount)</span>
+                                    <span class="sn-poll-stats">@(pct)% (@option.VoteCount)</span>
                                 </div>
-                                <div class="fp-poll-row">
-                                    <div class="fp-poll-track">
-                                        <div class="fp-poll-fill" style="width: 0" data-poll-width="@(pct)%"></div>
+                                <div class="sn-poll-row">
+                                    <div class="sn-poll-track">
+                                        <div class="sn-poll-fill" style="width: 0" data-poll-width="@(pct)%"></div>
                                     </div>
                                 </div>
                             </div>
                         }
                         @if (pollPreview.Options.Count > 4)
                         {
-                            <span class="fp-poll-more">+@(pollPreview.Options.Count - 4) more</span>
+                            <span class="sn-poll-more">@string.Format(T.Card.MorePollOptions, pollPreview.Options.Count - 4)</span>
                         }
                     </div>
                 }
@@ -141,8 +141,8 @@
                 var debateColors = new[] { "var(--link-primary)", "var(--border-subtle)", "var(--text-tertiary)" };
                 var debateEqualPct = (int)Math.Round(100.0 / Math.Max(1, sortedPositions.Count));
 
-                <div class="fp-debate-preview">
-                    <div class="fp-debate-bar">
+                <div class="sn-debate-preview">
+                    <div class="sn-debate-bar">
                         @for (var i = 0; i < sortedPositions.Count; i++)
                         {
                             var position = sortedPositions[i];
@@ -155,7 +155,7 @@
                                 : isLast ? "0 0.25rem 0.25rem 0"
                                 : "0";
 
-                            <div class="fp-debate-segment"
+                            <div class="sn-debate-segment"
                                  style="width: @(debateEqualPct)%; background: @color; border-radius: @radius;"
                                  data-debate-width="@(pct)%"
                                  title="@position.Label: @(totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0)%">
@@ -166,15 +166,15 @@
                             </div>
                         }
                     </div>
-                    <div class="fp-debate-labels">
+                    <div class="sn-debate-labels">
                         @for (var i = 0; i < sortedPositions.Count; i++)
                         {
                             var position = sortedPositions[i];
                             var pct = totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0;
                             var color = debateColors[i % debateColors.Length];
 
-                            <span class="fp-debate-label">
-                                <span class="fp-debate-dot" style="background: @color;"></span>
+                            <span class="sn-debate-label">
+                                <span class="sn-debate-dot" style="background: @color;"></span>
                                 @position.Label @(pct)%
                             </span>
                         }
@@ -209,7 +209,7 @@
                     var afterBlur = afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "";
                     var beforeBg = beforeImg.HasBlurDataUri ? $"background-image:url({beforeBlur});background-size:cover;background-position:center" : "";
                     var afterBg = afterImg.HasBlurDataUri ? $"background-image:url({afterBlur});background-size:cover;background-position:center" : "";
-                    // Same sizing pattern as .fp-images-preview: outer is full column
+                    // Same sizing pattern as .sn-images-preview: outer is full column
                     // width with the first image's blur as a backdrop, inner frame is
                     // sized to the image's actual dimensions (capped at max-height 600px
                     // in CSS) so the blur bleed shows on sides/top-bottom when the
@@ -219,16 +219,16 @@
                         ? $"aspect-ratio: {beforeW} / {beforeH}; max-width: {beforeW}px;"
                         : "";
 
-                    <div class="fp-compare-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@compareOuterStyle" data-discussion-id="@discussion.PublicId">
-                      <div class="fp-compare-frame" style="@compareFrameStyle">
-                        <div class="gup-compare fp-compare-widget">
+                    <div class="sn-compare-preview @(gpSpoiler ? "sn-images-spoiler" : "")" style="@compareOuterStyle" data-discussion-id="@discussion.PublicId">
+                      <div class="sn-compare-frame" style="@compareFrameStyle">
+                        <div class="gup-compare sn-compare-widget">
                             <div class="gup-compare-after images-upload-item" style="@afterBg">
                                 @if (gpSpoiler && afterImg.HasBlurDataUri) {
                                     <img src="@afterBlur" data-deferred-src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 } else {
                                     <img src="@afterSrc" data-full="@afterImg.Url" width="@afterW" height="@afterH" alt="After" decoding="async" loading="lazy" />
                                 }
-                                <span class="gup-compare-label gup-compare-label-after">After</span>
+                                <span class="gup-compare-label gup-compare-label-after">@T.Card.After</span>
                             </div>
                             <div class="gup-compare-before images-upload-item" style="@beforeBg">
                                 @if (gpSpoiler && beforeImg.HasBlurDataUri) {
@@ -236,24 +236,24 @@
                                 } else {
                                     <img src="@beforeSrc" data-full="@beforeImg.Url" width="@beforeW" height="@beforeH" alt="Before" decoding="async" loading="lazy" />
                                 }
-                                <span class="gup-compare-label gup-compare-label-before">Before</span>
+                                <span class="gup-compare-label gup-compare-label-before">@T.Card.Before</span>
                             </div>
-                            <div class="gup-compare-slider fp-compare-slider">
+                            <div class="gup-compare-slider sn-compare-slider">
                                 <div class="gup-compare-line"></div>
                                 <div class="gup-compare-handle">
                                     <span class="icon icon-chevron-left" style="width:20px;height:20px" aria-hidden="true"></span>
                                     <span class="icon icon-chevron-right" style="width:20px;height:20px" aria-hidden="true"></span>
                                 </div>
                             </div>
-                            <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
+                            <button type="button" class="sn-images-expand-btn" aria-label="@T.Card.ViewFullscreen">
                                 <span class="icon icon-expand-fullscreen w-3.5 h-3.5" aria-hidden="true"></span>
                             </button>
                         </div>
                         @if (gpSpoiler) {
-                            <div class="fp-images-spoiler-overlay">
-                                <button type="button" class="images-spoiler-btn fp-spoiler-reveal">
+                            <div class="sn-images-spoiler-overlay">
+                                <button type="button" class="images-spoiler-btn sn-spoiler-reveal">
                                     <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
-                                    Reveal images
+                                    @T.Card.RevealImages
                                 </button>
                             </div>
                         }
@@ -275,19 +275,19 @@
                         ? $"aspect-ratio: {firstW} / {firstH}; max-width: {firstW}px;"
                         : "";
 
-                    <div class="fp-images-preview @(gpSpoiler ? "fp-images-spoiler" : "")" style="@outerStyle" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
-                      <div class="fp-images-frame" style="@frameStyle">
-                        <div class="fp-images-track">
+                    <div class="sn-images-preview @(gpSpoiler ? "sn-images-spoiler" : "")" style="@outerStyle" data-image-count="@images.Count" data-discussion-id="@discussion.PublicId">
+                      <div class="sn-images-frame" style="@frameStyle">
+                        <div class="sn-images-track">
                             @for (var i = 0; i < images.Count; i++)
                             {
                                 var img = images[i];
                                 var (src, imgW, imgH) = bestSrcDim(img);
                                 var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
 
-                                <div class="fp-images-slide-wrapper" style="@(blur != null ? $"background-image:url({blur})" : "")">
+                                <div class="sn-images-slide-wrapper" style="@(blur != null ? $"background-image:url({blur})" : "")">
                                     @if (gpSpoiler && blur != null)
                                     {
-                                        <img class="fp-images-slide"
+                                        <img class="sn-images-slide"
                                              src="@blur"
                                              data-deferred-src="@src"
                                              data-full="@img.Url"
@@ -296,7 +296,7 @@
                                     }
                                     else if (i == 0)
                                     {
-                                        <img class="fp-images-slide"
+                                        <img class="sn-images-slide"
                                              src="@src"
                                              data-src="@src"
                                              data-full="@img.Url"
@@ -306,7 +306,7 @@
                                     }
                                     else
                                     {
-                                        <img class="fp-images-slide"
+                                        <img class="sn-images-slide"
                                              data-src="@src"
                                              data-full="@img.Url"
                                              width="@imgW" height="@imgH"
@@ -317,28 +317,28 @@
                         </div>
                         @if (images.Count > 1)
                         {
-                            <button class="fp-images-btn fp-images-prev" type="button" aria-label="Previous">
+                            <button class="sn-images-btn sn-images-prev" type="button" aria-label="@T.Card.Previous">
                                 <span class="icon icon-chevron-left" aria-hidden="true"></span>
                             </button>
-                            <button class="fp-images-btn fp-images-next" type="button" aria-label="Next"
+                            <button class="sn-images-btn sn-images-next" type="button" aria-label="@T.Card.Next"
                                     @if (secondSrc != null) { <text>data-preload="@secondSrc"</text> }>
                                 <span class="icon icon-chevron-right" aria-hidden="true"></span>
                             </button>
-                            <span class="fp-images-counter">1 / @images.Count</span>
+                            <span class="sn-images-counter">1 / @images.Count</span>
                         }
                         @if (gpSpoiler)
                         {
-                            <div class="fp-images-spoiler-overlay">
-                                <button type="button" class="images-spoiler-btn fp-spoiler-reveal">
+                            <div class="sn-images-spoiler-overlay">
+                                <button type="button" class="images-spoiler-btn sn-spoiler-reveal">
                                     <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
-                                    Reveal images
+                                    @T.Card.RevealImages
                                 </button>
                             </div>
                         }
                       </div>
-                      @* Expand button is a direct child of .fp-images-preview (not .fp-images-frame)
+                      @* Expand button is a direct child of .sn-images-preview (not .sn-images-frame)
                          so it anchors to the full-column-width blur container, not the inner image frame. *@
-                      <button type="button" class="fp-images-expand-btn" aria-label="View fullscreen">
+                      <button type="button" class="sn-images-expand-btn" aria-label="@T.Card.ViewFullscreen">
                           <span class="icon icon-expand-fullscreen w-3.5 h-3.5" aria-hidden="true"></span>
                       </button>
                     </div>
@@ -351,44 +351,44 @@
             }
             @if (iamaPreview != null)
             {
-                var iamaPhaseLabel = iamaPreview.Phase switch { 0 => "Announced", 1 => "Live", 2 => "Closed", 3 => "Archived", _ => "Unknown" };
-                var iamaPhaseClass = iamaPreview.Phase switch { 0 => "fp-iama-phase--announced", 1 => "fp-iama-phase--live", 2 => "fp-iama-phase--closed", 3 => "fp-iama-phase--archived", _ => "" };
+                var iamaPhaseLabel = iamaPreview.Phase switch { 0 => T.IamaPhase.Announced, 1 => T.IamaPhase.Live, 2 => T.IamaPhase.Closed, 3 => T.IamaPhase.Archived, _ => T.IamaPhase.Unknown };
+                var iamaPhaseClass = iamaPreview.Phase switch { 0 => "sn-iama-phase--announced", 1 => "sn-iama-phase--live", 2 => "sn-iama-phase--closed", 3 => "sn-iama-phase--archived", _ => "" };
                 DateTime? countdownTarget = null;
                 string? countdownLabel = null;
                 if (iamaPreview.Phase == 0 && iamaPreview.ScheduledStartUtc != null)
                 {
                     countdownTarget = iamaPreview.ScheduledStartUtc.ToDateTime();
-                    countdownLabel = "starts in";
+                    countdownLabel = T.Card.StartsIn;
                 }
                 else if (iamaPreview.Phase == 1 && iamaPreview.ScheduledEndUtc != null)
                 {
                     countdownTarget = iamaPreview.ScheduledEndUtc.ToDateTime();
-                    countdownLabel = "ends in";
+                    countdownLabel = T.Card.EndsIn;
                 }
 
-                <div class="fp-iama-preview">
-                    <div class="fp-iama-header">
-                        <span class="fp-iama-phase @iamaPhaseClass">@iamaPhaseLabel</span>
+                <div class="sn-iama-preview">
+                    <div class="sn-iama-header">
+                        <span class="sn-iama-phase @iamaPhaseClass">@iamaPhaseLabel</span>
                         @if (iamaPreview.IsVerified)
                         {
-                            <span class="fp-iama-verified" title="Verified">
+                            <span class="sn-iama-verified" title="@T.Card.Verified">
                                 <span class="icon icon-verified-check w-3.5 h-3.5" aria-hidden="true"></span>
-                                Verified
+                                @T.Card.Verified
                             </span>
                         }
                         @if (iamaPreview.OfficialAnswerCount > 0)
                         {
-                            <span class="fp-iama-stat">@iamaPreview.OfficialAnswerCount official @(iamaPreview.OfficialAnswerCount == 1 ? "answer" : "answers")</span>
+                            <span class="sn-iama-stat">@iamaPreview.OfficialAnswerCount @(iamaPreview.OfficialAnswerCount == 1 ? T.Card.OfficialAnswerOne : T.Card.OfficialAnswerOther)</span>
                         }
                         @if (iamaPreview.BestQuestionCount > 0)
                         {
-                            <span class="fp-iama-stat">@iamaPreview.BestQuestionCount best @(iamaPreview.BestQuestionCount == 1 ? "question" : "questions")</span>
+                            <span class="sn-iama-stat">@iamaPreview.BestQuestionCount @(iamaPreview.BestQuestionCount == 1 ? T.Card.BestQuestionOne : T.Card.BestQuestionOther)</span>
                         }
                     </div>
                     @if (countdownTarget.HasValue && countdownTarget.Value > DateTime.UtcNow)
                     {
-                        <div class="fp-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
-                            <span class="fp-iama-countdown-label">@countdownLabel</span>
+                        <div class="sn-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
+                            <span class="sn-iama-countdown-label">@countdownLabel</span>
                             <span class="countdown font-mono text-lg">
                                 <span data-unit="days" style="--value:0;" aria-live="polite">0</span>d
                                 <span data-unit="hours" style="--value:0;" aria-live="polite">0</span>h
@@ -404,21 +404,21 @@
                 var linkThumbSrc = linkPreview.HasImageThumbnailUrl ? linkPreview.ImageThumbnailUrl
                     : linkPreview.HasImagePathUrl ? linkPreview.ImagePathUrl
                     : linkPreview.HasImageUrl ? linkPreview.ImageUrl : null;
-                <a href="@linkPreview.Url" target="_blank" rel="nofollow noopener noreferrer" class="fp-link-card">
+                <a href="@linkPreview.Url" target="_blank" rel="nofollow noopener noreferrer" class="sn-link-card">
                     @if (linkThumbSrc != null)
                     {
-                        <img src="@linkThumbSrc" alt="" class="fp-link-card-img" loading="lazy" decoding="async" />
+                        <img src="@linkThumbSrc" alt="" class="sn-link-card-img" loading="lazy" decoding="async" />
                     }
-                    <div class="fp-link-card-content">
+                    <div class="sn-link-card-content">
                         @if (linkPreview.HasTitle)
                         {
-                            <span class="fp-link-card-title">@linkPreview.Title</span>
+                            <span class="sn-link-card-title">@linkPreview.Title</span>
                         }
                         @if (linkPreview.HasDescription)
                         {
-                            <span class="fp-link-card-desc">@linkPreview.Description</span>
+                            <span class="sn-link-card-desc">@linkPreview.Description</span>
                         }
-                        <span class="fp-link-card-domain">
+                        <span class="sn-link-card-domain">
                             <span class="icon icon-external-link w-2.5 h-2.5" aria-hidden="true"></span>
                             @(linkPreview.HasDomain ? linkPreview.Domain : linkPreview.Url)
                         </span>
@@ -433,65 +433,65 @@
         var isOp = discussion.LastReplier.PublicId == discussion.Author.PublicId;
         var rawExcerpt = discussion.LastPostExcerpt;
         var excerpt = rawExcerpt?.Length > 100 ? rawExcerpt[..100] + "…" : rawExcerpt;
-        <div class="fp-card-reply-strip">
-            <a href="@baseUrl#post-@discussion.PostCount" class="fp-card-reply-strip-link" aria-label="Jump to last reply" tabindex="-1"></a>
-            <div class="fp-card-reply-meta">
+        <div class="sn-card-reply-strip">
+            <a href="@baseUrl#post-@discussion.PostCount" class="sn-card-reply-strip-link" aria-label="@T.Card.JumpToLastReply" tabindex="-1"></a>
+            <div class="sn-card-reply-meta">
                 @if (!string.IsNullOrEmpty(excerpt))
                 {
                     <span class="icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
-                    <span class="fp-card-reply-excerpt">"@excerpt"</span>
-                    <span class="fp-card-dot">&middot;</span>
+                    <span class="sn-card-reply-excerpt">"@excerpt"</span>
+                    <span class="sn-card-dot">&middot;</span>
                 }
-                <div class="tooltip tooltip-top" data-tip="Replied at @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
-                    <time class="fp-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
+                <div class="tooltip tooltip-top" data-tip="@T.Card.RepliedAt @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
+                    <time class="sn-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
                 </div>
-                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="fp-card-reply-avatar" width="16" height="16" loading="lazy" decoding="async" />
+                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar" width="16" height="16" loading="lazy" decoding="async" />
                 <a href="@SnakkUrlHelper.UserProfile(discussion.LastReplier.PublicId)"
-                   class="fp-card-reply-username"
+                   class="sn-card-reply-username"
                    data-popup-type="user"
                    data-popup-id="@discussion.LastReplier.PublicId"
                    data-popup-name="@discussion.LastReplier.DisplayName">@discussion.LastReplier.DisplayName</a>
-                @if (isOp) { <span class="fp-card-op-badge">OP</span> }
+                @if (isOp) { <span class="sn-card-op-badge">OP</span> }
             </div>
         </div>
     }
-    <div class="fp-card-stats">
-        <span class="fp-card-path">
+    <div class="sn-card-stats">
+        <span class="sn-card-path">
             @if (Model.ShowCommunity)
             {
-                <a href="@communityUrl" class="fp-card-path-link"
+                <a href="@communityUrl" class="sn-card-path-link"
                    data-popup-type="community"
                    data-popup-id="@discussion.Community.PublicId"
                    data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
-                <span class="fp-card-path-sep">&rsaquo;</span>
+                <span class="sn-card-path-sep">&rsaquo;</span>
             }
-            <a href="@hubUrl" class="fp-card-path-link"
+            <a href="@hubUrl" class="sn-card-path-link"
                data-popup-type="hub"
                data-popup-id="@discussion.Hub.PublicId"
                data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
-            <span class="fp-card-path-sep">&rsaquo;</span>
-            <a href="@spaceUrl" class="fp-card-tag"
+            <span class="sn-card-path-sep">&rsaquo;</span>
+            <a href="@spaceUrl" class="sn-card-tag"
                data-popup-type="space"
                data-popup-id="@discussion.Space.PublicId"
                data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
         </span>
         @if (discussion.ReactionCount > 0)
         {
-            <span class="fp-card-stat fp-card-reactions">
-                <span class="fp-reaction-emoji">❤️</span>
+            <span class="sn-card-stat sn-card-reactions">
+                <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
                 @discussion.ReactionCount
             </span>
         }
-        <a href="@baseUrl" class="fp-card-stat fp-card-comments">
+        <a href="@baseUrl" class="sn-card-stat sn-card-comments">
             <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
-            @replyCount comments
+            @replyCount @T.Card.Comments
         </a>
         @if (Model.UnfollowId != null)
         {
             <button type="button" class="btn btn-ghost btn-xs ml-auto shrink-0"
                     data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
-                    title="Unsubscribe">
-                Subscribed
+                    title="@T.Card.Unsubscribe">
+                @T.Card.Subscribed
             </button>
         }
     </div>

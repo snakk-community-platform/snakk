@@ -8,16 +8,16 @@
                 const el = entry.target as HTMLElement;
                 if (el.hasAttribute('data-animated')) continue;
                 el.setAttribute('data-animated', '');
-                (el.querySelectorAll<HTMLElement>('.fp-poll-fill[data-poll-width]')).forEach((fill, i) => {
+                (el.querySelectorAll<HTMLElement>('.sn-poll-fill[data-poll-width]')).forEach((fill, i) => {
                     setTimeout(() => { fill.style.width = fill.dataset.pollWidth!; }, i * 50);
                 });
-                (el.querySelectorAll<HTMLElement>('.fp-debate-segment[data-debate-width]')).forEach(seg => {
+                (el.querySelectorAll<HTMLElement>('.sn-debate-segment[data-debate-width]')).forEach(seg => {
                     seg.style.width = seg.dataset.debateWidth!;
                 });
                 obs.unobserve(el);
             }
         }, { threshold: 0.3 });
-        document.querySelectorAll<HTMLElement>('.fp-poll-preview:not([data-animated]),.fp-debate-preview:not([data-animated])').forEach(el => observer.observe(el));
+        document.querySelectorAll<HTMLElement>('.sn-poll-preview:not([data-animated]),.sn-debate-preview:not([data-animated])').forEach(el => observer.observe(el));
     }
 
     if (document.readyState === 'loading') {

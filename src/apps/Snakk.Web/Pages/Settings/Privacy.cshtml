@@ -3,8 +3,8 @@
 @model Snakk.Web.Pages.Settings.PrivacyModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Privacy & Security Settings";
-    ViewData["AuthPrompt.Title"] = "Sign in to access settings";
+    ViewData["Title"] = T.Settings.TitlePrivacy;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
 @section LeftColumn {
@@ -12,25 +12,25 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    <div class="fp-center-inner">
+<div class="sn-center">
+    <div class="sn-center-inner">
         @if (User.Identity?.IsAuthenticated != true)
         {
             <partial name="Shared/_AuthPrompt" />
         }
         else
         {
-        <h2 class="fp-section-title">
+        <h2 class="sn-section-title">
             <span class="icon icon-lock-closed" aria-hidden="true"></span>
-            Privacy &amp; Security
+            @T.Settings.HeadingPrivacy
         </h2>
-        <div class="fp-settings-content">
+        <div class="sn-settings-content">
 
             <!-- Trusted Devices -->
-            <div id="section-devices" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Trusted Devices</h3>
+            <div id="section-devices" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivDevicesTitle</h3>
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
-                    Devices that have been trusted for this account. Revoking a device will require re-authentication on that device.
+                    @T.Settings.PrivDevicesHelp
                 </p>
                 <div id="devices-list">
                     <div class="flex justify-center py-4">
@@ -40,33 +40,33 @@
             </div>
 
             <!-- Email -->
-            <div id="section-email" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Email</h3>
+            <div id="section-email" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivEmailTitle</h3>
                 <div class="flex flex-col gap-2 text-sm">
                     <div class="flex items-center gap-2">
-                        <span style="color: var(--text-tertiary)">Email</span>
+                        <span style="color: var(--text-tertiary)">@T.Settings.PrivEmailLabel</span>
                         <span class="profile-email font-medium"></span>
                         <span class="profile-email-badge badge badge-sm shrink-0"></span>
                     </div>
                     <div class="flex items-center gap-2 profile-oauth-row" style="display: none;">
-                        <span style="color: var(--text-tertiary)">Sign in via</span>
+                        <span style="color: var(--text-tertiary)">@T.Settings.PrivSignInVia</span>
                         <span class="capitalize profile-oauth font-medium"></span>
                     </div>
                 </div>
             </div>
 
             <!-- Password -->
-            <div id="section-password" class="fp-settings-section">
-                <h3 class="fp-settings-section-title">Password</h3>
+            <div id="section-password" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivPasswordTitle</h3>
                 <p class="text-sm mb-3" style="color: var(--text-tertiary)">
-                    Change your password. You will need your current password to set a new one.
+                    @T.Settings.PrivPasswordHelp
                 </p>
                 <form id="change-password-form" class="flex flex-col gap-3">
-                    <input type="password" name="currentPassword" class="input w-full" placeholder="Current password" autocomplete="current-password" />
-                    <input type="password" name="newPassword" class="input w-full" placeholder="New password" autocomplete="new-password" />
-                    <input type="password" name="confirmPassword" class="input w-full" placeholder="Confirm new password" autocomplete="new-password" />
+                    <input type="password" name="currentPassword" class="input w-full" placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />
+                    <input type="password" name="newPassword" class="input w-full" placeholder="@T.Settings.PrivNewPwdPlaceholder" autocomplete="new-password" />
+                    <input type="password" name="confirmPassword" class="input w-full" placeholder="@T.Settings.PrivConfirmPwdPlaceholder" autocomplete="new-password" />
                     <div>
-                        <button type="submit" class="btn btn-primary btn-sm" id="change-password-btn">Change Password</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="change-password-btn">@T.Settings.PrivChangePwdBtn</button>
                     </div>
                 </form>
             </div>
@@ -76,7 +76,7 @@
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 

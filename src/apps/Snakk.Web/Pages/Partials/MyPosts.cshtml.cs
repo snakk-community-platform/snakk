@@ -14,6 +14,7 @@ public class MyPostsModel(
     public ICommunityContext Community => communityContext;
     public List<PostListItemVM> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
+    public int Offset { get; set; }
     public int NextOffset { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 20)
@@ -26,6 +27,7 @@ public class MyPostsModel(
             return Content("", "text/html");
 
         pageSize = Math.Clamp(pageSize, 1, 50);
+        Offset = offset;
 
         try
         {

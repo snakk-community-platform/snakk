@@ -38,7 +38,7 @@
             setValue(c.hours, 0);
             setValue(c.minutes, 0);
             setValue(c.seconds, 0);
-            c.root.classList.add('fp-iama-countdown--expired');
+            c.root.classList.add('sn-iama-countdown--expired');
             return false; // expired, stop ticking this one
         }
 

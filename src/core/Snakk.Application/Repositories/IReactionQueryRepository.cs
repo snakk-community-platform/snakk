@@ -5,6 +5,7 @@ using Snakk.Shared.Models;
 public interface IReactionQueryRepository
 {
     Task<PagedResult<ReactedPostDto>> GetReactedPostsByUserAsync(string userId, int offset, int pageSize);
+    Task<PagedResult<ReactedPostDto>> GetReactedDiscussionsByUserAsync(string userId, int offset, int pageSize);
 }
 
 public record ReactedPostDto(

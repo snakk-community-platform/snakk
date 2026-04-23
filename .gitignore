@@ -87,6 +87,10 @@ secrets.json
 **/wwwroot/css/styles.css
 **/wwwroot/css/tailwind.css
 
+# Generated i18n code (rebuilt from Locales/*.json)
+src/apps/Snakk.Web/Helpers/T.g.cs
+src/apps/Snakk.Web/Scripts/locales/t.g.ts
+
 # Temp/error files
 nul
 0

@@ -3,13 +3,13 @@
 @model Snakk.Web.Pages.Spaces.NewDiscussionBaseModel
 @inject Snakk.Web.Services.ICommunityContext CommunityCtx
 
-<aside class="fp-right">
-<div class="fp-right-sticky">
-    <div class="fp-right-body">
+<aside class="sn-right">
+<div class="sn-right-sticky">
+    <div class="sn-right-body">
 
         @if (Model.SpaceStats != null)
         {
-        <div class="fp-right-section">
+        <div class="sn-right-section">
             <div class="flex gap-2">
                 <div class="stats shadow flex-1">
                     <div class="stat">
@@ -33,8 +33,8 @@
         </div>
         }
 
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-info-circle" aria-hidden="true"></span>
                 About @Model.Space!.Name
             </div>
@@ -46,8 +46,8 @@
 
         @if (Model.Space.HasRules)
         {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-document-text" aria-hidden="true"></span>
                 Space Rules
             </div>
@@ -62,8 +62,8 @@
         </div>
         }
 
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-shield-check" aria-hidden="true"></span>
                 Space Moderators
             </div>

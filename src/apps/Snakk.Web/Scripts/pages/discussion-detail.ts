@@ -499,7 +499,7 @@ const reactionTypeValues: Record<string, number> = {
 };
 let reactionPickerHideTimer: ReturnType<typeof setTimeout> | null = null;
 
-const smileyPlaceholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+const smileyPlaceholderSvg = '<span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>';
 
 // Read reaction counts from JSON data-attribute
 function getReactionCounts(el: HTMLElement): Record<string, number> {
@@ -1914,7 +1914,7 @@ function initThreadNav(config: DiscussionConfig): void {
 
     const input = document.getElementById('thread-nav-input') as HTMLInputElement | null;
     const totalEl = document.getElementById('thread-nav-total');
-    const centerCol = document.querySelector('.fp-center') as HTMLElement | null;
+    const centerCol = document.querySelector('.sn-center') as HTMLElement | null;
     let progressFill: HTMLElement | null = null;
     if (centerCol) {
         // Remove previous progress bar if any (HTMX navigation)

@@ -117,6 +117,7 @@ message GetRecentDiscussionsRequest {
   optional string cursor = 5;
   optional string author_id = 6;
   optional string space_id = 7;
+  repeated string space_ids = 8;
 }
 
 message GetTrendingDiscussionsRequest {

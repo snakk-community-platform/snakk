@@ -1,16 +1,16 @@
 @page
 @model PrivacyModel
 @{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = T.Pages.PrivacyTitle;
 }
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/">Home</a>
+        <a href="/">@T.Pages.PrivacyHome</a>
     </nav>
 </div>
 <div class="max-w-4xl mx-auto px-4 py-8">
     <h1>@ViewData["Title"]</h1>
 
-    <p>Use this page to detail your site's privacy policy.</p>
+    <p>@T.Pages.PrivacyBody</p>
 </div>

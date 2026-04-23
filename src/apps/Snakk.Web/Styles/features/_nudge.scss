@@ -1,4 +1,4 @@
-.fp-registration-nudge {
+.sn-registration-nudge {
     max-width: 22rem;
     margin: 2rem auto;
     padding: 2rem;
@@ -9,7 +9,7 @@
     gap: 0.75rem;
 }
 
-.fp-nudge-icon {
+.sn-nudge-icon {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
@@ -21,20 +21,20 @@
     color: var(--text-tertiary);
 }
 
-.fp-nudge-title {
+.sn-nudge-title {
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
 }
 
-.fp-nudge-body {
+.sn-nudge-body {
     font-size: 0.875rem;
     color: var(--text-secondary);
     margin: 0;
 }
 
-.fp-nudge-oauth {
+.sn-nudge-oauth {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -42,7 +42,7 @@
     margin-top: 0.25rem;
 }
 
-.fp-nudge-oauth-btn {
+.sn-nudge-oauth-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -60,7 +60,7 @@
     &:hover { background: var(--bg-secondary); }
 }
 
-.fp-nudge-divider {
+.sn-nudge-divider {
     position: relative;
     width: 100%;
     text-align: center;
@@ -79,7 +79,7 @@
     &::after  { right: 0; }
 }
 
-.fp-nudge-login-link {
+.sn-nudge-login-link {
     font-size: 0.8125rem;
     color: var(--text-tertiary);
     margin: 0;
@@ -88,7 +88,7 @@
     a:hover { text-decoration: underline; }
 }
 
-.fp-nav-lock {
+.sn-nav-lock {
     width: 0.625rem;
     height: 0.625rem;
     margin-left: auto;

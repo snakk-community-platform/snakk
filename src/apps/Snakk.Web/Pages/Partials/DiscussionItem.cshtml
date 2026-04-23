@@ -27,7 +27,7 @@
         <div class="topic-stats hidden sm:flex">
             <div class="topic-stat">
                 <div class="topic-stat-icon">
-                    <span class="icon icon-emoji-happy" style="width:18px;height:18px" aria-hidden="true"></span>
+                    <span class="icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
                 </div>
                 <div class="topic-stat-value">0</div>
             </div>
@@ -41,11 +41,11 @@
     </div>
     <button class="preview-btn"
             data-discussion-id="@discussion.PublicId"
-            title="Preview first post"
+            title="@T.Pages.PartialPreviewFirstPost"
             type="button">
         <span class="icon icon-chevron-down" style="width:18px;height:18px" aria-hidden="true"></span>
     </button>
-    <a href="@unreadUrl" class="topic-latest-link" title="Jump to first unread post">
+    <a href="@unreadUrl" class="topic-latest-link" title="@T.Pages.PartialJumpToUnread">
         <span class="icon icon-chevron-down chevron-right" style="width:18px;height:18px" aria-hidden="true"></span>
     </a>
     <div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">

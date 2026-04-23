@@ -2,15 +2,15 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Moderation.ReportDetailModel
 @{
-    ViewData["Title"] = "Report Details";
+    ViewData["Title"] = T.Pages.ModReportDetailTitle;
 }
 
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/moderation">Moderation</a>
+        <a href="/moderation">@T.Pages.ModCrumb</a>
         <span class="breadcrumb-separator">/</span>
-        <a href="/moderation/reports">Reports</a>
+        <a href="/moderation/reports">@T.Pages.ModReportDetailReports</a>
     </nav>
 </div>
 <div class="max-w-4xl mx-auto px-4 py-8">
@@ -18,9 +18,9 @@
     {
         <div class="clean-card">
             <div class="empty-state-simple">
-                <h3>Report not found</h3>
-                <p>This report may have been deleted or you don't have access to it.</p>
-                <a href="/moderation/reports" class="btn btn-primary mt-4">Back to Reports</a>
+                <h3>@T.Pages.ModReportDetailNotFound</h3>
+                <p>@T.Pages.ModReportDetailNotFoundBody</p>
+                <a href="/moderation/reports" class="btn btn-primary mt-4">@T.Pages.ModReportDetailBackToReports</a>
             </div>
         </div>
     }
@@ -30,20 +30,20 @@
         <div class="flex items-start justify-between mb-6">
             <div>
                 <div class="flex items-center gap-3 mb-2">
-                    <h1 class="text-2xl font-bold">Report</h1>
+                    <h1 class="text-2xl font-bold">@T.Pages.ModReportDetailHeading</h1>
                     <span class="badge @Model.GetStatusBadgeClass(Model.Report.Status) badge-lg">@Model.Report.Status</span>
                 </div>
-                <p class="text-muted">Submitted @Model.GetRelativeTime(Model.Report.CreatedAt)</p>
+                <p class="text-muted">@T.Pages.ModReportDetailSubmitted@Model.GetRelativeTime(Model.Report.CreatedAt)</p>
             </div>
             @if (Model.Report.Status == "Pending")
             {
                 <div class="flex gap-2">
                     <button data-modal-open="resolve-modal" class="btn btn-success btn-sm">
                         <span class="icon icon-check h-4 w-4" aria-hidden="true"></span>
-                        Resolve
+                        @T.Pages.ModReportDetailResolveBtn
                     </button>
                     <button data-modal-open="dismiss-modal" class="btn btn-ghost btn-sm">
-                        Dismiss
+                        @T.Pages.ModReportDetailDismissBtn
                     </button>
                 </div>
             }
@@ -54,7 +54,7 @@
             <div class="md:col-span-2 space-y-4">
                 <!-- Reporter Info -->
                 <div class="clean-card">
-                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Reporter</h2>
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailReporter</h2>
                     <div class="flex items-center gap-3">
                         <img src="@SnakkUrlHelper.UserAvatar(Model.Report.ReporterUserPublicId)"
                              alt="@Model.Report.ReporterUserDisplayName"
@@ -68,7 +68,7 @@
 
                 <!-- Reported Content -->
                 <div class="clean-card">
-                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Reported Content</h2>
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailReportedContent</h2>
 
                     @if (!string.IsNullOrEmpty(Model.Report.ReportedUserPublicId))
                     {
@@ -78,7 +78,7 @@
                                  width="40" height="40"
                                  class="w-10 h-10 rounded-full" />
                             <div>
-                                <div class="text-xs text-muted mb-1">Reported User</div>
+                                <div class="text-xs text-muted mb-1">@T.Pages.ModReportDetailReportedUser</div>
                                 <a href="@SnakkUrlHelper.UserProfile(Model.Report.ReportedUserPublicId)" class="font-medium hover:underline">@Model.Report.ReportedUserDisplayName</a>
                             </div>
                         </div>
@@ -86,7 +86,7 @@
                     else if (!string.IsNullOrEmpty(Model.Report.ReportedPostContent))
                     {
                         <div class="p-3 bg-base-200 rounded-lg">
-                            <div class="text-xs text-muted mb-2">Reported Post</div>
+                            <div class="text-xs text-muted mb-2">@T.Pages.ModReportDetailReportedPost</div>
                             <div class="prose prose-sm max-w-none">
                                 @Model.Report.ReportedPostContent
                             </div>
@@ -95,7 +95,7 @@
                     else if (!string.IsNullOrEmpty(Model.Report.ReportedDiscussionTitle))
                     {
                         <div class="p-3 bg-base-200 rounded-lg">
-                            <div class="text-xs text-muted mb-2">Reported Discussion</div>
+                            <div class="text-xs text-muted mb-2">@T.Pages.ModReportDetailReportedDiscussion</div>
                             <div class="font-medium">@Model.Report.ReportedDiscussionTitle</div>
                         </div>
                     }
@@ -103,12 +103,12 @@
 
                 <!-- Report Reason & Details -->
                 <div class="clean-card">
-                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Report Details</h2>
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailReportDetails</h2>
 
                     @if (!string.IsNullOrEmpty(Model.Report.ReasonName))
                     {
                         <div class="mb-3">
-                            <div class="text-xs text-muted mb-1">Reason</div>
+                            <div class="text-xs text-muted mb-1">@T.Pages.ModReportDetailReason</div>
                             <span class="badge badge-outline">@Model.Report.ReasonName</span>
                             @if (!string.IsNullOrEmpty(Model.Report.ReasonDescription))
                             {
@@ -120,7 +120,7 @@
                     @if (!string.IsNullOrEmpty(Model.Report.Details))
                     {
                         <div>
-                            <div class="text-xs text-muted mb-1">Additional Details</div>
+                            <div class="text-xs text-muted mb-1">@T.Pages.ModReportDetailAdditional</div>
                             <p class="text-sm">@Model.Report.Details</p>
                         </div>
                     }
@@ -130,7 +130,7 @@
                 @if (Model.Report.ResolvedAt.HasValue)
                 {
                     <div class="clean-card border-l-4 @(Model.Report.Status == "Resolved" ? "border-success" : "border-base-300")">
-                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Resolution</h2>
+                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailResolution</h2>
                         <div class="flex items-center gap-3 mb-2">
                             @if (!string.IsNullOrEmpty(Model.Report.ResolvedByUserPublicId))
                             {
@@ -141,7 +141,7 @@
                             }
                             <div>
                                 <span class="font-medium">@Model.Report.ResolvedByUserDisplayName</span>
-                                <span class="text-muted">@(Model.Report.Status == "Resolved" ? "resolved" : "dismissed") this report</span>
+                                <span class="text-muted">@(Model.Report.Status == "Resolved" ? T.Pages.ModReportDetailResolvedVerb : T.Pages.ModReportDetailDismissedVerb)@T.Pages.ModReportDetailThisReport</span>
                             </div>
                             <span class="text-xs text-muted ml-auto">@Model.GetRelativeTime(Model.Report.ResolvedAt.Value)</span>
                         </div>
@@ -155,7 +155,7 @@
                 <!-- Comments -->
                 <div class="clean-card">
                     <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-                        Moderator Comments
+                        @T.Pages.ModReportDetailComments
                         @if (Model.Report.Comments?.Any() == true)
                         {
                             <span class="badge badge-ghost badge-sm ml-2">@Model.Report.Comments.Count()</span>
@@ -164,7 +164,7 @@
 
                     @if (Model.Report.Comments?.Any() != true)
                     {
-                        <p class="text-sm text-muted mb-4">No comments yet.</p>
+                        <p class="text-sm text-muted mb-4">@T.Pages.ModReportDetailNoComments</p>
                     }
                     else
                     {
@@ -194,10 +194,10 @@
                             <textarea name="CommentContent"
                                       class="textarea w-full"
                                       rows="2"
-                                      placeholder="Add a comment for other moderators..."></textarea>
+                                      placeholder="@T.Pages.ModReportDetailAddCommentPh"></textarea>
                         </div>
                         <div class="mt-2">
-                            <button type="submit" class="btn btn-sm btn-ghost">Add Comment</button>
+                            <button type="submit" class="btn btn-sm btn-ghost">@T.Pages.ModReportDetailAddCommentBtn</button>
                         </div>
                     </form>
                 </div>
@@ -207,26 +207,26 @@
             <div class="space-y-4">
                 <!-- Location -->
                 <div class="clean-card">
-                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Location</h2>
+                    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailLocation</h2>
                     <div class="space-y-2 text-sm">
                         @if (!string.IsNullOrEmpty(Model.Report.CommunityName))
                         {
                             <div>
-                                <span class="text-muted">Community:</span>
+                                <span class="text-muted">@T.Pages.ModReportDetailCommunity</span>
                                 <span class="font-medium">@Model.Report.CommunityName</span>
                             </div>
                         }
                         @if (!string.IsNullOrEmpty(Model.Report.HubName))
                         {
                             <div>
-                                <span class="text-muted">Hub:</span>
+                                <span class="text-muted">@T.Pages.ModReportDetailHub</span>
                                 <span class="font-medium">@Model.Report.HubName</span>
                             </div>
                         }
                         @if (!string.IsNullOrEmpty(Model.Report.SpaceName))
                         {
                             <div>
-                                <span class="text-muted">Space:</span>
+                                <span class="text-muted">@T.Pages.ModReportDetailSpace</span>
                                 <span class="font-medium">@Model.Report.SpaceName</span>
                             </div>
                         }
@@ -237,13 +237,13 @@
                 @if (!string.IsNullOrEmpty(Model.Report.ReportedUserPublicId))
                 {
                     <div class="clean-card">
-                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Quick Actions</h2>
+                        <h2 class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">@T.Pages.ModReportDetailQuickActions</h2>
                         <div class="space-y-2">
                             <a href="@SnakkUrlHelper.UserProfile(Model.Report.ReportedUserPublicId)" class="btn btn-sm btn-ghost w-full justify-start">
-                                View User Profile
+                                @T.Pages.ModReportDetailViewProfile
                             </a>
                             <a href="/moderation/bans?userId=@Model.Report.ReportedUserPublicId" class="btn btn-sm btn-ghost w-full justify-start">
-                                Check User Bans
+                                @T.Pages.ModReportDetailCheckBans
                             </a>
                         </div>
                     </div>
@@ -254,52 +254,52 @@
         <!-- Resolve Modal -->
         <dialog id="resolve-modal" class="modal">
             <div class="modal-box">
-                <h3 class="font-bold text-lg">Resolve Report</h3>
-                <p class="py-4 text-muted">Mark this report as resolved. You can optionally add a note explaining the resolution.</p>
+                <h3 class="font-bold text-lg">@T.Pages.ModReportDetailResolveTitle</h3>
+                <p class="py-4 text-muted">@T.Pages.ModReportDetailResolvePrompt</p>
                 <form method="post" asp-page-handler="Resolve">
                     <div class="form-control mb-4">
                         <label class="label">
-                            <span class="label-text">Resolution Note (optional)</span>
+                            <span class="label-text">@T.Pages.ModReportDetailResolveNoteLabel</span>
                         </label>
                         <textarea name="ResolutionNote"
                                   class="textarea w-full"
                                   rows="3"
-                                  placeholder="Describe the action taken..."></textarea>
+                                  placeholder="@T.Pages.ModReportDetailResolveNotePh"></textarea>
                     </div>
                     <div class="modal-action">
-                        <button type="button" data-modal-close="resolve-modal" class="btn btn-ghost">Cancel</button>
-                        <button type="submit" class="btn btn-success">Resolve</button>
+                        <button type="button" data-modal-close="resolve-modal" class="btn btn-ghost">@T.Pages.ModReportDetailCancel</button>
+                        <button type="submit" class="btn btn-success">@T.Pages.ModReportDetailResolveBtn</button>
                     </div>
                 </form>
             </div>
             <form method="dialog" class="modal-backdrop">
-                <button>close</button>
+                <button>@T.Pages.ModReportDetailClose</button>
             </form>
         </dialog>
 
         <!-- Dismiss Modal -->
         <dialog id="dismiss-modal" class="modal">
             <div class="modal-box">
-                <h3 class="font-bold text-lg">Dismiss Report</h3>
-                <p class="py-4 text-muted">Dismiss this report without taking action. You can optionally add a note explaining why.</p>
+                <h3 class="font-bold text-lg">@T.Pages.ModReportDetailDismissTitle</h3>
+                <p class="py-4 text-muted">@T.Pages.ModReportDetailDismissPrompt</p>
                 <form method="post" asp-page-handler="Dismiss">
                     <div class="form-control mb-4">
                         <label class="label">
-                            <span class="label-text">Dismissal Note (optional)</span>
+                            <span class="label-text">@T.Pages.ModReportDetailDismissNoteLabel</span>
                         </label>
                         <textarea name="ResolutionNote"
                                   class="textarea w-full"
                                   rows="3"
-                                  placeholder="Reason for dismissal..."></textarea>
+                                  placeholder="@T.Pages.ModReportDetailDismissNotePh"></textarea>
                     </div>
                     <div class="modal-action">
-                        <button type="button" data-modal-close="dismiss-modal" class="btn btn-ghost">Cancel</button>
-                        <button type="submit" class="btn">Dismiss Report</button>
+                        <button type="button" data-modal-close="dismiss-modal" class="btn btn-ghost">@T.Pages.ModReportDetailCancel</button>
+                        <button type="submit" class="btn">@T.Pages.ModReportDetailDismissBtn</button>
                     </div>
                 </form>
             </div>
             <form method="dialog" class="modal-backdrop">
-                <button>close</button>
+                <button>@T.Pages.ModReportDetailClose</button>
             </form>
         </dialog>
     }

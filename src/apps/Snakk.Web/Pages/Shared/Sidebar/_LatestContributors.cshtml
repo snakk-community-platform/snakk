@@ -5,7 +5,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Contributors?.Items == null || Model.Contributors.Items.Count == 0)
 {
-    <p class="sidebar-empty">No contributors yet</p>
+    <p class="sidebar-empty">@T.Sidebar.EmptyContributors</p>
 }
 else
 {

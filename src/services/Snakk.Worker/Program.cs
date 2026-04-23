@@ -78,12 +78,16 @@ builder.Services.AddHttpClient("WebhookService", client =>
 })
 .AddStandardResilienceHandler();
 
+// Activity snapshot repository
+builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
+
 // Background workers
 builder.Services.AddHostedService<AchievementCheckerWorker>();
 builder.Services.AddHostedService<TemporaryRoleExpirationWorker>();
 // builder.Services.AddHostedService<WebhookRetryWorker>(); // not yet implemented
 builder.Services.AddHostedService<AvatarGenerationHostedService>();
 builder.Services.AddHostedService<OrphanMediaCleanupWorker>();
+builder.Services.AddHostedService<ActivitySnapshotWorker>();
 
 var host = builder.Build();
 host.Run();

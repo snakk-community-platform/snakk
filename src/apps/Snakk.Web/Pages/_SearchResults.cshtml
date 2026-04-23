@@ -1,5 +1,6 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
+@using Snakk.Web.Pages.ViewModels
 @model SearchModel
 @{
     var hasQuery = !string.IsNullOrEmpty(Model.Q);
@@ -109,43 +110,10 @@ else if (Model.SearchType == "post")
     }
     else
     {
-        <div class="space-y-4" id="posts-container">
+        <div class="topic-list" id="posts-container">
             @foreach (var post in Model.Posts.Items)
             {
-                // TODO: Same as above — needs CommunitySlug from API for cross-community search
-                var discussionUrl = SnakkUrlHelper.Discussion(
-                    Model.Community,
-                    post.Hub.Slug,
-                    post.Space.Slug,
-                    SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
-
-                <div class="clean-card">
-                    <div class="flex items-start gap-3">
-                        <div class="avatar avatar-sm flex-shrink-0">
-                            <img src="@post.Author.AvatarThumbnailUrl"
-                                 alt="@post.Author.DisplayName"
-                                 width="32" height="32"
-                                 loading="lazy" decoding="async" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 text-sm text-muted mb-2">
-                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)" class="font-medium hover:underline">@post.Author.DisplayName</a>
-                                <span>·</span>
-                                <span>@Model.GetRelativeTime(post.CreatedAt?.ToDateTime())</span>
-                                <span>·</span>
-                                <a href="@discussionUrl" class="hover:underline truncate">@post.DiscussionTitle</a>
-                            </div>
-                            <div class="prose prose-sm max-w-none fp-post-preview">
-                                @Html.SanitizedRaw(post.ContentHighlight)
-                            </div>
-                            <div class="mt-2">
-                                <a href="@discussionUrl" class="text-sm text-primary hover:underline">
-                                    View in discussion
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @await Html.PartialAsync("Shared/_PostTopicItem", PostListItemVM.FromSearchResult(post))
             }
         </div>
 

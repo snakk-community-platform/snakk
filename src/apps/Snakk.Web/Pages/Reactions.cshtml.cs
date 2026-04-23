@@ -13,6 +13,9 @@ public class ReactionsModel(
     private readonly SnakkApiClient _apiClient = apiClient;
     private const int PageSize = 10;
 
+    [BindProperty(SupportsGet = true)]
+    public string Tab { get; set; } = "discussions";
+
     public bool IsAuthenticated { get; set; }
     public List<ReactedPostVM> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
@@ -25,7 +28,10 @@ public class ReactionsModel(
 
         try
         {
-            var result = await _apiClient.GetMyReactedPostsAsync(0, PageSize);
+            var result = Tab == "posts"
+                ? await _apiClient.GetMyReactedPostsAsync(0, PageSize)
+                : await _apiClient.GetMyReactedDiscussionsAsync(0, PageSize);
+
             if (result != null)
             {
                 Items = result.Items.Select(p => new ReactedPostVM(

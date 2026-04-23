@@ -1,5 +1,6 @@
 namespace Snakk.Web.Endpoints;
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Snakk.Web.Helpers;
 using Snakk.Web.Models.Bff;
@@ -182,6 +183,9 @@ public static class BffApiEndpoints
         group.MapGet("/users/{userId}/activity-history", GetUserActivityHistoryAsync)
             .WithName("BffGetUserActivityHistory");
 
+        group.MapGet("/activity/sparkline", GetActivitySparklineAsync)
+            .WithName("BffGetActivitySparkline");
+
         group.MapGet("/users/{userId}/follow-status", GetUserFollowStatusAsync)
             .WithName("BffGetUserFollowStatus");
 
@@ -288,6 +292,14 @@ public static class BffApiEndpoints
 
         group.MapPost("/history/validate", ValidateHistoryIdsAsync)
             .WithName("BffValidateHistoryIds");
+
+        // Social Links
+        group.MapGet("/me/social", GetMySocialLinksBffAsync)
+            .WithName("BffGetMySocialLinks");
+        group.MapPut("/me/social", UpdateMySocialLinksBffAsync)
+            .WithName("BffUpdateMySocialLinks");
+        group.MapGet("/users/{publicId}/social", GetUserSocialLinksBffAsync)
+            .WithName("BffGetUserSocialLinks");
     }
 
     private static bool IsAuthenticated(HttpContext httpContext)
@@ -410,6 +422,7 @@ public static class BffApiEndpoints
         string spaceId,
         [FromQuery] string? level,
         SnakkApiClient apiClient,
+        IFollowedSpacesCacheService followedSpacesCache,
         HttpContext httpContext)
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
@@ -418,6 +431,9 @@ public static class BffApiEndpoints
 
         if (!result.IsSuccess)
             return MapGrpcError(result.Status, result.Error);
+
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId is not null) followedSpacesCache.Invalidate(userId);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -868,7 +884,7 @@ public static class BffApiEndpoints
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
             FollowingCount = apiResult.FollowingCount,
-            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss(apiResult.PublicId)
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}")
         };
 
         return Results.Ok(bffResponse);
@@ -1351,7 +1367,7 @@ public static class BffApiEndpoints
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
             FollowingCount = apiResult.FollowingCount,
-            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss(apiResult.PublicId)
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}")
         };
 
         return Results.Ok(bffResponse);
@@ -2080,6 +2096,71 @@ public static class BffApiEndpoints
             .ToList();
 
         return Results.Ok(new { accessibleIds });
+    }
+
+    // --- Social Links ---
+
+    private static async Task<IResult> GetMySocialLinksBffAsync(IHttpClientFactory httpClientFactory, HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/me/social");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> UpdateMySocialLinksBffAsync(IHttpClientFactory httpClientFactory, HttpContext httpContext)
+    {
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/me/social");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> GetUserSocialLinksBffAsync(string publicId, IHttpClientFactory httpClientFactory, HttpContext httpContext)
+    {
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/users/{Uri.EscapeDataString(publicId)}/social");
+
+        var response = await client.SendAsync(request, httpContext.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(httpContext.RequestAborted);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> GetActivitySparklineAsync(
+        [FromQuery] string entityType,
+        [FromQuery] string? entityId,
+        [FromQuery] int days,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        days = Math.Clamp(days, 1, 90);
+        var result = await apiClient.GetActivitySparklineAsync(entityType, entityId, days);
+        if (result is null) return Results.NotFound();
+
+        var now = DateTime.UtcNow;
+        var secondsUntilNextHour = (60 - now.Minute) * 60 - now.Second;
+        httpContext.Response.Headers.CacheControl = $"public, max-age={secondsUntilNextHour}";
+
+        return Results.Ok(result.Days.Select(d => new
+        {
+            date            = d.Date,
+            postCount       = d.PostCount,
+            discussionCount = d.DiscussionCount
+        }));
     }
 }
 

@@ -28,6 +28,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<UserFollowDatabaseEntity> UserFollows { get; set; } = null!;
     public DbSet<UserSaveDatabaseEntity> UserSaves { get; set; } = null!;
     public DbSet<PostMentionDatabaseEntity> PostMentions { get; set; } = null!;
+    public DbSet<UserSocialLinkDatabaseEntity> UserSocialLinks { get; set; } = null!;
 
     // Moderation
     public DbSet<UserRoleDatabaseEntity> UserRoles { get; set; } = null!;
@@ -76,6 +77,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ConsentTypeVersionDatabaseEntity> ConsentTypeVersions { get; set; } = null!;
     public DbSet<UserConsentDatabaseEntity> UserConsents { get; set; } = null!;
 
+    // Activity snapshots (pre-aggregated time-series for sparklines)
+    public DbSet<ActivityDailySnapshotDatabaseEntity> ActivityDailySnapshots { get; set; } = null!;
+
     // Discussion types — allowed type permissions
     public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
     public DbSet<HubAllowedDiscussionTypeDatabaseEntity> HubAllowedDiscussionTypes { get; set; } = null!;
@@ -104,6 +108,18 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // UserSocialLink — one link per platform per user
+        modelBuilder.Entity<UserSocialLinkDatabaseEntity>(entity =>
+        {
+            entity.HasOne(l => l.User)
+                .WithMany(u => u.SocialLinks)
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(l => new { l.UserId, l.Platform }).IsUnique();
+            entity.HasIndex(l => l.UserId);
+        });
 
         // Global query filters for soft delete
         modelBuilder.Entity<CommunityDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
@@ -1695,5 +1711,16 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<UserConsentDatabaseEntity>()
             .HasIndex(uc => new { uc.UserId, uc.ConsentTypeVersionId })
             .IsUnique();
+
+        // ActivityDailySnapshot — unique per (date, entity type, entity id)
+        modelBuilder.Entity<ActivityDailySnapshotDatabaseEntity>(entity =>
+        {
+            entity.HasIndex(e => new { e.Date, e.EntityType, e.EntityId })
+                  .IsUnique()
+                  .HasDatabaseName("IX_ActivityDailySnapshot_Date_EntityType_EntityId");
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId, e.Date })
+                  .HasDatabaseName("IX_ActivityDailySnapshot_EntityType_EntityId_Date");
+        });
     }
 }

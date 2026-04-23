@@ -5,7 +5,7 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Spaces?.Items == null || Model.Spaces.Items.Count == 0)
 {
-    <p class="sidebar-empty">No activity yet</p>
+    <p class="sidebar-empty">@T.Sidebar.EmptyLatestSpaces</p>
 }
 else
 {

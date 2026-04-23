@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.RulesModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Site Rules";
+    ViewData["Title"] = T.Pages.RulesTitle;
     ViewData["Description"] = "Rules and guidelines for the community.";
 }
 
@@ -13,17 +13,17 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
-<div class="fp-center">
-    <div class="fp-center-inner">
-        <h2 class="fp-section-title">
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
             <span class="icon icon-shield-check" aria-hidden="true"></span>
-            Site Rules
+            @T.Pages.RulesHeading
         </h2>
-        <p class="text-sm mb-6" style="color: var(--text-secondary)">Please follow these guidelines when participating.</p>
+        <p class="text-sm mb-6" style="color: var(--text-secondary)">@T.Pages.RulesLead</p>
 
         @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
         {
-            <p class="text-sm" style="color: var(--text-tertiary)">No site rules have been defined yet.</p>
+            <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.RulesEmpty</p>
         }
         else
         {

@@ -7,9 +7,9 @@
 @model Snakk.Web.Pages.Communities.DetailModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = Model.CommunityDetail?.Name ?? "Community";
+    ViewData["Title"] = Model.CommunityDetail?.Name ?? T.Pages.CommDetailFallbackTitle;
     ViewData["Description"] = Model.CommunityDetail is { IsRestricted: false }
-        ? $"{Model.CommunityDetail.Name} — {(Model.CommunityDetail.Description ?? "a community on Snakk")}"
+        ? $"{Model.CommunityDetail.Name} — {(Model.CommunityDetail.Description ?? T.Pages.CommDetailAboutFallback)}"
         : null;
 }
 
@@ -35,21 +35,21 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
-    @* Hero card lives outside .fp-center-inner so it sits flush against the
+<div class="sn-center">
+    @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
     @if (Model.CommunityDetail != null)
     {
-        <div class="fp-community-card">
-            <div class="fp-community-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{Model.CommunityDetail.PublicId}")">
+        <div class="sn-community-card">
+            <div class="sn-community-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{Model.CommunityDetail.PublicId}")">
                 <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
-                     class="fp-community-avatar" decoding="async" />
-                <h1 class="fp-community-name">@Model.CommunityDetail.Name</h1>
+                     class="sn-community-avatar" decoding="async" />
+                <h1 class="sn-community-name">@Model.CommunityDetail.Name</h1>
             </div>
         </div>
     }
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <partial name="_Banners" model="Model.Banners?.Banners" />
 
         <!-- Hub/Space Listing -->
@@ -101,12 +101,22 @@
                                     <!-- Stats -->
                                     <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
                                         <span class="text-sm font-semibold">@FormatCount(space.DiscussionCount)</span>
-                                        <span class="text-[10px] text-base-content/40 uppercase">topics</span>
+                                        <span class="text-[10px] text-base-content/40 uppercase">@T.Pages.CommDetailLabelTopics</span>
                                     </div>
                                     <div class="hidden sm:flex flex-col items-center shrink-0 w-16 text-center">
                                         <span class="text-sm font-semibold">@FormatCount(space.ReplyCount)</span>
-                                        <span class="text-[10px] text-base-content/40 uppercase">replies</span>
+                                        <span class="text-[10px] text-base-content/40 uppercase">@T.Pages.CommDetailLabelReplies</span>
                                     </div>
+
+                                    <!-- Sparkline -->
+                                    @if (Model.SpaceSparklineJson.TryGetValue(space.PublicId, out var sparkJson))
+                                    {
+                                        <div class="hidden sm:flex items-center shrink-0">
+                                            <div class="sn-sparkline-container sn-community-space-sparkline"
+                                                 data-sparkline-data="@sparkJson"
+                                                 data-sparkline-metric="postCount"></div>
+                                        </div>
+                                    }
 
                                     <!-- Latest discussion -->
                                     <div class="hidden md:flex items-center gap-2 shrink-0 w-56 min-w-0">
@@ -124,7 +134,7 @@
                                         }
                                         else
                                         {
-                                            <span class="text-xs text-base-content/30">No discussions yet</span>
+                                            <span class="text-xs text-base-content/30">@T.Pages.CommDetailNoLatestDiscussion</span>
                                         }
                                     </div>
                                 </div>
@@ -132,7 +142,7 @@
                         }
                         else
                         {
-                            <div class="px-4 py-6 text-center text-sm text-base-content/40">No spaces in this hub yet</div>
+                            <div class="px-4 py-6 text-center text-sm text-base-content/40">@T.Pages.CommDetailNoSpacesInHub</div>
                         }
                     </div>
                 }
@@ -141,40 +151,49 @@
         else
         {
             <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>This community doesn't have any hubs or spaces yet.</p>
+                <p>@T.Pages.CommDetailEmpty</p>
             </div>
         }
     </div>
 </div>
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/new?communityId=" + Model.CommunityDetail?.PublicId;
     ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/feed";
-    ViewData["RightPane.ShareTitle"] = Model.CommunityDetail?.Name ?? "Community";
+    ViewData["RightPane.ShareTitle"] = Model.CommunityDetail?.Name ?? T.Pages.CommDetailFallbackTitle;
     ViewData["RightPane.ShareIsPublic"] = Model.CommunityDetail is not { IsRestricted: true };
     ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageCommunity(Model.Community);
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
+    <div class="sn-right-body">
     <!-- Stats -->
     @if (Model.InlineCommunityStats != null)
     {
-        <div class="fp-right-section">
-            <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+        <div class="sn-right-section">
+            <div class="sn-sidebar-stats">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Pages.CommDetailStatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.InlineCommunityStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Pages.CommDetailStatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.InlineCommunityStats.ReplyCount)</div>
+                    </div>
+                </div>
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-title">@T.Pages.CommDetailStatsActivity</div>
+                        <div class="sn-sparkline-container sn-right-sparkline"
+                             data-sparkline-type="community"
+                             data-sparkline-id="@Model.CommunityDetail!.PublicId"
+                             data-sparkline-days="7"></div>
                     </div>
                 </div>
             </div>
@@ -182,10 +201,10 @@
     }
 
     <!-- About -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-info-circle" aria-hidden="true"></span>
-            About @Model.CommunityDetail?.Name
+            @T.Pages.CommDetailAboutPrefix@Model.CommunityDetail?.Name
         </div>
         @if (!string.IsNullOrEmpty(Model.CommunityDetail?.Description))
         {
@@ -196,10 +215,10 @@
     <!-- Community Rules -->
     @if (Model.CommunityDetail?.HasRules == true)
     {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-document-text" aria-hidden="true"></span>
-                Community Rules
+                @T.Pages.CommDetailRules
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
                              model="Model.InlineCommunityRules"
@@ -214,10 +233,10 @@
     }
 
     <!-- Moderators -->
-    <div class="fp-right-section">
-        <div class="fp-right-title">
+    <div class="sn-right-section">
+        <div class="sn-right-title">
             <span class="icon icon-shield-check" aria-hidden="true"></span>
-            Community Moderators
+            @T.Pages.CommDetailModerators
             @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
             {
                 <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
@@ -241,21 +260,21 @@
     }
     @if (hasSpaces || hasDiscussions || hasContributors)
     {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-trending-up" aria-hidden="true"></span>
-                Trending
+                @T.Pages.CommDetailTrending
             </div>
 
             @if (hasSpaces)
             {
-                <div class="fp-right-subsection">
-                    <div class="fp-right-subtitle">Spaces</div>
-                    <div class="fp-spaces-inline">
+                <div class="sn-right-subsection">
+                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingSpaces</div>
+                    <div class="sn-spaces-inline">
                         @foreach (var space in Model.InlineTrendingSpaces!.Spaces!.Items)
                         {
                             <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                               class="fp-card-tag"
+                               class="sn-card-tag"
                                data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
                         }
                     </div>
@@ -264,9 +283,9 @@
 
             @if (hasDiscussions)
             {
-                <div class="fp-right-subsection">
-                    <div class="fp-right-subtitle">Discussions</div>
-                    <div class="fp-trending-list">
+                <div class="sn-right-subsection">
+                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingDiscussions</div>
+                    <div class="sn-trending-list">
                         @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
                         {
                             var trendUrl = SnakkUrlHelper.Discussion(
@@ -275,14 +294,14 @@
                                 d.Space.Slug,
                                 SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
 
-                            <a href="@trendUrl" class="fp-trending-discussion">
-                                <div class="fp-trending-discussion-header">
+                            <a href="@trendUrl" class="sn-trending-discussion">
+                                <div class="sn-trending-discussion-header">
                                     <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
                                     <span>@d.Author.DisplayName</span>
                                 </div>
-                                <div class="fp-trending-discussion-title-row">
-                                    <span class="fp-trending-discussion-title">@d.Title</span>
-                                    <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
+                                <div class="sn-trending-discussion-title-row">
+                                    <span class="sn-trending-discussion-title">@d.Title</span>
+                                    <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                         <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
                                         @d.PostCountToday
                                     </span>
@@ -295,16 +314,16 @@
 
             @if (hasContributors)
             {
-                <div class="fp-right-subsection">
-                    <div class="fp-right-subtitle">Contributors</div>
-                    <div class="fp-trending-list">
+                <div class="sn-right-subsection">
+                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingContributors</div>
+                    <div class="sn-trending-list">
                         @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="fp-trending-contributor"
+                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
                                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                                <img src="@c.AvatarMicroUrl" alt="" class="fp-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                                <span class="fp-trending-contributor-name">@c.DisplayName</span>
-                                <span class="fp-card-tag fp-card-tag-light fp-tag-sm">
+                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                                <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                     <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
                                     @c.PostCountToday
                                 </span>

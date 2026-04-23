@@ -343,7 +343,7 @@ interface SnakkUtilsAPI {
      *   1. inline style="background-image: url(...)" — used by per-cell blur
      *      layouts (carousel slides, grid items, individual compare halves)
      *   2. CSS custom property --blur-bg: url(...) — used by framed wrappers
-     *      (.images-display-framed, .fp-images-preview, .fp-compare-preview)
+     *      (.images-display-framed, .sn-images-preview, .sn-compare-preview)
      *      where the blur paints via a ::before pseudo so there's no inline
      *      background-image to read from
      *

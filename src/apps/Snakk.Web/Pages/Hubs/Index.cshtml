@@ -4,18 +4,18 @@
 @model Snakk.Web.Pages.Hubs.IndexModel
 @inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Hubs";
-    ViewData["Description"] = "Browse all hubs on Snakk. Hubs organize spaces and discussions by topic.";
+    ViewData["Title"] = T.Pages.HubsIndexTitle;
+    ViewData["Description"] = T.Pages.HubsIndexDesc;
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 }
 
 <div class="breadcrumb-bar">
     <nav class="breadcrumb">
-        <a href="/">Home</a>
+        <a href="/">@T.Pages.HubsIndexHome</a>
         @if (Model.ShowCommunityInBreadcrumb)
         {
             <span class="breadcrumb-separator">/</span>
-            <a href="/communities">Communities</a>
+            <a href="/communities">@T.Pages.HubsIndexCommunities</a>
             <span class="breadcrumb-separator">/</span>
             <a href="/c/@Model.Community.CommunitySlug"
                data-popup-type="community"
@@ -29,13 +29,13 @@
     <div class="page-header">
         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
-                <h1>Hubs</h1>
-                <p>Browse communities and join the conversation</p>
+                <h1>@T.Pages.HubsIndexHeading</h1>
+                <p>@T.Pages.HubsIndexSubheading</p>
             </div>
             @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
             {
                 <div class="flex-shrink-0">
-                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)" class="btn btn-primary">Manage Community</a>
+                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)" class="btn btn-primary">@T.Pages.HubsIndexManageCommunity</a>
                 </div>
             }
             @*
@@ -72,8 +72,8 @@
             {
                 <div class="clean-card">
                     <div class="empty-state-simple">
-                        <h3>No hubs yet</h3>
-                        <p>Hubs are coming soon. Check back later to explore communities.</p>
+                        <h3>@T.Pages.HubsIndexEmptyTitle</h3>
+                        <p>@T.Pages.HubsIndexEmptyBody</p>
                     </div>
                 </div>
             }
@@ -92,11 +92,11 @@
                                         <p class="category-description line-clamp-2">@hub.Description</p>
                                     }
                                     <div class="entity-stats mt-2">
-                                        <span>@hub.SpaceCount spaces</span>
+                                        <span>@hub.SpaceCount @T.Pages.HubsIndexSpacesLabel</span>
                                         <span class="entity-stats-separator">·</span>
-                                        <span>@hub.DiscussionCount discussions</span>
+                                        <span>@hub.DiscussionCount @T.Pages.HubsIndexDiscussionsLabel</span>
                                         <span class="entity-stats-separator">·</span>
-                                        <span>@hub.ReplyCount replies</span>
+                                        <span>@hub.ReplyCount @T.Pages.HubsIndexRepliesLabel</span>
                                     </div>
                                 </div>
                             </div>
@@ -111,14 +111,14 @@
                         {
                             <a href="/hubs?offset=@(Math.Max(0, Model.Hubs.Offset - Model.Hubs.PageSize))"
                                class="btn btn-ghost btn-sm">
-                                Previous
+                                @T.Pages.HubsIndexPrevious
                             </a>
                         }
                         @if (Model.Hubs.HasMoreItems)
                         {
                             <a href="/hubs?offset=@(Model.Hubs.Offset + Model.Hubs.PageSize)"
                                class="btn btn-ghost btn-sm">
-                                Next
+                                @T.Pages.HubsIndexNext
                             </a>
                         }
                     </div>
@@ -131,7 +131,7 @@
             @if (Model.ShowTrendingSpaces)
             {
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Trending Spaces</h3>
+                    <h3 class="sidebar-title">@T.Pages.HubsIndexTrendingSpaces</h3>
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
                                      model="Model.InlineTrendingSpaces"
                                      htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
@@ -147,7 +147,7 @@
             @if (Model.ShowTrendingDiscussions)
             {
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Trending Discussions</h3>
+                    <h3 class="sidebar-title">@T.Pages.HubsIndexTrendingDiscussions</h3>
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
                                      model="Model.InlineTrendingDiscussions"
                                      htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
@@ -163,7 +163,7 @@
             @if (Model.ShowTrendingContributors)
             {
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Trending Contributors</h3>
+                    <h3 class="sidebar-title">@T.Pages.HubsIndexTrendingContributors</h3>
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
                                      model="Model.InlineTrendingContributors"
                                      htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">

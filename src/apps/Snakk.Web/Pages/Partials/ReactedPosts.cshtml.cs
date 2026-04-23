@@ -12,6 +12,7 @@ public class ReactedPostsModel(
     public ICommunityContext Community => communityContext;
     public List<ReactedPostVM> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
+    public int Offset { get; set; }
     public int NextOffset { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10)
@@ -20,6 +21,7 @@ public class ReactedPostsModel(
             return Content("", "text/html");
 
         pageSize = Math.Clamp(pageSize, 1, 20);
+        Offset = offset;
 
         try
         {

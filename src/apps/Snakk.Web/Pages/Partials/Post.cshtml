@@ -26,7 +26,7 @@
          data-post-number="@post.PostNumber"
          data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
          role="article"
-         aria-label="Post @post.PostNumber by @post.Author.DisplayName">
+         aria-label="@string.Format(T.Pages.DiscAriaPostBy, post.PostNumber, post.Author.DisplayName)">
 
     @if (!isOP)
     {
@@ -55,23 +55,23 @@
         <div class="post-author-badges">
             @if (post.Author.Role == "admin")
             {
-                <span class="badge badge-error badge-xs">Admin</span>
+                <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
             }
             else if (post.Author.Role == "mod")
             {
-                <span class="badge badge-info badge-xs">Mod</span>
+                <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
             }
             @if (post.IsOp)
             {
-                <span class="badge badge-primary badge-xs post-badge-op">OP</span>
+                <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
             }
             @if (post.IsUsersFirstPostInSpace)
             {
-                <span class="badge badge-success badge-xs post-badge-new">New</span>
+                <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
             }
             @if (post.IsMilestone)
             {
-                <span class="badge badge-warning badge-xs post-badge-milestone" title="Milestone post">&#9733;</span>
+                <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
             }
         </div>
     </aside>
@@ -101,7 +101,7 @@
                 <span class="post-time">
                     <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
                     {
-                        <span class="post-edited"> (edited)</span>
+                        <span class="post-edited"> @T.Pages.DiscEdited</span>
                     }
                 </span>
             </div>
@@ -113,18 +113,18 @@
                             data-post-id="@post.PublicId"
                             data-author-name="@post.Author.DisplayName"
                             class="subtle-btn"
-                            aria-label="Reply to @post.Author.DisplayName">
+                            aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
                         <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
-                        Reply
+                        @T.Pages.DiscReply
                     </button>
                     <button data-action="quote-post"
                             data-post-id="@post.PublicId"
                             data-content="@post.Content"
                             data-author-name="@post.Author.DisplayName"
                             class="subtle-btn"
-                            aria-label="Quote post by @post.Author.DisplayName">
+                            aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
                         <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
-                        Quote
+                        @T.Pages.DiscQuote
                     </button>
                     </div>
                 }
@@ -136,7 +136,7 @@
                      {
                          <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
                      }
-                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
                     @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
                     {
                         var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
@@ -146,24 +146,12 @@
                     @if (!hasReactions && !Model.IsDiscussionLocked && Model.IsAuthenticated)
                     {
                         <span class="hidden group-hover:inline" data-reaction-placeholder>
-                            <span class="icon icon-emoji-happy h-4 w-4" aria-hidden="true"></span>
+                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
                         </span>
                     }
                 </div>
-                @if (Model.IsAuthenticated)
-                {
-                    <button type="button"
-                            class="subtle-btn post-save-btn"
-                            data-action="toggle-save-post"
-                            data-post-id="@post.PublicId"
-                            data-saved="false"
-                            aria-pressed="false"
-                            title="Save">
-                        <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
-                    </button>
-                }
                 <div class="dropdown dropdown-end">
-                    <button tabindex="0" class="subtle-btn" aria-label="Post options">
+                    <button tabindex="0" class="subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions">
                         <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
                     </button>
                     <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
@@ -173,7 +161,7 @@
                                     hx-swap="innerHTML"
                                     data-modal-open="history_modal"
                                     class="text-sm">
-                                History
+                                @T.Pages.DiscHistory
                             </button>
                         </li>
                         @if (Model.IsAuthenticated)
@@ -183,21 +171,24 @@
                                         data-action="toggle-save-post"
                                         data-post-id="@post.PublicId"
                                         data-saved="false"
+                                        aria-pressed="false"
+                                        title="@T.Pages.DiscSaveTitle"
                                         class="text-sm post-save-btn">
-                                    Save post
+                                    <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
+                                    @T.Pages.DiscSavePost
                                 </button>
                             </li>
                         }
                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                         {
-                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
+                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
                             <li>
                                 <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
                                         hx-target="#post-@post.PostNumber"
                                         hx-swap="outerHTML"
-                                        hx-confirm="Are you sure you want to delete this post?"
+                                        hx-confirm="@T.Pages.DiscDeleteConfirm"
                                         class="text-sm text-error">
-                                    Delete
+                                    @T.Pages.DiscDelete
                                 </button>
                             </li>
                         }
@@ -205,12 +196,12 @@
                         {
                             <li>
                                 <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
-                                    Hide posts from user
+                                    @T.Pages.DiscHideFromUser
                                 </button>
                             </li>
                             <li>
-                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="this post" class="text-sm text-error">
-                                    Report post
+                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                    @T.Pages.DiscReportPost
                                 </button>
                             </li>
                         }
@@ -223,7 +214,7 @@
         @if (hasReplyTo)
         {
             <div class="editorial-quote block mb-4 text-sm">
-                <span class="quote-author">@post.ReplyTo!.AuthorName wrote:</span>
+                <span class="quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
                 <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
             </div>
         }

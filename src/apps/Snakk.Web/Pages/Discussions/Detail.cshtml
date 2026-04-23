@@ -8,7 +8,7 @@
 
 @{
     Layout = "_Layout";
-    ViewData["Title"] = Model.Discussion?.Title ?? "Discussion";
+    ViewData["Title"] = Model.Discussion?.Title ?? T.Pages.DiscTitleFallback;
 }
 
 @section Styles {
@@ -33,7 +33,7 @@
         var url = $"{scheme}://{host}{path}";
         var authorAvatar = firstPost?.Author?.AvatarUrl;
         var baseUrl = $"{scheme}://{host}";
-        var authorName = firstPost?.Author?.DisplayName ?? "Anonymous";
+        var authorName = firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous;
         ViewData["CanonicalUrl"] = url;
 
         <meta name="description" content="@description" />
@@ -74,7 +74,7 @@
             "datePublished": "@Model.Discussion.CreatedAt.ToDateTime().ToString("O")",
             "author": {
                 "@@type": "Person",
-                "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(firstPost?.Author?.DisplayName ?? "Anonymous"))
+                "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous))
             },
             "interactionStatistic": {
                 "@@type": "InteractionCounter",
@@ -102,13 +102,13 @@
                 {
                     "@@type": "ListItem",
                     "position": 1,
-                    "name": "Home",
+                    "name": "@T.Pages.DiscBreadcrumbHome",
                     "item": "@($"{baseUrl}/")"
                 },
                 {
                     "@@type": "ListItem",
                     "position": 2,
-                    "name": "Hubs",
+                    "name": "@T.Pages.DiscBreadcrumbHubs",
                     "item": "@($"{baseUrl}/hubs")"
                 },
                 {
@@ -135,24 +135,24 @@
 }
 
 <!-- Center Column -->
-<div class="fp-center">
+<div class="sn-center">
 
 @if (Model.Discussion != null)
 {
-    <div class="fp-page-labels fp-page-labels--gradient" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space?.PublicId}")">
+    <div class="sn-page-labels sn-page-labels--gradient" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space?.PublicId}")">
         @if (Model.ShowCommunityInBreadcrumb)
         {
             <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
                data-popup-type="community"
                data-popup-id="@Model.CommunityDetail?.PublicId"
                data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-            <span class="fp-page-labels-sep">›</span>
+            <span class="sn-page-labels-sep">›</span>
         }
         <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
            data-popup-type="hub"
            data-popup-id="@Model.Hub?.PublicId"
            data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="fp-page-labels-sep">›</span>
+        <span class="sn-page-labels-sep">›</span>
         <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm"
            data-popup-type="space"
            data-popup-id="@Model.Space?.PublicId"
@@ -168,10 +168,10 @@
     <!-- Jump to Unread Button -->
     <div id="jump-to-unread" class="hidden fixed bottom-6 right-6 z-30">
         <button data-action="jump-to-unread" class="btn btn-primary btn-sm">
-            Jump to unread
+            @T.Pages.DiscJumpToUnread
         </button>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
     @{
         var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
     }
@@ -201,11 +201,11 @@
                 }
                 @if (firstPostItem.Author.Role == "admin")
                 {
-                    <span class="badge badge-error badge-xs">Admin</span>
+                    <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
                 }
                 else if (firstPostItem.Author.Role == "mod")
                 {
-                    <span class="badge badge-info badge-xs">Mod</span>
+                    <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
                 }
             }
             <span class="text-base-content/40">·</span>
@@ -214,11 +214,11 @@
             </time>
             @if (Model.Discussion.IsPinned)
             {
-                <span class="badge badge-primary badge-xs">Pinned</span>
+                <span class="badge badge-primary badge-xs">@T.Pages.DiscBadgePinned</span>
             }
             @if (Model.Discussion.IsLocked)
             {
-                <span class="badge badge-warning badge-xs">Locked</span>
+                <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
             }
             @if (Model.Discussion.Type != "Standard")
             {
@@ -227,50 +227,19 @@
             }
             <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
 
-            <!-- Share / Follow / Actions — pushed right -->
+            <!-- Actions — pushed right -->
             <div class="flex items-center gap-1 ml-auto">
-                <div class="dropdown dropdown-end">
-                    <button id="share-dropdown-btn" tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="Share discussion">
-                        <span class="icon icon-share h-4 w-4" aria-hidden="true"></span>
-                    </button>
-                    <ul tabindex="0"
-                        class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-20"
-                        hx-get="/partials/share-menu?url=@Uri.EscapeDataString(Model.CanonicalUrl)&amp;title=@Uri.EscapeDataString(Model.Discussion.Title)&amp;isPublic=@(Model.Space is not { IsRestricted: true } ? "true" : "false")"
-                        hx-trigger="load"
-                        hx-target="this"
-                        hx-swap="innerHTML"
-                        hx-push-url="false">
-                    </ul>
-                </div>
                 @if (Model.IsAuthenticated)
                 {
-                    <button id="follow-btn"
-                            data-action="toggle-follow-discussion"
-                            data-discussion-id="@Model.Discussion.PublicId"
-                            class="btn btn-ghost btn-xs follow-btn"
-                            aria-label="Subscribe to this discussion">
-                        <span class="icon icon-bell h-4 w-4" id="follow-icon" aria-hidden="true"></span>
-                        <span id="follow-text">Subscribe</span>
-                    </button>
-                    <button id="save-discussion-btn"
-                            data-action="toggle-save-discussion"
-                            data-discussion-id="@Model.Discussion.PublicId"
-                            data-saved="false"
-                            class="btn btn-ghost btn-xs btn-square"
-                            aria-pressed="false"
-                            aria-label="Save discussion"
-                            title="Save">
-                        <span class="icon icon-bookmark h-4 w-4" aria-hidden="true"></span>
-                    </button>
                     <div class="dropdown dropdown-end">
-                        <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="Discussion options">
+                        <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="@T.Pages.DiscAriaDiscussionOptions">
                             <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
                         </button>
                         <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
                             <li>
                                 <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="text-sm">
                                     <span class="icon icon-volume-off h-4 w-4" aria-hidden="true"></span>
-                                    <span id="mute-text">Mute discussion</span>
+                                    <span id="mute-text">@T.Pages.DiscMuteDiscussion</span>
                                 </button>
                             </li>
                             @if (firstPostItem != null)
@@ -281,27 +250,27 @@
                                             hx-swap="innerHTML"
                                             data-modal-open="history_modal"
                                             class="text-sm">
-                                        History
+                                        @T.Pages.DiscHistory
                                     </button>
                                 </li>
                                 @if (Model.CurrentUserId == firstPostItem.Author.PublicId)
                                 {
-                                    <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
+                                    <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
                                     <li>
                                         <button hx-delete="/api/posts/@firstPostItem.PublicId?userId=@Model.CurrentUserId"
                                                 hx-target="#post-@firstPostItem.PostNumber"
                                                 hx-swap="outerHTML"
-                                                hx-confirm="Are you sure you want to delete this post?"
+                                                hx-confirm="@T.Pages.DiscDeleteConfirm"
                                                 class="text-sm text-error">
-                                            Delete
+                                            @T.Pages.DiscDelete
                                         </button>
                                     </li>
                                 }
                                 @if (Model.CurrentUserId != firstPostItem.Author.PublicId)
                                 {
                                     <li>
-                                        <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="this post" class="text-sm text-error">
-                                            Report post
+                                        <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                            @T.Pages.DiscReportPost
                                         </button>
                                     </li>
                                 }
@@ -309,7 +278,7 @@
                             <li>
                                 <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
                                     <span class="icon icon-exclamation-triangle h-4 w-4" aria-hidden="true"></span>
-                                    Report discussion
+                                    @T.Pages.DiscReportDiscussion
                                 </button>
                             </li>
                         </ul>
@@ -319,7 +288,7 @@
         </div>
 
         <!-- Title + OP reactions -->
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex items-start justify-between gap-4 group">
             <h1 class="text-xl font-bold" style="color: var(--color-primary)">@Model.Discussion.Title</h1>
             @if (firstPostItem != null)
             {
@@ -340,7 +309,7 @@
                      {
                          <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
                      }
-                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
                     @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
                     {
                         var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
@@ -350,7 +319,7 @@
                     @if (!opHasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
                     {
                         <span class="hidden group-hover:inline" data-reaction-placeholder>
-                            <span class="icon icon-emoji-happy h-4 w-4" aria-hidden="true"></span>
+                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
                         </span>
                     }
                 </div>
@@ -366,7 +335,7 @@
                 <div class="flex items-center gap-2">
                     <span class="icon icon-lock-closed h-5 w-5 text-warning" aria-hidden="true"></span>
                     <p class="text-sm font-medium text-warning-content">
-                        This discussion has been locked. No new replies can be posted.
+                        @T.Pages.DiscLockedBanner
                     </p>
                 </div>
             </div>
@@ -379,7 +348,7 @@
     {
         <div class="type-widget-container">
             <div class="type-widget-solved">
-                <span>✅ Solved</span>
+                <span>✅ @T.Pages.DiscSolved</span>
             </div>
         </div>
     }
@@ -416,13 +385,13 @@
                         {
                             <span class="icon icon-external-link" style="width:12px;height:12px" aria-hidden="true"></span>
                         }
-                        @(Model.LinkInfo.IsInternal ? "Internal link" : linkDomain)
+                        @(Model.LinkInfo.IsInternal ? T.Pages.DiscInternalLink : linkDomain)
                     </span>
                 </div>
             </div>
             @if (Model.LinkInfo.HasOembedHtml)
             {
-                <button class="link-embed-btn" data-oembed-html="@Model.LinkInfo.OembedHtml" data-domain="@linkDomain">&#9654; Load embed from @linkDomain</button>
+                <button class="link-embed-btn" data-oembed-html="@Model.LinkInfo.OembedHtml" data-domain="@linkDomain">@string.Format(T.Pages.DiscLoadEmbedPattern, linkDomain)</button>
             }
         </div>
     }
@@ -440,7 +409,7 @@
                     var p = debatePositions[i];
                     var pct = debateTotalPosts > 0 ? Math.Max((int)Math.Round(p.PostCount * 100.0 / debateTotalPosts), 5) : 33;
                     <div class="debate-position-bar" style="width:@(pct)%;background:@debateColors[Math.Min(i, debateColors.Length - 1)]"
-                         title="@p.Label: @p.PostCount posts"></div>
+                         title="@string.Format(T.Pages.DiscPositionPostsPattern, p.Label, p.PostCount)"></div>
                 }
             </div>
             <div class="debate-legend">
@@ -599,24 +568,24 @@
                     <div class="gup-compare-after images-upload-item"
                          style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && afterImg.HasBlurDataUri) {
-                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="After"
+                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="After"
+                            <img src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
-                        <span class="gup-compare-label gup-compare-label-after">After</span>
+                        <span class="gup-compare-label gup-compare-label-after">@T.Pages.DiscImgAfter</span>
                     </div>
                     <div class="gup-compare-before images-upload-item"
                          style="@(beforeImg.HasBlurDataUri ? $"background-image:url({beforeImg.BlurDataUri});background-size:cover;background-position:center" : "")">
                         @if (isSpoiler && beforeImg.HasBlurDataUri) {
-                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="Before"
+                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         } else {
-                            <img src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="Before"
+                            <img src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
                                  decoding="async" class="images-blur-up" data-blur-up />
                         }
-                        <span class="gup-compare-label gup-compare-label-before">Before</span>
+                        <span class="gup-compare-label gup-compare-label-before">@T.Pages.DiscImgBefore</span>
                     </div>
                     <div class="gup-compare-slider" id="images-compare-slider">
                         <div class="gup-compare-line"></div>
@@ -630,7 +599,7 @@
                             data-after-url="@afterImg.Url"
                             data-before-blur="@(beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "")"
                             data-after-blur="@(afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "")"
-                            aria-label="Expand compare view">
+                            aria-label="@T.Pages.DiscAriaExpandCompare">
                         <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
                     </button>
                 </div>
@@ -683,7 +652,7 @@
 
             @if (layout != "compare")
             {
-                <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="View fullscreen">
+                <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="@T.Pages.DiscAriaViewFullscreen">
                     <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
                 </button>
             }
@@ -693,7 +662,7 @@
                 <div class="images-spoiler-overlay" id="images-spoiler-overlay">
                     <button type="button" class="images-spoiler-btn" data-action="reveal-spoiler">
                         <span class="icon icon-eye" style="width:20px;height:20px" aria-hidden="true"></span>
-                        Reveal image@(Model.ImagesItems.Count != 1 ? "s" : "")
+                        @(Model.ImagesItems.Count != 1 ? T.Pages.DiscRevealImages : T.Pages.DiscRevealImage)
                     </button>
                 </div>
             }
@@ -794,7 +763,7 @@
                                 <span class="icon icon-exclamation-triangle-solid w-4 h-4" aria-hidden="true"></span>
                             </div>
                             <div class="timeline-end text-xs uppercase tracking-wide">
-                                @post.Author.DisplayName changed position: @debatePrevPos.Label → @debatePos.Label
+                                @string.Format(T.Pages.DiscPositionChangePattern, post.Author.DisplayName, debatePrevPos.Label, debatePos.Label)
                             </div>
                             <hr />
                         </li>
@@ -808,7 +777,7 @@
                          data-post-number="@post.PostNumber"
                          data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
                          role="article"
-                         aria-label="Post @post.PostNumber by @post.Author.DisplayName">
+                         aria-label="@string.Format(T.Pages.DiscAriaPostBy, post.PostNumber, post.Author.DisplayName)">
 
                     @if (!isOP)
                     {
@@ -840,23 +809,23 @@
                             <div class="post-author-badges">
                                 @if (post.Author.Role == "admin")
                                 {
-                                    <span class="badge badge-error badge-xs">Admin</span>
+                                    <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
                                 }
                                 else if (post.Author.Role == "mod")
                                 {
-                                    <span class="badge badge-info badge-xs">Mod</span>
+                                    <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
                                 }
                                 @if (post.IsOp)
                                 {
-                                    <span class="badge badge-primary badge-xs post-badge-op">OP</span>
+                                    <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
                                 }
                                 @if (post.IsUsersFirstPostInSpace)
                                 {
-                                    <span class="badge badge-success badge-xs post-badge-new">New</span>
+                                    <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
                                 }
                                 @if (post.IsMilestone)
                                 {
-                                    <span class="badge badge-warning badge-xs post-badge-milestone" title="Milestone post">&#9733;</span>
+                                    <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
                                 }
                             </div>
                         }
@@ -872,11 +841,11 @@
                             <div class="post-toolbar-left">
                                 @if (isJournalEntry)
                                 {
-                                    <span class="journal-entry-badge">📓 Update</span>
+                                    <span class="journal-entry-badge">@T.Pages.DiscJournalUpdate</span>
                                 }
                                 @if (isAcceptedAnswer)
                                 {
-                                    <span class="accepted-answer-badge">✅ Accepted Answer</span>
+                                    <span class="accepted-answer-badge">@T.Pages.DiscAcceptedAnswer</span>
                                 }
                                 @if (debatePos is not null)
                                 {
@@ -920,7 +889,7 @@
                                 <span class="post-time">
                                     <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
                                     {
-                                        <span class="post-edited"> (edited)</span>
+                                        <span class="post-edited"> @T.Pages.DiscEdited</span>
                                     }
                                 </span>
                             </div>
@@ -932,18 +901,18 @@
                                             data-post-id="@post.PublicId"
                                             data-author-name="@post.Author.DisplayName"
                                             class="subtle-btn"
-                                            aria-label="Reply to @post.Author.DisplayName">
+                                            aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
                                         <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
-                                        Reply
+                                        @T.Pages.DiscReply
                                     </button>
                                     <button data-action="quote-post"
                                             data-post-id="@post.PublicId"
                                             data-content="@post.Content"
                                             data-author-name="@post.Author.DisplayName"
                                             class="subtle-btn"
-                                            aria-label="Quote post by @post.Author.DisplayName">
+                                            aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
                                         <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
-                                        Quote
+                                        @T.Pages.DiscQuote
                                     </button>
                                     </div>
                                 }
@@ -955,7 +924,7 @@
                                      {
                                          <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
                                      }
-                                     aria-label="@(Model.IsAuthenticated ? "Add reaction to post" : "Reactions")">
+                                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
                                     @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
                                     {
                                         var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
@@ -965,14 +934,14 @@
                                     @if (!hasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
                                     {
                                         <span class="hidden group-hover:inline" data-reaction-placeholder>
-                                            <span class="icon icon-emoji-happy h-4 w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
                                         </span>
                                     }
                                 </div>
                                 @if (!isOP && Model.IsAuthenticated)
                                 {
                                 <div class="dropdown dropdown-end">
-                                    <button tabindex="0" class="subtle-btn" aria-label="Post options">
+                                    <button tabindex="0" class="subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions">
                                         <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
                                     </button>
                                     <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
@@ -982,19 +951,19 @@
                                                     hx-swap="innerHTML"
                                                     data-modal-open="history_modal"
                                                     class="text-sm">
-                                                History
+                                                @T.Pages.DiscHistory
                                             </button>
                                         </li>
                                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                                         {
-                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">Edit</button></li>
+                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
                                             <li>
                                                 <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
                                                         hx-target="#post-@post.PublicId"
                                                         hx-swap="outerHTML"
-                                                        hx-confirm="Are you sure you want to delete this post?"
+                                                        hx-confirm="@T.Pages.DiscDeleteConfirm"
                                                         class="text-sm text-error">
-                                                    Delete
+                                                    @T.Pages.DiscDelete
                                                 </button>
                                             </li>
                                         }
@@ -1002,12 +971,12 @@
                                         {
                                             <li>
                                                 <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
-                                                    Hide posts from user
+                                                    @T.Pages.DiscHideFromUser
                                                 </button>
                                             </li>
                                             <li>
-                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="this post" class="text-sm text-error">
-                                                    Report post
+                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                                    @T.Pages.DiscReportPost
                                                 </button>
                                             </li>
                                         }
@@ -1022,7 +991,7 @@
                         @if (hasReplyTo)
                         {
                             <div class="editorial-quote block mb-4 text-sm">
-                                <span class="quote-author">@post.ReplyTo!.AuthorName wrote:</span>
+                                <span class="quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
                                 <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
                             </div>
                         }
@@ -1070,15 +1039,15 @@
                 </div>
             </div>
             <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
-                You've reached the end
+                @T.Pages.DiscEndReached
             </div>
             <div id="load-error-message" class="hidden text-center py-8">
                 <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
                     <span class="icon icon-exclamation-triangle h-8 w-8 text-error" aria-hidden="true"></span>
-                    <p class="text-sm text-error font-medium">Failed to load more posts</p>
+                    <p class="text-sm text-error font-medium">@T.Pages.DiscLoadFailed</p>
                     <button data-action="retry-load-posts" class="btn btn-sm btn-primary">
                         <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
-                        Retry
+                        @T.Pages.DiscRetry
                     </button>
                 </div>
             </div>
@@ -1086,8 +1055,8 @@
         else
         {
             <div class="empty-state-simple">
-                <h3>Start the conversation</h3>
-                <p>Be the first to share your thoughts on this discussion.</p>
+                <h3>@T.Pages.DiscStartConvHeading</h3>
+                <p>@T.Pages.DiscStartConvBody</p>
             </div>
         }
     </div>
@@ -1100,7 +1069,7 @@
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
             </div>
-            <span id="typing-users">Someone is typing...</span>
+            <span id="typing-users">@T.Pages.DiscTypingSomeone</span>
         </div>
     </div>
 
@@ -1108,8 +1077,8 @@
     <!-- Realtime lock banner (shown dynamically via SignalR when discussion is locked while viewing) -->
     <div id="discussion-lock-banner" class="mt-8 hidden">
         <div class="clean-card p-6 text-center">
-            <h3 class="font-semibold mb-1">Discussion Locked</h3>
-            <p class="text-sm text-muted">This discussion has been locked. No new replies can be added.</p>
+            <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
+            <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
         </div>
     </div>
 
@@ -1117,15 +1086,15 @@
     {
         <div class="mt-8">
             <div class="clean-card p-6 text-center">
-                <h3 class="font-semibold mb-1">Discussion Locked</h3>
-                <p class="text-sm text-muted">This discussion has been locked. No new replies can be added.</p>
+                <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
+                <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
             </div>
         </div>
     }
     else if (!Model.IsAuthenticated)
     {
-        ViewData["Nudge.Title"] = "Join the conversation";
-        ViewData["Nudge.Body"]  = "Log in or create a free account to reply and react.";
+        ViewData["Nudge.Title"] = T.Pages.DiscNudgeJoinTitle;
+        ViewData["Nudge.Body"]  = T.Pages.DiscNudgeJoinBody;
         <partial name="Shared/_RegistrationNudge" />
     }
     else
@@ -1134,10 +1103,10 @@
             <!-- Reply context indicator -->
             <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
                 <span class="text-sm text-muted">
-                    Replying to <span id="reply-context-author" class="font-semibold"></span>
+                    @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="font-semibold"></span>
                 </span>
                 <button type="button" data-action="clear-reply-context" class="subtle-btn">
-                    Cancel
+                    @T.Pages.DiscCancel
                 </button>
             </div>
 
@@ -1176,37 +1145,37 @@
 
                     <div class="flex items-center gap-3">
                         <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
-                            Post Reply
+                            @T.Pages.DiscPostReply
                         </button>
-                        <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">Draft restored</span>
+                        <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">@T.Pages.DiscDraftRestored</span>
                     </div>
                 </form>
             </div>
         </div>
     }
 
-    </div> <!-- End fp-center-inner -->
+    </div> <!-- End sn-center-inner -->
 
     @if (Model.Discussion.PostCount > 1)
     {
-        <!-- Thread Navigation Bar (sticky bottom, inside fp-center but outside fp-center-inner) -->
+        <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
         <div id="thread-nav" class="thread-nav hidden">
             <div class="thread-nav-controls">
-                <button class="thread-nav-btn" data-nav="first" title="First post" aria-label="Jump to first post">
+                <button class="thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
                     <span class="icon icon-thread-nav-first w-3.5 h-3.5" aria-hidden="true"></span>
                 </button>
-                <button class="thread-nav-btn" data-nav="prev" title="Back 20 posts" aria-label="Back 20 posts">
+                <button class="thread-nav-btn" data-nav="prev" title="@T.Pages.DiscAriaBack20" aria-label="@T.Pages.DiscAriaBack20">
                     <span class="icon icon-thread-nav-prev w-3.5 h-3.5" aria-hidden="true"></span>
                 </button>
                 <div class="thread-nav-position">
-                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="Current post" />
+                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="@T.Pages.DiscAriaCurrentPost" />
                     <span class="thread-nav-separator">/</span>
                     <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
                 </div>
-                <button class="thread-nav-btn" data-nav="next" title="Forward 20 posts" aria-label="Forward 20 posts">
+                <button class="thread-nav-btn" data-nav="next" title="@T.Pages.DiscAriaForward20" aria-label="@T.Pages.DiscAriaForward20">
                     <span class="icon icon-thread-nav-next w-3.5 h-3.5" aria-hidden="true"></span>
                 </button>
-                <button class="thread-nav-btn" data-nav="last" title="Last post" aria-label="Jump to last post">
+                <button class="thread-nav-btn" data-nav="last" title="@T.Pages.DiscTitleLast" aria-label="@T.Pages.DiscAriaJumpLast">
                     <span class="icon icon-thread-nav-last w-3.5 h-3.5" aria-hidden="true"></span>
                 </button>
             </div>
@@ -1215,19 +1184,19 @@
 }
 else
 {
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-xl mx-auto empty-state-simple">
-            <h3>Discussion not found</h3>
-            <p>This discussion may have been removed or the link might be incorrect.</p>
-            <a href="/hubs" class="btn btn-primary btn-sm mt-4">Back to Hubs</a>
+            <h3>@T.Pages.DiscNotFoundHeading</h3>
+            <p>@T.Pages.DiscNotFoundBody</p>
+            <a href="/hubs" class="btn btn-primary btn-sm mt-4">@T.Pages.DiscBackToHubs</a>
         </div>
     </div>
 }
 
-</div> <!-- End fp-center -->
+</div> <!-- End sn-center -->
 
 <!-- Right Column -->
-<aside class="fp-right">
+<aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
     ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
@@ -1239,40 +1208,52 @@ else
     ViewData["RightPane.SubscribeEntityId"] = Model.Discussion.PublicId;
     ViewData["RightPane.SaveDiscussionId"] = Model.Discussion.PublicId;
 }
-<div class="fp-right-sticky">
+<div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
-    <div class="fp-right-body">
+    <div class="sn-right-body">
     @if (Model.SpaceStats != null)
     {
-        <div class="fp-right-section">
-            <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+        <div class="sn-right-section">
+            <div class="sn-sidebar-stats">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Pages.DiscStatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Pages.DiscStatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                <div class="stats shadow">
                     <div class="stat">
-                        <div class="stat-title">Followers</div>
+                        <div class="stat-title">@T.Pages.DiscStatsFollowers</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
                     </div>
                 </div>
+                @if (Model.Space != null)
+                {
+                    <div class="stats shadow">
+                        <div class="stat">
+                            <div class="stat-title">@T.Pages.DiscStatsActivity</div>
+                            <div class="sn-sparkline-container sn-right-sparkline"
+                                 data-sparkline-type="space"
+                                 data-sparkline-id="@Model.Space.PublicId"
+                                 data-sparkline-days="7"></div>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     }
     @if (Model.Space != null)
     {
-        <div class="fp-right-section">
-            <div class="fp-right-title">
+        <div class="sn-right-section">
+            <div class="sn-right-title">
                 <span class="icon icon-info-circle" aria-hidden="true"></span>
-                About @Model.Space?.Name
+                @T.Pages.DiscAboutPrefix@Model.Space?.Name
             </div>
             @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
@@ -1283,10 +1264,10 @@ else
 
     @if (Model.Space?.HasRules == true)
     {
-        <div class="fp-right-section">
+        <div class="sn-right-section">
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
-               class="fp-right-title flex items-center justify-between hover:text-primary transition-colors">
-                <span>Space Rules</span>
+               class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                <span>@T.Pages.DiscSpaceRules</span>
                 <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
             </a>
             <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
@@ -1303,10 +1284,10 @@ else
 
     @if (Model.Space != null)
     {
-        <div class="fp-right-section">
+        <div class="sn-right-section">
             <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
-               class="fp-right-title flex items-center justify-between hover:text-primary transition-colors">
-                <span>Space Moderators</span>
+               class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                <span>@T.Pages.DiscSpaceModerators</span>
                 <span class="flex items-center gap-1">
                     @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
                     {
@@ -1334,9 +1315,9 @@ else
 <dialog id="history_modal" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box max-w-2xl">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-lg">Edit History</h3>
+            <h3 class="font-semibold text-lg">@T.Pages.DiscEditHistoryTitle</h3>
             <form method="dialog">
-                <button class="subtle-btn">Close</button>
+                <button class="subtle-btn">@T.Pages.DiscClose</button>
             </form>
         </div>
         <div id="history-modal-content" class="py-2 min-h-32 flex items-center justify-center">
@@ -1352,14 +1333,13 @@ else
 <dialog id="report_modal" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box max-w-md">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-lg">Report Content</h3>
+            <h3 class="font-semibold text-lg">@T.Pages.DiscReportContentTitle</h3>
             <form method="dialog">
-                <button class="subtle-btn">Close</button>
+                <button class="subtle-btn">@T.Pages.DiscClose</button>
             </form>
         </div>
         <p class="text-sm text-muted mb-4">
-            You're reporting <span id="report-target-description" class="font-medium"></span>.
-            Please select a reason and optionally provide additional details.
+            @T.Pages.DiscReportingPrefix<span id="report-target-description" class="font-medium"></span>@T.Pages.DiscReportingSuffix
         </p>
         <form id="report-form" data-submit-action="submit-report">
             <input type="hidden" id="report-type" name="type" value="" />
@@ -1367,23 +1347,23 @@ else
 
             <div class="form-control mb-4">
                 <label class="label">
-                    <span class="label-text">Reason <span class="text-error">*</span></span>
+                    <span class="label-text">@T.Pages.DiscReportReasonLabel <span class="text-error">*</span></span>
                 </label>
                 <select id="report-reason" name="reasonId" class="select w-full" required>
-                    <option value="">Select a reason...</option>
+                    <option value="">@T.Pages.DiscReportSelectReason</option>
                 </select>
                 <div id="report-reason-description" class="text-xs text-muted mt-1 hidden"></div>
             </div>
 
             <div class="form-control mb-4">
                 <label class="label">
-                    <span class="label-text">Additional Details (optional)</span>
+                    <span class="label-text">@T.Pages.DiscReportAdditional</span>
                 </label>
                 <textarea id="report-details"
                           name="details"
                           class="textarea w-full"
                           rows="3"
-                          placeholder="Provide any additional context that might help moderators..."></textarea>
+                          placeholder="@T.Pages.DiscReportDetailsPh"></textarea>
             </div>
 
             <div id="report-error" class="alert alert-error text-sm mb-4 hidden">
@@ -1391,13 +1371,13 @@ else
             </div>
 
             <div id="report-success" class="alert alert-success text-sm mb-4 hidden">
-                <span>Report submitted successfully. Thank you for helping keep our community safe.</span>
+                <span>@T.Pages.DiscReportSuccess</span>
             </div>
 
             <div class="modal-action">
-                <button type="button" data-modal-close="report_modal" class="btn btn-ghost">Cancel</button>
+                <button type="button" data-modal-close="report_modal" class="btn btn-ghost">@T.Pages.DiscCancel</button>
                 <button type="submit" id="report-submit-btn" class="btn btn-error">
-                    <span id="report-submit-text">Submit Report</span>
+                    <span id="report-submit-text">@T.Pages.DiscSubmitReport</span>
                     <span id="report-submit-loading" class="loading loading-spinner loading-sm hidden"></span>
                 </button>
             </div>
@@ -1411,15 +1391,15 @@ else
 <!-- Reaction Picker -->
 <div id="reaction-picker" class="hidden fixed z-50 bg-base-100 border border-subtle rounded-lg shadow-lg p-2" data-post-id="">
     <div class="grid grid-cols-3 gap-1">
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Agree" title="Agree">👍</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Love" title="Love">❤️</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Funny" title="Funny">😂</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Thinking" title="Thinking">🤔</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Watching" title="Watching">👀</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Fire" title="Fire">🔥</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Thanks" title="Thanks">🙏</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="MindBlown" title="Mind Blown">🤯</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="ShipIt" title="Ship It">🚀</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Agree" title="@T.Pages.DiscReactionAgree">👍</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Love" title="@T.Pages.DiscReactionLove">❤️</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Funny" title="@T.Pages.DiscReactionFunny">😂</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Thinking" title="@T.Pages.DiscReactionThinking">🤔</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Watching" title="@T.Pages.DiscReactionWatching">👀</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Fire" title="@T.Pages.DiscReactionFire">🔥</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="Thanks" title="@T.Pages.DiscReactionThanks">🙏</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="MindBlown" title="@T.Pages.DiscReactionMindBlown">🤯</button>
+        <button type="button" class="reaction-picker-btn" data-reaction-type="ShipIt" title="@T.Pages.DiscReactionShipIt">🚀</button>
     </div>
 </div>
 

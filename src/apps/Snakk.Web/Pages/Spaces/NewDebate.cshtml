@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.Spaces.NewDebateModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"New Debate — {Model.Space?.Name}";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewDebateTitlePattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -13,30 +13,30 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
     return;
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.SpacesNewHome</a>
             @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
             <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
             <span class="breadcrumb-separator">/</span>
-            <span>Debate</span>
+            <span>@T.Pages.SpacesNewDebateCrumb</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">Start a Debate</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewDebateHeading</h1>
 
             @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -44,57 +44,57 @@
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
                 <div class="space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="Debate topic (e.g. Should we...)" />
+                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewDebateTitlePh" />
 
                     <!-- Debate positions -->
                     <div class="space-y-3">
-                        <div class="text-sm font-medium">Positions</div>
+                        <div class="text-sm font-medium">@T.Pages.SpacesNewDebatePositionsLabel</div>
                         <div id="debate-positions-list" class="space-y-2">
-                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 1 (e.g. For)" />
-                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="Position 2 (e.g. Against)" />
+                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="@T.Pages.SpacesNewDebatePosition1Ph" />
+                            <input type="text" name="DebatePositions" class="input w-full input-sm" placeholder="@T.Pages.SpacesNewDebatePosition2Ph" />
                         </div>
-                        <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" data-action="add-debate-position">+ Add position</button>
+                        <button type="button" id="add-debate-position-btn" class="btn btn-ghost btn-xs" data-action="add-debate-position">@T.Pages.SpacesNewDebateAddPosition</button>
 
                         <label class="flex items-center gap-2 text-sm cursor-pointer mt-2">
                             <input type="checkbox" name="DebateAllowNeutral" value="true" class="checkbox checkbox-sm" />
-                            Allow neutral / undecided position
+                            @T.Pages.SpacesNewDebateNeutral
                         </label>
                     </div>
 
                     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                    <div id="editor-container" data-hide-image="true" data-placeholder="Set the stage for the debate...">
+                    <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewDebateEditorPh">
                         <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start Debate</button>
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewDebateSubmit</button>
                     </div>
                 </div>
             </form>
 
             <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How debates work</h3>
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewDebateHowHeading</h3>
                 <div class="text-sm text-base-content/60 space-y-3">
-                    <p>Debates are structured discussions where each reply takes a position. This encourages thoughtful arguments from defined perspectives.</p>
+                    <p>@T.Pages.SpacesNewDebateIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">After you post</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Your prompt and positions are shown at the top</li>
-                            <li>When replying, participants must choose a position</li>
-                            <li>Each reply is labeled with the author's chosen side</li>
-                            <li>Readers can filter replies by position</li>
-                            <li>Participants can change their position later</li>
+                            <li>@T.Pages.SpacesNewDebateAfter1</li>
+                            <li>@T.Pages.SpacesNewDebateAfter2</li>
+                            <li>@T.Pages.SpacesNewDebateAfter3</li>
+                            <li>@T.Pages.SpacesNewDebateAfter4</li>
+                            <li>@T.Pages.SpacesNewDebateAfter5</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">Setting up a fair debate</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewDebateFairLabel</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Frame the topic as a clear question or statement</li>
-                            <li>Define 2-3 distinct, non-overlapping positions</li>
-                            <li>Write a neutral prompt that doesn't favor one side</li>
-                            <li>Enable the neutral option for nuanced topics</li>
+                            <li>@T.Pages.SpacesNewDebateFair1</li>
+                            <li>@T.Pages.SpacesNewDebateFair2</li>
+                            <li>@T.Pages.SpacesNewDebateFair3</li>
+                            <li>@T.Pages.SpacesNewDebateFair4</li>
                         </ul>
                     </div>
                 </div>

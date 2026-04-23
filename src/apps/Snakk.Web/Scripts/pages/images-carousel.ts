@@ -48,21 +48,21 @@
     }
 
     function initImagesCarousels(root?: Element): void {
-        const carousels = (root || document).querySelectorAll('.fp-images-preview');
+        const carousels = (root || document).querySelectorAll('.sn-images-preview');
         carousels.forEach(function(preview) {
             const el = preview as HTMLElement;
             if (initializedCarousels.has(el)) return;
             initializedCarousels.add(el);
 
-            const track = el.querySelector('.fp-images-track') as HTMLElement | null;
-            const slides = el.querySelectorAll<HTMLImageElement>('.fp-images-slide');
+            const track = el.querySelector('.sn-images-track') as HTMLElement | null;
+            const slides = el.querySelectorAll<HTMLImageElement>('.sn-images-slide');
             if (!track || slides.length === 0) return;
 
             let current = 0;
 
             // Carousel nav (multi-image only)
             if (slides.length > 1) {
-                const counter = el.querySelector('.fp-images-counter');
+                const counter = el.querySelector('.sn-images-counter');
 
                 function loadSrc(img: HTMLImageElement): void {
                     if (img.dataset.src && !img.dataset.loaded) {
@@ -84,8 +84,8 @@
                     if (s) loadSrc(s);
                 }
 
-                const prev = el.querySelector('.fp-images-prev');
-                const next = el.querySelector('.fp-images-next');
+                const prev = el.querySelector('.sn-images-prev');
+                const next = el.querySelector('.sn-images-next');
 
                 if (prev) prev.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); showSlide(current - 1); });
                 if (next) {
@@ -96,7 +96,7 @@
             }
 
             // Expand button opens lightbox at current slide
-            const expandBtn = el.querySelector('.fp-images-expand-btn');
+            const expandBtn = el.querySelector('.sn-images-expand-btn');
             if (expandBtn) {
                 expandBtn.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -119,7 +119,7 @@
 
     // ── Compare widget previews ──────────────────
     function initComparePreview(root?: Element): void {
-        const widgets = (root || document).querySelectorAll('.fp-compare-widget');
+        const widgets = (root || document).querySelectorAll('.sn-compare-widget');
         widgets.forEach(function(widget) {
             const el = widget as HTMLElement;
             if (initializedCompare.has(el)) return;
@@ -127,7 +127,7 @@
 
             const beforeEl = el.querySelector('.gup-compare-before') as HTMLElement | null;
             const afterEl = el.querySelector('.gup-compare-after') as HTMLElement | null;
-            const slider = el.querySelector('.fp-compare-slider') as HTMLElement | null;
+            const slider = el.querySelector('.sn-compare-slider') as HTMLElement | null;
             if (!beforeEl || !afterEl || !slider) return;
 
             // Wipe any stale inline slider state that may have been baked into
@@ -180,12 +180,12 @@
             let dragging = false;
             slider.addEventListener('pointerdown', (e) => { dragging = true; slider!.setPointerCapture(e.pointerId); e.preventDefault(); });
             el.addEventListener('pointerdown', (e) => {
-                if ((e.target as HTMLElement).closest('.gup-compare-handle, .fp-images-expand-btn')) return;
+                if ((e.target as HTMLElement).closest('.gup-compare-handle, .sn-images-expand-btn')) return;
                 dragging = true; setPos(e.clientX); e.preventDefault();
             });
 
             // Expand button opens lightbox with both images
-            const expandBtn = el.querySelector('.fp-images-expand-btn');
+            const expandBtn = el.querySelector('.sn-images-expand-btn');
             if (expandBtn) {
                 expandBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -203,7 +203,7 @@
                     // Mark when the drag ended so initPreviewNavigation can
                     // suppress the synthesized click that follows. Without
                     // this, releasing the mouse after dragging the slider
-                    // would fire a click on .fp-card-preview and navigate to
+                    // would fire a click on .sn-card-preview and navigate to
                     // the discussion — clearly wrong.
                     compareDragEndTimestamp = Date.now();
                 }
@@ -214,20 +214,20 @@
 
     // ── Spoiler reveal for previews ────────────
     function initSpoilerReveal(root?: Element): void {
-        const spoilers = (root || document).querySelectorAll('.fp-images-spoiler');
+        const spoilers = (root || document).querySelectorAll('.sn-images-spoiler');
         spoilers.forEach(function(container) {
             const el = container as HTMLElement;
             if (initializedSpoilers.has(el)) return;
             initializedSpoilers.add(el);
 
-            const overlay = el.querySelector('.fp-images-spoiler-overlay') as HTMLElement | null;
+            const overlay = el.querySelector('.sn-images-spoiler-overlay') as HTMLElement | null;
             if (!overlay) return;
 
             const discussionId = el.dataset.discussionId || '';
             const storageKey = discussionId ? `snakk:spoiler-revealed:${discussionId}` : '';
 
             function reveal(): void {
-                const isCompare = !!el.querySelector('.fp-compare-widget');
+                const isCompare = !!el.querySelector('.sn-compare-widget');
                 const deferred = el.querySelectorAll<HTMLImageElement>('img[data-deferred-src]');
                 deferred.forEach((img, i) => {
                     const realSrc = img.dataset.deferredSrc!;
@@ -279,7 +279,7 @@
 
     // ── Preview click-to-navigate ────────────────
     function initPreviewNavigation(root?: Element): void {
-        const previews = (root || document).querySelectorAll<HTMLElement>('.fp-card-preview[data-discussion-url]');
+        const previews = (root || document).querySelectorAll<HTMLElement>('.sn-card-preview[data-discussion-url]');
         previews.forEach(function(el) {
             if (initializedPreviewNav.has(el)) return;
             initializedPreviewNav.add(el);

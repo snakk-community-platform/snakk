@@ -81,7 +81,8 @@ public interface ISearchRepository
         string? spaceId = null,
         string? cursor = null,
         string? userId = null,
-        string? authorId = null);
+        string? authorId = null,
+        IReadOnlyList<string>? spaceIds = null);
 
     /// <summary>
     /// Gets trending discussions ordered by decay-weighted activity score (TrendScore DESC).

@@ -5,7 +5,7 @@
 @model Snakk.Web.Pages.Spaces.NewIamaModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = $"New AMA — {Model.Space?.Name}";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewIamaTitlePattern, Model.Space?.Name);
 }
 
 @section LeftColumn {
@@ -13,30 +13,30 @@
 }
 
 @if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = "Sign in to post a discussion"; }
-    <div class="fp-center"><div class="fp-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
     return;
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>Space not found</h3></div> return; }
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="fp-center">
+<div class="sn-center">
     <div class="breadcrumb-bar">
         <nav class="breadcrumb">
-            <a href="/">Home</a>
+            <a href="/">@T.Pages.SpacesNewHome</a>
             @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="breadcrumb-separator">/</span>
             <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
             <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">New</a>
+            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
             <span class="breadcrumb-separator">/</span>
-            <span>AMA</span>
+            <span>@T.Pages.SpacesNewIamaCrumb</span>
         </nav>
     </div>
-    <div class="fp-center-inner">
+    <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">Start an AMA</h1>
+            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewIamaHeading</h1>
 
             @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
 
@@ -44,15 +44,15 @@
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
                 <div class="space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="I am a ... — Ask Me Anything!" />
+                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewIamaTitlePh" />
 
                     <!-- Verification note -->
                     <div class="space-y-2">
-                        <label class="text-sm font-medium" for="iama-verification">Verification / Proof</label>
+                        <label class="text-sm font-medium" for="iama-verification">@T.Pages.SpacesNewIamaVerifLabel</label>
                         <textarea name="IamaVerificationNote" id="iama-verification" class="textarea w-full" rows="3"
-                                  placeholder="Who are you and how can the community verify it? E.g. a link to your profile, a tweet, etc."
+                                  placeholder="@T.Pages.SpacesNewIamaVerifPh"
                                   maxlength="2000">@Model.IamaVerificationNote</textarea>
-                        <p class="text-xs text-base-content/50">Optional. Helps moderators and the community trust the AMA is genuine.</p>
+                        <p class="text-xs text-base-content/50">@T.Pages.SpacesNewIamaVerifHelp</p>
                     </div>
 
                     <!-- Schedule toggle -->
@@ -60,16 +60,16 @@
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
                             <input type="checkbox" name="IamaIsScheduled" value="true" class="checkbox checkbox-sm"
                                    id="iama-scheduled-toggle" onchange="var f=document.getElementById('iama-schedule-fields');var s=document.getElementById('iama-start');f.classList.toggle('hidden',!this.checked);s.required=this.checked;" />
-                            Schedule this AMA for later
+                            @T.Pages.SpacesNewIamaScheduleToggle
                         </label>
 
                         <div id="iama-schedule-fields" class="hidden space-y-3 pl-6 border-l-2 border-base-content/10">
                             <div>
-                                <label class="text-sm text-base-content/70" for="iama-start">Start date &amp; time <span class="text-error">*</span></label>
+                                <label class="text-sm text-base-content/70" for="iama-start">@T.Pages.SpacesNewIamaStartLabel <span class="text-error">*</span></label>
                                 <input type="datetime-local" name="IamaScheduledStart" id="iama-start" class="input input-sm w-full max-w-xs mt-1" />
                             </div>
                             <div>
-                                <label class="text-sm text-base-content/70" for="iama-end">End date &amp; time (optional)</label>
+                                <label class="text-sm text-base-content/70" for="iama-end">@T.Pages.SpacesNewIamaEndLabel</label>
                                 <input type="datetime-local" name="IamaScheduledEnd" id="iama-end" class="input input-sm w-full max-w-xs mt-1" />
                             </div>
                         </div>
@@ -77,36 +77,36 @@
 
                     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
-                    <div id="editor-container" data-placeholder="Introduce yourself and your topic...">
+                    <div id="editor-container" data-placeholder="@T.Pages.SpacesNewIamaEditorPh">
                         <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">Back</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">Start AMA</button>
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewIamaSubmit</button>
                     </div>
                 </div>
             </form>
 
             <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">How AMAs work</h3>
+                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewIamaHowHeading</h3>
                 <div class="text-sm text-base-content/60 space-y-3">
-                    <p>An Ask Me Anything lets the community ask you questions that you answer in real time. You are the host.</p>
+                    <p>@T.Pages.SpacesNewIamaIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">As the host, you can</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewIamaHostLabel</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Mark any of your replies as the <strong>official answer</strong> to a question</li>
-                            <li>Highlight up to 5 <strong>best questions</strong> after the AMA ends</li>
-                            <li>Close the AMA when you're done answering</li>
+                            <li>@Html.Raw(T.Pages.SpacesNewIamaHost1Html)</li>
+                            <li>@Html.Raw(T.Pages.SpacesNewIamaHost2Html)</li>
+                            <li>@T.Pages.SpacesNewIamaHost3</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">Tips</div>
+                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
                         <ul class="space-y-1 list-disc pl-4">
-                            <li>Use the description to introduce yourself and your topic</li>
-                            <li>Add a verification note so mods and the community know it's really you</li>
-                            <li>Schedule it in advance so the community can prepare questions early</li>
-                            <li>Answer the most upvoted questions first</li>
+                            <li>@T.Pages.SpacesNewIamaTip1</li>
+                            <li>@T.Pages.SpacesNewIamaTip2</li>
+                            <li>@T.Pages.SpacesNewIamaTip3</li>
+                            <li>@T.Pages.SpacesNewIamaTip4</li>
                         </ul>
                     </div>
                 </div>

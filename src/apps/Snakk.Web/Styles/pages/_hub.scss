@@ -1,0 +1,116 @@
+// ============================================
+// Hub Page Header Card — same gradient + overlay pattern as profile/space.
+// ============================================
+
+.sn-hub-card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+.sn-hub-card-banner {
+    position: relative;
+    height: 5rem;
+    background-size: cover;
+    background-position: center;
+    overflow: visible;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
+        pointer-events: none;
+    }
+}
+
+.sn-hub-card-breadcrumbs {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+
+    .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: transparent;
+        &:hover { background: rgba(255, 255, 255, 0.25); }
+    }
+
+    .sn-page-labels-sep { color: rgba(255, 255, 255, 0.55); }
+}
+
+.sn-hub-card-banner .sn-hub-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.sn-hub-card-banner .sn-hub-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sn-hub-card-body {
+    padding: 2.25rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.sn-hub-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sn-hub-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sn-hub-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.sn-hub-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+}
+
+.sn-hub-breadcrumb {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+}
+

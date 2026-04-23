@@ -8,27 +8,27 @@
         <div class="p-8 text-center space-y-4">
             <span class="icon icon-exclamation-triangle h-12 w-12 mx-auto text-warning" aria-hidden="true"></span>
 
-            <h2 class="text-lg font-bold">Adult Content</h2>
+            <h2 class="text-lg font-bold">@T.Adult.Title</h2>
 
             <p class="text-sm text-base-content/60">
-                This content has been marked as adults only. You must confirm that you are at least 18 years old to continue.
+                @T.Adult.Body
             </p>
 
             <div class="flex flex-col gap-2 pt-2">
                 <form method="post" action="/bff/adult-confirm">
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                     <button type="submit" class="btn btn-primary btn-sm w-full">
-                        I am 18 or older — continue
+                        @T.Adult.Confirm
                     </button>
                 </form>
 
-                <a href="/" class="btn btn-ghost btn-sm">Go back</a>
+                <a href="/" class="btn btn-ghost btn-sm">@T.Common.GoBack</a>
             </div>
 
             @if (User.Identity?.IsAuthenticated == true)
             {
                 <p class="text-xs text-base-content/40 pt-2">
-                    You can enable "Show adult content" in <a href="/settings#section-behavior" class="underline">Settings</a> to skip this prompt.
+                    @T.Adult.SettingsHintBefore<a href="/settings#section-behavior" class="underline">@T.Adult.SettingsHintLink</a>@T.Adult.SettingsHintAfter
                 </p>
             }
         </div>

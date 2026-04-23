@@ -1,4 +1,5 @@
 @using Microsoft.Extensions.Options
+@using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using System.Security.Claims
 @inject IOptions<OAuthProvidersOptions> OAuthOptions
@@ -31,15 +32,14 @@
     var githubUrl   = $"/auth/oauth/GitHub/challenge?returnUrl={returnUrl}";
     var discordUrl  = $"/auth/oauth/Discord/challenge?returnUrl={returnUrl}";
 }
-<div class="fp-right-action-pane">
-    <div class="fp-right-action-box">
-    <a href="@newDiscussionUrl" class="btn btn-primary btn-sm w-full justify-center">
+<div class="sn-right-action-pane">
+    <div class="sn-right-action-box">
+    <a href="@newDiscussionUrl" id="rp-new-discussion" class="btn btn-primary btn-sm w-full justify-center">
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-3.5 h-3.5" aria-hidden="true"></span>
-        New Discussion
+        @T.Actions.NewDiscussion
     </a>
     @if (hasActions)
     {
-        <div class="fp-right-action-row">
             @if (actions.Contains("feed") && !string.IsNullOrEmpty(feedUrl))
             {
                 <partial name="Shared/_FeedDropdown" model="@feedUrl" />
@@ -47,9 +47,9 @@
             @if (actions.Contains("share"))
             {
                 <div class="dropdown dropdown-end">
-                    <button tabindex="0" class="btn btn-outline btn-sm" aria-label="Share">
+                    <button tabindex="0" class="btn btn-outline btn-sm" aria-label="@T.Actions.Share">
                         <span class="icon icon-share w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Share</span>
+                        <span>@T.Actions.Share</span>
                     </button>
                     <ul tabindex="0"
                         class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-200"
@@ -67,14 +67,14 @@
                 {
                     <button type="button" class="btn btn-outline btn-sm rp-subscribe-btn" data-action="@subscribeAction" @Html.Raw(subscribeAttrHtml)>
                         <span class="icon icon-bell w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Subscribe</span>
+                        <span>@T.Actions.Subscribe</span>
                     </button>
                 }
                 else
                 {
                     <button type="button" class="btn btn-outline btn-sm" data-modal-open="guest-nudge-modal">
                         <span class="icon icon-lock-closed w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Subscribe</span>
+                        <span>@T.Actions.Subscribe</span>
                     </button>
                 }
             }
@@ -84,35 +84,74 @@
                 {
                     <button type="button" class="btn btn-outline btn-sm" data-action="toggle-save-discussion" data-discussion-id="@saveDiscussionId" data-saved="false">
                         <span class="icon icon-bookmark w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Save</span>
+                        <span>@T.Actions.Save</span>
                     </button>
                 }
                 else
                 {
                     <button type="button" class="btn btn-outline btn-sm" data-modal-open="guest-nudge-modal">
                         <span class="icon icon-lock-closed w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Save</span>
+                        <span>@T.Actions.Save</span>
                     </button>
                 }
+            }
+            @if (actions.Contains("follows") && isAuth)
+            {
+                <a href="/following?tab=spaces" class="btn btn-outline btn-sm">
+                    <span class="icon icon-users-group w-3.5 h-3.5" aria-hidden="true"></span>
+                    <span>@T.Actions.ManageFollows</span>
+                </a>
+            }
+            @if (actions.Contains("follow-user"))
+            {
+                <div id="profile-actions">
+                    <div class="skeleton h-8 w-24"></div>
+                </div>
             }
             @if (actions.Contains("manage") && !string.IsNullOrEmpty(manageUrl) && canManage)
             {
                 <a href="@manageUrl" class="btn btn-outline btn-sm">
                     <span class="icon icon-cog w-3.5 h-3.5" aria-hidden="true"></span>
-                    <span>Manage</span>
+                    <span>@T.Actions.Manage</span>
                 </a>
             }
             @if (actions.Contains("clear-history"))
             {
                 <button type="button" id="history-clear-btn" class="btn btn-outline btn-sm">
                     <span class="icon icon-trash w-3.5 h-3.5" aria-hidden="true"></span>
-                    <span>Clear history</span>
+                    <span>@T.Actions.ClearHistory</span>
                 </button>
             }
-        </div>
     }
     </div>
 </div>
+
+@* FAB shown when New Discussion button scrolls out of view (only in non-default sticky modes) *@
+<div id="new-discussion-fab" class="fab fab-flower" hidden>
+    <a href="@newDiscussionUrl" class="btn btn-circle btn-lg btn-primary" aria-label="@T.Actions.NewDiscussion">
+        <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-5 h-5" aria-hidden="true"></span>
+    </a>
+</div>
+<script>
+(function () {
+    const fab = document.getElementById('new-discussion-fab');
+    const target = document.getElementById('rp-new-discussion');
+    if (!fab || !target || !('IntersectionObserver' in window)) return;
+
+    let intersecting = true;
+    function update() {
+        const root = document.documentElement;
+        const sticky = root.classList.contains('sticky-none') || root.classList.contains('sticky-left-only');
+        fab.hidden = intersecting || !sticky;
+    }
+    const observer = new IntersectionObserver(function (entries) {
+        intersecting = entries[0].isIntersecting;
+        update();
+    });
+    observer.observe(target);
+    window.addEventListener('snakk:sticky-changed', update);
+})();
+</script>
 
 @if (!isAuth)
 {
@@ -121,45 +160,45 @@
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
         </form>
-        <div class="fp-nudge-icon">
+        <div class="sn-nudge-icon">
             <span class="icon icon-lock-closed w-6 h-6" aria-hidden="true"></span>
         </div>
-        <h3 class="fp-nudge-title">Join the conversation</h3>
-        <p class="fp-nudge-body">Create a free account to save and subscribe to discussions.</p>
+        <h3 class="sn-nudge-title">@T.Nudge.Title</h3>
+        <p class="sn-nudge-body">@T.Nudge.Body</p>
 
         @if (oauth.HasAny)
         {
-            <div class="fp-nudge-oauth">
+            <div class="sn-nudge-oauth">
                 @if (oauth.Google)
                 {
-                    <a href="@googleUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                    <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
-                        Continue with Google
+                        @T.Nudge.ContinueGoogle
                     </a>
                 }
                 @if (oauth.GitHub)
                 {
-                    <a href="@githubUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                    <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
-                        Continue with GitHub
+                        @T.Nudge.ContinueGitHub
                     </a>
                 }
                 @if (oauth.Discord)
                 {
-                    <a href="@discordUrl" class="fp-nudge-oauth-btn" hx-boost="false">
+                    <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
-                        Continue with Discord
+                        @T.Nudge.ContinueDiscord
                     </a>
                 }
             </div>
-            <div class="fp-nudge-divider"><span>or</span></div>
+            <div class="sn-nudge-divider"><span>@T.Nudge.Or</span></div>
         }
 
-        <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">Sign up with email</a>
-        <p class="fp-nudge-login-link">
-            Already have an account? <a href="@loginUrl" hx-boost="false">Log in</a>
+        <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
+        <p class="sn-nudge-login-link">
+            @T.Nudge.AlreadyAccount <a href="@loginUrl" hx-boost="false">@T.Nudge.LogIn</a>
         </p>
     </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    <form method="dialog" class="modal-backdrop"><button>@T.Nudge.Close</button></form>
 </dialog>
 }
