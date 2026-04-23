@@ -287,6 +287,9 @@
     },
     "sections": {
         "siteStats":                "Sidestatistikk",
+        "spaceStats":               "Romstatistikk",
+        "hubStats":                 "Hubstatistikk",
+        "communityStats":           "Fellesskapsstatistikk",
         "activeSpaces":             "Aktive rom",
         "activeContributors":       "Aktive bidragsytere",
         "latestSpaces":             "Nyeste rom",

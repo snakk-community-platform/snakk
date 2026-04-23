@@ -287,6 +287,9 @@
     },
     "sections": {
         "siteStats":                "Site Stats",
+        "spaceStats":               "Space Stats",
+        "hubStats":                 "Hub Stats",
+        "communityStats":           "Community Stats",
         "activeSpaces":             "Active Spaces",
         "activeContributors":       "Active Contributors",
         "latestSpaces":             "Latest Spaces",

@@ -127,7 +127,7 @@
 </div>
 
 @* FAB shown when New Discussion button scrolls out of view (only in non-default sticky modes) *@
-<div id="new-discussion-fab" class="fab fab-flower" hidden>
+<div id="new-discussion-fab" class="fab fab-flower fab-collapsed">
     <a href="@newDiscussionUrl" class="btn btn-circle btn-lg btn-primary" aria-label="@T.Actions.NewDiscussion">
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-5 h-5" aria-hidden="true"></span>
     </a>
@@ -142,7 +142,7 @@
     function update() {
         const root = document.documentElement;
         const sticky = root.classList.contains('sticky-none') || root.classList.contains('sticky-left-only');
-        fab.hidden = intersecting || !sticky;
+        fab.classList.toggle('fab-collapsed', intersecting || !sticky);
     }
     const observer = new IntersectionObserver(function (entries) {
         intersecting = entries[0].isIntersecting;
@@ -150,6 +150,7 @@
     });
     observer.observe(target);
     window.addEventListener('snakk:sticky-changed', update);
+    update();
 })();
 </script>
 

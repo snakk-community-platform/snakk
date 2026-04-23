@@ -1214,6 +1214,10 @@ else
     @if (Model.SpaceStats != null)
     {
         <div class="sn-right-section">
+            <div class="sn-right-title">
+                <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                @T.Sections.SpaceStats
+            </div>
             <div class="sn-sidebar-stats">
                 <div class="stats shadow">
                     <div class="stat">
@@ -1410,7 +1414,6 @@ else
 <script src="@SnakkUrlHelper.Js("services/draft-manager")"></script>
 <script src="@SnakkUrlHelper.Js("services/read-state-batcher")"></script>
 
-<script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true"></script>
 @if (Model.Discussion?.Type == "Poll")
 {
     <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true" defer></script>

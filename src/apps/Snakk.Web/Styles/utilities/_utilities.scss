@@ -50,3 +50,9 @@ a.hover-link {
 .tooltip::after {
     z-index: 50;
 }
+
+// daisyUI .fab sets display:flex which beats the [hidden] attribute, so we need
+// a class with !important to actually hide the FAB
+#new-discussion-fab.fab-collapsed {
+    display: none !important;
+}

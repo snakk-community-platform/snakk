@@ -519,6 +519,8 @@ public class PostRepositoryAdapter(
         s = Regex.Replace(s, @"^#{1,6}\s+", "", RegexOptions.Multiline); // headings
         s = Regex.Replace(s, @"^>\s*", "", RegexOptions.Multiline);      // blockquotes
         s = Regex.Replace(s, @"^[-*_]{3,}\s*$", "", RegexOptions.Multiline); // hr
+        s = Regex.Replace(s, @"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", "", RegexOptions.Multiline); // table separator row
+        s = Regex.Replace(s, @"\|", " ");                                    // pipe characters in tables
         s = Regex.Replace(s, @"\s+", " ").Trim();
         return s.Length > 200 ? s[..200] : s;
     }

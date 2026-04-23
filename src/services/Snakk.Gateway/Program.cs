@@ -1,5 +1,7 @@
 using System.IO.Compression;
+using System.Net;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog;
@@ -144,6 +146,19 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+// Trust X-Forwarded-* headers from the external proxy (Caddy/Cloudflare in front of Docker).
+// Without this, Request.Host stays "127.0.0.1:17000" and YARP forwards that downstream,
+// breaking absolute-URL generation (oembed, og:url, OAuth redirect_uri, canonical).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.All;
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Loopback, 32));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.IPv6Loopback, 128));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
+});
+
 // Request timeouts (per-route in appsettings.json)
 builder.Services.AddRequestTimeouts();
 
@@ -167,6 +182,10 @@ builder.Services.AddReverseProxy()
 var app = builder.Build();
 
 //app.UseSerilogRequestLogging();
+
+// Honor X-Forwarded-* from the external proxy before anything reads Request.Host/Scheme.
+// Must run before YARP so X-Forwarded-Host gets propagated downstream with the public domain.
+app.UseForwardedHeaders();
 
 // HTTPS redirection (skip in production — Caddy/Cloudflare handles TLS)
 if (!app.Environment.IsProduction())

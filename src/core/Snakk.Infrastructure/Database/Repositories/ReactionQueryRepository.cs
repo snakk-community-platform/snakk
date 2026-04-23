@@ -19,11 +19,7 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
             .Select(r => new
             {
                 r.Post.PublicId,
-                ContentExcerpt = r.Post.RenderedContent != null
-                    ? r.Post.RenderedContent.Length > 300
-                        ? r.Post.RenderedContent.Substring(0, 300)
-                        : r.Post.RenderedContent
-                    : "",
+                ContentExcerpt = r.Post.PlainTextExcerpt ?? "",
                 PostCreatedAt = r.Post.CreatedAt,
                 DiscussionPublicId = r.Post.Discussion.PublicId,
                 DiscussionTitle = r.Post.Discussion.Title,
@@ -79,11 +75,7 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
             .Select(r => new
             {
                 r.Post.PublicId,
-                ContentExcerpt = r.Post.RenderedContent != null
-                    ? r.Post.RenderedContent.Length > 300
-                        ? r.Post.RenderedContent.Substring(0, 300)
-                        : r.Post.RenderedContent
-                    : "",
+                ContentExcerpt = r.Post.PlainTextExcerpt ?? "",
                 PostCreatedAt = r.Post.CreatedAt,
                 DiscussionPublicId = r.Post.Discussion.PublicId,
                 DiscussionTitle = r.Post.Discussion.Title,
