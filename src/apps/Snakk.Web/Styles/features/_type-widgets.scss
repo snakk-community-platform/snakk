@@ -110,20 +110,41 @@
     // Reuse daisyUI .timeline-vertical positioning; scope the styles to the
     // li instead of duplicating structure. The first column is pinned to 150px
     // so the icon and vertical line align with .post-author-pane's right border.
+    margin: 1rem 0;
+    padding-inline: 0; // cancel browser ul default padding-left
     > li {
-        grid-template-columns: 150px auto 1fr;
+        grid-template-columns: calc(150px - 0.5rem) auto 1fr;
     }
     .timeline-middle svg, .timeline-middle .icon {
         color: oklch(0.7 0.16 70); // amber
     }
     .timeline-end {
+        place-self: center stretch; // override DaisyUI flex-start so element fills its grid column
         color: oklch(0.7 0.16 70);
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding-right: 1rem;
+        &::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: oklch(0.7 0.16 70 / 0.5);
+        }
     }
     hr {
         width: 1px;
         background: oklch(0.7 0.16 70 / 0.4);
     }
+}
+
+// Suppress the new-author top gap on the post that immediately follows a
+// position-change marker — the marker itself provides the visual separation.
+.timeline-position-change + article.new-author {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
 }
 
 // --- Link: Preview card ---

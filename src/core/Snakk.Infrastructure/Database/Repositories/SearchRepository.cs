@@ -908,15 +908,27 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 })
                 .ToListAsync();
 
-            // Batch load all position post counts in a single query
+            // Batch load position post counts — only the latest post per user per debate counts.
             var allPositionIds = debates.SelectMany(d => d.Positions.Select(p => p.Id)).ToList();
-            var positionCounts = allPositionIds.Count > 0
-                ? await _context.DiscussionDebatePostPositions
+            // Map position → debate so we can group by (author, debate) in memory.
+            var positionToDebate = debates
+                .SelectMany(d => d.Positions.Select(p => (PositionId: p.Id, DiscussionId: d.DiscussionId)))
+                .ToDictionary(x => x.PositionId, x => x.DiscussionId);
+
+            var positionCounts = new Dictionary<int, int>();
+            if (allPositionIds.Count > 0)
+            {
+                var allPostPositions = await _context.DiscussionDebatePostPositions
                     .Where(pdp => allPositionIds.Contains(pdp.PositionId))
-                    .GroupBy(pdp => pdp.PositionId)
-                    .Select(g => new { PositionId = g.Key, Count = g.Count() })
-                    .ToDictionaryAsync(x => x.PositionId, x => x.Count)
-                : new Dictionary<int, int>();
+                    .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
+                    .ToListAsync();
+
+                positionCounts = allPostPositions
+                    .GroupBy(x => (x.CreatedByUserId, DebateId: positionToDebate[x.PositionId]))
+                    .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
+                    .GroupBy(x => x.PositionId)
+                    .ToDictionary(g => g.Key, g => g.Count());
+            }
 
             foreach (var debate in debates)
             {

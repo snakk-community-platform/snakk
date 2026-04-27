@@ -132,13 +132,18 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         if (debate is null) return null;
 
-        // Count posts per position
+        // Count users per position — only the latest post per user counts.
         var positionIds = debate.Positions.Select(p => p.Id).ToList();
-        var positionCounts = await context.DiscussionDebatePostPositions
+        var allPostPositions = await context.DiscussionDebatePostPositions
             .Where(pp => positionIds.Contains(pp.PositionId))
-            .GroupBy(pp => pp.PositionId)
-            .Select(g => new { PositionId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.PositionId, x => x.Count);
+            .Select(pp => new { pp.PositionId, pp.Post.CreatedByUserId, pp.Post.CreatedAt })
+            .ToListAsync();
+
+        var positionCounts = allPostPositions
+            .GroupBy(x => x.CreatedByUserId)
+            .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
+            .GroupBy(x => x.PositionId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         // Get post → position mapping
         var postPositions = await context.DiscussionDebatePostPositions
