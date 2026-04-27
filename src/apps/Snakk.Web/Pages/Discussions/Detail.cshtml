@@ -27,9 +27,12 @@
         var path = ViewContext.HttpContext.Request.Path.ToString();
 
         var firstPost = Model.Posts?.Items?.FirstOrDefault();
-        var description = firstPost != null
-            ? (firstPost.Content.Length > 160 ? firstPost.Content.Substring(0, 157) + "..." : firstPost.Content)
-            : Model.Discussion.Title;
+        var contentIsAdult = Model.Discussion.IsAdult || Model.Space?.IsAdultOnly == true;
+        var description = contentIsAdult
+            ? T.Pages.DiscAdultOgDescription
+            : firstPost != null
+                ? (firstPost.Content.Length > 160 ? firstPost.Content.Substring(0, 157) + "..." : firstPost.Content)
+                : Model.Discussion.Title;
         var url = $"{scheme}://{host}{path}";
         var authorAvatar = firstPost?.Author?.AvatarUrl;
         var baseUrl = $"{scheme}://{host}";
@@ -43,7 +46,7 @@
         <meta property="og:description" content="@description" />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="@url" />
-        @if (!string.IsNullOrEmpty(authorAvatar))
+        @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
         {
             <meta property="og:image" content="@($"{baseUrl}{authorAvatar}")" />
             <meta property="og:image:alt" content="@authorName" />
@@ -59,7 +62,7 @@
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="@Model.Discussion.Title" />
         <meta name="twitter:description" content="@description" />
-        @if (!string.IsNullOrEmpty(authorAvatar))
+        @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
         {
             <meta name="twitter:image" content="@($"{baseUrl}{authorAvatar}")" />
         }
@@ -137,12 +140,28 @@
 <!-- Center Column -->
 <div class="sn-center">
 
-@if (Model.Discussion != null)
+@if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.NeedsPrompt)
+{
+    <partial name="_AdultContentGate" />
+}
+else if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.Hidden)
+{
+    <partial name="_AdultContentHidden" />
+}
+else if (Model.Discussion != null)
 {
     <div class="sn-page-labels sn-page-labels--gradient" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space?.PublicId}")">
         @if (Model.ShowCommunityInBreadcrumb)
         {
             <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+               data-popup-type="community"
+               data-popup-id="@Model.CommunityDetail?.PublicId"
+               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+            <span class="sn-page-labels-sep">›</span>
+        }
+        else if (!Model.Community.IsMultiCommunityEnabled)
+        {
+            <a href="/c" class="badge badge-ghost badge-sm"
                data-popup-type="community"
                data-popup-id="@Model.CommunityDetail?.PublicId"
                data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
@@ -363,8 +382,12 @@
             <div class="link-preview-card">
                 @if (linkImageSrc is not null)
                 {
-                    <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"background-image:url({Model.LinkInfo.BlurDataUri})\"" : "")>
-                        <img src="@linkImageSrc" alt="" class="link-preview-img" loading="lazy" decoding="async" />
+                    <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"--blur:url({Model.LinkInfo.BlurDataUri})\"" : "")>
+                        @if (Model.LinkInfo.HasBlurDataUri)
+                        {
+                            <img src="@Model.LinkInfo.BlurDataUri" alt="" aria-hidden="true" class="link-preview-lqip" />
+                        }
+                        <img src="@linkImageSrc" alt="" class="link-preview-img" loading="lazy" decoding="async" data-blur-up />
                     </div>
                 }
                 <div class="link-preview-content">
@@ -958,6 +981,18 @@
                                                     data-modal-open="history_modal"
                                                     class="text-sm">
                                                 @T.Pages.DiscHistory
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="button"
+                                                    data-action="toggle-save-post"
+                                                    data-post-id="@post.PublicId"
+                                                    data-saved="false"
+                                                    aria-pressed="false"
+                                                    title="@T.Pages.DiscSaveTitle"
+                                                    class="text-sm post-save-btn">
+                                                <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
+                                                @T.Pages.DiscSavePost
                                             </button>
                                         </li>
                                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)

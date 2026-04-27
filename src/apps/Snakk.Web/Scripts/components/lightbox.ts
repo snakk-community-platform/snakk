@@ -7,12 +7,13 @@
     'use strict';
 
     let overlay: HTMLElement | null = null;
-    let contentEl: HTMLElement | null = null;
     let imgEl: HTMLImageElement | null = null;
+    let lqipEl: HTMLImageElement | null = null;
     let images: string[] = [];
     let blurs: (string | null)[] = [];
     let currentIdx = 0;
     let savedScrollY = 0;
+    let isZoomed = false;
 
     function open(urls: string[], startIdx: number, blurUrls?: (string | null)[]): void {
         images = urls;
@@ -38,6 +39,7 @@
     }
 
     function close(): void {
+        if (isZoomed) zoomOut();
         overlay?.classList.remove('lightbox-open');
         document.documentElement.classList.remove('lightbox-lock');
         document.body.style.position = '';
@@ -58,23 +60,29 @@
     }
 
     function show(idx: number): void {
+        if (isZoomed) zoomOut();
         currentIdx = idx;
         if (!imgEl) return;
 
         imgEl.classList.remove('lightbox-loaded');
         imgEl.src = images[idx]!;
 
-        // Apply the blur-data-uri for this slide as an ambient backdrop behind
-        // the image. Fills the whole lightbox surface so wide images no longer
-        // sit on pure black and the user sees something during load.
-        if (contentEl) {
-            const blur = blurs[idx] || null;
+        // Apply the blur-data-uri for this slide as both an ambient backdrop
+        // (fullscreen blur via ::before) and a sized LQIP overlay rendered at
+        // the image's true aspect ratio, sitting in exactly the same area the
+        // real image will occupy until it loads.
+        const blur = blurs[idx] || null;
+        if (lqipEl) {
+            if (blur) lqipEl.src = blur;
+            else lqipEl.removeAttribute('src');
+        }
+        if (overlay) {
             if (blur) {
-                contentEl.style.setProperty('--lightbox-blur', `url("${blur}")`);
-                contentEl.classList.add('lightbox-has-blur');
+                overlay.style.setProperty('--lightbox-blur', `url("${blur}")`);
+                overlay.classList.add('lightbox-has-blur');
             } else {
-                contentEl.style.removeProperty('--lightbox-blur');
-                contentEl.classList.remove('lightbox-has-blur');
+                overlay.style.removeProperty('--lightbox-blur');
+                overlay.classList.remove('lightbox-has-blur');
             }
         }
 
@@ -99,6 +107,16 @@
         p.src = images[idx]!;
     }
 
+    function zoomIn(): void {
+        isZoomed = true;
+        overlay?.classList.add('lightbox-zoomed');
+    }
+
+    function zoomOut(): void {
+        isZoomed = false;
+        overlay?.classList.remove('lightbox-zoomed');
+    }
+
     function prev(): void {
         show(currentIdx > 0 ? currentIdx - 1 : images.length - 1);
     }
@@ -117,20 +135,30 @@
 
         overlay.innerHTML =
             '<div class="lightbox-content">' +
-                '<img class="lightbox-img" />' +
+                '<div class="lightbox-img-wrap">' +
+                    '<img class="lightbox-lqip" alt="" aria-hidden="true" />' +
+                    '<img class="lightbox-img" />' +
+                '</div>' +
             '</div>' +
             '<button type="button" class="lightbox-close" aria-label="Close">' + closeIcon + '</button>' +
             '<button type="button" class="lightbox-arrow lightbox-prev" aria-label="Previous">' + chevronLeft + '</button>' +
             '<button type="button" class="lightbox-arrow lightbox-next" aria-label="Next">' + chevronRight + '</button>' +
             '<div class="lightbox-counter"></div>';
 
-        contentEl = overlay.querySelector('.lightbox-content') as HTMLElement;
         imgEl = overlay.querySelector('.lightbox-img') as HTMLImageElement;
+        lqipEl = overlay.querySelector('.lightbox-lqip') as HTMLImageElement;
         imgEl.addEventListener('load', () => imgEl!.classList.add('lightbox-loaded'));
+        imgEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isZoomed ? zoomOut() : zoomIn();
+        });
 
         // Close on overlay click (not on image)
         overlay.addEventListener('click', (e) => {
-            if (e.target === overlay || (e.target as HTMLElement).classList.contains('lightbox-content')) close();
+            const t = e.target as HTMLElement;
+            if (t === overlay ||
+                t.classList.contains('lightbox-content') ||
+                t.classList.contains('lightbox-img-wrap')) close();
         });
 
         overlay.querySelector('.lightbox-close')!.addEventListener('click', close);

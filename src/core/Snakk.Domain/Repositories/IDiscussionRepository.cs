@@ -25,7 +25,8 @@ public interface IDiscussionRepository
         SpaceId? spaceId,
         CommunityId? communityId,
         int limit,
-        string? userId = null);
+        string? userId = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Fetches lightweight summaries for multiple discussions in a single query.

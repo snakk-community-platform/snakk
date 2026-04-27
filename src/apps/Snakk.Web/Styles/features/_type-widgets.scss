@@ -141,15 +141,30 @@
     width: 200px;
     min-height: 120px;
     flex-shrink: 0;
+    background-image: var(--blur, none);
     background-size: cover;
     background-position: center;
     position: relative;
 
-
-    img {
+    > img {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
+    }
+
+    .link-preview-lqip {
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .link-preview-img {
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+
+        &.images-loaded { opacity: 1; }
     }
 }
 
@@ -742,15 +757,16 @@
         // No rounding on images sitting inside a blur area — the outer
         // frame already provides the corner radius.
         border-radius: 0;
+        // JS sets inline aspect-ratio + max-width to the image's natural
+        // dimensions on load, so the inner shrinks below column width
+        // when capped by .images-display-framed's max-height — the outer
+        // ::before bleed shows on the sides for portrait / small images.
+        margin: 0 auto;
 
         img {
             width: 100%;
             height: 100%;
-            // cover (not contain) hides the sub-pixel rounding gap. The
-            // container's aspect-ratio already matches the image's
-            // intrinsic ratio, so "cover" crops less than a pixel —
-            // imperceptible and much cleaner than the letterbox + gap.
-            object-fit: cover;
+            object-fit: contain;
             display: block;
             position: relative;
             z-index: 1;

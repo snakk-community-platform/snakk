@@ -27,7 +27,8 @@ public class DiscussionUseCase(
         string title,
         string slug,
         string firstPostContent,
-        DiscussionTypeEnum type = DiscussionTypeEnum.Standard)
+        DiscussionTypeEnum type = DiscussionTypeEnum.Standard,
+        bool isAdult = false)
     {
         // Validate space exists
         var space = await spaceRepository.GetByPublicIdAsync(spaceId);
@@ -47,8 +48,11 @@ public class DiscussionUseCase(
         if (isBanned)
             return Result<Discussion>.Failure("You are currently banned from posting in this space");
 
+        // Adult-only spaces force the flag; mixed-mode spaces honour the caller's choice; standard spaces never adult.
+        var effectiveIsAdult = space.IsAdultOnly || (space.AllowsAdultContent && isAdult);
+
         // Create discussion
-        var discussion = Discussion.Create(spaceId, userId, title, slug, type);
+        var discussion = Discussion.Create(spaceId, userId, title, slug, type, effectiveIsAdult);
 
         // Create first post
         var renderedFirstPost = markupParser.ToHtml(firstPostContent, space.AutoParagraphEnabled);

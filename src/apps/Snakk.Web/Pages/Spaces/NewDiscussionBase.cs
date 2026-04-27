@@ -30,6 +30,11 @@ public abstract class NewDiscussionBaseModel(
     [BindProperty] public string? NewTitle { get; set; }
     [BindProperty] public string? NewContent { get; set; }
     [BindProperty] public string? SpaceId { get; set; }
+
+    // Honoured only when the parent space is in mixed-mode (AllowsAdultContent).
+    // Adult-only spaces force the flag regardless; standard spaces ignore it.
+    [BindProperty] public bool IsAdult { get; set; }
+
     public string? CreateError { get; set; }
 
     /// <summary>The DiscussionTypeEnum integer value for this page.</summary>
@@ -101,7 +106,8 @@ public abstract class NewDiscussionBaseModel(
             Space!.PublicId,
             NewTitle!.Trim(),
             NewContent!,
-            DiscussionType);
+            DiscussionType,
+            isAdult: Space.AllowsAdultContent && IsAdult);
 
     private string BuildReturnUrl()
         => $"/new/{TypeSlug}?spaceId={Uri.EscapeDataString(SpaceId ?? "")}";

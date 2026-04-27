@@ -331,6 +331,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("HasRules")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("HideAdultDiscussionsFromLists")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("HubCount")
                         .HasColumnType("integer");
 
@@ -2271,6 +2274,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("AllowAnonymousReading")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("AllowsAdultContent")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("AutoParagraphEnabled")
                         .HasColumnType("boolean");
 
@@ -2790,7 +2796,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("AllowAdultContent")
+                    b.Property<int>("AdultPreviewImageMode")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("AllowAdultContent")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("AutoFollowOnReply")

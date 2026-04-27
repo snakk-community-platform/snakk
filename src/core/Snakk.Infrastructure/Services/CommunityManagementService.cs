@@ -163,6 +163,7 @@ public class CommunityManagementService(
             Timezone = community.Timezone,
             LanguageCode = community.LanguageCode,
             AllowedDiscussionTypes = allowedTypes,
+            HideAdultDiscussionsFromLists = community.HideAdultDiscussionsFromLists,
             OwnerId = string.Empty, // TODO: Add owner tracking
             AdminUserIds = adminUserIds,
             ModeratorUserIds = modUserIds
@@ -185,6 +186,7 @@ public class CommunityManagementService(
         community.Name = request.Name;
         community.Description = request.Description;
         community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
+        community.HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists;
 
         if (request.LanguageCode is not null || community.LanguageCode is not null)
         {

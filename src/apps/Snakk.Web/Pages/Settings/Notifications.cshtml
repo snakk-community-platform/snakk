@@ -41,6 +41,68 @@
                     </span>
                 </label>
             </div>
+
+            <!-- Adult content -->
+            <div id="section-adult-content" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.AdultContentTitle</h3>
+                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                    @T.Settings.AdultContentHelp
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="allowAdultContent" value="ask" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultContentAskTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultContentAskHelp</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="allowAdultContent" value="allow" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultContentAllowTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultContentAllowHelp</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="allowAdultContent" value="hide" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultContentHideTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultContentHideHelp</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Adult preview image mode -->
+            <div id="section-adult-preview-image" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.AdultImagePreviewTitle</h3>
+                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                    @T.Settings.AdultImagePreviewHelp
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="adultPreviewImageMode" value="show" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultImagePreviewShowTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultImagePreviewShowHelp</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="adultPreviewImageMode" value="blur" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultImagePreviewBlurTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultImagePreviewBlurHelp</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="adultPreviewImageMode" value="hide" class="radio radio-primary mt-0.5" />
+                        <span class="text-sm">
+                            <span class="font-medium">@T.Settings.AdultImagePreviewHideTitle</span>
+                            <span class="block" style="color: var(--text-tertiary)">@T.Settings.AdultImagePreviewHideHelp</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
         </div>
         } @* end IsAuthenticated *@
     </div>

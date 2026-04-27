@@ -17,16 +17,18 @@ public class TrendingDiscussionsModel(
     {
         Response.Headers.CacheControl = "public, max-age=10";
 
-        var cacheKey = $"trending-discussions:{scopeType}:{scopeId}";
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
+        var adultSuffix = viewerAllowsAdult ? "adult" : "safe";
+        var cacheKey = $"trending-discussions:{scopeType}:{scopeId}:{adultSuffix}";
 
         var result = await prefetchCache.GetOrFetchAsync(cacheKey, () =>
         {
             return scopeType switch
             {
-                "hub" => apiClient.GetTopActiveDiscussionsTodayAsync(hubId: scopeId),
-                "space" => apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: scopeId),
-                "community" => apiClient.GetTopActiveDiscussionsTodayAsync(communityId: scopeId),
-                _ => apiClient.GetTopActiveDiscussionsTodayAsync()
+                "hub" => apiClient.GetTopActiveDiscussionsTodayAsync(hubId: scopeId, viewerAllowsAdult: viewerAllowsAdult),
+                "space" => apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: scopeId, viewerAllowsAdult: viewerAllowsAdult),
+                "community" => apiClient.GetTopActiveDiscussionsTodayAsync(communityId: scopeId, viewerAllowsAdult: viewerAllowsAdult),
+                _ => apiClient.GetTopActiveDiscussionsTodayAsync(viewerAllowsAdult: viewerAllowsAdult)
             };
         });
         Discussions = result.Value;

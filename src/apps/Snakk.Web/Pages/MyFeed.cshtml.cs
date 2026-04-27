@@ -41,9 +41,10 @@ public class MyFeedModel(
         HasFollowedSpaces = spaceIds.Count > 0;
         if (!HasFollowedSpaces) return;
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
         try
         {
-            var result = await apiClient.GetRecentDiscussionsAsync(pageSize: 20, cursor: cursor, spaceIds: spaceIds);
+            var result = await apiClient.GetRecentDiscussionsAsync(pageSize: 20, cursor: cursor, spaceIds: spaceIds, viewerAllowsAdult: viewerAllowsAdult);
             Discussions = result;
             NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
         }

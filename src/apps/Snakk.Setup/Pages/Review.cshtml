@@ -52,17 +52,10 @@
 
             <!-- First Community -->
             <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">First Community</th></tr>
-            @if (Model.State.CreateFirstCommunity)
-            {
-                <tr><td class="font-medium">Community</td><td>@Model.State.CommunityName</td></tr>
-                <tr><td class="font-medium">Description</td><td>@Model.State.CommunityDescription</td></tr>
-                <tr><td class="font-medium">Hub</td><td>@Model.State.FirstHubName <code>(@Model.State.FirstHubSlug)</code></td></tr>
-                <tr><td class="font-medium">Space</td><td>@Model.State.FirstSpaceName <code>(@Model.State.FirstSpaceSlug)</code></td></tr>
-            }
-            else
-            {
-                <tr><td class="font-medium">Create Community</td><td>Skipped — no starter community</td></tr>
-            }
+            <tr><td class="font-medium">Community</td><td>@Model.State.CommunityName</td></tr>
+            <tr><td class="font-medium">Description</td><td>@Model.State.CommunityDescription</td></tr>
+            <tr><td class="font-medium">Hub</td><td>@Model.State.FirstHubName <code>(@Model.State.FirstHubSlug)</code></td></tr>
+            <tr><td class="font-medium">Space</td><td>@Model.State.FirstSpaceName <code>(@Model.State.FirstSpaceSlug)</code></td></tr>
 
             <!-- Test Data -->
             <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Test Data</th></tr>

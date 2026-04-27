@@ -81,6 +81,8 @@ message UpdateSpaceSettingsRequest {
   bool allow_anonymous = 6;
   optional string language_code = 7;
   bool auto_paragraph_enabled = 8;
+  bool is_adult_only = 9;
+  bool allows_adult_content = 10;
 }
 
 // --- Responses ---
@@ -117,6 +119,8 @@ message SpaceSettingsResponse {
   optional string hub_language_code = 10;
   optional string community_language_code = 11;
   bool auto_paragraph_enabled = 12;
+  bool is_adult_only = 13;
+  bool allows_adult_content = 14;
 }
 
 message UpdateSpaceSettingsResponse {
@@ -576,6 +580,7 @@ message CommunitySettingsResponse {
   optional string timezone = 4;
   repeated int32 allowed_discussion_types = 5;
   optional string language_code = 6;
+  bool hide_adult_discussions_from_lists = 7;
 }
 
 message UpdateCommunitySettingsRequest {
@@ -585,6 +590,7 @@ message UpdateCommunitySettingsRequest {
   optional string timezone = 4;
   repeated int32 allowed_discussion_types = 5;
   optional string language_code = 6;
+  bool hide_adult_discussions_from_lists = 7;
 }
 
 message UpdateCommunitySettingsResponse {

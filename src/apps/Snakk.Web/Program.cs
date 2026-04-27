@@ -349,7 +349,7 @@ app.Use(async (context, next) =>
         "default-src 'self'; " +
         "script-src 'self' https://challenges.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data: https:; " +
+        "img-src 'self' data: blob: https:; " +
         "font-src 'self'; " +
         "connect-src 'self'; " +
         "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://*.vimeo.com https://vimeo.com; " +

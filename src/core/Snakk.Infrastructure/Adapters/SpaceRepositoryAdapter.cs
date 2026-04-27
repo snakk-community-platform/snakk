@@ -22,7 +22,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -36,7 +36,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -50,7 +50,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -89,7 +89,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -139,6 +139,8 @@ public class SpaceRepositoryAdapter(
         entity.AvatarThumbnailFileName = space.AvatarThumbnailFileName;
         entity.AvatarMicroFileName = space.AvatarMicroFileName;
         entity.AvatarRevision = space.AvatarRevision;
+        entity.IsAdultOnly = space.IsAdultOnly;
+        entity.AllowsAdultContent = space.AllowsAdultContent;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -158,7 +160,9 @@ public class SpaceRepositoryAdapter(
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
         int AvatarRevision,
-        bool AutoParagraphEnabled)
+        bool AutoParagraphEnabled,
+        bool IsAdultOnly,
+        bool AllowsAdultContent)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
@@ -170,6 +174,8 @@ public class SpaceRepositoryAdapter(
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision,
-            autoParagraphEnabled: AutoParagraphEnabled);
+            autoParagraphEnabled: AutoParagraphEnabled,
+            isAdultOnly: IsAdultOnly,
+            allowsAdultContent: AllowsAdultContent);
     }
 }

@@ -70,7 +70,7 @@ else
 
             <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
                 <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">@T.Pages.HubModsSeeAlso</p>
-                @if (Model.Hub.ParentCommunityHasRules && Model.CommunityDetail != null)
+                @if (Model.Community.IsMultiCommunityEnabled && Model.Hub.ParentCommunityHasRules && Model.CommunityDetail != null)
                 {
                     <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)/rules"
                        class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">

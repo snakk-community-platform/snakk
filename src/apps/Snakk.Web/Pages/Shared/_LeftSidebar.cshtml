@@ -1,4 +1,6 @@
 @using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityContext
 @{
     const string rulesUrl = "/rules";
     const string moderatorsUrl = "/moderators";
@@ -7,11 +9,19 @@
 
     string A(string href) => path == href ? " active" : "";
     string AEnd(string suffix) => path.EndsWith(suffix) ? " active" : "";
+
+    var isSingleCommunity = !CommunityContext.IsMultiCommunityEnabled;
+    var communityHref = isSingleCommunity ? "/c" : "/communities";
+    var communityLabel = isSingleCommunity ? T.Nav.Community : T.Nav.Communities;
 }
 <aside id="sn-left-drawer" class="sn-left">
 <div class="sn-left-sticky">
     <div class="sn-left-inner">
         <nav class="sn-nav">
+            <a href="@communityHref" class="sn-nav-item@(A(communityHref))">
+                <span class="icon icon-users-group" aria-hidden="true"></span>
+                @communityLabel
+            </a>
             <div class="sn-nav-group">
             <div class="sn-nav-heading">
                 <span class="icon icon-grid-apps" aria-hidden="true"></span>
@@ -39,9 +49,13 @@
                 @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
             </div>
-            <a href="/communities" class="sn-nav-item@(A("/communities"))">
-                <span class="icon icon-users-group" aria-hidden="true"></span>
-                @T.Nav.Communities
+            <a href="@rulesUrl" class="sn-nav-item@(AEnd("/rules"))">
+                <span class="icon icon-document-text" aria-hidden="true"></span>
+                @T.Nav.Rules
+            </a>
+            <a href="@moderatorsUrl" class="sn-nav-item@(AEnd("/moderators"))">
+                <span class="icon icon-shield-check" aria-hidden="true"></span>
+                @T.Nav.Moderators
             </a>
             <div class="sn-nav-group">
             <div class="sn-nav-heading">
@@ -74,14 +88,6 @@
                 @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
             </div>
-            <a href="@rulesUrl" class="sn-nav-item@(AEnd("/rules"))">
-                <span class="icon icon-document-text" aria-hidden="true"></span>
-                @T.Nav.Rules
-            </a>
-            <a href="@moderatorsUrl" class="sn-nav-item@(AEnd("/moderators"))">
-                <span class="icon icon-shield-check" aria-hidden="true"></span>
-                @T.Nav.Moderators
-            </a>
         </nav>
         <div class="sn-left-footer">
             <a href="/settings" class="sn-nav-item">

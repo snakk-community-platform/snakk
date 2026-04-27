@@ -1,5 +1,7 @@
 namespace Snakk.Application.Services;
 
+using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.Tables;
@@ -33,9 +35,11 @@ public class MarkupParser : IMarkupParser
         .UseAdvancedExtensions()
         .Build();
 
-    public string ToHtml(string markup) => ToHtml(markup, autoParagraph: false);
+    public string ToHtml(string markup) => ToHtml(markup, autoParagraph: false, null);
 
-    public string ToHtml(string markup, bool autoParagraph)
+    public string ToHtml(string markup, bool autoParagraph) => ToHtml(markup, autoParagraph, null);
+
+    public string ToHtml(string markup, bool autoParagraph, IReadOnlyDictionary<string, ImageRenderData>? imageData)
     {
         if (string.IsNullOrEmpty(markup))
             return string.Empty;
@@ -60,6 +64,12 @@ public class MarkupParser : IMarkupParser
 
         // Wrap tables in a scrollable container
         html = WrapTablesInScrollContainer(html);
+
+        // Replace image-group fenced blocks with gallery HTML (uses imageData for srcset + blur)
+        html = ReplaceImageGroups(html, imageData);
+
+        // Enrich standalone <img> tags from plain markdown with srcset + data-blur
+        html = TransformStandaloneImages(html, imageData);
 
         return html;
     }
@@ -226,6 +236,9 @@ public class MarkupParser : IMarkupParser
     {
         foreach (var codeBlock in document.Descendants<FencedCodeBlock>())
         {
+            if (IsImageGroupBlock(codeBlock))
+                continue;
+
             if (codeBlock.Lines.Count == 0)
                 continue;
 
@@ -246,10 +259,176 @@ public class MarkupParser : IMarkupParser
             if (string.IsNullOrEmpty(fenced.Info))
                 continue;
 
+            if (IsImageGroupBlock(fenced))
+            {
+                var layout = ParseImageGroupLayout(fenced.Info);
+                var igAttrs = fenced.GetAttributes();
+                igAttrs.Classes?.Clear();
+                igAttrs.AddProperty("data-image-group", layout);
+                continue;
+            }
+
             var lang = fenced.Info.Trim().ToLowerInvariant();
             var attrs = fenced.GetAttributes();
             attrs.Classes?.Clear();
             attrs.AddClass($"language-{lang}");
+        }
+    }
+
+    private static bool IsImageGroupBlock(FencedCodeBlock block) =>
+        block.Info?.TrimStart().StartsWith("image-group", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string ParseImageGroupLayout(string info)
+    {
+        foreach (var part in info.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("layout=", StringComparison.OrdinalIgnoreCase))
+            {
+                return part[7..].ToLowerInvariant() switch
+                {
+                    "masonry" => "masonry",
+                    "justified" => "justified",
+                    "carousel" => "carousel",
+                    _ => "grid"
+                };
+            }
+        }
+        return "grid";
+    }
+
+    private static readonly Regex ImageGroupHtmlRegex = new(
+        @"<pre><code[^>]*\bdata-image-group=""(\w+)""[^>]*>(.*?)</code></pre>",
+        RegexOptions.Singleline | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(500));
+
+    private const string ImageSizes =
+        "(min-width: 1540px) 864px, (min-width: 1024px) calc(100vw - 16rem), 100vw";
+
+    // Fallback: derive variant URLs from the full URL when DB data is unavailable.
+    private static (string thumb, string med) DeriveVariants(string url)
+    {
+        if (url.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) &&
+            url.Contains("/media/posts/"))
+        {
+            var stem = url[..^5];
+            return (stem + "_thumb.webp", stem + "_med.webp");
+        }
+        return (url, url);
+    }
+
+    private static string ImgTag(string src, string alt, ImageRenderData? data = null)
+    {
+        var (derivedThumb, derivedMed) = DeriveVariants(src);
+        var thumb = data?.ThumbUrl ?? derivedThumb;
+        var med   = data?.MedUrl   ?? derivedMed;
+
+        // Only include a srcset descriptor when we know the variant exists in the DB.
+        // When data is null we fall back to derived URLs and include all three.
+        var parts = new List<string>(3);
+        if (data is null || data.ThumbUrl is not null) parts.Add($"{thumb} 300w");
+        if (data is null || data.MedUrl   is not null) parts.Add($"{med} 900w");
+        parts.Add($"{src} 2048w");
+        var srcset = string.Join(", ", parts);
+
+        var blurAttr = data?.BlurDataUri is not null ? $" data-blur=\"{data.BlurDataUri}\"" : "";
+        var dimAttrs = data?.Width is not null && data.Height is not null
+            ? $" width=\"{data.Width}\" height=\"{data.Height}\""
+            : "";
+
+        return $"<img src=\"{med}\" srcset=\"{srcset}\" sizes=\"{ImageSizes}\"" +
+               $"{blurAttr}{dimAttrs} data-full=\"{src}\" alt=\"{alt}\" loading=\"lazy\" />";
+    }
+
+    // Matches standalone <img> tags emitted by Markdig for plain ![alt](url) markdown.
+    // Only matches the full-resolution URL (no _thumb/_med suffix) to avoid re-processing
+    // images already transformed by ReplaceImageGroups.
+    private static readonly Regex StandaloneImgRegex = new(
+        @"<img\s[^>]*\bsrc=""([^""]*?/media/posts/\d{4}/\d{2}/\d{2}/[^._/""][^/""]*\.webp)""[^>]*/?>",
+        RegexOptions.Compiled | RegexOptions.Singleline,
+        TimeSpan.FromMilliseconds(250));
+
+    private static string TransformStandaloneImages(string html, IReadOnlyDictionary<string, ImageRenderData>? imageData)
+    {
+        if (imageData is null || imageData.Count == 0) return html;
+        try
+        {
+            return StandaloneImgRegex.Replace(html, match =>
+            {
+                var src = match.Groups[1].Value;
+                if (!imageData.TryGetValue(src, out var data)) return match.Value;
+                var altMatch = Regex.Match(match.Value, @"\balt=""([^""]*)""");
+                var alt = altMatch.Success ? altMatch.Groups[1].Value : "";
+                return ImgTag(src, alt, data);
+            });
+        }
+        catch (RegexMatchTimeoutException) { return html; }
+    }
+
+    private static string ReplaceImageGroups(string html, IReadOnlyDictionary<string, ImageRenderData>? imageData = null)
+    {
+        try
+        {
+            return ImageGroupHtmlRegex.Replace(html, match =>
+            {
+                var layout = match.Groups[1].Value;
+                var rawContent = WebUtility.HtmlDecode(match.Groups[2].Value);
+
+                var lines = rawContent.Split('\n')
+                    .Select(l => l.Trim())
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => {
+                        var sep = l.IndexOf('|');
+                        var rawSrc = sep >= 0 ? l[..sep].Trim() : l;
+                        return (
+                            src: WebUtility.HtmlEncode(rawSrc),
+                            alt: sep >= 0 ? WebUtility.HtmlEncode(l[(sep + 1)..].Trim()) : "",
+                            rawSrc
+                        );
+                    })
+                    .Where(x => !string.IsNullOrEmpty(x.src))
+                    .ToList();
+
+                static string ItemDiv(string src, string alt, string rawSrc, IReadOnlyDictionary<string, ImageRenderData>? data)
+                {
+                    var imgData = data is not null && data.TryGetValue(rawSrc, out var d) ? d : null;
+                    var blurAttr = imgData?.BlurDataUri is not null ? $" data-blur=\"{imgData.BlurDataUri}\"" : "";
+                    return $"<div class=\"images-upload-item\" data-full=\"{src}\"{blurAttr}>{ImgTag(src, alt, imgData)}</div>";
+                }
+
+                if (layout == "carousel")
+                {
+                    var sb = new StringBuilder("<div class=\"gup-carousel ig-carousel\">");
+                    sb.Append("<div class=\"gup-carousel-track\">");
+                    foreach (var (src, alt, rawSrc) in lines)
+                        sb.Append(ItemDiv(src, alt, rawSrc, imageData));
+                    sb.Append("</div>");
+                    if (lines.Count > 1)
+                    {
+                        sb.Append("<button type=\"button\" class=\"gup-carousel-arrow gup-carousel-prev\" aria-label=\"Previous\">&#8249;</button>");
+                        sb.Append("<button type=\"button\" class=\"gup-carousel-arrow gup-carousel-next\" aria-label=\"Next\">&#8250;</button>");
+                        sb.Append($"<span class=\"gup-carousel-counter\">1 / {lines.Count}</span>");
+                    }
+                    sb.Append("</div>");
+                    return sb.ToString();
+                }
+
+                var containerClass = layout switch
+                {
+                    "masonry" => "gup-masonry",
+                    "justified" => "gup-justified",
+                    _ => "gup-grid"
+                };
+
+                var sbGrid = new StringBuilder($"<div class=\"{containerClass}\">");
+                foreach (var (src, alt, rawSrc) in lines)
+                    sbGrid.Append(ItemDiv(src, alt, rawSrc, imageData));
+                sbGrid.Append("</div>");
+                return sbGrid.ToString();
+            });
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return html;
         }
     }
 

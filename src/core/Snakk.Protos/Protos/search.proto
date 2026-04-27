@@ -22,6 +22,7 @@ message SearchDiscussionsRequest {
   optional string hub_id = 4;
   int32 offset = 5;
   int32 page_size = 6;
+  bool viewer_allows_adult = 7;
 }
 
 message SearchPostsRequest {

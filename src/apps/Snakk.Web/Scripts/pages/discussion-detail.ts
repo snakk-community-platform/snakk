@@ -152,10 +152,26 @@ function initReplyEditor(): Promise<void> {
         }
         if (!(window as any).SnakkEditor) return;
 
+        let replyUploading = false;
+        let replyMd = '';
+
+        function updateReplyBtn(): void {
+            const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
+            if (btn) btn.disabled = !replyMd.trim() || replyUploading;
+        }
+
         const editor = await (window as any).SnakkEditor.init({
             container,
             textarea,
             placeholder: 'Share your thoughts...',
+            onChange: (md: string) => {
+                replyMd = md;
+                updateReplyBtn();
+            },
+            onUploadStateChange: (uploading: boolean) => {
+                replyUploading = uploading;
+                updateReplyBtn();
+            },
         });
 
         // Focus editor when clicking anywhere in the container (not toolbar/footer)
@@ -166,10 +182,11 @@ function initReplyEditor(): Promise<void> {
                 }
             });
 
-            // Move submit button into the editor footer
-            const submitBtn = document.getElementById('reply-submit-btn');
+            // Move submit button into the editor footer; starts disabled until content is typed
+            const submitBtn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
             const footer = container.querySelector('.milkdown-footer');
             if (submitBtn && footer) {
+                submitBtn.disabled = true;
                 footer.appendChild(submitBtn);
                 submitBtn.classList.remove('hidden');
             }

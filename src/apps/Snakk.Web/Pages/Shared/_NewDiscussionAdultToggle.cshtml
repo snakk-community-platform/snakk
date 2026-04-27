@@ -1,0 +1,10 @@
+@* Per-discussion adult flag — only shown when the parent space is mixed-mode.
+   Adult-only spaces force the flag elsewhere; standard spaces hide the toggle. *@
+@model Snakk.Protos.Space.SpaceInfo
+@if (Model is { AllowsAdultContent: true, IsAdultOnly: false })
+{
+    <label class="flex items-center gap-2 text-sm text-base-content/70 cursor-pointer">
+        <input type="checkbox" name="IsAdult" value="true" class="checkbox checkbox-sm" />
+        <span>@T.Adult.NewToggleLabel</span>
+    </label>
+}

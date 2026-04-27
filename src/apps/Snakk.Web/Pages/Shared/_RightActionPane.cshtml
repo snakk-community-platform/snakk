@@ -23,6 +23,7 @@
     var isAuth = User.Identity?.IsAuthenticated == true;
     var canManage = isAuth && !string.IsNullOrEmpty(User.FindFirst(ClaimTypes.Role)?.Value);
     var hasActions = actions.Length > 0;
+    var isNewPage = Context.Request.Path.StartsWithSegments("/new");
 
     var oauth       = OAuthOptions.Value;
     var returnUrl   = Uri.EscapeDataString(ViewContext.HttpContext.Request.Path.Value ?? "/");
@@ -34,10 +35,13 @@
 }
 <div class="sn-right-action-pane">
     <div class="sn-right-action-box">
+    @if (!isNewPage)
+    {
     <a href="@newDiscussionUrl" id="rp-new-discussion" class="btn btn-primary btn-sm w-full justify-center">
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-3.5 h-3.5" aria-hidden="true"></span>
         @T.Actions.NewDiscussion
     </a>
+    }
     @if (hasActions)
     {
             @if (actions.Contains("feed") && !string.IsNullOrEmpty(feedUrl))
@@ -126,6 +130,8 @@
     </div>
 </div>
 
+@if (!isNewPage)
+{
 @* FAB shown when New Discussion button scrolls out of view (only in non-default sticky modes) *@
 <div id="new-discussion-fab" class="fab fab-flower fab-collapsed">
     <a href="@newDiscussionUrl" class="btn btn-circle btn-lg btn-primary" aria-label="@T.Actions.NewDiscussion">
@@ -153,6 +159,7 @@
     update();
 })();
 </script>
+}
 
 @if (!isAuth)
 {

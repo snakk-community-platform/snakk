@@ -109,4 +109,18 @@
     {
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     }
+    <script>
+    (function () {
+        var form = document.querySelector('form');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return;
+            var btn = form.querySelector('button[type="submit"]');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.textContent = 'Signing in…';
+        });
+    }());
+    </script>
 }

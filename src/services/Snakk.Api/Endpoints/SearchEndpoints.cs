@@ -31,7 +31,8 @@ public static class SearchEndpoints
         int offset,
         int pageSize,
         ClaimsPrincipal user,
-        SearchUseCase searchUseCase)
+        SearchUseCase searchUseCase,
+        bool viewerAllowsAdult = false)
     {
         // Validate pageSize
         if (pageSize <= 0) pageSize = 20;
@@ -44,7 +45,8 @@ public static class SearchEndpoints
             hubPublicId,
             offset,
             pageSize,
-            user.GetUserIdString());
+            user.GetUserIdString(),
+            viewerAllowsAdult);
 
         return TypedResults.Ok(results);
     }

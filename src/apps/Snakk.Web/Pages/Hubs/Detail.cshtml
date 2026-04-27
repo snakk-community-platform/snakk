@@ -70,6 +70,14 @@ else
                        data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
                 </div>
             }
+            else if (!Model.Community.IsMultiCommunityEnabled)
+            {
+                <div class="sn-hub-card-breadcrumbs">
+                    <a href="/c" class="badge badge-ghost badge-sm"
+                       data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                       data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                </div>
+            }
             <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
                  alt="" width="56" height="56"
                  class="sn-hub-avatar" decoding="async" />

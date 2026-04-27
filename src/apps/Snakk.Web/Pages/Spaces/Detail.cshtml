@@ -34,6 +34,17 @@
     }
 }
 
+@if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.NeedsPrompt)
+{
+    <partial name="_AdultContentGate" />
+    return;
+}
+@if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.Hidden)
+{
+    <partial name="_AdultContentHidden" />
+    return;
+}
+
 @if (Model.Space == null)
 {
     <div class="sn-center">

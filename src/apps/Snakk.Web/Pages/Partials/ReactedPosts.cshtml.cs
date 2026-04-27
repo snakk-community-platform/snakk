@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Web.Helpers;
+using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Partials;
@@ -34,12 +35,15 @@ public class ReactedPostsModel(
                     p.DiscussionTitle,
                     p.DiscussionSlug,
                     p.SpaceSlug,
+                    p.SpaceName,
                     p.HubSlug,
+                    p.HubName,
                     p.CommunitySlug,
                     p.AuthorPublicId,
                     p.AuthorDisplayName,
                     p.HasAuthorAvatarFileName ? p.AuthorAvatarFileName : null,
                     p.ContentExcerpt,
+                    p.PostCreatedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactionType)).ToList();
                 HasMoreItems = result.HasMoreItems;
@@ -58,12 +62,15 @@ public record ReactedPostVM(
     string DiscussionTitle,
     string DiscussionSlug,
     string SpaceSlug,
+    string SpaceName,
     string HubSlug,
+    string HubName,
     string CommunitySlug,
     string AuthorPublicId,
     string AuthorDisplayName,
     string? AuthorAvatarFileName,
     string? ContentExcerpt,
+    DateTime PostCreatedAt,
     DateTime ReactedAt,
     string ReactionType)
 {
@@ -79,5 +86,23 @@ public record ReactedPostVM(
         "MindBlown" => "🤯",
         "ShipIt"    => "🚀",
         _           => "👍"
+    };
+
+    public PostListItemVM ToPostListItem() => new()
+    {
+        PublicId            = PublicId,
+        ContentExcerpt      = ContentExcerpt ?? "",
+        CreatedAt           = PostCreatedAt,
+        AuthorPublicId      = AuthorPublicId,
+        AuthorDisplayName   = AuthorDisplayName,
+        AuthorAvatarUrl     = SnakkUrlHelper.UserAvatar(AuthorPublicId, avatarFileName: AuthorAvatarFileName),
+        DiscussionPublicId  = DiscussionPublicId,
+        DiscussionTitle     = DiscussionTitle,
+        DiscussionSlug      = DiscussionSlug,
+        SpaceSlug           = SpaceSlug,
+        HubSlug             = HubSlug,
+        CommunitySlug       = CommunitySlug,
+        HubName             = HubName,
+        SpaceName           = SpaceName,
     };
 }

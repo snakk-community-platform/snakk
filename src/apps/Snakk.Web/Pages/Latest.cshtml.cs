@@ -49,9 +49,10 @@ public class LatestModel(
         ResolveSidebarData(communityId);
         await EnsureSidebarDataAsync(communityId);
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         try
         {
-            var result = await _apiClient.GetNewDiscussionsAsync(offset, 20, communityId, cursor);
+            var result = await _apiClient.GetNewDiscussionsAsync(offset, 20, communityId, cursor, viewerAllowsAdult: viewerAllowsAdult);
             LatestDiscussions = result;
             NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
         }

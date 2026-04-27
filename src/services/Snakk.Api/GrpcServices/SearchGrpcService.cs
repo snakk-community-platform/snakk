@@ -28,7 +28,8 @@ public class SearchGrpcService(
             request.HasHubId ? request.HubId : null,
             request.Offset,
             pageSize,
-            currentUser.GetCurrentUserId());
+            currentUser.GetCurrentUserId(),
+            request.ViewerAllowsAdult);
 
         var response = new PagedDiscussionSearchResults
         {

@@ -32,11 +32,14 @@ public class AuthGrpcService(
 
         await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
 
+        bool? allowAdult = request.HasAllowAdultContent ? request.AllowAdultContent : null;
+
         var result = await authUseCase.RegisterWithEmailAsync(
             request.Email,
             request.Password,
             request.DisplayName,
-            request.BaseUrl);
+            request.BaseUrl,
+            allowAdult);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(
@@ -228,8 +231,11 @@ public class AuthGrpcService(
             IsDisplayNameLocked = user.IsDisplayNameLocked,
             HasPassword = user.PasswordHash is not null,
             AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId.Value, AvatarEntityType.User, 0, user.AvatarFileName),
-            AllowAdultContent = user.AllowAdultContent,
+            AdultPreviewImageMode = (int)user.AdultPreviewImageMode,
         };
+
+        if (user.AllowAdultContent.HasValue)
+            response.AllowAdultContent = user.AllowAdultContent.Value;
 
         if (user.Bio is not null)
             response.Bio = user.Bio;
@@ -308,8 +314,18 @@ public class AuthGrpcService(
         string? timezone = request.HasTimezone ? request.Timezone : null;
         string? bio = request.HasBio ? request.Bio : null;
         bool? allowAdultContent = request.HasAllowAdultContent ? request.AllowAdultContent : null;
+        AdultPreviewImageModeEnum? adultPreviewImageMode = request.HasAdultPreviewImageMode
+            ? (AdultPreviewImageModeEnum)request.AdultPreviewImageMode
+            : null;
 
-        var result = await authUseCase.UpdatePreferencesAsync(userId, autoFollowOnReply, timezone, bio, allowAdultContent);
+        var result = await authUseCase.UpdatePreferencesAsync(
+            userId,
+            autoFollowOnReply,
+            timezone,
+            bio,
+            allowAdultContent,
+            request.ResetAdultContentToAsk,
+            adultPreviewImageMode);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
@@ -325,11 +341,14 @@ public class AuthGrpcService(
         if (!userAlreadyExists)
             await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
 
+        bool? allowAdult = request.HasAllowAdultContent ? request.AllowAdultContent : null;
+
         var result = await authUseCase.LoginWithOAuthAsync(
             request.Provider,
             request.ProviderUserId,
             request.Email,
-            request.DisplayName);
+            request.DisplayName,
+            allowAdult);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "OAuth login failed"));

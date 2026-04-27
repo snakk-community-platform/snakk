@@ -64,6 +64,8 @@ message SpaceInfo {
   string community_slug = 19;
   optional string avatar_file_name = 20;
   optional string avatar_thumbnail_file_name = 21;
+  bool is_adult_only = 22;
+  bool allows_adult_content = 23;
 }
 
 message LatestDiscussionRef {

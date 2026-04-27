@@ -17,6 +17,13 @@ public interface IMarkupParser
     string ToHtml(string markup, bool autoParagraph);
 
     /// <summary>
+    /// Parses markup text and returns sanitized HTML enriched with srcset, sizes, and
+    /// data-blur attributes sourced from the provided image render data.
+    /// </summary>
+    string ToHtml(string markup, bool autoParagraph, IReadOnlyDictionary<string, ImageRenderData>? imageData)
+        => ToHtml(markup, autoParagraph);
+
+    /// <summary>
     /// Extracts plain text from markup (for previews/snippets).
     /// </summary>
     string ToPlainText(string markup);

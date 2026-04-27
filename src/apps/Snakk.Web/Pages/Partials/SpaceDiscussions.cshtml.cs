@@ -45,9 +45,10 @@ public class SpaceDiscussionsModel(
         HubSlug = space?.HubSlug ?? "";
         SpaceSlug = space?.Slug ?? "";
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
         try
         {
-            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, cursor);
+            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, cursor, viewerAllowsAdult: viewerAllowsAdult);
             Items = result?.Items ?? [];
             HasMoreItems = result?.HasMoreItems ?? false;
             NextOffset = offset + pageSize;

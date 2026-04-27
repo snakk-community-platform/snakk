@@ -21,6 +21,13 @@
         (coarseQuery as any).addListener(onCoarseChange);
     }
 
+    // Track the most recent pointer type so we can suppress hover-popup on touch
+    // even on devices that report (hover: hover) (e.g. iPad with Smart Keyboard).
+    let lastPointerType = '';
+    document.addEventListener('pointerdown', (e: PointerEvent) => {
+        lastPointerType = e.pointerType;
+    }, { capture: true, passive: true });
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -497,7 +504,10 @@ class SnakkPopup {
      */
     handleMouseOver(e: Event): void {
         // Touch devices get tap-to-open via handleTriggerClick; ignore hover paths.
-        if (isCoarse) return;
+        // Also skip when the last pointer event was touch, to handle hybrid devices
+        // (e.g. iPad with keyboard) that report (hover: hover) but still fire a
+        // synthetic mouseover before the click when the user taps a link.
+        if (isCoarse || lastPointerType === 'touch') return;
 
         // Check for standard popup triggers or entity-link elements
         let triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;
@@ -538,7 +548,7 @@ class SnakkPopup {
      * Handle mouse out on trigger elements
      */
     handleMouseOut(e: Event): void {
-        if (isCoarse) return;
+        if (isCoarse || lastPointerType === 'touch') return;
 
         const triggerEl = (e.target as HTMLElement).closest('[data-popup-type], a.entity-link') as HTMLElement | null;
         if (!triggerEl) return;

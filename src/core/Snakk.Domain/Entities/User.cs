@@ -2,6 +2,7 @@ namespace Snakk.Domain.Entities;
 
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 public class User
 {
@@ -22,7 +23,8 @@ public class User
     public string? Timezone { get; private set; } // IANA timezone ID (null = use community/site setting)
     public string? Bio { get; private set; }
     public string? FeedToken { get; private set; }
-    public bool AllowAdultContent { get; private set; }
+    public bool? AllowAdultContent { get; private set; }
+    public AdultPreviewImageModeEnum AdultPreviewImageMode { get; private set; } = AdultPreviewImageModeEnum.Show;
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime? DisplayNameChangedAt { get; private set; }
     public bool IsDisplayNameLocked { get; private set; }
@@ -68,14 +70,15 @@ public class User
         string? timezone = null,
         string? bio = null,
         string? feedToken = null,
-        bool allowAdultContent = false,
+        bool? allowAdultContent = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
         DateTime? displayNameChangedAt = null,
         bool isDisplayNameLocked = false,
         int failedLoginAttempts = 0,
-        DateTime? lockoutEnd = null)
+        DateTime? lockoutEnd = null,
+        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -95,6 +98,7 @@ public class User
         Bio = bio;
         FeedToken = feedToken;
         AllowAdultContent = allowAdultContent;
+        AdultPreviewImageMode = adultPreviewImageMode;
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
@@ -113,7 +117,8 @@ public class User
         string displayName,
         string email,
         string passwordHash,
-        string emailVerificationToken)
+        string emailVerificationToken,
+        bool? allowAdultContent = null)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             throw new ArgumentException("Display name cannot be empty", nameof(displayName));
@@ -138,7 +143,8 @@ public class User
             avatarRevision: 0,
             autoFollowOnReply: true,
             DateTime.UtcNow,
-            lastSeenAt: DateTime.UtcNow);
+            lastSeenAt: DateTime.UtcNow,
+            allowAdultContent: allowAdultContent);
 
         user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
 
@@ -148,7 +154,8 @@ public class User
     public static User CreateWithOAuth(
         string email,
         string oauthProvider,
-        string oauthProviderId)
+        string oauthProviderId,
+        bool? allowAdultContent = null)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email cannot be empty", nameof(email));
@@ -170,7 +177,8 @@ public class User
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow,
-            needsProfileSetup: true); // New OAuth users should choose their display name
+            needsProfileSetup: true, // New OAuth users should choose their display name
+            allowAdultContent: allowAdultContent);
 
         user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
 
@@ -227,14 +235,15 @@ public class User
         string? timezone = null,
         string? bio = null,
         string? feedToken = null,
-        bool allowAdultContent = false,
+        bool? allowAdultContent = null,
         int discussionCount = 0,
         int replyCount = 0,
         int followerCount = 0,
         DateTime? displayNameChangedAt = null,
         bool isDisplayNameLocked = false,
         int failedLoginAttempts = 0,
-        DateTime? lockoutEnd = null) =>
+        DateTime? lockoutEnd = null,
+        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show) =>
         new User(
             publicId,
             displayName,
@@ -265,7 +274,8 @@ public class User
             displayNameChangedAt,
             isDisplayNameLocked,
             failedLoginAttempts,
-            lockoutEnd);
+            lockoutEnd,
+            adultPreviewImageMode);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -379,9 +389,15 @@ public class User
         LastModifiedAt = DateTime.UtcNow;
     }
 
-    public void SetAllowAdultContent(bool allow)
+    public void SetAllowAdultContent(bool? allow)
     {
         AllowAdultContent = allow;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetAdultPreviewImageMode(AdultPreviewImageModeEnum mode)
+    {
+        AdultPreviewImageMode = mode;
         LastModifiedAt = DateTime.UtcNow;
     }
 

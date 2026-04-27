@@ -70,11 +70,13 @@ public class DiscussionsModel(
             && !communityContext.IsCustomDomain;
         ShowHub = !hideHub;
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
+
         try
         {
             if (Sort == "trending")
             {
-                var result = await apiClient.GetTrendingDiscussionsAsync(offset, pageSize, communityId);
+                var result = await apiClient.GetTrendingDiscussionsAsync(offset, pageSize, communityId, viewerAllowsAdult: viewerAllowsAdult);
                 Items = result?.Items ?? [];
                 HasMoreItems = result?.HasMoreItems ?? false;
                 NextOffset = offset + pageSize;
@@ -82,7 +84,7 @@ public class DiscussionsModel(
             }
             else if (Sort == "new")
             {
-                var result = await apiClient.GetNewDiscussionsAsync(offset, pageSize, communityId, cursor);
+                var result = await apiClient.GetNewDiscussionsAsync(offset, pageSize, communityId, cursor, viewerAllowsAdult: viewerAllowsAdult);
                 Items = result?.Items ?? [];
                 HasMoreItems = result?.HasMoreItems ?? false;
                 NextOffset = offset + pageSize;
@@ -97,7 +99,7 @@ public class DiscussionsModel(
                     var spaceIds = await followedSpacesCache.GetAsync(userId, apiClient.GetFollowedSpacesAsync);
                     if (spaceIds.Count > 0)
                     {
-                        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, cursor: cursor, spaceIds: spaceIds);
+                        var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, cursor: cursor, spaceIds: spaceIds, viewerAllowsAdult: viewerAllowsAdult);
                         Items = result?.Items ?? [];
                         HasMoreItems = result?.HasMoreItems ?? false;
                         NextOffset = offset + pageSize;
@@ -107,7 +109,7 @@ public class DiscussionsModel(
             }
             else
             {
-                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor);
+                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult);
                 Items = result?.Items ?? [];
                 HasMoreItems = result?.HasMoreItems ?? false;
                 NextOffset = offset + pageSize;

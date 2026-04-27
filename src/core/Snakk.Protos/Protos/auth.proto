@@ -44,6 +44,8 @@ message RegisterRequest {
   string base_url = 4; // For email verification link
   optional string turnstile_token = 5;
   optional string invite_code = 6;
+  // Tri-state adult-content choice forced at registration: true = consent, false = decline.
+  optional bool allow_adult_content = 7;
 }
 
 message LoginRequest {
@@ -85,6 +87,10 @@ message UpdatePreferencesRequest {
   optional string timezone = 3;
   optional string bio = 4;
   optional bool allow_adult_content = 5;
+  // When true, clears the adult content preference back to "ask"; ignored when false.
+  bool reset_adult_content_to_ask = 6;
+  // 0=Show, 1=Blur, 2=Hide
+  optional int32 adult_preview_image_mode = 7;
 }
 
 message OAuthCallbackRequest {
@@ -95,6 +101,8 @@ message OAuthCallbackRequest {
   string ip_address = 5;
   string user_agent = 6;
   optional string invite_code = 7;
+  // Tri-state adult-content choice (set during profile setup, not OAuth challenge).
+  optional bool allow_adult_content = 8;
 }
 
 // --- Response Messages ---
@@ -137,7 +145,8 @@ message CurrentUserResponse {
   optional string avatar_url = 13;
   optional string bio = 14;
   optional string feed_token = 15;
-  bool allow_adult_content = 16;
+  optional bool allow_adult_content = 16;
+  int32 adult_preview_image_mode = 17; // 0=Show, 1=Blur, 2=Hide
 }
 
 message UpdateProfileResponse {

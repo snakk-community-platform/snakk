@@ -1,10 +1,18 @@
+@using Snakk.Shared.Enums
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
+@using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
+@inject SnakkApiClient ApiClient
 @model DiscussionListItemVM
 @{
     var discussion = Model.Discussion;
+    var adultPreviewMode = discussion.IsAdult
+        ? await AdultContentGate.GetAdultPreviewImageModeAsync(Context, ApiClient)
+        : AdultPreviewImageModeEnum.Show;
+    var blurAdultImages = discussion.IsAdult && adultPreviewMode == AdultPreviewImageModeEnum.Blur;
+    var hideAdultImages = discussion.IsAdult && adultPreviewMode == AdultPreviewImageModeEnum.Hide;
     var baseUrl = Model.ShowCommunity
         ? SnakkUrlHelper.Discussion(
             discussion.Community.Slug, Model.Community,
@@ -42,6 +50,26 @@
             <time class="sn-card-time dt-published"
                   datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime(discussion.CreatedAt?.ToDateTime())</time>
         </div>
+        <span class="sn-card-dot">&middot;</span>
+        <span class="sn-card-path">
+            @if (Model.ShowCommunity)
+            {
+                <a href="@communityUrl" class="sn-card-path-link"
+                   data-popup-type="community"
+                   data-popup-id="@discussion.Community.PublicId"
+                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
+                <span class="sn-card-path-sep">&rsaquo;</span>
+            }
+            <a href="@hubUrl" class="sn-card-path-link"
+               data-popup-type="hub"
+               data-popup-id="@discussion.Hub.PublicId"
+               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+            <span class="sn-card-path-sep">&rsaquo;</span>
+            <a href="@spaceUrl" class="sn-card-tag"
+               data-popup-type="space"
+               data-popup-id="@discussion.Space.PublicId"
+               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+        </span>
         @{
             var preview = discussion.Preview;
             var pollPreview = preview?.Poll;
@@ -49,6 +77,10 @@
             var galleryPreview = preview?.Images;
             var linkPreview = preview?.Link;
             var iamaPreview = preview?.Iama;
+        }
+        @if (discussion.IsAdult)
+        {
+            <span class="sn-card-type-badge sn-card-type-badge-nsfw" title="@T.Adult.Title">@T.Adult.BadgeNsfw</span>
         }
         @if (!string.IsNullOrEmpty(discussion.Type) && discussion.Type != "Standard")
         {
@@ -181,11 +213,11 @@
                     </div>
                 </div>
             }
-            @if (galleryPreview != null && galleryPreview.Items.Count > 0)
+            @if (galleryPreview != null && galleryPreview.Items.Count > 0 && !hideAdultImages)
             {
                 var images = galleryPreview.Items;
                 var gpLayout = galleryPreview.Layout;
-                var gpSpoiler = galleryPreview.IsSpoiler;
+                var gpSpoiler = galleryPreview.IsSpoiler || blurAdultImages;
                 // Pick the best available source for the carousel slot and report its actual
                 // rendered dimensions so the browser can reserve the correct box (no CLS) and
                 // respect intrinsic sizing. Prefer medium; fall back to original (never the
@@ -292,7 +324,11 @@
                                 var (src, imgW, imgH) = bestSrcDim(img);
                                 var blur = img.HasBlurDataUri ? img.BlurDataUri : null;
 
-                                <div class="sn-images-slide-wrapper" style="@(blur != null ? $"background-image:url({blur})" : "")">
+                                <div class="sn-images-slide-wrapper" style="@(blur != null ? $"--blur:url({blur})" : "")">
+                                    @if (blur != null && imgW > 0 && imgH > 0 && !gpSpoiler)
+                                    {
+                                        <div class="sn-images-lqip" style="aspect-ratio:@imgW/@imgH"></div>
+                                    }
                                     @if (gpSpoiler && blur != null)
                                     {
                                         <img class="sn-images-slide"
@@ -311,6 +347,7 @@
                                              data-src="@src"
                                              data-full="@img.Url"
                                              data-loaded="1"
+                                             data-blur-up
                                              width="@imgW" height="@imgH"
                                              alt="" decoding="async" loading="lazy" />
                                     }
@@ -319,6 +356,7 @@
                                         <img class="sn-images-slide"
                                              data-src="@src"
                                              data-full="@img.Url"
+                                             data-blur-up
                                              width="@imgW" height="@imgH"
                                              alt="" decoding="async" loading="lazy" />
                                     }
@@ -415,9 +453,23 @@
                     : linkPreview.HasImagePathUrl ? linkPreview.ImagePathUrl
                     : linkPreview.HasImageUrl ? linkPreview.ImageUrl : null;
                 <a href="@linkPreview.Url" target="_blank" rel="nofollow noopener noreferrer" class="sn-link-card">
-                    @if (linkThumbSrc != null)
+                    @if (linkThumbSrc != null && !hideAdultImages)
                     {
-                        <img src="@linkThumbSrc" alt="" class="sn-link-card-img" loading="lazy" decoding="async" />
+                        var linkBlur = linkPreview.HasBlurDataUri ? linkPreview.BlurDataUri : null;
+                        <div class="sn-link-card-thumb@(blurAdultImages ? " sn-link-card-thumb-adult-blur" : "")"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "") data-discussion-id="@discussion.PublicId">
+                            @if (linkBlur != null)
+                            {
+                                <img src="@linkBlur" alt="" aria-hidden="true" class="sn-link-card-lqip" />
+                            }
+                            <img src="@linkThumbSrc" alt="" class="sn-link-card-img@(blurAdultImages ? " sn-link-card-img-adult-blur" : "")" loading="lazy" decoding="async" data-blur-up />
+                            @if (blurAdultImages)
+                            {
+                                <div class="sn-link-card-adult-overlay" data-discussion-id="@discussion.PublicId">
+                                    <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
+                                    <span>@T.Settings.AdultPreviewBlurReveal</span>
+                                </div>
+                            }
+                        </div>
                     }
                     <div class="sn-link-card-content">
                         @if (linkPreview.HasTitle)
@@ -452,6 +504,12 @@
                     <span class="sn-card-reply-excerpt">"@excerpt"</span>
                     <span class="sn-card-dot">&middot;</span>
                 }
+                else
+                {
+                    <span class="icon icon-photograph" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-card-reply-excerpt opacity-40 italic">@T.Card.ImageOnly</span>
+                    <span class="sn-card-dot">&middot;</span>
+                }
                 <div class="tooltip tooltip-top" data-tip="@T.Card.RepliedAt @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
                     <time class="sn-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
                 </div>
@@ -466,25 +524,6 @@
         </div>
     }
     <div class="sn-card-stats">
-        <span class="sn-card-path">
-            @if (Model.ShowCommunity)
-            {
-                <a href="@communityUrl" class="sn-card-path-link"
-                   data-popup-type="community"
-                   data-popup-id="@discussion.Community.PublicId"
-                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
-                <span class="sn-card-path-sep">&rsaquo;</span>
-            }
-            <a href="@hubUrl" class="sn-card-path-link"
-               data-popup-type="hub"
-               data-popup-id="@discussion.Hub.PublicId"
-               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
-            <span class="sn-card-path-sep">&rsaquo;</span>
-            <a href="@spaceUrl" class="sn-card-tag"
-               data-popup-type="space"
-               data-popup-id="@discussion.Space.PublicId"
-               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
-        </span>
         @if (discussion.ReactionCount > 0)
         {
             <span class="sn-card-stat sn-card-reactions">

@@ -33,6 +33,15 @@ public static class HtmlHelperExtensions
         // Allow data-* for any Markdig extensions that emit them
         sanitizer.AllowDataAttributes = true;
 
+        // Allow img lazy-loading and decoding hints
+        sanitizer.AllowedAttributes.Add("loading");
+        sanitizer.AllowedAttributes.Add("decoding");
+
+        // Allow carousel button elements (rendered by ReplaceImageGroups for image-group carousel layout)
+        sanitizer.AllowedTags.Add("button");
+        sanitizer.AllowedAttributes.Add("type");
+        sanitizer.AllowedAttributes.Add("aria-label");
+
         // Ensure javascript: and data: hrefs are stripped (already default, made explicit)
         sanitizer.AllowedSchemes.Add("https");
         sanitizer.AllowedSchemes.Add("http");

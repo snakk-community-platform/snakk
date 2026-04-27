@@ -151,6 +151,15 @@ public static class BffApiEndpoints
         group.MapPut("/me/preferences", UpdatePreferencesMeAsync)
             .WithName("BffUpdatePreferences");
 
+        // Adult-content interstitial — anonymous & authed
+        group.MapPost("/adult-consent", AdultConsentAsync)
+            .WithName("BffAdultConsent")
+            .AllowAnonymous();
+
+        group.MapPost("/adult-decline", AdultDeclineAsync)
+            .WithName("BffAdultDecline")
+            .AllowAnonymous();
+
         group.MapGet("/me/devices", GetMyDevicesAsync)
             .WithName("BffGetMyDevices");
 
@@ -309,11 +318,13 @@ public static class BffApiEndpoints
         [FromQuery] string? communityId,
         [FromQuery] int offset,
         [FromQuery] int pageSize,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
         // Aggregate multiple API calls in parallel
-        var recentTask = apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
-        var topActiveTask = apiClient.GetTopActiveDiscussionsAsync(communityId);
+        var recentTask = apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, viewerAllowsAdult: viewerAllowsAdult);
+        var topActiveTask = apiClient.GetTopActiveDiscussionsAsync(communityId, viewerAllowsAdult: viewerAllowsAdult);
         var topSpacesTask = apiClient.GetTopActiveSpacesAsync(communityId);
         var topContributorsTask = apiClient.GetTopContributorsAsync(communityId);
 
@@ -600,11 +611,13 @@ public static class BffApiEndpoints
         [FromQuery] int offset,
         [FromQuery] int pageSize,
         [FromQuery] string? communityId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
-        var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
+        var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, viewerAllowsAdult: viewerAllowsAdult);
         return Results.Ok(result);
     }
 
@@ -612,11 +625,13 @@ public static class BffApiEndpoints
         [FromQuery] int offset,
         [FromQuery] int pageSize,
         [FromQuery] string? communityId,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
-        var result = await apiClient.GetTrendingDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId);
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
+        var result = await apiClient.GetTrendingDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, viewerAllowsAdult: viewerAllowsAdult);
         return Results.Ok(result);
     }
 
@@ -625,11 +640,13 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize,
         [FromQuery] string? communityId,
         [FromQuery] string? cursor,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
-        var result = await apiClient.GetNewDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor);
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
+        var result = await apiClient.GetNewDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor, viewerAllowsAdult: viewerAllowsAdult);
         return Results.Ok(result);
     }
 
@@ -637,11 +654,13 @@ public static class BffApiEndpoints
         string spaceId,
         [FromQuery] int offset,
         [FromQuery] int pageSize,
-        SnakkApiClient apiClient)
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
     {
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
-        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize));
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
+        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize), viewerAllowsAdult: viewerAllowsAdult);
         return Results.Ok(result);
     }
 
@@ -812,7 +831,8 @@ public static class BffApiEndpoints
             avatarUrl = apiResult.HasAvatarUrl ? apiResult.AvatarUrl : null,
             bio = apiResult.HasBio ? apiResult.Bio : null,
             feedToken = apiResult.HasFeedToken ? apiResult.FeedToken : null,
-            allowAdultContent = apiResult.AllowAdultContent
+            allowAdultContent = apiResult.AllowAdultContent,
+            adultPreviewImageMode = apiResult.AdultPreviewImageMode
         });
     }
 
@@ -864,7 +884,7 @@ public static class BffApiEndpoints
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent);
+        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent, request.ClearAllowAdultContent, request.AdultPreviewImageMode);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
 
         // Update timezone cookie
@@ -873,6 +893,66 @@ public static class BffApiEndpoints
 
         return Results.Ok();
     }
+
+    private static async Task<IResult> AdultConsentAsync(
+        [FromForm] string? returnUrl,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        // Authenticated users persist the preference; anonymous users get a session cookie.
+        if (IsAuthenticated(httpContext))
+        {
+            await apiClient.UpdatePreferencesAsync(null, null, null, allowAdultContent: true);
+        }
+        else
+        {
+            httpContext.Response.Cookies.Append(
+                AdultContentGate.ConfirmedCookie,
+                "1",
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = httpContext.Request.IsHttps,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddYears(1)
+                });
+            httpContext.Response.Cookies.Delete(AdultContentGate.DeclinedCookie);
+        }
+
+        return Results.Redirect(SafeReturnUrl(returnUrl));
+    }
+
+    private static async Task<IResult> AdultDeclineAsync(
+        [FromForm] string? returnUrl,
+        SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (IsAuthenticated(httpContext))
+        {
+            await apiClient.UpdatePreferencesAsync(null, null, null, allowAdultContent: false);
+        }
+        else
+        {
+            httpContext.Response.Cookies.Append(
+                AdultContentGate.DeclinedCookie,
+                "1",
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = httpContext.Request.IsHttps,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddYears(1)
+                });
+            httpContext.Response.Cookies.Delete(AdultContentGate.ConfirmedCookie);
+        }
+
+        return Results.Redirect(SafeReturnUrl(returnUrl));
+    }
+
+    private static string SafeReturnUrl(string? returnUrl) =>
+        !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
+            ? returnUrl
+            : "/";
 
     // User endpoints
     private static async Task<IResult> GetUserStatsAsync(
@@ -963,6 +1043,7 @@ public static class BffApiEndpoints
 
     // Search endpoints
     private static async Task<IResult> SearchDiscussionsAsync(
+        HttpContext httpContext,
         SnakkApiClient apiClient,
         ICommunityContext communityContext,
         [FromQuery] string? q = null,
@@ -970,13 +1051,15 @@ public static class BffApiEndpoints
         [FromQuery] int pageSize = 20,
         [FromQuery] int offset = 0)
     {
+        var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
         var result = await apiClient.SearchDiscussionsAsync(
             query: q,
             authorPublicId: authorPublicId,
             spacePublicId: null,
             hubPublicId: null,
             offset: offset,
-            pageSize: Math.Min(pageSize, MaxPageSize));
+            pageSize: Math.Min(pageSize, MaxPageSize),
+            viewerAllowsAdult: viewerAllowsAdult);
 
         if (result is null)
             return Results.Ok(new BffSearchResponse<BffDiscussionSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
@@ -2187,4 +2270,4 @@ public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
 public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
-public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null);
+public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null);

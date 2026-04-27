@@ -20,6 +20,7 @@ public class SpaceDatabaseEntity
     public bool RequireEmailConfirmation { get; set; }
     public bool IsRestricted { get; set; }
     public bool IsAdultOnly { get; set; }
+    public bool AllowsAdultContent { get; set; }
 
     // Content rendering: auto-paragraph walls of text at post save time
     public bool AutoParagraphEnabled { get; set; } = true;

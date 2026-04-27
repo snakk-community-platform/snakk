@@ -69,3 +69,22 @@
         transform: scale(1.2);
     }
 }
+
+// Small "you reacted X" strip shown above each card on /reactions
+.sn-reaction-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem 0.125rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+
+    .sn-reaction-emoji {
+        font-size: 0.95rem;
+        line-height: 1;
+    }
+
+    .sn-reaction-time time {
+        color: inherit;
+    }
+}

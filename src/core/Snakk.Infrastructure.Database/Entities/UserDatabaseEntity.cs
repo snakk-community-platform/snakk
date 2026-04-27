@@ -40,7 +40,8 @@ public class UserDatabaseEntity
     public string? Timezone { get; set; }
     public string? Bio { get; set; }
     public string? FeedToken { get; set; }
-    public bool AllowAdultContent { get; set; }
+    public bool? AllowAdultContent { get; set; }
+    public int AdultPreviewImageMode { get; set; } // 0=Show, 1=Blur, 2=Hide
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }

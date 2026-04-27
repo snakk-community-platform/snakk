@@ -48,7 +48,8 @@ public class TrendingModel(
         ResolveSidebarData(communityId);
         await EnsureSidebarDataAsync(communityId);
 
-        try { TrendingDiscussions = await _apiClient.GetTrendingDiscussionsAsync(offset, 20, communityId); }
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+        try { TrendingDiscussions = await _apiClient.GetTrendingDiscussionsAsync(offset, 20, communityId, viewerAllowsAdult: viewerAllowsAdult); }
         catch { }
     }
 

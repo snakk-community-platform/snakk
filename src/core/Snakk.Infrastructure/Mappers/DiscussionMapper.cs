@@ -20,7 +20,8 @@ public static class DiscussionMapper
             entity.LastActivityAt,
             entity.IsPinned,
             entity.IsLocked,
-            posts: []);
+            posts: [],
+            isAdult: entity.IsAdultOnly);
 
     public static DiscussionDatabaseEntity ToPersistence(this Discussion discussion) =>
         // Note: Navigation properties (Space, CreatedByUser) must be set separately
@@ -35,7 +36,8 @@ public static class DiscussionMapper
             LastModifiedAt = discussion.LastModifiedAt,
             LastActivityAt = discussion.LastActivityAt,
             IsPinned = discussion.IsPinned,
-            IsLocked = discussion.IsLocked
+            IsLocked = discussion.IsLocked,
+            IsAdultOnly = discussion.IsAdult
             // SpaceId and CreatedByUserId will be set by repository adapter
         };
 }

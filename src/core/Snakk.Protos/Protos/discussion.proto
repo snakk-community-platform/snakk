@@ -107,6 +107,9 @@ message CreateDiscussionRequest {
   optional string poll_segment_label = 21;
   optional string poll_segment_option_a = 22;
   optional string poll_segment_option_b = 23;
+
+  // Per-discussion adult flag — only honoured when the parent space allows mixed adult content.
+  bool is_adult = 25;
 }
 
 message GetRecentDiscussionsRequest {
@@ -118,12 +121,14 @@ message GetRecentDiscussionsRequest {
   optional string author_id = 6;
   optional string space_id = 7;
   repeated string space_ids = 8;
+  bool viewer_allows_adult = 9;
 }
 
 message GetTrendingDiscussionsRequest {
   int32 offset = 1;
   int32 page_size = 2;
   optional string community_id = 3;
+  bool viewer_allows_adult = 4;
 }
 
 message GetTopDiscussionsRequest {
@@ -131,6 +136,7 @@ message GetTopDiscussionsRequest {
   int32 page_size = 2;
   optional string community_id = 3;
   string time_period = 4; // "day", "week", "month", "year", "all_time"
+  bool viewer_allows_adult = 5;
 }
 
 message GetNewDiscussionsRequest {
@@ -138,6 +144,7 @@ message GetNewDiscussionsRequest {
   int32 page_size = 2;
   optional string community_id = 3;
   optional string cursor = 4;
+  bool viewer_allows_adult = 5;
 }
 
 message GetDiscussionsBySpaceRequest {
@@ -146,6 +153,7 @@ message GetDiscussionsBySpaceRequest {
   int32 page_size = 3;
   optional int32 type_filter = 4;
   optional string cursor = 5;
+  bool viewer_allows_adult = 6;
 }
 
 message GetDiscussionPreviewRequest {
@@ -169,6 +177,7 @@ message DiscussionInfo {
   bool is_locked = 8;
   string type = 9;
   int32 post_count = 10;
+  bool is_adult = 11;
 }
 
 message DiscussionCreatedInfo {
@@ -198,6 +207,7 @@ message RecentDiscussionInfo {
   optional DiscussionPreview preview = 16;
   optional snakk.AuthorRef last_replier = 17;
   string last_post_excerpt = 18;
+  bool is_adult = 19;
 }
 
 message DiscussionPreview {
@@ -241,6 +251,7 @@ message LinkPreview {
   optional string oembed_html = 7;
   bool is_internal = 8;
   optional string image_thumbnail_url = 9;
+  optional string blur_data_uri = 10;
 }
 
 message ImagesPreview {

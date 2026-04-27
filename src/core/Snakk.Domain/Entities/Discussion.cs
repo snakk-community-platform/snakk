@@ -17,6 +17,7 @@ public class Discussion
     public DateTime? LastActivityAt { get; private set; }
     public bool IsPinned { get; private set; }
     public bool IsLocked { get; private set; }
+    public bool IsAdult { get; private set; }
 
     private readonly List<Post> _posts = [];
     public IReadOnlyCollection<Post> Posts => _posts.AsReadOnly();
@@ -44,7 +45,8 @@ public class Discussion
         DateTime? lastActivityAt = null,
         bool isPinned = false,
         bool isLocked = false,
-        List<Post>? posts = null)
+        List<Post>? posts = null,
+        bool isAdult = false)
     {
         PublicId = publicId;
         SpaceId = spaceId;
@@ -57,6 +59,7 @@ public class Discussion
         LastActivityAt = lastActivityAt;
         IsPinned = isPinned;
         IsLocked = isLocked;
+        IsAdult = isAdult;
         _posts = posts ?? [];
         _domainEvents = [];
     }
@@ -66,7 +69,8 @@ public class Discussion
         UserId createdByUserId,
         string title,
         string slug,
-        DiscussionTypeEnum type = DiscussionTypeEnum.Standard)
+        DiscussionTypeEnum type = DiscussionTypeEnum.Standard,
+        bool isAdult = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Discussion title cannot be empty", nameof(title));
@@ -82,7 +86,8 @@ public class Discussion
             slug,
             type,
             DateTime.UtcNow,
-            lastActivityAt: DateTime.UtcNow);
+            lastActivityAt: DateTime.UtcNow,
+            isAdult: isAdult);
 
         discussion.AddDomainEvent(new DiscussionCreatedEvent(discussion.PublicId, spaceId, createdByUserId));
 
@@ -101,7 +106,8 @@ public class Discussion
         DateTime? lastActivityAt = null,
         bool isPinned = false,
         bool isLocked = false,
-        List<Post>? posts = null) =>
+        List<Post>? posts = null,
+        bool isAdult = false) =>
         new Discussion(
             publicId,
             spaceId,
@@ -114,7 +120,8 @@ public class Discussion
             lastActivityAt,
             isPinned,
             isLocked,
-            posts);
+            posts,
+            isAdult);
 
     public static Discussion RehydrateForList(
         DiscussionId publicId,
@@ -126,7 +133,8 @@ public class Discussion
         DateTime createdAt,
         DateTime? lastActivityAt,
         bool isPinned,
-        bool isLocked) =>
+        bool isLocked,
+        bool isAdult = false) =>
         new Discussion(
             publicId,
             spaceId,
@@ -139,7 +147,14 @@ public class Discussion
             lastActivityAt,
             isPinned,
             isLocked,
-            posts: []);
+            posts: [],
+            isAdult: isAdult);
+
+    public void SetAdult(bool isAdult)
+    {
+        IsAdult = isAdult;
+        LastModifiedAt = DateTime.UtcNow;
+    }
 
     public void UpdateTitle(string title)
     {

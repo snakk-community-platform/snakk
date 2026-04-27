@@ -126,11 +126,13 @@
             img.classList.add('images-loaded');
             img.parentElement?.classList.add('images-item-loaded');
         };
-        if (img.complete) done();
-        else {
-            img.addEventListener('load', done);
-            img.addEventListener('error', done);
-        }
+        // Always attach listeners — carousel slides start without src and get
+        // it swapped in later, at which point load fires. img.complete is true
+        // for src-less images per spec, so we also gate the immediate fire on
+        // currentSrc being non-empty.
+        img.addEventListener('load', done);
+        img.addEventListener('error', done);
+        if (img.complete && img.currentSrc) done();
     }
 
     function initBlurUp(): void {

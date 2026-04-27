@@ -145,7 +145,8 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: s.Discussion.IsAdultOnly)
             })
             .ToListAsync();
 

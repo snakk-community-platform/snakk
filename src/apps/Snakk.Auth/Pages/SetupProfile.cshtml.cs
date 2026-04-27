@@ -21,6 +21,9 @@ public class SetupProfileModel(
         [StringLength(50, MinimumLength = 2, ErrorMessage = "Display name must be between 2 and 50 characters.")]
         [Display(Name = "Display Name")]
         public string DisplayName { get; set; } = "";
+
+        [Required(ErrorMessage = "Please choose whether to allow adult content.")]
+        public bool? AllowAdultContent { get; set; }
     }
 
     public void OnGet()
@@ -49,6 +52,17 @@ public class SetupProfileModel(
             var response = await authClient.UpdateProfileAsync(
                 new UpdateProfileRequest { DisplayName = Input.DisplayName.Trim() },
                 headers);
+
+            try
+            {
+                await authClient.UpdatePreferencesAsync(
+                    new UpdatePreferencesRequest { AllowAdultContent = Input.AllowAdultContent!.Value },
+                    headers);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to persist adult-content preference during OAuth profile setup");
+            }
 
             // Update the auth cookie if a new token was returned (with updated display name)
             if (!string.IsNullOrEmpty(response.Token))

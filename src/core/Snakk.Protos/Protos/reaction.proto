@@ -58,6 +58,8 @@ message ReactedPostInfo {
   optional string author_avatar_file_name   = 12;
   google.protobuf.Timestamp reacted_at      = 13;
   string reaction_type                      = 14;
+  string hub_name                           = 15;
+  string space_name                         = 16;
 }
 
 message PagedReactedPostsList {

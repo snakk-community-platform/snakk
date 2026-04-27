@@ -53,6 +53,9 @@ public class RegisterModel(
         public string ConfirmPassword { get; set; } = "";
 
         public string? InviteCode { get; set; }
+
+        [Required(ErrorMessage = "Please choose whether to allow adult content.")]
+        public bool? AllowAdultContent { get; set; }
     }
 
     public async Task<IActionResult> OnGet(string? error = null)
@@ -105,7 +108,8 @@ public class RegisterModel(
                 Email = Input.Email,
                 Password = Input.Password,
                 DisplayName = Input.DisplayName,
-                BaseUrl = baseUrl
+                BaseUrl = baseUrl,
+                AllowAdultContent = Input.AllowAdultContent!.Value
             };
 
             var turnstileToken = Request.Form["cf-turnstile-response"].FirstOrDefault();

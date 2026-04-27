@@ -7,6 +7,7 @@ using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared;
+using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 using System.Text.RegularExpressions;
 
@@ -27,7 +28,8 @@ public class AuthenticationUseCase(
         string email,
         string password,
         string displayName,
-        string baseUrl)
+        string baseUrl,
+        bool? allowAdultContent = null)
     {
         // Validate inputs
         if (string.IsNullOrWhiteSpace(email))
@@ -80,7 +82,8 @@ public class AuthenticationUseCase(
             suggestedDisplayName,
             email,
             passwordHash,
-            verificationToken);
+            verificationToken,
+            allowAdultContent);
 
         await userRepository.AddAsync(user);
 
@@ -136,7 +139,8 @@ public class AuthenticationUseCase(
         string oauthProvider,
         string oauthProviderId,
         string email,
-        string displayName)
+        string displayName,
+        bool? allowAdultContent = null)
     {
         // Try to find existing user by OAuth provider ID
         var user = await userRepository.GetByOAuthProviderIdAsync(oauthProviderId);
@@ -168,7 +172,8 @@ public class AuthenticationUseCase(
         user = User.CreateWithOAuth(
             email,
             oauthProvider,
-            oauthProviderId);
+            oauthProviderId,
+            allowAdultContent);
 
         await userRepository.AddAsync(user);
 
@@ -319,7 +324,14 @@ public class AuthenticationUseCase(
         return Result.Success();
     }
 
-    public async Task<Result> UpdatePreferencesAsync(UserId userId, bool? autoFollowOnReply, string? timezone = null, string? bio = null, bool? allowAdultContent = null)
+    public async Task<Result> UpdatePreferencesAsync(
+        UserId userId,
+        bool? autoFollowOnReply,
+        string? timezone = null,
+        string? bio = null,
+        bool? allowAdultContent = null,
+        bool clearAllowAdultContent = false,
+        AdultPreviewImageModeEnum? adultPreviewImageMode = null)
     {
         var user = await userRepository.GetByPublicIdAsync(userId);
 
@@ -335,8 +347,13 @@ public class AuthenticationUseCase(
         if (bio is not null)
             user.SetBio(bio == "" ? null : bio);
 
-        if (allowAdultContent.HasValue)
+        if (clearAllowAdultContent)
+            user.SetAllowAdultContent(null);
+        else if (allowAdultContent.HasValue)
             user.SetAllowAdultContent(allowAdultContent.Value);
+
+        if (adultPreviewImageMode.HasValue)
+            user.SetAdultPreviewImageMode(adultPreviewImageMode.Value);
 
         await userRepository.UpdateAsync(user);
 

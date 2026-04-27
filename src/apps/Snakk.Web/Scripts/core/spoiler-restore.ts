@@ -31,4 +31,15 @@
             el.classList.add('revealed');
         }
     });
+
+    const ADULT_KEY_PREFIX = 'snakk:adult-revealed:';
+    document.querySelectorAll<HTMLElement>('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(el => {
+        const id = el.dataset.discussionId;
+        if (!id) return;
+        if (sessionStorage.getItem(ADULT_KEY_PREFIX + id) === '1') {
+            el.classList.add('revealed');
+            const img = el.querySelector('.sn-link-card-img-adult-blur');
+            if (img) img.classList.add('revealed');
+        }
+    });
 })();

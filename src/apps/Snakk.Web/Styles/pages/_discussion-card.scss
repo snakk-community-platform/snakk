@@ -8,7 +8,7 @@
 .sn-card {
     display: flex;
     flex-direction: column;
-    gap: 0.355rem;
+    gap: 0.15rem;
     position: relative;
     cursor: pointer;
     border-radius: 0.5rem;
@@ -68,7 +68,6 @@
     align-items: center;
     gap: 0.25rem;
     flex-wrap: wrap;
-    flex: 1;
     min-width: 0;
 }
 
@@ -128,7 +127,6 @@
 .sn-card-header a,
 .sn-card-stats a,
 .sn-card-stats button,
-.sn-card-path a,
 .sn-card-preview a,
 .sn-card-reply-strip {
     position: relative;
@@ -162,6 +160,12 @@
     vertical-align: middle;
     background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
     color: var(--text-secondary);
+}
+
+.sn-card-type-badge-nsfw {
+    background: color-mix(in srgb, oklch(0.55 0.22 25) 80%, transparent);
+    color: white;
+    letter-spacing: 0.04em;
 }
 
 
@@ -312,12 +316,6 @@
     &.text-primary {
         color: var(--color-primary);
     }
-}
-
-// Save button active state — covers action-pane btn and post "..." dropdown
-.btn[data-action^="toggle-save"].is-saved {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
 }
 
 .post-save-btn.is-saved {

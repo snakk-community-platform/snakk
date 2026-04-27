@@ -51,10 +51,11 @@ public class MeModel(
         }
         else
         {
+            var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
             try
             {
                 Discussions = await _apiClient.GetRecentDiscussionsAsync(
-                    offset: Offset, pageSize: PageSize, authorId: userId);
+                    offset: Offset, pageSize: PageSize, authorId: userId, viewerAllowsAdult: viewerAllowsAdult);
             }
             catch { }
         }

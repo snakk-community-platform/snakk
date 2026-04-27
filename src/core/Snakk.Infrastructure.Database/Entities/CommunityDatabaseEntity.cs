@@ -19,6 +19,7 @@ public class CommunityDatabaseEntity
     public int VisibilityId { get; set; } // Maps to CommunityVisibilityEnum
     public bool ExposeToPlatformFeed { get; set; }
     public bool IsAdultOnly { get; set; }
+    public bool HideAdultDiscussionsFromLists { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }

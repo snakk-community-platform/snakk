@@ -6,7 +6,6 @@ public class SiteConfigModel : SetupPageBase
 {
     [BindProperty] public string Domain { get; set; } = "";
     [BindProperty] public string SiteName { get; set; } = "Snakk";
-    [BindProperty] public string DefaultCommunitySlug { get; set; } = "main";
     [BindProperty] public bool MultiCommunityEnabled { get; set; }
     [BindProperty] public string Timezone { get; set; } = "UTC";
     [BindProperty] public string Language { get; set; } = "en";
@@ -17,7 +16,6 @@ public class SiteConfigModel : SetupPageBase
         var state = GetState();
         Domain = !string.IsNullOrEmpty(state.Domain) ? state.Domain : HttpContext.Request.Host.Host;
         SiteName = state.SiteName;
-        DefaultCommunitySlug = state.DefaultCommunitySlug;
         MultiCommunityEnabled = state.MultiCommunityEnabled;
         Timezone = state.Timezone;
         Language = !string.IsNullOrEmpty(state.Language) ? state.Language : DetectLanguageFromRequest();
@@ -45,7 +43,6 @@ public class SiteConfigModel : SetupPageBase
         var state = GetState();
         state.Domain = Domain.Trim();
         state.SiteName = SiteName.Trim();
-        state.DefaultCommunitySlug = DefaultCommunitySlug.Trim().ToLowerInvariant();
         state.MultiCommunityEnabled = MultiCommunityEnabled;
         state.Timezone = string.IsNullOrWhiteSpace(Timezone) ? "UTC" : Timezone;
         state.Language = string.IsNullOrWhiteSpace(Language) ? "en" : Language;

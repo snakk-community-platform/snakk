@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Protos.Discussion;
 using Snakk.Web.Helpers;
 using Snakk.Web.Services;
 
@@ -10,7 +11,7 @@ public class ReactedDiscussionsModel(
     ICommunityContext communityContext) : PageModel
 {
     public ICommunityContext Community => communityContext;
-    public List<ReactedPostVM> Items { get; set; } = [];
+    public List<ReactedDiscussionVM> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
     public int Offset { get; set; }
     public int NextOffset { get; set; }
@@ -28,26 +29,53 @@ public class ReactedDiscussionsModel(
             var result = await apiClient.GetMyReactedDiscussionsAsync(offset, pageSize);
             if (result != null)
             {
-                Items = result.Items.Select(p => new ReactedPostVM(
+                var reactions = result.Items.Select(p => new ReactedPostVM(
                     p.PublicId,
                     p.DiscussionPublicId,
                     p.DiscussionTitle,
                     p.DiscussionSlug,
                     p.SpaceSlug,
+                    p.SpaceName,
                     p.HubSlug,
+                    p.HubName,
                     p.CommunitySlug,
                     p.AuthorPublicId,
                     p.AuthorDisplayName,
                     p.HasAuthorAvatarFileName ? p.AuthorAvatarFileName : null,
                     p.ContentExcerpt,
+                    p.PostCreatedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactionType)).ToList();
+
+                Items = await ReactedDiscussionLoader.LoadAsync(apiClient, reactions);
                 HasMoreItems = result.HasMoreItems;
-                NextOffset = offset + Items.Count;
+                NextOffset = offset + reactions.Count;
             }
         }
         catch { }
 
         return Page();
+    }
+}
+
+public record ReactedDiscussionVM(ReactedPostVM Reaction, RecentDiscussionInfo Discussion);
+
+internal static class ReactedDiscussionLoader
+{
+    public static async Task<List<ReactedDiscussionVM>> LoadAsync(
+        SnakkApiClient apiClient,
+        IReadOnlyList<ReactedPostVM> reactions)
+    {
+        if (reactions.Count == 0) return [];
+
+        var ids = reactions.Select(r => r.DiscussionPublicId).Distinct().ToList();
+        var fetched = await apiClient.GetRecentDiscussionsByIdsAsync(ids);
+        if (fetched == null) return [];
+
+        var byId = fetched.Items.ToDictionary(d => d.PublicId);
+        return reactions
+            .Where(r => byId.ContainsKey(r.DiscussionPublicId))
+            .Select(r => new ReactedDiscussionVM(r, byId[r.DiscussionPublicId]))
+            .ToList();
     }
 }

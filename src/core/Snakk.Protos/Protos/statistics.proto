@@ -44,6 +44,7 @@ message GetTopActiveDiscussionsTodayRequest {
   optional string space_id = 2;
   optional string community_id = 3;
   int32 limit = 4;
+  bool viewer_allows_adult = 5;
 }
 
 message GetTopActiveSpacesTodayRequest {

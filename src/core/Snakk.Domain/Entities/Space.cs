@@ -19,6 +19,8 @@ public class Space
     public string? AvatarThumbnailFileName { get; private set; }
     public string? AvatarMicroFileName { get; private set; }
     public int AvatarRevision { get; private set; }
+    public bool IsAdultOnly { get; private set; }
+    public bool AllowsAdultContent { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
 
@@ -50,7 +52,9 @@ public class Space
         string? languageCode = null,
         string? hubLanguageCode = null,
         string? communityLanguageCode = null,
-        bool autoParagraphEnabled = true)
+        bool autoParagraphEnabled = true,
+        bool isAdultOnly = false,
+        bool allowsAdultContent = false)
     {
         PublicId = publicId;
         HubId = hubId;
@@ -67,6 +71,8 @@ public class Space
         AvatarThumbnailFileName = avatarThumbnailFileName;
         AvatarMicroFileName = avatarMicroFileName;
         AvatarRevision = avatarRevision;
+        IsAdultOnly = isAdultOnly;
+        AllowsAdultContent = allowsAdultContent;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         _discussions = discussions ?? [];
@@ -115,7 +121,9 @@ public class Space
         string? languageCode = null,
         string? hubLanguageCode = null,
         string? communityLanguageCode = null,
-        bool autoParagraphEnabled = true) =>
+        bool autoParagraphEnabled = true,
+        bool isAdultOnly = false,
+        bool allowsAdultContent = false) =>
         new Space(
             publicId,
             hubId,
@@ -134,7 +142,9 @@ public class Space
             languageCode,
             hubLanguageCode,
             communityLanguageCode,
-            autoParagraphEnabled);
+            autoParagraphEnabled,
+            isAdultOnly,
+            allowsAdultContent);
 
     public static Space RehydrateForList(
         SpaceId publicId,

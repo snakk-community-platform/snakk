@@ -65,7 +65,8 @@ public class StatisticsUseCase(
         string? spaceId = null,
         string? communityId = null,
         int limit = 5,
-        string? userId = null)
+        string? userId = null,
+        bool viewerAllowsAdult = false)
     {
         var topDiscussions = await discussionRepo.GetTopActiveDiscussionsSinceAsync(
             since,
@@ -73,7 +74,8 @@ public class StatisticsUseCase(
             spaceId is not null ? SpaceId.From(spaceId) : null,
             communityId is not null ? CommunityId.From(communityId) : null,
             limit,
-            userId);
+            userId,
+            viewerAllowsAdult);
 
         var results = topDiscussions
             .Select(d => new TopDiscussionResult(

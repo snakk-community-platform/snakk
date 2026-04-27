@@ -190,6 +190,9 @@
                 onChange: (markdown: string) => {
                     setBlocker('body', !markdown.trim());
                 },
+                onUploadStateChange: (uploading: boolean) => {
+                    setBlocker('uploading-inline', uploading);
+                },
             });
 
             if (editor) {

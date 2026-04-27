@@ -36,6 +36,24 @@
                     <p class="text-xs text-base-content/40 mt-1.5">This is how others will see you. You can change it later.</p>
                 </div>
 
+                <div class="pt-2">
+                    <div class="text-sm font-medium mb-2">Adult content</div>
+                    <p class="text-xs text-base-content/50 mb-2">
+                        Some communities and discussions are tagged 18+. Choose whether you want to see them. You can change this later in settings.
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-start gap-2 cursor-pointer text-sm">
+                            <input type="radio" asp-for="Input.AllowAdultContent" value="true" class="auth-radio mt-0.5" />
+                            <span>Allow adult content (I am 18 or older)</span>
+                        </label>
+                        <label class="flex items-start gap-2 cursor-pointer text-sm">
+                            <input type="radio" asp-for="Input.AllowAdultContent" value="false" class="auth-radio mt-0.5" />
+                            <span>Hide adult content</span>
+                        </label>
+                    </div>
+                    <span asp-validation-for="Input.AllowAdultContent" class="text-error text-xs mt-1 block"></span>
+                </div>
+
                 <button type="submit" class="auth-btn-primary">
                     Continue
                 </button>

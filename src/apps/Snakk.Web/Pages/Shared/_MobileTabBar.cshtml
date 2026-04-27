@@ -1,4 +1,6 @@
 @using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityContext
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var path = ViewContext.HttpContext.Request.Path.Value ?? "";
@@ -8,15 +10,19 @@
         if (prefix) return path.StartsWith(href, StringComparison.OrdinalIgnoreCase) ? " is-active" : "";
         return path == href ? " is-active" : "";
     }
+
+    var isSingleCommunity = !CommunityContext.IsMultiCommunityEnabled;
+    var communityHref = isSingleCommunity ? "/c" : "/communities";
+    var communityLabel = isSingleCommunity ? T.Nav.Community : T.Nav.Communities;
 }
 <nav class="sn-tabbar" aria-label="Mobile navigation">
     <a href="/" class="sn-tabbar-item@(Active("/"))">
         <span class="icon icon-home" aria-hidden="true"></span>
         <span>@T.Nav.Active</span>
     </a>
-    <a href="/communities" class="sn-tabbar-item@(Active("/communities", prefix: true))">
+    <a href="@communityHref" class="sn-tabbar-item@(Active(communityHref, prefix: true))">
         <span class="icon icon-users-group" aria-hidden="true"></span>
-        <span>@T.Nav.Communities</span>
+        <span>@communityLabel</span>
     </a>
     <a href="/new" class="sn-tabbar-item sn-tabbar-item--primary@(Active("/new", prefix: true))" aria-label="@T.MobileNav.Post">
         <span class="sn-tabbar-item-icon">

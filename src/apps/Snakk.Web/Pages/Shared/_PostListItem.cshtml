@@ -16,7 +16,7 @@
     </a>
     @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
     {
-        <p class="text-sm mt-1 line-clamp-3" style="color: var(--text-secondary)">@Model.ContentExcerpt</p>
+        <div class="text-sm mt-1 line-clamp-3 prose prose-sm" style="color: var(--text-secondary)">@Html.Raw(Model.ContentExcerpt)</div>
     }
     <div class="flex items-center gap-2 mt-2">
         <img src="@Model.AuthorAvatarUrl" alt="" width="20" height="20" class="w-5 h-5 rounded-full" />

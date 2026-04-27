@@ -67,6 +67,8 @@
                         <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
                     </div>
 
+                    <partial name="_NewDiscussionAdultToggle" model="Model.Space" />
+
                     <div class="flex items-center justify-between">
                         <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
                         <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewDebateSubmit</button>

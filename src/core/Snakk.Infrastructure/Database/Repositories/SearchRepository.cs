@@ -25,12 +25,14 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? hubPublicId = null,
         int offset = 0,
         int pageSize = 20,
-        string? userId = null)
+        string? userId = null,
+        bool viewerAllowsAdult = false)
     {
         var baseQuery = _context.Discussions
             .Where(d => !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId);
+        baseQuery = WithAdultDiscussionFilter(baseQuery, viewerAllowsAdult);
 
         // Full-text search: PostgreSQL uses tsvector + websearch_to_tsquery, others fall back to LIKE
         if (!string.IsNullOrWhiteSpace(query))
@@ -218,12 +220,14 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize = 20,
         int? typeFilter = null,
         string? userId = null,
-        string? cursor = null)
+        string? cursor = null,
+        bool viewerAllowsAdult = false)
     {
         var baseQuery = _context.Discussions
             .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId);
+        baseQuery = WithAdultDiscussionFilter(baseQuery, viewerAllowsAdult);
 
         if (typeFilter.HasValue)
             baseQuery = baseQuery.Where(d => d.Type == typeFilter.Value);
@@ -540,6 +544,19 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             && (!p.Discussion.Space.Hub.Community.IsRestricted || communityIds.Contains(p.Discussion.Space.Hub.CommunityId)));
     }
 
+    /// <summary>
+    /// When the viewer hasn't opted into adult content, hide adult-tagged discussions from
+    /// communities that have HideAdultDiscussionsFromLists enabled. Viewers who allow adult
+    /// content (authenticated with AllowAdultContent==true, or anonymous with the confirm cookie)
+    /// see all discussions regardless of community setting.
+    /// </summary>
+    private static IQueryable<Database.Entities.DiscussionDatabaseEntity> WithAdultDiscussionFilter(
+        IQueryable<Database.Entities.DiscussionDatabaseEntity> query, bool viewerAllowsAdult)
+    {
+        if (viewerAllowsAdult) return query;
+        return query.Where(d => !(d.IsAdultOnly && d.Space.Hub.Community.HideAdultDiscussionsFromLists));
+    }
+
     private async Task<IQueryable<Database.Entities.DiscussionDatabaseEntity>> WithAccessFilterAsync(
         IQueryable<Database.Entities.DiscussionDatabaseEntity> query, string? userId)
     {
@@ -598,11 +615,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? cursor = null,
         string? userId = null,
         string? authorId = null,
-        IReadOnlyList<string>? spaceIds = null)
+        IReadOnlyList<string>? spaceIds = null,
+        bool viewerAllowsAdult = false)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId);
+        query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         // Filter by author if specified
         if (!string.IsNullOrEmpty(authorId))
@@ -705,7 +724,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: d.IsAdultOnly)
             })
             .ToListAsync();
 
@@ -814,7 +834,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: d.IsAdultOnly)
             })
             .ToListAsync();
         var previewMap = await BatchFetchPreviewsAsync(
@@ -919,7 +940,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 {
                     l.DiscussionId,
                     l.Url, l.Title, l.Description, l.Domain,
-                    l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal
+                    l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal,
+                    l.ImageBlurDataUri
                 })
                 .ToListAsync();
 
@@ -928,7 +950,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 var publicId = linkIdMap[link.DiscussionId];
                 result[publicId] = new(Link: new(
                     link.Url, link.Title, link.Description, link.Domain,
-                    link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal));
+                    link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal,
+                    link.ImageBlurDataUri));
             }
         }
 
@@ -1023,11 +1046,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize,
         string? communityId = null,
         string? cursor = null,
-        string? userId = null)
+        string? userId = null,
+        bool viewerAllowsAdult = false)
     {
         var query = _context.Discussions.Where(d => !d.IsDeleted);
 
         query = await WithAccessFilterAsync(query, userId);
+        query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
             query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
@@ -1093,7 +1118,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: d.IsAdultOnly)
             })
             .ToListAsync();
 
@@ -1123,11 +1149,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize,
         string? communityId = null,
         string? timePeriod = null,
-        string? userId = null)
+        string? userId = null,
+        bool viewerAllowsAdult = false)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId);
+        query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
             query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
@@ -1203,7 +1231,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: d.IsAdultOnly)
             })
             .ToListAsync();
 
@@ -1233,11 +1262,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize,
         string? communityId = null,
         string? cursor = null,
-        string? userId = null)
+        string? userId = null,
+        bool viewerAllowsAdult = false)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId);
+        query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
             query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
@@ -1314,7 +1345,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         .Where(p => !p.IsFirstPost && !p.IsDeleted)
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault())
+                        .FirstOrDefault(),
+                    IsAdult: d.IsAdultOnly)
             })
             .ToListAsync();
 

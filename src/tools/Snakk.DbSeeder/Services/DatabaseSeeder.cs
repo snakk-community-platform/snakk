@@ -37,6 +37,7 @@ public class DatabaseSeeder(
     {
         await EnsureSystemSettingsAsync();
         await EnsureDefaultAdminExistsAsync();
+        await EnsureFirstCommunityAsync();
         await GenerateAllAvatarsAsync();
     }
 
@@ -81,69 +82,42 @@ public class DatabaseSeeder(
     /// </summary>
     public async Task SeedAsync()
     {
-        // Always ensure test user and default admin exist
+        await EnsureSystemSettingsAsync();
         await EnsureTestUserExistsAsync();
         await EnsureDefaultAdminExistsAsync();
+        await EnsureFirstCommunityAsync(alwaysCreate: true);
 
-        // Check if full seeding was already done (look for test communities with custom domains)
-        var hasTestCommunities = await _context.CommunityDomains.AnyAsync(d => d.Domain == "test1.snakk.local");
-        if (hasTestCommunities)
+        // Idempotency: if many users already exist, seeding was already done
+        var userCount = await _context.Users.CountAsync();
+        if (userCount > 10)
         {
             Console.WriteLine("Database already fully seeded. Skipping.");
             return;
         }
 
-        // Delete existing data and reseed (since we need the full dataset)
-        Console.WriteLine("Clearing existing data for full reseed...");
-        await ClearExistingDataAsync();
-
-        // Create users first
         var users = await SeedUsersAsync();
 
-        // Create communities with custom domains
-        var snakkCommunity = await CreateSnakkCommunityAsync(users);
-        var test1Community = await CreateTest1CommunityAsync(users);
-        var test2Community = await CreateTest2CommunityAsync(users);
-        var test3Community = await CreateTest3CommunityAsync(users);
-        var test4Community = await CreateTest4CommunityAsync(users);
-        var test5Community = await CreateTest5CommunityAsync(users);
+        var communitySlug = _configuration["Snakk:DefaultCommunitySlug"] ?? "main";
+        var community = await _context.Communities.FirstOrDefaultAsync(c => c.Slug == communitySlug);
+        if (community is null)
+        {
+            Console.WriteLine($"Community '{communitySlug}' not found. Skipping content seeding.");
+            return;
+        }
 
-        // Seed announcements across different scopes
-        await SeedBannersAsync(snakkCommunity, users);
-
-        // Seed moderators, bans, and custom report reasons
+        await CreateHubsAndSpacesForDefaultCommunity(community, users);
+        await SeedBannersAsync(community, users);
         await SeedModerationDataAsync(users);
-
-        // Seed reactions (one per user per post)
         await SeedReactionsAsync(users);
-
-        // Seed rules across all entity scopes
         await SeedRulesAsync();
-
-        // Seed follows (users following discussions, spaces, and other users)
         await SeedFollowsAsync(users);
-
-        // Seed reports (content reports with mod comments)
         await SeedReportsAsync(users);
-
-        // Seed post revisions (edit history for some posts)
         await SeedPostRevisionsAsync(users);
-
-        // Seed high-volume threads for pagination debugging
         await SeedHighVolumeDiscussionsAsync(users);
-
-        // Seed community groups, member assignments, and group access control
-        await SeedGroupsAndAccessAsync(snakkCommunity, users);
-
-        // Recompute denormalized counts on Space, Hub, and Community entities
         await UpdateDenormalizedCountsAsync();
-
-        // Seed 30 days of activity snapshot data for sparklines
         await SeedActivitySnapshotsAsync();
 
         Console.WriteLine("Database seeding completed successfully.");
-
-        // Separate avatar generation phase
         await GenerateAllAvatarsAsync();
     }
 
@@ -367,6 +341,40 @@ public class DatabaseSeeder(
         Console.WriteLine("Test users created: Alice, Bob, Charlie (password: test123!)");
     }
 
+    private async Task EnsureFirstCommunityAsync(bool alwaysCreate = false)
+    {
+        var createFirst = alwaysCreate || string.Equals(_configuration["Setup:CreateFirstCommunity"], "true", StringComparison.OrdinalIgnoreCase);
+        if (!createFirst) return;
+
+        if (await _context.Communities.AnyAsync()) return;
+
+        var communitySlug = _configuration["Snakk:DefaultCommunitySlug"] ?? "main";
+        var communityName = _configuration["Setup:CommunityName"] ?? "Main";
+        var communityDescription = _configuration["Setup:CommunityDescription"] ?? "";
+        var hubName = _configuration["Setup:FirstHubName"] ?? "General";
+        var hubSlug = _configuration["Setup:FirstHubSlug"] ?? "general";
+        var spaceName = _configuration["Setup:FirstSpaceName"] ?? "General";
+        var spaceSlug = _configuration["Setup:FirstSpaceSlug"] ?? "general";
+
+        var now = DateTime.UtcNow;
+        var community = new CommunityDatabaseEntity
+        {
+            PublicId = Ulid.NewUlid().ToString(),
+            Name = communityName,
+            Slug = communitySlug,
+            Description = communityDescription,
+            VisibilityId = (int)CommunityVisibilityEnum.PublicListed,
+            CreatedAt = now
+        };
+        _context.Communities.Add(community);
+        await _context.SaveChangesAsync();
+
+        var hub = await CreateHubAsync(community, hubName, hubSlug, "", now);
+        await CreateSpaceAsync(hub, spaceName, spaceSlug, "");
+
+        Console.WriteLine($"✓ Created community '{communitySlug}' with hub '{hubSlug}' and space '{spaceSlug}'.");
+    }
+
     private async Task<List<UserDatabaseEntity>> SeedUsersAsync()
     {
         var users = new List<UserDatabaseEntity>();
@@ -451,6 +459,38 @@ public class DatabaseSeeder(
 
         Console.WriteLine("Created Snakk community with 4 hubs, 16 spaces.");
         return community;
+    }
+
+    private async Task CreateHubsAndSpacesForDefaultCommunity(
+        CommunityDatabaseEntity community, List<UserDatabaseEntity> users)
+    {
+        var createdAt = community.CreatedAt;
+
+        var techHub = await CreateHubAsync(community, "Technology", "technology", "All things tech", createdAt);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Web Development", "web-dev", "Frontend, backend, full-stack"), users, 220);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Mobile Apps", "mobile", "iOS, Android, cross-platform"), users, 85);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "AI & Machine Learning", "ai-ml", "Neural networks, LLMs, data science"), users, 310);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "DevOps & Cloud", "devops", "AWS, Azure, Kubernetes, CI/CD"), users, 55);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Programming Languages", "languages", "Rust, Go, Python, TypeScript and more"), users, 130);
+
+        var gamingHub = await CreateHubAsync(community, "Gaming", "gaming", "Video games and esports", createdAt);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "PC Gaming", "pc", "Steam, Epic, GOG discussions"), users, 150);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Console Gaming", "console", "PlayStation, Xbox, Nintendo"), users, 110);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Indie Games", "indie", "Hidden gems and indie devs"), users, 40);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Esports", "esports", "Competitive gaming and tournaments"), users, 65);
+
+        var scienceHub = await CreateHubAsync(community, "Science", "science", "Scientific discussions", createdAt);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Physics", "physics", "Quantum to cosmos"), users, 70);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Biology", "biology", "Life sciences"), users, 45);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Space & Astronomy", "space", "The universe and beyond"), users, 90);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Climate & Environment", "climate", "Environmental science and sustainability"), users, 35);
+
+        var entertainmentHub = await CreateHubAsync(community, "Entertainment", "entertainment", "Movies, TV, music, and more", createdAt);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Movies & TV", "movies-tv", "What are you watching?"), users, 95);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Music", "music", "Genres, artists, playlists"), users, 60);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Books & Literature", "books", "Reading recommendations"), users, 50);
+
+        Console.WriteLine($"Created 4 hubs and 16 spaces in community '{community.Slug}'.");
     }
 
     // ===== TEST1 COMMUNITY (Small) =====

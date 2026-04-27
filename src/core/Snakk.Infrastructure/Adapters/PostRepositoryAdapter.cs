@@ -506,11 +506,11 @@ public class PostRepositoryAdapter(
             .ToList();
     }
 
-    private static string StripMarkdown(string content)
+    private static string? StripMarkdown(string content)
     {
-        if (string.IsNullOrWhiteSpace(content)) return "";
+        if (string.IsNullOrWhiteSpace(content)) return null;
         var s = content;
-        s = Regex.Replace(s, @"!\[([^\]]*)\]\([^)]*\)", "$1");           // images
+        s = Regex.Replace(s, @"!\[([^\]]*)\]\([^)]*\)", "");             // images → removed
         s = Regex.Replace(s, @"\[([^\]]*)\]\([^)]*\)", "$1");            // links
         s = Regex.Replace(s, @"```[\s\S]*?```", "", RegexOptions.Singleline); // code blocks
         s = Regex.Replace(s, @"`([^`]+)`", "$1");                        // inline code
@@ -522,6 +522,7 @@ public class PostRepositoryAdapter(
         s = Regex.Replace(s, @"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", "", RegexOptions.Multiline); // table separator row
         s = Regex.Replace(s, @"\|", " ");                                    // pipe characters in tables
         s = Regex.Replace(s, @"\s+", " ").Trim();
+        if (s.Length == 0) return null;
         return s.Length > 200 ? s[..200] : s;
     }
 

@@ -30,6 +30,8 @@ public class CommunitySettingsDto
 
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
+    public bool HideAdultDiscussionsFromLists { get; set; }
+
     // Owner and team
     public string OwnerId { get; set; } = string.Empty;
     public List<string> AdminUserIds { get; set; } = new();
@@ -60,4 +62,6 @@ public class UpdateCommunitySettingsRequest
     public string? LanguageCode { get; init; }
 
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
+
+    public bool HideAdultDiscussionsFromLists { get; set; }
 }

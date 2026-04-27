@@ -191,7 +191,8 @@ public static class DiscussionEndpoints
         ClaimsPrincipal user,
         string? hubId = null,
         string? spaceId = null,
-        string? communityId = null)
+        string? communityId = null,
+        bool viewerAllowsAdult = false)
     {
         var since = DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
         var result = await useCase.GetTopActiveDiscussionsTodayAsync(
@@ -200,7 +201,8 @@ public static class DiscussionEndpoints
             spaceId,
             communityId,
             limit: 5,
-            user.GetUserIdString());
+            user.GetUserIdString(),
+            viewerAllowsAdult);
 
         if (!result.IsSuccess)
             return Results.Problem(result.Error);

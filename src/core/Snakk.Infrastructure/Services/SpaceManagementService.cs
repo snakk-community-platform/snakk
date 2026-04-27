@@ -148,6 +148,8 @@ public class SpaceManagementService(
             HubLanguageCode = space.HubLanguageCode,
             CommunityLanguageCode = space.CommunityLanguageCode,
             AutoParagraphEnabled = space.AutoParagraphEnabled,
+            IsAdultOnly = space.IsAdultOnly,
+            AllowsAdultContent = space.AllowsAdultContent,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -169,6 +171,9 @@ public class SpaceManagementService(
         space.Name = request.Name;
         space.Description = request.Description;
         space.AutoParagraphEnabled = request.AutoParagraphEnabled;
+        space.IsAdultOnly = request.IsAdultOnly;
+        // Adult-only implies allows-adult is irrelevant; force false for clarity.
+        space.AllowsAdultContent = !request.IsAdultOnly && request.AllowsAdultContent;
 
         if (request.LanguageCode is not null || space.LanguageCode is not null)
         {

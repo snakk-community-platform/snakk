@@ -71,7 +71,8 @@ public class TopModel(
         ResolveSidebarData(communityId);
         await EnsureSidebarDataAsync(communityId);
 
-        try { TopDiscussions = await _apiClient.GetTopDiscussionsAsync(offset, 20, communityId, Period); }
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+        try { TopDiscussions = await _apiClient.GetTopDiscussionsAsync(offset, 20, communityId, Period, viewerAllowsAdult: viewerAllowsAdult); }
         catch { }
     }
 

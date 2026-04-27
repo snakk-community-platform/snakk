@@ -44,8 +44,10 @@ public class ProfileModel(
 
         Profile = profileResult.Value;
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+
         // Fetch recent discussions and social links in parallel
-        var discussionsTask = FetchDiscussionsAsync(decodedPublicId);
+        var discussionsTask = FetchDiscussionsAsync(decodedPublicId, viewerAllowsAdult);
         var socialLinksTask = FetchSocialLinksAsync(decodedPublicId);
 
         await Task.WhenAll(discussionsTask, socialLinksTask);
@@ -56,12 +58,12 @@ public class ProfileModel(
         return Page();
     }
 
-    private async Task<PagedRecentDiscussionList?> FetchDiscussionsAsync(string decodedPublicId)
+    private async Task<PagedRecentDiscussionList?> FetchDiscussionsAsync(string decodedPublicId, bool viewerAllowsAdult)
     {
         try
         {
             return await _apiClient.GetRecentDiscussionsAsync(
-                offset: 0, pageSize: 5, authorId: decodedPublicId);
+                offset: 0, pageSize: 5, authorId: decodedPublicId, viewerAllowsAdult: viewerAllowsAdult);
         }
         catch { return null; }
     }

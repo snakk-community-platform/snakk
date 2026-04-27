@@ -294,7 +294,9 @@ public class SpaceGrpcService(
             HubId = s.HubId.Value,
             Name = s.Name,
             Slug = s.Slug,
-            CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc))
+            CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc)),
+            IsAdultOnly = s.IsAdultOnly,
+            AllowsAdultContent = s.AllowsAdultContent
         };
 
         if (s.Description is not null)

@@ -400,7 +400,16 @@
         preview.querySelectorAll<HTMLImageElement>('img[data-blur-up]').forEach(img => {
             const done = () => {
                 img.classList.add('images-loaded');
-                img.parentElement?.classList.add('images-item-loaded');
+                const parent = img.parentElement;
+                parent?.classList.add('images-item-loaded');
+                // Single-mode: size the inner item to the image's natural dims
+                // so the outer .images-display-framed shows blur bleed on the
+                // sides whenever the (max-height-capped) image can't fill the
+                // full column width.
+                if (currentMode === 'single' && parent && img.naturalWidth > 0) {
+                    parent.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                    parent.style.maxWidth = `${img.naturalWidth}px`;
+                }
             };
             if (img.complete) {
                 done();
@@ -504,7 +513,12 @@
 
         // Single image: large preview, no layout
         if (currentMode === 'single') {
-            html += '<div class="gup-single">';
+            // Match the canonical .images-display-framed pattern used by detail
+            // page / frontpage card: outer is full column width with --blur-bg
+            // painting a blurred bleed behind the contained image.
+            const blur0 = images[0]!.blurDataUri;
+            const singleStyle = blur0 ? ` style="--blur-bg:url(${blur0})"` : '';
+            html += `<div class="gup-single images-display-framed"${singleStyle}>`;
             html += renderItem(images[0]!, 0);
             html += '</div>';
             if (images.length < MAX_IMAGES)
@@ -628,6 +642,7 @@
                 });
 
                 el.addEventListener('dragover', (e) => {
+                    if (dragIdx === null || parseInt(el.dataset.index || '-1') === dragIdx) return;
                     e.preventDefault();
                     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
                     el.classList.add('images-drag-over');
@@ -642,37 +657,35 @@
                     el.classList.remove('images-drag-over');
                     const dropIdx = parseInt(el.dataset.index || '-1');
                     if (dragIdx !== null && dragIdx !== dropIdx && dragIdx >= 0 && dropIdx >= 0) {
-                        // Swap in data array
-                        const temp = images[dragIdx]!;
-                        images[dragIdx] = images[dropIdx]!;
-                        images[dropIdx] = temp;
+                        // Move in data array (remove from source, insert at destination)
+                        const [moved] = images.splice(dragIdx, 1);
+                        images.splice(dropIdx, 0, moved!);
 
-                        // Hero: re-render when index 0 changes, so the hero image gets full-res src
+                        // Hero: re-render when index 0 is involved
                         if (currentLayout === 'hero' && (dragIdx === 0 || dropIdx === 0)) {
                             renderPreview();
                             updateHiddenInputs();
                             return;
                         }
 
-                        // Swap DOM elements directly (no re-render)
+                        // Move DOM element (insert after drop target when moving forward,
+                        // before it when moving backward)
                         const dragEl = preview?.querySelector(`[data-index="${dragIdx}"]`) as HTMLElement | null;
                         const dropEl = el;
                         if (dragEl && dropEl && dragEl.parentNode) {
-                            const placeholder = document.createElement('div');
-                            dragEl.parentNode.insertBefore(placeholder, dragEl);
-                            dropEl.parentNode!.insertBefore(dragEl, dropEl);
-                            placeholder.parentNode!.insertBefore(dropEl, placeholder);
-                            placeholder.remove();
+                            if (dragIdx < dropIdx) {
+                                dropEl.parentNode!.insertBefore(dragEl, dropEl.nextSibling);
+                            } else {
+                                dropEl.parentNode!.insertBefore(dragEl, dropEl);
+                            }
 
-                            // Update data-index attributes
-                            dragEl.dataset.index = String(dropIdx);
-                            dropEl.dataset.index = String(dragIdx);
-
-                            // Update delete button indices
-                            const dragDel = dragEl.querySelector('.images-upload-item-delete') as HTMLElement | null;
-                            const dropDel = dropEl.querySelector('.images-upload-item-delete') as HTMLElement | null;
-                            if (dragDel) dragDel.dataset.index = String(dropIdx);
-                            if (dropDel) dropDel.dataset.index = String(dragIdx);
+                            // Re-index all items by their new DOM order
+                            preview?.querySelectorAll('.images-upload-item').forEach((item, i) => {
+                                const itemEl = item as HTMLElement;
+                                itemEl.dataset.index = String(i);
+                                const del = itemEl.querySelector('.images-upload-item-delete') as HTMLElement | null;
+                                if (del) del.dataset.index = String(i);
+                            });
                         }
 
                         updateHiddenInputs();

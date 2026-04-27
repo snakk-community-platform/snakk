@@ -46,9 +46,10 @@ import { replaceAll, getMarkdown, callCommand, $inputRule, $markAttr, $markSchem
 import { markRule } from '@milkdown/kit/prose';
 import { toggleMark } from '@milkdown/kit/prose/commands';
 import { Decoration } from '@milkdown/kit/prose/view';
-import { Plugin, PluginKey } from '@milkdown/kit/prose/state';
+import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import { Slice, Fragment } from '@milkdown/kit/prose/model';
 import type { Node } from '@milkdown/kit/prose/model';
+import { createImageGroupPlugin, removeImageFromEditor, replaceImageSrc, updateUploadProgress, validateImageFile, MAX_IMAGE_BYTES } from './image-group-node';
 
 // ============================================================================
 // Code Block Language Options (must match Prism grammars in prism-entry.mjs)
@@ -88,6 +89,7 @@ interface SnakkEditorOptions {
     initialValue?: string;
     height?: string;
     onChange?: (markdown: string) => void;
+    onUploadStateChange?: (uploading: boolean) => void;
     hideImageButton?: boolean;
 }
 
@@ -842,26 +844,44 @@ function insertImageFromFile(editor: Editor): void {
     input.addEventListener('change', () => {
         const file = input.files?.[0];
         if (!file || !file.type.startsWith('image/')) return;
+        const sizeErr = validateImageFile(file);
+        if (sizeErr) { input.remove(); alert(sizeErr); return; }
 
-        // Show loading overlay with progress bar while uploading
-        const editorWrapper = document.querySelector('.milkdown-editor') as HTMLElement;
-        let overlay: HTMLElement | null = null;
-        let progressBar: HTMLProgressElement | null = null;
-        let progressLabel: HTMLDivElement | null = null;
-        if (editorWrapper) {
-            overlay = document.createElement('div');
-            overlay.className = 'milkdown-loading-overlay';
-            progressBar = document.createElement('progress');
-            progressBar.className = 'progress progress-primary milkdown-upload-progress';
-            progressBar.max = 100;
-            progressBar.value = 0;
-            progressLabel = document.createElement('div');
-            progressLabel.className = 'milkdown-upload-progress-label';
-            progressLabel.textContent = '0%';
-            overlay.appendChild(progressBar);
-            overlay.appendChild(progressLabel);
-            editorWrapper.appendChild(overlay);
-        }
+        const blobUrl = URL.createObjectURL(file);
+
+        // Insert the image immediately using the blob URL so the preview appears at once
+        editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const state = view.state;
+            const schema = state.schema;
+
+            const imageNode = schema.nodes.image?.create({ src: blobUrl, alt: 'user uploaded image' });
+            if (!imageNode) return;
+
+            const { from } = state.selection;
+            const $from = state.doc.resolve(from);
+            const depth = $from.depth;
+
+            const emptyPara = schema.nodes.paragraph!.create();
+            const imagePara = schema.nodes.paragraph!.create({}, [imageNode]);
+            let tr = state.tr;
+
+            if (depth > 0 && $from.parent.content.size === 0) {
+                // Cursor in an empty paragraph — replace it with image para + empty para
+                const blockStart = $from.before(depth);
+                const blockEnd = $from.after(depth);
+                tr = tr.replaceWith(blockStart, blockEnd, Fragment.from([imagePara, emptyPara]));
+                tr = tr.setSelection(TextSelection.create(tr.doc, blockStart + imagePara.nodeSize + 1));
+            } else {
+                // Cursor in non-empty content — append image para + empty para after current block
+                const blockEnd = depth > 0 ? $from.after(depth) : from;
+                tr = tr.insert(blockEnd, Fragment.from([imagePara, emptyPara]));
+                tr = tr.setSelection(TextSelection.create(tr.doc, blockEnd + imagePara.nodeSize + 1));
+            }
+
+            view.dispatch(tr);
+            view.focus();
+        });
 
         const formData = new FormData();
         formData.append('file', file, file.name);
@@ -869,40 +889,23 @@ function insertImageFromFile(editor: Editor): void {
         window.SnakkUpload.uploadWithProgress<{ url: string }>({
             url: '/bff/media/upload',
             formData,
-            onProgress: (percent: number) => {
-                if (progressBar) progressBar.value = percent;
-                if (progressLabel) progressLabel.textContent = `${percent}%`;
-            },
-            onProcessing: () => {
-                if (progressLabel) progressLabel.textContent = 'Processing…';
-            },
+            onProgress: (pct: number) => updateUploadProgress(blobUrl, pct),
+            onProcessing: () => updateUploadProgress(blobUrl, 'processing'),
         })
             .then((result: { ok: boolean; status: number; data?: { url: string }; error?: string }) => {
                 if (!result.ok || !result.data) {
                     console.error('[Editor] Image upload failed:', result.status, result.error);
+                    editor.action((ctx) => removeImageFromEditor(ctx.get(editorViewCtx), blobUrl));
                     return;
                 }
-                const url = result.data.url;
-
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const { from } = view.state.selection;
-                    const imageNode = view.state.schema.nodes.image?.create({
-                        src: url,
-                        alt: 'user uploaded image',
-                    });
-                    if (imageNode) {
-                        const tr = view.state.tr.insert(from, imageNode);
-                        view.dispatch(tr);
-                    }
-                    view.focus();
-                });
+                editor.action((ctx) => replaceImageSrc(ctx.get(editorViewCtx), blobUrl, result.data!.url));
             })
             .catch((err: unknown) => {
                 console.error('[Editor] Image upload error:', err);
+                editor.action((ctx) => removeImageFromEditor(ctx.get(editorViewCtx), blobUrl));
             })
             .finally(() => {
-                overlay?.remove();
+                URL.revokeObjectURL(blobUrl);
                 input.remove();
             });
     });
@@ -1727,6 +1730,7 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
     const elements: { el: HTMLElement; type: string }[] = [];
 
     contentArea.querySelectorAll('.ProseMirror img').forEach((el) => {
+        if ((el as HTMLElement).closest('.sn-single-img-node, .sn-img-group-node')) return;
         const rect = (el as HTMLElement).getBoundingClientRect();
         if (rect.width >= 32 && rect.height >= 32) {
             elements.push({ el: el as HTMLElement, type: 'image' });
@@ -2147,7 +2151,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
     const instances = new Map<HTMLElement, { editor: Editor; wrapper: EditorInstance }>();
 
     async function init(options: SnakkEditorOptions): Promise<EditorInstance | null> {
-        const { container, textarea, placeholder, initialValue, height, onChange, hideImageButton } = options;
+        const { container, textarea, placeholder, initialValue, height, onChange, onUploadStateChange, hideImageButton } = options;
 
         // Already initialized for this container
         const existing = instances.get(container);
@@ -2212,6 +2216,10 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                             for (let i = 0; i < files.length; i++) {
                                 const file = files.item(i);
                                 if (!file || !file.type.startsWith('image/')) continue;
+                                if (file.size > MAX_IMAGE_BYTES) {
+                                    alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 10 MB.`);
+                                    continue;
+                                }
 
                                 try {
                                     const formData = new FormData();
@@ -2266,6 +2274,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 .use(history)
                 .use(listener)
                 .use(upload)
+                .use(createImageGroupPlugin())
                 .use(pasteSanitize)
                 .create();
 
@@ -2419,14 +2428,14 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             function applyMode(): void {
                 if (isSourceMode) {
                     sourceTextarea.value = textarea.value;
-                    editorRoot.style.display = 'none';
+                    editorBody.style.display = 'none';
                     sourceTextarea.style.display = '';
                     sourceBtn.classList.add('md-mode-active');
                     visualBtn.classList.remove('md-mode-active');
                     helpLink.style.display = '';
                     if (imageBtn) imageBtn.style.display = 'none';
                 } else {
-                    editorRoot.style.display = '';
+                    editorBody.style.display = '';
                     sourceTextarea.style.display = 'none';
                     visualBtn.classList.add('md-mode-active');
                     sourceBtn.classList.remove('md-mode-active');
@@ -2456,6 +2465,10 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             visualBtn.addEventListener('click', switchToVisual);
             sourceBtn.addEventListener('click', switchToSource);
 
+            // Create body wrapper before applyMode() so it can be shown/hidden
+            const editorBody = document.createElement('div');
+            editorBody.className = 'milkdown-editor-body';
+
             applyMode();
 
             // Sync source textarea changes to the hidden form textarea
@@ -2471,7 +2484,8 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             footer.appendChild(footerLeft);
 
             editorWrapper.appendChild(toolbar);
-            editorWrapper.appendChild(editorRoot);
+            editorBody.appendChild(editorRoot);
+            editorWrapper.appendChild(editorBody);
             editorWrapper.appendChild(sourceTextarea);
             editorWrapper.appendChild(footer);
 
@@ -2484,6 +2498,22 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             // Also update on click/keyup for cursor moves
             editorRoot.addEventListener('keyup', () => updateToolbarState(editor, toolbarButtons, editorRoot));
             editorRoot.addEventListener('mouseup', () => updateToolbarState(editor, toolbarButtons, editorRoot));
+
+            // Notify caller when image uploads start or finish. Blob-URL images
+            // (.sn-img-uploading) and paste/drop placeholders (.milkdown-upload-placeholder)
+            // are present in the DOM only while an upload is in flight.
+            if (onUploadStateChange) {
+                let wasUploading = false;
+                const uploadObserver = new MutationObserver(() => {
+                    const isUploading =
+                        container.querySelector('.sn-img-uploading, .milkdown-upload-placeholder') !== null;
+                    if (isUploading !== wasUploading) {
+                        wasUploading = isUploading;
+                        onUploadStateChange(isUploading);
+                    }
+                });
+                uploadObserver.observe(container, { childList: true, subtree: true });
+            }
 
             // Enable checkbox toggling for task lists
             setupTaskListClickHandler(editor, editorRoot);

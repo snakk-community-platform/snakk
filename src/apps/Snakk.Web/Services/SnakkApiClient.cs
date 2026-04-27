@@ -190,7 +190,8 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(
-        string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null)
+        string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null,
+        bool viewerAllowsAdult = false)
     {
         try
         {
@@ -198,7 +199,8 @@ public class SnakkApiClient(
             {
                 SpaceId = spaceId,
                 Offset = offset,
-                PageSize = pageSize
+                PageSize = pageSize,
+                ViewerAllowsAdult = viewerAllowsAdult
             };
 
             if (typeFilter.HasValue)
@@ -296,11 +298,12 @@ public class SnakkApiClient(
         bool pollIsSegmented = false,
         string? pollSegmentLabel = null,
         string? pollSegmentOptionA = null,
-        string? pollSegmentOptionB = null)
+        string? pollSegmentOptionB = null,
+        bool isAdult = false)
     {
         try
         {
-            var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content, Type = type };
+            var request = new CreateDiscussionRequest { SpaceId = spaceId, Title = title, Content = content, Type = type, IsAdult = isAdult };
             if (tags is not null) request.Tags.AddRange(tags);
             if (pollOptions is not null) request.PollOptions.AddRange(pollOptions);
             request.PollAllowMultiple = pollAllowMultiple;
@@ -327,11 +330,12 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null, IReadOnlyList<string>? spaceIds = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null, IReadOnlyList<string>? spaceIds = null,
+        bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
@@ -345,11 +349,11 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetTrendingDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new GetTrendingDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            var request = new GetTrendingDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
             if (communityId is not null) request.CommunityId = communityId;
 
             return await discussionClient.GetTrendingDiscussionsAsync(request);
@@ -358,11 +362,11 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetTopDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string timePeriod = "week")
+        int offset = 0, int pageSize = 20, string? communityId = null, string timePeriod = "week", bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new GetTopDiscussionsRequest { Offset = offset, PageSize = pageSize, TimePeriod = timePeriod };
+            var request = new GetTopDiscussionsRequest { Offset = offset, PageSize = pageSize, TimePeriod = timePeriod, ViewerAllowsAdult = viewerAllowsAdult };
             if (communityId is not null) request.CommunityId = communityId;
 
             return await discussionClient.GetTopDiscussionsAsync(request);
@@ -371,11 +375,11 @@ public class SnakkApiClient(
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetNewDiscussionsAsync(
-        int offset = 0, int pageSize = 20, string? communityId = null, string? cursor = null)
+        int offset = 0, int pageSize = 20, string? communityId = null, string? cursor = null, bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new GetNewDiscussionsRequest { Offset = offset, PageSize = pageSize };
+            var request = new GetNewDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
             if (communityId is not null) request.CommunityId = communityId;
             if (cursor is not null) request.Cursor = cursor;
 
@@ -387,11 +391,12 @@ public class SnakkApiClient(
     public virtual async Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsTodayAsync(
         string? hubId = null,
         string? spaceId = null,
-        string? communityId = null)
+        string? communityId = null,
+        bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new GetTopActiveDiscussionsTodayRequest { Limit = 5 };
+            var request = new GetTopActiveDiscussionsTodayRequest { Limit = 5, ViewerAllowsAdult = viewerAllowsAdult };
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
             if (communityId is not null) request.CommunityId = communityId;
@@ -590,8 +595,8 @@ public class SnakkApiClient(
     }
 
     // Backward compatibility aliases
-    public virtual Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsAsync(string? communityId = null)
-        => GetTopActiveDiscussionsTodayAsync(communityId: communityId);
+    public virtual Task<TopActiveDiscussionsList?> GetTopActiveDiscussionsAsync(string? communityId = null, bool viewerAllowsAdult = false)
+        => GetTopActiveDiscussionsTodayAsync(communityId: communityId, viewerAllowsAdult: viewerAllowsAdult);
 
     public virtual Task<TopActiveSpacesList?> GetTopActiveSpacesAsync(string? communityId = null)
         => GetTopActiveSpacesTodayAsync(communityId: communityId);
@@ -744,11 +749,11 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
         string? query = null, string? authorPublicId = null, string? spacePublicId = null,
-        string? hubPublicId = null, int offset = 0, int pageSize = 20)
+        string? hubPublicId = null, int offset = 0, int pageSize = 20, bool viewerAllowsAdult = false)
     {
         try
         {
-            var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
+            var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
             if (authorPublicId is not null) request.AuthorId = authorPublicId;
             if (spacePublicId is not null) request.SpaceId = spacePublicId;
             if (hubPublicId is not null) request.HubId = hubPublicId;
@@ -816,7 +821,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null, bool? allowAdultContent = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null, bool? allowAdultContent = null, bool clearAllowAdultContent = false, int? adultPreviewImageMode = null)
     {
         try
         {
@@ -825,6 +830,8 @@ public class SnakkApiClient(
             if (timezone is not null) request.Timezone = timezone;
             if (bio is not null) request.Bio = bio;
             if (allowAdultContent.HasValue) request.AllowAdultContent = allowAdultContent.Value;
+            request.ResetAdultContentToAsk = clearAllowAdultContent;
+            if (adultPreviewImageMode.HasValue) request.AdultPreviewImageMode = adultPreviewImageMode.Value;
             await authClient.UpdatePreferencesAsync(request);
 
             return true;
@@ -1069,8 +1076,8 @@ public class SnakkApiClient(
     }
 
     // Endless scroll (alias for GetDiscussionsBySpaceAsync)
-    public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize, string? cursor = null)
-        => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, cursor: cursor);
+    public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize, string? cursor = null, bool viewerAllowsAdult = false)
+        => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult);
 
     // ==================== Moderation ====================
 

@@ -34,10 +34,11 @@ public class MyDiscussionsModel(
             && string.IsNullOrEmpty(communityContext.CommunitySlug)
             && !communityContext.IsCustomDomain;
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
         try
         {
             var result = await apiClient.GetRecentDiscussionsAsync(
-                offset: offset, pageSize: pageSize, authorId: userId);
+                offset: offset, pageSize: pageSize, authorId: userId, viewerAllowsAdult: viewerAllowsAdult);
             if (result != null)
             {
                 Items = result.Items;

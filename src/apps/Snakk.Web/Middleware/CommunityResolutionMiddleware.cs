@@ -6,9 +6,11 @@ using Snakk.Web.Services;
 /// Resolves the current community from the request.
 ///
 /// Single-community mode (IsMultiCommunityEnabled = false):
-///   All URLs are flat (/h/..., /rules, etc.) — no /c/ prefix.
-///   For /h/... paths, the middleware prepends /c/{defaultSlug} so the
-///   Razor Pages routes (which all use /c/{slug}/h/...) match correctly.
+///   Canonical user-facing URLs are /c (community detail) and /h/... (hubs, spaces, discussions).
+///   /h/...             → internal rewrite to /c/{defaultSlug}/h/... (Razor Pages route)
+///   /c or /c/          → internal rewrite to /c/{defaultSlug}       (community detail route)
+///   /c/{defaultSlug}[/...] → 301 redirect to canonical form (/c or /{rest})
+///   /c/{anything-else} → 404
 ///
 /// Multi-community mode (IsMultiCommunityEnabled = true):
 ///   1. Custom domain → community resolved from Host header, no path changes.
@@ -37,14 +39,43 @@ public class CommunityResolutionMiddleware
         var path = context.Request.Path.Value ?? "";
         var host = context.Request.Host.Host;
 
-        // Single-community: flat URLs, no /c/ prefix in the browser.
-        // Prepend /c/{defaultSlug} for /h/... paths so they hit the
-        // /c/{communitySlug}/h/... Razor Pages routes.
         if (!_isMultiCommunity)
         {
             communityContext.SetCommunity(_singleCommunitySlug, isMultiCommunity: false);
+
             if (path.StartsWith("/h/", StringComparison.OrdinalIgnoreCase))
+            {
+                // /h/... → internal rewrite so the /c/{slug}/h/... Razor routes match
                 context.Request.Path = $"/c/{_singleCommunitySlug}{path}";
+            }
+            else if (path.Equals("/c", StringComparison.OrdinalIgnoreCase)
+                  || path.Equals("/c/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Bare /c → internal rewrite to community detail route
+                context.Request.Path = $"/c/{_singleCommunitySlug}";
+            }
+            else if (path.StartsWith("/c/", StringComparison.OrdinalIgnoreCase))
+            {
+                var afterPrefix = path[3..]; // skip "/c/"
+                var slashIndex = afterPrefix.IndexOf('/');
+                var firstSegment = slashIndex >= 0 ? afterPrefix[..slashIndex] : afterPrefix;
+
+                if (firstSegment.Equals(_singleCommunitySlug, StringComparison.OrdinalIgnoreCase))
+                {
+                    // /c/{defaultSlug}[/...] → 301 to canonical form
+                    var rest = path.Length > 3 + _singleCommunitySlug.Length
+                        ? path[(3 + _singleCommunitySlug.Length)..]
+                        : "";
+                    var canonical = rest.Length == 0 ? "/c" : rest;
+                    context.Response.Redirect(canonical + context.Request.QueryString.ToString(), permanent: true);
+                    return;
+                }
+
+                // /c/{other} → 404
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
             await _next(context);
             return;
         }

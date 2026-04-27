@@ -423,6 +423,68 @@ public class MediaService(
         return toDelete.Count;
     }
 
+    public async Task<IReadOnlyDictionary<string, ImageRenderData>> GetImageRenderDataFromContentAsync(
+        string content,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(content))
+            return new Dictionary<string, ImageRenderData>();
+
+        // Match any URL (absolute http://host/... or relative /...) containing a post image path.
+        // [^/._\s"'\)] excludes dots and underscores so only full-res IDs match (not _thumb/_med).
+        var urls = Regex.Matches(
+                content,
+                @"((?:https?://[^/\s""'\)]+)?/media/posts/\d{4}/\d{2}/\d{2}/[^/._\s""'\)]+\.webp)",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(250))
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToList();
+
+        if (urls.Count == 0)
+            return new Dictionary<string, ImageRenderData>();
+
+        // Extract storage path "media/posts/..." (no leading slash) from any URL form.
+        var storagePaths = urls.ToDictionary(
+            u => u,
+            u =>
+            {
+                var idx = u.IndexOf("/media/posts/", StringComparison.Ordinal);
+                return idx >= 0 ? u[(idx + 1)..] : u;
+            });
+
+        var images = await db.Images
+            .AsNoTracking()
+            .Where(i => storagePaths.Values.Contains(i.StoragePath))
+            .Select(i => new
+            {
+                i.StoragePath,
+                i.ThumbnailPath,
+                i.MediumThumbnailPath,
+                i.BlurDataUri,
+                i.Width,
+                i.Height,
+            })
+            .ToListAsync(cancellationToken);
+
+        var byPath = images.ToDictionary(i => i.StoragePath);
+
+        return urls.ToDictionary(
+            u => u,
+            u =>
+            {
+                if (!byPath.TryGetValue(storagePaths[u], out var img))
+                    return new ImageRenderData(null, null, null);
+
+                return new ImageRenderData(
+                    img.ThumbnailPath is not null ? GetMediaUrl(img.ThumbnailPath) : null,
+                    img.MediumThumbnailPath is not null ? GetMediaUrl(img.MediumThumbnailPath) : null,
+                    img.BlurDataUri,
+                    img.Width > 0 ? img.Width : null,
+                    img.Height > 0 ? img.Height : null);
+            });
+    }
+
     private string GetMediaUrl(string storagePath) =>
         fileStorage.GetPublicUrl(storagePath);
 

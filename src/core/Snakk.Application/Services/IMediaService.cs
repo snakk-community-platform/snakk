@@ -2,6 +2,12 @@ namespace Snakk.Application.Services;
 
 public record MediaUploadResult(string PublicId, string Url, string? ThumbnailUrl, string? MediumThumbnailUrl, string? BlurDataUri);
 
+/// <summary>
+/// Authoritative render data for a media image, fetched from the Image table.
+/// All URL fields are null when the variant was not generated (e.g. image too small).
+/// </summary>
+public record ImageRenderData(string? ThumbUrl, string? MedUrl, string? BlurDataUri, int? Width = null, int? Height = null);
+
 public interface IMediaService
 {
     /// <summary>
@@ -49,4 +55,13 @@ public interface IMediaService
     /// Returns the number of drafts cleaned up.
     /// </summary>
     Task<int> CleanupExpiredDraftsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Scans raw markdown content for Snakk media image URLs and returns authoritative
+    /// render data (thumbnail URLs, medium URL, blur data URI) for each from the Image table.
+    /// Used to enrich RenderedContent with accurate srcset and LQIP placeholders at write time.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, ImageRenderData>> GetImageRenderDataFromContentAsync(
+        string content,
+        CancellationToken cancellationToken = default);
 }

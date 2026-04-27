@@ -55,11 +55,12 @@ public class DetailModel(
         Hub = hubResult.Value!;
         SidebarScopeId = Hub.PublicId;
 
-        // Check cache for sidebar data — inline if warm, prefetch if cold
-        ResolveSidebarData();
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 
+        // Check cache for sidebar data — inline if warm, prefetch if cold
+        ResolveSidebarData(viewerAllowsAdult);
         var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, 0, 50);
-        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, hubId: Hub.PublicId);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, hubId: Hub.PublicId, viewerAllowsAdult: viewerAllowsAdult);
         var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);
@@ -102,12 +103,13 @@ public class DetailModel(
         return Page();
     }
 
-    private void ResolveSidebarData()
+    private void ResolveSidebarData(bool viewerAllowsAdult)
     {
+        var adultSuffix = viewerAllowsAdult ? "adult" : "safe";
         if (ShowTrendingDiscussions)
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
-                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId),
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}:{adultSuffix}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(Hub!.PublicId, viewerAllowsAdult: viewerAllowsAdult),
                 d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingContributors)

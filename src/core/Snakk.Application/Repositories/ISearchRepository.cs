@@ -11,7 +11,8 @@ public interface ISearchRepository
         string? hubPublicId = null,
         int offset = 0,
         int pageSize = 20,
-        string? userId = null);
+        string? userId = null,
+        bool viewerAllowsAdult = false);
 
     Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
         string query,
@@ -35,7 +36,8 @@ public interface ISearchRepository
         int pageSize = 20,
         int? typeFilter = null,
         string? userId = null,
-        string? cursor = null);
+        string? cursor = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Gets all hubs with their statistics
@@ -82,7 +84,8 @@ public interface ISearchRepository
         string? cursor = null,
         string? userId = null,
         string? authorId = null,
-        IReadOnlyList<string>? spaceIds = null);
+        IReadOnlyList<string>? spaceIds = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Gets trending discussions ordered by decay-weighted activity score (TrendScore DESC).
@@ -92,7 +95,8 @@ public interface ISearchRepository
         int pageSize,
         string? communityId = null,
         string? cursor = null,
-        string? userId = null);
+        string? userId = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Gets top discussions ordered by combined engagement (ReactionCount + PostCount DESC),
@@ -103,7 +107,8 @@ public interface ISearchRepository
         int pageSize,
         string? communityId = null,
         string? timePeriod = null,
-        string? userId = null);
+        string? userId = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Gets newest discussions ordered by CreatedAt DESC (ignores reply bumps).
@@ -113,7 +118,8 @@ public interface ISearchRepository
         int pageSize,
         string? communityId = null,
         string? cursor = null,
-        string? userId = null);
+        string? userId = null,
+        bool viewerAllowsAdult = false);
 
     /// <summary>
     /// Fetches preview data for a set of discussions by their public IDs.
@@ -255,6 +261,7 @@ public record RecentDiscussionDto(
     string? LastReplierAvatarFileName = null,
     string? LastReplierAvatarThumbnailFileName = null,
     string? LastPostExcerpt = null,
+    bool IsAdult = false,
     DiscussionPreviewDto? Preview = null);
 
 // ── Discussion preview sub-DTOs ──
@@ -273,7 +280,8 @@ public record DebatePositionPreviewDto(string Label, int Index, int PostCount);
 
 public record LinkPreviewDto(
     string Url, string? Title, string? Description, string? Domain,
-    string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal);
+    string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal,
+    string? BlurDataUri = null);
 
 public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items, bool IsSpoiler, string Layout);
 public record ImagePreviewItemDto(

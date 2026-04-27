@@ -159,6 +159,20 @@
                 </MudSelect>
             }
 
+            @if (Scope?.ScopeType == "Community")
+            {
+                <MudSwitch @bind-Value="_hideAdultDiscussionsFromLists"
+                           T="bool"
+                           Color="Color.Primary"
+                           Label="Hide adult discussions from lists"
+                           LabelPlacement="Placement.End" />
+                <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                    When enabled, discussions tagged 18+ are hidden from discussion lists in this
+                    community for anonymous viewers and users who haven't opted into adult content.
+                    The discussions remain accessible via direct link (the adult-content gate handles those).
+                </MudText>
+            }
+
             @if (Scope?.ScopeType == "Space")
             {
                 <MudSelect @bind-Value="_defaultSort" T="string" Label="Default Sort">
@@ -176,6 +190,27 @@
                     When enabled, very long single-paragraph posts (&gt;500 chars and &gt;5 sentences)
                     are automatically broken into paragraphs on save. Users can override by typing
                     their own blank lines — explicit paragraph breaks are always preserved.
+                </MudText>
+
+                <MudSwitch @bind-Value="_isAdultOnly"
+                           T="bool"
+                           Color="Color.Primary"
+                           Label="Adult-only space"
+                           LabelPlacement="Placement.End" />
+                <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                    When enabled, all discussions in this space are treated as adult content.
+                    Visitors must consent to view adult content before they can read posts here.
+                </MudText>
+
+                <MudSwitch @bind-Value="_allowsAdultContent"
+                           T="bool"
+                           Color="Color.Primary"
+                           Label="Allow adult discussions"
+                           LabelPlacement="Placement.End"
+                           Disabled="@_isAdultOnly" />
+                <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                    When enabled, individual discussions may be marked adult by their author.
+                    Ignored when the space is already adult-only.
                 </MudText>
             }
 
@@ -247,6 +282,9 @@
     private string _defaultSort = "latest";
     private string _timezone = "UTC";
     private bool _autoParagraphEnabled = true;
+    private bool _isAdultOnly;
+    private bool _allowsAdultContent;
+    private bool _hideAdultDiscussionsFromLists;
     private string? _languageCode;
     private string? _inheritedLanguageCode;
     private HashSet<DiscussionTypeEnum> _allowedTypes = [DiscussionTypeEnum.Standard];
@@ -285,6 +323,8 @@
                 _inheritedLanguageCode = response.HasHubLanguageCode ? response.HubLanguageCode
                     : response.HasCommunityLanguageCode ? response.CommunityLanguageCode : null;
                 _autoParagraphEnabled = response.AutoParagraphEnabled;
+                _isAdultOnly = response.IsAdultOnly;
+                _allowsAdultContent = response.AllowsAdultContent;
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
                     : new HashSet<DiscussionTypeEnum>(Enum.GetValues<DiscussionTypeEnum>());
@@ -333,6 +373,7 @@
                 _description = response.HasDescription ? response.Description : "";
                 _timezone = response.HasTimezone ? response.Timezone : "UTC";
                 _languageCode = response.HasLanguageCode ? response.LanguageCode : null;
+                _hideAdultDiscussionsFromLists = response.HideAdultDiscussionsFromLists;
                 _inheritedLanguageCode = null; // Community has no parent
                 _allowedTypes = response.AllowedDiscussionTypes.Count > 0
                     ? new HashSet<DiscussionTypeEnum>(response.AllowedDiscussionTypes.Select(t => (DiscussionTypeEnum)t))
@@ -571,7 +612,9 @@
                     Name = _name,
                     Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
                     LanguageCode = _languageCode ?? "",
-                    AutoParagraphEnabled = _autoParagraphEnabled
+                    AutoParagraphEnabled = _autoParagraphEnabled,
+                    IsAdultOnly = _isAdultOnly,
+                    AllowsAdultContent = _allowsAdultContent
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));
@@ -624,7 +667,8 @@
                     Name = _name,
                     Description = string.IsNullOrWhiteSpace(_description) ? null : _description,
                     Timezone = string.IsNullOrWhiteSpace(_timezone) ? null : _timezone,
-                    LanguageCode = _languageCode ?? ""
+                    LanguageCode = _languageCode ?? "",
+                    HideAdultDiscussionsFromLists = _hideAdultDiscussionsFromLists
                 };
 
                 request.AllowedDiscussionTypes.AddRange(_allowedTypes.Select(t => (int)t));

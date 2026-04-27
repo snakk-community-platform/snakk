@@ -36,6 +36,7 @@ internal static class PagedDiscussionListMapper
                 CreatedAt = ToTimestamp(d.CreatedAt),
                 IsPinned = d.IsPinned,
                 IsLocked = d.IsLocked,
+                IsAdult = d.IsAdult,
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
 
@@ -120,6 +121,7 @@ internal static class PagedDiscussionListMapper
                     if (lp.ImagePath is not null) preview.Link.ImagePathUrl = fileStorage.GetPublicUrl(lp.ImagePath);
                     if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
                     if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
+                    if (lp.BlurDataUri is not null) preview.Link.BlurDataUri = lp.BlurDataUri;
                 }
 
                 if (d.Preview.Images is not null)

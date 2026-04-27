@@ -36,7 +36,8 @@ public class IndexModel(
         if (!CommunityContext.IsMultiCommunityEnabled)
             return RedirectToPage("/Index");
 
-        ResolveSidebarData();
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+        ResolveSidebarData(viewerAllowsAdult);
 
         Communities = await _apiClient.GetCommunitiesAsync(offset, 20);
 
@@ -57,8 +58,9 @@ public class IndexModel(
         return Page();
     }
 
-    private void ResolveSidebarData()
+    private void ResolveSidebarData(bool viewerAllowsAdult)
     {
+        var adultSuffix = viewerAllowsAdult ? "adult" : "safe";
         var data = prefetchCache.ResolveOrPrefetch(
             "platform-stats:platform:global",
             () => _apiClient.GetPlatformStatsAsync());
@@ -73,8 +75,8 @@ public class IndexModel(
 
         if (ShowTrendingDiscussions)
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
-                "trending-discussions:platform:global",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(),
+                $"trending-discussions:platform:global:{adultSuffix}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(viewerAllowsAdult: viewerAllowsAdult),
                 d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingSpaces)

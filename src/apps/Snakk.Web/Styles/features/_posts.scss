@@ -373,6 +373,12 @@
         flex-direction: column;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 
+        .milkdown-editor-body {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
         .milkdown-editor-content,
         .milkdown-source {
             flex: 1;
@@ -380,6 +386,12 @@
             overflow-y: auto;
         }
     }
+}
+
+// Drop-target highlight applied to NodeViews during dragover
+.sn-drop-target {
+    outline: 2px dashed var(--link-primary) !important;
+    outline-offset: 2px;
 }
 
 // Backdrop for expanded editor

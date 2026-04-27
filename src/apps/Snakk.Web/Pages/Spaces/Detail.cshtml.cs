@@ -33,6 +33,10 @@ public class DetailModel(
     public string SidebarScopeType { get; set; } = "space";
     public string SidebarScopeId { get; set; } = string.Empty;
 
+    // Adult-content gating: when the space is adult-only and the visitor hasn't
+    // confirmed/declined, the page renders an interstitial instead of content.
+    public AdultContentState AdultGateState { get; set; } = AdultContentState.Allowed;
+
     // Trending settings
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:DiscussionList:ShowDiscussions", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:DiscussionList:ShowContributors", true);
@@ -71,6 +75,21 @@ public class DetailModel(
 
         Space = spaceTask.Result.Value!;
 
+        // Adult-content gating — short-circuit before loading anything else
+        if (Space.IsAdultOnly)
+        {
+            bool? userPref = null;
+            if (IsAuthenticated)
+            {
+                var user = await _apiClient.GetCurrentUserAsync();
+                userPref = user?.HasAllowAdultContent == true ? user.AllowAdultContent : null;
+            }
+
+            AdultGateState = AdultContentGate.GetState(HttpContext, userPref, contentIsAdult: true);
+            if (AdultGateState != AdultContentState.Allowed)
+                return Page();
+        }
+
         // Group access check — only call if any level in the hierarchy is restricted
         if (CommunityDetail is not null
             && (Space.IsRestricted || Hub?.IsRestricted == true || CommunityDetail.IsRestricted))
@@ -86,11 +105,13 @@ public class DetailModel(
 
         SidebarScopeId = Space.PublicId;
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+
         // Check cache for sidebar data — inline if warm, prefetch if cold
-        ResolveSidebarData();
+        ResolveSidebarData(viewerAllowsAdult);
 
         // Fetch discussions, stats, and announcements in parallel
-        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(spaceId: Space.PublicId, pageSize: 20);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(spaceId: Space.PublicId, pageSize: 20, viewerAllowsAdult: viewerAllowsAdult);
         var statsTask = _apiClient.GetSpaceStatsAsync(Space.PublicId);
         var announcementsTask = _apiClient.GetActiveBannersForSpaceAsync(Space.PublicId);
 
@@ -103,12 +124,13 @@ public class DetailModel(
         return Page();
     }
 
-    private void ResolveSidebarData()
+    private void ResolveSidebarData(bool viewerAllowsAdult)
     {
+        var adultSuffix = viewerAllowsAdult ? "adult" : "safe";
         if (ShowTrendingDiscussions)
             InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
-                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: SidebarScopeId),
+                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}:{adultSuffix}",
+                () => _apiClient.GetTopActiveDiscussionsTodayAsync(spaceId: SidebarScopeId, viewerAllowsAdult: viewerAllowsAdult),
                 d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingContributors)

@@ -148,7 +148,9 @@ public class ManageGrpcService(
             Description = settings.Description ?? "",
             RequireApproval = settings.RequireApproval,
             AllowAnonymous = settings.AllowAnonymous,
-            AutoParagraphEnabled = settings.AutoParagraphEnabled
+            AutoParagraphEnabled = settings.AutoParagraphEnabled,
+            IsAdultOnly = settings.IsAdultOnly,
+            AllowsAdultContent = settings.AllowsAdultContent
         };
 
         if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
@@ -189,7 +191,9 @@ public class ManageGrpcService(
                 .ToList(),
             RequireApproval = request.RequireApproval,
             AllowAnonymous = request.AllowAnonymous,
-            AutoParagraphEnabled = request.AutoParagraphEnabled
+            AutoParagraphEnabled = request.AutoParagraphEnabled,
+            IsAdultOnly = request.IsAdultOnly,
+            AllowsAdultContent = request.AllowsAdultContent
         };
 
         var result = await spaceManagementService.UpdateSettingsAsync(
@@ -777,7 +781,8 @@ public class ManageGrpcService(
         var response = new CommunitySettingsResponse
         {
             Name = settings.Name,
-            Slug = settings.Slug
+            Slug = settings.Slug,
+            HideAdultDiscussionsFromLists = settings.HideAdultDiscussionsFromLists
         };
         if (settings.Description is not null) response.Description = settings.Description;
         if (settings.Timezone is not null) response.Timezone = settings.Timezone;
@@ -805,7 +810,8 @@ public class ManageGrpcService(
             Timezone = request.HasTimezone ? request.Timezone : null,
             LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
-                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
+                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList(),
+            HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists
         };
 
         var result = await communityManagementService.UpdateSettingsAsync(

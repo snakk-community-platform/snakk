@@ -40,7 +40,8 @@ public class StatisticsGrpcService(
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit,
-            currentUser.GetCurrentUserId());
+            currentUser.GetCurrentUserId(),
+            request.ViewerAllowsAdult);
 
         if (!result.IsSuccess || result.Value is null)
             return new TopActiveDiscussionsList();

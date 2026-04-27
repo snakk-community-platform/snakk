@@ -50,7 +50,8 @@ public class DiscussionGrpcService(
             IsPinned = d.IsPinned,
             IsLocked = d.IsLocked,
             Type = d.Type.ToString(),
-            PostCount = postCount
+            PostCount = postCount,
+            IsAdult = d.IsAdult
         };
 
         if (d.LastActivityAt.HasValue)
@@ -134,7 +135,8 @@ public class DiscussionGrpcService(
             request.Title!,
             slug,
             request.Content!,
-            type);
+            type,
+            request.IsAdult);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(
@@ -275,7 +277,8 @@ public class DiscussionGrpcService(
             request.HasCursor ? request.Cursor : null,
             currentUser.GetCurrentUserId(),
             request.HasAuthorId ? request.AuthorId : null,
-            request.SpaceIds.Count > 0 ? [.. request.SpaceIds] : null);
+            request.SpaceIds.Count > 0 ? [.. request.SpaceIds] : null,
+            request.ViewerAllowsAdult);
 
         var response = new PagedRecentDiscussionList
         {
@@ -383,6 +386,7 @@ public class DiscussionGrpcService(
                     if (lp.ImagePath is not null) preview.Link.ImagePathUrl = fileStorage.GetPublicUrl(lp.ImagePath);
                     if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
                     if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
+                    if (lp.BlurDataUri is not null) preview.Link.BlurDataUri = lp.BlurDataUri;
                 }
 
                 if (d.Preview.Images is not null)
@@ -436,7 +440,8 @@ public class DiscussionGrpcService(
             request.Offset,
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
-            userId: currentUser.GetCurrentUserId());
+            userId: currentUser.GetCurrentUserId(),
+            viewerAllowsAdult: request.ViewerAllowsAdult);
 
         return BuildPagedRecentDiscussionList(result);
     }
@@ -448,7 +453,8 @@ public class DiscussionGrpcService(
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             string.IsNullOrEmpty(request.TimePeriod) ? null : request.TimePeriod,
-            userId: currentUser.GetCurrentUserId());
+            userId: currentUser.GetCurrentUserId(),
+            viewerAllowsAdult: request.ViewerAllowsAdult);
 
         return BuildPagedRecentDiscussionList(result);
     }
@@ -460,7 +466,8 @@ public class DiscussionGrpcService(
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             request.HasCursor ? request.Cursor : null,
-            userId: currentUser.GetCurrentUserId());
+            userId: currentUser.GetCurrentUserId(),
+            viewerAllowsAdult: request.ViewerAllowsAdult);
 
         return BuildPagedRecentDiscussionList(result);
     }
@@ -573,6 +580,7 @@ public class DiscussionGrpcService(
                     if (lp.ImagePath is not null) preview.Link.ImagePathUrl = fileStorage.GetPublicUrl(lp.ImagePath);
                     if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
                     if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
+                    if (lp.BlurDataUri is not null) preview.Link.BlurDataUri = lp.BlurDataUri;
                 }
 
                 if (d.Preview.Images is not null)
@@ -630,7 +638,8 @@ public class DiscussionGrpcService(
             request.PageSize,
             typeFilter,
             currentUser.GetCurrentUserId(),
-            request.HasCursor ? request.Cursor : null);
+            request.HasCursor ? request.Cursor : null,
+            request.ViewerAllowsAdult);
 
         var response = new PagedDiscussionBySpaceList
         {

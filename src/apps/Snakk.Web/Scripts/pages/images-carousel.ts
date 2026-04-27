@@ -300,10 +300,47 @@
         });
     }
 
+    const initializedLinkAdult = new WeakSet<Element>();
+
+    // ── Adult-content blur reveal for link-card thumbnails ────────────
+    function initLinkCardAdultReveal(root?: Element): void {
+        const thumbs = (root || document).querySelectorAll('.sn-link-card-thumb-adult-blur');
+        thumbs.forEach(function(container) {
+            const el = container as HTMLElement;
+            if (initializedLinkAdult.has(el)) return;
+            initializedLinkAdult.add(el);
+
+            const overlay = el.querySelector('.sn-link-card-adult-overlay') as HTMLElement | null;
+            const img = el.querySelector('.sn-link-card-img-adult-blur') as HTMLImageElement | null;
+            if (!overlay || !img) return;
+
+            const discussionId = el.dataset.discussionId || '';
+            const storageKey = discussionId ? `snakk:adult-revealed:${discussionId}` : '';
+
+            function reveal(): void {
+                el.classList.add('revealed');
+                img!.classList.add('revealed');
+                if (storageKey) sessionStorage.setItem(storageKey, '1');
+            }
+
+            if (storageKey && sessionStorage.getItem(storageKey) === '1') {
+                reveal();
+                return;
+            }
+
+            overlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                reveal();
+            });
+        });
+    }
+
     function initAll(root?: Element): void {
         initImagesCarousels(root);
         initComparePreview(root);
         initSpoilerReveal(root);
+        initLinkCardAdultReveal(root);
         initPreviewNavigation(root);
     }
 

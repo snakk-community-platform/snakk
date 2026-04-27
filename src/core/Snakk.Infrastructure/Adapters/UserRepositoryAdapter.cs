@@ -163,7 +163,7 @@ public class UserRepositoryAdapter(
         public string? AvatarMicroFileName { get; init; }
         public int AvatarRevision { get; init; }
         public bool AutoFollowOnReply { get; init; }
-        public bool AllowAdultContent { get; init; }
+        public bool? AllowAdultContent { get; init; }
         public string? Timezone { get; init; }
         public string? Bio { get; init; }
         public string? FeedToken { get; init; }

@@ -77,6 +77,8 @@ public class SearchModel(
         // Normalize search type
         SearchType = SearchType?.ToLowerInvariant() ?? "post";
 
+        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+
         // If filtering by author, get their profile
         Task<UserProfileInfo?>? filteredUserTask = null;
         if (!string.IsNullOrEmpty(AuthorPublicId))
@@ -104,7 +106,8 @@ public class SearchModel(
                     SpacePublicId,
                     HubPublicId,
                     offset: offset,
-                    pageSize: 20);
+                    pageSize: 20,
+                    viewerAllowsAdult: viewerAllowsAdult);
                 break;
 
             case "space":
@@ -133,7 +136,8 @@ public class SearchModel(
                     SpacePublicId,
                     HubPublicId,
                     offset: offset,
-                    pageSize: 20);
+                    pageSize: 20,
+                    viewerAllowsAdult: viewerAllowsAdult);
                 break;
         }
 

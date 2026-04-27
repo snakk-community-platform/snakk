@@ -12,6 +12,69 @@
     const LINE_NUMBERS_CSS_ID = 'prism-line-numbers-css';
     let loadPromise: Promise<any> | null = null;
 
+    const EXPAND_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
+    const COLLAPSE_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1v3H1M11 4H8V1M8 11V8h3M1 8h3v3"/></svg>';
+
+    let expandedWrapper: HTMLElement | null = null;
+    let expandedBtn: HTMLElement | null = null;
+    let expandedBackdrop: HTMLElement | null = null;
+    let expandedPlaceholder: HTMLElement | null = null;
+    let expandedEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
+
+    function collapseExpanded(): void {
+        if (!expandedWrapper || !expandedBtn) return;
+        expandedWrapper.classList.remove('code-block-expanded');
+        document.documentElement.style.overflowY = '';
+        expandedBtn.innerHTML = EXPAND_SVG;
+        expandedBtn.title = 'Expand code';
+        expandedBackdrop?.remove();
+        expandedPlaceholder?.remove();
+        if (expandedEscapeHandler) {
+            document.removeEventListener('keydown', expandedEscapeHandler);
+        }
+        expandedWrapper = null;
+        expandedBtn = null;
+        expandedBackdrop = null;
+        expandedPlaceholder = null;
+        expandedEscapeHandler = null;
+    }
+
+    function toggleCodeBlockExpand(wrapper: HTMLElement, btn: HTMLElement): void {
+        // If this wrapper is already expanded, collapse it.
+        if (wrapper.classList.contains('code-block-expanded')) {
+            collapseExpanded();
+            return;
+        }
+        // If a different wrapper is expanded, collapse it first (single-overlay invariant).
+        if (expandedWrapper) collapseExpanded();
+
+        const rect = wrapper.getBoundingClientRect();
+        const placeholder = document.createElement('div');
+        placeholder.style.height = `${rect.height}px`;
+        wrapper.parentElement?.insertBefore(placeholder, wrapper);
+
+        wrapper.classList.add('code-block-expanded');
+        document.documentElement.style.overflowY = 'hidden';
+        btn.innerHTML = COLLAPSE_SVG;
+        btn.title = 'Collapse code';
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'code-block-backdrop';
+        backdrop.addEventListener('click', () => collapseExpanded());
+        document.body.appendChild(backdrop);
+
+        const escHandler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') collapseExpanded();
+        };
+        document.addEventListener('keydown', escHandler);
+
+        expandedWrapper = wrapper;
+        expandedBtn = btn;
+        expandedBackdrop = backdrop;
+        expandedPlaceholder = placeholder;
+        expandedEscapeHandler = escHandler;
+    }
+
     function loadCSS(id: string, href: string): void {
         if (document.getElementById(id)) return;
         const link = document.createElement('link');
@@ -120,6 +183,16 @@
                     } catch { /* ignore */ }
                 });
                 wrapper.appendChild(copyBtn);
+
+                // Expand button
+                const expandBtn = document.createElement('button');
+                expandBtn.type = 'button';
+                expandBtn.className = 'code-expand-btn';
+                expandBtn.title = 'Expand code';
+                expandBtn.setAttribute('aria-label', 'Expand code');
+                expandBtn.innerHTML = EXPAND_SVG;
+                expandBtn.addEventListener('click', () => toggleCodeBlockExpand(wrapper, expandBtn));
+                wrapper.appendChild(expandBtn);
             }
         });
     }
@@ -133,6 +206,6 @@
     } else {
         highlightAll();
     }
-    document.body.addEventListener('htmx:afterSwap', () => highlightAll());
-    document.body.addEventListener('htmx:afterSettle', () => highlightAll());
+    document.body.addEventListener('htmx:load', () => highlightAll());
+    document.body.addEventListener('htmx:historyRestore', () => highlightAll());
 })();

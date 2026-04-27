@@ -58,9 +58,19 @@ interface SettingsPageConfig {
             autoFollowCheckbox.checked = data.autoFollowOnReply !== false;
         }
 
-        const adultContentCheckbox = document.querySelector('input[name="allowAdultContent"]') as HTMLInputElement | null;
-        if (adultContentCheckbox) {
-            adultContentCheckbox.checked = data.allowAdultContent === true;
+        const adultRadios = document.querySelectorAll<HTMLInputElement>('input[name="allowAdultContent"][type="radio"]');
+        if (adultRadios.length > 0) {
+            const value = data.allowAdultContent === true ? 'allow'
+                : data.allowAdultContent === false ? 'hide'
+                : 'ask';
+            adultRadios.forEach(r => { r.checked = r.value === value; });
+        }
+
+        const adultPreviewRadios = document.querySelectorAll<HTMLInputElement>('input[name="adultPreviewImageMode"][type="radio"]');
+        if (adultPreviewRadios.length > 0) {
+            const mode = typeof data.adultPreviewImageMode === 'number' ? data.adultPreviewImageMode : 0;
+            const value = mode === 1 ? 'blur' : mode === 2 ? 'hide' : 'show';
+            adultPreviewRadios.forEach(r => { r.checked = r.value === value; });
         }
 
         // Update timezone select
@@ -541,24 +551,43 @@ interface SettingsPageConfig {
         }
     }
 
-    async function handleAdultContentPreferenceChange(checkbox: HTMLInputElement): Promise<void> {
-        const allowAdultContent = checkbox.checked;
+    async function handleAdultContentPreferenceChange(radio: HTMLInputElement): Promise<void> {
+        const value = radio.value;
+        const allowAdultContent: boolean | null = value === 'allow' ? true : value === 'hide' ? false : null;
 
         try {
             const response = await fetch('/bff/me/preferences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ allowAdultContent })
+                body: JSON.stringify({ allowAdultContent, clearAllowAdultContent: allowAdultContent === null })
             });
 
             if (!response.ok) {
                 showMessage('Failed to update preference', true);
-                checkbox.checked = !allowAdultContent;
             }
         } catch (error) {
             showMessage('Network error. Please try again.', true);
-            checkbox.checked = !allowAdultContent;
+        }
+    }
+
+    async function handleAdultPreviewImageModeChange(radio: HTMLInputElement): Promise<void> {
+        const value = radio.value;
+        const adultPreviewImageMode = value === 'blur' ? 1 : value === 'hide' ? 2 : 0;
+
+        try {
+            const response = await fetch('/bff/me/preferences', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ adultPreviewImageMode })
+            });
+
+            if (!response.ok) {
+                showMessage('Failed to update preference', true);
+            }
+        } catch (error) {
+            showMessage('Network error. Please try again.', true);
         }
     }
 
@@ -783,11 +812,17 @@ interface SettingsPageConfig {
             autoFollowCheckbox.addEventListener('change', (e) => handleAutoFollowPreferenceChange(e.target as HTMLInputElement));
         }
 
-        const adultContentCheckbox = document.querySelector('input[name="allowAdultContent"][type="checkbox"]') as HTMLInputElement | null;
-        if (adultContentCheckbox && !adultContentCheckbox.dataset.initialized) {
-            adultContentCheckbox.dataset.initialized = 'true';
-            adultContentCheckbox.addEventListener('change', (e) => handleAdultContentPreferenceChange(e.target as HTMLInputElement));
-        }
+        document.querySelectorAll<HTMLInputElement>('input[name="allowAdultContent"][type="radio"]').forEach(radio => {
+            if (radio.dataset.initialized) return;
+            radio.dataset.initialized = 'true';
+            radio.addEventListener('change', (e) => handleAdultContentPreferenceChange(e.target as HTMLInputElement));
+        });
+
+        document.querySelectorAll<HTMLInputElement>('input[name="adultPreviewImageMode"][type="radio"]').forEach(radio => {
+            if (radio.dataset.initialized) return;
+            radio.dataset.initialized = 'true';
+            radio.addEventListener('change', (e) => handleAdultPreviewImageModeChange(e.target as HTMLInputElement));
+        });
 
         const timezoneSelect = document.getElementById('timezone-select') as HTMLSelectElement | null;
         if (timezoneSelect && !timezoneSelect.dataset.initialized) {

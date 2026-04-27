@@ -18,6 +18,7 @@ public class ReactionsModel(
 
     public bool IsAuthenticated { get; set; }
     public List<ReactedPostVM> Items { get; set; } = [];
+    public List<ReactedDiscussionVM> Discussions { get; set; } = [];
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
 
@@ -40,16 +41,24 @@ public class ReactionsModel(
                     p.DiscussionTitle,
                     p.DiscussionSlug,
                     p.SpaceSlug,
+                    p.SpaceName,
                     p.HubSlug,
+                    p.HubName,
                     p.CommunitySlug,
                     p.AuthorPublicId,
                     p.AuthorDisplayName,
                     p.HasAuthorAvatarFileName ? p.AuthorAvatarFileName : null,
                     p.ContentExcerpt,
+                    p.PostCreatedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactedAt?.ToDateTime() ?? DateTime.UtcNow,
                     p.ReactionType)).ToList();
                 HasMoreItems = result.HasMoreItems;
                 NextOffset = Items.Count;
+
+                if (Tab != "posts")
+                {
+                    Discussions = await ReactedDiscussionLoader.LoadAsync(_apiClient, Items);
+                }
             }
         }
         catch { }

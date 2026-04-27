@@ -62,7 +62,8 @@ public class PostUseCase(
         // Create post with pre-rendered HTML. Auto-paragraph is per-space.
         var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
         var autoParagraph = space?.AutoParagraphEnabled ?? true;
-        var renderedContent = markupParser.ToHtml(content, autoParagraph);
+        var imageData = await mediaService.GetImageRenderDataFromContentAsync(content);
+        var renderedContent = markupParser.ToHtml(content, autoParagraph, imageData);
         var post = Post.Create(discussionId, userId, content, renderedContent, replyToPostId: replyToPostId);
 
         // Auto-follow discussion if user has the preference enabled
@@ -129,7 +130,8 @@ public class PostUseCase(
         {
             var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
             var autoParagraph = space?.AutoParagraphEnabled ?? true;
-            var renderedContent = markupParser.ToHtml(newContent, autoParagraph);
+            var imageData = await mediaService.GetImageRenderDataFromContentAsync(newContent);
+            var renderedContent = markupParser.ToHtml(newContent, autoParagraph, imageData);
             post.UpdateContent(newContent, renderedContent, userId);
             await postRepository.UpdateAsync(post);
 

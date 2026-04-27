@@ -38,7 +38,7 @@
 <div class="sn-center">
     @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
-    @if (Model.CommunityDetail != null)
+    @if (Model.CommunityDetail != null && Model.Community.IsMultiCommunityEnabled)
     {
         <div class="sn-community-card">
             <div class="sn-community-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{Model.CommunityDetail.PublicId}")">
@@ -50,6 +50,13 @@
         </div>
     }
     <div class="sn-center-inner">
+        @if (!Model.Community.IsMultiCommunityEnabled)
+        {
+            <h2 class="sn-section-title">
+                <span class="icon icon-users-group" aria-hidden="true"></span>
+                @T.Pages.CommDetailOverviewHeading
+            </h2>
+        }
         <partial name="_Banners" model="Model.Banners?.Banners" />
 
         <!-- Hub/Space Listing -->
@@ -216,8 +223,27 @@
         }
     </div>
 
-    <!-- Community Rules -->
-    @if (Model.CommunityDetail?.HasRules == true)
+    <!-- Rules -->
+    @if (!Model.Community.IsMultiCommunityEnabled)
+    {
+        <div class="sn-right-section">
+            <div class="sn-right-title">
+                <span class="icon icon-document-text" aria-hidden="true"></span>
+                @T.Sidebar.SiteRulesLink
+            </div>
+            <div hx-get="/partials/site-rules"
+                 hx-trigger="load"
+                 hx-target="this"
+                 hx-swap="innerHTML">
+                <div class="flex flex-col gap-2">
+                    <div class="skeleton h-3 w-3/4"></div>
+                    <div class="skeleton h-3 w-2/3"></div>
+                    <div class="skeleton h-3 w-1/2"></div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (Model.CommunityDetail?.HasRules == true)
     {
         <div class="sn-right-section">
             <div class="sn-right-title">

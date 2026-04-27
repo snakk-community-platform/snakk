@@ -40,6 +40,9 @@ public class DetailModel(
     // Whether any post in the initial batch contains code blocks (for Prism.js loading)
     public bool HasCodeBlocks { get; set; }
 
+    // Adult-content gating: discussion or its space is adult; visitor undecided.
+    public AdultContentState AdultGateState { get; set; } = AdultContentState.Allowed;
+
     // Absolute canonical URL for this discussion (used for share/oEmbed)
     public string CanonicalUrl { get; private set; } = string.Empty;
 
@@ -187,6 +190,19 @@ public class DetailModel(
 
             Discussion = discussionResult.Value!;
             CanonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+
+            // Adult-content gating — short-circuit before loading posts/type-specific data
+            var contentIsAdult = Discussion.IsAdult || Space?.IsAdultOnly == true;
+            if (contentIsAdult)
+            {
+                bool? userPref = user?.HasAllowAdultContent == true ? user.AllowAdultContent : null;
+                AdultGateState = AdultContentGate.GetState(HttpContext, userPref, contentIsAdult: true);
+                if (AdultGateState != AdultContentState.Allowed)
+                {
+                    SpaceStats = await spaceStatsTask;
+                    return Page();
+                }
+            }
 
             // Await space stats (started earlier in parallel)
             SpaceStats = await spaceStatsTask;

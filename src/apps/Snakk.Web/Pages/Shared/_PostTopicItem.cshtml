@@ -27,7 +27,7 @@
             </div>
             @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
             {
-                <p class="mt-1 text-sm line-clamp-3 sn-post-preview" style="color: var(--text-secondary)">@Model.ContentExcerpt</p>
+                <div class="mt-1 text-sm line-clamp-3 sn-post-preview prose prose-sm" style="color: var(--text-secondary)">@Html.Raw(Model.ContentExcerpt)</div>
             }
         </div>
         <a href="@postUrl" class="topic-latest-link" title="View post">

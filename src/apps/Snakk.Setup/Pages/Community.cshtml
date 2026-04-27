@@ -7,16 +7,6 @@
 </p>
 
 <form method="post" class="space-y-4">
-    <div class="form-control">
-        <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" asp-for="CreateFirstCommunity" class="toggle toggle-primary" checked />
-            <div>
-                <span class="label-text font-semibold">Create a starter community</span>
-                <p class="text-sm text-base-content/50 mt-1">Recommended — creates a community, hub, and space so the platform is ready to use</p>
-            </div>
-        </label>
-    </div>
-
     <div id="community-fields" class="space-y-4">
         <div class="alert">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -25,9 +15,16 @@
             </div>
         </div>
 
-        <div class="form-control">
-            <label class="label"><span class="label-text">Community Name</span></label>
-            <input type="text" asp-for="CommunityName" class="input w-full" placeholder="My Community" />
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Community Name</span></label>
+                <input type="text" asp-for="CommunityName" class="input w-full" placeholder="My Community" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Community Slug</span></label>
+                <input type="text" asp-for="CommunitySlug" class="input w-full" placeholder="main" />
+                <label class="label"><span class="label-text-alt text-base-content/50">URL identifier, e.g. "main"</span></label>
+            </div>
         </div>
 
         <div class="form-control">
