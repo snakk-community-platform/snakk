@@ -75,7 +75,7 @@ interface SnakkTheme {
             if (stored === 'light' || stored === 'dark' || stored === 'auto') {
                 return stored;
             }
-            return PREF_AUTO;
+            return PREF_LIGHT;
         },
 
         // Set user preference
