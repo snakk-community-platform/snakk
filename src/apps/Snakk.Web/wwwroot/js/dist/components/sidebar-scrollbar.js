@@ -1,1 +1,0 @@
-"use strict";(function(){"use strict";function t(){const e=document.getElementById("sticky-sidebar");e&&(e.scrollHeight>e.clientHeight?e.classList.add("has-scrollbar"):e.classList.remove("has-scrollbar"))}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",t):t(),window.addEventListener("resize",t),document.addEventListener("htmx:afterSwap",t)})();

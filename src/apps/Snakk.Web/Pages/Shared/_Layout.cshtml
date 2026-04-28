@@ -8,7 +8,7 @@
 @inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersionProvider
 @{
     var isAuth = User.Identity?.IsAuthenticated == true;
-    var themeCookie = isAuth ? Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
+    var themeCookie = isAuth ? Context.Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
     var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
 }
 <!DOCTYPE html>
