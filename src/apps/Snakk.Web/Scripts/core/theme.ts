@@ -42,7 +42,28 @@ interface SnakkTheme {
     const PREF_DARK: ThemePreference = 'dark';
     const PREF_AUTO: ThemePreference = 'auto';
 
+    const THEME_COOKIE = '.Snakk.Pref.Theme';
+
     let systemThemeListener: ((e: MediaQueryListEvent) => void) | null = null;
+
+    function isLoggedIn(): boolean {
+        return document.body.dataset.auth === '1';
+    }
+
+    function readThemeCookie(): ThemePreference | null {
+        const entry = document.cookie.split('; ').find(r => r.startsWith(THEME_COOKIE + '='));
+        if (!entry) return null;
+        const val = entry.split('=')[1];
+        return (val === 'light' || val === 'dark' || val === 'auto') ? val : null;
+    }
+
+    function persistTheme(pref: ThemePreference): void {
+        localStorage.setItem(THEME_KEY, pref);
+        if (isLoggedIn()) {
+            const maxAge = 365 * 24 * 60 * 60;
+            document.cookie = `${THEME_COOKIE}=${pref}; path=/; max-age=${maxAge}; samesite=lax; secure`;
+        }
+    }
 
     // Get dark theme CSS URL from meta tag (set by _Layout.cshtml with version hash)
     function getDarkThemeCssUrl(): string {
@@ -71,6 +92,10 @@ interface SnakkTheme {
     const snakkTheme: SnakkTheme = {
         // Get user preference (light/dark/auto)
         getPreference(): ThemePreference {
+            if (isLoggedIn()) {
+                const cookie = readThemeCookie();
+                if (cookie) return cookie;
+            }
             const stored = localStorage.getItem(THEME_KEY);
             if (stored === 'light' || stored === 'dark' || stored === 'auto') {
                 return stored;
@@ -80,7 +105,7 @@ interface SnakkTheme {
 
         // Set user preference
         setPreference(preference: ThemePreference): void {
-            localStorage.setItem(THEME_KEY, preference);
+            persistTheme(preference);
             this.applyTheme();
         },
 

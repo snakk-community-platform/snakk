@@ -1,12 +1,18 @@
 @using Snakk.Web.Helpers
+@using Snakk.Web.Services
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @inject Snakk.Web.Services.ICommunityContext CommunityContext
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersionProvider
+@{
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var themeCookie = isAuth ? Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
+    var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
+}
 <!DOCTYPE html>
-<html lang="en" data-theme="forest">
+<html lang="en" data-theme="@initialTheme">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -75,21 +81,26 @@
     }
     <meta name="dark-theme-css" content="@darkThemeCssUrl" />
 
-    @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC) and
-       to ensure data-theme matches the saved preference after a hard reload. Reads localStorage,
-       resolves auto→system, sets data-theme on <html>, and injects the dark CSS link if needed. *@
+    @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
+       For authenticated users: server already rendered the correct data-theme from the cookie.
+       This script only needs to handle the "auto" case (system dark preference) and inject the
+       dark CSS link. For unauthenticated users: always lofi, nothing to do. *@
     <script nonce="@(Context.Items["csp-nonce"] as string)">
         (function () {
             try {
-                var p = localStorage.getItem('snakk_theme_preference');
-                var isDark = p === 'dark' || ((!p || p === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'lofi');
+                @if (isAuth) {
+                <text>
+                var p = '@Html.Raw(themeCookie ?? "")';
+                var isDark = p === 'dark' || (p === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
                     var l = document.createElement('link');
                     l.id = 'dark-theme-css';
                     l.rel = 'stylesheet';
                     l.href = '@Html.Raw(darkThemeCssUrl)';
                     document.head.appendChild(l);
+                }
+                </text>
                 }
             } catch (e) { }
         })();
@@ -116,7 +127,7 @@
    inside the body MUST set hx-target="this" (or its own target), otherwise its response
    will replace #main-content and wipe the whole page. Required by hx-boost — boosted
    anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
-<body class="antialiased" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
+<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
     <div id="loading-bar" class="loading-bar"></div>
 
     @{

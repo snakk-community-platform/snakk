@@ -96,4 +96,25 @@ public static class AuthCookieHelper
         var value = ctx.Request.Cookies[TimezoneCookieName];
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
+
+    // Theme cookie (non-httponly, long-lived, values: "light" | "dark" | "auto")
+    public const string ThemeCookieName = ".Snakk.Pref.Theme";
+
+    public static void SetThemeCookie(HttpContext ctx, string? theme)
+    {
+        if (string.IsNullOrWhiteSpace(theme))
+        {
+            ctx.Response.Cookies.Delete(ThemeCookieName, new CookieOptions { Path = "/" });
+            return;
+        }
+
+        ctx.Response.Cookies.Append(ThemeCookieName, theme, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(365)
+        });
+    }
 }
