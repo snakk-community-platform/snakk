@@ -156,6 +156,9 @@
             wrapper.className = 'prose-img-wrap';
             const bgSrc = img.dataset.blur ?? thumb;
             wrapper.style.backgroundImage = `url(${bgSrc})`;
+            const w = img.getAttribute('width');
+            const h = img.getAttribute('height');
+            if (w && h) wrapper.style.aspectRatio = `${w} / ${h}`;
             img.parentNode!.insertBefore(wrapper, img);
             wrapper.appendChild(img);
 

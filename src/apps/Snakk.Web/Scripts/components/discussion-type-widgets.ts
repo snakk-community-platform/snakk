@@ -710,12 +710,21 @@
         } catch {}
     }
 
-    function loadEmbed(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null): void {
+    function setProviderConsent(domain: string): void {
+        const key = getEmbedProviderKey(domain);
+        if (!key) return;
+        try {
+            const consent: Record<string, string> = JSON.parse(localStorage.getItem('snakk:embed-consent') || '{}');
+            consent[key] = new Date().toISOString();
+            localStorage.setItem('snakk:embed-consent', JSON.stringify(consent));
+        } catch {}
+    }
+
+    function loadEmbed(container: HTMLElement, oembedHtml: string): void {
         const iframeSrc = extractIframeSrc(oembedHtml);
         if (!iframeSrc) return;
 
         container.querySelector('.link-preview-card')?.remove();
-        embedBtn?.remove();
 
         const embedContainer = document.createElement('div');
         embedContainer.className = 'link-embed-container';
@@ -730,31 +739,79 @@
         container.appendChild(embedContainer);
     }
 
-    function showEmbedPromptModal(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null, domain: string): void {
-        const modal = document.getElementById('embed-prompt-modal') as HTMLDialogElement | null;
-        if (!modal) return;
+    function showEmbedPromptInline(
+        container: HTMLElement,
+        oembedHtml: string,
+        domain: string
+    ): void {
+        const bodyPattern   = container.dataset.promptBody    || '';
+        const labelYes      = container.dataset.promptYes     || 'Yes';
+        const labelNo       = container.dataset.promptNo      || 'No';
+        const labelRemember = (container.dataset.promptRemember || 'Always allow content from {0}').replace('{0}', domain);
 
-        const bodyEl = modal.querySelector<HTMLElement>('#embed-prompt-body');
-        if (bodyEl) bodyEl.textContent = (bodyEl.dataset.pattern || '').replace('{0}', domain);
+        const prompt = document.createElement('div');
+        prompt.className = 'link-embed-prompt';
 
-        const remember = modal.querySelector<HTMLInputElement>('#embed-prompt-remember');
-        if (remember) remember.checked = true;
+        const body = document.createElement('p');
+        body.className = 'link-embed-prompt-body';
+        body.textContent = bodyPattern.replace('{0}', domain);
+        prompt.appendChild(body);
 
-        modal.showModal();
+        const actions = document.createElement('div');
+        actions.className = 'link-embed-prompt-actions';
 
-        modal.querySelector('[data-embed-yes]')?.addEventListener('click', () => {
-            if (remember?.checked) setProviderAutoEmbed(domain, true);
-            modal.close();
-            loadEmbed(container, oembedHtml, embedBtn);
+        const noBtn = document.createElement('button');
+        noBtn.type = 'button';
+        noBtn.className = 'btn btn-outline btn-sm';
+        noBtn.textContent = labelNo;
+
+        const yesGroup = document.createElement('div');
+        yesGroup.className = 'link-embed-prompt-yes-group';
+
+        const rememberLabel = document.createElement('label');
+        rememberLabel.className = 'link-embed-prompt-remember';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'toggle toggle-sm toggle-primary';
+        rememberLabel.appendChild(checkbox);
+        rememberLabel.append(' ' + labelRemember);
+
+        const yesBtn = document.createElement('button');
+        yesBtn.type = 'button';
+        yesBtn.className = 'btn btn-primary btn-sm';
+        yesBtn.textContent = labelYes;
+
+        yesGroup.appendChild(rememberLabel);
+        yesGroup.appendChild(yesBtn);
+        actions.appendChild(noBtn);
+        actions.appendChild(yesGroup);
+        prompt.appendChild(actions);
+        container.appendChild(prompt);
+
+        yesBtn.addEventListener('click', () => {
+            if (checkbox.checked) setProviderAutoEmbed(domain, true);
+            setProviderConsent(domain);
+            prompt.remove();
+            loadEmbed(container, oembedHtml);
         }, { once: true });
 
-        modal.querySelector('[data-embed-no]')?.addEventListener('click', () => {
-            if (remember?.checked) setProviderDenied(domain, true);
-            modal.close();
-        }, { once: true });
+        noBtn.addEventListener('click', () => {
+            setProviderDenied(domain, true);
+            prompt.remove();
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.close();
+            const msgPattern    = container.dataset.deniedMessage  || '';
+            const labelSettings = container.dataset.deniedSettings || 'browser settings';
+
+            const msg = document.createElement('p');
+            msg.className = 'link-embed-denied-msg';
+            const parts = msgPattern.replace('{0}', domain).split('{1}');
+            msg.append(parts[0] || '');
+            const a = document.createElement('a');
+            a.href = '/settings/browser';
+            a.textContent = labelSettings;
+            msg.append(a);
+            msg.append(parts[1] || '');
+            container.appendChild(msg);
         }, { once: true });
     }
 
@@ -762,26 +819,20 @@
         const container = document.getElementById('link-preview-container');
         if (!container) return;
 
-        const embedBtn = container.querySelector('.link-embed-btn') as HTMLButtonElement | null;
-        if (!embedBtn) return;
+        const oembedHtml = container.dataset.oembedHtml || '';
+        const domain = container.dataset.domain || '';
 
-        const oembedHtml = embedBtn.dataset.oembedHtml || '';
-        const domain = embedBtn.dataset.domain || '';
+        if (!oembedHtml) return;
 
         // Auto-load if user has enabled this provider
         if (domain && isProviderAutoEmbed(domain)) {
-            loadEmbed(container, oembedHtml, embedBtn);
+            loadEmbed(container, oembedHtml);
             return;
         }
 
-        // Always wire manual click as fallback (works even after modal dismissal)
-        embedBtn.addEventListener('click', () => {
-            loadEmbed(container, oembedHtml, embedBtn);
-        });
-
-        // Show prompt modal for known providers on first visit (neither auto-embed nor denied)
+        // Show inline prompt for known providers on first visit (neither auto-embed nor denied)
         if (domain && getEmbedProviderKey(domain) && !isProviderDenied(domain)) {
-            showEmbedPromptModal(container, oembedHtml, embedBtn, domain);
+            showEmbedPromptInline(container, oembedHtml, domain);
         }
     }
 

@@ -138,7 +138,7 @@
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-5 h-5" aria-hidden="true"></span>
     </a>
 </div>
-<script>
+<script nonce="@(Context.Items["csp-nonce"] as string)">
 (function () {
     const fab = document.getElementById('new-discussion-fab');
     const target = document.getElementById('rp-new-discussion');

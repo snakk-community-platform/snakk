@@ -14,12 +14,6 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_AuthPrompt" />
-        }
-        else
-        {
         <h2 class="sn-section-title">
             <span class="icon icon-globe" aria-hidden="true"></span>
             @T.Settings.HeadingBrowser
@@ -97,85 +91,136 @@
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupVideo</div>
                         <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="youtube" />
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">YouTube</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="vimeo" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="youtube">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Vimeo</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="tiktok" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="vimeo">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">TikTok</span>
-                            </label>
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="tiktok">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupSocial</div>
                         <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitter" />
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Twitter / X</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="bluesky" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitter">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Bluesky</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="reddit" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="bluesky">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Reddit</span>
-                            </label>
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="reddit">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupAudio</div>
                         <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="spotify" />
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Spotify</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="soundcloud" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="spotify">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">SoundCloud</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="bandcamp" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="soundcloud">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Bandcamp</span>
-                            </label>
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="bandcamp">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupStreaming</div>
                         <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="twitch" />
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Twitch</span>
-                            </label>
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitch">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupImages</div>
                         <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="imgur" />
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Imgur</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="codepen" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="imgur">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">CodePen</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" class="toggle toggle-sm toggle-primary" data-embed-provider="canva" />
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="codepen">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
                                 <span class="text-sm">Canva</span>
-                            </label>
+                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="canva">
+                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
         </div>
-        } @* end IsAuthenticated *@
     </div>
 </div>
 

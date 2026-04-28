@@ -378,7 +378,15 @@ else if (Model.Discussion != null)
         var linkImageSrc = Model.LinkInfo.HasImagePathUrl ? Model.LinkInfo.ImagePathUrl
                          : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
                          : null;
-        <div class="type-widget-container" id="link-preview-container">
+        <div class="type-widget-container" id="link-preview-container"
+             data-oembed-html="@Model.LinkInfo.OembedHtml"
+             data-domain="@linkDomain"
+             data-prompt-body="@T.Pages.DiscEmbedPromptBody"
+             data-prompt-yes="@T.Pages.DiscEmbedPromptYes"
+             data-prompt-no="@T.Pages.DiscEmbedPromptNo"
+             data-prompt-remember="@T.Pages.DiscEmbedPromptRemember"
+             data-denied-message="@T.Pages.DiscEmbedDeniedMessage"
+             data-denied-settings="@T.Pages.DiscEmbedDeniedSettings">
             <div class="link-preview-card">
                 @if (linkImageSrc is not null)
                 {
@@ -412,10 +420,6 @@ else if (Model.Discussion != null)
                     </span>
                 </div>
             </div>
-            @if (Model.LinkInfo.HasOembedHtml)
-            {
-                <button class="link-embed-btn" data-oembed-html="@Model.LinkInfo.OembedHtml" data-domain="@linkDomain">@string.Format(T.Pages.DiscLoadEmbedPattern, linkDomain)</button>
-            }
         </div>
     }
 

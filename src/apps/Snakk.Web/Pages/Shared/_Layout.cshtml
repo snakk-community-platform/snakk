@@ -78,7 +78,7 @@
     @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC) and
        to ensure data-theme matches the saved preference after a hard reload. Reads localStorage,
        resolves auto→system, sets data-theme on <html>, and injects the dark CSS link if needed. *@
-    <script>
+    <script nonce="@(Context.Items["csp-nonce"] as string)">
         (function () {
             try {
                 var p = localStorage.getItem('snakk_theme_preference');

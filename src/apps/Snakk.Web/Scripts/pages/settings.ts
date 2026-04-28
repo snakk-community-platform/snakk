@@ -721,29 +721,41 @@ interface SettingsPageConfig {
         const container = document.getElementById('embed-providers');
         if (!container) return;
 
-        const storageKey = 'snakk:embed-providers';
-        let prefs: Record<string, boolean> = {};
+        let autoPrefs: Record<string, boolean> = {};
+        let deniedPrefs: Record<string, boolean> = {};
         try {
-            prefs = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            autoPrefs   = JSON.parse(localStorage.getItem('snakk:embed-providers')        || '{}');
+            deniedPrefs = JSON.parse(localStorage.getItem('snakk:embed-denied-providers') || '{}');
         } catch { /* ignore */ }
 
-        const toggles = container.querySelectorAll<HTMLInputElement>('input[data-embed-provider]');
-        toggles.forEach(toggle => {
-            const provider = toggle.dataset.embedProvider || '';
-            toggle.checked = !!prefs[provider];
+        const selects = container.querySelectorAll<HTMLSelectElement>('select[data-embed-provider]');
+        selects.forEach(select => {
+            const provider = select.dataset.embedProvider || '';
+            if (autoPrefs[provider])   select.value = 'allow';
+            else if (deniedPrefs[provider]) select.value = 'deny';
+            else                            select.value = 'ask';
         });
 
         container.addEventListener('change', (e) => {
-            const toggle = (e.target as HTMLElement).closest('input[data-embed-provider]') as HTMLInputElement | null;
-            if (!toggle) return;
+            const select = (e.target as HTMLElement).closest('select[data-embed-provider]') as HTMLSelectElement | null;
+            if (!select) return;
 
-            const provider = toggle.dataset.embedProvider || '';
-            prefs[provider] = toggle.checked;
+            const provider = select.dataset.embedProvider || '';
+            const value    = select.value;
 
-            // Clean up false entries
-            if (!prefs[provider]) delete prefs[provider];
+            if (value === 'allow') {
+                autoPrefs[provider] = true;
+                delete deniedPrefs[provider];
+            } else if (value === 'deny') {
+                deniedPrefs[provider] = true;
+                delete autoPrefs[provider];
+            } else {
+                delete autoPrefs[provider];
+                delete deniedPrefs[provider];
+            }
 
-            localStorage.setItem(storageKey, JSON.stringify(prefs));
+            localStorage.setItem('snakk:embed-providers',        JSON.stringify(autoPrefs));
+            localStorage.setItem('snakk:embed-denied-providers', JSON.stringify(deniedPrefs));
         });
     }
 
@@ -1136,7 +1148,16 @@ interface SettingsPageConfig {
     }
 
     function boot(): void {
-        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); loadDiscordStatus(); });
+        const isAuthenticated = !!document.querySelector('meta[name="current-user-id"]');
+        if (isAuthenticated) {
+            initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); loadDiscordStatus(); });
+        } else {
+            initDisplayPreferences();
+            initSidebarStickiness();
+            initSkinTonePicker();
+            initEmbedPreferences();
+            initScrollspy();
+        }
     }
 
     if (document.readyState === 'loading') {

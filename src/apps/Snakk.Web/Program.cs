@@ -344,10 +344,14 @@ app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
 
+    // Generate a per-request nonce for inline scripts (theme flash prevention, FAB observer)
+    var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+    context.Items["csp-nonce"] = nonce;
+
     // Content Security Policy — allow self, Cloudflare Turnstile, inline styles (Tailwind), WebSocket for SignalR
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        "script-src 'self' https://challenges.cloudflare.com; " +
+        $"script-src 'self' 'nonce-{nonce}' https://challenges.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: blob: https:; " +
         "font-src 'self'; " +
