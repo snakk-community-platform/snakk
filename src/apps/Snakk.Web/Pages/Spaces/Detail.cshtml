@@ -215,6 +215,11 @@ else
         }
     </div>
 
+    @if (Model.Space.HasDiscordInviteUrl && !string.IsNullOrEmpty(Model.Space.DiscordInviteUrl))
+    {
+        <partial name="Shared/Sidebar/_DiscordCta" model="@Model.Space.DiscordInviteUrl" />
+    }
+
     <!-- Rules -->
     @if (Model.Space.HasRules)
     {

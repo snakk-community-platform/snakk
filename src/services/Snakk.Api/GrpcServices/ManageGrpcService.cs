@@ -206,6 +206,59 @@ public class ManageGrpcService(
         };
     }
 
+    public override async Task<SpaceDiscordSettingsResponse> GetSpaceDiscordSettings(
+        GetSpaceDiscordSettingsRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Space", request.SpacePublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var discord = await dbContext.Spaces
+            .Where(s => s.PublicId == request.SpacePublicId)
+            .Select(s => new { s.DiscordWebhookUrl, s.DiscordChannelName, s.DiscordInviteUrl })
+            .FirstOrDefaultAsync();
+
+        var response = new SpaceDiscordSettingsResponse();
+        if (discord?.DiscordWebhookUrl is not null) response.DiscordWebhookUrl = discord.DiscordWebhookUrl;
+        if (discord?.DiscordChannelName is not null) response.DiscordChannelName = discord.DiscordChannelName;
+        if (discord?.DiscordInviteUrl is not null) response.DiscordInviteUrl = discord.DiscordInviteUrl;
+        return response;
+    }
+
+    public override async Task<UpdateSpaceDiscordSettingsResponse> UpdateSpaceDiscordSettings(
+        UpdateSpaceDiscordSettingsRequest request,
+        ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Space", request.SpacePublicId, ManagePermissionEnum.ManageSettings);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var space = await dbContext.Spaces.FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
+        if (space is null)
+            return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
+
+        space.DiscordWebhookUrl = request.HasDiscordWebhookUrl && !string.IsNullOrWhiteSpace(request.DiscordWebhookUrl)
+            ? request.DiscordWebhookUrl.Trim() : null;
+        space.DiscordChannelName = request.HasDiscordChannelName && !string.IsNullOrWhiteSpace(request.DiscordChannelName)
+            ? request.DiscordChannelName.Trim() : null;
+        space.DiscordInviteUrl = request.HasDiscordInviteUrl && !string.IsNullOrWhiteSpace(request.DiscordInviteUrl)
+            ? request.DiscordInviteUrl.Trim() : null;
+        await dbContext.SaveChangesAsync();
+
+        return new UpdateSpaceDiscordSettingsResponse { Success = true };
+    }
+
     public override async Task<GetRulesResponse> GetRules(
         GetRulesRequest request,
         ServerCallContext context)

@@ -1,0 +1,14 @@
+@page "/c/{CommunitySlug}/discord"
+@page "/c/{CommunitySlug}/h/{HubSlug}/discord"
+@page "/c/{CommunitySlug}/h/{HubSlug}/s/{SpaceSlug}/discord"
+@layout ManageLayout
+
+<ManagePage CommunitySlug="@CommunitySlug" HubSlug="@HubSlug" SpaceSlug="@SpaceSlug">
+    <DiscordContent />
+</ManagePage>
+
+@code {
+    [Parameter] public string CommunitySlug { get; set; } = "";
+    [Parameter] public string? HubSlug { get; set; }
+    [Parameter] public string? SpaceSlug { get; set; }
+}

@@ -471,6 +471,93 @@ public class AuthGrpcService(
         return new Protos.Auth.MessageResponse { Message = "Feed token revoked" };
     }
 
+    public override async Task<GenerateDiscordLinkTokenResponse> GenerateDiscordLinkToken(
+        GenerateDiscordLinkTokenRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+
+        var token = Guid.NewGuid().ToString("N");
+        var expiry = DateTime.UtcNow.AddMinutes(15);
+        user.DiscordLinkToken = token;
+        user.DiscordLinkTokenExpiry = expiry;
+        await context.SaveChangesAsync();
+
+        return new GenerateDiscordLinkTokenResponse
+        {
+            Token = token,
+            ExpiresAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(expiry)
+        };
+    }
+
+    public override async Task<CompleteDiscordLinkResponse> CompleteDiscordLink(
+        CompleteDiscordLinkRequest request, ServerCallContext ctx)
+    {
+        var user = await context.Users.FirstOrDefaultAsync(u =>
+            u.DiscordLinkToken == request.LinkToken &&
+            u.DiscordLinkTokenExpiry != null &&
+            u.DiscordLinkTokenExpiry > DateTime.UtcNow);
+
+        if (user is null)
+            return new CompleteDiscordLinkResponse { Success = false, ErrorCode = "TOKEN_INVALID" };
+
+        var alreadyLinked = await context.Users.AnyAsync(u =>
+            u.DiscordUserId == request.DiscordUserId && u.PublicId != user.PublicId);
+        if (alreadyLinked)
+            return new CompleteDiscordLinkResponse { Success = false, ErrorCode = "ALREADY_LINKED" };
+
+        user.DiscordUserId = request.DiscordUserId;
+        user.DiscordUsername = request.DiscordUsername;
+        user.DiscordAvatarHash = request.HasDiscordAvatarHash ? request.DiscordAvatarHash : null;
+        user.DiscordLinkToken = null;
+        user.DiscordLinkTokenExpiry = null;
+        await context.SaveChangesAsync();
+
+        return new CompleteDiscordLinkResponse { Success = true };
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> UnlinkDiscord(
+        UnlinkDiscordRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+
+        user.DiscordUserId = null;
+        user.DiscordUsername = null;
+        user.DiscordAvatarHash = null;
+        user.DiscordLinkToken = null;
+        user.DiscordLinkTokenExpiry = null;
+        // OAuthProvider and OAuthProviderId are NOT touched
+        await context.SaveChangesAsync();
+
+        return new Protos.Auth.MessageResponse { Message = "Discord unlinked" };
+    }
+
+    public override async Task<DiscordStatusResponse> GetDiscordStatus(
+        GetDiscordStatusRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var discord = await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => new { u.DiscordUserId, u.DiscordUsername, u.DiscordAvatarHash })
+            .FirstOrDefaultAsync();
+
+        if (discord?.DiscordUserId is null)
+            return new DiscordStatusResponse { IsLinked = false };
+
+        var response = new DiscordStatusResponse
+        {
+            IsLinked = true,
+            DiscordUserId = discord.DiscordUserId,
+            DiscordUsername = discord.DiscordUsername ?? ""
+        };
+        if (discord.DiscordAvatarHash is not null)
+            response.DiscordAvatarHash = discord.DiscordAvatarHash;
+        return response;
+    }
+
     private UserId RequireAuth()
     {
         if (!currentUser.IsAuthenticated())

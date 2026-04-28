@@ -1,0 +1,9 @@
+@using Snakk.Web.Helpers
+@model string
+<div class="sn-right-section">
+    <div class="sn-right-title">@T.Sections.DiscordCtaTitle</div>
+    <p class="text-sm mb-3" style="color: var(--text-secondary)">@T.Sections.DiscordCtaBody</p>
+    <a href="@Model" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm w-full">
+        @T.Sections.DiscordCtaButton
+    </a>
+</div>

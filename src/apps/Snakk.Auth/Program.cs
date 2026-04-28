@@ -122,6 +122,20 @@ if (!string.IsNullOrEmpty(discordClientId))
         options.Scope.Add("email");
         options.Events.OnRemoteFailure = OnRemoteFailure("Discord");
     });
+
+    // Second Discord scheme for account linking (no email scope, different callback path)
+    builder.Services.AddAuthentication().AddDiscord("DiscordLink", options =>
+    {
+        options.ClientId = discordClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/discord-link/callback";
+        options.Events.OnRemoteFailure = context =>
+        {
+            context.Response.Redirect("/discord-link/error?reason=oauth_failed");
+            context.HandleResponse();
+            return Task.CompletedTask;
+        };
+    });
 }
 
 // Configure forwarded headers — trust only internal Docker/private networks, not any source

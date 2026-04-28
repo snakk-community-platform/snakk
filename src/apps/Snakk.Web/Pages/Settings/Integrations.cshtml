@@ -77,6 +77,33 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Discord -->
+            <div id="section-discord" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.IntgDiscordTitle</h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.IntgDiscordIntro
+                </p>
+
+                @if (Model.DiscordStatus == "linked")
+                {
+                    <div class="alert alert-success mb-4 text-sm">@T.Settings.IntgDiscordLinkedSuccess</div>
+                }
+                else if (Model.DiscordStatus == "error")
+                {
+                    <div class="alert alert-error mb-4 text-sm">@T.Settings.IntgDiscordLinkError</div>
+                }
+
+                <div id="discord-not-linked" class="hidden">
+                    <button type="button" class="btn btn-primary btn-sm" id="discord-link-btn">@T.Settings.IntgDiscordConnect</button>
+                </div>
+                <div id="discord-linked" class="hidden">
+                    <p class="text-sm mb-3">
+                        <span id="discord-username-display" class="font-medium"></span>
+                    </p>
+                    <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="discord-unlink-btn">@T.Settings.IntgDiscordDisconnect</button>
+                </div>
+            </div>
         </div>
         } @* end IsAuthenticated *@
     </div>

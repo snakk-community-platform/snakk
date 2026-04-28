@@ -8,6 +8,8 @@ service ManageService {
   rpc ResolveScope (ResolveScopeRequest) returns (ResolveScopeResponse);
   rpc GetSpaceSettings (GetSpaceSettingsRequest) returns (SpaceSettingsResponse);
   rpc UpdateSpaceSettings (UpdateSpaceSettingsRequest) returns (UpdateSpaceSettingsResponse);
+  rpc GetSpaceDiscordSettings    (GetSpaceDiscordSettingsRequest)    returns (SpaceDiscordSettingsResponse);
+  rpc UpdateSpaceDiscordSettings (UpdateSpaceDiscordSettingsRequest) returns (UpdateSpaceDiscordSettingsResponse);
   rpc GetCommunitySettings (GetCommunitySettingsRequest) returns (CommunitySettingsResponse);
   rpc UpdateCommunitySettings (UpdateCommunitySettingsRequest) returns (UpdateCommunitySettingsResponse);
   rpc GetHubSettings (GetHubSettingsRequest) returns (HubSettingsResponse);
@@ -815,4 +817,22 @@ message DeleteGroupGrantRequest {
 
 message DeleteGroupGrantResponse {
   bool success = 1;
+}
+
+// Discord space settings
+message GetSpaceDiscordSettingsRequest { string space_public_id = 1; }
+message SpaceDiscordSettingsResponse {
+  optional string discord_webhook_url  = 1;
+  optional string discord_channel_name = 2;
+  optional string discord_invite_url   = 3;
+}
+message UpdateSpaceDiscordSettingsRequest {
+  string space_public_id = 1;
+  optional string discord_webhook_url  = 2;
+  optional string discord_channel_name = 3;
+  optional string discord_invite_url   = 4;
+}
+message UpdateSpaceDiscordSettingsResponse {
+  bool success = 1;
+  optional string error_message = 2;
 }

@@ -1,8 +1,10 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.EntityFrameworkCore;
 using Snakk.Shared.Helpers;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
+using Snakk.Infrastructure.Database;
 using Snakk.Protos.User;
 using Snakk.Shared.Enums;
 
@@ -10,7 +12,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class UserGrpcService(
     UserProfileUseCase userProfileUseCase,
-    IUserRepository userRepository) : UserService.UserServiceBase
+    IUserRepository userRepository,
+    SnakkDbContext dbContext) : UserService.UserServiceBase
 {
     public override async Task<UserProfileInfo> GetUserProfile(GetUserProfileRequest request, ServerCallContext context)
     {
@@ -37,6 +40,16 @@ public class UserGrpcService(
 
         if (profile.AvatarThumbnailFileName is not null)
             response.AvatarThumbnailFileName = profile.AvatarThumbnailFileName;
+
+        var discord = await dbContext.Users
+            .Where(u => u.PublicId == request.PublicId && u.DiscordUserId != null)
+            .Select(u => new { u.DiscordUserId, u.DiscordUsername })
+            .FirstOrDefaultAsync();
+        if (discord is not null)
+        {
+            response.DiscordUserId = discord.DiscordUserId!;
+            response.DiscordUsername = discord.DiscordUsername ?? "";
+        }
 
         if (profile.Bio is not null)
             response.Bio = profile.Bio;

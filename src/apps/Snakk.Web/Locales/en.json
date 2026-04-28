@@ -317,7 +317,14 @@
         "intgTokenHelp":          "Generate a token for authenticated feeds (e.g. your followed discussions). Keep it secret — anyone with the token can read your feeds.",
         "intgGenerate":           "Generate Token",
         "intgRegenerate":         "Regenerate",
-        "intgRevoke":             "Revoke"
+        "intgRevoke":             "Revoke",
+        "intgDiscordTitle":       "Discord",
+        "intgDiscordIntro":       "Connect your Discord account to show your Discord username on your profile.",
+        "intgDiscordConnect":     "Connect Discord",
+        "intgDiscordDisconnect":  "Disconnect Discord",
+        "intgDiscordLinkedSuccess": "Discord account connected successfully.",
+        "intgDiscordLinkError":   "Failed to connect Discord account. Please try again.",
+        "navDiscord":             "Discord"
     },
     "sections": {
         "siteStats":                "Site Stats",
@@ -334,7 +341,10 @@
         "topContributors":          "Top Contributors",
         "emptyLatestContributors":  "No recent contributors yet",
         "emptyTopSpaces":           "No top spaces yet",
-        "emptyTopContributors":     "No top contributors yet"
+        "emptyTopContributors":     "No top contributors yet",
+        "discordCtaTitle":          "Join on Discord",
+        "discordCtaBody":           "This space has a Discord community. Join the conversation there too.",
+        "discordCtaButton":         "Join Discord"
     },
     "pages": {
         "indexTitle":               "Not just posts. Conversations.",

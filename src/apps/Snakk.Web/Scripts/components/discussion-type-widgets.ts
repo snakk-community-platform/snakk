@@ -675,23 +675,48 @@
         }
     }
 
-    function loadEmbed(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null, auto: boolean): void {
+    const DENIED_KEY = 'snakk:embed-denied-providers';
+
+    function isProviderDenied(domain: string): boolean {
+        const key = getEmbedProviderKey(domain);
+        if (!key) return false;
+        try {
+            const denied: Record<string, boolean> = JSON.parse(localStorage.getItem(DENIED_KEY) || '{}');
+            return !!denied[key];
+        } catch {
+            return false;
+        }
+    }
+
+    function setProviderDenied(domain: string, deny: boolean): void {
+        const key = getEmbedProviderKey(domain);
+        if (!key) return;
+        try {
+            const denied: Record<string, boolean> = JSON.parse(localStorage.getItem(DENIED_KEY) || '{}');
+            if (deny) denied[key] = true;
+            else delete denied[key];
+            localStorage.setItem(DENIED_KEY, JSON.stringify(denied));
+        } catch {}
+    }
+
+    function setProviderAutoEmbed(domain: string, enabled: boolean): void {
+        const key = getEmbedProviderKey(domain);
+        if (!key) return;
+        try {
+            const prefs: Record<string, boolean> = JSON.parse(localStorage.getItem('snakk:embed-providers') || '{}');
+            if (enabled) prefs[key] = true;
+            else delete prefs[key];
+            localStorage.setItem('snakk:embed-providers', JSON.stringify(prefs));
+        } catch {}
+    }
+
+    function loadEmbed(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null): void {
         const iframeSrc = extractIframeSrc(oembedHtml);
         if (!iframeSrc) return;
 
-        const card = container.querySelector('.link-preview-card') as HTMLElement | null;
+        container.querySelector('.link-preview-card')?.remove();
+        embedBtn?.remove();
 
-        if (auto) {
-            // Auto-embed: remove card and button entirely
-            card?.remove();
-            embedBtn?.remove();
-        } else {
-            // Manual: hide so they can be restored
-            if (card) card.style.display = 'none';
-            if (embedBtn) embedBtn.style.display = 'none';
-        }
-
-        // Build embed container
         const embedContainer = document.createElement('div');
         embedContainer.className = 'link-embed-container';
 
@@ -702,21 +727,35 @@
         iframe.style.aspectRatio = '16 / 9';
         embedContainer.appendChild(iframe);
 
-        if (!auto) {
-            // Back button only for manual embeds
-            const backBtn = document.createElement('button');
-            backBtn.className = 'link-embed-btn';
-            backBtn.textContent = 'Show link card';
-            backBtn.addEventListener('click', () => {
-                embedContainer.remove();
-                backBtn.remove();
-                if (card) card.style.display = '';
-                if (embedBtn) embedBtn.style.display = '';
-            });
-            container.appendChild(backBtn);
-        }
-
         container.appendChild(embedContainer);
+    }
+
+    function showEmbedPromptModal(container: HTMLElement, oembedHtml: string, embedBtn: HTMLButtonElement | null, domain: string): void {
+        const modal = document.getElementById('embed-prompt-modal') as HTMLDialogElement | null;
+        if (!modal) return;
+
+        const bodyEl = modal.querySelector<HTMLElement>('#embed-prompt-body');
+        if (bodyEl) bodyEl.textContent = (bodyEl.dataset.pattern || '').replace('{0}', domain);
+
+        const remember = modal.querySelector<HTMLInputElement>('#embed-prompt-remember');
+        if (remember) remember.checked = true;
+
+        modal.showModal();
+
+        modal.querySelector('[data-embed-yes]')?.addEventListener('click', () => {
+            if (remember?.checked) setProviderAutoEmbed(domain, true);
+            modal.close();
+            loadEmbed(container, oembedHtml, embedBtn);
+        }, { once: true });
+
+        modal.querySelector('[data-embed-no]')?.addEventListener('click', () => {
+            if (remember?.checked) setProviderDenied(domain, true);
+            modal.close();
+        }, { once: true });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.close();
+        }, { once: true });
     }
 
     function initLinkEmbed(): void {
@@ -731,14 +770,19 @@
 
         // Auto-load if user has enabled this provider
         if (domain && isProviderAutoEmbed(domain)) {
-            loadEmbed(container, oembedHtml, embedBtn, true);
+            loadEmbed(container, oembedHtml, embedBtn);
             return;
         }
 
-        // Manual click
+        // Always wire manual click as fallback (works even after modal dismissal)
         embedBtn.addEventListener('click', () => {
-            loadEmbed(container, oembedHtml, embedBtn, false);
+            loadEmbed(container, oembedHtml, embedBtn);
         });
+
+        // Show prompt modal for known providers on first visit (neither auto-embed nor denied)
+        if (domain && getEmbedProviderKey(domain) && !isProviderDenied(domain)) {
+            showEmbedPromptModal(container, oembedHtml, embedBtn, domain);
+        }
     }
 
     // Expose for Razor onclick

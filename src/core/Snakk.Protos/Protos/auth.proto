@@ -28,6 +28,12 @@ service AuthService {
   rpc GenerateFeedToken (GenerateFeedTokenRequest) returns (FeedTokenResponse);
   rpc RevokeFeedToken (RevokeFeedTokenRequest) returns (MessageResponse);
 
+  // Discord account linking (separate from OAuth login)
+  rpc GenerateDiscordLinkToken (GenerateDiscordLinkTokenRequest) returns (GenerateDiscordLinkTokenResponse);
+  rpc CompleteDiscordLink       (CompleteDiscordLinkRequest)       returns (CompleteDiscordLinkResponse);
+  rpc UnlinkDiscord             (UnlinkDiscordRequest)             returns (MessageResponse);
+  rpc GetDiscordStatus          (GetDiscordStatusRequest)          returns (DiscordStatusResponse);
+
   // OAuth (server-to-server only — challenge/callback stay as HTTP redirects)
   rpc OAuthCallback (OAuthCallbackRequest) returns (OAuthCallbackResponse);
 
@@ -201,4 +207,31 @@ message GenerateFeedTokenRequest {}
 message RevokeFeedTokenRequest {}
 message FeedTokenResponse {
   string token = 1;
+}
+
+// Discord account linking
+message GenerateDiscordLinkTokenRequest {}
+message GenerateDiscordLinkTokenResponse {
+  string token = 1;
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+message CompleteDiscordLinkRequest {
+  string link_token = 1;
+  string discord_user_id = 2;
+  string discord_username = 3;
+  optional string discord_avatar_hash = 4;
+}
+message CompleteDiscordLinkResponse {
+  bool success = 1;
+  optional string error_code = 2;
+}
+
+message UnlinkDiscordRequest {}
+message GetDiscordStatusRequest {}
+message DiscordStatusResponse {
+  bool is_linked = 1;
+  optional string discord_username = 2;
+  optional string discord_user_id = 3;
+  optional string discord_avatar_hash = 4;
 }

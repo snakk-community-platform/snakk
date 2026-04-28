@@ -50,6 +50,11 @@ public class SpaceDatabaseEntity
     // Team revision for moderator list cache-busting
     public string? TeamRevision { get; set; }
 
+    // Discord integration
+    public string? DiscordWebhookUrl { get; set; }
+    public string? DiscordChannelName { get; set; }  // Display only, e.g. "#general"
+    public string? DiscordInviteUrl { get; set; }    // Shown in sidebar CTA
+
     // Denormalized counts for performance
     public int DiscussionCount { get; set; }
     public int PostCount { get; set; }

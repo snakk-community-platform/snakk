@@ -511,6 +511,64 @@ interface SettingsPageConfig {
         }
     }
 
+    function updateDiscordUI(isLinked: boolean, username: string | null): void {
+        const notLinked = document.getElementById('discord-not-linked');
+        const linked = document.getElementById('discord-linked');
+        const display = document.getElementById('discord-username-display');
+        if (!notLinked || !linked) return;
+        if (isLinked) {
+            notLinked.classList.add('hidden');
+            linked.classList.remove('hidden');
+            if (display) display.textContent = username ?? '';
+        } else {
+            notLinked.classList.remove('hidden');
+            linked.classList.add('hidden');
+        }
+    }
+
+    async function loadDiscordStatus(): Promise<void> {
+        if (!document.getElementById('section-discord')) return;
+        try {
+            const response = await fetch('/bff/me/discord/status', { credentials: 'include' });
+            if (!response.ok) return;
+            const data = await response.json();
+            updateDiscordUI(data.isLinked, data.discordUsername ?? null);
+        } catch {
+            // Silently fail
+        }
+    }
+
+    async function handleDiscordLink(): Promise<void> {
+        try {
+            const response = await fetch('/bff/me/discord/link-token', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (!response.ok) { showMessage('Failed to initiate Discord link', true); return; }
+            const data = await response.json();
+            window.location.href = data.linkUrl;
+        } catch {
+            showMessage('Network error. Please try again.', true);
+        }
+    }
+
+    async function handleDiscordUnlink(): Promise<void> {
+        if (!confirm('Disconnect your Discord account?')) return;
+        try {
+            const response = await fetch('/bff/me/discord', {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            if (response.ok) {
+                updateDiscordUI(false, null);
+            } else {
+                showMessage('Failed to disconnect Discord', true);
+            }
+        } catch {
+            showMessage('Network error. Please try again.', true);
+        }
+    }
+
     async function handleTimezoneChange(select: HTMLSelectElement): Promise<void> {
         const timezone = select.value;
 
@@ -847,6 +905,18 @@ interface SettingsPageConfig {
             revokeTokenBtn.dataset.initialized = 'true';
             revokeTokenBtn.addEventListener('click', handleRevokeFeedToken);
         }
+
+        const discordLinkBtn = document.getElementById('discord-link-btn');
+        if (discordLinkBtn && !discordLinkBtn.dataset.initialized) {
+            discordLinkBtn.dataset.initialized = 'true';
+            discordLinkBtn.addEventListener('click', handleDiscordLink);
+        }
+
+        const discordUnlinkBtn = document.getElementById('discord-unlink-btn');
+        if (discordUnlinkBtn && !discordUnlinkBtn.dataset.initialized) {
+            discordUnlinkBtn.dataset.initialized = 'true';
+            discordUnlinkBtn.addEventListener('click', handleDiscordUnlink);
+        }
     }
 
     // Register revoke-device action with global delegation system
@@ -1066,7 +1136,7 @@ interface SettingsPageConfig {
     }
 
     function boot(): void {
-        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); });
+        initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); loadDiscordStatus(); });
     }
 
     if (document.readyState === 'loading') {

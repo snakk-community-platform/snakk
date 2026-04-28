@@ -36,6 +36,7 @@ public class SpaceGrpcService(
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value);
 
         return info;
     }
@@ -52,6 +53,7 @@ public class SpaceGrpcService(
 
         var info = MapToProto(result.Value);
         await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value);
 
         return info;
     }
@@ -207,6 +209,16 @@ public class SpaceGrpcService(
 
     private sealed record LatestDiscussionMeta(string PublicId, string Title, string Slug, DateTime LastActivityAt, string AuthorPublicId, string AuthorDisplayName, string? AuthorAvatarFileName, int PostCount);
     private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null);
+    private async Task PopulateDiscordInviteUrlAsync(SpaceInfo info, string publicId)
+    {
+        var inviteUrl = await dbContext.Spaces
+            .Where(s => s.PublicId == publicId && s.DiscordInviteUrl != null)
+            .Select(s => s.DiscordInviteUrl)
+            .FirstOrDefaultAsync();
+        if (inviteUrl is not null)
+            info.DiscordInviteUrl = inviteUrl;
+    }
+
     private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     private async Task PopulateRulesMetadata(SpaceInfo info, string publicId)

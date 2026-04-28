@@ -1,0 +1,135 @@
+@using Snakk.Protos.Manage
+@inject ManageService.ManageServiceClient ManageClient
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">Discord Integration</MudText>
+</MudPaper>
+
+@if (Scope?.ScopeType != "Space")
+{
+    <MudPaper Class="pa-4">
+        <MudAlert Severity="Severity.Info">Discord integration settings are only available for spaces.</MudAlert>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-4">
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_loadError is not null)
+        {
+            <MudAlert Severity="Severity.Error">@_loadError</MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="4" Style="max-width: 600px;">
+                <MudText Typo="Typo.body2" Style="opacity: 0.7;">
+                    Configure a Discord webhook to receive notifications when new discussions or replies are posted in this space.
+                </MudText>
+
+                <MudTextField @bind-Value="_webhookUrl"
+                              Label="Webhook URL"
+                              HelperText="Discord webhook URL for notifications (e.g. https://discord.com/api/webhooks/...)"
+                              InputType="InputType.Url" />
+
+                <MudTextField @bind-Value="_channelName"
+                              Label="Channel Name"
+                              HelperText="Display only, e.g. #general" />
+
+                <MudTextField @bind-Value="_inviteUrl"
+                              Label="Invite URL"
+                              HelperText="Discord invite link shown in the space sidebar (e.g. https://discord.gg/...)"
+                              InputType="InputType.Url" />
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveSettings"
+                           Disabled="@_saving">
+                    @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                    Save Discord Settings
+                </MudButton>
+
+                @if (_saved)
+                {
+                    <MudAlert Severity="Severity.Success">Discord settings saved</MudAlert>
+                }
+                @if (_saveError is not null)
+                {
+                    <MudAlert Severity="Severity.Error">@_saveError</MudAlert>
+                }
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+#nullable enable
+    [CascadingParameter]
+    public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+    private string _webhookUrl = "";
+    private string _channelName = "";
+    private string _inviteUrl = "";
+    private string? _loadError;
+    private string? _saveError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope?.ScopeType != "Space") { _loading = false; return; }
+
+        _loading = true;
+        _loadError = null;
+
+        try
+        {
+            var response = await ManageClient.GetSpaceDiscordSettingsAsync(
+                new GetSpaceDiscordSettingsRequest { SpacePublicId = Scope.ScopePublicId });
+
+            _webhookUrl = response.HasDiscordWebhookUrl ? response.DiscordWebhookUrl : "";
+            _channelName = response.HasDiscordChannelName ? response.DiscordChannelName : "";
+            _inviteUrl = response.HasDiscordInviteUrl ? response.DiscordInviteUrl : "";
+        }
+        catch
+        {
+            _loadError = "Failed to load Discord settings.";
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveSettings()
+    {
+        if (Scope?.ScopeType != "Space") return;
+
+        _saving = true;
+        _saved = false;
+        _saveError = null;
+
+        try
+        {
+            var request = new UpdateSpaceDiscordSettingsRequest
+            {
+                SpacePublicId = Scope.ScopePublicId,
+                DiscordWebhookUrl = string.IsNullOrWhiteSpace(_webhookUrl) ? null : _webhookUrl.Trim(),
+                DiscordChannelName = string.IsNullOrWhiteSpace(_channelName) ? null : _channelName.Trim(),
+                DiscordInviteUrl = string.IsNullOrWhiteSpace(_inviteUrl) ? null : _inviteUrl.Trim()
+            };
+
+            var response = await ManageClient.UpdateSpaceDiscordSettingsAsync(request);
+
+            if (response.Success)
+                _saved = true;
+            else
+                _saveError = response.HasErrorMessage ? response.ErrorMessage : "Failed to save Discord settings. Please try again.";
+        }
+        catch
+        {
+            _saveError = "Failed to save Discord settings. Please try again.";
+        }
+
+        _saving = false;
+    }
+}

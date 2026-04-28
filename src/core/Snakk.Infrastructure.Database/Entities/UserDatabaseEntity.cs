@@ -65,6 +65,13 @@ public class UserDatabaseEntity
     public string? TwoFactorSecret { get; set; } // Base32-encoded TOTP secret
     public DateTime? TwoFactorEnabledAt { get; set; }
 
+    // Discord account linking (separate from OAuthProvider/OAuthProviderId which controls login)
+    public string? DiscordUserId { get; set; }
+    public string? DiscordUsername { get; set; }
+    public string? DiscordAvatarHash { get; set; }
+    public string? DiscordLinkToken { get; set; }         // Single-use GUID, 15-min TTL
+    public DateTime? DiscordLinkTokenExpiry { get; set; } // UTC
+
     // Navigation properties
     public virtual ICollection<TwoFactorTrustedDeviceDatabaseEntity> TwoFactorTrustedDevices { get; set; } = [];
     public virtual ICollection<TwoFactorBackupCodeDatabaseEntity> TwoFactorBackupCodes { get; set; } = [];

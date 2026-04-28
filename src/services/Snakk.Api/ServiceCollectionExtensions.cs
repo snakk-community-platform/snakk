@@ -209,6 +209,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
         services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
         services.AddHttpClient("LinkMetadata");
+        services.AddHttpClient("DiscordWebhook", client => { client.Timeout = TimeSpan.FromSeconds(5); });
+        services.AddScoped<Application.Services.IDiscordNotificationService,
+            Infrastructure.Services.DiscordNotificationService>();
         services.AddScoped<ILinkMetadataService, Infrastructure.Services.LinkMetadataService>();
         services.AddScoped<IDiscussionExtensionService, Infrastructure.Services.DiscussionExtensionService>();
         services.AddScoped<IPollService, Infrastructure.Services.PollService>();
@@ -264,6 +267,12 @@ public static class ServiceCollectionExtensions
             Infrastructure.EventHandlers.Activity.FollowCreatedActivityHandler>();
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserCreatedEvent>,
             Infrastructure.EventHandlers.Activity.UserCreatedActivityHandler>();
+
+        // Discord Webhook Notification Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
+            Infrastructure.EventHandlers.Discord.DiscussionCreatedDiscordHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.PostCreatedEvent>,
+            Infrastructure.EventHandlers.Discord.PostCreatedDiscordHandler>();
 
         // Services
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

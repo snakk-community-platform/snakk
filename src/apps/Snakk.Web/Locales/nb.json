@@ -317,7 +317,14 @@
         "intgTokenHelp":          "Generer et token for autentiserte feeder (f.eks. diskusjoner du følger). Hold det hemmelig — alle med tokenet kan lese feedene dine.",
         "intgGenerate":           "Generer token",
         "intgRegenerate":         "Regenerer",
-        "intgRevoke":             "Tilbakekall"
+        "intgRevoke":             "Tilbakekall",
+        "intgDiscordTitle":       "Discord",
+        "intgDiscordIntro":       "Koble til Discord-kontoen din for å vise Discord-brukernavnet ditt på profilen din.",
+        "intgDiscordConnect":     "Koble til Discord",
+        "intgDiscordDisconnect":  "Koble fra Discord",
+        "intgDiscordLinkedSuccess": "Discord-konto koblet til.",
+        "intgDiscordLinkError":   "Kunne ikke koble til Discord-konto. Prøv igjen.",
+        "navDiscord":             "Discord"
     },
     "sections": {
         "siteStats":                "Sidestatistikk",
@@ -334,7 +341,10 @@
         "topContributors":          "Toppbidragsytere",
         "emptyLatestContributors":  "Ingen nylige bidragsytere ennå",
         "emptyTopSpaces":           "Ingen topprom ennå",
-        "emptyTopContributors":     "Ingen toppbidragsytere ennå"
+        "emptyTopContributors":     "Ingen toppbidragsytere ennå",
+        "discordCtaTitle":          "Bli med på Discord",
+        "discordCtaBody":           "Dette rommet har et Discord-fellesskap. Bli med i samtalen der også.",
+        "discordCtaButton":         "Bli med på Discord"
     },
     "pages": {
         "indexTitle":               "Ikke bare innlegg. Samtaler.",

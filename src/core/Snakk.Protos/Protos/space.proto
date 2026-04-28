@@ -66,6 +66,7 @@ message SpaceInfo {
   optional string avatar_thumbnail_file_name = 21;
   bool is_adult_only = 22;
   bool allows_adult_content = 23;
+  optional string discord_invite_url = 24;
 }
 
 message LatestDiscussionRef {

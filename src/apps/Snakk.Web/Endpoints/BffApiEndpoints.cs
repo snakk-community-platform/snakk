@@ -209,6 +209,13 @@ public static class BffApiEndpoints
         group.MapDelete("/me/feed-token", RevokeFeedTokenAsync)
             .WithName("BffRevokeFeedToken");
 
+        group.MapPost("/me/discord/link-token", GenerateDiscordLinkTokenAsync)
+            .WithName("BffGenerateDiscordLinkToken");
+        group.MapDelete("/me/discord", UnlinkDiscordAsync)
+            .WithName("BffUnlinkDiscord");
+        group.MapGet("/me/discord/status", GetDiscordStatusAsync)
+            .WithName("BffGetDiscordStatus");
+
         // Search operations
         group.MapGet("/search/discussions", SearchDiscussionsAsync)
             .WithName("BffSearchDiscussions");
@@ -2130,6 +2137,41 @@ public static class BffApiEndpoints
 
         var success = await apiClient.RevokeFeedTokenAsync();
         return success ? Results.Ok() : Results.StatusCode(503);
+    }
+
+    private static async Task<IResult> GenerateDiscordLinkTokenAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.GenerateDiscordLinkTokenAsync();
+        if (result is null) return Results.StatusCode(503);
+        var linkUrl = $"/auth/discord-link/challenge?linkToken={Uri.EscapeDataString(result.Token)}";
+        return Results.Ok(new { token = result.Token, linkUrl });
+    }
+
+    private static async Task<IResult> UnlinkDiscordAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var success = await apiClient.UnlinkDiscordAsync();
+        return success ? Results.Ok() : Results.StatusCode(503);
+    }
+
+    private static async Task<IResult> GetDiscordStatusAsync(SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var status = await apiClient.GetDiscordStatusAsync();
+        if (status is null) return Results.StatusCode(503);
+        return Results.Ok(new
+        {
+            isLinked = status.IsLinked,
+            discordUsername = status.HasDiscordUsername ? status.DiscordUsername : null,
+            discordUserId = status.HasDiscordUserId ? status.DiscordUserId : null
+        });
     }
 
     private static async Task<IResult> ToggleSaveDiscussionAsync(string discussionId,

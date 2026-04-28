@@ -110,6 +110,13 @@
                     <MudNavLink Href="@($"{BaseUrl}/access")" Icon="@Icons.Material.Filled.Lock">
                         Access Control
                     </MudNavLink>
+
+                    @if (Scope?.ScopeType == "Space")
+                    {
+                        <MudNavLink Href="@($"{BaseUrl}/discord")" Icon="@Icons.Material.Filled.Forum">
+                            Discord
+                        </MudNavLink>
+                    }
                 }
 
                 @if (Scope?.ScopeType == "Community" && HasPermission(ManagePermissionEnum.ManageGroups))

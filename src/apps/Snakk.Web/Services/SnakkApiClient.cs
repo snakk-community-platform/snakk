@@ -859,6 +859,28 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 
+    public virtual async Task<GenerateDiscordLinkTokenResponse?> GenerateDiscordLinkTokenAsync()
+    {
+        try { return await authClient.GenerateDiscordLinkTokenAsync(new GenerateDiscordLinkTokenRequest()); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<bool> UnlinkDiscordAsync()
+    {
+        try
+        {
+            await authClient.UnlinkDiscordAsync(new UnlinkDiscordRequest());
+            return true;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
+    }
+
+    public virtual async Task<DiscordStatusResponse?> GetDiscordStatusAsync()
+    {
+        try { return await authClient.GetDiscordStatusAsync(new GetDiscordStatusRequest()); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     public virtual async Task LogoutAsync()
     {
         try { await authClient.LogoutAsync(new LogoutRequest()); }
